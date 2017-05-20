@@ -31,7 +31,7 @@ class DistType(EntityType):
             elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
                 return value.dist
             elif isinstance(value, IndexRecord):
-                return Dist.from_string(value.fn, channel_override=value.schannel)
+                return Dist.from_string(value.fn, channel_override=value.channel.canonical_name)
             elif isinstance(value, PackageInfo):
                 return Dist.from_string(value.repodata_record.fn,
                                         channel_override=value.channel.canonical_name)

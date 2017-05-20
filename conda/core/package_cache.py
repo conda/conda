@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import ENOENT
 from functools import reduce
 from logging import getLogger
 from os import listdir
@@ -11,7 +10,7 @@ from traceback import format_exc
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
-from .._vendor.auxlib.decorators import memoizemethod
+from .._vendor.auxlib.path import expand
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
@@ -19,10 +18,10 @@ from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory
-from ..gateways.disk.read import compute_md5sum, isdir, isfile, islink, read_repodata_json
+from ..gateways.disk.read import compute_md5sum, isdir, isfile, islink
 from ..gateways.disk.test import file_path_is_writable
-from ..models.channel import Channel
 from ..models.dist import Dist
+from ..models.package_cache_record import PackageCacheRecord
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby, remove
@@ -69,81 +68,6 @@ class UrlsData(object):
         return first(self, lambda url: basename(url) == package_path)
 
 
-class PackageCacheEntry(object):
-
-    @classmethod
-    def make_legacy(cls, pkgs_dir, dist):
-        # the dist object here should be created using a full url to the tarball
-        extracted_package_dir = join(pkgs_dir, dist.dist_name)
-        package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
-        return cls(pkgs_dir, dist, package_tarball_full_path, extracted_package_dir)
-
-    def __init__(self, pkgs_dir, dist, package_tarball_full_path, extracted_package_dir):
-        # the channel object here should be created using a full url to the tarball
-        self.pkgs_dir = pkgs_dir
-        self.dist = dist
-        self.package_tarball_full_path = package_tarball_full_path
-        self.extracted_package_dir = extracted_package_dir
-        self.channel = Channel(dist.to_url()) if dist.is_channel else Channel(None)
-
-    @property
-    def is_fetched(self):
-        return isfile(self.package_tarball_full_path)
-
-    @property
-    def is_extracted(self):
-        epd = self.extracted_package_dir
-        return isdir(epd) and isfile(join(epd, 'info', 'index.json'))
-
-    @property
-    def tarball_basename(self):
-        return basename(self.package_tarball_full_path)
-
-    def tarball_matches_md5(self, md5sum):
-        return self.md5sum == md5sum
-
-    def tarball_matches_md5_if(self, md5sum):
-        return not md5sum or self.md5sum == md5sum
-
-    @property
-    def package_cache_writable(self):
-        return PackageCache(self.pkgs_dir).is_writable
-
-    @property
-    def md5sum(self):
-        repodata_record = self._get_repodata_record()
-        if repodata_record is not None and repodata_record.md5:
-            return repodata_record.md5
-        elif self.is_fetched:
-            return self._calculate_md5sum()
-        else:
-            return None
-
-    def get_urls_txt_value(self):
-        return PackageCache(self.pkgs_dir).urls_data.get_url(self.package_tarball_full_path)
-
-    @memoizemethod
-    def _get_repodata_record(self):
-        epd = self.extracted_package_dir
-
-        try:
-            return read_repodata_json(epd)
-        except (IOError, OSError) as ex:
-            if ex.errno == ENOENT:
-                return None
-            raise  # pragma: no cover
-
-    @memoizemethod
-    def _calculate_md5sum(self):
-        assert self.is_fetched
-        return compute_md5sum(self.package_tarball_full_path)
-
-    def __repr__(self):
-        args = ('%s=%r' % (key, getattr(self, key))
-                for key in ('dist', 'package_tarball_full_path'))
-        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
-
-
 class PackageCacheType(type):
     """
     This metaclass does basic caching of PackageCache instance objects.
@@ -170,7 +94,7 @@ class PackageCache(object):
 
     def __init__(self, pkgs_dir):
         self.__packages_map = None
-        # type: Dict[Dist, PackageCacheEntry]
+        # type: Dict[Dist, PackageCacheRecord]
 
         self.pkgs_dir = pkgs_dir
         self.urls_data = UrlsData(pkgs_dir)
@@ -287,7 +211,7 @@ class PackageCache(object):
                          apply=Dist)
             if not dist:
                 dist = Dist.from_string(package_filename, channel_override=UNKNOWN_CHANNEL)
-            pc_entry = PackageCacheEntry.make_legacy(pkgs_dir, dist)
+            pc_entry = PackageCacheRecord.make_legacy(pkgs_dir, dist)
             __packages_map[pc_entry.dist] = pc_entry
 
         def dedupe_pkgs_dir_contents(pkgs_dir_contents):
@@ -350,7 +274,7 @@ class PackageCache(object):
         return tarball_full_path, md5sum
 
     def scan_for_dist_no_channel(self, dist):
-        # type: (Dist) -> PackageCacheEntry
+        # type: (Dist) -> PackageCacheRecord
         return next((pc_entry for this_dist, pc_entry in iteritems(self)
                      if this_dist.dist_name == dist.dist_name),
                     None)

@@ -21,4 +21,3 @@ Conda modules strictly off limits for import within ``conda.core`` are
 - ``conda.client``
 
 """
-from __future__ import absolute_import, division, print_function

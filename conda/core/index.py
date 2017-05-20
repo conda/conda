@@ -13,7 +13,7 @@ from ..base.context import context
 from ..common.compat import iteritems, itervalues
 from ..common.url import join_url
 from ..gateways.disk.read import read_index_json
-from ..models.channel import prioritize_channels
+from ..models.channel import prioritize_channels, Channel
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord
 
@@ -75,7 +75,10 @@ def _supplement_index_with_cache(index, channels):
 
 
 def supplement_index_with_repodata(index, repodata, channel, priority):
-    repodata_info = repodata.get('info', {})
+    repodata_info = repodata['info']
+    subdir = repodata_info.get('subdir')
+    if not subdir:
+        subdir = "%s-%s" % (repodata_info['platform'], repodata_info['arch'])
     arch = repodata_info.get('arch')
     platform = repodata_info.get('platform')
     schannel = channel.canonical_name
@@ -86,23 +89,28 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
                                        fn=fn,
                                        arch=arch,
                                        platform=platform,
-                                       schannel=schannel,
-                                       channel=channel_url,
+                                       channel=channel,
+                                       subdir=subdir,
+                                       # schannel=schannel,
+                                       # channel=channel_url,
                                        priority=priority,
-                                       url=join_url(channel_url, fn),
+                                       # url=join_url(channel_url, fn),
                                        auth=auth)
         dist = Dist(rec)
         index[dist] = rec
 
 
 def supplement_index_with_features(index, features=()):
+    defaults = Channel('defaults')
     for feat in chain(context.track_features, features):
         fname = feat + '@'
         rec = IndexRecord(
             name=fname,
             version='0',
             build='0',
-            schannel='defaults',
+            channel=defaults,
+            subdir=context.subdir,
+            md5="0123456789",
             track_features=feat,
             build_number=0,
             fn=fname)

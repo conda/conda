@@ -349,7 +349,12 @@ class Channel(object):
         if isinstance(other, Channel):
             return self.location == other.location and self.name == other.name
         else:
-            return False
+            try:
+                _other = Channel(other)
+                return self.location == _other.location and self.name == _other.name
+            except Exception as e:
+                log.debug("%r", e)
+                return False
 
     def __hash__(self):
         return hash((self.location, self.name))

@@ -1141,7 +1141,8 @@ class ExtractPackageAction(PathAction):
     def execute(self):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
-        from .package_cache import PackageCache, PackageCacheEntry
+        from .package_cache import PackageCache
+        from conda.models.package_cache_record import PackageCacheRecord
         log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
         if lexists(self.hold_path):
@@ -1167,7 +1168,7 @@ class ExtractPackageAction(PathAction):
 
         recorded_url = target_package_cache.urls_data.get_url(self.source_full_path)
         dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
-        package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, dist)
+        package_cache_entry = PackageCacheRecord.make_legacy(self.target_pkgs_dir, dist)
         target_package_cache[package_cache_entry.dist] = package_cache_entry
 
     def reverse(self):

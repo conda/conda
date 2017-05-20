@@ -3,11 +3,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import total_ordering
 
-from .enums import LinkType, NoarchType, Platform
+from .channel import Channel
+from .enums import FileMode, LinkType, NoarchType, PathType, Platform
 from .leased_path_entry import LeasedPathEntry
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
 from ..common.compat import itervalues, string_types
+
+
+
+
+
+
 
 
 @total_ordering
@@ -59,6 +66,166 @@ class Link(DictSafeMixin, Entity):
 
 EMPTY_LINK = Link(source='')
 
+
+
+
+
+class FeaturesField(ListField):
+    def box(self, instance, val):
+        if isinstance(val, string_types):
+            val = val.split(' ')
+        return super(FeaturesField, self).box(instance, val)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class PackageRef(DictSafeMixin, Entity):
+    # fields important for uniquely identifying a package
+
+    channel = ComposableField(Channel, aliases=('schannel'))
+    subdir = StringField()
+    fn = StringField(aliases=('filename',))  # previously fn
+
+    name = StringField()
+    version = StringField()
+    build = StringField(aliases=('build_string',))
+    build_number = IntegerField()
+    track_features = StringField(required=False)
+
+    md5 = StringField()
+
+    @property
+    def schannel(self):
+        return self.channel.canonical_name
+
+
+class RepodataRecord(PackageRef):
+    # important for "choosing" a package (i.e. the solver), listing packages
+    # (like search), and for verifying downloads
+
+    package_type = EnumField(NoarchType, required=False)  # previously noarch
+    depends = ListField(string_types, default=(), required=False)
+    constrains = ListField(string_types, default=())
+    features = FeaturesField(string_types, required=False)
+    preferred_env = StringField(required=False)
+    size = IntegerField(required=False)
+    license = StringField(required=False)
+    license_family = StringField(required=False)
+
+    @property
+    def combined_depends(self):
+        from .match_spec import MatchSpec
+        result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
+        result.update({ms.name: ms for ms in (MatchSpec(spec, option=True)
+                                              for spec in self.constrains or ())})
+        return tuple(itervalues(result))
+
+
+class PathData(Entity):
+    # this is from conda/models/package_info.py
+
+    _path = StringField()
+    prefix_placeholder = StringField(required=False, nullable=True)
+    file_mode = EnumField(FileMode, required=False, nullable=True)
+    no_link = BooleanField(required=False, nullable=True)
+    path_type = EnumField(PathType)
+
+    @property
+    def path(self):
+        # because I don't have aliases as an option for entity fields yet
+        return self._path
+
+
+class PathDataV1(PathData):
+    # this is from conda/models/package_info.py
+    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
+    sha256 = StringField(required=False, nullable=True)
+    size_in_bytes = IntegerField(required=False, nullable=True)
+    inode_paths = ListField(string_types, required=False, nullable=True)
+
+
+class PackageCacheRecord(RepodataRecord):
+
+    package_tarball_full_path = StringField()
+    extracted_package_dir = StringField()
+
+    @classmethod
+    def load(cls, conda_meta_json_path):
+        return cls()
+
+
+class PrefixRecord(PackageCacheRecord):
+
+    paths = ListField(PathDataV1)
+    link = ComposableField(Link, required=False)
+    # app = ComposableField(App, required=False)
+
+    # the channel priority when the package was installed into the prefix
+    priority = PriorityField(required=False)
+
+    # not sure if we need the full url of the remote resource, but maybe
+    url = StringField(required=False, nullable=True)
+
+    # There have been requests in the past to save remote server auth
+    # information with the package.  Open to rethinking that though.
+    auth = StringField(required=False, nullable=True)
+
+    # a new concept introduced in 4.4 for private env packages
+    leased_paths = ListField(string_types, required=False, nullable=True)
+
+    @classmethod
+    def load(cls, conda_meta_json_path):
+        return cls()
+
+
+
+
+
+# We also need some type of "full package description" that reads in all
+# information in the info/ directory of an extracted package.  Currently,
+# that's PackageInfo in conda/models/package_info.py.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # TODO: eventually stop mixing Record with LinkedPackageData
 # class LinkedPackageRecord(DictSafeMixin, Entity):
 #     arch = EnumField(Arch, nullable=True)
@@ -80,49 +247,51 @@ EMPTY_LINK = Link(source='')
 #     version = StringField()
 
 
-class IndexRecord(DictSafeMixin, Entity):
-    _lazy_validate = True
+IndexRecord = RepodataRecord
 
-    arch = StringField(required=False, nullable=True)
-    build = StringField()
-    build_number = IntegerField()
-    constrains = ListField(string_types, required=False, nullable=True)
-    date = StringField(required=False)
-    depends = ListField(string_types, required=False, nullable=True)
-    features = StringField(required=False)
-    has_prefix = BooleanField(required=False)
-    license = StringField(required=False)
-    license_family = StringField(required=False)
-    md5 = StringField(required=False, nullable=True)
-    name = StringField()
-    noarch = NoarchField(NoarchType, required=False, nullable=True)
-    platform = EnumField(Platform, required=False, nullable=True)
-    requires = ListField(string_types, required=False)
-    size = IntegerField(required=False)
-    subdir = StringField(required=False)
-    timestamp = IntegerField(required=False)
-    track_features = StringField(default='', required=False)
-    version = StringField()
-
-    fn = StringField(required=False, nullable=True)
-    schannel = StringField(required=False, nullable=True)
-    channel = StringField(required=False, nullable=True)
-    priority = PriorityField(required=False)
-    url = StringField(required=False, nullable=True)
-    auth = StringField(required=False, nullable=True)
-
-    files = ListField(string_types, default=(), required=False)
-    link = ComposableField(Link, required=False)
-
-    preferred_env = StringField(default=None, required=False, nullable=True)
-
-    # this is only for LinkedPackageRecord
-    leased_paths = ListField(LeasedPathEntry, required=False)
-
-    @property
-    def combined_depends(self):
-        from .match_spec import MatchSpec
-        result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
-        result.update({ms.name: ms for ms in (MatchSpec(spec, optional=True)
-                                              for spec in self.constrains or ())})
-        return tuple(itervalues(result))
+# class IndexRecord(DictSafeMixin, Entity):
+#     _lazy_validate = True
+#
+#     arch = StringField(required=False, nullable=True)
+#     build = StringField()
+#     build_number = IntegerField()
+#     constrains = ListField(string_types, required=False, nullable=True)
+#     date = StringField(required=False)
+#     depends = ListField(string_types, required=False, nullable=True)
+#     features = StringField(required=False)
+#     has_prefix = BooleanField(required=False)
+#     license = StringField(required=False)
+#     license_family = StringField(required=False)
+#     md5 = StringField(required=False, nullable=True)
+#     name = StringField()
+#     noarch = NoarchField(NoarchType, required=False, nullable=True)
+#     platform = EnumField(Platform, required=False, nullable=True)
+#     requires = ListField(string_types, required=False)
+#     size = IntegerField(required=False)
+#     subdir = StringField(required=False)
+#     timestamp = IntegerField(required=False)
+#     track_features = StringField(default='', required=False)
+#     version = StringField()
+#
+#     fn = StringField(required=False, nullable=True)
+#     schannel = StringField(required=False, nullable=True)
+#     channel = StringField(required=False, nullable=True)
+#     priority = PriorityField(required=False)
+#     url = StringField(required=False, nullable=True)
+#     auth = StringField(required=False, nullable=True)
+#
+#     files = ListField(string_types, default=(), required=False)
+#     link = ComposableField(Link, required=False)
+#
+#     preferred_env = StringField(default=None, required=False, nullable=True)
+#
+#     # this is only for LinkedPackageRecord
+#     leased_paths = ListField(LeasedPathEntry, required=False)
+#
+#     @property
+#     def combined_depends(self):
+#         from .match_spec import MatchSpec
+#         result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
+#         result.update({ms.name: ms for ms in (MatchSpec(spec, optional=True)
+#                                               for spec in self.constrains or ())})
+#         return tuple(itervalues(result))

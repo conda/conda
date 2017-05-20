@@ -5,6 +5,7 @@ from unittest import TestCase
 
 import pytest
 
+from conda.base.context import context
 from conda.common.path import expand
 from conda.common.url import path_to_url
 from conda.exceptions import CondaValueError
@@ -24,7 +25,9 @@ def DPkg(s, **kwargs):
         version=d.version,
         build=d.build_string,
         build_number=int(d.build_string.rsplit('_', 1)[-1]),
-        schannel=d.channel,
+        channel=d.channel,
+        subdir=context.subdir,
+        md5="012345789",
         **kwargs)
 
 
@@ -73,7 +76,7 @@ class MatchSpecTests(TestCase):
         assert not MatchSpec('blas 1.0 1').is_exact()
         assert not MatchSpec('blas 1.0 *').is_exact()
         assert MatchSpec(Dist('blas-1.0-openblas_0.tar.bz2')).is_exact()
-        assert MatchSpec(fn='blas-1.0-openblas_0.tar.bz2', schannel='defaults').is_exact()
+        assert MatchSpec(fn='blas-1.0-openblas_0.tar.bz2', channel='defaults').is_exact()
 
         m = MatchSpec('blas 1.0', optional=True)
         m2 = MatchSpec(m, optional=False)
@@ -195,7 +198,7 @@ class MatchSpecTests(TestCase):
         assert MatchSpec('foo').strictness == 1
         assert MatchSpec('foo 1.2').strictness == 2
         assert MatchSpec('foo 1.2 3').strictness == 3
-        assert MatchSpec('foo 1.2 3 [schannel=burg]').strictness == 3
+        assert MatchSpec('foo 1.2 3 [channel=burg]').strictness == 3
         # Seems odd, but this is needed for compatibility
         assert MatchSpec('test* 1.2').strictness == 3
         assert MatchSpec('foo', build_number=2).strictness == 3
@@ -215,7 +218,7 @@ class MatchSpecTests(TestCase):
         assert a.match(DPkg(dst, features='test me'))
         assert a.match(DPkg(dst, features='you test'))
         assert a.match(DPkg(dst, features='you test me'))
-        assert a.exact_field('features') == 'test'
+        assert a.exact_field('features') == {'test'}
 
 
 class TestArg2Spec(TestCase):
@@ -272,16 +275,16 @@ class SpecStrParsingTests(TestCase):
     def test_parse_spec_str_tarball_url(self):
         url = "https://repo.continuum.io/pkgs/free/linux-64/_license-1.1-py27_1.tar.bz2"
         assert _parse_spec_str(url) == {
-            "schannel": "defaults",
+            "channel": "defaults",
             "subdir": "linux-64",
             "name": "_license",
             "version": "1.1",
             "build": "py27_1",
         }
         url = "some/not-a-subdir/_license-1.1-py27_1.tar.bz2"
-        _schannel = path_to_url(expand("some/not-a-subdir"))
+        _channel = path_to_url(expand("some/not-a-subdir"))
         assert _parse_spec_str(url) == {
-            "schannel": _schannel,
+            "channel": _channel,
             "subdir": None,
             "name": "_license",
             "version": "1.1",
@@ -293,44 +296,44 @@ class SpecStrParsingTests(TestCase):
             "name": "numpy",
         }
         assert _parse_spec_str("defaults::numpy") == {
-            "schannel": "defaults",
+            "channel": "defaults",
             "name": "numpy",
         }
         assert _parse_spec_str("https://repo.continuum.io/pkgs/free::numpy") == {
-            "schannel": "defaults",
+            "channel": "defaults",
             "name": "numpy",
         }
         assert _parse_spec_str("defaults::numpy=1.8") == {
-            "schannel": "defaults",
+            "channel": "defaults",
             "name": "numpy",
             "version": "1.8*",
         } == _parse_spec_str("defaults::numpy =1.8")
         assert _parse_spec_str("defaults::numpy=1.8=py27_0") == {
-            "schannel": "defaults",
+            "channel": "defaults",
             "name": "numpy",
             "version": "1.8",
             "build": "py27_0",
         } == _parse_spec_str("defaults::numpy 1.8 py27_0")
 
     def test_parse_spec_str_with_brackets(self):
-        assert _parse_spec_str("defaults::numpy[schannel=anaconda]") == {
-            "schannel": "anaconda",
+        assert _parse_spec_str("defaults::numpy[channel=anaconda]") == {
+            "channel": "anaconda",
             "name": "numpy",
         }
-        assert _parse_spec_str("defaults::numpy 1.8 py27_0[schannel=anaconda]") == {
-            "schannel": "anaconda",
+        assert _parse_spec_str("defaults::numpy 1.8 py27_0[channel=anaconda]") == {
+            "channel": "anaconda",
             "name": "numpy",
             "version": "1.8",
             "build": "py27_0",
         }
-        assert _parse_spec_str("defaults::numpy=1.8=py27_0 [schannel=anaconda,version=1.9, build=3]") == {
-            "schannel": "anaconda",
+        assert _parse_spec_str("defaults::numpy=1.8=py27_0 [channel=anaconda,version=1.9, build=3]") == {
+            "channel": "anaconda",
             "name": "numpy",
             "version": "1.9",
             "build": "3",
         }
-        assert _parse_spec_str('defaults::numpy=1.8=py27_0 [schannel=\'anaconda\',version=">=1.8,<2|1.9", build=\'3\']') == {
-            "schannel": "anaconda",
+        assert _parse_spec_str('defaults::numpy=1.8=py27_0 [channel=\'anaconda\',version=">=1.8,<2|1.9", build=\'3\']') == {
+            "channel": "anaconda",
             "name": "numpy",
             "version": ">=1.8,<2|1.9",
             "build": "3",

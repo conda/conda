@@ -4,7 +4,7 @@ import json
 import os
 import unittest
 from conda.base.constants import MAX_CHANNEL_PRIORITY
-from conda.base.context import reset_context
+from conda.base.context import reset_context, context
 from conda.common.compat import iteritems, text_type
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.dist import Dist
@@ -20,11 +20,19 @@ from conda.resolve import MatchSpec, Resolve, NoPackagesFound, Unsatisfiable
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    repodata = json.load(fi)
+    packages = json.load(fi)
+    repodata = {
+        "info": {
+            "subdir": context.subdir,
+            "arch": context.arch_name,
+            "platform": context.platform,
+        },
+        "packages": packages,
+    }
 
 index = {}
 channel = Channel('defaults')
-supplement_index_with_repodata(index, {'packages': repodata}, channel, 1)
+supplement_index_with_repodata(index, repodata, channel, 1)
 supplement_index_with_features(index, ('mkl',))
 r = Resolve(index)
 

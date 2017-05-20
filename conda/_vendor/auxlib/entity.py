@@ -250,7 +250,7 @@ from .collection import AttrDict, frozendict, make_immutable
 from .compat import (integer_types, iteritems, itervalues, odict, string_types, text_type,
                      with_metaclass, isiterable)
 from .exceptions import Raise, ValidationError
-from .ish import find_or_none
+from .ish import find_or_none, find_or_raise
 from .logz import DumpEncoder
 from .type_coercion import maybecall
 
@@ -536,12 +536,12 @@ class DateField(Field):
 class EnumField(Field):
 
     def __init__(self, enum_class, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, nullable=False, immutable=False, aliases=()):
         if not issubclass(enum_class, Enum):
             raise ValidationError(None, msg="enum_class must be an instance of Enum")
         self._type = enum_class
         super(EnumField, self).__init__(default, required, validation,
-                                        in_dump, nullable, immutable)
+                                        in_dump, nullable, immutable, aliases)
 
     def box(self, instance, val):
         if val is None:
@@ -565,10 +565,10 @@ class ListField(Field):
     _type = tuple
 
     def __init__(self, element_type, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, nullable=False, immutable=False, aliases=()):
         self._element_type = element_type
         super(ListField, self).__init__(default, required, validation,
-                                        in_dump, nullable, immutable)
+                                        in_dump, nullable, immutable, aliases)
 
     def box(self, instance, val):
         if val is None:
@@ -616,8 +616,9 @@ class MapField(Field):
     _type = frozendict
 
     def __init__(self, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False):
-        super(MapField, self).__init__(default, required, validation, in_dump, nullable, True)
+                 in_dump=True, nullable=False, aliases=()):
+        super(MapField, self).__init__(default, required, validation, in_dump, nullable, True,
+                                       aliases)
 
     def box(self, instance, val):
         # TODO: really need to make this recursive to make any lists or maps immutable
@@ -638,10 +639,10 @@ class MapField(Field):
 class ComposableField(Field):
 
     def __init__(self, field_class, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, nullable=False, immutable=False, aliases=()):
         self._type = field_class
         super(ComposableField, self).__init__(default, required, validation,
-                                              in_dump, nullable, immutable)
+                                              in_dump, nullable, immutable, aliases=())
 
     def box(self, instance, val):
         if val is None:
@@ -656,7 +657,14 @@ class ComposableField(Field):
                     val['slf'] = val.pop('self')
             except KeyError:
                 pass  # no key of 'self', so no worries
-            return val if isinstance(val, self._type) else self._type(**val)
+            if isinstance(val, self._type):
+                return val if isinstance(val, self._type) else self._type(**val)
+            elif isinstance(val, Mapping):
+                return self._type(**val)
+            elif isiterable(val):
+                return self._type(*val)
+            else:
+                return self._type(val)
 
     def dump(self, val):
         return None if val is None else val.dump()
@@ -740,8 +748,12 @@ class Entity(object):
         init_vars = dict()
         search_maps = tuple(AttrDict(o) if isinstance(o, dict) else o
                             for o in ((override_fields,) + objects))
-        for key in cls.__fields__:
-            init_vars[key] = find_or_none(key, search_maps)
+        for key, field in iteritems(cls.__fields__):
+            try:
+                init_vars[key] = find_or_raise(key, search_maps, field._aliases)
+            except AttributeError:
+                pass
+
         return cls(**init_vars)
 
     @classmethod

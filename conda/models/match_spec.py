@@ -5,38 +5,91 @@ from collections import Mapping
 import re
 import sys
 
+from .channel import Channel
 from .dist import Dist
 from .index_record import IndexRecord
 from .version import BuildNumberSpec, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
-from ..common.compat import iteritems, string_types, text_type, with_metaclass
+from ..common.compat import iteritems, string_types, text_type, with_metaclass, isiterable
 from ..common.path import expand
 from ..common.url import is_url, path_to_url
 from ..exceptions import CondaValueError
 
 
-class SplitSearch(object):
-    """Implements matching on features or track_features. These strings are actually
-       split by whitespace into sets. We want a string match to be True if it matches
-       any of the elements of this set. However, we also want this to be considered an
-       "exact" match for the purposes of the rest of MatchSpec logic, even though it is
-       possible that there are multiple entries in the set, and only one is matching."""
-    __slots__ = ['exact', 'match']
+# class SplitSearch(object):
+#     """Implements matching on features or track_features. These strings are actually
+#        split by whitespace into sets. We want a string match to be True if it matches
+#        any of the elements of this set. However, we also want this to be considered an
+#        "exact" match for the purposes of the rest of MatchSpec logic, even though it is
+#        possible that there are multiple entries in the set, and only one is matching."""
+#     __slots__ = ('exact', 'match')
+#
+#     def __init__(self, value):
+#         self.exact = value  # ensures this is considered an exact match
+#         self.match = re.compile(r'(?:^|.* )%s(?:$| )' % value).match
+#
+#     def __repr__(self):
+#         return "'%s'" % self.exact
+
+class SplitStrSpec(object):
+    __slots__ = 'exact',
 
     def __init__(self, value):
-        self.exact = value  # ensures this is considered an exact match
-        self.match = re.compile(r'(?:^|.* )%s(?:$| )' % value).match
+        self.exact = self._convert(value)  # ensures this is considered an exact match
+
+    def _convert(self, value):
+        try:
+            return frozenset(value.split())
+        except AttributeError:
+            if isiterable(value):
+                return frozenset(value)
+            raise
+
+    def match(self, other):
+        try:
+            return self.exact & other.exact
+        except AttributeError:
+            return self.exact & self._convert(other)
 
     def __repr__(self):
         return "'%s'" % self.exact
 
+    def __eq__(self, other):
+        return self.match(other)
+
+    def __hash__(self):
+        return hash(self.exact)
+
+
+class ChannelSpec(object):
+    __slots__ = 'exact',
+
+    def __init__(self, value):
+        self.exact = Channel(value)  # ensures this is considered an exact match
+
+    def match(self, other):
+        try:
+            return self.exact == other.exact
+        except AttributeError:
+            return self.exact == Channel(other)
+
+    def __repr__(self):
+        return "'%s'" % self.exact.canonical_name
+
+    def __eq__(self, other):
+        return self.match(other)
+
+    def __hash__(self):
+        return hash(self.exact)
+
 
 _implementors = {
-    'features': SplitSearch,
-    'track_features': SplitSearch,
+    'features': SplitStrSpec,
+    'track_features': SplitStrSpec,
     'version': VersionSpec,
     'build_number': BuildNumberSpec,
+    'channel': ChannelSpec,
 }
 
 
@@ -62,7 +115,7 @@ class MatchSpecType(type):
                 # TODO: remove this branch
                 parsed = {
                     'fn': spec_arg.to_filename(),
-                    'schannel': spec_arg.channel,
+                    'channel': spec_arg.channel,
                 }
                 return super(MatchSpecType, cls).__call__(**parsed)
             elif isinstance(spec_arg, IndexRecord):
@@ -70,7 +123,7 @@ class MatchSpecType(type):
                 parsed = {
                     'name': spec_arg.name,
                     'fn': spec_arg.fn,
-                    'schannel': spec_arg.channel,
+                    'channel': spec_arg.channel,
                 }
                 return super(MatchSpecType, cls).__call__(**parsed)
             elif hasattr(spec_arg, 'dump'):
@@ -281,7 +334,7 @@ class MatchSpec(object):
         return getattr(v, 'exact', None if hasattr(v, 'match') else v)
 
     def is_exact(self):
-        return all(self.exact_field(x) is not None for x in ('fn', 'schannel'))
+        return all(self.exact_field(x) is not None for x in ('fn', 'channel'))
 
     def is_simple(self):
         return len(self._components) == 1 and self.exact_field('name') is not None
@@ -460,7 +513,7 @@ def _parse_spec_str(spec_str):
         channel = Channel(spec_str)
         name, version, build = _parse_legacy_dist(channel.package_filename)
         return {
-            'schannel': channel.canonical_name,
+            'channel': channel.canonical_name,
             'subdir': channel.subdir,
             'name': name,
             'version': version,
@@ -525,9 +578,9 @@ def _parse_spec_str(spec_str):
         from .channel import Channel, MultiChannel
         chn = Channel(channel)
         if isinstance(chn, MultiChannel):
-            components['schannel'] = chn.name
+            components['channel'] = chn.name
         else:
-            components['schannel'] = chn.canonical_name
+            components['channel'] = chn.canonical_name
     if namespace is not None:
         # kwargs['namespace'] = namespace
         pass
