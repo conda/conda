@@ -31,7 +31,7 @@ from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, 
                      text_type, with_metaclass)
 from .constants import EMPTY_MAP, NULL
 from .path import expand
-from .yaml import yaml_load
+from .serialize import yaml_load
 from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import AttrDict, first, frozendict, last, make_immutable
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError

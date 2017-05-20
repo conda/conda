@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
-import json
 from logging import getLogger
 import os
 from os.path import dirname, join, splitext
@@ -11,11 +10,11 @@ from random import random
 import re
 from time import sleep
 
-from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
+from .linked_data import PrefixData, get_python_version_for_prefix
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
-from ..base.constants import PREFIX_MAGIC_FILE
+from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import iteritems, on_win, range
 from ..common.path import (ensure_pad, get_bin_directory_short_path, get_leaf_directories,
@@ -28,7 +27,7 @@ from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_pyc, copy, create_application_entry_point,
                                     create_fake_executable_softlink, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
-                                    make_menu, write_as_json_to_file, write_linked_package_record)
+                                    make_menu, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.link import stat_nlink, symlink
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
@@ -37,7 +36,7 @@ from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
 from ..models.dist import Dist
 from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType
-from ..models.index_record import IndexRecord, Link
+from ..models.index_record import Link, PrefixRecord
 from ..models.leased_path_entry import LeasedPathEntry
 
 try:
@@ -707,12 +706,19 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         #   of the paths that will be removed when the package is unlinked
 
         link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
-        linked_package_record = IndexRecord.from_objects(package_info.repodata_record,
-                                                         package_info.index_json_record,
-                                                         files=all_target_short_paths,
-                                                         link=link,
-                                                         url=package_info.url,
-                                                         leased_paths=leased_paths)
+        extracted_package_dir = package_info.extracted_package_dir
+        package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
+        # TODO: don't make above assumption; put package_tarball_full_path in package_info
+
+        linked_package_record = PrefixRecord.from_objects(package_info.repodata_record,
+                                                          package_info.index_json_record,
+                                                          files=all_target_short_paths,
+                                                          link=link,
+                                                          url=package_info.url,
+                                                          leased_paths=leased_paths,
+                                                          extracted_package_dir=extracted_package_dir,
+                                                          package_tarball_full_path=package_tarball_full_path,
+                                                          )
 
         target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
         return cls(transaction_context, package_info, target_prefix, target_short_path,
@@ -724,21 +730,15 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
                                                               None, None, target_prefix,
                                                               target_short_path)
         self.linked_package_record = linked_package_record
-        self._linked_data_loaded = False
 
     def execute(self):
         log.trace("creating linked package record %s", self.target_full_path)
-        write_linked_package_record(self.target_prefix, self.linked_package_record)
-        load_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
-                         self.linked_package_record)
-        self._linked_data_loaded = True
+        PrefixData(self.target_prefix).insert(self.linked_package_record)
 
     def reverse(self):
         log.trace("reversing linked package record creation %s", self.target_full_path)
-        if self._linked_data_loaded:
-            delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),
-                               delete=False)
-        rm_rf(self.target_full_path)
+        # TODO: be careful about failure here, and being too strict
+        PrefixData(self.target_prefix).remove(self.linked_package_record.name)
 
 
 class UpdateHistoryAction(CreateInPrefixPathAction):
@@ -938,17 +938,11 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
 
     def execute(self):
         super(RemoveLinkedPackageRecordAction, self).execute()
-        delete_linked_data(self.target_prefix, Dist(self.linked_package_data),
-                           delete=False)
+        PrefixData(self.target_prefix).remove(self.linked_package_data.name)
 
     def reverse(self):
         super(RemoveLinkedPackageRecordAction, self).reverse()
-        with open(self.target_full_path, 'r') as fh:
-            meta_record = IndexRecord(**json.loads(fh.read()))
-        log.trace("reloading cache entry %s", self.target_full_path)
-        load_linked_data(self.target_prefix,
-                         Dist(self.linked_package_data).dist_name,
-                         meta_record)
+        PrefixData(self.target_prefix)._load_single_record(self.target_full_path)
 
 
 class UnregisterEnvironmentLocationAction(EnvsDirectoryPathAction):

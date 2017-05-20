@@ -5,7 +5,7 @@ import random
 import textwrap
 import unittest
 
-from conda.common.yaml import get_yaml
+from conda.common.serialize import get_yaml
 yaml = get_yaml()
 
 try:

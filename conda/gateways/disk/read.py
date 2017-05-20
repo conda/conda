@@ -21,7 +21,7 @@ from ...base.constants import PREFIX_PLACEHOLDER
 from ...exceptions import FileNotFoundError, CondaUpgradeError, CondaVerificationError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
-from ...models.index_record import IndexRecord
+from ...models.index_record import IndexRecord, IndexJsonRecord
 from ...models.package_info import PackageInfo, PackageMetadata, PathData, PathDataV1, PathsData
 
 log = getLogger(__name__)
@@ -98,7 +98,7 @@ def read_package_info(record, extracted_package_directory):
 
 def read_index_json(extracted_package_directory):
     with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
-        record = IndexRecord(**json.load(fi))  # TODO: change to LinkedPackageData
+        record = IndexJsonRecord(**json.load(fi))
     return record
 
 

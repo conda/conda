@@ -44,9 +44,9 @@ from conda.common.io import argv, captured, disable_logger, env_var, replace_log
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
 from conda.common.url import path_to_url
-from conda.common.yaml import yaml_load
+from conda.common.serialize import yaml_load
 from conda.core.linked_data import get_python_version_for_prefix, \
-    linked as install_linked, linked_data, linked_data_
+    linked as install_linked, linked_data
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
 from conda.exceptions import CondaHTTPError, DryRunExit, PackageNotFoundError, RemoveError, \

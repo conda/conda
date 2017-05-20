@@ -105,7 +105,7 @@ def _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add):
         for s, d in user_requested_specs_and_dists
     )
     requested_specs_from_history = tuple(
-        (MatchSpec(s, schannel=schannel) if schannel != UNKNOWN_CHANNEL else s)
+        (MatchSpec(s, channel=schannel) if schannel != UNKNOWN_CHANNEL else s)
         for s, schannel in user_requested_specs_and_schannels
         if not s.name.endswith('@')  # no clue
     )

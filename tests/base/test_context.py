@@ -17,7 +17,7 @@ from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var
 from conda.common.path import expand, win_path_backout
 from conda.common.url import join_url, path_to_url
-from conda.common.yaml import yaml_load
+from conda.common.serialize import yaml_load
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel

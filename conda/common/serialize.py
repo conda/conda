@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
+
+import json
 from logging import getLogger
 
 from .._vendor.auxlib.decorators import memoize
+from .._vendor.auxlib.entity import EntityEncoder
 
 log = getLogger(__name__)
 
@@ -32,3 +35,12 @@ def yaml_dump(object):
     return yaml.dump(object, Dumper=yaml.RoundTripDumper,
                      block_seq_indent=2, default_flow_style=False,
                      indent=2)
+
+
+def json_load(string):
+    return json.loads(string)
+
+
+def json_dump(object):
+    return json.dumps(object, indent=2, sort_keys=True,
+                      separators=(',', ': '), cls=EntityEncoder)

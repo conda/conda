@@ -1120,7 +1120,7 @@ class TestGetActionsForDist(unittest.TestCase):
             ("ranenv", "test", "defaults", "1.2.0")]
         self.res = generate_mocked_resolve(self.pkgs)
 
-    @patch("conda.core.linked_data.load_meta", return_value=True)
+    @patch("conda.core.linked_data.is_linked", return_value=True)
     def test_ensure_linked_actions_all_linked(self, load_meta):
         dists = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
         prefix = "some/prefix"
@@ -1134,7 +1134,7 @@ class TestGetActionsForDist(unittest.TestCase):
                                        'SYMLINK_CONDA')
         self.assertEquals(link_actions, expected_output)
 
-    @patch("conda.core.linked_data.load_meta", return_value=False)
+    @patch("conda.core.linked_data.is_linked", return_value=False)
     def test_ensure_linked_actions_no_linked(self, load_meta):
         dists = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
         prefix = "some/prefix"

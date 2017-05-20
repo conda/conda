@@ -13,7 +13,7 @@ from conda.base.context import context, reset_context, Context
 from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
 from conda.common.url import join_url, join
-from conda.common.yaml import yaml_load
+from conda.common.serialize import yaml_load
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel, prioritize_channels
