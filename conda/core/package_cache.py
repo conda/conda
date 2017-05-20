@@ -484,7 +484,7 @@ def rm_fetched(dist):
 
 
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=3):
-    from ..gateways.download import download as gateway_download
+    from conda.gateways.connection.download import download as gateway_download
     gateway_download(url, dst_path, md5)
 
 

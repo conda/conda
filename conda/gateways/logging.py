@@ -11,6 +11,7 @@ from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
 from ..common.io import attach_stderr_handler
 
+log = getLogger(__name__)
 TRACE = 5  # TRACE LOG LEVEL
 VERBOSITY_LEVELS = (WARN, INFO, DEBUG, TRACE)
 
@@ -36,7 +37,7 @@ class TokenURLFilter(Filter):
 
 @memoize
 def initialize_logging():
-    initialize_root_logger()
+    # initialize_root_logger()  # probably don't need to touch the root logger per #5356
     initialize_conda_logger()
 
     formatter = Formatter("%(message)s\n")
@@ -70,7 +71,7 @@ def initialize_conda_logger(level=WARN):
 
 def set_all_logger_level(level=DEBUG):
     formatter = Formatter("%(message)s\n") if level >= INFO else None
-    attach_stderr_handler(level, formatter=formatter)
+    # attach_stderr_handler(level, formatter=formatter)  # probably don't need to touch the root logger per #5356  # NOQA
     attach_stderr_handler(level, 'conda', formatter=formatter)
     attach_stderr_handler(level, 'requests')
     attach_stderr_handler(level, 'requests.packages.urllib3')
@@ -82,6 +83,7 @@ def set_verbosity(verbosity_level):
     except IndexError:
         raise CondaError("Invalid verbosity level: %(verbosity_level)s",
                          verbosity_level=verbosity_level)
+    log.debug("verbosity set to %s", verbosity_level)
 
 
 def trace(self, message, *args, **kwargs):
@@ -91,4 +93,3 @@ def trace(self, message, *args, **kwargs):
 
 logging.addLevelName(TRACE, "TRACE")
 logging.Logger.trace = trace
-initialize_logging()
