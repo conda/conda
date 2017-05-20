@@ -88,6 +88,10 @@ class MatchSpecTests(TestCase):
 
         self.assertRaises(ValueError, MatchSpec, (1, 2, 3))
 
+    def test_no_name_match_spec(self):
+        ms = MatchSpec(track_features="mkl")
+        assert str(ms) == "*[track_features='mkl']"
+
     def test_to_filename(self):
         m1 = MatchSpec(fn='foo-1.7-52.tar.bz2')
         m2 = MatchSpec(name='foo', version='1.7', build='52')

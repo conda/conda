@@ -5,7 +5,7 @@ import logging
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, string_types
+from .common.compat import iteritems, iterkeys, itervalues, string_types, isiterable
 from .common.toposort import toposort
 from .console import setup_handlers
 from .exceptions import NoPackagesFoundError, UnsatisfiableError
@@ -369,7 +369,9 @@ class Resolve(object):
         if deps is None:
             rec = self.index[dist]
             deps = [MatchSpec(d) for d in rec.combined_depends]
-            deps.extend(MatchSpec(track_features=feat) for feat in self.features(dist))
+            track_features_specs = tuple(MatchSpec(track_features=feat) for feat in self.features(dist))
+            if track_features_specs:
+                deps.extend(track_features_specs)
             self.ms_depends_[dist] = deps
         return deps
 
@@ -404,6 +406,7 @@ class Resolve(object):
         _features = self.index[dist].get('features', ())
         if isinstance(_features, string_types):
             _features = _features.split()
+        assert isiterable(_features)
         return set(_features)
 
     def track_features(self, dist):
@@ -414,8 +417,9 @@ class Resolve(object):
         if rec is None:
             return dist.quad
         else:
-            return (rec['name'], rec['version'], rec['build'],
-                    rec.get('schannel', DEFAULTS_CHANNEL_NAME))
+            channel = rec.get('channel')
+            channel = channel.canonical_name if channel else DEFAULTS_CHANNEL_NAME
+            return rec['name'], rec['version'], rec['build'], channel
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]
@@ -452,6 +456,8 @@ class Resolve(object):
         if nm:
             tgroup = libs = self.groups.get(nm, [])
         elif tf:
+            tf = next(iter(tf))  # TODO: this limits packages to only tracking a single feature
+                                 #       but that limitation is already baked into the logic anyway
             tgroup = libs = self.trackers.get(tf, [])
         else:
             tgroup = libs = self.index.keys()
@@ -686,7 +692,7 @@ class Resolve(object):
                 spec = MatchSpec(name=name, target=pkg.full_name)
             else:
                 spec = MatchSpec(name=name, version=version,
-                                 build=build, schannel=schannel)
+                                 build=build, channel=schannel)
             specs.append(spec)
         return specs, preserve
 

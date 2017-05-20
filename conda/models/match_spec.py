@@ -53,7 +53,7 @@ class SplitStrSpec(object):
             return self.exact & self._convert(other)
 
     def __repr__(self):
-        return "'%s'" % self.exact
+        return "'%s'" % ','.join(sorted(self.exact))
 
     def __eq__(self, other):
         return self.match(other)

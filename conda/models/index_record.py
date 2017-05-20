@@ -124,12 +124,13 @@ class RepodataRecord(PackageRef):
     size = IntegerField(required=False)
     license = StringField(required=False)
     license_family = StringField(required=False)
+    priority = PriorityField(required=False)
 
     @property
     def combined_depends(self):
         from .match_spec import MatchSpec
         result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
-        result.update({ms.name: ms for ms in (MatchSpec(spec, option=True)
+        result.update({ms.name: ms for ms in (MatchSpec(spec, optional=True)
                                               for spec in self.constrains or ())})
         return tuple(itervalues(result))
 
