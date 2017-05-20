@@ -82,7 +82,7 @@ def generate_parser():
 
 def init_loggers(context):
     from ..gateways.logging import set_all_logger_level, set_verbosity
-    if not context.json:
+    if context.json:
         # Silence logging info to avoid interfering with JSON output
         for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
             getLogger(logger).setLevel(CRITICAL + 1)
