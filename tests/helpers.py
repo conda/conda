@@ -53,19 +53,7 @@ def raises(exception, func, string=None):
 
 @contextmanager
 def captured(disallow_stderr=True):
-    # """
-    # Context manager to capture the printed output of the code in the with block
-    #
-    # Bind the context manager to a variable using `as` and the result will be
-    # in the stdout property.
-    #
-    # >>> from tests.helpers import captured
-    # >>> with captured() as c:
-    # ...     print('hello world!')
-    # ...
-    # >>> c.stdout
-    # 'hello world!\n'
-    # """
+    # same as common.io.captured but raises Exception if unexpected output was written to stderr
     try:
         with common_io_captured() as c:
             yield c

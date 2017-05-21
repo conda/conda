@@ -72,6 +72,19 @@ def cwd(directory):
 def captured():
     # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
     # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
+    # """
+    # Context manager to capture the printed output of the code in the with block
+    #
+    # Bind the context manager to a variable using `as` and the result will be
+    # in the stdout property.
+    #
+    # >>> from conda.common.io import captured
+    # >>> with captured() as c:
+    # ...     print('hello world!')
+    # ...
+    # >>> c.stdout
+    # 'hello world!\n'
+    # """
     class CapturedText(object):
         pass
     saved_stdout, saved_stderr = sys.stdout, sys.stderr
