@@ -89,7 +89,7 @@ def captured():
 
 @contextmanager
 def replace_log_streams():
-    # replace the logger stream handlers with stdout and stderr handlers
+    # for loggers stdout/stderr replace their handlers' streams with current sys.stdout/sys.stderr
     stdout_logger, stderr_logger = getLogger('stdout'), getLogger('stderr')
     saved_stdout_strm = stdout_logger.handlers[0].stream
     saved_stderr_strm = stderr_logger.handlers[0].stream
