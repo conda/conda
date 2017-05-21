@@ -39,7 +39,6 @@ class PrefixRecordTests(TestCase):
             auth=None,
             constrains=(),
             depends=(),
-            leased_paths=None,
             noarch=None,
             preferred_env=None,
         )
