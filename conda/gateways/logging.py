@@ -88,10 +88,8 @@ def set_all_logger_level(level=DEBUG):
     # root and 'conda' loggers use separate handlers but behave the same wrt level and formatting
     attach_stderr_handler(level, formatter=formatter)
     attach_stderr_handler(level, 'conda', formatter=formatter)
-    # 'requests' loggers get their own handlers so that they always output messages in long format
-    # regardless of the level.
+    # 'requests' logger gets its own handler, to ouput messages in long format regardless of level
     attach_stderr_handler(level, 'requests')
-    attach_stderr_handler(level, 'requests.packages.urllib3')
 
 
 def set_verbosity(verbosity_level):
