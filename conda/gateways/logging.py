@@ -38,7 +38,11 @@ class TokenURLFilter(Filter):
 def initialize_logging():
     initialize_root_logger()
     initialize_conda_logger()
+    initialize_std_loggers()
 
+
+@memoize
+def initialize_std_loggers():
     formatter = Formatter("%(message)s\n")
 
     stdout = getLogger('stdout')
