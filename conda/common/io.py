@@ -122,16 +122,18 @@ def _logger_lock():
 @contextmanager
 def disable_logger(logger_name):
     logr = getLogger(logger_name)
-    _hndlrs, _lvl, _dsbld, _prpgt = logr.handlers, logr.level, logr.disabled, logr.propagate
+    _lvl, _dsbld, _prpgt = logr.level, logr.disabled, logr.propagate
+    null_handler = NullHandler()
     with _logger_lock():
-        logr.addHandler(NullHandler())
+        logr.addHandler(null_handler)
         logr.setLevel(CRITICAL + 1)
         logr.disabled, logr.propagate = True, False
     try:
         yield
     finally:
         with _logger_lock():
-            logr.handlers, logr.level, logr.disabled = _hndlrs, _lvl, _dsbld
+            logr.removeHandler(null_handler)  # restore list logr.handlers
+            logr.level, logr.disabled = _lvl, _dsbld
             logr.propagate = _prpgt
 
 
