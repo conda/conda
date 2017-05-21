@@ -35,7 +35,10 @@ def get_configure_parser_function(command):
 
 
 def run_command(command, *arguments, **kwargs):
-    """
+    """Runs a conda command in-process with a given set of command-line interface arguments.
+
+    Differences from the command-line interface:
+        Always uses --yes flag, thus does not ask for confirmation.
 
     Args:
         command: one of the Commands.X
@@ -67,6 +70,7 @@ def run_command(command, *arguments, **kwargs):
     split_command_line = split(command_line)
 
     args = p.parse_args(split_command_line)
+    args.yes = True  # always skip user confirmation, force setting context.always_yes
     context.__init__(
         search_path=configuration_search_path,
         app_name=APP_NAME,
