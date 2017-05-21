@@ -206,7 +206,7 @@ def make_temp_channel(packages):
 
         pkg_data = pkg_data.dump()
         for field in ('url', 'channel', 'schannel'):
-            del pkg_data[field]
+            pkg_data.pop(field, None)
         repodata['packages'][fname] = IndexRecord(**pkg_data)
 
     with make_temp_env() as channel:

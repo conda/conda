@@ -183,7 +183,7 @@ class PackageRef(IndexJsonRecord):
     subdir = SubdirField()
     fn = FilenameField(aliases=('filename',))  # previously fn
 
-    md5 = StringField()
+    md5 = StringField(required=False, nullable=True)
 
     # name = StringField()
     # version = StringField()
@@ -274,7 +274,7 @@ class PrefixRecord(PackageCacheRecord):
     auth = StringField(required=False, nullable=True)
 
     # a new concept introduced in 4.4 for private env packages
-    leased_paths = ListField(string_types, required=False, nullable=True)
+    leased_paths = ListField(LeasedPathEntry, required=False)
 
     # @classmethod
     # def load(cls, conda_meta_json_path):
