@@ -70,6 +70,11 @@ EMPTY_LINK = Link(source='')
 
 
 
+
+
+
+
+
 class FeaturesField(ListField):
     def box(self, instance, val):
         if isinstance(val, string_types):
@@ -77,6 +82,63 @@ class FeaturesField(ListField):
         return super(FeaturesField, self).box(instance, val)
 
 
+class ChannelField(ComposableField):
+
+    def __init__(self, default=None, validation=None,
+                 in_dump=True, nullable=False, immutable=False, aliases=()):
+        self._type = Channel
+        super(ComposableField, self).__init__(default, False, validation,
+                                              in_dump, nullable, immutable, aliases)
+
+    # def box(self, instance, val):
+    #     return super(ChannelField, self).box(instance, val)
+    #
+    # def unbox(self, instance, instance_type, val):
+    #     try:
+    #         return super(ChannelField, self).unbox(instance, instance_type, val)
+    #     except Exception as e:
+    #         import pdb; pdb.set_trace()
+    #         assert 0
+    #
+    # def dump(self, val):
+    #     return super(ChannelField, self).dump(val)
+
+    def __get__(self, instance, instance_type):
+        try:
+            return super(ChannelField, self).__get__(instance, instance_type)
+        except AttributeError:
+            url = instance.url
+            return Channel(url)
+
+
+class SubdirField(StringField):
+
+    def __init__(self, default=None, validation=None,
+                 in_dump=True, nullable=False, immutable=False, aliases=()):
+        super(SubdirField, self).__init__(default, False, validation, in_dump, nullable,
+                                          immutable, aliases)
+
+    def __get__(self, instance, instance_type):
+        try:
+            return super(SubdirField, self).__get__(instance, instance_type)
+        except AttributeError:
+            url = instance.url
+            return Channel(url).subdir
+
+
+class FilenameField(StringField):
+
+    def __init__(self, default=None, validation=None,
+                 in_dump=True, nullable=False, immutable=False, aliases=()):
+        super(FilenameField, self).__init__(default, False, validation, in_dump, nullable,
+                                            immutable, aliases)
+
+    def __get__(self, instance, instance_type):
+        try:
+            return super(FilenameField, self).__get__(instance, instance_type)
+        except AttributeError:
+            url = instance.url
+            return Channel(url).package_filename
 
 
 
@@ -117,9 +179,9 @@ class IndexJsonRecord(DictSafeMixin, Entity):
 class PackageRef(IndexJsonRecord):
     # fields important for uniquely identifying a package
 
-    channel = ComposableField(Channel, aliases=('schannel'))
-    subdir = StringField()
-    fn = StringField(aliases=('filename',))  # previously fn
+    channel = ChannelField(aliases=('schannel',))
+    subdir = SubdirField()
+    fn = FilenameField(aliases=('filename',))  # previously fn
 
     md5 = StringField()
 

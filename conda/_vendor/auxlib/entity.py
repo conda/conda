@@ -642,7 +642,7 @@ class ComposableField(Field):
                  in_dump=True, nullable=False, immutable=False, aliases=()):
         self._type = field_class
         super(ComposableField, self).__init__(default, required, validation,
-                                              in_dump, nullable, immutable, aliases=())
+                                              in_dump, nullable, immutable, aliases)
 
     def box(self, instance, val):
         if val is None:
