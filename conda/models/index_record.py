@@ -160,7 +160,7 @@ class IndexJsonRecord(DictSafeMixin, Entity):
     features = FeaturesField(string_types, required=False)
     track_features = StringField(required=False)
 
-    noarch = EnumField(NoarchType, required=False, nullable=True)  # TODO: rename to package_type
+    noarch = NoarchField(NoarchType, required=False, nullable=True)  # TODO: rename to package_type
     preferred_env = StringField(required=False, nullable=True)
 
     # license = StringField(required=False)
