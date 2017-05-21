@@ -67,13 +67,11 @@ def initialize_logging():
 
 @memoize
 def initialize_std_loggers():
-    # Set up special loggers 'stdout'/'stderr' which output directly to the corresponding
-    # sys streams, filter token urls and don't propagate.
-    # TODO: To avoid clashes with user loggers when cli.python_api is used, these loggers
-    #       should most likely be renamed to 'conda.stdout'/'conda.stderr' in the future!
+    # Set up special loggers 'conda.stdout'/'conda.stderr' which output directly to the
+    # corresponding sys streams, filter token urls and don't propagate.
     formatter = Formatter("%(message)s\n")
 
-    stdout = getLogger('stdout')
+    stdout = getLogger('conda.stdout')
     stdout.setLevel(INFO)
     stdouthandler = StdStreamHandler('stdout')
     stdouthandler.setLevel(INFO)
@@ -82,7 +80,7 @@ def initialize_std_loggers():
     stdout.addFilter(TokenURLFilter())
     stdout.propagate = False
 
-    stderr = getLogger('stderr')
+    stderr = getLogger('conda.stderr')
     stderr.setLevel(INFO)
     stderrhandler = StdStreamHandler('stderr')
     stderrhandler.setLevel(INFO)

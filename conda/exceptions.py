@@ -580,8 +580,8 @@ class InvalidVersionSpecError(CondaError):
 def print_conda_exception(exception):
     from .base.context import context
 
-    stdoutlogger = getLogger('stdout')
-    stderrlogger = getLogger('stderr')
+    stdoutlogger = getLogger('conda.stdout')
+    stderrlogger = getLogger('conda.stderr')
     if context.json:
         import json
         stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
@@ -597,7 +597,7 @@ def print_unexpected_error_message(e):
     # print("%s  %s  %s" % (3*bomb, 3*explosion, 3*fire))
     traceback = format_exc()
 
-    stderrlogger = getLogger('stderr')
+    stderrlogger = getLogger('conda.stderr')
 
     from .base.context import context
     if context.json:
