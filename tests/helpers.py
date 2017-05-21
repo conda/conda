@@ -18,7 +18,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import lexists
 
 from conda.base.context import reset_context
-from conda.common.io import captured, argv
+from conda.common.io import captured as common_io_captured, argv
 from conda.gateways.logging import initialize_logging
 from conda import cli
 
@@ -51,10 +51,6 @@ def raises(exception, func, string=None):
     raise Exception("did not raise, gave %s" % a)
 
 
-class CapturedText(object):
-    pass
-
-
 @contextmanager
 def captured(disallow_stderr=True):
     # """
@@ -70,20 +66,11 @@ def captured(disallow_stderr=True):
     # >>> c.stdout
     # 'hello world!\n'
     # """
-    import sys
-
-    stdout = sys.stdout
-    stderr = sys.stderr
-    sys.stdout = outfile = StringIO()
-    sys.stderr = errfile = StringIO()
-    c = CapturedText()
     try:
-        yield c
+        with common_io_captured() as c:
+            yield c
     finally:
-        c.stdout = outfile.getvalue()
-        c.stderr = strip_expected(errfile.getvalue())
-        sys.stdout = stdout
-        sys.stderr = stderr
+        c.stderr = strip_expected(c.stderr)
         if disallow_stderr and c.stderr:
             raise Exception("Got stderr output: %s" % c.stderr)
 
