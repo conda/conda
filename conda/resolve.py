@@ -360,7 +360,8 @@ class Resolve(object):
         if deps is None:
             rec = self.index[dist]
             deps = [MatchSpec(d) for d in rec.combined_depends]
-            track_features_specs = tuple(MatchSpec(track_features=feat) for feat in self.features(dist))
+            track_features_specs = tuple(MatchSpec(track_features=feat)
+                                         for feat in self.features(dist))
             if track_features_specs:
                 deps.extend(track_features_specs)
             self.ms_depends_[dist] = deps
@@ -447,8 +448,9 @@ class Resolve(object):
         if nm:
             tgroup = libs = self.groups.get(nm, [])
         elif tf:
-            tf = next(iter(tf))  # TODO: this limits packages to only tracking a single feature
-                                 #       but that limitation is already baked into the logic anyway
+            tf = next(iter(tf))
+            # TODO: this limits packages to only tracking a single feature
+            #       but that limitation is already baked into the logic anyway
             tgroup = libs = self.trackers.get(tf, [])
         else:
             tgroup = libs = self.index.keys()

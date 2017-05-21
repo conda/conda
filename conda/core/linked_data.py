@@ -3,9 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from glob import glob
 from logging import getLogger
-from os.path import join, lexists, dirname, isdir
-
-from conda.gateways.disk.create import mkdir_p
+from os.path import join, lexists
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
@@ -90,8 +88,6 @@ class PrefixData(object):
             else:
                 raise
 
-
-
     def _ensure_loaded(self):
         if self._prefix_records is None:
             self.load()
@@ -101,7 +97,6 @@ class PrefixData(object):
             json_data = json_load(fh.read())
         prefix_record = PrefixRecord(**json_data)
         self._prefix_records[prefix_record.name] = prefix_record
-
 
 
 def get_python_version_for_prefix(prefix):
@@ -117,8 +112,6 @@ def get_python_version_for_prefix(prefix):
         raise CondaDependencyError("multiple python records found in prefix %s" % prefix)
     else:
         return record.version[:3]
-
-
 
 
 # exports

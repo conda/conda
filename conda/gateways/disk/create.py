@@ -5,7 +5,7 @@ from errno import EACCES, EPERM
 from io import open
 from logging import getLogger
 import os
-from os import X_OK, access, makedirs
+from os import X_OK, access
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copy as shutil_copy, copystat
 import sys
@@ -26,7 +26,6 @@ from ...common.compat import ensure_binary, on_win
 from ...common.path import ensure_pad, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
-from ...models.dist import Dist
 from ...models.enums import FileMode, LinkType
 
 log = getLogger(__name__)

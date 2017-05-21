@@ -4,17 +4,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from functools import total_ordering
 
 from .channel import Channel
-from .enums import FileMode, LinkType, NoarchType, PathType, Platform
+from .enums import FileMode, LinkType, NoarchType, PathType
 from .leased_path_entry import LeasedPathEntry
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
 from ..common.compat import itervalues, string_types
-
-
-
-
-
-
 
 
 @total_ordering
@@ -65,14 +59,6 @@ class Link(DictSafeMixin, Entity):
 
 
 EMPTY_LINK = Link(source='')
-
-
-
-
-
-
-
-
 
 
 class FeaturesField(ListField):
@@ -141,13 +127,6 @@ class FilenameField(StringField):
             return Channel(url).package_filename
 
 
-
-
-
-
-
-
-
 class IndexJsonRecord(DictSafeMixin, Entity):
     name = StringField()
     version = StringField()
@@ -175,7 +154,6 @@ class IndexJsonRecord(DictSafeMixin, Entity):
         return tuple(itervalues(result))
 
 
-
 class PackageRef(IndexJsonRecord):
     # fields important for uniquely identifying a package
 
@@ -190,7 +168,6 @@ class PackageRef(IndexJsonRecord):
     # build = StringField(aliases=('build_string',))
     # build_number = IntegerField()
     # track_features = StringField(required=False)
-
 
     @property
     def schannel(self):
@@ -268,7 +245,6 @@ class PrefixRecord(PackageCacheRecord):
     # the channel priority when the package was installed into the prefix
     priority = PriorityField(required=False)
 
-
     # There have been requests in the past to save remote server auth
     # information with the package.  Open to rethinking that though.
     auth = StringField(required=False, nullable=True)
@@ -281,39 +257,9 @@ class PrefixRecord(PackageCacheRecord):
     #     return cls()
 
 
-
-
-
 # We also need some type of "full package description" that reads in all
 # information in the info/ directory of an extracted package.  Currently,
 # that's PackageInfo in conda/models/package_info.py.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # TODO: eventually stop mixing Record with LinkedPackageData

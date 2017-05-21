@@ -710,15 +710,16 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
         # TODO: don't make above assumption; put package_tarball_full_path in package_info
 
-        linked_package_record = PrefixRecord.from_objects(package_info.repodata_record,
-                                                          package_info.index_json_record,
-                                                          files=all_target_short_paths,
-                                                          link=link,
-                                                          url=package_info.url,
-                                                          leased_paths=leased_paths,
-                                                          extracted_package_dir=extracted_package_dir,
-                                                          package_tarball_full_path=package_tarball_full_path,
-                                                          )
+        linked_package_record = PrefixRecord.from_objects(
+            package_info.repodata_record,
+            package_info.index_json_record,
+            files=all_target_short_paths,
+            link=link,
+            url=package_info.url,
+            leased_paths=leased_paths,
+            extracted_package_dir=extracted_package_dir,
+            package_tarball_full_path=package_tarball_full_path,
+        )
 
         target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
         return cls(transaction_context, package_info, target_prefix, target_short_path,
