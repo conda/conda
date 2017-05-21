@@ -8,7 +8,7 @@ from shlex import split
 from ..base.constants import APP_NAME, SEARCH_PATH
 from ..base.context import context
 from ..cli.main import generate_parser
-from ..common.io import captured, replace_log_streams, argv
+from ..common.io import captured, argv
 from ..common.path import win_path_double_escape
 from ..exceptions import conda_exception_handler
 from ..gateways import initialize_std_loggers
@@ -74,7 +74,7 @@ def run_command(command, *arguments, **kwargs):
     )
     log.debug("executing command >>>  conda %s", command_line)
     try:
-        with argv(['python_api'] + split_command_line), captured() as c, replace_log_streams():
+        with argv(['python_api'] + split_command_line), captured() as c:
             if use_exception_handler:
                 return_code = conda_exception_handler(args.func, args, p)
             else:

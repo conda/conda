@@ -18,7 +18,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import lexists
 
 from conda.base.context import reset_context
-from conda.common.io import captured, argv, replace_log_streams
+from conda.common.io import captured, argv
 from conda.gateways.logging import initialize_logging
 from conda import cli
 
@@ -119,7 +119,7 @@ def assert_in(a, b, output=""):
 def run_inprocess_conda_command(command):
     # anything that uses this function is an integration test
     reset_context(())
-    with argv(split(command)), captured() as c, replace_log_streams():
+    with argv(split(command)), captured() as c:
         initialize_logging()
         try:
             exit_code = cli.main()

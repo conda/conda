@@ -39,8 +39,7 @@ from conda.cli.main_remove import configure_parser as remove_configure_parser
 from conda.cli.main_search import configure_parser as search_configure_parser
 from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.compat import PY2, iteritems, itervalues, text_type
-from conda.common.io import argv, captured, disable_logger, env_var, replace_log_streams, \
-    stderr_log_level
+from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
 from conda.common.url import path_to_url
@@ -142,7 +141,7 @@ def run_command(command, prefix, *arguments, **kwargs):
     context._set_argparse_args(args)
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
-        with argv(['python_api'] + split_command_line), captured() as c, replace_log_streams():
+        with argv(['python_api'] + split_command_line), captured() as c:
             if use_exception_handler:
                 conda_exception_handler(args.func, args, p)
             else:

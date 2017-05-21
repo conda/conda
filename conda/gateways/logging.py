@@ -35,6 +35,23 @@ class TokenURLFilter(Filter):
         return True
 
 
+class StdStreamHandler(StreamHandler):
+    """Log StreamHandler that always writes to the current sys stream."""
+    def __init__(self, sys_stream):
+        """
+        Args:
+            sys_stream: stream name, either "stdout" or "stderr" (attribute of module sys)
+        """
+        assert hasattr(sys, sys_stream)
+        self._sys_stream = sys_stream
+        super(StreamHandler, self).__init__()  # skip StreamHandler.__init__ which sets self.stream
+
+    @property
+    def stream(self):
+        # always get current stdout/stderr, removes the need to replace self.stream when needed
+        return getattr(sys, self._sys_stream)
+
+
 # Don't use initialize_logging/initialize_root_logger/initialize_conda_logger in
 # cli.python_api! There we want the user to have control over their logging,
 # e.g., using their own levels, handlers, formatters and propagation settings.
@@ -58,7 +75,7 @@ def initialize_std_loggers():
 
     stdout = getLogger('stdout')
     stdout.setLevel(INFO)
-    stdouthandler = StreamHandler(sys.stdout)
+    stdouthandler = StdStreamHandler('stdout')
     stdouthandler.setLevel(INFO)
     stdouthandler.setFormatter(formatter)
     stdout.addHandler(stdouthandler)
@@ -67,7 +84,7 @@ def initialize_std_loggers():
 
     stderr = getLogger('stderr')
     stderr.setLevel(INFO)
-    stderrhandler = StreamHandler(sys.stderr)
+    stderrhandler = StdStreamHandler('stderr')
     stderrhandler.setLevel(INFO)
     stderrhandler.setFormatter(formatter)
     stderr.addHandler(stderrhandler)

@@ -88,22 +88,6 @@ def captured():
 
 
 @contextmanager
-def replace_log_streams():
-    # for loggers stdout/stderr replace their handlers' streams with current sys.stdout/sys.stderr
-    stdout_logger, stderr_logger = getLogger('stdout'), getLogger('stderr')
-    saved_stdout_strm = stdout_logger.handlers[0].stream
-    saved_stderr_strm = stderr_logger.handlers[0].stream
-    stdout_logger.handlers[0].stream = sys.stdout
-    stderr_logger.handlers[0].stream = sys.stderr
-    try:
-        yield
-    finally:
-        # replace the original streams
-        stdout_logger.handlers[0].stream = saved_stdout_strm
-        stderr_logger.handlers[0].stream = saved_stderr_strm
-
-
-@contextmanager
 def argv(args_list):
     saved_args = sys.argv
     sys.argv = args_list
