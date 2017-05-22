@@ -43,6 +43,7 @@ from argparse import SUPPRESS
 from logging import CRITICAL, DEBUG, getLogger
 
 from .. import __version__
+from ..gateways import initialize_logging
 
 log = getLogger(__name__)
 
@@ -153,6 +154,7 @@ def _ensure_text_type(value):
 
 
 def main(*args):
+    initialize_logging()
     if not args:
         args = sys.argv
 
