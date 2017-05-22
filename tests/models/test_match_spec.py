@@ -5,6 +5,7 @@ from unittest import TestCase
 
 import pytest
 
+from conda import text_type
 from conda.base.context import context
 from conda.common.path import expand
 from conda.common.url import path_to_url
@@ -144,7 +145,7 @@ class MatchSpecTests(TestCase):
         assert c != d
         assert hash(c) != hash(d)
 
-    def test_string(self):
+    def test_string_mcg1969(self):
         a = MatchSpec("foo1 >=1.3 2", optional=True, target="burg")
         b = MatchSpec('* [name="foo1", version=">=1.3", build="2"]', optional=True, target="burg")
         assert a.optional and a.target == 'burg'
@@ -163,6 +164,25 @@ class MatchSpecTests(TestCase):
         assert a._to_string() == "foo1 >=1.3 2"
         # assert b._to_string() == ""
         assert g._to_string() == "foo1 >=1.3[build_number=2]"
+
+    def test_string_version(self):
+        def m(string):
+            return text_type(MatchSpec(string))
+
+        # assert m("numpy") == "numpy"
+
+        assert m("numpy=1.7") == "numpy=1.7.*"
+        assert m("numpy 1.7*") == "numpy=1.7.*"
+        assert m("numpy 1.7.*") == "numpy=1.7.*"
+        assert m("numpy[version='1.7*']") == "numpy=1.7.*"
+        assert m("numpy[version='1.7.*']") == "numpy=1.7.*"
+
+        assert m("numpy==1.7") == "numpy==1.7"
+        assert m("numpy 1.7") == "numpy==1.7"
+        assert m("numpy[version='1.7']") == "numpy[version='1.7']"
+
+
+
 
     def test_matchspec_errors(self):
         with pytest.raises(ValueError):
@@ -255,10 +275,10 @@ class TestArg2Spec(TestCase):
 
     def test_simple(self):
         assert arg2spec('python') == 'python'
-        assert arg2spec('python=2.6') == 'python 2.6*'
-        assert arg2spec('python=2.6*') == 'python 2.6*'
-        assert arg2spec('ipython=0.13.2') == 'ipython 0.13.2*'
-        assert arg2spec('ipython=0.13.0') == 'ipython 0.13.0*'
+        assert arg2spec('python=2.6') == 'python 2.6.*'
+        assert arg2spec('python=2.6*') == 'python 2.6.*'
+        assert arg2spec('ipython=0.13.2') == 'ipython 0.13.2.*'
+        assert arg2spec('ipython=0.13.0') == 'ipython 0.13.0.*'
         assert arg2spec('ipython==0.13.0') == 'ipython ==0.13.0'
         assert arg2spec('foo=1.3.0=3') == 'foo 1.3.0 3'
 

@@ -463,9 +463,12 @@ class VersionSpec(object):
         return self.match == self.exact_match_
 
     def __eq__(self, other):
-        if isinstance(other, VersionSpec):
+        try:
+            other = VersionSpec(other)
             return self.spec == other.spec
-        return False
+        except Exception as e:
+            log.debug('%r', e)
+            return False
 
     def __ne__(self, other):
         return not self.__eq__(other)

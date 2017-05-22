@@ -394,6 +394,37 @@ class MatchSpec(object):
         else:
             return base
 
+    def _to_str(self):
+        name = self._components.get('name')
+        if name is None:
+            name = '*'
+
+        version_type = 'complex'
+        version = self._components.get('version')
+        if version:
+            version = text_type(version)
+            if not any(s in version for s in '|,$^'):
+                version_type = 'simple'
+                if version.endswith('.*'):
+                    version = '=' + version[:-2]
+                elif version.endswith('*'):
+                    version = '=' + version[:-1]
+                else:
+                    version = version
+
+        if version_type == 'simple':
+            return "%s%s" % (name, version)
+        else:
+            return "%s[version='%s']" % (name, version)
+
+    def __str__(self):
+        return self._to_str()
+
+
+
+
+
+
     def _eq_key(self):
         return self._components, self.optional, self.target
 
@@ -414,8 +445,8 @@ class MatchSpec(object):
     def __contains__(self, field):
         return field in self._components
 
-    def __str__(self):
-        return self._to_string(args=True, base=True)
+    # def __str__(self):
+    #     return self._to_string(args=True, base=True)
 
     # Needed for back compatibility with conda-build. Do not remove
     # without coordination with the conda-build team.
