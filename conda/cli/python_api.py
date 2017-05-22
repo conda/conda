@@ -11,7 +11,7 @@ from ..cli.main import generate_parser
 from ..common.io import captured, replace_log_streams
 from ..common.path import win_path_double_escape
 from ..exceptions import conda_exception_handler
-from ..gateways import initialize_std_loggers
+from ..gateways.logging import initialize_std_loggers
 
 log = getLogger(__name__)
 

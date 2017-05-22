@@ -9,7 +9,6 @@ import sys
 from ..common.compat import ensure_text_type, on_win, text_type
 from ..exceptions import (ArgumentError, CondaEnvironmentError, CondaSystemExit, CondaValueError,
                           TooFewArgumentsError, TooManyArgumentsError)
-from ..gateways import initialize_logging
 from ..utils import shells
 
 
@@ -108,7 +107,7 @@ def get_activate_path(prefix, shell):
 
 def main():
     from ..base.constants import ROOT_ENV_NAME
-
+    from ..gateways.logging import initialize_logging
     initialize_logging()
 
     sys_argv = tuple(ensure_text_type(s) for s in sys.argv)

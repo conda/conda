@@ -25,8 +25,3 @@ Conda modules strictly prohibited from importing ``conda.gateways`` are
 - ``conda.client``
 
 """
-from __future__ import absolute_import, division, print_function
-
-from .logging import initialize_logging, initialize_std_loggers
-initialize_logging = initialize_logging
-initialize_std_loggers = initialize_std_loggers
