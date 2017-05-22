@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
-
+from logging import getLogger
 import operator as op
 import re
 
 from ..common.compat import string_types, zip, zip_longest, text_type
 from ..exceptions import CondaValueError, InvalidVersionSpecError
 
+log = getLogger(__name__)
 
 # normalized_version() is needed by conda-env
 # It is currently being pulled from resolve instead, but
@@ -294,10 +295,26 @@ VSPEC_TOKENS = (r'\s*\^[^$]*[$]|'  # regexes
                 r'[^()|,]+')       # everything else
 
 
-def treeify(spec):
+def treeify(spec_str):
+    """
+    Examples:
+        >>> treeify("1.2.3")
+        '1.2.3'
+        >>> treeify("1.2.3,>4.5.6")
+        (',', '1.2.3', '>4.5.6')
+        >>> treeify("1.2.3,4.5.6|<=7.8.9")
+        ('|', (',', '1.2.3', '4.5.6'), '<=7.8.9')
+        >>> treeify("(1.2.3|4.5.6),<=7.8.9")
+        (',', ('|', '1.2.3', '4.5.6'), '<=7.8.9')
+        >>> treeify("((1.5|((1.6|1.7), 1.8), 1.9 |2.0))|2.1")
+        ('|', '1.5', (',', ('|', '1.6', '1.7'), '1.8', '1.9'), '2.0', '2.1')
+        >>> treeify("1.5|(1.6|1.7),1.8,1.9|2.0|2.1")
+        ('|', '1.5', (',', ('|', '1.6', '1.7'), '1.8', '1.9'), '2.0', '2.1')
+    """
     # Converts a VersionSpec expression string into a tuple-based
     # expression tree.
-    tokens = re.findall(VSPEC_TOKENS, '(%s)' % spec)
+    assert isinstance(spec_str, string_types)
+    tokens = re.findall(VSPEC_TOKENS, '(%s)' % spec_str)
     output = []
     stack = []
 
@@ -305,7 +322,7 @@ def treeify(spec):
         # cstop: operators with lower precedence
         while stack and stack[-1] not in cstop:
             if len(output) < 2:
-                raise InvalidVersionSpecError(spec)
+                raise InvalidVersionSpecError(spec_str)
             c = stack.pop()
             r = output.pop()
             # Fuse expressions with the same operator; e.g.,
@@ -333,23 +350,36 @@ def treeify(spec):
         elif item == ')':
             apply_ops('(')
             if not stack or stack[-1] != '(':
-                raise InvalidVersionSpecError(spec)
+                raise InvalidVersionSpecError(spec_str)
             stack.pop()
         else:
             output.append(item)
     if stack:
-        raise InvalidVersionSpecError(spec)
+        raise InvalidVersionSpecError(spec_str)
     return output[0]
 
 
-def untreeify(spec, inand=False):
+def untreeify(spec, _inand=False):
+    """
+    Examples:
+        >>> untreeify('1.2.3')
+        '1.2.3'
+        >>> untreeify((',', '1.2.3', '>4.5.6'))
+        '1.2.3,>4.5.6'
+        >>> untreeify(('|', (',', '1.2.3', '4.5.6'), '<=7.8.9'))
+        '1.2.3,4.5.6|<=7.8.9'
+        >>> untreeify((',', ('|', '1.2.3', '4.5.6'), '<=7.8.9'))
+        '(1.2.3|4.5.6),<=7.8.9'
+        >>> untreeify(('|', '1.5', (',', ('|', '1.6', '1.7'), '1.8', '1.9'), '2.0', '2.1'))
+        '1.5|(1.6|1.7),1.8,1.9|2.0|2.1'
+    """
     if isinstance(spec, tuple):
         if spec[0] == '|':
             res = '|'.join(map(untreeify, spec[1:]))
-            if inand:
+            if _inand:
                 res = '(%s)' % res
         else:
-            res = ','.join(map(lambda x: untreeify(x, True), spec[1:]))
+            res = ','.join(map(lambda x: untreeify(x, _inand=True), spec[1:]))
         return res
     return spec
 
@@ -390,9 +420,9 @@ class VersionSpec(object):
             spec = treeify(spec)
         if isinstance(spec, tuple):
             self = object.__new__(cls)
-            self.tup = tuple(VersionSpec(s) for s in spec[1:])
+            self.tup = tup = tuple(VersionSpec(s) for s in spec[1:])
             self.match = self.any_match_ if spec[0] == '|' else self.all_match_
-            self.spec = untreeify(spec)
+            self.spec = untreeify((spec[0],) + tuple(t.spec for t in tup))
             return self
         self = object.__new__(cls)
         self.spec = spec = text_type(spec).strip()
@@ -420,6 +450,8 @@ class VersionSpec(object):
             self.regex = re.compile(rx)
             self.match = self.regex_match_
         elif spec.endswith('*'):
+            if not spec.endswith('.*'):
+                self.spec = spec = spec[:-1] + '.*'
             self.op = VersionOrder.startswith
             self.cmp = VersionOrder(spec.rstrip('*').rstrip('.'))
             self.match = self.veval_match_
@@ -436,9 +468,7 @@ class VersionSpec(object):
         return False
 
     def __ne__(self, other):
-        if isinstance(other, VersionSpec):
-            return self.spec != other.spec
-        return True
+        return not self.__eq__(other)
 
     def __hash__(self):
         return hash(self.spec)
