@@ -139,6 +139,20 @@ class LinkPathAction(CreateInPrefixPathAction):
     @classmethod
     def create_file_link_actions(cls, transaction_context, package_info, target_prefix,
                                  requested_link_type):
+        def get_prefix_replace(path_info):
+            if path_info.prefix_placeholder:
+                link_type = LinkType.copy
+                prefix_placehoder = path_info.prefix_placeholder
+                file_mode = path_info.file_mode
+            elif path_info.no_link or path_info.path_type == PathType.softlink:
+                link_type = LinkType.copy
+                prefix_placehoder, file_mode = '', None
+            else:
+                link_type = requested_link_type
+                prefix_placehoder, file_mode = '', None
+
+            return link_type, prefix_placehoder, file_mode
+
         def make_file_link_action(source_path_info):
             # TODO: this inner function is still kind of a mess
             noarch = package_info.index_json_record.noarch
@@ -152,22 +166,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                 The current version of conda is too old to install this package.
                 Please update conda."""))
 
-            def get_prefix_replace(path_info, requested_link_type):
-                if path_info.prefix_placeholder:
-                    link_type = LinkType.copy
-                    prefix_placehoder = path_info.prefix_placeholder
-                    file_mode = path_info.file_mode
-                elif path_info.no_link or path_info.path_type == PathType.softlink:
-                    link_type = LinkType.copy
-                    prefix_placehoder, file_mode = '', None
-                else:
-                    link_type = requested_link_type
-                    prefix_placehoder, file_mode = '', None
-
-                return link_type, prefix_placehoder, file_mode
-
-            link_type, placeholder, fmode = get_prefix_replace(source_path_info,
-                                                               requested_link_type)
+            link_type, placeholder, fmode = get_prefix_replace(source_path_info)
 
             if placeholder:
                 return PrefixReplaceLinkAction(transaction_context, package_info,
