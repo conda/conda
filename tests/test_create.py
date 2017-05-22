@@ -31,7 +31,7 @@ from conda import CondaError, CondaMultiError, plan
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda.base.context import context, reset_context
 from conda.cli.common import get_index_trap
-from conda.cli.main import generate_parser
+from conda.cli.main import generate_parser, init_loggers
 from conda.cli.main_clean import configure_parser as clean_configure_parser
 from conda.cli.main_config import configure_parser as config_configure_parser
 from conda.cli.main_create import configure_parser as create_configure_parser
@@ -139,6 +139,7 @@ def run_command(command, prefix, *arguments, **kwargs):
 
     args = p.parse_args(split(command_line))
     context._set_argparse_args(args)
+    init_loggers(context)
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         with captured() as c, replace_log_streams():
@@ -329,41 +330,39 @@ class IntegrationTests(TestCase):
             assert_json_parsable(stdout)
             assert not stderr
 
+            stdout, stderr = run_command(Commands.INSTALL, prefix, 'flask=0.10 --json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python-3')
 
+            # Test force reinstall
+            stdout, stderr = run_command(Commands.INSTALL, prefix, '--force', 'flask=0.10', '--json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python-3')
 
+            stdout, stderr = run_command(Commands.UPDATE, prefix, 'flask --json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert not package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'flask')
+            assert_package_is_installed(prefix, 'python-3')
 
+            stdout, stderr = run_command(Commands.REMOVE, prefix, 'flask --json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert not package_is_installed(prefix, 'flask-0.')
+            assert_package_is_installed(prefix, 'python-3')
+
+            stdout, stderr = run_command(Commands.INSTALL, prefix, '--revision 0', '--json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert not package_is_installed(prefix, 'flask')
+            assert_package_is_installed(prefix, 'python-3')
         finally:
             rmtree(prefix, ignore_errors=True)
-
-
-
-
-        # with make_temp_env("python=3.5") as prefix:
-        #     assert exists(join(prefix, PYTHON_BINARY))
-        #     assert_package_is_installed(prefix, 'python-3')
-        #
-        #     run_command(Commands.INSTALL, prefix, 'flask=0.10')
-        #     assert_package_is_installed(prefix, 'flask-0.10.1')
-        #     assert_package_is_installed(prefix, 'python-3')
-        #
-        #     # Test force reinstall
-        #     run_command(Commands.INSTALL, prefix, '--force', 'flask=0.10')
-        #     assert_package_is_installed(prefix, 'flask-0.10.1')
-        #     assert_package_is_installed(prefix, 'python-3')
-        #
-        #     run_command(Commands.UPDATE, prefix, 'flask')
-        #     assert not package_is_installed(prefix, 'flask-0.10.1')
-        #     assert_package_is_installed(prefix, 'flask')
-        #     assert_package_is_installed(prefix, 'python-3')
-        #
-        #     run_command(Commands.REMOVE, prefix, 'flask')
-        #     assert not package_is_installed(prefix, 'flask-0.')
-        #     assert_package_is_installed(prefix, 'python-3')
-        #
-        #     run_command(Commands.INSTALL, prefix, '--revision 0')
-        #     assert not package_is_installed(prefix, 'flask')
-        #     assert_package_is_installed(prefix, 'python-3')
-        # finally:
 
     def test_noarch_python_package_with_entry_points(self):
         with make_temp_env("-c conda-test flask") as prefix:
