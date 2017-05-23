@@ -281,26 +281,40 @@ def execute_config(args, parser):
                              cls=EntityEncoder))
         else:
             for name in paramater_names:
+                builder = []
                 details = context.describe_parameter(name)
                 aliases = details['aliases']
                 string_delimiter = details.get('string_delimiter')
                 element_types = details['element_types']
+                default_value_str = json.dumps(details['default_value'], cls=EntityEncoder)
+
+                builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
+
+
                 if details['parameter_type'] == 'primitive':
-                    print("%s (%s)" % (name, ', '.join(sorted(set(et for et in element_types)))))
+                    builder[0] += "  # (%s)" % ', '.join(sorted(set(et for et in element_types)))
                 else:
-                    print("%s (%s: %s)" % (name, details['parameter_type'],
-                                           ', '.join(sorted(set(et for et in element_types)))))
-                def_str = '  default: %s' % json.dumps(details['default_value'], indent=2,
-                                                       separators=(',', ': '),
-                                                       cls=EntityEncoder)
-                print('\n  '.join(def_str.split('\n')))
+                    builder[0] += "  # (%s: %s)" % (details['parameter_type'], ', '.join(sorted(set(et for et in element_types))))
+
+                builder.extend(' ' + line for line in wrap(details['description'], 70))
+
                 if aliases:
-                    print("  aliases: %s" % ', '.join(aliases))
+                    builder.append(" aliases: %s" % ', '.join(aliases))
                 if string_delimiter:
-                    print("  string delimiter: '%s'" % string_delimiter)
-                print('\n  '.join(wrap('  ' + details['description'], 70)))
+                    builder.append(" string delimiter: '%s'" % string_delimiter)
+                # print('\n  '.join(wrap('  ' + details['description'], 70)))
+
+                sys.stdout.write('# ')
+                print('\n# '.join(builder))
                 print()
+                
         return
+
+    # if args.write_default:
+    #     paramater_names = context.list_parameters()
+    #     for name in paramater_names:
+
+
 
     if args.validate:
         context.validate_all()
