@@ -288,26 +288,33 @@ def execute_config(args, parser):
                 element_types = details['element_types']
                 default_value_str = json.dumps(details['default_value'], cls=EntityEncoder)
 
-                builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
+                # builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
 
 
                 if details['parameter_type'] == 'primitive':
-                    builder[0] += "  # (%s)" % ', '.join(sorted(set(et for et in element_types)))
+                    builder.append("%s (%s)" % (name, ', '.join(sorted(set(et for et in element_types)))))
                 else:
-                    builder[0] += "  # (%s: %s)" % (details['parameter_type'], ', '.join(sorted(set(et for et in element_types))))
+                    builder.append("%s (%s: %s)" % (name, details['parameter_type'], ', '.join(sorted(set(et for et in element_types)))))
 
-                builder.extend(' ' + line for line in wrap(details['description'], 70))
 
                 if aliases:
-                    builder.append(" aliases: %s" % ', '.join(aliases))
+                    builder.append("  aliases: %s" % ', '.join(aliases))
                 if string_delimiter:
-                    builder.append(" string delimiter: '%s'" % string_delimiter)
+                    builder.append("  string delimiter: '%s'" % string_delimiter)
+
+                builder.extend('  ' + line for line in wrap(details['description'], 70))
+
+                builder.append('')
+
+                builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
+
                 # print('\n  '.join(wrap('  ' + details['description'], 70)))
 
-                sys.stdout.write('# ')
-                print('\n# '.join(builder))
+                # sys.stdout.write('# ')
+                print('\n'.join('# ' + line for line in builder))
                 print()
-                
+                print()
+
         return
 
     # if args.write_default:
