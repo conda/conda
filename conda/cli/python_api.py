@@ -11,9 +11,8 @@ from ..cli.main import generate_parser
 from ..common.io import captured, replace_log_streams
 from ..common.path import win_path_double_escape
 from ..exceptions import conda_exception_handler
-from ..gateways import initialize_logging
+from ..gateways.logging import initialize_std_loggers
 
-initialize_logging()
 log = getLogger(__name__)
 
 
@@ -60,6 +59,7 @@ def run_command(command, *arguments, **kwargs):
 
 
     """
+    initialize_std_loggers()
     use_exception_handler = kwargs.get('use_exception_handler', False)
     configuration_search_path = kwargs.get('search_path', SEARCH_PATH)
     p, sub_parsers = generate_parser()

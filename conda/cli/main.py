@@ -80,16 +80,17 @@ def generate_parser():
     return p, sub_parsers
 
 
-def init_loggers(context):
-    from ..gateways.logging import set_all_logger_level, set_verbosity
-    if context.json:
+def init_loggers(context=None):
+    from ..gateways.logging import initialize_logging, set_all_logger_level, set_verbosity
+    initialize_logging()
+    if context and context.json:
         # Silence logging info to avoid interfering with JSON output
         for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
             getLogger(logger).setLevel(CRITICAL + 1)
 
-    if context.debug:
+    if context and context.debug:
         set_all_logger_level(DEBUG)
-    elif context.verbosity:
+    elif context and context.verbosity:
         set_verbosity(context.verbosity)
         log.debug("verbosity set to %s", context.verbosity)
 
@@ -166,11 +167,12 @@ def main(*args):
                 import conda.cli.activate as activate
                 activate.main()
                 return
-            if argv1 in ('activate', 'deactivate'):
+            elif argv1 in ('activate', 'deactivate'):
                 from ..exceptions import CommandNotFoundError
                 raise CommandNotFoundError(argv1)
         except Exception as e:
             from ..exceptions import handle_exception
+            init_loggers()
             return handle_exception(e)
 
     from ..exceptions import conda_exception_handler
