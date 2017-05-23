@@ -9,7 +9,7 @@ from argparse import SUPPRESS
 import collections
 import json
 import os
-from os.path import join
+from os.path import join, isfile
 import sys
 from textwrap import wrap
 
@@ -139,6 +139,12 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         help="Describe available configuration parameters.",
     )
     action.add_argument(
+        "--write-default",
+        action="store_true",
+        help="Write the default configuration to the user .condarc file. "
+             "Equivalent to `conda config --describe > ~/.condarc`.",
+    )
+    action.add_argument(
         "--get",
         nargs='*',
         action="store",
@@ -231,12 +237,45 @@ def format_dict(d):
     return lines
 
 
+def parameter_description_builder(name):
+    from .._vendor.auxlib.entity import EntityEncoder
+    builder = []
+    details = context.describe_parameter(name)
+    aliases = details['aliases']
+    string_delimiter = details.get('string_delimiter')
+    element_types = details['element_types']
+    default_value_str = json.dumps(details['default_value'], cls=EntityEncoder)
+
+    if details['parameter_type'] == 'primitive':
+        builder.append("%s (%s)" % (name, ', '.join(sorted(set(et for et in element_types)))))
+    else:
+        builder.append("%s (%s: %s)" % (
+        name, details['parameter_type'], ', '.join(sorted(set(et for et in element_types)))))
+
+    if aliases:
+        builder.append("  aliases: %s" % ', '.join(aliases))
+    if string_delimiter:
+        builder.append("  string delimiter: '%s'" % string_delimiter)
+
+    builder.extend('  ' + line for line in wrap(details['description'], 70))
+
+    builder.append('')
+
+    builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
+
+    builder = ['# ' + line for line in builder]
+    builder.append('')
+    builder.append('')
+    return builder
+
+
 def execute_config(args, parser):
     try:
-        from cytoolz.itertoolz import groupby
+        from cytoolz.itertoolz import chain, groupby
     except ImportError:  # pragma: no cover
-        from .._vendor.toolz.itertoolz import groupby  # NOQA
+        from .._vendor.toolz.itertoolz import chain, groupby  # NOQA
     from .._vendor.auxlib.entity import EntityEncoder
+
     json_warnings = []
     json_get = {}
 
@@ -280,48 +319,26 @@ def execute_config(args, parser):
                              sort_keys=True, indent=2, separators=(',', ': '),
                              cls=EntityEncoder))
         else:
-            for name in paramater_names:
-                builder = []
-                details = context.describe_parameter(name)
-                aliases = details['aliases']
-                string_delimiter = details.get('string_delimiter')
-                element_types = details['element_types']
-                default_value_str = json.dumps(details['default_value'], cls=EntityEncoder)
-
-                # builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
-
-
-                if details['parameter_type'] == 'primitive':
-                    builder.append("%s (%s)" % (name, ', '.join(sorted(set(et for et in element_types)))))
-                else:
-                    builder.append("%s (%s: %s)" % (name, details['parameter_type'], ', '.join(sorted(set(et for et in element_types)))))
-
-
-                if aliases:
-                    builder.append("  aliases: %s" % ', '.join(aliases))
-                if string_delimiter:
-                    builder.append("  string delimiter: '%s'" % string_delimiter)
-
-                builder.extend('  ' + line for line in wrap(details['description'], 70))
-
-                builder.append('')
-
-                builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
-
-                # print('\n  '.join(wrap('  ' + details['description'], 70)))
-
-                # sys.stdout.write('# ')
-                print('\n'.join('# ' + line for line in builder))
-                print()
-                print()
-
+            print('\n'.join(chain.from_iterable(parameter_description_builder(name)
+                                                for name in paramater_names)))
         return
 
-    # if args.write_default:
-    #     paramater_names = context.list_parameters()
-    #     for name in paramater_names:
+    if args.write_default:
+        if isfile(user_rc_path):
+            with open(user_rc_path) as fh:
+                data = fh.read().strip()
+            if data:
+                raise CondaError("The file '%s' "
+                                 "already contains configuration information.\n"
+                                 "Remove the file to proceed.\n"
+                                 "Use `conda config --describe` to display default configuration."
+                                 % user_rc_path)
 
-
+        with open(user_rc_path, 'w') as fh:
+            paramater_names = context.list_parameters()
+            fh.write('\n'.join(chain(parameter_description_builder(name)
+                                     for name in paramater_names)))
+        return
 
     if args.validate:
         context.validate_all()
