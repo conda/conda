@@ -555,7 +555,7 @@ class BuildNumberSpec(object):
         return hash(self.spec)
 
     def __str__(self):
-        return self.spec
+        return text_type(self.spec)
 
     def __repr__(self):
         # return "BuildNumberSpec('%s')" % self.spec
