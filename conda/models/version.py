@@ -418,13 +418,16 @@ class VersionSpec(object):
             return spec
         if isinstance(spec, string_types) and regex_split_re.match(spec):
             spec = treeify(spec)
+
+        self = object.__new__(cls)
         if isinstance(spec, tuple):
-            self = object.__new__(cls)
             self.tup = tup = tuple(VersionSpec(s) for s in spec[1:])
             self.match = self.any_match_ if spec[0] == '|' else self.all_match_
             self.spec = untreeify((spec[0],) + tuple(t.spec for t in tup))
+            self.depth = 2
             return self
-        self = object.__new__(cls)
+
+        self.depth = 0
         self.spec = spec = text_type(spec).strip()
         if spec.startswith('^') or spec.endswith('$'):
             if not spec.startswith('^') or not spec.endswith('$'):

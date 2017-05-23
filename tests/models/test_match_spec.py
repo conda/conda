@@ -93,7 +93,7 @@ class MatchSpecTests(TestCase):
 
     def test_no_name_match_spec(self):
         ms = MatchSpec(track_features="mkl")
-        assert str(ms) == "*[track_features='mkl']"
+        assert str(ms) == "*[track_features=mkl]"
 
     def test_to_filename(self):
         m1 = MatchSpec(fn='foo-1.7-52.tar.bz2')
@@ -170,16 +170,16 @@ class MatchSpecTests(TestCase):
             return text_type(MatchSpec(string))
 
         # assert m("numpy") == "numpy"
-
-        assert m("numpy=1.7") == "numpy=1.7.*"
-        assert m("numpy 1.7*") == "numpy=1.7.*"
-        assert m("numpy 1.7.*") == "numpy=1.7.*"
-        assert m("numpy[version='1.7*']") == "numpy=1.7.*"
-        assert m("numpy[version='1.7.*']") == "numpy=1.7.*"
+        #
+        # assert m("numpy=1.7") == "numpy=1.7"
+        # assert m("numpy 1.7*") == "numpy=1.7"
+        # assert m("numpy 1.7.*") == "numpy=1.7"
+        # assert m("numpy[version='1.7*']") == "numpy=1.7"
+        # assert m("numpy[version='1.7.*']") == "numpy=1.7"
 
         assert m("numpy==1.7") == "numpy==1.7"
+        assert m("numpy[version='1.7']") == "numpy==1.7"
         assert m("numpy 1.7") == "numpy==1.7"
-        assert m("numpy[version='1.7']") == "numpy[version='1.7']"
 
 
 
@@ -275,17 +275,17 @@ class TestArg2Spec(TestCase):
 
     def test_simple(self):
         assert arg2spec('python') == 'python'
-        assert arg2spec('python=2.6') == 'python 2.6.*'
-        assert arg2spec('python=2.6*') == 'python 2.6.*'
-        assert arg2spec('ipython=0.13.2') == 'ipython 0.13.2.*'
-        assert arg2spec('ipython=0.13.0') == 'ipython 0.13.0.*'
-        assert arg2spec('ipython==0.13.0') == 'ipython ==0.13.0'
-        assert arg2spec('foo=1.3.0=3') == 'foo 1.3.0 3'
+        assert arg2spec('python=2.6') == 'python=2.6'
+        assert arg2spec('python=2.6*') == 'python=2.6'
+        assert arg2spec('ipython=0.13.2') == 'ipython=0.13.2'
+        assert arg2spec('ipython=0.13.0') == 'ipython=0.13.0'
+        assert arg2spec('ipython==0.13.0') == 'ipython==0.13.0'
+        assert arg2spec('foo=1.3.0=3') == 'foo==1.3.0[build=3]'
 
     def test_pip_style(self):
-        assert arg2spec('foo>=1.3') == 'foo >=1.3'
-        assert arg2spec('zope.int>=1.3,<3.0') == 'zope.int >=1.3,<3.0'
-        assert arg2spec('numpy >=1.9') == 'numpy >=1.9'
+        assert arg2spec('foo>=1.3') == "foo[version='>=1.3']"
+        assert arg2spec('zope.int>=1.3,<3.0') == "zope.int[version='>=1.3,<3.0']"
+        assert arg2spec('numpy >=1.9') == "numpy[version='>=1.9']"
 
     def test_invalid_arg2spec(self):
         with pytest.raises(CondaValueError):
@@ -398,6 +398,16 @@ class SpecStrParsingTests(TestCase):
             "name": "*",
             "version": ">=1.3",
             "build": "2",
+        }
+
+    def test_parse_equal_equal(self):
+        assert _parse_spec_str("numpy==1.7") == {
+            "name": "numpy",
+            "version": "1.7",
+        }
+        assert _parse_spec_str("numpy ==1.7") == {
+            "name": "numpy",
+            "version": "1.7",
         }
 
     def test_parse_hard(self):

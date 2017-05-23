@@ -188,6 +188,8 @@ class RepodataRecord(PackageRef):
     # license_family = StringField(required=False)
     priority = PriorityField(required=False)
 
+    date = StringField(required=False)
+
     url = StringField(required=False, nullable=True)
 
     # @property

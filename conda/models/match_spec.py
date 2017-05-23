@@ -53,7 +53,10 @@ class SplitStrSpec(object):
             return self.exact & self._convert(other)
 
     def __repr__(self):
-        return "'%s'" % ','.join(sorted(self.exact))
+        if len(self.exact) > 1:
+            return "'%s'" % ','.join(sorted(self.exact))
+        else:
+            return "%s" % next(iter(self.exact))
 
     def __eq__(self, other):
         return self.match(other)
@@ -280,21 +283,8 @@ class MatchSpec(object):
 
     @staticmethod
     def _push(specs_map, *args):
-        # None means ignore
-        FIELD_CONVERSION = {
-            'dist_name': None,
-            'build_string': 'build',
-        }
-
         # format each (field_name, value) arg pair, and add it to specs_map
         for field_name, value in args:
-            if field_name in FIELD_CONVERSION:
-                converted_name = FIELD_CONVERSION[field_name]
-                if converted_name is None:
-                    continue
-                else:
-                    field_name = converted_name
-
             if value in ('*', None):
                 if field_name in specs_map:
                     del specs_map[field_name]
@@ -395,27 +385,66 @@ class MatchSpec(object):
             return base
 
     def _to_str(self):
-        name = self._components.get('name')
-        if name is None:
-            name = '*'
+        builder = []
+        order = (
+            # 'channel',
+            # 'subdir',
+            # 'version',
+            'build',
+            'build_number',
+            'track_features',
+            'md5',
+        )
 
-        version_type = 'complex'
+        channel = self._components.get('channel')
+        if channel:
+            builder.append(channel + "::")
+
+        builder.append(self._components.get('name', '*'))
+
+        xtra = []
+
         version = self._components.get('version')
         if version:
             version = text_type(version)
-            if not any(s in version for s in '|,$^'):
-                version_type = 'simple'
-                if version.endswith('.*'):
-                    version = '=' + version[:-2]
-                elif version.endswith('*'):
-                    version = '=' + version[:-1]
-                else:
-                    version = version
+            if any(s in version for s in '><$^|,'):
+                xtra.append("version='%s'" % version)
+            elif version.endswith('.*'):
+                builder.append('=' + version[:-2])
+            elif version.endswith('*'):
+                builder.append('=' + version[:-1])
+            else:
+                builder.append('==' + version)
+                # xtra.append("version=%s" % version)
 
-        if version_type == 'simple':
-            return "%s%s" % (name, version)
-        else:
-            return "%s[version='%s']" % (name, version)
+        for key in order:
+            if key in self._components:
+                xtra.append("%s=%s" % (key, self._components[key]))
+
+        if xtra:
+            builder.append('[%s]' % ','.join(xtra))
+
+        return ''.join(builder)
+
+
+
+        # version_type = 'complex'
+        # version = self._components.get('version')
+        # if version:
+        #     version = text_type(version)
+        #     if not any(s in version for s in '|,$^'):
+        #         version_type = 'simple'
+        #         if version.endswith('.*'):
+        #             version = '=' + version[:-2]
+        #         elif version.endswith('*'):
+        #             version = '=' + version[:-1]
+        #         else:
+        #             version = version
+        #
+        # if version_type == 'simple':
+        #     return "%s%s" % (name, version)
+        # else:
+        #     return "%s[version='%s']" % (name, version)
 
     def __str__(self):
         return self._to_str()
@@ -594,7 +623,9 @@ def _parse_spec_str(spec_str):
         # is it a simple version starting with '='? i.e. '=1.2.3'
         if version.startswith('='):
             test_str = version[1:]
-            if not any(c in test_str for c in "=,|"):
+            if version.startswith('==') and build is None:
+                version = version[2:]
+            elif not any(c in test_str for c in "=,|"):
                 if build is None and not test_str.endswith('*'):
                     version = test_str + '*'
                 else:
