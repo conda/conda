@@ -9,7 +9,7 @@ from argparse import SUPPRESS
 import collections
 import json
 import os
-from os.path import join, isfile
+from os.path import isfile, join
 import sys
 from textwrap import wrap
 
@@ -271,9 +271,9 @@ def parameter_description_builder(name):
 
 def execute_config(args, parser):
     try:
-        from cytoolz.itertoolz import chain, groupby
+        from cytoolz.itertoolz import concat, groupby
     except ImportError:  # pragma: no cover
-        from .._vendor.toolz.itertoolz import chain, groupby  # NOQA
+        from .._vendor.toolz.itertoolz import concat, groupby  # NOQA
     from .._vendor.auxlib.entity import EntityEncoder
 
     json_warnings = []
@@ -319,8 +319,8 @@ def execute_config(args, parser):
                              sort_keys=True, indent=2, separators=(',', ': '),
                              cls=EntityEncoder))
         else:
-            print('\n'.join(chain.from_iterable(parameter_description_builder(name)
-                                                for name in paramater_names)))
+            print('\n'.join(concat(parameter_description_builder(name)
+                                   for name in paramater_names)))
         return
 
     if args.write_default:
@@ -336,8 +336,8 @@ def execute_config(args, parser):
 
         with open(user_rc_path, 'w') as fh:
             paramater_names = context.list_parameters()
-            fh.write('\n'.join(chain(parameter_description_builder(name)
-                                     for name in paramater_names)))
+            fh.write('\n'.join(concat(parameter_description_builder(name)
+                                      for name in paramater_names)))
         return
 
     if args.validate:
