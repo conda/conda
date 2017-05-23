@@ -140,8 +140,10 @@ def is_linked(prefix, dist):
     """
     # FIXME Functions that begin with `is_` should return True/False
     pd = PrefixData(prefix)
-    prefix_record = pd.get(dist.name)
-    if MatchSpec(dist).match(prefix_record):
+    prefix_record = pd.get(dist.name, None)
+    if prefix_record is None:
+        return None
+    elif MatchSpec(dist).match(prefix_record):
         return prefix_record
     else:
         return None

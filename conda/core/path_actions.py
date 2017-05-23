@@ -1137,7 +1137,7 @@ class ExtractPackageAction(PathAction):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
         from .package_cache import PackageCache
-        from conda.models.package_cache_record import PackageCacheRecord
+        from ..models.package_cache_record import PackageCacheRecord
         log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
         if lexists(self.hold_path):

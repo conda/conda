@@ -661,7 +661,7 @@ class ComposableField(Field):
                 return val if isinstance(val, self._type) else self._type(**val)
             elif isinstance(val, Mapping):
                 return self._type(**val)
-            elif isiterable(val):
+            elif isinstance(val, Sequence) and not isinstance(val, string_types):
                 return self._type(*val)
             else:
                 return self._type(val)

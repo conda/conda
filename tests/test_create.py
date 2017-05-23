@@ -46,7 +46,7 @@ from conda.common.path import get_bin_directory_short_path, get_python_site_pack
 from conda.common.url import path_to_url
 from conda.common.serialize import yaml_load
 from conda.core.linked_data import get_python_version_for_prefix, \
-    linked as install_linked, linked_data
+    linked as install_linked, linked_data, PrefixData
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
 from conda.exceptions import CondaHTTPError, DryRunExit, PackageNotFoundError, RemoveError, \
@@ -57,7 +57,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
-from conda.models.index_record import IndexRecord
+from conda.models.index_record import IndexRecord, PrefixRecord
 from conda.utils import on_win
 
 try:
@@ -497,7 +497,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'flask-')
 
             # regression test for #2599
-            linked_data_.clear()
+            PrefixData._cache_ = {}
             flask_metadata = glob(join(prefix, 'conda-meta', flask_fname[:-8] + '.json'))[-1]
             bad_metadata = join(prefix, 'conda-meta', 'flask.json')
             copyfile(flask_metadata, bad_metadata)
@@ -547,7 +547,7 @@ class IntegrationTests(TestCase):
                     del data[field]
             with open(fn, 'w') as f:
                 json.dump(data, f)
-            linked_data_.clear()
+            PrefixData._cache_ = {}
 
             with make_temp_env('-c conda-forge --clone "%s"' % prefix) as clone_prefix:
                 assert_package_is_installed(clone_prefix, 'python-3.5')
@@ -587,6 +587,10 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     def test_install_features(self):
+        with make_temp_env("python=2 numpy nomkl") as prefix:
+            numpy_details = get_conda_list_tuple(prefix, "numpy")
+            assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
+
         with make_temp_env("python=2 numpy") as prefix:
             numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 3 or 'nomkl' not in numpy_details[3]

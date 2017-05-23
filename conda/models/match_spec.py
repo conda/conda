@@ -48,7 +48,7 @@ class SplitStrSpec(object):
 
     def match(self, other):
         try:
-            return self.exact & other.exact
+            return other and self.exact & other.exact
         except AttributeError:
             return self.exact & self._convert(other)
 
@@ -398,7 +398,7 @@ class MatchSpec(object):
 
         channel = self._components.get('channel')
         if channel:
-            builder.append(channel + "::")
+            builder.append(channel.exact.canonical_name + "::")
 
         builder.append(self._components.get('name', '*'))
 

@@ -14,7 +14,7 @@ from ..common.compat import iteritems, itervalues
 from ..gateways.disk.read import read_index_json
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
-from ..models.index_record import EMPTY_LINK, IndexRecord
+from ..models.index_record import EMPTY_LINK, IndexRecord, RepodataRecord
 
 try:
     from cytoolz.itertoolz import take
@@ -66,11 +66,14 @@ def _supplement_index_with_cache(index, channels):
         index_json_record = read_index_json(pkg_dir)
         # See the discussion above about priority assignments.
         priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-        index_json_record.fn = dist.to_filename()
-        index_json_record.schannel = dist.channel
-        index_json_record.priority = priority
-        index_json_record.url = dist.to_url()
-        index[dist] = index_json_record
+        repodata_record = RepodataRecord.from_objects(
+            index_json_record,
+            fn=dist.to_filename(),
+            schannel=dist.channel,
+            priority=priority,
+            url=dist.to_url(),
+        )
+        index[dist] = repodata_record
 
 
 def supplement_index_with_repodata(index, repodata, channel, priority):
