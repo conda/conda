@@ -145,22 +145,6 @@ def extract_tarball(tarball_full_path, destination_directory=None):
                 os.lchown(p, 0, 0)
 
 
-# def write_linked_package_record(prefix, record):
-#     # write into <env>/conda-meta/<dist>.json
-#     meta_dir = join(prefix, 'conda-meta')
-#     if not isdir(meta_dir):
-#         makedirs(meta_dir)
-#     dist = Dist(record)
-#     conda_meta_full_path = join(meta_dir, dist.to_filename('.json'))
-#     if lexists(conda_meta_full_path):
-#         maybe_raise(BasicClobberError(
-#             source_path=None,
-#             target_path=conda_meta_full_path,
-#             context=context,
-#         ), context)
-#     write_as_json_to_file(conda_meta_full_path, record)
-
-
 def make_menu(prefix, file_path, remove=False):
     """
     Create cross-platform menu items (e.g. Windows Start Menu)

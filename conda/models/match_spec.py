@@ -75,25 +75,18 @@ class MatchSpec(object):
 
     Strings are interpreted using the following conventions:
       - If the string begins with `^` and ends with `$`, it is converted to a regex.
-      - For the `version` field, non-regex strings are processed by `VersionSpec`.
       - If the string contains an asterisk (`*`), it is transformed from a glob to a regex.
       - Otherwise, an exact match to the string is sought.
 
     The `.match()` method accepts an `IndexRecord` or dictionary, and matches can pull
     from any field in that record.
 
-    For now, non-string fields (e.g., `build_number`) allow only exact matches.
-    However, fully custom matching on a single field is possible simply by feeding
-    in an object with a `match` method (which, conveniently, includes regexes and
-    `VersionSpec` objects). There is no way to match on a combination of fields in
-    a single function, and the tests are combined using logical `and`.
-
     Great pain has been taken to preserve back-compatibility with the standard
     `name version build` syntax. But strictly speaking it is not necessary. Now, the
     following are all equivalent:
-      - `MatchSpec('foo 1.0 py27_0 (optional)')`
-      - `MatchSpec("* (name='foo',version='1.0',build='py27_0')", optional=True)`
-      - `MatchSpec("foo (version='1.0',optional,build='py27_0')")`
+      - `MatchSpec('foo 1.0 py27_0', optional=True)`
+      - `MatchSpec("* [name='foo',version='1.0',build='py27_0']", optional=True)`
+      - `MatchSpec("foo[version='1.0',optional,build='py27_0']")`
       - `MatchSpec(name='foo', optional=True, version='1.0', build='py27_0')`
 
     """
@@ -246,27 +239,18 @@ class MatchSpec(object):
             else:
                 raise NotImplementedError()
 
-            # if field_name == 'version':
-            #     value = VersionSpec(value)
-            #     if value.is_exact():
-            #         value = value.spec
-            # elif field_name == "build":
-            #     if isinstance(value, string_types) and '_' in value:
-            #         bn = text_type(value).rsplit('_', 1)[-1]
-            #         build_number = BuildNumberMatch(bn)
-            #         if build_number.is_exact():
-            #             build_number = build_number.spec
-            #         specs_map["build_number"] = build_number
-
             return matcher
 
         return frozendict((key, _make(key, value)) for key, value in iteritems(kwargs))
 
+    @property
+    def name(self):
+        return self.get_exact_value('name') or '*'
+
     #
-    # Methods for back compatibility with conda-build. Do not remove
+    # Remaining methods are for back compatibility with conda-build. Do not remove
     # without coordination with the conda-build team.
     #
-
     @property
     def strictness(self):
         # With the old MatchSpec, strictness==3 if name, version, and
@@ -284,10 +268,6 @@ class MatchSpec(object):
     @property
     def spec(self):
         return self.conda_build_form()
-
-    @property
-    def name(self):
-        return self.get_exact_value('name') or '*'
 
     @property
     def version(self):

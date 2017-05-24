@@ -635,7 +635,6 @@ class MapField(Field):
                                            "{0}".format(self.name))
 
 
-
 class ComposableField(Field):
 
     def __init__(self, field_class, default=None, required=True, validation=None,
