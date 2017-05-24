@@ -93,7 +93,7 @@ def arg2spec(arg, json=False, update=False):
         raise CondaValueError('invalid package specification: %s' % arg)
 
     name = spec.name
-    if not spec.is_simple() and update:
+    if not spec._is_simple() and update:
         from ..exceptions import CondaValueError
         raise CondaValueError("""version specifications not allowed with 'update'; use
     conda update  %s%s  or

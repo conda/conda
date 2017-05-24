@@ -442,7 +442,7 @@ class Resolve(object):
         m = C.from_name(name)
         if m is not None:
             return name
-        simple = ms.is_single()
+        simple = ms._is_single()
         nm = ms.exact_field('name')
         tf = ms.exact_field('track_features')
         if nm:
@@ -597,16 +597,16 @@ class Resolve(object):
         specs = list(map(MatchSpec, specs))
         if len(specs) == 1:
             ms = MatchSpec(specs[0])
-            fn = ms.to_filename()
+            fn = ms._to_filename_do_not_use()
             if fn is None:
                 return None
             fkey = Dist(add_defaults_if_no_channel(fn))
             if fkey not in self.index:
                 return None
-            res = [ms2.to_filename() for ms2 in self.ms_depends(fkey)]
+            res = [ms2._to_filename_do_not_use() for ms2 in self.ms_depends(fkey)]
             res.append(fn)
         else:
-            res = [spec.to_filename() for spec in specs if str(spec) != 'conda']
+            res = [spec._to_filename_do_not_use() for spec in specs if str(spec) != 'conda']
 
         if None in res:
             return None
@@ -708,7 +708,7 @@ class Resolve(object):
             # Since '@' is an illegal version number, this ensures that all of
             # these matches will never match an actual package. Combined with
             # optional=True, this has the effect of forcing their removal.
-            if s.is_single():
+            if s._is_single():
                 nspecs.append(MatchSpec(s, version='@', optional=True))
             else:
                 nspecs.append(MatchSpec(s, optional=True))

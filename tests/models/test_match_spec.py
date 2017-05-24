@@ -71,15 +71,9 @@ class MatchSpecTests(TestCase):
         assert MatchSpec('numpy >=1.0.1a py27*').match(DPkg('numpy-1.0.1z-py27_1.tar.bz2'))
         assert MatchSpec('blas * openblas_0').match(DPkg('blas-1.0-openblas_0.tar.bz2'))
 
-        assert MatchSpec('blas').is_simple()
-        assert not MatchSpec('blas').is_exact()
-        assert not MatchSpec('blas 1.0').is_simple()
-        assert not MatchSpec('blas 1.0').is_exact()
-        assert not MatchSpec('blas 1.0 1').is_simple()
-        assert not MatchSpec('blas 1.0 1').is_exact()
-        assert not MatchSpec('blas 1.0 *').is_exact()
-        assert MatchSpec(Dist('blas-1.0-openblas_0.tar.bz2')).is_exact()
-        assert MatchSpec(fn='blas-1.0-openblas_0.tar.bz2', channel='defaults').is_exact()
+        assert MatchSpec('blas')._is_simple()
+        assert not MatchSpec('blas 1.0')._is_simple()
+        assert not MatchSpec('blas 1.0 1')._is_simple()
 
         m = MatchSpec('blas 1.0', optional=True)
         m2 = MatchSpec(m, optional=False)
@@ -99,23 +93,13 @@ class MatchSpecTests(TestCase):
         m1 = MatchSpec(fn='foo-1.7-52.tar.bz2')
         m2 = MatchSpec(name='foo', version='1.7', build='52')
         m3 = MatchSpec(Dist('defaults::foo-1.7-52'))
-        assert m1.to_filename() == 'foo-1.7-52.tar.bz2'
-        assert m2.to_filename() == 'foo-1.7-52.tar.bz2'
-        assert m3.to_filename() == 'foo-1.7-52.tar.bz2'
+        assert m1._to_filename_do_not_use() == 'foo-1.7-52.tar.bz2'
+        assert m2._to_filename_do_not_use() == 'foo-1.7-52.tar.bz2'
+        assert m3._to_filename_do_not_use() == 'foo-1.7-52.tar.bz2'
 
         for spec in 'bitarray', 'pycosat 0.6.0', 'numpy 1.6*':
             ms = MatchSpec(spec)
-            assert ms.to_filename() is None
-
-    # def test_normalize(self):
-    #     a = MatchSpec('numpy 1.7')
-    #     b = MatchSpec('numpy 1.7', normalize=True)
-    #     c = MatchSpec('numpy 1.7*')
-    #     assert a != b
-    #     assert b == c
-    #     a = MatchSpec('numpy 1.7 1')
-    #     b = MatchSpec('numpy 1.7 1', normalize=True)
-    #     assert a == b
+            assert ms._to_filename_do_not_use() is None
 
     def test_hash(self):
         a = MatchSpec('numpy 1.7*')
@@ -145,44 +129,41 @@ class MatchSpecTests(TestCase):
         assert c != d
         assert hash(c) != hash(d)
 
-    def test_string_mcg1969(self):
-        a = MatchSpec("foo1 >=1.3 2", optional=True, target="burg")
-        b = MatchSpec('* [name="foo1", version=">=1.3", build="2"]', optional=True, target="burg")
-        assert a.optional and a.target == 'burg'
-        assert a == b
-        c = MatchSpec("^foo1$ >=1.3 2 ")
-        d = MatchSpec("* >=1.3 2", name=re.compile(u'^foo1$'))
-        e = MatchSpec("* >=1.3 2", name='^foo1$')
-        assert c == d
-        assert c == e
-        # build_number is not the same as build!
-        f = MatchSpec('foo1 >=1.3', build_number=2, optional=True, target='burg')
-        g = MatchSpec('foo1 >=1.3[build_number=2]', optional=True, target='burg')
-        assert a != f
-        assert f == g
-
-        assert a._to_string() == "foo1 >=1.3 2"
-        # assert b._to_string() == ""
-        assert g._to_string() == "foo1 >=1.3[build_number=2]"
+    # def test_string_mcg1969(self):
+    #     a = MatchSpec("foo1 >=1.3 2", optional=True, target="burg")
+    #     b = MatchSpec('* [name="foo1", version=">=1.3", build="2"]', optional=True, target="burg")
+    #     assert a.optional and a.target == 'burg'
+    #     assert a == b
+    #     c = MatchSpec("^foo1$ >=1.3 2 ")
+    #     d = MatchSpec("* >=1.3 2", name=re.compile(u'^foo1$'))
+    #     e = MatchSpec("* >=1.3 2", name='^foo1$')
+    #     assert c == d
+    #     assert c == e
+    #     # build_number is not the same as build!
+    #     f = MatchSpec('foo1 >=1.3', build_number=2, optional=True, target='burg')
+    #     g = MatchSpec('foo1 >=1.3[build_number=2]', optional=True, target='burg')
+    #     assert a != f
+    #     assert f == g
+    #
+    #     assert a._to_string() == "foo1 >=1.3 2"
+    #     # assert b._to_string() == ""
+    #     assert g._to_string() == "foo1 >=1.3[build_number=2]"
 
     def test_string_version(self):
         def m(string):
             return text_type(MatchSpec(string))
 
-        # assert m("numpy") == "numpy"
-        #
-        # assert m("numpy=1.7") == "numpy=1.7"
-        # assert m("numpy 1.7*") == "numpy=1.7"
-        # assert m("numpy 1.7.*") == "numpy=1.7"
-        # assert m("numpy[version='1.7*']") == "numpy=1.7"
-        # assert m("numpy[version='1.7.*']") == "numpy=1.7"
+        assert m("numpy") == "numpy"
+
+        assert m("numpy=1.7") == "numpy=1.7"
+        assert m("numpy 1.7*") == "numpy=1.7"
+        assert m("numpy 1.7.*") == "numpy=1.7"
+        assert m("numpy[version='1.7*']") == "numpy=1.7"
+        assert m("numpy[version='1.7.*']") == "numpy=1.7"
 
         assert m("numpy==1.7") == "numpy==1.7"
         assert m("numpy[version='1.7']") == "numpy==1.7"
         assert m("numpy 1.7") == "numpy==1.7"
-
-
-
 
     def test_matchspec_errors(self):
         with pytest.raises(ValueError):
@@ -258,7 +239,7 @@ class MatchSpecTests(TestCase):
         assert ms.exact_field('name') == 'zlib'
         assert ms.exact_field('version') == '1.2.7'
         assert ms.exact_field('build') == '0'
-        assert ms.to_filename() == 'zlib-1.2.7-0.tar.bz2'
+        assert ms._to_filename_do_not_use() == 'zlib-1.2.7-0.tar.bz2'
 
     def test_features(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')

@@ -486,7 +486,7 @@ class VersionSpec(object):
         return "VersionSpec('%s')" % self.spec
 
 
-class BuildNumberSpec(object):
+class BuildNumberMatch(object):
 
     def __new__(cls, spec):
         if isinstance(spec, cls):
@@ -542,12 +542,12 @@ class BuildNumberSpec(object):
         return self.match == self.exact_match_
 
     def __eq__(self, other):
-        if isinstance(other, BuildNumberSpec):
+        if isinstance(other, BuildNumberMatch):
             return self.spec == other.spec
         return False
 
     def __ne__(self, other):
-        if isinstance(other, BuildNumberSpec):
+        if isinstance(other, BuildNumberMatch):
             return self.spec != other.spec
         return True
 
