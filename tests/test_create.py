@@ -719,8 +719,6 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix,
                         "--add pinned_packages", "python=3.6.1=2")
             run_command(Commands.INSTALL, prefix, "openssl")
-            # The following line fails right now as conda doesn't
-            # yet understand the 'optional'...
             assert not package_is_installed(prefix, "python")
             run_command(Commands.INSTALL, prefix, "flask")
             assert package_is_installed(prefix, "python-3.6.1")
