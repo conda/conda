@@ -360,8 +360,7 @@ def _parse_spec_str(spec_str):
         channel = Channel(spec_str)
         if not channel.subdir:
             # url is not a channel
-            import pdb; pdb.set_trace()
-            assert 0
+            raise CondaValueError("Invalid MatchSpec Channel: %s" % spec_str)
         name, version, build = _parse_legacy_dist(channel.package_filename)
         result = {
             'channel': channel.canonical_name,

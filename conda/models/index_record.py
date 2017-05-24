@@ -8,7 +8,7 @@ from .enums import FileMode, LinkType, NoarchType, PathType
 from .leased_path_entry import LeasedPathEntry
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
-from ..common.compat import itervalues, string_types
+from ..common.compat import itervalues, string_types, text_type
 
 
 @total_ordering
@@ -76,25 +76,15 @@ class ChannelField(ComposableField):
         super(ComposableField, self).__init__(default, False, validation,
                                               in_dump, nullable, immutable, aliases)
 
-    # def box(self, instance, val):
-    #     return super(ChannelField, self).box(instance, val)
-    #
-    # def unbox(self, instance, instance_type, val):
-    #     try:
-    #         return super(ChannelField, self).unbox(instance, instance_type, val)
-    #     except Exception as e:
-    #         import pdb; pdb.set_trace()
-    #         assert 0
-    #
-    # def dump(self, val):
-    #     return super(ChannelField, self).dump(val)
+    def dump(self, val):
+        return val and text_type(val)
 
     def __get__(self, instance, instance_type):
         try:
             return super(ChannelField, self).__get__(instance, instance_type)
         except AttributeError:
             url = instance.url
-            return Channel(url)
+            return self.unbox(instance, instance_type, Channel(url))
 
 
 class SubdirField(StringField):
