@@ -1344,7 +1344,7 @@ def test_pinned_specs():
             run_command(Commands.CONFIG, "--env --add pinned_packages requests=2.13")
             with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_str_2), reset_context):
                 pinned_specs = get_pinned_specs(td)
-                expected = specs_2 + (MatchSpec("requests 2.13", optional=True),) + specs_1
+                expected = specs_2 + (MatchSpec("requests 2.13.*", optional=True),) + specs_1
                 assert pinned_specs == expected
                 assert pinned_specs != specs_str_1 + ("requests 2.13",) + specs_str_2
 

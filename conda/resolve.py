@@ -271,7 +271,7 @@ class Resolve(object):
                 for fkey in group:
                     if filter.get(fkey, True):
                         for m2 in self.ms_depends(fkey):
-                            if m2.exact_field('name') and not m2.optional:
+                            if m2.get_exact_value('name') and not m2.optional:
                                 cdeps.setdefault(m2.name, []).append(m2)
                 for deps in itervalues(cdeps):
                     if len(deps) >= nnew:
@@ -342,11 +342,11 @@ class Resolve(object):
         assert isinstance(ms, MatchSpec)
         res = self.find_matches_.get(ms, None)
         if res is None:
-            if ms.exact_field('name'):
+            if ms.get_exact_value('name'):
                 res = self.groups.get(ms.name, [])
-            elif ms.exact_field('track_features'):
+            elif ms.get_exact_value('track_features'):
                 res = list(chain.from_iterable(self.trackers[tf]
-                                               for tf in ms.exact_field('track_features') or ()
+                                               for tf in ms.get_exact_value('track_features') or ()
                                                if tf in self.trackers))
             else:
                 res = self.index.keys()
@@ -443,8 +443,8 @@ class Resolve(object):
         if m is not None:
             return name
         simple = ms._is_single()
-        nm = ms.exact_field('name')
-        tf = ms.exact_field('track_features')
+        nm = ms.get_exact_value('name')
+        tf = ms.get_exact_value('track_features')
         if nm:
             tgroup = libs = self.groups.get(nm, [])
         elif tf:

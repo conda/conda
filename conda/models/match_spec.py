@@ -114,12 +114,16 @@ class MatchSpec(object):
         self.target = target
         self._match_components = self._build_components(**kwargs)
 
-    def exact_field(self, field_name):
+    def get_exact_value(self, field_name):
         v = self._match_components.get(field_name)
         return v and v.exact_value
 
+    def get_raw_value(self, field_name):
+        v = self._match_components.get(field_name)
+        return v and v.raw_value
+
     def _is_simple(self):
-        return len(self._match_components) == 1 and self.exact_field('name') is not None
+        return len(self._match_components) == 1 and self.get_exact_value('name') is not None
 
     def _is_single(self):
         return len(self._match_components) == 1
@@ -138,10 +142,10 @@ class MatchSpec(object):
     def _to_filename_do_not_use(self):
         # WARNING: this is potentially unreliable and use should probably be limited
         #   returns None if a filename can't be constructed
-        fn_field = self.exact_field('fn')
+        fn_field = self.get_exact_value('fn')
         if fn_field:
             return fn_field
-        vals = tuple(self.exact_field(x) for x in ('name', 'version', 'build'))
+        vals = tuple(self.get_exact_value(x) for x in ('name', 'version', 'build'))
         if not any(x is None for x in vals):
             return '%s-%s-%s.tar.bz2' % vals
         else:
@@ -193,6 +197,23 @@ class MatchSpec(object):
             builder.append('[%s]' % ','.join(xtra))
 
         return ''.join(builder)
+
+    def conda_build_form(self):
+        builder = []
+        name = self.get_exact_value('name')
+        assert name
+        builder.append(name)
+
+        build = self.get_raw_value('build')
+        version = self.get_raw_value('version')
+
+        if build:
+            assert version
+            builder += [version, build]
+        elif version:
+            builder.append(version)
+
+        return ' '.join(builder)
 
     def __eq__(self, other):
         if isinstance(other, MatchSpec):
@@ -253,7 +274,7 @@ class MatchSpec(object):
         s = sum(f in self._match_components for f in ('name', 'version', 'build'))
         if s < len(self._match_components):
             return 3
-        elif not self.exact_field('name') or 'build' in self._match_components:
+        elif not self.get_exact_value('name') or 'build' in self._match_components:
             return 3
         elif 'version' in self._match_components:
             return 2
@@ -266,7 +287,7 @@ class MatchSpec(object):
 
     @property
     def name(self):
-        return self.exact_field('name') or '*'
+        return self.get_exact_value('name') or '*'
 
     @property
     def version(self):
@@ -567,7 +588,14 @@ class StrMatch(MatchInterface):
         return self._raw_value if self._re_match is None else None
 
 
+class LowerStrMatch(StrMatch):
+
+    def __init__(self, value):
+        super(LowerStrMatch, self).__init__(value.lower())
+
+
 _implementors = {
+    'name': LowerStrMatch,
     'features': SplitStrMatch,
     'track_features': SplitStrMatch,
     'version': VersionSpec,

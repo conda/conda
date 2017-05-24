@@ -41,12 +41,7 @@ def get_pinned_specs(prefix):
     else:
         from_file = ()
 
-    from ..cli.common import spec_from_line
-
-    def munge_spec(s):
-        return s if ' ' in s else spec_from_line(s)
-
-    return tuple(MatchSpec(munge_spec(s), optional=True) for s in
+    return tuple(MatchSpec(s, optional=True) for s in
                  concatv(context.pinned_packages, from_file))
 
 
