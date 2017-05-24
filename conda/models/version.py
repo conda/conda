@@ -7,6 +7,11 @@ import re
 from ..common.compat import string_types, zip, zip_longest, text_type
 from ..exceptions import CondaValueError, InvalidVersionSpecError
 
+try:
+    from cytoolz.functoolz import excepts
+except ImportError:  # pragma: no cover
+    from .._vendor.toolz.functoolz import excepts
+
 log = getLogger(__name__)
 
 # normalized_version() is needed by conda-env
@@ -485,6 +490,14 @@ class VersionSpec(object):
     def __repr__(self):
         return "VersionSpec('%s')" % self.spec
 
+    @property
+    def raw_value(self):
+        return self.spec
+
+    @property
+    def exact_value(self):
+        return self.is_exact() and self.spec or None
+
 
 class BuildNumberMatch(object):
 
@@ -560,3 +573,12 @@ class BuildNumberMatch(object):
     def __repr__(self):
         # return "BuildNumberSpec('%s')" % self.spec
         return text_type(self.spec)
+
+    @property
+    def raw_value(self):
+        return self.spec
+
+    @property
+    def exact_value(self):
+        return excepts(ValueError, int(self.raw_value))
+

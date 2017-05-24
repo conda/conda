@@ -160,10 +160,17 @@ class MatchSpecTests(TestCase):
         assert m("numpy 1.7.*") == "numpy=1.7"
         assert m("numpy[version='1.7*']") == "numpy=1.7"
         assert m("numpy[version='1.7.*']") == "numpy=1.7"
+        assert m("numpy[version=1.7.*]") == "numpy=1.7"
 
         assert m("numpy==1.7") == "numpy==1.7"
         assert m("numpy[version='1.7']") == "numpy==1.7"
+        assert m("numpy[version=1.7]") == "numpy==1.7"
         assert m("numpy 1.7") == "numpy==1.7"
+
+        assert m("numpy=1.7=py3*_2") == "numpy==1.7[build=py3*_2]"
+
+
+
 
     def test_matchspec_errors(self):
         with pytest.raises(ValueError):

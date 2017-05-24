@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import Mapping
 import re
 
@@ -15,6 +16,11 @@ from ..common.path import expand
 from ..common.url import is_url, path_to_url
 from ..exceptions import CondaValueError
 
+try:
+    from cytoolz.functoolz import excepts
+except ImportError:  # pragma: no cover
+    from .._vendor.toolz.functoolz import excepts
+
 
 class MatchSpecType(type):
 
@@ -25,7 +31,7 @@ class MatchSpecType(type):
             elif isinstance(spec_arg, MatchSpec):
                 kwargs.setdefault('optional', spec_arg.optional)
                 kwargs.setdefault('target', spec_arg.target)
-                kwargs.update(spec_arg._components)
+                kwargs.update(spec_arg._match_components)
                 return super(MatchSpecType, cls).__call__(**kwargs)
             elif isinstance(spec_arg, string_types):
                 parsed = _parse_spec_str(spec_arg)
@@ -111,24 +117,24 @@ class MatchSpec(object):
     def __init__(self, optional=False, target=None, **kwargs):
         self.optional = optional
         self.target = target
-        self._components = self._build_components(**kwargs)
+        self._match_components = self._build_components(**kwargs)
 
     def exact_field(self, field_name):
-        v = self._components.get(field_name)
-        return getattr(v, 'exact', None if hasattr(v, 'match') else v)
+        v = self._match_components.get(field_name)
+        return v and v.exact_value
 
     def _is_simple(self):
-        return len(self._components) == 1 and self.exact_field('name') is not None
+        return len(self._match_components) == 1 and self.exact_field('name') is not None
 
     def _is_single(self):
-        return len(self._components) == 1
+        return len(self._match_components) == 1
 
     def match(self, rec):
         """
         Accepts an `IndexRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
-        for f, v in iteritems(self._components):
+        for f, v in iteritems(self._match_components):
             val = getattr(rec, f)
             if not (v.match(val) if hasattr(v, 'match') else v == val):
                 return False
@@ -147,19 +153,8 @@ class MatchSpec(object):
             return None
 
     def __repr__(self):
-        order = (
-            'channel',
-            'subdir',
-            'name',
-            'version',
-            'build',
-            'build_number',
-            'track_features',
-            'md5',
-        )
-
         builder = []
-        builder += ["%s=%r" % (c, self._components[c]) for c in order if c in self._components]
+        builder += ["%s=%r" % (c, self._match_components[c]) for c in self.FIELD_NAMES if c in self._match_components]
         if self.optional:
             builder.append("optional=True")
         if self.target:
@@ -168,25 +163,16 @@ class MatchSpec(object):
 
     def __str__(self):
         builder = []
-        order = (
-            # 'channel',
-            # 'subdir',
-            # 'version',
-            'build',
-            'build_number',
-            'track_features',
-            'md5',
-        )
 
-        channel = self._components.get('channel')
-        if channel:
-            builder.append(channel.exact.canonical_name + "::")
+        channel_matcher = self._match_components.get('channel')
+        if channel_matcher:
+            builder.append(text_type(channel_matcher) + "::")
 
-        builder.append(self._components.get('name', '*'))
+        builder.append(text_type(self._match_components.get('name', '*')))
 
         xtra = []
 
-        version = self._components.get('version')
+        version = self._match_components.get('version')
         if version:
             version = text_type(version)
             if any(s in version for s in '><$^|,'):
@@ -197,11 +183,15 @@ class MatchSpec(object):
                 builder.append('=' + version[:-1])
             else:
                 builder.append('==' + version)
-                # xtra.append("version=%s" % version)
 
-        for key in order:
-            if key in self._components:
-                xtra.append("%s=%s" % (key, self._components[key]))
+        _skip = ('channel', 'name', 'version')
+        for key in self.FIELD_NAMES:
+            if key not in _skip and key in self._match_components:
+                value = text_type(self._match_components[key])
+                if any(s in value for s in ', '):
+                    xtra.append("%s='%s'" % (key, self._match_components[key]))
+                else:
+                    xtra.append("%s=%s" % (key, self._match_components[key]))
 
         if xtra:
             builder.append('[%s]' % ','.join(xtra))
@@ -210,17 +200,17 @@ class MatchSpec(object):
 
     def __eq__(self, other):
         if isinstance(other, MatchSpec):
-            self_key = self._components, self.optional, self.target
-            other_key = other._components, other.optional, other.target
+            self_key = self._match_components, self.optional, self.target
+            other_key = other._match_components, other.optional, other.target
             return self_key == other_key
         else:
             return False
 
     def __hash__(self):
-        return hash(self._components)
+        return hash(self._match_components)
 
     def __contains__(self, field):
-        return field in self._components
+        return field in self._match_components
 
     @staticmethod
     def _build_components(**kwargs):
@@ -231,15 +221,13 @@ class MatchSpec(object):
                 value = text_type(value)
 
             if hasattr(value, 'match'):
-                pass
+                matcher = value
             elif field_name in _implementors:
-                value = _implementors[field_name](value)
-            elif not isinstance(value, string_types):
-                pass
-            elif value.startswith('^') and value.endswith('$'):
-                value = re.compile(value)
-            elif '*' in value:
-                value = re.compile(r'^(?:%s)$' % value.replace('*', r'.*'))
+                matcher = _implementors[field_name](value)
+            elif text_type(value):
+                matcher = StrMatch(value)
+            else:
+                raise NotImplementedError()
 
             if field_name == 'version':
                 value = VersionSpec(value)
@@ -253,7 +241,7 @@ class MatchSpec(object):
             #             build_number = build_number.spec
             #         specs_map["build_number"] = build_number
 
-            return value
+            return matcher
 
         return frozendict((key, _make(key, value)) for key, value in iteritems(kwargs))
 
@@ -266,12 +254,12 @@ class MatchSpec(object):
     def strictness(self):
         # With the old MatchSpec, strictness==3 if name, version, and
         # build were all specified.
-        s = sum(f in self._components for f in ('name', 'version', 'build'))
-        if s < len(self._components):
+        s = sum(f in self._match_components for f in ('name', 'version', 'build'))
+        if s < len(self._match_components):
             return 3
-        elif not self.exact_field('name') or 'build' in self._components:
+        elif not self.exact_field('name') or 'build' in self._match_components:
             return 3
-        elif 'version' in self._components:
+        elif 'version' in self._match_components:
             return 2
         else:
             return 1
@@ -288,7 +276,7 @@ class MatchSpec(object):
     def version(self):
         # in the old MatchSpec object, version was a VersionSpec, not a str
         # so we'll keep that API here
-        return self._components.get('version')
+        return self._match_components.get('version')
 
 
 def _parse_version_plus_build(v_plus_b):
@@ -448,11 +436,36 @@ def _parse_spec_str(spec_str):
     return components
 
 
-class SplitStrMatch(object):
-    __slots__ = 'exact',
+@with_metaclass(ABCMeta)
+class MatchInterface(object):
+    
+    def __init__(self, value):
+        self._raw_value = value
+
+    @abstractmethod
+    def match(self, other):
+        raise NotImplementedError
+
+    def matches(self, value):
+        return self.match(value)
+    
+    @property
+    def raw_value(self):
+        return self._raw_value
+
+    @abstractproperty
+    def exact_value(self):
+        """If the match value is an exact specification, returns the value. 
+        Otherwise returns None.
+        """
+        raise NotImplementedError()
+
+
+class SplitStrMatch(MatchInterface):
+    __slots__ = '_raw_value',
 
     def __init__(self, value):
-        self.exact = self._convert(value)  # ensures this is considered an exact match
+        super(SplitStrMatch, self).__init__(self._convert(value))
 
     def _convert(self, value):
         try:
@@ -464,43 +477,96 @@ class SplitStrMatch(object):
 
     def match(self, other):
         try:
-            return other and self.exact & other.exact
+            return other and self._raw_value & other._raw_value
         except AttributeError:
-            return self.exact & self._convert(other)
+            return self._raw_value & self._convert(other)
 
     def __repr__(self):
-        if len(self.exact) > 1:
-            return "'%s'" % ','.join(sorted(self.exact))
+        if len(self._raw_value) > 1:
+            return "'%s'" % ','.join(sorted(self._raw_value))
         else:
-            return "%s" % next(iter(self.exact))
+            return "%s" % next(iter(self._raw_value))
 
     def __eq__(self, other):
         return self.match(other)
 
     def __hash__(self):
-        return hash(self.exact)
+        return hash(self._raw_value)
+
+    @property
+    def exact_value(self):
+        return self._raw_value
 
 
-class ChannelMatch(object):
-    __slots__ = 'exact',
+
+class ChannelMatch(MatchInterface):
+    __slots__ = '_raw_value',
 
     def __init__(self, value):
-        self.exact = Channel(value)  # ensures this is considered an exact match
+        super(ChannelMatch, self).__init__(Channel(value))
 
     def match(self, other):
         try:
-            return self.exact.canonical_name == other.exact.canonical_name
+            return self._raw_value.canonical_name == other._raw_value.canonical_name
         except AttributeError:
-            return self.exact.canonical_name == Channel(other).canonical_name
+            return self._raw_value.canonical_name == Channel(other).canonical_name
+
+    def __str__(self):
+        return "%s" % self._raw_value.canonical_name
 
     def __repr__(self):
-        return "'%s'" % self.exact.canonical_name
+        return "'%s'" % self._raw_value.canonical_name
 
     def __eq__(self, other):
         return self.match(other)
 
     def __hash__(self):
-        return hash(self.exact)
+        return hash(self._raw_value)
+
+    @property
+    def exact_value(self):
+        return self._raw_value
+
+
+class StrMatch(MatchInterface):
+    __slots__ = '_raw_value', '_re_match'
+
+    def __init__(self, value):
+        super(StrMatch, self).__init__(value)
+        self._re_match = None
+
+        if value.startswith('^') and value.endswith('$'):
+            self._re_match = re.compile(value).match
+        elif '*' in value:
+            self._re_match = re.compile(r'^(?:%s)$' % value.replace('*', r'.*')).match
+
+    def match(self, other):
+        try:
+            _other_val = other._raw_value
+        except AttributeError:
+            _other_val = text_type(other)
+
+        if self._re_match:
+            return self._re_match(_other_val)
+        else:
+            return self._raw_value == _other_val
+
+    def __str__(self):
+        return self._raw_value
+
+    def __repr__(self):
+        return "%s('%s')" % (self.__class__.__name__, self._raw_value)
+
+    def __eq__(self, other):
+        return self.match(other)
+
+    def __hash__(self):
+        return hash(self._raw_value)
+
+    @property
+    def exact_value(self):
+        return self._raw_value if self._re_match is None else None
+
 
 
 _implementors = {
