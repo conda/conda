@@ -610,7 +610,7 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe")
             assert not stderr
             for param_name in context.list_parameters():
-                assert re.search(r'^%s \(' % param_name, stdout, re.MULTILINE)
+                assert re.search(r'^# %s \(' % param_name, stdout, re.MULTILINE)
 
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe --json")
             assert not stderr
@@ -628,6 +628,19 @@ class IntegrationTests(TestCase):
                 json_obj = json.loads(stdout.strip())
                 assert json_obj['envvars'] == {'quiet': True}
                 assert json_obj['cmd_line'] == {'json': True}
+
+            run_command(Commands.CONFIG, prefix, "--set changeps1 false")
+            with pytest.raises(CondaError):
+                run_command(Commands.CONFIG, prefix, "--write-default")
+
+            rm_rf(join(prefix, 'condarc'))
+            run_command(Commands.CONFIG, prefix, "--write-default")
+
+            with open(join(prefix, 'condarc')) as fh:
+                data = fh.read()
+
+            for param_name in context.list_parameters():
+                assert re.search(r'^# %s \(' % param_name, data, re.MULTILINE)
 
     def test_conda_config_validate(self):
         with make_temp_env() as prefix:

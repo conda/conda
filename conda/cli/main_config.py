@@ -141,8 +141,9 @@ or the file path given by the 'CONDARC' environment variable, if it is set
     action.add_argument(
         "--write-default",
         action="store_true",
-        help="Write the default configuration to the user .condarc file. "
-             "Equivalent to `conda config --describe > ~/.condarc`.",
+        help="Write the default configuration to a file. "
+             "Equivalent to `conda config --describe > ~/.condarc` "
+             "when no --env, --system, or --file flags are given.",
     )
     action.add_argument(
         "--get",
@@ -249,8 +250,8 @@ def parameter_description_builder(name):
     if details['parameter_type'] == 'primitive':
         builder.append("%s (%s)" % (name, ', '.join(sorted(set(et for et in element_types)))))
     else:
-        builder.append("%s (%s: %s)" % (
-        name, details['parameter_type'], ', '.join(sorted(set(et for et in element_types)))))
+        builder.append("%s (%s: %s)" % (name, details['parameter_type'],
+                                        ', '.join(sorted(set(et for et in element_types)))))
 
     if aliases:
         builder.append("  aliases: %s" % ', '.join(aliases))
@@ -323,23 +324,6 @@ def execute_config(args, parser):
                                    for name in paramater_names)))
         return
 
-    if args.write_default:
-        if isfile(user_rc_path):
-            with open(user_rc_path) as fh:
-                data = fh.read().strip()
-            if data:
-                raise CondaError("The file '%s' "
-                                 "already contains configuration information.\n"
-                                 "Remove the file to proceed.\n"
-                                 "Use `conda config --describe` to display default configuration."
-                                 % user_rc_path)
-
-        with open(user_rc_path, 'w') as fh:
-            paramater_names = context.list_parameters()
-            fh.write('\n'.join(concat(parameter_description_builder(name)
-                                      for name in paramater_names)))
-        return
-
     if args.validate:
         context.validate_all()
         return
@@ -355,6 +339,23 @@ def execute_config(args, parser):
         rc_path = args.file
     else:
         rc_path = user_rc_path
+
+    if args.write_default:
+        if isfile(rc_path):
+            with open(rc_path) as fh:
+                data = fh.read().strip()
+            if data:
+                raise CondaError("The file '%s' "
+                                 "already contains configuration information.\n"
+                                 "Remove the file to proceed.\n"
+                                 "Use `conda config --describe` to display default configuration."
+                                 % rc_path)
+
+        with open(rc_path, 'w') as fh:
+            paramater_names = context.list_parameters()
+            fh.write('\n'.join(concat(parameter_description_builder(name)
+                                      for name in paramater_names)))
+        return
 
     # read existing condarc
     if os.path.exists(rc_path):
