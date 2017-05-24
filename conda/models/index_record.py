@@ -256,32 +256,6 @@ class PrefixRecord(PackageCacheRecord):
     #     return cls()
 
 
-# We also need some type of "full package description" that reads in all
-# information in the info/ directory of an extracted package.  Currently,
-# that's PackageInfo in conda/models/package_info.py.
-
-
-# TODO: eventually stop mixing Record with LinkedPackageData
-# class LinkedPackageRecord(DictSafeMixin, Entity):
-#     arch = EnumField(Arch, nullable=True)
-#     build = StringField()
-#     build_number = IntegerField()
-#     channel = StringField(required=False)
-#     date = StringField(required=False)
-#     depends = ListField(string_types)
-#     files = ListField(string_types, required=False)
-#     license = StringField(required=False)
-#     link = ComposableField(Link, required=False)
-#     md5 = StringField(required=False, nullable=True)
-#     name = StringField()
-#     platform = EnumField(Platform)
-#     requires = ListField(string_types, required=False)
-#     size = IntegerField(required=False)
-#     subdir = StringField(required=False)
-#     url = StringField(required=False)
-#     version = StringField()
-
-
 IndexRecord = RepodataRecord
 
 # class IndexRecord(DictSafeMixin, Entity):

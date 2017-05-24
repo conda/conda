@@ -277,8 +277,8 @@ def install(args, parser, command='install'):
             packages = {index[fn]['name'] for fn in index}
 
             nfound = 0
-            for pkg in sorted(e.pkgs):
-                pkg = pkg.split()[0]
+            for pkg in sorted(e.pkgs, key=lambda x: x.name):
+                pkg = pkg.name
                 if pkg in packages:
                     continue
                 close = get_close_matches(pkg, packages, cutoff=0.7)
