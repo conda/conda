@@ -581,4 +581,3 @@ class BuildNumberMatch(object):
     @property
     def exact_value(self):
         return excepts(ValueError, int(self.raw_value))
-

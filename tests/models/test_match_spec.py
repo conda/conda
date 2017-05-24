@@ -1,22 +1,19 @@
 from __future__ import absolute_import, print_function
 
-import re
 from unittest import TestCase
 
 import pytest
 
 from conda import text_type
 from conda.base.context import context
+from conda.cli.common import arg2spec, spec_from_line
 from conda.common.path import expand
 from conda.common.url import path_to_url
 from conda.exceptions import CondaValueError
-
-from conda.cli.common import arg2spec, spec_from_line
 from conda.models.channel import Channel
-
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord, RepodataRecord
-from conda.models.match_spec import MatchSpec, _parse_spec_str
+from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
 from conda.models.version import VersionSpec
 
 
@@ -149,7 +146,7 @@ class MatchSpecTests(TestCase):
     #     # assert b._to_string() == ""
     #     assert g._to_string() == "foo1 >=1.3[build_number=2]"
 
-    def test_string_version(self):
+    def test_canonical_string_forms(self):
         def m(string):
             return text_type(MatchSpec(string))
 
@@ -167,9 +164,54 @@ class MatchSpecTests(TestCase):
         assert m("numpy[version=1.7]") == "numpy==1.7"
         assert m("numpy 1.7") == "numpy==1.7"
 
+        assert m("numpy[version='1.7|1.8']") == "numpy[version='1.7|1.8']"
+        assert m('numpy[version="1.7,1.8"]') == "numpy[version='1.7,1.8']"
+        assert m('numpy >1.7') == "numpy[version='>1.7']"
+        assert m('numpy>=1.7') == "numpy[version='>=1.7']"
+
         assert m("numpy=1.7=py3*_2") == "numpy==1.7[build=py3*_2]"
+        assert m("numpy=1.7.*=py3*_2") == "numpy=1.7[build=py3*_2]"
 
+        assert m("https://repo.continuum.io/pkgs/free::numpy") == "defaults::numpy"
+        assert m("numpy[channel=https://repo.continuum.io/pkgs/free]") == "defaults::numpy"
+        assert m("conda-forge::numpy") == "conda-forge::numpy"
+        assert m("numpy[channel=conda-forge]") == "conda-forge::numpy"
 
+        # TODO: should the result in these example pull out subdir?
+        assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "defaults::numpy"
+        assert m("numpy[channel=https://repo.continuum.io/pkgs/free/linux-32]") == "defaults::numpy"
+
+        assert m("numpy[build=py3*_2, track_features=mkl]") == "numpy[build=py3*_2,track_features=mkl]"
+        assert m("numpy[build=py3*_2, track_features='mkl debug']") == "numpy[build=py3*_2,track_features='debug mkl']"
+        assert m("numpy[track_features='mkl,debug', build=py3*_2]") == "numpy[build=py3*_2,track_features='debug mkl']"
+
+    def test_exact_values(self):
+        assert MatchSpec("*").exact_field('name') is None
+        assert MatchSpec("numpy").exact_field('name') == 'numpy'
+
+        assert MatchSpec("numpy=1.7").exact_field('version') is None
+        assert MatchSpec("numpy==1.7").exact_field('version') == '1.7'
+        assert MatchSpec("numpy[version=1.7]").exact_field('version') == '1.7'
+
+        assert MatchSpec("numpy=1.7=py3*_2").exact_field('version') == '1.7'
+        assert MatchSpec("numpy=1.7=py3*_2").exact_field('build') is None
+        assert MatchSpec("numpy=1.7=py3*_2").exact_field('version') == '1.7'
+        assert MatchSpec("numpy=1.7=py3*_2").exact_field('build') is None
+        assert MatchSpec("numpy=1.7.*=py37_2").exact_field('version') is None
+        assert MatchSpec("numpy=1.7.*=py37_2").exact_field('build') == 'py37_2'
+
+    def test_channel_matching(self):
+        # TODO: I don't know if this invariance for multi-channels should actually hold true
+        #   it might have to for backward compatibility
+        #   but more ideally, the first would be true, and the second would be false
+        #   (or maybe it's the other way around)
+        assert ChannelMatch("https://repo.continuum.io/pkgs/free").match('defaults') is True
+        assert ChannelMatch("defaults").match("https://repo.continuum.io/pkgs/free") is True
+
+        assert ChannelMatch("https://conda.anaconda.org/conda-forge").match('conda-forge') is True
+        assert ChannelMatch("conda-forge").match("https://conda.anaconda.org/conda-forge") is True
+
+        assert ChannelMatch("https://repo.continuum.io/pkgs/free").match('conda-forge') is False
 
 
     def test_matchspec_errors(self):

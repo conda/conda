@@ -16,11 +16,6 @@ from ..common.path import expand
 from ..common.url import is_url, path_to_url
 from ..exceptions import CondaValueError
 
-try:
-    from cytoolz.functoolz import excepts
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.functoolz import excepts
-
 
 class MatchSpecType(type):
 
@@ -154,7 +149,8 @@ class MatchSpec(object):
 
     def __repr__(self):
         builder = []
-        builder += ["%s=%r" % (c, self._match_components[c]) for c in self.FIELD_NAMES if c in self._match_components]
+        builder += ["%s=%r" % (c, self._match_components[c])
+                    for c in self.FIELD_NAMES if c in self._match_components]
         if self.optional:
             builder.append("optional=True")
         if self.target:
@@ -188,7 +184,7 @@ class MatchSpec(object):
         for key in self.FIELD_NAMES:
             if key not in _skip and key in self._match_components:
                 value = text_type(self._match_components[key])
-                if any(s in value for s in ', '):
+                if any(s in value for s in ', ='):
                     xtra.append("%s='%s'" % (key, self._match_components[key]))
                 else:
                     xtra.append("%s=%s" % (key, self._match_components[key]))
@@ -438,7 +434,7 @@ def _parse_spec_str(spec_str):
 
 @with_metaclass(ABCMeta)
 class MatchInterface(object):
-    
+
     def __init__(self, value):
         self._raw_value = value
 
@@ -448,14 +444,14 @@ class MatchInterface(object):
 
     def matches(self, value):
         return self.match(value)
-    
+
     @property
     def raw_value(self):
         return self._raw_value
 
     @abstractproperty
     def exact_value(self):
-        """If the match value is an exact specification, returns the value. 
+        """If the match value is an exact specification, returns the value.
         Otherwise returns None.
         """
         raise NotImplementedError()
@@ -469,7 +465,7 @@ class SplitStrMatch(MatchInterface):
 
     def _convert(self, value):
         try:
-            return frozenset(value.split())
+            return frozenset(value.replace(' ', ',').split(','))
         except AttributeError:
             if isiterable(value):
                 return frozenset(value)
@@ -482,10 +478,14 @@ class SplitStrMatch(MatchInterface):
             return self._raw_value & self._convert(other)
 
     def __repr__(self):
-        if len(self._raw_value) > 1:
-            return "'%s'" % ','.join(sorted(self._raw_value))
+        if self._raw_value:
+            return "{%s}" % ', '.join("'%s'" % s for s in sorted(self._raw_value))
         else:
-            return "%s" % next(iter(self._raw_value))
+            return 'set()'
+
+    def __str__(self):
+        # this space delimiting makes me nauseous
+        return ' '.join(sorted(self._raw_value))
 
     def __eq__(self, other):
         return self.match(other)
@@ -496,7 +496,6 @@ class SplitStrMatch(MatchInterface):
     @property
     def exact_value(self):
         return self._raw_value
-
 
 
 class ChannelMatch(MatchInterface):
@@ -566,7 +565,6 @@ class StrMatch(MatchInterface):
     @property
     def exact_value(self):
         return self._raw_value if self._re_match is None else None
-
 
 
 _implementors = {
