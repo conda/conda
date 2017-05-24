@@ -426,33 +426,8 @@ class MatchSpec(object):
 
         return ''.join(builder)
 
-
-
-        # version_type = 'complex'
-        # version = self._components.get('version')
-        # if version:
-        #     version = text_type(version)
-        #     if not any(s in version for s in '|,$^'):
-        #         version_type = 'simple'
-        #         if version.endswith('.*'):
-        #             version = '=' + version[:-2]
-        #         elif version.endswith('*'):
-        #             version = '=' + version[:-1]
-        #         else:
-        #             version = version
-        #
-        # if version_type == 'simple':
-        #     return "%s%s" % (name, version)
-        # else:
-        #     return "%s[version='%s']" % (name, version)
-
     def __str__(self):
         return self._to_str()
-
-
-
-
-
 
     def _eq_key(self):
         return self._components, self.optional, self.target
