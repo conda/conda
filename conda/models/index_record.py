@@ -124,23 +124,41 @@ class FilenameField(StringField):
             return self.unbox(instance, instance_type, fn)
 
 
-class IndexJsonRecord(DictSafeMixin, Entity):
+class BasePackageRef(DictSafeMixin, Entity):
     name = StringField()
     version = StringField()
     build = StringField(aliases=('build_string',))
     build_number = IntegerField()
 
-    depends = ListField(string_types, default=(), required=False)
+
+class PackageRef(BasePackageRef):
+    # fields important for uniquely identifying a package
+
+    channel = ChannelField(aliases=('schannel',))
+    subdir = SubdirField()
+    fn = FilenameField(aliases=('filename',))  # previously fn
+
+    md5 = StringField(required=False, nullable=True)
+
+    @property
+    def schannel(self):
+        return self.channel.canonical_name
+
+
+class IndexJsonRecord(BasePackageRef):
+
+    depends = ListField(string_types, default=())
     constrains = ListField(string_types, default=())
 
     features = FeaturesField(string_types, required=False)
     track_features = StringField(required=False)
 
+    # package_type = EnumField(NoarchType, required=False)  # previously noarch
     noarch = NoarchField(NoarchType, required=False, nullable=True)  # TODO: rename to package_type
     preferred_env = StringField(required=False, nullable=True)
 
-    # license = StringField(required=False)
-    # license_family = StringField(required=False)
+    license = StringField(required=False)
+    license_family = StringField(required=False)
 
     @property
     def combined_depends(self):
@@ -151,51 +169,14 @@ class IndexJsonRecord(DictSafeMixin, Entity):
         return tuple(itervalues(result))
 
 
-class PackageRef(IndexJsonRecord):
-    # fields important for uniquely identifying a package
-
-    channel = ChannelField(aliases=('schannel',))
-    subdir = SubdirField()
-    fn = FilenameField(aliases=('filename',))  # previously fn
-
-    md5 = StringField(required=False, nullable=True)
-
-    # name = StringField()
-    # version = StringField()
-    # build = StringField(aliases=('build_string',))
-    # build_number = IntegerField()
-    # track_features = StringField(required=False)
-
-    @property
-    def schannel(self):
-        return self.channel.canonical_name
-
-
-class RepodataRecord(PackageRef):
+class RepodataRecord(IndexJsonRecord, PackageRef):
     # important for "choosing" a package (i.e. the solver), listing packages
     # (like search), and for verifying downloads
 
-    # package_type = EnumField(NoarchType, required=False)  # previously noarch
-    # depends = ListField(string_types, default=(), required=False)
-    # constrains = ListField(string_types, default=())
-    # features = FeaturesField(string_types, required=False)
-    # preferred_env = StringField(required=False)
-    size = IntegerField(required=False)
-    # license = StringField(required=False)
-    # license_family = StringField(required=False)
-    priority = PriorityField(required=False)
-
     date = StringField(required=False)
-
+    priority = PriorityField(required=False)
+    size = IntegerField(required=False)
     url = StringField(required=False, nullable=True)
-
-    # @property
-    # def combined_depends(self):
-    #     from .match_spec import MatchSpec
-    #     result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
-    #     result.update({ms.name: ms for ms in (MatchSpec(spec, optional=True)
-    #                                           for spec in self.constrains or ())})
-    #     return tuple(itervalues(result))
 
 
 class PathData(Entity):

@@ -21,12 +21,7 @@ def _get_attr(obj, attr_name, aliases=()):
             except AttributeError:
                 continue
         else:
-            raise AttributeError("'%s' object has no attribute '%s'"
-                                 % (obj.__class__.__name__, attr_name))
-
-    # alias = next((ls for ls in field._aliases if ls in kwargs), None)
-    # if alias is not None:
-    #     setattr(self, key, kwargs[alias])
+            raise
 
 
 def find_or_none(key, search_maps, aliases=(), _map_index=0):

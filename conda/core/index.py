@@ -78,13 +78,11 @@ def _supplement_index_with_cache(index, channels):
 
 def supplement_index_with_repodata(index, repodata, channel, priority):
     repodata_info = repodata['info']
+    arch = repodata_info.get('arch')
+    platform = repodata_info.get('platform')
     subdir = repodata_info.get('subdir')
     if not subdir:
         subdir = "%s-%s" % (repodata_info['platform'], repodata_info['arch'])
-    arch = repodata_info.get('arch')
-    platform = repodata_info.get('platform')
-    # schannel = channel.canonical_name
-    # channel_url = channel.url()
     auth = channel.auth
     for fn, info in iteritems(repodata['packages']):
         rec = IndexRecord.from_objects(info,
@@ -94,7 +92,6 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
                                        channel=channel,
                                        subdir=subdir,
                                        # schannel=schannel,
-                                       # channel=channel_url,
                                        priority=priority,
                                        # url=join_url(channel_url, fn),
                                        auth=auth)
