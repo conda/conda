@@ -321,6 +321,9 @@ class TestArg2Spec(TestCase):
         with pytest.raises(CondaValueError):
             arg2spec('!xyz 1.3')
 
+    # def test_url_arg2spec(self):
+    #     assert arg2spec('/usr/local/pkgs/flask-0.10.1-py35_2.tar.bz2') == 'pkgs::flask==0.10.1[build=py35_2]'
+
 
 class TestSpecFromLine(TestCase):
 
@@ -365,15 +368,16 @@ class SpecStrParsingTests(TestCase):
             "version": "1.1",
             "build": "py27_1",
         }
-        url = "some/not-a-subdir/_license-1.1-py27_1.tar.bz2"
-        _channel = path_to_url(expand("some/not-a-subdir"))
-        assert _parse_spec_str(url) == {
-            "channel": _channel,
-            "subdir": None,
-            "name": "_license",
-            "version": "1.1",
-            "build": "py27_1",
-        }
+
+        # url = "some/not-a-subdir/_license-1.1-py27_1.tar.bz2"
+        # _channel = path_to_url(expand("some/not-a-subdir"))
+        # assert _parse_spec_str(url) == {
+        #     "channel": _channel,
+        #     "subdir": None,
+        #     "name": "_license",
+        #     "version": "1.1",
+        #     "build": "py27_1",
+        # }
 
     def test_parse_spec_str_no_brackets(self):
         assert _parse_spec_str("numpy") == {
