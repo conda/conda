@@ -246,10 +246,10 @@ class MatchSpec(object):
             else:
                 raise NotImplementedError()
 
-            if field_name == 'version':
-                value = VersionSpec(value)
-                if value.is_exact():
-                    value = value.spec
+            # if field_name == 'version':
+            #     value = VersionSpec(value)
+            #     if value.is_exact():
+            #         value = value.spec
             # elif field_name == "build":
             #     if isinstance(value, string_types) and '_' in value:
             #         bn = text_type(value).rsplit('_', 1)[-1]
@@ -283,7 +283,7 @@ class MatchSpec(object):
 
     @property
     def spec(self):
-        return self.__str__()
+        return self.conda_build_form()
 
     @property
     def name(self):
@@ -358,14 +358,18 @@ def _parse_spec_str(spec_str):
 
         from .channel import Channel
         channel = Channel(spec_str)
+        if not channel.subdir:
+            # url is not a channel
+            assert 0
         name, version, build = _parse_legacy_dist(channel.package_filename)
-        return {
+        result = {
             'channel': channel.canonical_name,
             'subdir': channel.subdir,
             'name': name,
             'version': version,
             'build': build,
         }
+        return result
 
     # Step 3. strip off brackets portion
     m1 = re.match(r'^(.*)(\[.*\])$', spec_str)

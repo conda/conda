@@ -109,7 +109,7 @@ class SubdirField(StringField):
             return super(SubdirField, self).__get__(instance, instance_type)
         except AttributeError:
             url = instance.url
-            return Channel(url).subdir
+            return self.unbox(instance, instance_type, Channel(url).subdir)
 
 
 class FilenameField(StringField):
@@ -123,8 +123,15 @@ class FilenameField(StringField):
         try:
             return super(FilenameField, self).__get__(instance, instance_type)
         except AttributeError:
-            url = instance.url
-            return Channel(url).package_filename
+            try:
+                url = instance.url
+                fn = Channel(url).package_filename
+                if not fn:
+                    raise AttributeError()
+            except AttributeError:
+                fn = '%s-%s-%s' % (instance.name, instance.version, instance.build)
+            assert fn
+            return self.unbox(instance, instance_type, fn)
 
 
 class IndexJsonRecord(DictSafeMixin, Entity):
@@ -239,7 +246,7 @@ class PrefixRecord(PackageCacheRecord):
     package_tarball_full_path = StringField(required=False)
     extracted_package_dir = StringField(required=False)
 
-    files = ListField(string_types)
+    files = ListField(string_types, default=(), required=False)
     paths = ListField(PathDataV1, required=False)
     link = ComposableField(Link, required=False)
     # app = ComposableField(App, required=False)

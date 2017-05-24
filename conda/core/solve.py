@@ -322,7 +322,7 @@ def get_install_transaction(prefix, index, spec_strs, force=False, only_names=No
         def make_txn_setup(pfx, unlink, link, specs):
             # TODO: this index here is probably wrong; needs to be per-prefix
             return PrefixSetup(index, pfx, unlink, link, 'INSTALL',
-                               tuple(s.spec for s in specs))
+                               tuple(specs))
 
         txn_args = tuple(make_txn_setup(ed.to_prefix(ensure_pad(env_name)), *oink)
                          for env_name, oink in iteritems(unlink_link_map))
@@ -345,7 +345,7 @@ def get_install_transaction_single(prefix, index, specs, force=False, only_names
     unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
 
     stp = PrefixSetup(r.index, prefix, unlink_dists, link_dists, 'INSTALL',
-                      tuple(s.spec for s in specs))
+                      tuple(specs))
     txn = UnlinkLinkTransaction(stp)
     return txn
 

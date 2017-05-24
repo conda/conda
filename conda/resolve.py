@@ -5,7 +5,7 @@ import logging
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, string_types, isiterable
+from .common.compat import iteritems, iterkeys, itervalues, string_types, isiterable, text_type
 from .common.toposort import toposort
 from .console import setup_handlers
 from .exceptions import NoPackagesFoundError, UnsatisfiableError
@@ -434,7 +434,7 @@ class Resolve(object):
     @staticmethod
     def ms_to_v(ms):
         ms = MatchSpec(ms)
-        return '@s@' + ms.spec + ('?' if ms.optional else '')
+        return '@s@' + text_type(ms) + ('?' if ms.optional else '')
 
     def push_MatchSpec(self, C, ms):
         ms = MatchSpec(ms)
