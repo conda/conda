@@ -58,7 +58,7 @@ def _supplement_index_with_cache(index, channels):
     # supplement index with packages from the cache
     maxp = len(channels) + 1
     for pc_entry in PackageCache.get_all_extracted_entries():
-        dist = pc_entry.dist
+        dist = Dist(pc_entry)
         if dist in index:
             # The downloaded repodata takes priority
             continue

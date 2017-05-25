@@ -13,15 +13,17 @@ from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
 import shlex
+import tarfile
 
 from .link import islink, lexists
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...exceptions import FileNotFoundError, CondaUpgradeError, CondaVerificationError
+from ...common.compat import ensure_text_type
+from ...exceptions import CondaUpgradeError, CondaVerificationError, FileNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
-from ...models.index_record import IndexRecord, IndexJsonRecord
+from ...models.index_record import IndexJsonRecord, IndexRecord
 from ...models.package_info import PackageInfo, PackageMetadata, PathData, PathDataV1, PathsData
 
 log = getLogger(__name__)
@@ -100,6 +102,12 @@ def read_index_json(extracted_package_directory):
     with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
         record = IndexJsonRecord(**json.load(fi))
     return record
+
+
+def read_index_json_from_tarball(package_tarball_full_path):
+    with tarfile.open(package_tarball_full_path) as tf:
+        contents = tf.extractfile('info/index.json').read()
+        return IndexJsonRecord(**json.loads(ensure_text_type(contents)))
 
 
 def read_repodata_json(extracted_package_directory):

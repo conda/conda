@@ -19,7 +19,7 @@ from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory, write_as_json_to_file
 from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_index_json,
-                                  read_repodata_json)
+                                  read_repodata_json, read_index_json_from_tarball)
 from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
 from ..models.index_record import RepodataRecord
@@ -92,8 +92,11 @@ class PackageCache(object):
                     extracted_package_dir=extracted_package_dir,
                 )
             except (IOError, OSError):
+                try:
+                    index_json_record = read_index_json(extracted_package_dir)
+                except (IOError, OSError):
+                    index_json_record = read_index_json_from_tarball(package_tarball_full_path)
                 url = first(self._urls_data, lambda x: basename(x) == package_filename)
-                index_json_record = read_index_json(extracted_package_dir)
                 package_cache_record = PackageCacheRecord.from_objects(
                     index_json_record,
                     url=url,
