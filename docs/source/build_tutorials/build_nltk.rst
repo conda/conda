@@ -23,7 +23,7 @@ Change directory to one directory above the nltk-with-data directory with ``cd``
 Run conda build for different Python versions that you need, selecting the packages for the platform and OS 
 you are running the command on:
 
-.. code-block:: python
+.. code-block:: bash
 
     conda build nltk-with-data --python 2.7
     conda build nltk-with-data --python 3.4
@@ -37,7 +37,7 @@ packages on.
 Upload the resulting conda packages to your local repository or to `Anaconda Cloud <https://anaconda.org>`_ 
 using the  `Anaconda Notebook Extension <https://docs.continuum.io/anaconda/jupyter-notebook-extensions>`_ anaconda-client CLI:
 
-.. code-block:: python
+.. code-block:: bash
 
     anaconda upload $CONDA_ROOT/conda-bld/$ARCH/nltk-with-data.tar.bz2
     anaconda upload $CONDA_ROOT/conda-bld/$ARCH/nltk-with-data.tar.bz2
@@ -51,7 +51,7 @@ you can also update the recipe and repeat this process.
 Install from conda
 ==================
 
-.. code-block:: python
+.. code-block:: bash
 
     $ conda install nltk-with-data
     $ ipython
