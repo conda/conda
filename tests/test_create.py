@@ -13,7 +13,6 @@ from os.path import basename, dirname, exists, isdir, isfile, join, lexists, rel
 from random import sample
 import re
 from shlex import split
-import shutil
 from shutil import copyfile, rmtree
 from subprocess import check_call
 import sys
@@ -28,7 +27,7 @@ from conda import CondaError, CondaMultiError
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import Context, context, reset_context
-from conda.cli.main import generate_parser
+from conda.cli.main import generate_parser, init_loggers
 from conda.cli.main_clean import configure_parser as clean_configure_parser
 from conda.cli.main_config import configure_parser as config_configure_parser
 from conda.cli.main_create import configure_parser as create_configure_parser
@@ -140,6 +139,7 @@ def run_command(command, prefix, *arguments, **kwargs):
 
     args = p.parse_args(split_command_line)
     context._set_argparse_args(args)
+    init_loggers(context)
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         with argv(['python_api'] + split_command_line), captured() as c, replace_log_streams():
@@ -341,6 +341,65 @@ class IntegrationTests(TestCase):
             # conda.exceptions.InstallError: Install error: Error: the following specs depend on
             # 'conda' and can only be installed into the root environment: constructor
             assert not package_is_installed(prefix, 'constructor')
+
+    def test_json_create_install_update_remove(self):
+        # regression test for #5384
+
+        def assert_json_parsable(content):
+            string = None
+            try:
+                for string in content and content.split('\0') or ():
+                    json.loads(string)
+            except Exception as e:
+                log.warn(
+                    "Problem parsing json output.\n"
+                    "  content: %s\n"
+                    "  string: %s\n"
+                    "  error: %r",
+                    content, string, e
+                )
+                raise
+
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+
+            stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5 --json")
+            assert_json_parsable(stdout)
+            assert not stderr
+
+            stdout, stderr = run_command(Commands.INSTALL, prefix, 'flask=0.10 --json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python-3')
+
+            # Test force reinstall
+            stdout, stderr = run_command(Commands.INSTALL, prefix, '--force', 'flask=0.10', '--json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python-3')
+
+            stdout, stderr = run_command(Commands.UPDATE, prefix, 'flask --json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert not package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'flask')
+            assert_package_is_installed(prefix, 'python-3')
+
+            stdout, stderr = run_command(Commands.REMOVE, prefix, 'flask --json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert not package_is_installed(prefix, 'flask-0.')
+            assert_package_is_installed(prefix, 'python-3')
+
+            stdout, stderr = run_command(Commands.INSTALL, prefix, '--revision 0', '--json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert not package_is_installed(prefix, 'flask')
+            assert_package_is_installed(prefix, 'python-3')
+        finally:
+            rmtree(prefix, ignore_errors=True)
 
     def test_noarch_python_package_with_entry_points(self):
         with make_temp_env("-c conda-test flask") as prefix:
@@ -610,7 +669,7 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe")
             assert not stderr
             for param_name in context.list_parameters():
-                assert re.search(r'^%s \(' % param_name, stdout, re.MULTILINE)
+                assert re.search(r'^# %s \(' % param_name, stdout, re.MULTILINE)
 
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe --json")
             assert not stderr
@@ -628,6 +687,19 @@ class IntegrationTests(TestCase):
                 json_obj = json.loads(stdout.strip())
                 assert json_obj['envvars'] == {'quiet': True}
                 assert json_obj['cmd_line'] == {'json': True}
+
+            run_command(Commands.CONFIG, prefix, "--set changeps1 false")
+            with pytest.raises(CondaError):
+                run_command(Commands.CONFIG, prefix, "--write-default")
+
+            rm_rf(join(prefix, 'condarc'))
+            run_command(Commands.CONFIG, prefix, "--write-default")
+
+            with open(join(prefix, 'condarc')) as fh:
+                data = fh.read()
+
+            for param_name in context.list_parameters():
+                assert re.search(r'^# %s \(' % param_name, data, re.MULTILINE)
 
     def test_conda_config_validate(self):
         with make_temp_env() as prefix:
@@ -713,6 +785,16 @@ class IntegrationTests(TestCase):
             run_command(Commands.UPDATE, prefix, "--all --no-pin")
             assert not package_is_installed(prefix, "python-2.7")
             assert not package_is_installed(prefix, "itsdangerous-0.23")
+
+    @pytest.mark.xfail(on_win, strict=True, reason="On Windows the Python package is pulled in as 'vc' feature-provider.")
+    def test_package_optional_pinning(self):
+        with make_temp_env("") as prefix:
+            run_command(Commands.CONFIG, prefix,
+                        "--add pinned_packages", "python=3.6.1=2")
+            run_command(Commands.INSTALL, prefix, "openssl")
+            assert not package_is_installed(prefix, "python")
+            run_command(Commands.INSTALL, prefix, "flask")
+            assert package_is_installed(prefix, "python-3.6.1")
 
     def test_update_deps_flag_absent(self):
         with make_temp_env("python=2 itsdangerous=0.23") as prefix:
