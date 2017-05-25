@@ -19,7 +19,7 @@ def is_admin_on_windows():  # pragma: unix no cover
         return False
     try:
         from ctypes import windll
-        return windll.shell32.IsUserAnAdmin()() != 0
+        return windll.shell32.IsUserAnAdmin() != 0
     except ImportError as e:
         log.debug('%r', e)
         return 'unknown'
