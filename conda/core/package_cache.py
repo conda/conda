@@ -17,7 +17,8 @@ from ..common.constants import NULL
 from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
-from ..gateways.disk.create import create_package_cache_directory, write_as_json_to_file
+from ..gateways.disk.create import create_package_cache_directory, write_as_json_to_file, \
+    extract_tarball
 from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_index_json,
                                   read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
@@ -255,7 +256,12 @@ class PackageCache(object):
             try:
                 index_json_record = read_index_json(extracted_package_dir)
             except (IOError, OSError):
-                index_json_record = read_index_json_from_tarball(package_tarball_full_path)
+                if self.is_writable:
+                    extract_tarball(self.source_full_path, self.target_full_path)
+                    index_json_record = read_index_json(extracted_package_dir)
+                else:
+                    index_json_record = read_index_json_from_tarball(package_tarball_full_path)
+
             url = first(self._urls_data, lambda x: basename(x) == package_filename)
             package_cache_record = PackageCacheRecord.from_objects(
                 index_json_record,
