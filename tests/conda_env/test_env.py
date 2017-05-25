@@ -163,9 +163,9 @@ class EnvironmentTestCase(unittest.TestCase):
         expected = '\n'.join([
             "name: %s" % random_name,
             "channels:",
-            "- javascript",
+            "  - javascript",
             "dependencies:",
-            "- nodejs",
+            "  - nodejs",
             ""
         ])
 
@@ -186,9 +186,9 @@ class EnvironmentTestCase(unittest.TestCase):
         expected = "\n".join([
             'name: %s' % random_name,
             'channels:',
-            '- javascript',
+            '  - javascript',
             'dependencies:',
-            '- nodejs',
+            '  - nodejs',
             '',
         ])
         self.assertEqual(expected, s.output)
@@ -203,8 +203,8 @@ class EnvironmentTestCase(unittest.TestCase):
         expected = "\n".join([
             'name: nlp',
             'dependencies:',
-            '- nltk',
-            '- bar',
+            '  - nltk',
+            '  - bar',
             ''
         ])
         self.assertEqual(expected, s.output)
