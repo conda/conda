@@ -7,23 +7,22 @@ from os import listdir
 from os.path import basename, join
 from traceback import format_exc
 
-from conda.common.constants import NULL
-
-from conda.models.index_record import RepodataRecord
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
-from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE, UNKNOWN_CHANNEL
+from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
-from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
+from ..common.compat import iteritems, itervalues, text_type, with_metaclass
+from ..common.constants import NULL
 from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory, write_as_json_to_file
-from ..gateways.disk.read import compute_md5sum, isdir, isfile, islink, read_repodata_json, \
-    read_index_json
+from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_index_json,
+                                  read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
+from ..models.index_record import RepodataRecord
 from ..models.package_cache_record import PackageCacheRecord
 
 try:
@@ -34,41 +33,6 @@ except ImportError:  # pragma: no cover
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
-
-
-class UrlsData(object):
-    # this is a class to manage urls.txt
-    # it should basically be thought of as a sequence
-    # in this class I'm breaking the rule that all disk access goes through conda.gateways
-
-    def __init__(self, pkgs_dir):
-        self.pkgs_dir = pkgs_dir
-        self.urls_txt_path = urls_txt_path = join(pkgs_dir, 'urls.txt')
-        if isfile(urls_txt_path):
-            with open(urls_txt_path, 'r') as fh:
-                self._urls_data = [line.strip() for line in fh]
-                self._urls_data.reverse()
-        else:
-            self._urls_data = []
-
-    def __contains__(self, url):
-        return url in self._urls_data
-
-    def __iter__(self):
-        return iter(self._urls_data)
-
-    def add_url(self, url):
-        with open(self.urls_txt_path, 'a') as fh:
-            fh.write(url + '\n')
-        self._urls_data.insert(0, url)
-
-    def get_url(self, package_path):
-        # package path can be a full path or just a basename
-        #   can be either an extracted directory or tarball
-        package_path = basename(package_path)
-        if not package_path.endswith(CONDA_TARBALL_EXTENSION):
-            package_path += CONDA_TARBALL_EXTENSION
-        return first(self, lambda url: basename(url) == package_path)
 
 
 class PackageCacheType(type):
@@ -379,6 +343,41 @@ class PackageCache(object):
     def __repr__(self):
         args = ('%s=%r' % (key, getattr(self, key)) for key in ('pkgs_dir',))
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
+
+
+class UrlsData(object):
+    # this is a class to manage urls.txt
+    # it should basically be thought of as a sequence
+    # in this class I'm breaking the rule that all disk access goes through conda.gateways
+
+    def __init__(self, pkgs_dir):
+        self.pkgs_dir = pkgs_dir
+        self.urls_txt_path = urls_txt_path = join(pkgs_dir, 'urls.txt')
+        if isfile(urls_txt_path):
+            with open(urls_txt_path, 'r') as fh:
+                self._urls_data = [line.strip() for line in fh]
+                self._urls_data.reverse()
+        else:
+            self._urls_data = []
+
+    def __contains__(self, url):
+        return url in self._urls_data
+
+    def __iter__(self):
+        return iter(self._urls_data)
+
+    def add_url(self, url):
+        with open(self.urls_txt_path, 'a') as fh:
+            fh.write(url + '\n')
+        self._urls_data.insert(0, url)
+
+    def get_url(self, package_path):
+        # package path can be a full path or just a basename
+        #   can be either an extracted directory or tarball
+        package_path = basename(package_path)
+        if not package_path.endswith(CONDA_TARBALL_EXTENSION):
+            package_path += CONDA_TARBALL_EXTENSION
+        return first(self, lambda url: basename(url) == package_path)
 
 
 # ##############################

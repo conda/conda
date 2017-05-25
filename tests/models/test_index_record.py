@@ -44,4 +44,6 @@ class PrefixRecordTests(TestCase):
             depends=(),
             noarch=None,
             preferred_env=None,
+            arch=None,
+            platform=None,
         )

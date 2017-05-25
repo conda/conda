@@ -189,6 +189,7 @@ class MatchSpecTests(TestCase):
 
         assert m("numpy[subdir=win-32]") == '*/win-32::numpy'
         assert m("*/win-32::numpy") == '*/win-32::numpy'
+        assert m("*/win-32::numpy[subdir=\"osx-64\"]") == '*/osx-64::numpy'
 
         # TODO: should the result in these example pull out subdir?
         assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "defaults/linux-32::numpy"
