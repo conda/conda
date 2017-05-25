@@ -22,8 +22,8 @@ def pytest_generate_tests(metafunc):
 
 
 @pytest.fixture()
-def suppress_resource_warning(request):
+def suppress_resource_warning():
     # suppress unclosed socket warning
     # https://github.com/kennethreitz/requests/issues/1882
-    if PY3 and 'integration' in request.keywords:
+    if PY3:
         warnings.filterwarnings("ignore", category=ResourceWarning)
