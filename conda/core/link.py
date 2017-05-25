@@ -218,7 +218,7 @@ class UnlinkLinkTransaction(object):
         # NOTE: load_meta can return None
         # TODO: figure out if this filter shouldn't be an assert not None
         linked_pkgs_data_to_unlink = tuple(lpd for lpd in linked_pkgs_data_to_unlink if lpd)
-        pkg_dirs_to_link = tuple(PackageCache.get_entry_to_link(dist).extracted_package_dir
+        pkg_dirs_to_link = tuple(PackageCache.get_entry_to_link(index[dist]).extracted_package_dir
                                  for dist in link_dists)
         assert all(pkg_dirs_to_link)
         packages_info_to_link = tuple(read_package_info(index[dist], pkg_dir)

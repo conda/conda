@@ -14,8 +14,8 @@ from ..exceptions import BasicClobberError, CondaDependencyError, maybe_raise
 from ..gateways.disk.create import write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..models.dist import Dist
-from ..models.index_record import PrefixRecord
 from ..models.match_spec import MatchSpec
+from ..models.prefix_record import PrefixRecord
 
 log = getLogger(__name__)
 
@@ -39,15 +39,14 @@ class PrefixData(object):
 
     def __init__(self, prefix_path):
         self.prefix_path = prefix_path
-        self._prefix_records = None
+        self.__prefix_records = None
 
     def load(self):
-        self._prefix_records = {}
+        self.__prefix_records = {}
         for meta_file in glob(join(self.prefix_path, 'conda-meta', '*.json')):
             self._load_single_record(meta_file)
 
     def insert(self, prefix_record):
-        self._ensure_loaded()
         assert prefix_record.name not in self._prefix_records
 
         assert prefix_record.fn.endswith(CONDA_TARBALL_EXTENSION)
@@ -67,7 +66,6 @@ class PrefixData(object):
         self._prefix_records[prefix_record.name] = prefix_record
 
     def remove(self, package_name):
-        self._ensure_loaded()
         assert package_name in self._prefix_records
 
         prefix_record = self._prefix_records[package_name]
@@ -79,7 +77,6 @@ class PrefixData(object):
         del self._prefix_records[package_name]
 
     def get(self, package_name, default=NULL):
-        self._ensure_loaded()
         try:
             return self._prefix_records[package_name]
         except KeyError:
@@ -88,15 +85,15 @@ class PrefixData(object):
             else:
                 raise
 
-    def _ensure_loaded(self):
-        if self._prefix_records is None:
-            self.load()
+    @property
+    def _prefix_records(self):
+        return self.__prefix_records or self.load() or self.__prefix_records
 
     def _load_single_record(self, prefix_record_json_path):
         with open(prefix_record_json_path) as fh:
             json_data = json_load(fh.read())
         prefix_record = PrefixRecord(**json_data)
-        self._prefix_records[prefix_record.name] = prefix_record
+        self.__prefix_records[prefix_record.name] = prefix_record
 
 
 def get_python_version_for_prefix(prefix):
@@ -120,7 +117,6 @@ def linked_data(prefix, ignore_channels=False):
     Return a dictionary of the linked packages in prefix.
     """
     pd = PrefixData(prefix)
-    pd._ensure_loaded()
     return {Dist(prefix_record): prefix_record for prefix_record in itervalues(pd._prefix_records)}
 
 

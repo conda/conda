@@ -58,6 +58,18 @@ class DefaultConfigChannelTests(TestCase):
             'https://conda.anaconda.org/binstar/label/dev/noarch',
         ]
 
+        channel = Channel('binstar/label/dev/win-32')
+        assert channel.channel_name == "binstar/label/dev"
+        assert channel.channel_location == "conda.anaconda.org"
+        assert channel.platform == 'win-32'
+        assert channel.package_filename is None
+        assert channel.canonical_name == "binstar/label/dev"
+        assert channel.urls() == [
+            'https://conda.anaconda.org/binstar/label/dev/win-32',
+            'https://conda.anaconda.org/binstar/label/dev/noarch',
+        ]
+
+
     def test_channel_cache(self):
         Channel._reset_state()
         assert len(Channel._cache_) == 0
@@ -86,13 +98,21 @@ class DefaultConfigChannelTests(TestCase):
         dc = Channel('defaults')
         assert dc.canonical_name == 'defaults'
         assert dc.urls() == self.DEFAULT_URLS
+        assert dc.subdir is None
+
+        dc = Channel('defaults/win-32')
+        assert dc.canonical_name == 'defaults'
+        assert dc.subdir == 'win-32'
+        assert dc.urls()[0] == 'https://repo.continuum.io/pkgs/free/win-32'
+        assert dc.urls()[1] == 'https://repo.continuum.io/pkgs/free/noarch'
+        assert dc.urls()[2].endswith('/win-32')
 
     def test_url_channel_w_platform(self):
         channel = Channel('https://repo.continuum.io/pkgs/free/osx-64')
 
         assert channel.scheme == "https"
         assert channel.location == "repo.continuum.io"
-        assert channel.platform == 'osx-64'
+        assert channel.platform == 'osx-64' == channel.subdir
         assert channel.name == 'pkgs/free'
 
         assert channel.base_url == 'https://repo.continuum.io/pkgs/free'

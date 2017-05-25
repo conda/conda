@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from copy import copy
 from itertools import chain
 from logging import getLogger
 
@@ -10,7 +11,8 @@ from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
 from ..common.path import is_path, win_path_backout
 from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
-                          split_conda_url_easy_parts, split_scheme_auth_token, urlparse)
+                          split_conda_url_easy_parts, split_scheme_auth_token, urlparse,
+                          split_platform)
 
 try:
     from cytoolz.functoolz import excepts
@@ -59,11 +61,11 @@ class Channel(object):
     channel <> subchannel <> namespace <> package_name
 
     """
-    _cache_ = dict()
+    _cache_ = {}
 
     @staticmethod
     def _reset_state():
-        Channel._cache_ = dict()
+        Channel._cache_ = {}
 
     def __init__(self, scheme=None, auth=None, location=None, token=None, name=None,
                  platform=None, package_filename=None):
@@ -113,8 +115,9 @@ class Channel(object):
         else:
             # at this point assume we don't have a bare (non-scheme) url
             #   e.g. this would be bad:  repo.continuum.io/pkgs/free
-            if value in context.custom_multichannels:
-                return MultiChannel(value, context.custom_multichannels[value])
+            _stripped, platform = split_platform(value)
+            if _stripped in context.custom_multichannels:
+                return MultiChannel(_stripped, context.custom_multichannels[_stripped], platform)
             else:
                 return Channel.from_channel_name(value)
 
@@ -273,15 +276,21 @@ class Channel(object):
 
 class MultiChannel(Channel):
 
-    def __init__(self, name, channels):
+    def __init__(self, name, channels, platform=None):
         self.name = name
         self.location = None
-        self._channels = channels
+
+        if platform:
+            c_dicts = tuple(c.dump() for c in channels)
+            any(cd.update(platform=platform) for cd in c_dicts)
+            self._channels = tuple(Channel(**cd) for cd in c_dicts)
+        else:
+            self._channels = channels
 
         self.scheme = None
         self.auth = None
         self.token = None
-        self.platform = None
+        self.platform = platform
         self.package_filename = None
 
     @property
@@ -340,17 +349,21 @@ def _get_channel_for_name(channel_name):
                 return None
             return _get_channel_for_name_helper(test_name)
 
-    channel = _get_channel_for_name_helper(channel_name)
+    _stripped, platform = split_platform(channel_name)
+    channel = _get_channel_for_name_helper(_stripped)
 
     if channel is not None:
         # stripping off path threw information away from channel_name (i.e. any potential subname)
         # channel.name *should still be* channel_name
+        channel = copy(channel)
         channel.name = channel_name
+        if platform:
+            channel.platform = platform
         return channel
     else:
         ca = context.channel_alias
         return Channel(scheme=ca.scheme, auth=ca.auth, location=ca.location, token=ca.token,
-                       name=channel_name)
+                       name=_stripped, platform=platform)
 
 
 def _read_channel_configuration(scheme, host, port, path):

@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import Mapping
 import re
 
-from .channel import Channel
+from .channel import Channel, MultiChannel
 from .dist import Dist
 from .index_record import IndexRecord
 from .version import BuildNumberMatch, VersionSpec
@@ -16,6 +16,10 @@ from ..common.path import expand
 from ..common.url import is_url, path_to_url
 from ..exceptions import CondaValueError
 
+try:
+    from cytoolz.itertoolz import concat
+except ImportError:  # pragma: no cover
+    from .._vendor.toolz.itertoolz import concat  # NOQA
 
 class MatchSpecType(type):
 
@@ -159,9 +163,14 @@ class MatchSpec(object):
 
         channel_matcher = self._match_components.get('channel')
         if channel_matcher:
-            builder.append(text_type(channel_matcher) + "::")
+            builder.append(text_type(channel_matcher))
 
-        builder.append(text_type(self._match_components.get('name', '*')))
+        subdir_matcher = self._match_components.get('subdir')
+        if subdir_matcher:
+            builder.append(('/%s' if builder else '*/%s') % subdir_matcher)
+
+        name_matcher = self._match_components.get('name', '*')
+        builder.append(('::%s' if builder else '%s') % name_matcher)
 
         xtra = []
 
@@ -177,7 +186,7 @@ class MatchSpec(object):
             else:
                 builder.append('==' + version)
 
-        _skip = ('channel', 'name', 'version')
+        _skip = ('channel', 'subdir', 'name', 'version')
         for key in self.FIELD_NAMES:
             if key not in _skip and key in self._match_components:
                 value = text_type(self._match_components[key])
@@ -323,6 +332,14 @@ def _parse_legacy_dist(dist_str):
     return name, version, build
 
 
+def _parse_channel(channel_val):
+    if not channel_val:
+        return None, None
+    chn = Channel(channel_val)
+    channel_name = chn.name if isinstance(chn, MultiChannel) else chn.canonical_name
+    return channel_name, chn.subdir
+
+
 def _parse_spec_str(spec_str):
     # Step 1. strip '#' comment
     if '#' in spec_str:
@@ -336,7 +353,6 @@ def _parse_spec_str(spec_str):
         if not is_url(spec_str):
             spec_str = path_to_url(expand(spec_str))
 
-        from .channel import Channel
         channel = Channel(spec_str)
         if not channel.subdir:
             # url is not a channel
@@ -352,26 +368,41 @@ def _parse_spec_str(spec_str):
         return result
 
     # Step 3. strip off brackets portion
-    m1 = re.match(r'^(.*)(\[.*\])$', spec_str)
+    brackets = {}
+    m1 = re.match(r'^(.*)(?:\[(.*)\])$', spec_str)
     if m1:
-        spec_str, brackets = m1.groups()
-        brackets = brackets[1:-1]
-    else:
-        brackets = None
+        spec_str, brackets_str = m1.groups()
+        brackets_str = brackets_str.strip("[]\n\r\t ")
+
+        m5 = re.finditer(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', brackets_str)
+        for match in m5:
+            key, _, value, _ = match.groups()
+            if not key or not value:
+                raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
+            brackets[key] = value
 
     # Step 4. strip off '::' channel and namespace
     m2 = spec_str.rsplit(':', 2)
     m2_len = len(m2)
     if m2_len == 3:
-        channel, namespace, spec_str = m2
+        channel_str, namespace, spec_str = m2
     elif m2_len == 2:
         namespace, spec_str = m2
-        channel = None
+        channel_str = None
     elif m2_len:
         spec_str = m2[0]
-        channel, namespace = None, None
+        channel_str, namespace = None, None
     else:
         raise NotImplementedError()
+    channel, subdir = _parse_channel(channel_str)
+    if 'channel' in brackets:
+        b_channel, b_subdir = _parse_channel(brackets.pop('channel'))
+        if b_channel:
+            channel = b_channel
+        if b_subdir:
+            subdir = b_subdir
+    if 'subdir' in brackets:
+        subdir = brackets.pop('subdir')
 
     # Step 5. strip off package name from remaining version + build
     m3 = re.match(r'([^ =<>!]+)?([><!= ].+)?', spec_str)
@@ -407,32 +438,21 @@ def _parse_spec_str(spec_str):
     # Step 7. now compile components together
     components = {}
     components['name'] = name if name else '*'
-    if channel is not None:
-        from .channel import Channel, MultiChannel
-        chn = Channel(channel)
-        if isinstance(chn, MultiChannel):
-            components['channel'] = chn.name
-        else:
-            components['channel'] = chn.canonical_name
-    if namespace is not None:
-        # kwargs['namespace'] = namespace
-        pass
 
+    if channel is not None:
+        components['channel'] = channel
+    if subdir is not None:
+        components['subdir'] = subdir
+    if namespace is not None:
+        # components['namespace'] = namespace
+        pass
     if version is not None:
         components['version'] = version
     if build is not None:
         components['build'] = build
 
-    # now parse brackets
-    # anything in brackets will strictly override key as set in other area of spec str
-    if brackets:
-        brackets = brackets.strip("[]\n\r\t ")
-        m5 = re.finditer(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', brackets)
-        for match in m5:
-            key, _, value, _ = match.groups()
-            if not key or not value:
-                raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
-            components[key] = value
+    # anything in brackets will now strictly override key as set in other area of spec str
+    components.update(brackets)
 
     return components
 

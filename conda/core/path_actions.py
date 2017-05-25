@@ -36,8 +36,9 @@ from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
 from ..models.dist import Dist
 from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType
-from ..models.index_record import Link, PrefixRecord
+from ..models.index_record import Link
 from ..models.leased_path_entry import LeasedPathEntry
+from ..models.prefix_record import PrefixRecord
 
 try:
     from cytoolz.itertoolz import concat, concatv
@@ -1070,9 +1071,9 @@ class CacheUrlAction(PathAction):
                 # the package is already in a cache, so it came from a remote url somewhere;
                 #   make sure that remote url is the most recent url in the
                 #   writable cache urls.txt
-                origin_url = source_package_cache.urls_data.get_url(self.target_package_basename)
+                origin_url = source_package_cache._urls_data.get_url(self.target_package_basename)
                 if origin_url and Dist(origin_url).is_channel:
-                    target_package_cache.urls_data.add_url(origin_url)
+                    target_package_cache._urls_data.add_url(origin_url)
             else:
                 # so our tarball source isn't a package cache, but that doesn't mean it's not
                 #   in another package cache somewhere
@@ -1096,13 +1097,13 @@ class CacheUrlAction(PathAction):
                             force=context.force)
 
                 if origin_url and Dist(origin_url).is_channel:
-                    target_package_cache.urls_data.add_url(origin_url)
+                    target_package_cache._urls_data.add_url(origin_url)
                 else:
-                    target_package_cache.urls_data.add_url(self.url)
+                    target_package_cache._urls_data.add_url(self.url)
 
         else:
             download(self.url, self.target_full_path, self.md5sum)
-            target_package_cache.urls_data.add_url(self.url)
+            target_package_cache._urls_data.add_url(self.url)
 
     def reverse(self):
         if lexists(self.hold_path):
@@ -1123,12 +1124,12 @@ class CacheUrlAction(PathAction):
 class ExtractPackageAction(PathAction):
 
     def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname,
-                 record):
+                 index_record):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
         self.hold_path = self.target_full_path + '.c~'
-        self.record = record
+        self.index_record = index_record
 
     def verify(self):
         self._verified = True
@@ -1156,15 +1157,22 @@ class ExtractPackageAction(PathAction):
                 else:
                     raise
         extract_tarball(self.source_full_path, self.target_full_path)
-        meta = join(self.target_full_path, 'info', 'repodata_record.json')
-        write_as_json_to_file(meta, self.record)
+        # meta = join(self.target_full_path, 'info', 'repodata_record.json')
+        # write_as_json_to_file(meta, self.record)
 
         target_package_cache = PackageCache(self.target_pkgs_dir)
+        recorded_url = target_package_cache._urls_data.get_url(self.source_full_path)
+        package_cache_record = PackageCacheRecord.from_objects(
+            self.index_record,
+            url=recorded_url,
+            package_tarball_full_path=self.source_full_path,
+            extracted_package_dir=self.target_full_path,
+        )
+        target_package_cache.insert(package_cache_record)
 
-        recorded_url = target_package_cache.urls_data.get_url(self.source_full_path)
-        dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
-        package_cache_entry = PackageCacheRecord.make_legacy(self.target_pkgs_dir, dist)
-        target_package_cache[package_cache_entry.dist] = package_cache_entry
+        # dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
+        # package_cache_entry = PackageCacheRecord.make_legacy(self.target_pkgs_dir, dist)
+        # target_package_cache[package_cache_entry.dist] = package_cache_entry
 
     def reverse(self):
         rm_rf(self.target_full_path)

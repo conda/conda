@@ -174,12 +174,25 @@ class MatchSpecTests(TestCase):
 
         assert m("https://repo.continuum.io/pkgs/free::numpy") == "defaults::numpy"
         assert m("numpy[channel=https://repo.continuum.io/pkgs/free]") == "defaults::numpy"
+        assert m("defaults::numpy") == "defaults::numpy"
+        assert m("numpy[channel=defaults]") == "defaults::numpy"
         assert m("conda-forge::numpy") == "conda-forge::numpy"
         assert m("numpy[channel=conda-forge]") == "conda-forge::numpy"
 
+        assert m("numpy[channel=defaults,subdir=osx-64]") == "defaults/osx-64::numpy"
+        assert m("numpy[channel=https://repo.continuum.io/pkgs/free/osx-64, subdir=linux-64]") == "defaults/linux-64::numpy"
+        assert m("https://repo.continuum.io/pkgs/free/win-32::numpy") == "defaults/win-32::numpy"
+        assert m("numpy[channel=https://repo.continuum.io/pkgs/free/osx-64]") == "defaults/osx-64::numpy"
+        assert m("defaults/win-32::numpy") == "defaults/win-32::numpy"
+        assert m("conda-forge/linux-64::numpy") == "conda-forge/linux-64::numpy"
+        assert m("numpy[channel=conda-forge,subdir=noarch]") == "conda-forge/noarch::numpy"
+
+        assert m("numpy[subdir=win-32]") == '*/win-32::numpy'
+        assert m("*/win-32::numpy") == '*/win-32::numpy'
+
         # TODO: should the result in these example pull out subdir?
-        assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "defaults::numpy"
-        assert m("numpy[channel=https://repo.continuum.io/pkgs/free/linux-32]") == "defaults::numpy"
+        assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "defaults/linux-32::numpy"
+        assert m("numpy[channel=https://repo.continuum.io/pkgs/free/linux-32]") == "defaults/linux-32::numpy"
 
         assert m("numpy[build=py3*_2, track_features=mkl]") == "numpy[build=py3*_2,track_features=mkl]"
         assert m("numpy[build=py3*_2, track_features='mkl debug']") == "numpy[build=py3*_2,track_features='debug mkl']"

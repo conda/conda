@@ -5,6 +5,9 @@ from errno import ENOENT
 from logging import getLogger
 from os.path import basename, join
 
+from .._vendor.auxlib.entity import StringField
+from .index_record import RepodataRecord
+
 from .channel import Channel
 from .._vendor.auxlib.decorators import memoizemethod
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -12,7 +15,16 @@ from ..base.constants import CONDA_TARBALL_EXTENSION
 log = getLogger(__name__)
 
 
-class PackageCacheRecord(object):
+class PackageCacheRecord(RepodataRecord):
+
+    package_tarball_full_path = StringField()
+    extracted_package_dir = StringField()
+
+    # @classmethod
+    # def load(cls, conda_meta_json_path):
+    #     return cls()
+
+# class _PackageCacheRecord(object):
 
     @classmethod
     def make_legacy(cls, pkgs_dir, dist):
@@ -21,13 +33,15 @@ class PackageCacheRecord(object):
         package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
         return cls(pkgs_dir, dist, package_tarball_full_path, extracted_package_dir)
 
-    def __init__(self, pkgs_dir, dist, package_tarball_full_path, extracted_package_dir):
-        # the channel object here should be created using a full url to the tarball
-        self.pkgs_dir = pkgs_dir
-        self.dist = dist
-        self.package_tarball_full_path = package_tarball_full_path
-        self.extracted_package_dir = extracted_package_dir
-        self.channel = Channel(dist.to_url()) if dist.is_channel else Channel(None)
+    # def __init__(self, pkgs_dir, dist, package_tarball_full_path, extracted_package_dir):
+    #     # the channel object here should be created using a full url to the tarball
+    #     self.pkgs_dir = pkgs_dir
+    #     self.dist = dist
+    #     self.channel = Channel(dist.to_url()) if dist.is_channel else Channel(None)
+    #     super(PackageCacheRecord, self).__init__(
+    #         package_tarball_full_path=package_tarball_full_path,
+    #         extracted_package_dir=extracted_package_dir,
+    #     )
 
     @property
     def is_fetched(self):
@@ -67,7 +81,7 @@ class PackageCacheRecord(object):
 
     def get_urls_txt_value(self):
         from ..core.package_cache import PackageCache
-        return PackageCache(self.pkgs_dir).urls_data.get_url(self.package_tarball_full_path)
+        return PackageCache(self.pkgs_dir)._urls_data.get_url(self.package_tarball_full_path)
 
     @memoizemethod
     def _get_repodata_record(self):
@@ -91,3 +105,5 @@ class PackageCacheRecord(object):
         args = ('%s=%r' % (key, getattr(self, key))
                 for key in ('dist', 'package_tarball_full_path'))
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
+
+

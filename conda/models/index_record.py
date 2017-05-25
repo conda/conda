@@ -3,9 +3,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import total_ordering
 
+from conda._vendor.auxlib.decorators import memoizedproperty
+
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PathType
-from .leased_path_entry import LeasedPathEntry
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
 from ..common.compat import itervalues, string_types, text_type
@@ -87,19 +88,17 @@ class ChannelField(ComposableField):
             return self.unbox(instance, instance_type, Channel(url))
 
 
-class SubdirField(StringField):
-
-    def __init__(self, default=None, validation=None,
-                 in_dump=True, nullable=False, immutable=False, aliases=()):
-        super(SubdirField, self).__init__(default, False, validation, in_dump, nullable,
-                                          immutable, aliases)
-
-    def __get__(self, instance, instance_type):
-        try:
-            return super(SubdirField, self).__get__(instance, instance_type)
-        except AttributeError:
-            url = instance.url
-            return self.unbox(instance, instance_type, Channel(url).subdir)
+# class SubdirField(StringField):
+#
+#     def __init__(self):
+#         super(SubdirField, self).__init__(required=False)
+#
+#     def __get__(self, instance, instance_type):
+#         try:
+#             return super(SubdirField, self).__get__(instance, instance_type)
+#         except AttributeError:
+#             url = instance.url
+#             return self.unbox(instance, instance_type, Channel(url).subdir)
 
 
 class FilenameField(StringField):
@@ -132,17 +131,27 @@ class BasePackageRef(DictSafeMixin, Entity):
 
 
 class PackageRef(BasePackageRef):
-    # fields important for uniquely identifying a package
+    # fields required to uniquely identifying a package
 
     channel = ChannelField(aliases=('schannel',))
-    subdir = SubdirField()
-    fn = FilenameField(aliases=('filename',))  # previously fn
+    subdir = StringField()
+    fn = FilenameField(aliases=('filename',))
 
     md5 = StringField(required=False, nullable=True)
 
     @property
     def schannel(self):
         return self.channel.canonical_name
+
+    @memoizedproperty
+    def _pkey(self):
+        return self.channel.canonical_name, self.subdir, self.name, self.version, self.build
+
+    def __hash__(self):
+        return hash(self._pkey)
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self._pkey == other._pkey
 
 
 class IndexJsonRecord(BasePackageRef):
@@ -153,6 +162,7 @@ class IndexJsonRecord(BasePackageRef):
     features = FeaturesField(string_types, required=False)
     track_features = StringField(required=False)
 
+    subdir = StringField()
     # package_type = EnumField(NoarchType, required=False)  # previously noarch
     noarch = NoarchField(NoarchType, required=False, nullable=True)  # TODO: rename to package_type
     preferred_env = StringField(required=False, nullable=True)
@@ -200,41 +210,6 @@ class PathDataV1(PathData):
     sha256 = StringField(required=False, nullable=True)
     size_in_bytes = IntegerField(required=False, nullable=True)
     inode_paths = ListField(string_types, required=False, nullable=True)
-
-
-class PackageCacheRecord(RepodataRecord):
-
-    package_tarball_full_path = StringField()
-    extracted_package_dir = StringField()
-
-    @classmethod
-    def load(cls, conda_meta_json_path):
-        return cls()
-
-
-class PrefixRecord(PackageCacheRecord):
-
-    package_tarball_full_path = StringField(required=False)
-    extracted_package_dir = StringField(required=False)
-
-    files = ListField(string_types, default=(), required=False)
-    paths = ListField(PathDataV1, required=False)
-    link = ComposableField(Link, required=False)
-    # app = ComposableField(App, required=False)
-
-    # the channel priority when the package was installed into the prefix
-    priority = PriorityField(required=False)
-
-    # There have been requests in the past to save remote server auth
-    # information with the package.  Open to rethinking that though.
-    auth = StringField(required=False, nullable=True)
-
-    # a new concept introduced in 4.4 for private env packages
-    leased_paths = ListField(LeasedPathEntry, required=False)
-
-    # @classmethod
-    # def load(cls, conda_meta_json_path):
-    #     return cls()
 
 
 IndexRecord = RepodataRecord

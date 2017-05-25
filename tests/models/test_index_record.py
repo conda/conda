@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from conda.common.compat import text_type
 from conda.models.channel import Channel
-from conda.models.index_record import PrefixRecord
+from conda.models.prefix_record import PrefixRecord
 
 log = getLogger(__name__)
 
@@ -19,6 +19,7 @@ class PrefixRecordTests(TestCase):
             build_string='py34_2',
             build_number=2,
             url="https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
+            subdir="win-32",
             md5='0123456789',
             files=(),
         )
