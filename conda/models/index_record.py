@@ -6,7 +6,7 @@ from functools import total_ordering
 from conda._vendor.auxlib.decorators import memoizedproperty
 
 from .channel import Channel
-from .enums import FileMode, LinkType, NoarchType, PathType
+from .enums import FileMode, LinkType, NoarchType, PathType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
 from ..common.compat import itervalues, string_types, text_type
@@ -88,17 +88,24 @@ class ChannelField(ComposableField):
             return self.unbox(instance, instance_type, Channel(url))
 
 
-# class SubdirField(StringField):
-#
-#     def __init__(self):
-#         super(SubdirField, self).__init__(required=False)
-#
-#     def __get__(self, instance, instance_type):
-#         try:
-#             return super(SubdirField, self).__get__(instance, instance_type)
-#         except AttributeError:
-#             url = instance.url
-#             return self.unbox(instance, instance_type, Channel(url).subdir)
+class SubdirField(StringField):
+
+    def __init__(self):
+        super(SubdirField, self).__init__(required=False)
+
+    def __get__(self, instance, instance_type):
+        try:
+            return super(SubdirField, self).__get__(instance, instance_type)
+        except AttributeError:
+            url = instance.url
+            if url:
+                return self.unbox(instance, instance_type, Channel(url).subdir)
+            platform, arch = instance.platform, instance.arch
+            if not arch:
+                return self.unbox(instance, instance_type, 'noarch')
+            else:
+                return self.unbox(instance, instance_type,
+                                  ('%s-64' if '64' in arch else '%s-32') % platform)
 
 
 class FilenameField(StringField):
@@ -134,7 +141,7 @@ class PackageRef(BasePackageRef):
     # fields required to uniquely identifying a package
 
     channel = ChannelField(aliases=('schannel',))
-    subdir = StringField()
+    subdir = SubdirField()
     fn = FilenameField(aliases=('filename',))
 
     md5 = StringField(required=False, nullable=True)
@@ -156,13 +163,16 @@ class PackageRef(BasePackageRef):
 
 class IndexJsonRecord(BasePackageRef):
 
+    arch = StringField(required=False, nullable=True)  # so legacy
+    platform = EnumField(Platform, required=False, nullable=True)  # so legacy
+
     depends = ListField(string_types, default=())
     constrains = ListField(string_types, default=())
 
     features = FeaturesField(string_types, required=False)
     track_features = StringField(required=False)
 
-    subdir = StringField()
+    subdir = SubdirField()
     # package_type = EnumField(NoarchType, required=False)  # previously noarch
     noarch = NoarchField(NoarchType, required=False, nullable=True)  # TODO: rename to package_type
     preferred_env = StringField(required=False, nullable=True)
