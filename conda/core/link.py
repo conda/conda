@@ -654,6 +654,8 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
     """
+    if action == 'post-link':
+        return True
     path = join(prefix,
                 'Scripts' if on_win else 'bin',
                 '.%s-%s.%s' % (dist.name, action, 'bat' if on_win else 'sh'))

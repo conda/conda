@@ -6,7 +6,7 @@ from itertools import chain
 from logging import getLogger
 from os import X_OK, access, chmod, lstat, walk
 from os.path import isdir, isfile, join
-from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
+from stat import S_IMODE, S_ISDIR, S_ISREG, S_IWGRP, S_IWOTH, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR
 
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lchmod
@@ -14,16 +14,18 @@ from ...common.compat import on_win
 
 log = getLogger(__name__)
 
+S_IWALL = S_IWUSR | S_IWGRP| S_IWOTH
+
 
 def make_writable(path):
     try:
         mode = lstat(path).st_mode
         if S_ISDIR(mode):
-            chmod(path, S_IMODE(mode) | S_IWRITE | S_IEXEC)
+            chmod(path, S_IMODE(mode) | S_IWUSR | S_IXUSR)
         elif islink(path):
-            lchmod(path, S_IMODE(mode) | S_IWRITE)
+            lchmod(path, S_IMODE(mode) | S_IWUSR)
         elif S_ISREG(mode):
-            chmod(path, S_IMODE(mode) | S_IWRITE)
+            chmod(path, S_IMODE(mode) | S_IWUSR)
         else:
             log.debug("path cannot be made writable: %s", path)
         return True
@@ -37,6 +39,31 @@ def make_writable(path):
             return False
         else:
             log.warn("Error making path writable: %s\n%r", path, e)
+            raise
+
+
+def make_not_writable(path):
+    try:
+        mode = lstat(path).st_mode
+        if S_ISDIR(mode):
+            chmod(path, S_IMODE(mode) & ~S_IWALL)
+        elif islink(path):
+            lchmod(path, S_IMODE(mode) & ~S_IWALL)
+        elif S_ISREG(mode):
+            chmod(path, S_IMODE(mode) & ~S_IWALL)
+        else:
+            log.debug("path cannot be made writable: %s", path)
+        return True
+    except Exception as e:
+        eno = getattr(e, 'errno', None)
+        if eno in (ENOENT,):
+            log.debug("tried to make read-only, but didn't exist: %s", path)
+            raise
+        elif eno in (EACCES, EPERM):
+            log.debug("tried make read-only but failed: %s\n%r", path, e)
+            return False
+        else:
+            log.warn("Error making path read-only: %s\n%r", path, e)
             raise
 
 
