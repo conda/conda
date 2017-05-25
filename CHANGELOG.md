@@ -1,3 +1,10 @@
+## 4.3.21 (2017-05-25)
+
+### Bug Fixes
+* fix #5420 conda-env update error (#5421)
+* fix #5425 is admin on win int not callable (#5426)
+
+
 ## 4.3.20 (2017-05-23)
 
 ### Improvements
@@ -12,7 +19,7 @@
 * fix #5356 skip root/conda logger init for cli.python_api (#5405)
 
 ### Non-User-Facing Changes
-* avoid persistent state after channel priority test #5392
+* avoid persistent state after channel priority test (#5392)
 * resolve #5402 add regression test for #5384 (#5403)
 * clean up inner function definition inside for loop (#5406)
 
