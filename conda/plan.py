@@ -439,11 +439,11 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
 
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False,
+                    pinned=True, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):  # pragma: no cover
     # this is for conda-build
     txn = get_install_transaction_single(prefix, index, specs, force, only_names, always_copy,
-                                         pinned, minimal_hint, update_deps, prune,
+                                         pinned, update_deps, prune,
                                          channel_priority_map, is_update)
     prefix_setup = txn.prefix_setups[prefix]
     actions = get_blank_actions(prefix)

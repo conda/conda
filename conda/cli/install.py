@@ -249,7 +249,7 @@ def install(args, parser, command='install'):
                 unlink_link_transaction = get_install_transaction(
                     prefix, index, specs, force=args.force, only_names=only_names,
                     pinned=context.respect_pinned, always_copy=context.always_copy,
-                    minimal_hint=args.alt_hint, update_deps=context.update_dependencies,
+                    update_deps=context.update_dependencies,
                     channel_priority_map=_channel_priority_map, is_update=isupdate)
                 progressive_fetch_extract = unlink_link_transaction.get_pfe()
     except NoPackagesFoundError as e:
