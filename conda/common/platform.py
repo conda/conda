@@ -24,7 +24,7 @@ def is_admin_on_windows():  # pragma: unix no cover
         log.debug('%r', e)
         return 'unknown'
     except Exception as e:
-        log.warn('%r', e)
+        log.info('%r', e)
         return 'unknown'
 
 
