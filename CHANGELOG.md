@@ -29,6 +29,8 @@
 * resolve #1992 add short flag -C for --use-index-cache (#5314)
 * resolve #2173 add --quiet option to conda clean (#5313)
 * resolve #5358 conda should exec to subcommands, not subprocess (#5359)
+* resolve #5411 add 'conda config --write-default' (#5412)
+* resolve #5081 make pinned packages optional dependencies (#5414)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
