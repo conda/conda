@@ -110,7 +110,7 @@ named Astroid and Babel:
 
 .. code::
 
-   conda create --name bunnies python=3 astroid babel
+   conda create --name bunnies python=3.5 astroid babel
 
 This will create a second new environment named /envs/bunnies with Python 3 and Astroid and Babel installed.
 
