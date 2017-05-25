@@ -3,12 +3,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import total_ordering
 
-from conda._vendor.auxlib.decorators import memoizedproperty
-
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PathType, Platform
+from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
+from ..base.context import context
 from ..common.compat import itervalues, string_types, text_type
 
 
@@ -97,15 +97,25 @@ class SubdirField(StringField):
         try:
             return super(SubdirField, self).__get__(instance, instance_type)
         except AttributeError:
-            url = instance.url
+            try:
+                url = instance.url
+            except AttributeError:
+                url = None
             if url:
                 return self.unbox(instance, instance_type, Channel(url).subdir)
-            platform, arch = instance.platform, instance.arch
-            if not arch:
+
+            try:
+                platform, arch = instance.platform.name, instance.arch
+            except AttributeError:
+                platform, arch = None, None
+            if platform and not arch:
                 return self.unbox(instance, instance_type, 'noarch')
+            elif platform:
+                if 'x86' in arch:
+                    arch = '64' if '64' in arch else '32'
+                return self.unbox(instance, instance_type, '%s-%s' % (platform, arch))
             else:
-                return self.unbox(instance, instance_type,
-                                  ('%s-64' if '64' in arch else '%s-32') % platform)
+                return self.unbox(instance, instance_type, context.subdir)
 
 
 class FilenameField(StringField):

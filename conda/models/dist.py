@@ -69,6 +69,17 @@ class Dist(Entity):
                                    base_url=base_url,
                                    platform=platform)
 
+    def to_package_ref(self):
+        from .index_record import PackageRef
+        return PackageRef(
+            channel=self.channel,
+            subdir=self.platform,
+            name=self.name,
+            version=self.version,
+            build=self.build_string,
+            build_number=self.build_number,
+        )
+
     @property
     def full_name(self):
         return self.__str__()
