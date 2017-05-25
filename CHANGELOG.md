@@ -62,13 +62,30 @@
 * remove pycrypto as requirement on windows (#5326)
 
 
-## 4.3.20 (2017-05-19)
+## 4.3.21 (2017-05-25)
+
+### Bug Fixes
+* fix #5420 conda-env update error (#5421)
+* fix #5425 is admin on win int not callable (#5426)
+
+
+## 4.3.20 (2017-05-23)
+
+### Improvements
+* resolve #5217 skip user confirm in python_api, force always_yes (#5404)
 
 ### Bug Fixes
 * fix #5367 conda info always shows 'unknown' for admin indicator on Windows (#5368)
 * fix #5248 drop plan description information that might not alwasy be accurate (#5373)
 * fix #5378 duplicate log messages (#5379)
 * fix #5298 record has 'build', not 'build_string' (#5382)
+* fix #5384 silence logging info to avoid interfering with JSON output (#5393)
+* fix #5356 skip root/conda logger init for cli.python_api (#5405)
+
+### Non-User-Facing Changes
+* avoid persistent state after channel priority test (#5392)
+* resolve #5402 add regression test for #5384 (#5403)
+* clean up inner function definition inside for loop (#5406)
 
 
 ## 4.3.19 (2017-05-18)
