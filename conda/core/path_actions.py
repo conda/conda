@@ -1174,6 +1174,7 @@ class ExtractPackageAction(PathAction):
             package_tarball_full_path=self.source_full_path,
             extracted_package_dir=self.target_full_path,
         )
+
         target_package_cache.insert(package_cache_record)
 
         # dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))

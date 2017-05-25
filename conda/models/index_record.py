@@ -158,7 +158,7 @@ class PackageRef(BasePackageRef):
         return hash(self._pkey)
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and self._pkey == other._pkey
+        return self._pkey == other._pkey
 
 
 class IndexJsonRecord(BasePackageRef):
