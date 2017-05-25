@@ -6,17 +6,12 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .common import (Completer, Packages, add_parser_channels, add_parser_json, add_parser_known,
-                     add_parser_offline, add_parser_prefix, add_parser_use_index_cache,
-                     add_parser_use_local, disp_features, arg2spec,
-                     ensure_override_channels_requires_channel, ensure_use_local, stdout_json,
-                     add_parser_insecure)
-from ..api import get_index
+from .common import (Completer, Packages, add_parser_channels, add_parser_insecure,
+                     add_parser_json, add_parser_known, add_parser_offline, add_parser_prefix,
+                     add_parser_use_index_cache, add_parser_use_local, arg2spec, disp_features,
+                     ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
 from ..base.context import context
 from ..common.compat import text_type
-from ..exceptions import CommandArgumentError, PackageNotFoundError
-from ..misc import make_icon_url
-from ..resolve import MatchSpec, NoPackagesFoundError
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -122,6 +117,9 @@ package.""",
     p.set_defaults(func=execute)
 
 def execute(args, parser):
+    from ..exceptions import PackageNotFoundError
+    from ..resolve import NoPackagesFoundError
+
     try:
         execute_search(args, parser)
     except NoPackagesFoundError as e:
@@ -131,6 +129,10 @@ def execute(args, parser):
 def execute_search(args, parser):
     import re
     from ..resolve import Resolve
+    from ..api import get_index
+    from ..exceptions import CommandArgumentError
+    from ..misc import make_icon_url
+    from ..resolve import MatchSpec
 
     if args.reverse_dependency:
         if not args.regex:
