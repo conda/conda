@@ -7,10 +7,15 @@ try:
     from binstar_client.utils import get_binstar
 except ImportError:
     get_binstar = None
+try:
+    from binstar_client.utils import get_server_api
+except ImportError:
+    get_server_api = None
+
+from binstar_client.utils import parse_specs
 
 ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
-
 
 class BinstarSpec(object):
     """
@@ -26,13 +31,14 @@ class BinstarSpec(object):
     _packagename = None
     _package = None
     _file_data = None
+    _specs = None
     msg = None
 
     def __init__(self, name=None, **kwargs):
         self.name = name
         self.quiet = False
-        if get_binstar is not None:
-            self.binstar = get_binstar()
+        if get_server_api is not None:
+            self.binstar = get_server_api()
         else:
             self.binstar = None
 
@@ -71,6 +77,12 @@ class BinstarSpec(object):
         return len(self.file_data) > 0
 
     @property
+    def specs(self):
+        if self._specs is None:
+            self._specs = parse_specs(self.name)
+        return self._specs
+
+    @property
     def file_data(self):
         if self._file_data is None:
             self._file_data = [data
@@ -84,17 +96,33 @@ class BinstarSpec(object):
         :raises: EnvironmentFileNotDownloaded
         """
         if self._environment is None:
-            versions = [{'normalized': normalized_version(d['version']), 'original': d['version']}
-                        for d in self.file_data]
-            latest_version = max(versions, key=lambda x: x['normalized'])['original']
-            file_data = [data
-                         for data in self.package['files']
-                         if data['version'] == latest_version]
-            req = self.binstar.download(self.username, self.packagename, latest_version,
-                                        file_data[0]['basename'])
+
+            versions = [{
+                'normalized': normalized_version(d['version']),
+                'original': d['version']} for d in self.file_data]
+
+            if self.version:
+                file_data = [
+                    data for data in self.package['files'] if data['version'] == self.version
+                ]
+                req = self.binstar.download(
+                    self.username, self.packagename,
+                    self.version, file_data[0]['basename'])
+            else:
+                latest_version = max(versions, key=lambda x: x['normalized'])['original']
+                file_data = [
+                    data for data in self.package['files'] if data['version'] == latest_version
+                ]
+                req = self.binstar.download(
+                    self.username,
+                    self.packagename,
+                    latest_version, file_data[0]['basename']
+                )
+
             if req is None:
                 raise EnvironmentFileNotDownloaded(self.username, self.packagename)
             self._environment = req.text
+
         return env.from_yaml(self._environment)
 
     @property
@@ -110,16 +138,27 @@ class BinstarSpec(object):
 
     @property
     def username(self):
-        if self._username is None:
-            self._username = self.parse()[0]
-        return self._username
+        if self.specs._user is None:
+            self.specs_error()
+        else:
+            return self.specs._user
+
+    @property
+    def version(self):
+        if self.specs._version is None:
+            return None
+        else:
+            return self.specs._version
 
     @property
     def packagename(self):
-        if self._packagename is None:
-            self._packagename = self.parse()[1]
-        return self._packagename
+        if self.specs._package is None:
+            self.specs_error()
+        else:
+            return self.specs._package
 
-    def parse(self):
-        """Parse environment definition handle"""
-        return self.name.split('/', 1)
+    def specs_error(self):
+        self.msg = "{} was not able to parsed.\n"\
+            "Package name should be either user/package: darth/deathstar:\n"\
+            "Or user/package/version darth/deathstar/1.0".format(self.name)
+        raise errors.UserError(self.msg)
