@@ -19,7 +19,7 @@ from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory, write_as_json_to_file
 from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_index_json,
-                                  read_repodata_json, read_index_json_from_tarball)
+                                  read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
 from ..models.index_record import RepodataRecord
@@ -50,9 +50,6 @@ class PackageCacheType(type):
             PackageCache._cache_[pkgs_dir] = package_cache_instance
             return package_cache_instance
 
-    def __getitem__(cls, dist):
-        return cls.get_entry_to_link(dist)
-
 
 @with_metaclass(PackageCacheType)
 class PackageCache(object):
@@ -75,61 +72,13 @@ class PackageCache(object):
     def load(self):
         self.__package_cache_records = _package_cache_records = {}
 
-        def _make_entry(pkgs_dir, package_filename):
-            if not package_filename.endswith(CONDA_TARBALL_EXTENSION):
-                package_filename += CONDA_TARBALL_EXTENSION
-
-            log.trace("adding to package cache %s", join(pkgs_dir, package_filename))
-            package_tarball_full_path = join(pkgs_dir, package_filename)
-            extracted_package_dir = package_tarball_full_path[:-len(CONDA_TARBALL_EXTENSION)]
-
-            # try reading info/repodata_record.json
-            try:
-                repodata_record = read_repodata_json(extracted_package_dir)
-                package_cache_record = PackageCacheRecord.from_objects(
-                    repodata_record,
-                    package_tarball_full_path=package_tarball_full_path,
-                    extracted_package_dir=extracted_package_dir,
-                )
-            except (IOError, OSError):
-                try:
-                    index_json_record = read_index_json(extracted_package_dir)
-                except (IOError, OSError):
-                    index_json_record = read_index_json_from_tarball(package_tarball_full_path)
-                url = first(self._urls_data, lambda x: basename(x) == package_filename)
-                package_cache_record = PackageCacheRecord.from_objects(
-                    index_json_record,
-                    url=url,
-                    package_tarball_full_path=package_tarball_full_path,
-                    extracted_package_dir=extracted_package_dir,
-                )
-            return package_cache_record
-
-        def dedupe_pkgs_dir_contents(pkgs_dir_contents):
-            # if both 'six-1.10.0-py35_0/' and 'six-1.10.0-py35_0.tar.bz2' are in pkgs_dir,
-            #   only 'six-1.10.0-py35_0.tar.bz2' will be in the return contents
-            if not pkgs_dir_contents:
-                return []
-
-            contents = []
-
-            def _process(x, y):
-                if x + CONDA_TARBALL_EXTENSION != y:
-                    contents.append(x)
-                return y
-
-            last = reduce(_process, sorted(pkgs_dir_contents))
-            _process(last, contents and contents[-1] or '')
-            return contents
-
-        pkgs_dir = self.pkgs_dir
-        for base_name in dedupe_pkgs_dir_contents(listdir(pkgs_dir)):
-            full_path = join(pkgs_dir, base_name)
+        for base_name in self._dedupe_pkgs_dir_contents(listdir(self.pkgs_dir)):
+            full_path = join(self.pkgs_dir, base_name)
             if islink(full_path):
                 continue
             elif (isdir(full_path) and isfile(join(full_path, 'info', 'index.json'))
                   or isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION)):
-                package_cache_record = _make_entry(pkgs_dir, base_name)
+                package_cache_record = self._make_single_record(base_name)
                 _package_cache_records[package_cache_record] = package_cache_record
 
     def get(self, package_ref, default=NULL):
@@ -141,28 +90,21 @@ class PackageCache(object):
             else:
                 raise
 
-    def remove(self, package_ref):
-        del self._package_cache_records[package_ref]
+    def remove(self, package_ref, default=NULL):
+        if default is NULL:
+            return self._package_cache_records.pop(package_ref)
+        else:
+            return self._package_cache_records.pop(package_ref, default)
+
+    def query(self, package_ref):
+        # TODO: change arg to package_ref_or_match_spec
+        p_ref_hash = hash(package_ref)
+        return tuple(pcr for pcr in itervalues(self._package_cache_records)
+                     if hash(pcr) == p_ref_hash)
 
     # ##########################################################################################
     # these class methods reach across all package cache directories (usually context.pkgs_dirs)
     # ##########################################################################################
-
-
-    def _scan_for_dist_no_channel(self, dist):
-        # type: (Dist) -> PackageCacheRecord
-        return next((pc_entry for this_dist, pc_entry in iteritems(self)
-                     if this_dist.dist_name == dist.dist_name),
-                    None)
-
-
-
-
-
-
-
-
-
 
     @classmethod
     def first_writable(cls, pkgs_dirs=None):
@@ -222,13 +164,6 @@ class PackageCache(object):
             cls(pkgs_dir).query(package_ref) for pkgs_dir in context.pkgs_dirs
         ))
 
-    def query(self, package_ref):
-        # TODO: change arg to package_ref_or_match_spec
-        p_ref_hash = hash(package_ref)
-        return tuple(pcr for pcr in itervalues(self._package_cache_records)
-                     if hash(pcr) == p_ref_hash)
-
-
     @classmethod
     def tarball_file_in_cache(cls, tarball_path, md5sum=None, exclude_caches=()):
         tarball_full_path, md5sum = cls._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
@@ -255,60 +190,6 @@ class PackageCache(object):
     def _package_cache_records(self):
         # don't actually populate _package_cache_records until we need it
         return self.__package_cache_records or self.load() or self.__package_cache_records
-
-    # def _init_packages_map(self):
-    #     if self.__packages_map is not None:
-    #         return self.__packages_map
-    #     self.__packages_map = __packages_map = {}
-    #     pkgs_dir = self.pkgs_dir
-    #     if not isdir(pkgs_dir):
-    #         return __packages_map
-    #
-    #     def _add_entry(__packages_map, pkgs_dir, package_filename):
-    #         if not package_filename.endswith(CONDA_TARBALL_EXTENSION):
-    #             package_filename += CONDA_TARBALL_EXTENSION
-    #
-    #         log.trace("adding to package cache %s", join(pkgs_dir, package_filename))
-    #
-    #         dist = first(self.urls_data, lambda x: basename(x) == package_filename,
-    #                      apply=Dist)
-    #         if not dist:
-    #             dist = Dist.from_string(package_filename, channel_override=UNKNOWN_CHANNEL)
-    #         pc_entry = PackageCacheRecord.make_legacy(pkgs_dir, dist)
-    #         __packages_map[pc_entry.dist] = pc_entry
-    #
-    #     def dedupe_pkgs_dir_contents(pkgs_dir_contents):
-    #         # if both 'six-1.10.0-py35_0/' and 'six-1.10.0-py35_0.tar.bz2' are in pkgs_dir,
-    #         #   only 'six-1.10.0-py35_0.tar.bz2' will be in the return contents
-    #         if not pkgs_dir_contents:
-    #             return []
-    #
-    #         contents = []
-    #
-    #         def _process(x, y):
-    #             if x + CONDA_TARBALL_EXTENSION != y:
-    #                 contents.append(x)
-    #             return y
-    #
-    #         last = reduce(_process, sorted(pkgs_dir_contents))
-    #         _process(last, contents and contents[-1] or '')
-    #         return contents
-    #
-    #     pkgs_dir_contents = dedupe_pkgs_dir_contents(listdir(pkgs_dir))
-    #
-    #     for base_name in pkgs_dir_contents:
-    #         full_path = join(pkgs_dir, base_name)
-    #         if islink(full_path):
-    #             continue
-    #         elif ((isdir(full_path) and isfile(join(full_path, 'info', 'index.json')))
-    #               or isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION)):
-    #             _add_entry(__packages_map, pkgs_dir, base_name)
-    #
-    #     return __packages_map
-
-    @property
-    def cache_directory(self):
-        return self.pkgs_dir
 
     @property
     def is_writable(self):
@@ -337,6 +218,12 @@ class PackageCache(object):
 
         return tarball_full_path, md5sum
 
+    def _scan_for_dist_no_channel(self, dist):
+        # type: (Dist) -> PackageCacheRecord
+        return next((pc_entry for this_dist, pc_entry in iteritems(self)
+                     if this_dist.dist_name == dist.dist_name),
+                    None)
+
     def itervalues(self):
         return iter(self.values())
 
@@ -346,6 +233,54 @@ class PackageCache(object):
     def __repr__(self):
         args = ('%s=%r' % (key, getattr(self, key)) for key in ('pkgs_dir',))
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
+
+    def _make_single_record(self, package_filename):
+        if not package_filename.endswith(CONDA_TARBALL_EXTENSION):
+            package_filename += CONDA_TARBALL_EXTENSION
+
+        package_tarball_full_path = join(self.pkgs_dir, package_filename)
+        log.trace("adding to package cache %s", package_tarball_full_path)
+        extracted_package_dir = package_tarball_full_path[:-len(CONDA_TARBALL_EXTENSION)]
+
+        # try reading info/repodata_record.json
+        try:
+            repodata_record = read_repodata_json(extracted_package_dir)
+            package_cache_record = PackageCacheRecord.from_objects(
+                repodata_record,
+                package_tarball_full_path=package_tarball_full_path,
+                extracted_package_dir=extracted_package_dir,
+            )
+        except (IOError, OSError):
+            try:
+                index_json_record = read_index_json(extracted_package_dir)
+            except (IOError, OSError):
+                index_json_record = read_index_json_from_tarball(package_tarball_full_path)
+            url = first(self._urls_data, lambda x: basename(x) == package_filename)
+            package_cache_record = PackageCacheRecord.from_objects(
+                index_json_record,
+                url=url,
+                package_tarball_full_path=package_tarball_full_path,
+                extracted_package_dir=extracted_package_dir,
+            )
+        return package_cache_record
+
+    @staticmethod
+    def _dedupe_pkgs_dir_contents(pkgs_dir_contents):
+        # if both 'six-1.10.0-py35_0/' and 'six-1.10.0-py35_0.tar.bz2' are in pkgs_dir,
+        #   only 'six-1.10.0-py35_0.tar.bz2' will be in the return contents
+        if not pkgs_dir_contents:
+            return []
+
+        contents = []
+
+        def _process(x, y):
+            if x + CONDA_TARBALL_EXTENSION != y:
+                contents.append(x)
+            return y
+
+        last = reduce(_process, sorted(pkgs_dir_contents))
+        _process(last, contents and contents[-1] or '')
+        return contents
 
 
 class UrlsData(object):
