@@ -35,12 +35,7 @@ def configure_parser(sub_parsers):
         help=description,
         epilog=example,
     )
-    p.add_argument(
-        '-n', '--name',
-        action='store',
-        help='name of environment (in %s)' % os.pathsep.join(config.envs_dirs),
-        default=None,
-    )
+    common.add_parser_prefix(p)
     p.add_argument(
         '-f', '--file',
         action='store',
