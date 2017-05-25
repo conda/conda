@@ -35,11 +35,24 @@ class TokenURLFilter(Filter):
         return True
 
 
+# Don't use initialize_logging/initialize_root_logger/set_conda_log_level in
+# cli.python_api! There we want the user to have control over their logging,
+# e.g., using their own levels, handlers, formatters and propagation settings.
+
 @memoize
 def initialize_logging():
-    # initialize_root_logger()  # probably don't need to touch the root logger per #5356
-    initialize_conda_logger()
+    # root gets level ERROR; 'conda' gets level WARN and propagates to root.
+    initialize_root_logger()
+    set_conda_log_level()
+    initialize_std_loggers()
 
+
+@memoize
+def initialize_std_loggers():
+    # Set up special loggers 'stdout'/'stderr' which output directly to the corresponding
+    # sys streams, filter token urls and don't propagate.
+    # TODO: To avoid clashes with user loggers when cli.python_api is used, these loggers
+    #       should most likely be renamed to 'conda.stdout'/'conda.stderr' in the future!
     formatter = Formatter("%(message)s\n")
 
     stdout = getLogger('stdout')
@@ -65,16 +78,18 @@ def initialize_root_logger(level=ERROR):
     attach_stderr_handler(level)
 
 
-def initialize_conda_logger(level=WARN):
-    attach_stderr_handler(level, 'conda')
+def set_conda_log_level(level=WARN):
+    conda_logger = getLogger('conda')
+    conda_logger.setLevel(level)
+    conda_logger.propagate = True  # let root logger's handler format/output message
 
 
 def set_all_logger_level(level=DEBUG):
     formatter = Formatter("%(message)s\n") if level >= INFO else None
-    # attach_stderr_handler(level, formatter=formatter)  # probably don't need to touch the root logger per #5356  # NOQA
-    attach_stderr_handler(level, 'conda', formatter=formatter)
+    attach_stderr_handler(level, formatter=formatter)
+    set_conda_log_level(level)  # only set level and use root's handler/formatter
+    # 'requests' logger gets its own handler, to ouput messages in long format regardless of level
     attach_stderr_handler(level, 'requests')
-    attach_stderr_handler(level, 'requests.packages.urllib3')
 
 
 def set_verbosity(verbosity_level):
