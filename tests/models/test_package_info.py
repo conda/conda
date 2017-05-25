@@ -1,3 +1,4 @@
+from conda.base.context import context
 from conda.models.channel import Channel
 from conda.models.package_info import PackageInfo, PathData, PathType, Noarch, PathsData, \
     PackageMetadata
@@ -8,7 +9,9 @@ from unittest import TestCase
 
 class DefaultPackageInfo(TestCase):
     def test_package_info(self):
-        index_json_record = IndexRecord(build=0, build_number=0, name="test_foo", version=0)
+        index_json_record = IndexRecord(build=0, build_number=0, name="test_foo", version=0,
+                                        channel='defaults', subdir=context.subdir, fn='doesnt-matter',
+                                        md5='0123456789')
         icondata = "icondata"
         package_metadata = PackageMetadata(
             package_metadata_version=1,

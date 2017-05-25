@@ -174,6 +174,15 @@ def install(args, parser, command='install'):
         'use_local': args.use_local
     }
 
+    num_cp = sum(s.endswith('.tar.bz2') for s in args_packages)
+    if num_cp:
+        if num_cp == len(args_packages):
+            explicit(args_packages, prefix, verbose=not context.quiet)
+            return
+        else:
+            raise CondaValueError("cannot mix specifications with conda package"
+                                  " filenames")
+
     specs = []
     if args.file:
         for fpath in args.file:
@@ -193,15 +202,6 @@ def install(args, parser, command='install'):
     elif isinstall and not (args.file or args_packages):
         raise CondaValueError("too few arguments, "
                               "must supply command line package specs or --file")
-
-    num_cp = sum(s.endswith('.tar.bz2') for s in args_packages)
-    if num_cp:
-        if num_cp == len(args_packages):
-            explicit(args_packages, prefix, verbose=not context.quiet)
-            return
-        else:
-            raise CondaValueError("cannot mix specifications with conda package"
-                                  " filenames")
 
     if newenv and args.clone:
         package_diff = set(args_packages) - set(default_packages)
@@ -277,8 +277,8 @@ def install(args, parser, command='install'):
             packages = {index[fn]['name'] for fn in index}
 
             nfound = 0
-            for pkg in sorted(e.pkgs):
-                pkg = pkg.split()[0]
+            for pkg in sorted(e.pkgs, key=lambda x: x.name):
+                pkg = pkg.name
                 if pkg in packages:
                     continue
                 close = get_close_matches(pkg, packages, cutoff=0.7)

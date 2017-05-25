@@ -1,10 +1,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from itertools import chain
 import logging
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, string_types
+from .common.compat import iteritems, iterkeys, itervalues, string_types, isiterable, text_type
 from .common.toposort import toposort
 from .console import setup_handlers
 from .exceptions import NoPackagesFoundError, UnsatisfiableError
@@ -50,15 +51,6 @@ class Resolve(object):
         if sort:
             for name, group in iteritems(groups):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
-
-    @property
-    def installed(self):
-        # type: () -> Set[Dist]
-        installed = set()
-        for dist, info in iteritems(self.index):
-            if 'link' in info:
-                installed.add(dist)
-        return installed
 
     def default_filter(self, features=None, filter=None):
         if filter is None:
@@ -161,6 +153,7 @@ class Resolve(object):
                 spec2.append(ms)
         for ms in spec2:
             filter = self.default_filter(feats)
+            # type: Map[Dist, bool]
             bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
             raise NoPackagesFoundError(bad_deps)
@@ -278,7 +271,7 @@ class Resolve(object):
                 for fkey in group:
                     if filter.get(fkey, True):
                         for m2 in self.ms_depends(fkey):
-                            if m2.exact_field('name') and not m2.optional:
+                            if m2.get_exact_value('name') and not m2.optional:
                                 cdeps.setdefault(m2.name, []).append(m2)
                 for deps in itervalues(cdeps):
                     if len(deps) >= nnew:
@@ -349,14 +342,15 @@ class Resolve(object):
         assert isinstance(ms, MatchSpec)
         res = self.find_matches_.get(ms, None)
         if res is None:
-            if ms.exact_field('name'):
+            if ms.get_exact_value('name'):
                 res = self.groups.get(ms.name, [])
-            elif ms.exact_field('track_features'):
-                res = self.trackers.get(ms.exact_field('track_features'))
+            elif ms.get_exact_value('track_features'):
+                res = list(chain.from_iterable(self.trackers[tf]
+                                               for tf in ms.get_exact_value('track_features') or ()
+                                               if tf in self.trackers))
             else:
                 res = self.index.keys()
             res = [p for p in res if self.match(ms, p)]
-            assert all(isinstance(d, Dist) for d in res)
             self.find_matches_[ms] = res
         return res
 
@@ -366,7 +360,10 @@ class Resolve(object):
         if deps is None:
             rec = self.index[dist]
             deps = [MatchSpec(d) for d in rec.combined_depends]
-            deps.extend(MatchSpec(track_features=feat) for feat in self.features(dist))
+            track_features_specs = tuple(MatchSpec(track_features=feat)
+                                         for feat in self.features(dist))
+            if track_features_specs:
+                deps.extend(track_features_specs)
             self.ms_depends_[dist] = deps
         return deps
 
@@ -398,7 +395,11 @@ class Resolve(object):
                 (valid, ver, -cpri, bld, bs, ts))
 
     def features(self, dist):
-        return set(self.index[dist].get('features', '').split())
+        _features = self.index[dist].get('features', ())
+        if isinstance(_features, string_types):
+            _features = _features.split()
+        assert isiterable(_features)
+        return set(_features)
 
     def track_features(self, dist):
         return set(self.index[dist].get('track_features', '').split())
@@ -408,8 +409,9 @@ class Resolve(object):
         if rec is None:
             return dist.quad
         else:
-            return (rec['name'], rec['version'], rec['build'],
-                    rec.get('schannel', DEFAULTS_CHANNEL_NAME))
+            channel = rec.get('channel')
+            channel = channel.canonical_name if channel else DEFAULTS_CHANNEL_NAME
+            return rec['name'], rec['version'], rec['build'], channel
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]
@@ -432,7 +434,7 @@ class Resolve(object):
     @staticmethod
     def ms_to_v(ms):
         ms = MatchSpec(ms)
-        return '@s@' + ms.spec + ('?' if ms.optional else '')
+        return '@s@' + text_type(ms) + ('?' if ms.optional else '')
 
     def push_MatchSpec(self, C, ms):
         ms = MatchSpec(ms)
@@ -440,12 +442,15 @@ class Resolve(object):
         m = C.from_name(name)
         if m is not None:
             return name
-        simple = ms.is_single()
-        nm = ms.exact_field('name')
-        tf = ms.exact_field('track_features')
+        simple = ms._is_single()
+        nm = ms.get_exact_value('name')
+        tf = ms.get_exact_value('track_features')
         if nm:
             tgroup = libs = self.groups.get(nm, [])
         elif tf:
+            tf = next(iter(tf))
+            # TODO: this limits packages to only tracking a single feature
+            #       but that limitation is already baked into the logic anyway
             tgroup = libs = self.trackers.get(tf, [])
         else:
             tgroup = libs = self.index.keys()
@@ -595,16 +600,16 @@ class Resolve(object):
         specs = list(map(MatchSpec, specs))
         if len(specs) == 1:
             ms = MatchSpec(specs[0])
-            fn = ms.to_filename()
+            fn = ms._to_filename_do_not_use()
             if fn is None:
                 return None
             fkey = Dist(add_defaults_if_no_channel(fn))
             if fkey not in self.index:
                 return None
-            res = [ms2.to_filename() for ms2 in self.ms_depends(fkey)]
+            res = [ms2._to_filename_do_not_use() for ms2 in self.ms_depends(fkey)]
             res.append(fn)
         else:
-            res = [spec.to_filename() for spec in specs if str(spec) != 'conda']
+            res = [spec._to_filename_do_not_use() for spec in specs if str(spec) != 'conda']
 
         if None in res:
             return None
@@ -683,7 +688,7 @@ class Resolve(object):
                 spec = MatchSpec(name=name, target=pkg.full_name)
             else:
                 spec = MatchSpec(name=name, version=version,
-                                 build=build, schannel=schannel)
+                                 build=build, channel=schannel)
             specs.append(spec)
         return specs, preserve
 
@@ -706,7 +711,7 @@ class Resolve(object):
             # Since '@' is an illegal version number, this ensures that all of
             # these matches will never match an actual package. Combined with
             # optional=True, this has the effect of forcing their removal.
-            if s.is_single():
+            if s._is_single():
                 nspecs.append(MatchSpec(s, version='@', optional=True))
             else:
                 nspecs.append(MatchSpec(s, optional=True))

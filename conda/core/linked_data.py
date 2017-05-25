@@ -1,144 +1,105 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
+from glob import glob
 from logging import getLogger
-from os import listdir
-from os.path import isdir, isfile, join
+from os.path import join, lexists
 
-from ..exceptions import CondaDependencyError
-from ..base.constants import UNKNOWN_CHANNEL
-from ..common.compat import itervalues, odict
+from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..base.context import context
+from ..common.compat import itervalues, with_metaclass
+from ..common.constants import NULL
+from ..common.serialize import json_load
+from ..exceptions import BasicClobberError, CondaDependencyError, maybe_raise
+from ..gateways.disk.create import write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
-from ..models.channel import Channel
 from ..models.dist import Dist
-from ..models.index_record import EMPTY_LINK, IndexRecord
+from ..models.match_spec import MatchSpec
+from ..models.prefix_record import PrefixRecord
 
 log = getLogger(__name__)
 
 
-# Because the conda-meta .json files do not include channel names in
-# their filenames, we have to pull that information from the .json
-# files themselves. This has made it necessary in virtually all
-# circumstances to load the full set of files from this directory.
-# Therefore, we have implemented a full internal cache of this
-# data to eliminate redundant file reads.
-linked_data_ = {}
-# type: Dict[Dist, IndexRecord]
+class PrefixDataType(type):
+    """Basic caching of PrefixData instance objects."""
+    def __call__(cls, prefix_path):
+        if prefix_path in PrefixData._cache_:
+            return PrefixData._cache_[prefix_path]
+        elif isinstance(prefix_path, PrefixData):
+            return prefix_path
+        else:
+            prefix_data_instance = super(PrefixDataType, cls).__call__(prefix_path)
+            PrefixData._cache_[prefix_path] = prefix_data_instance
+            return prefix_data_instance
 
 
-def load_linked_data(prefix, dist_name, rec=None, ignore_channels=False):
-    meta_file = join(prefix, 'conda-meta', dist_name + '.json')
-    if rec is None:
+@with_metaclass(PrefixDataType)
+class PrefixData(object):
+    _cache_ = {}
+
+    def __init__(self, prefix_path):
+        self.prefix_path = prefix_path
+        self.__prefix_records = None
+
+    def load(self):
+        self.__prefix_records = {}
+        for meta_file in glob(join(self.prefix_path, 'conda-meta', '*.json')):
+            self._load_single_record(meta_file)
+
+    def insert(self, prefix_record):
+        assert prefix_record.name not in self._prefix_records
+
+        assert prefix_record.fn.endswith(CONDA_TARBALL_EXTENSION)
+        filename = prefix_record.fn[:-len(CONDA_TARBALL_EXTENSION)] + '.json'
+
+        prefix_record_json_path = join(self.prefix_path, 'conda-meta', filename)
+        if lexists(prefix_record_json_path):
+            maybe_raise(BasicClobberError(
+                source_path=None,
+                target_path=prefix_record_json_path,
+                context=context,
+            ), context)
+            rm_rf(prefix_record_json_path)
+
+        write_as_json_to_file(prefix_record_json_path, prefix_record)
+
+        self._prefix_records[prefix_record.name] = prefix_record
+
+    def remove(self, package_name):
+        assert package_name in self._prefix_records
+
+        prefix_record = self._prefix_records[package_name]
+
+        filename = prefix_record.fn[:-len(CONDA_TARBALL_EXTENSION)] + '.json'
+        conda_meta_full_path = join(self.prefix_path, 'conda-meta', filename)
+        rm_rf(conda_meta_full_path)
+
+        del self._prefix_records[package_name]
+
+    def get(self, package_name, default=NULL):
         try:
-            log.trace("loading linked data for %s", meta_file)
-            with open(meta_file) as fi:
-                rec = json.load(fi)
-        except IOError:
-            return None
-    else:
-        linked_data(prefix)  # TODO: is this even doing anything?
+            return self._prefix_records[package_name]
+        except KeyError:
+            if default is not NULL:
+                return default
+            else:
+                raise
 
-        if hasattr(rec, 'dump'):
-            rec = rec.dump()
+    @property
+    def _prefix_records(self):
+        return self.__prefix_records or self.load() or self.__prefix_records
 
-    url = rec.get('url')
-    fn = rec.get('fn')
-    if not fn:
-        fn = rec['fn'] = url.rsplit('/', 1)[-1] if url else dist_name + '.tar.bz2'
-    if fn[:-8] != dist_name:
-        log.debug('Ignoring invalid package metadata file: %s' % meta_file)
-        return None
-    channel = rec.get('channel')
-    if channel:
-        channel = channel.rstrip('/')
-        if not url or (url.startswith('file:') and channel[0] != UNKNOWN_CHANNEL):
-            url = rec['url'] = channel + '/' + fn
-    channel, schannel = Channel(url).url_channel_wtf
-
-    rec['url'] = url
-    rec['channel'] = channel
-    rec['schannel'] = schannel
-    rec['link'] = rec.get('link') or EMPTY_LINK
-
-    if ignore_channels:
-        dist = Dist.from_string(dist_name)
-    else:
-        dist = Dist.from_string(dist_name, channel_override=schannel)
-    linked_data_[prefix][dist] = rec = IndexRecord(**rec)
-
-    return rec
-
-
-def delete_linked_data(prefix, dist, delete=True):
-    recs = linked_data_.get(prefix)
-    if recs and dist in recs:
-        del recs[dist]
-    if delete:
-        meta_path = join(prefix, 'conda-meta', dist.to_filename('.json'))
-        if isfile(meta_path):
-            rm_rf(meta_path)
-
-
-def delete_prefix_from_linked_data(path):
-    '''Here, path may be a complete prefix or a dist inside a prefix'''
-    linked_data_path = next((key for key in sorted(linked_data_.keys(), reverse=True)
-                             if path.startswith(key)),
-                            None)
-    if linked_data_path:
-        del linked_data_[linked_data_path]
-        return True
-    return False
-
-
-def load_meta(prefix, dist):
-    """
-    Return the install meta-data for a linked package in a prefix, or None
-    if the package is not linked in the prefix.
-    """
-    return linked_data(prefix).get(dist)
-
-
-def linked_data(prefix, ignore_channels=False):
-    """
-    Return a dictionary of the linked packages in prefix.
-    """
-    # Manually memoized so it can be updated
-    recs = linked_data_.get(prefix)
-    if recs is None:
-        recs = linked_data_[prefix] = odict()
-        meta_dir = join(prefix, 'conda-meta')
-        if isdir(meta_dir):
-            for fn in listdir(meta_dir):
-                if fn.endswith('.json'):
-                    dist_name = fn[:-5]
-                    load_linked_data(prefix, dist_name, ignore_channels=ignore_channels)
-    return recs
-
-
-def linked(prefix, ignore_channels=False):
-    """
-    Return the set of canonical names of linked packages in prefix.
-    """
-    return set(linked_data(prefix, ignore_channels=ignore_channels).keys())
-
-
-def is_linked(prefix, dist):
-    """
-    Return the install metadata for a linked package in a prefix, or None
-    if the package is not linked in the prefix.
-    """
-    # FIXME Functions that begin with `is_` should return True/False
-    return load_meta(prefix, dist)
-
-
-def set_linked_data(prefix, dist_name, record):
-    if prefix in linked_data_:
-        load_linked_data(prefix, dist_name, record)
+    def _load_single_record(self, prefix_record_json_path):
+        with open(prefix_record_json_path) as fh:
+            json_data = json_load(fh.read())
+        prefix_record = PrefixRecord(**json_data)
+        self.__prefix_records[prefix_record.name] = prefix_record
 
 
 def get_python_version_for_prefix(prefix):
     # returns a string e.g. "2.7", "3.4", "3.5" or None
+    pd = PrefixData(prefix)
+    record = pd.get('python', None)
     py_record_iter = (rcrd for rcrd in itervalues(linked_data(prefix)) if rcrd.name == 'python')
     record = next(py_record_iter, None)
     if record is None:
@@ -148,3 +109,37 @@ def get_python_version_for_prefix(prefix):
         raise CondaDependencyError("multiple python records found in prefix %s" % prefix)
     else:
         return record.version[:3]
+
+
+# exports
+def linked_data(prefix, ignore_channels=False):
+    """
+    Return a dictionary of the linked packages in prefix.
+    """
+    pd = PrefixData(prefix)
+    return {Dist(prefix_record): prefix_record for prefix_record in itervalues(pd._prefix_records)}
+
+
+# exports
+def linked(prefix, ignore_channels=False):
+    """
+    Return the set of canonical names of linked packages in prefix.
+    """
+    return set(linked_data(prefix, ignore_channels=ignore_channels).keys())
+
+
+# exports
+def is_linked(prefix, dist):
+    """
+    Return the install metadata for a linked package in a prefix, or None
+    if the package is not linked in the prefix.
+    """
+    # FIXME Functions that begin with `is_` should return True/False
+    pd = PrefixData(prefix)
+    prefix_record = pd.get(dist.name, None)
+    if prefix_record is None:
+        return None
+    elif MatchSpec(dist).match(prefix_record):
+        return prefix_record
+    else:
+        return None

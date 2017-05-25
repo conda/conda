@@ -14,7 +14,7 @@ from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
 from conda.common.configuration import LoadError
-from conda.common.yaml import yaml_load
+from conda.common.serialize import yaml_load
 from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel
 
