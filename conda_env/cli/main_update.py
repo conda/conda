@@ -3,8 +3,8 @@ import os
 import sys
 import textwrap
 
-from conda.cli import common, install as cli_install
-from conda.cli.conda_argparse import add_parser_json
+from conda.cli import install as cli_install
+from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.misc import touch_nonadmin
 from .common import get_prefix
 from .. import exceptions, specs as install_specs
@@ -33,7 +33,7 @@ def configure_parser(sub_parsers):
         help=description,
         epilog=example,
     )
-    common.add_parser_prefix(p)
+    add_parser_prefix(p)
     p.add_argument(
         '-f', '--file',
         action='store',
