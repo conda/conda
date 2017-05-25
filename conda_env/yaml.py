@@ -7,7 +7,8 @@ from __future__ import absolute_import, print_function
 from collections import OrderedDict
 
 from conda.common.compat import PY2
-from conda.common.yaml import get_yaml
+from conda.common.yaml import get_yaml, yaml_load
+
 yaml = get_yaml()
 
 
@@ -32,5 +33,5 @@ if PY2:
     yaml.add_representer(unicode, represent_unicode)  # NOQA
 
 dump = yaml.dump
-load = yaml.load
+load = yaml_load
 dict = OrderedDict

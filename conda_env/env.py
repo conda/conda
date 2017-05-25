@@ -2,6 +2,9 @@ from __future__ import absolute_import, print_function
 
 import os
 from collections import OrderedDict
+
+from conda.common.yaml import yaml_load
+
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
 from conda.core.linked_data import linked
@@ -65,7 +68,7 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
 
 def from_yaml(yamlstr, **kwargs):
     """Load and return a ``Environment`` from a given ``yaml string``"""
-    data = yaml.load(yamlstr)
+    data = yaml_load(yamlstr)
     if kwargs is not None:
         for key, value in kwargs.items():
             data[key] = value

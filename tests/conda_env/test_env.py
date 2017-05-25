@@ -1,12 +1,10 @@
 from collections import OrderedDict
 import os
-import sys
 import random
-import textwrap
 import unittest
 
-from conda.common.yaml import get_yaml
-yaml = get_yaml()
+from conda.common.yaml import yaml_load
+
 
 try:
     from io import StringIO
@@ -151,7 +149,7 @@ class EnvironmentTestCase(unittest.TestCase):
             'dependencies': ['nodejs']
         }
 
-        actual = yaml.load(StringIO(e.to_yaml()))
+        actual = yaml_load(StringIO(e.to_yaml()))
         self.assertEqual(expected, actual)
 
     def test_to_yaml_returns_proper_yaml(self):
