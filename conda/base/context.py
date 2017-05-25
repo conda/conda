@@ -93,6 +93,7 @@ class Context(Configuration):
                                         element_type=string_types + (NoneType,))
     disallow = SequenceParameter(string_types)
     enable_private_envs = PrimitiveParameter(False)
+    extract_read_only = PrimitiveParameter(True)
     force_32bit = PrimitiveParameter(False)
     max_shlvl = PrimitiveParameter(2)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
@@ -472,6 +473,7 @@ class Context(Configuration):
             'default_python',
             'dry_run',
             'enable_private_envs',
+            'extract_read_only',
             'force_32bit',
             'max_shlvl',
             'migrated_custom_channels',

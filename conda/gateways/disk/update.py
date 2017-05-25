@@ -8,8 +8,9 @@ from os.path import dirname, isdir, join
 import re
 
 from . import exp_backoff_fn, mkdir_p
-from .link import lexists
 from .delete import rm_rf
+from .link import lexists
+from .permissions import make_not_writable, make_writable
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
@@ -31,7 +32,10 @@ def update_file_in_place_as_binary(file_full_path, callback):
     #   content of the file before updating
     # this method updates the file in-place, without releasing the file lock
     fh = None
+    made_writable = False
     try:
+        make_writable(file_full_path)
+        made_writable = True
         fh = exp_backoff_fn(open, file_full_path, 'rb+')
         log.trace("in-place update path locked for %s", file_full_path)
         data = fh.read()
@@ -44,6 +48,8 @@ def update_file_in_place_as_binary(file_full_path, callback):
     finally:
         if fh:
             fh.close()
+        if made_writable:
+            make_not_writable(file_full_path)
 
 
 def rename(source_path, destination_path, force=False):
