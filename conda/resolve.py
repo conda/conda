@@ -510,6 +510,9 @@ class Resolve(object):
     def generate_removal_count(self, C, specs):
         return {'!'+self.push_MatchSpec(C, ms.name): 1 for ms in specs}
 
+    def generate_install_count(self, C, specs):
+        return {self.push_MatchSpec(C, ms.name): 1 for ms in specs if ms.optional}
+
     def generate_package_count(self, C, missing):
         return {self.push_MatchSpec(C, nm): 1 for nm in missing}
 
@@ -687,7 +690,7 @@ class Resolve(object):
     def install(self, specs, installed=None, update_deps=True, returnall=False):
         # type: (List[str], Option[?], bool, bool) -> List[Dist]
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
-        pkgs = self.solve(specs, returnall=returnall)
+        pkgs = self.solve(specs, returnall=returnall, _remove=False)
         self.restore_bad(pkgs, preserve)
         return pkgs
 
@@ -725,11 +728,11 @@ class Resolve(object):
 
     def remove(self, specs, installed):
         specs, preserve = self.remove_specs(specs, installed)
-        pkgs = self.solve(specs)
+        pkgs = self.solve(specs, _remove=True)
         self.restore_bad(pkgs, preserve)
         return pkgs
 
-    def solve(self, specs, returnall=False):
+    def solve(self, specs, returnall=False, _remove=False):
         # type: (List[str], bool) -> List[Dist]
         try:
             stdoutlog.info("Solving package specifications: ")
@@ -771,9 +774,10 @@ class Resolve(object):
             speca.extend(MatchSpec(s) for s in specm)
 
             # Removed packages: minimize count
-            eq_optional_c = r2.generate_removal_count(C, speco)
-            solution, obj7 = C.minimize(eq_optional_c, solution)
-            log.debug('Package removal metric: %d', obj7)
+            if _remove:
+                eq_optional_c = r2.generate_removal_count(C, speco)
+                solution, obj7 = C.minimize(eq_optional_c, solution)
+                log.debug('Package removal metric: %d', obj7)
 
             # Requested packages: maximize versions
             eq_req_v, eq_req_b = r2.generate_version_metrics(C, specr)
@@ -794,6 +798,12 @@ class Resolve(object):
             # Requested packages: maximize builds
             solution, obj4 = C.minimize(eq_req_b, solution)
             log.debug('Initial package build metric: %d', obj4)
+
+            # Optional installations: minimize count
+            if not _remove:
+                eq_optional_install = r2.generate_install_count(C, speco)
+                solution, obj49 = C.minimize(eq_optional_install, solution)
+                log.debug('Optional package install metric: %d', obj49)
 
             # Dependencies: minimize the number of packages that need upgrading
             eq_u = r2.generate_update_count(C, speca)

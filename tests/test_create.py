@@ -727,6 +727,16 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, "python-2.7")
             assert not package_is_installed(prefix, "itsdangerous-0.23")
 
+    @pytest.mark.xfail(on_win, strict=True, reason="On Windows the Python package is pulled in as 'vc' feature-provider.")
+    def test_package_optional_pinning(self):
+        with make_temp_env("") as prefix:
+            run_command(Commands.CONFIG, prefix,
+                        "--add pinned_packages", "python=3.6.1=2")
+            run_command(Commands.INSTALL, prefix, "openssl")
+            assert not package_is_installed(prefix, "python")
+            run_command(Commands.INSTALL, prefix, "flask")
+            assert package_is_installed(prefix, "python-3.6.1")
+
     def test_update_deps_flag_absent(self):
         with make_temp_env("python=2 itsdangerous=0.23") as prefix:
             assert package_is_installed(prefix, 'python-2')
