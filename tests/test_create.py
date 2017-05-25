@@ -510,11 +510,6 @@ class IntegrationTests(TestCase):
             with make_temp_env(tar_bld_path) as prefix2:
                 assert_package_is_installed(prefix2, 'flask-')
 
-
-
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2017, 6, 1), strict=True,
-                       reason="Something happened in the conda shell command PR."
-                              "Probably caused by change in root path.")
     def test_tarball_install_and_bad_metadata(self):
         with make_temp_env("python flask=0.10.1 --json") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
