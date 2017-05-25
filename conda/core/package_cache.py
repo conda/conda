@@ -22,7 +22,7 @@ from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_in
                                   read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
-from ..models.index_record import RepodataRecord
+from ..models.index_record import RepodataRecord, PackageRef
 from ..models.package_cache_record import PackageCacheRecord
 
 try:
@@ -82,6 +82,7 @@ class PackageCache(object):
                 _package_cache_records[package_cache_record] = package_cache_record
 
     def get(self, package_ref, default=NULL):
+        assert isinstance(package_ref, PackageRef)
         try:
             return self._package_cache_records[package_ref]
         except KeyError:

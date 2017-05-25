@@ -1090,7 +1090,13 @@ class CacheUrlAction(PathAction):
                 exclude_caches = self.target_pkgs_dir,
                 pc_entry = PackageCache.tarball_file_in_cache(source_path, source_md5sum,
                                                               exclude_caches=exclude_caches)
-                origin_url = pc_entry.get_urls_txt_value() if pc_entry else None
+
+                if pc_entry:
+                    origin_url = target_package_cache._urls_data.get_url(
+                        pc_entry.extracted_package_dir
+                    )
+                else:
+                    origin_url = None
 
                 # copy the tarball to the writable cache
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy,

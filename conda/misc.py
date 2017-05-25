@@ -76,7 +76,11 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
                     raise FileNotFoundError(path)
                 pc_entry = PackageCache.tarball_file_in_cache(path)
                 dist = Dist(pc_entry)
-                url = dist.to_url() or pc_entry.get_urls_txt_value()
+                url = dist.to_url()
+                if not url:
+                    pc = PackageCache(dirname(pc_entry.extracted_package_dir))
+                    url = pc._urls_data.get_url(pc_entry.extracted_package_dir)
+                    dist = Dist(url)
                 md5sum = md5sum or pc_entry.md5sum
         dist = dist or Dist(url)
         fetch_recs[dist] = IndexRecord(name=dist.name, version=dist.version, build=dist.build,
