@@ -40,9 +40,9 @@ class from_file_TestCase(unittest.TestCase):
 
     def test_with_pip(self):
         e = env.from_file(utils.support_file('with-pip.yml'))
-        self.assert_('pip' in e.dependencies)
-        self.assert_('foo' in e.dependencies['pip'])
-        self.assert_('baz' in e.dependencies['pip'])
+        assert 'pip' in e.dependencies
+        assert 'foo' in e.dependencies['pip']
+        assert 'baz' in e.dependencies['pip']
 
 
 class EnvironmentTestCase(unittest.TestCase):
@@ -211,9 +211,9 @@ class EnvironmentTestCase(unittest.TestCase):
 
     def test_dependencies_update_after_adding(self):
         e = get_simple_environment()
-        self.assert_('bar' not in e.dependencies['conda'])
+        assert 'bar' not in e.dependencies['conda']
         e.dependencies.add('bar')
-        self.assert_('bar' in e.dependencies['conda'])
+        assert 'bar' in e.dependencies['conda']
 
 
 class DirectoryTestCase(unittest.TestCase):
@@ -234,7 +234,7 @@ class DirectoryTestCase(unittest.TestCase):
 
     def test_has_dependencies(self):
         self.assertEqual(1, len(self.env.dependencies['conda']))
-        self.assert_('numpy' in self.env.dependencies['conda'])
+        assert 'numpy' in self.env.dependencies['conda']
 
 
 class load_from_directory_example_TestCase(DirectoryTestCase):
@@ -289,7 +289,7 @@ class LoadEnvFromFileAndSaveTestCase(unittest.TestCase):
 
         e = env.load_from_directory(self.env_path)
         self.assertEqual(2, len(e.dependencies['conda']))
-        self.assert_('numpy' in e.dependencies['conda'])
+        assert 'numpy' in e.dependencies['conda']
 
 
 class EnvironmentSaveTestCase(unittest.TestCase):

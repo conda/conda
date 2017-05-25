@@ -1101,7 +1101,7 @@ class TestGetActionsForDist(unittest.TestCase):
         expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
                                        'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
                                        'SYMLINK_CONDA')
-        self.assertEquals(link_actions, expected_output)
+        assert link_actions == expected_output
 
     @patch("conda.core.linked_data.load_meta", return_value=False)
     def test_ensure_linked_actions_no_linked(self, load_meta):
@@ -1116,7 +1116,7 @@ class TestGetActionsForDist(unittest.TestCase):
                                        'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
                                        'SYMLINK_CONDA')
         expected_output["LINK"] = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
-        self.assertEquals(link_actions, expected_output)
+        assert link_actions == expected_output
 
     # def test_get_actions_for_dist(self):
     #     install = [Dist("test-1.2.0-py36_7")]
