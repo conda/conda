@@ -11,7 +11,7 @@ from itertools import chain
 import json
 from logging import getLogger
 from os import listdir
-from os.path import isdir, isfile, join, dirname
+from os.path import isdir, isfile, join
 import shlex
 import tarfile
 

@@ -27,7 +27,7 @@ from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_pyc, copy, create_application_entry_point,
                                     create_fake_executable_softlink, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
-                                    make_menu, write_as_json_to_file)
+                                    make_menu)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.link import stat_nlink, symlink
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
@@ -38,6 +38,7 @@ from ..models.dist import Dist
 from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType
 from ..models.index_record import Link
 from ..models.leased_path_entry import LeasedPathEntry
+from ..models.package_cache_record import PackageCacheRecord
 from ..models.prefix_record import PrefixRecord
 
 try:
@@ -1143,7 +1144,6 @@ class ExtractPackageAction(PathAction):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
         from .package_cache import PackageCache
-        from ..models.package_cache_record import PackageCacheRecord
         log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
         if lexists(self.hold_path):

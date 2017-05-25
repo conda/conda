@@ -27,9 +27,9 @@ from ..models.index_record import RepodataRecord, PackageRef
 from ..models.package_cache_record import PackageCacheRecord
 
 try:
-    from cytoolz.itertoolz import concat, concatv, groupby, remove
+    from cytoolz.itertoolz import concat, concatv, groupby
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby, remove  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 
 log = getLogger(__name__)
@@ -155,10 +155,11 @@ class PackageCache(object):
         grouped_caches = groupby(lambda x: x.is_writable,
                                  (cls(pd) for pd in context.pkgs_dirs))
         caches = concatv(grouped_caches.get(True, ()), grouped_caches.get(False, ()))
-        pc_entry = next((cache._scan_for_dist_no_channel(dist) for cache in caches if cache), None)
+        pc_entry = next((cache._scan_for_dist_no_channel(Dist(package_ref))
+                         for cache in caches if cache), None)
         if pc_entry is not None:
             return pc_entry
-        raise CondaError("No package '%s' found in cache directories." % dist)
+        raise CondaError("No package '%s' found in cache directories." % Dist(package_ref))
 
     @classmethod
     def get_matching_entries(cls, package_ref):

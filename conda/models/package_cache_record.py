@@ -74,5 +74,3 @@ class PackageCacheRecord(RepodataRecord):
         assert self.is_fetched
         from ..gateways.disk.read import compute_md5sum
         return compute_md5sum(self.package_tarball_full_path)
-
-

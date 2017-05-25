@@ -70,7 +70,6 @@ class Dist(Entity):
                                    platform=platform)
 
     def to_package_ref(self):
-        from .index_record import PackageRef
         return PackageRef(
             channel=self.channel,
             subdir=self.platform,
