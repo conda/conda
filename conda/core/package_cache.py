@@ -557,10 +557,10 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=3):
 class package_cache(object):
 
     def __contains__(self, dist):
-        return bool(PackageCache.first_writable().get(dist.to_package_ref(), None))
+        return bool(PackageCache.first_writable().get(Dist(dist).to_package_ref(), None))
 
     def keys(self):
         return (Dist(v) for v in itervalues(PackageCache.first_writable()))
 
     def __delitem__(self, dist):
-        PackageCache.first_writable().remove(dist.to_package_ref())
+        PackageCache.first_writable().remove(Dist(dist).to_package_ref())

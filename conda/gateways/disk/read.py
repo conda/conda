@@ -79,22 +79,18 @@ def find_first_existing(*globs):
 # functions supporting read_package_info()
 # ####################################################
 
-def read_package_info(record, extracted_package_directory):
-    index_json_record = read_index_json(extracted_package_directory)
-    icondata = read_icondata(extracted_package_directory)
-    package_metadata = read_package_metadata(extracted_package_directory)
-    paths_data = read_paths_json(extracted_package_directory)
-    url = record.url
-    if not url:
-        from ...core.package_cache import PackageCache
-        pc = PackageCache(dirname(extracted_package_directory))
-        url = pc.get(record).url
+def read_package_info(record, package_cache_record):
+    epd = package_cache_record.extracted_package_dir
+    index_json_record = read_index_json(epd)
+    icondata = read_icondata(epd)
+    package_metadata = read_package_metadata(epd)
+    paths_data = read_paths_json(epd)
 
     return PackageInfo(
-        extracted_package_dir=extracted_package_directory,
+        extracted_package_dir=epd,
         channel=Channel(record.schannel or record.channel),
         repodata_record=record,
-        url=url,
+        url=package_cache_record.url,
 
         index_json_record=index_json_record,
         icondata=icondata,
