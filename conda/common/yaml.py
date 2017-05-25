@@ -49,8 +49,11 @@ if PY2:
 
 
 def yaml_load(string):
-    yaml = get_yaml()
     return yaml.load(string, Loader=yaml.RoundTripLoader, version="1.2")
+
+
+def yaml_load_safe(string):
+    return yaml.load(string, Loader=yaml.SafeLoader, version="1.2")
 
 
 def yaml_dump(object):
