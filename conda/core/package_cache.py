@@ -258,7 +258,7 @@ class PackageCache(object):
                 index_json_record = read_index_json(extracted_package_dir)
             except (IOError, OSError):
                 if self.is_writable:
-                    extract_tarball(self.source_full_path, self.target_full_path)
+                    extract_tarball(package_tarball_full_path, extracted_package_dir)
                     index_json_record = read_index_json(extracted_package_dir)
                 else:
                     index_json_record = read_index_json_from_tarball(package_tarball_full_path)
