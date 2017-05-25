@@ -141,6 +141,9 @@ class PackageCache(object):
             else:
                 raise
 
+    def remove(self, package_ref):
+        del self._package_cache_records[package_ref]
+
     # ##########################################################################################
     # these class methods reach across all package cache directories (usually context.pkgs_dirs)
     # ##########################################################################################
@@ -224,9 +227,6 @@ class PackageCache(object):
         p_ref_hash = hash(package_ref)
         return tuple(pcr for pcr in itervalues(self._package_cache_records)
                      if hash(pcr) == p_ref_hash)
-
-
-
 
 
     @classmethod
@@ -557,10 +557,10 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=3):
 class package_cache(object):
 
     def __contains__(self, dist):
-        return dist in PackageCache.first_writable()
+        return bool(PackageCache.first_writable().get(dist.to_package_ref(), None))
 
     def keys(self):
-        return iter(PackageCache.first_writable())
+        return (Dist(v) for v in itervalues(PackageCache.first_writable()))
 
     def __delitem__(self, dist):
-        del PackageCache.first_writable()[dist]
+        PackageCache.first_writable().remove(dist.to_package_ref())

@@ -11,7 +11,7 @@ from itertools import chain
 import json
 from logging import getLogger
 from os import listdir
-from os.path import isdir, isfile, join
+from os.path import isdir, isfile, join, dirname
 import shlex
 import tarfile
 
@@ -84,12 +84,17 @@ def read_package_info(record, extracted_package_directory):
     icondata = read_icondata(extracted_package_directory)
     package_metadata = read_package_metadata(extracted_package_directory)
     paths_data = read_paths_json(extracted_package_directory)
+    url = record.url
+    if not url:
+        from ...core.package_cache import PackageCache
+        pc = PackageCache(dirname(extracted_package_directory))
+        url = pc.get(record).url
 
     return PackageInfo(
         extracted_package_dir=extracted_package_directory,
         channel=Channel(record.schannel or record.channel),
         repodata_record=record,
-        url=record.url,
+        url=url,
 
         index_json_record=index_json_record,
         icondata=icondata,
