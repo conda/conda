@@ -9,18 +9,10 @@ from os.path import abspath, basename, isfile, join
 import re
 import sys
 
-from .. import console
-from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import ROOT_ENV_NAME, CONDA_TARBALL_EXTENSION
+from ..base.constants import CONDA_TARBALL_EXTENSION, ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
 from ..common.compat import iteritems
 from ..common.constants import NULL
-from ..common.path import is_private_env, prefix_to_env_name
-from ..core.linked_data import linked_data
-from ..exceptions import CondaFileIOError, CondaSystemExit, CondaValueError, DryRunExit
-from ..resolve import MatchSpec
-from ..utils import memoize
-
 
 get_prefix = partial(context_get_prefix, context)
 
@@ -59,7 +51,6 @@ class Completer(object):
     line flags (e.g., the list of completed packages to install changes if -c
     flags are used).
     """
-    @memoize
     def get_items(self):
         return self._get_items()
 
@@ -104,7 +95,6 @@ class InstalledPackages(Completer):
         self.prefix = prefix
         self.parsed_args = parsed_args
 
-    @memoize
     def _get_items(self):
         from ..core.linked_data import linked
         packages = linked(context.prefix_w_legacy_search)
@@ -417,6 +407,7 @@ def ensure_use_local(args):
 
 def ensure_override_channels_requires_channel(args, dashc=True):
     if args.override_channels and not (args.channel or args.use_local):
+        from ..exceptions import CondaValueError
         if dashc:
             raise CondaValueError('--override-channels requires -c/--channel'
                                   ' or --use-local')
@@ -428,6 +419,7 @@ def ensure_override_channels_requires_channel(args, dashc=True):
 def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
     if args.dry_run:
+        from ..exceptions import DryRunExit
         raise DryRunExit()
 
     options = []
@@ -456,6 +448,7 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
 
 def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
     if args.dry_run:
+        from ..exceptions import DryRunExit
         raise DryRunExit()
     if context.always_yes:
         return True
@@ -463,6 +456,7 @@ def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
         choice = confirm(args, message=message, choices=('yes', 'no'),
                          default=default)
     except KeyboardInterrupt as e:
+        from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.", e)
     if choice == 'yes':
         return True
@@ -475,6 +469,7 @@ def confirm_yn(args, message="Proceed", default='yes', exit_no=True):
 
 def ensure_name_or_prefix(args, command):
     if not (args.name or args.prefix):
+        from ..exceptions import CondaValueError
         raise CondaValueError('either -n NAME or -p PREFIX option required,\n'
                               'try "conda %s -h" for more details' % command)
 
@@ -494,15 +489,19 @@ def arg2spec(arg, json=False, update=False):
         _arg = spec_from_line(arg)
         if _arg is None and arg.endswith(CONDA_TARBALL_EXTENSION):
             _arg = arg
+        from ..resolve import MatchSpec
         spec = MatchSpec(_arg, normalize=True)
     except:
+        from ..exceptions import CondaValueError
         raise CondaValueError('invalid package specification: %s' % arg)
 
     name = spec.name
     if name in context.disallow:
+        from ..exceptions import CondaValueError
         raise CondaValueError("specification '%s' is disallowed" % name)
 
     if not spec.is_simple() and update:
+        from ..exceptions import CondaValueError
         raise CondaValueError("""version specifications not allowed with 'update'; use
     conda update  %s%s  or
     conda install %s""" % (name, ' ' * (len(arg) - len(name)), arg))
@@ -559,10 +558,12 @@ def specs_from_url(url, json=False):
                     continue
                 spec = spec_from_line(line)
                 if spec is None:
+                    from ..exceptions import CondaValueError
                     raise CondaValueError("could not parse '%s' in: %s" %
                                           (line, url))
                 specs.append(spec)
         except IOError as e:
+            from ..exceptions import CondaFileIOError
             raise CondaFileIOError(path, e)
     return specs
 
@@ -580,7 +581,7 @@ def disp_features(features):
 
 def stdout_json(d):
     import json
-
+    from .._vendor.auxlib.entity import EntityEncoder
     json.dump(d, sys.stdout, indent=2, sort_keys=True, cls=EntityEncoder)
     sys.stdout.write('\n')
 
@@ -598,6 +599,7 @@ def get_index_trap(*args, **kwargs):
 @contextlib.contextmanager
 def json_progress_bars(json=False):
     if json:
+        from .. import console
         with console.json_progress_bars():
             yield
     else:
@@ -673,6 +675,8 @@ def pkg_if_in_private_env(spec):
 
 
 def create_prefix_spec_map_with_deps(r, specs, default_prefix):
+    from ..common.path import is_private_env, prefix_to_env_name
+    from ..core.linked_data import linked_data
     prefix_spec_map = {}
     for spec in specs:
         spec_prefix = prefix_if_in_private_env(spec)

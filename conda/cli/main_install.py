@@ -7,9 +7,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from .common import add_parser_install, add_parser_json
-from .install import install
 from ..common.compat import on_win
-from ..gateways.disk.delete import delete_trash
 
 help = "Installs a list of packages into a specified conda environment."
 descr = help + """
@@ -77,5 +75,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    from .install import install
+    from ..gateways.disk.delete import delete_trash
     install(args, parser, 'install')
     delete_trash()

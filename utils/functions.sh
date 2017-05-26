@@ -67,7 +67,9 @@ install_conda_dev() {
     install_python $prefix
 
     $prefix/bin/pip install -r utils/requirements-test.txt
+    rm -rf conda/.version
     $prefix/bin/python utils/setup-testing.py develop
+    $prefix/bin/python utils/setup-testing.py --version > conda/.version
     mkdir -p $prefix/conda-meta
     touch $prefix/conda-meta/history
 

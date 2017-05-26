@@ -19,16 +19,9 @@ from .common import (InstalledPackages, add_parser_channels, add_parser_help, ad
                      create_prefix_spec_map_with_deps, ensure_override_channels_requires_channel,
                      ensure_use_local, names_in_specs, specs_from_args, stdout_json,
                      add_parser_insecure)
-from .install import check_write
 from ..base.constants import ROOT_NO_RM
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys
-from ..common.path import is_private_env, prefix_to_env_name
-from ..console import json_progress_bars
-from ..core.index import get_index
-from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
-from ..gateways.disk.delete import delete_trash
-from ..resolve import Resolve
 
 help = "%s a list of packages from a specified conda environment."
 descr = help + """
@@ -111,6 +104,13 @@ def configure_parser(sub_parsers, name='remove'):
 
 
 def execute(args, parser):
+    from .install import check_write
+    from ..common.path import is_private_env, prefix_to_env_name
+    from ..console import json_progress_bars
+    from ..core.index import get_index
+    from ..exceptions import CondaEnvironmentError, CondaValueError, PackageNotFoundError
+    from ..gateways.disk.delete import delete_trash
+    from ..resolve import Resolve
     from ..core.linked_data import linked_data
     from ..gateways.disk.delete import rm_rf
     from ..instructions import PREFIX

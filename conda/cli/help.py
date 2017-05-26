@@ -4,7 +4,6 @@ from os.path import join
 
 from .common import name_prefix
 from ..base.context import context
-from ..exceptions import CondaIOError
 
 
 def read_message(fn):
@@ -41,4 +40,5 @@ Missing write permissions in: ${root_dir}
     msg = msg.replace('${prefix}', prefix)
     msg = msg.replace('${name}', name_prefix(prefix))
     msg = msg.replace('${command}', command)
+    from ..exceptions import CondaIOError
     raise CondaIOError(msg)

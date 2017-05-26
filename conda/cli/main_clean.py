@@ -15,10 +15,6 @@ import sys
 from .common import add_parser_json, add_parser_yes, confirm_yn, stdout_json
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..exceptions import ArgumentError
-from ..gateways.disk.delete import rm_rf
-from ..gateways.disk.link import CrossPlatformStLink
-from ..utils import human_bytes
 
 log = getLogger(__name__)
 
@@ -105,6 +101,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
         return
 
     if verbose:
+        from ..utils import human_bytes
         print("Will remove the following tarballs:")
         print()
 
@@ -128,6 +125,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
             try:
+                from ..gateways.disk.delete import rm_rf
                 if rm_rf(os.path.join(pkgs_dir, fn)):
                     if verbose:
                         print("Removed %s" % fn)
@@ -146,6 +144,7 @@ def find_pkgs():
     # themselves, like bin/python3.3 and bin/python3.3m in the Python package
     warnings = []
 
+    from ..gateways.disk.link import CrossPlatformStLink
     cross_platform_st_nlink = CrossPlatformStLink()
     pkgs_dirs = defaultdict(list)
     for pkgs_dir in context.pkgs_dirs:
@@ -193,6 +192,9 @@ def find_pkgs():
 
 def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes,
             verbose=True):
+    from ..gateways.disk.delete import rm_rf
+    from ..utils import human_bytes
+
     if verbose:
         for pkgs_dir in pkgs_dirs:
             print('Cache location: %s' % pkgs_dir)
@@ -265,6 +267,9 @@ def find_source_cache():
 
 
 def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
+    from ..gateways.disk.delete import rm_rf
+    from ..utils import human_bytes
+
     verbose = not context.json
     if warnings:
         if verbose:
@@ -331,6 +336,7 @@ def execute(args, parser):
 
     if not any((args.lock, args.tarballs, args.index_cache, args.packages,
                 args.source_cache, args.all)):
+        from ..exceptions import ArgumentError
         raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
                             "--source-cache, --all} required")
 
