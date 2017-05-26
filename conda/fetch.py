@@ -18,6 +18,7 @@ from logging import DEBUG, getLogger
 from os.path import basename, dirname, join
 from requests.exceptions import ConnectionError, HTTPError, SSLError
 from requests.packages.urllib3.connectionpool import InsecureRequestWarning
+from requests_file import FileAdapter
 from warnings import warn
 
 from ._vendor.auxlib.ish import dals
@@ -105,6 +106,7 @@ def fetch_repodata(url, cache_dir=None, use_cache=False, session=None):
         headers["If-Modified-Since"] = cache["_mod"]
 
     if 'repo.continuum.io' in url or url.startswith("file://"):
+        session.mount('file://', FileAdapter())
         filename = 'repodata.json.bz2'
         headers['Accept-Encoding'] = 'identity'
     else:
