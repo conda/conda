@@ -41,11 +41,6 @@ def configure_parser(sub_parsers):
         default='environment.yml',
     )
     p.add_argument(
-        '--summary',
-        help='Short summary of the environment',
-        default='Environment file'
-    )
-    p.add_argument(
         '-q', '--quiet',
         default=False,
         action='store_true'
@@ -82,11 +77,6 @@ def execute(args, parser):
               "  conda env upload {}".format(args.old_name))
 
     try:
-        summary = args.summary or env.summary
-    except AttributeError:
-        summary = None
-
-    try:
         name = args.name or args.old_name or env.name
     except AttributeError:
         msg = """An environment name is required.\n
@@ -95,7 +85,7 @@ def execute(args, parser):
                  or you can add a name property to your {} file.""".lstrip().format(args.file)
         raise exceptions.CondaEnvException(msg)
 
-    uploader = Uploader(name, args.file, summary=summary, env_data=dict(env.to_dict()))
+    uploader = Uploader(name, args.file, env_data=dict(env.to_dict()))
 
     if uploader.authorized():
         info = uploader.upload()
