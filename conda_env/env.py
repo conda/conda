@@ -139,19 +139,13 @@ class Environment(object):
         self.prefix = prefix
         self.extra_args = kwargs
         self.summary = summary
-        self._version = version
+        self.version = version
         self.dependencies = Dependencies(dependencies)
 
         if channels is None:
             channels = []
         self.channels = channels
 
-    @property
-    def version(self):
-        if self._version:
-            return self._version
-        else:
-            return None
 
     def add_channels(self, channels):
         self.channels = list(unique(chain.from_iterable((channels, self.channels))))
