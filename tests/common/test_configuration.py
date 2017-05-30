@@ -9,7 +9,7 @@ from conda.common.configuration import (Configuration, MapParameter, ParameterFl
                                         PrimitiveParameter, SequenceParameter, YamlRawParameter,
                                         load_file_configs, MultiValidationError, InvalidTypeError,
                                         CustomValidationError)
-from conda.common.yaml import yaml_load
+from conda.common.serialize import yaml_load
 from conda.common.configuration import ValidationError
 from os import environ, mkdir
 from os.path import join

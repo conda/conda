@@ -1,43 +1,71 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from ast import literal_eval
+from abc import ABCMeta, abstractmethod, abstractproperty
+from collections import Mapping
 import re
-import sys
 
-from conda.base.constants import CONDA_TARBALL_EXTENSION
-
+from .channel import Channel, MultiChannel
 from .dist import Dist
 from .index_record import IndexRecord
-from .version import VersionSpec
+from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
-from ..common.compat import iteritems, string_types, text_type
+from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..common.compat import isiterable, iteritems, string_types, text_type, with_metaclass
+from ..common.path import expand
+from ..common.url import is_url, path_to_url
 from ..exceptions import CondaValueError
 
+try:
+    from cytoolz.itertoolz import concat
+except ImportError:  # pragma: no cover
+    from .._vendor.toolz.itertoolz import concat  # NOQA
 
-class SplitSearch(object):
-    """Implements matching on features or track_features. These strings are actually
-       split by whitespace into sets. We want a string match to be True if it matches
-       any of the elements of this set. However, we also want this to be considered an
-       "exact" match for the purposes of the rest of MatchSpec logic, even though it is
-       possible that there are multiple entries in the set, and only one is matching."""
-    __slots__ = ['exact', 'match']
+class MatchSpecType(type):
 
-    def __init__(self, value):
-        self.exact = value  # ensures this is considered an exact match
-        self.match = re.compile(r'(?:^|.* )%s(?:$| )' % value).match
+    def __call__(cls, spec_arg=None, **kwargs):
+        if spec_arg:
+            if isinstance(spec_arg, MatchSpec) and not kwargs:
+                return spec_arg
+            elif isinstance(spec_arg, MatchSpec):
+                kwargs.setdefault('optional', spec_arg.optional)
+                kwargs.setdefault('target', spec_arg.target)
+                kwargs.update(spec_arg._match_components)
+                return super(MatchSpecType, cls).__call__(**kwargs)
+            elif isinstance(spec_arg, string_types):
+                parsed = _parse_spec_str(spec_arg)
+                parsed.update(kwargs)
+                return super(MatchSpecType, cls).__call__(**parsed)
+            elif isinstance(spec_arg, Mapping):
+                parsed = dict(spec_arg, **kwargs)
+                return super(MatchSpecType, cls).__call__(**parsed)
+            elif isinstance(spec_arg, Dist):
+                # TODO: remove this branch
+                parsed = {
+                    'fn': spec_arg.to_filename(),
+                    'channel': spec_arg.channel,
+                }
+                return super(MatchSpecType, cls).__call__(**parsed)
+            elif isinstance(spec_arg, IndexRecord):
+                # TODO: remove this branch
+                parsed = {
+                    'name': spec_arg.name,
+                    'fn': spec_arg.fn,
+                    'channel': spec_arg.channel,
+                }
+                return super(MatchSpecType, cls).__call__(**parsed)
+            elif hasattr(spec_arg, 'dump'):
+                parsed = spec_arg.dump()
+                parsed.update(kwargs)
+                return super(MatchSpecType, cls).__call__(**parsed)
+            else:
+                raise CondaValueError("Invalid MatchSpec:\n  spec_arg=%s\n  kwargs=%s"
+                                      % (spec_arg, kwargs))
+        else:
+            return super(MatchSpecType, cls).__call__(**kwargs)
 
-    def __repr__(self):
-        return "'%s'" % self.exact
 
-
-_implementors = {
-    'features': SplitSearch,
-    'track_features': SplitSearch,
-    'version': VersionSpec
-}
-
-
+@with_metaclass(MatchSpecType)
 class MatchSpec(object):
     """
     The easiest way to build `MatchSpec` objects that match to arbitrary fields is to
@@ -51,272 +79,530 @@ class MatchSpec(object):
 
     Strings are interpreted using the following conventions:
       - If the string begins with `^` and ends with `$`, it is converted to a regex.
-      - For the `version` field, non-regex strings are processed by `VersionSpec`.
       - If the string contains an asterisk (`*`), it is transformed from a glob to a regex.
       - Otherwise, an exact match to the string is sought.
 
     The `.match()` method accepts an `IndexRecord` or dictionary, and matches can pull
     from any field in that record.
 
-    For now, non-string fields (e.g., `build_number`) allow only exact matches.
-    However, fully custom matching on a single field is possible simply by feeding
-    in an object with a `match` method (which, conveniently, includes regexes and
-    `VersionSpec` objects). There is no way to match on a combination of fields in
-    a single function, and the tests are combined using logical `and`.
-
     Great pain has been taken to preserve back-compatibility with the standard
     `name version build` syntax. But strictly speaking it is not necessary. Now, the
     following are all equivalent:
-      - `MatchSpec('foo 1.0 py27_0 (optional)')`
-      - `MatchSpec("* (name='foo',version='1.0',build='py27_0')", optional=True)`
-      - `MatchSpec("foo (version='1.0',optional,build='py27_0')")`
+      - `MatchSpec('foo 1.0 py27_0', optional=True)`
+      - `MatchSpec("* [name='foo',version='1.0',build='py27_0']", optional=True)`
+      - `MatchSpec("foo[version='1.0',optional,build='py27_0']")`
       - `MatchSpec(name='foo', optional=True, version='1.0', build='py27_0')`
 
     """
 
-    def __new__(cls, *specs, **kwargs):
-        # only 0 or 1 specs arguments are allowed
-        len_specs = len(specs)
-        if len_specs > 1:
-            raise CondaValueError("Only one spec argument can be provided.\n%r" % specs)
-        elif len_specs == 1:
-            spec = specs[0]
-        else:
-            spec = None
+    FIELD_NAMES = (
+        'channel',
+        'subdir',
+        'name',
+        'version',
+        'build',
+        'build_number',
+        'track_features',
+        'md5',
+    )
 
-        # memoize spec objects without additional kwargs
-        if not kwargs and isinstance(spec, cls):
-            return spec
+    def __init__(self, optional=False, target=None, **kwargs):
+        self.optional = optional
+        self.target = target
+        self._match_components = self._build_components(**kwargs)
 
-        normalize = kwargs.pop('normalize', False)
-        self = object.__new__(cls)
-        _specs_map = {}
+    def get_exact_value(self, field_name):
+        v = self._match_components.get(field_name)
+        return v and v.exact_value
 
-        if isinstance(spec, string_types):
-            spec, _, oparts = spec.partition('(')
-            parts = [spec] if spec.endswith(CONDA_TARBALL_EXTENSION) else spec.split()
-            assert 1 <= len(parts) <= 3, repr(spec)
-            name, version, build = (parts + ['*', '*'])[:3]
-            self._push(_specs_map,
-                       ('name', name),
-                       ('version', version),
-                       ('build', build))
+    def get_raw_value(self, field_name):
+        v = self._match_components.get(field_name)
+        return v and v.raw_value
 
-            def _exact_field(field_name):
-                # duplicated self.exact_field(), but for the local _specs_map
-                v = _specs_map.get(field_name)
-                return getattr(v, 'exact', None if hasattr(v, 'match') else v)
+    def _is_simple(self):
+        return len(self._match_components) == 1 and self.get_exact_value('name') is not None
 
-            if normalize and _exact_field('build') is None:
-                if _exact_field('name') is not None and _exact_field('version') is not None:
-                    # When someone supplies 'foo=a.b' on the command line, we
-                    # want to append an asterisk; e.g., 'foo=a.b.*', but only
-                    # if there is not also an exact build and name. In that
-                    # case we assume the user is looking for an exact match.
-                    ver = _exact_field('version')
-                    _specs_map['version'] = VersionSpec(ver + '*')
-            if oparts:
-                if oparts.strip()[-1] != ')':
-                    raise CondaValueError("Invalid MatchSpec: %s" % spec)
-                for opart in oparts.strip()[:-1].split(','):
-                    field, eq, value = (x.strip() for x in opart.partition('='))
-                    if not field:
-                        continue
-                    elif not value and (eq or field != 'optional'):
-                        raise CondaValueError("Invalid MatchSpec: %s" % spec)
-                    elif field == 'optional':
-                        kwargs.setdefault('optional', bool(value) if eq else True)
-                        if bool(_exact_field('name')) + bool(_exact_field('track_features')) != 1:
-                            raise CondaValueError("Optional MatchSpec must be tied"
-                                                  " to a name or track_feature (and not both): %s"
-                                                  "" % spec)
-                    elif field == 'target':
-                        kwargs.setdefault('target', value)
-                    else:
-                        self._push(_specs_map, (field, literal_eval(value)))
-        elif spec is None:
-            pass
-        elif isinstance(spec, cls):
-            kwargs.setdefault('optional', spec.optional)
-            if spec.target:
-                kwargs.setdefault('target', spec.target)
-            _specs_map.update(spec._specs_map)
-
-        elif isinstance(spec, dict):
-            # kwargs take priority
-            for k, v in iteritems(spec):
-                kwargs.setdefault(k, v)
-
-        elif isinstance(spec, Dist):
-            self._push(_specs_map,
-                       ('fn', spec.to_filename()),
-                       ('schannel', spec.channel))
-
-        elif isinstance(spec, IndexRecord):
-            self._push(_specs_map,
-                       ('name', spec.name),
-                       ('fn', spec.fn),
-                       ('schannel', spec.schannel))
-
-        else:
-            raise CondaValueError("Cannot construct MatchSpec from: %r" % (spec,))
-
-        _target = kwargs.pop('target', None)
-        _optional = bool(kwargs.pop('optional', False))
-        self._push(_specs_map, *iteritems(kwargs))
-
-        # assign attributes to self
-        self._specs_map = frozendict(_specs_map)
-        self.target = _target
-        self.optional = _optional
-        return self
-
-    @staticmethod
-    def _push(specs_map, *args):
-        # format each (field_name, value) arg pair, and add it to specs_map
-        for field_name, value in args:
-            if value in ('*', None):
-                if field_name in specs_map:
-                    del specs_map[field_name]
-                continue
-            elif field_name not in IndexRecord.__fields__:
-                raise CondaValueError('Cannot match on field %s' % (field_name,))
-            elif isinstance(value, string_types):
-                value = text_type(value)
-
-            if hasattr(value, 'match'):
-                pass
-            elif field_name in _implementors:
-                value = _implementors[field_name](value)
-            elif not isinstance(value, string_types):
-                pass
-            elif value.startswith('^') and value.endswith('$'):
-                value = re.compile(value)
-            elif '*' in value:
-                value = re.compile(r'^(?:%s)$' % value.replace('*', r'.*'))
-
-            if isinstance(value, VersionSpec) and value.is_exact():
-                value = value.spec
-
-            specs_map[field_name] = value
-
-    def exact_field(self, field_name):
-        v = self._specs_map.get(field_name)
-        return getattr(v, 'exact', None if hasattr(v, 'match') else v)
-
-    def is_exact(self):
-        return all(self.exact_field(x) is not None for x in ('fn', 'schannel'))
-
-    def is_simple(self):
-        return len(self._specs_map) == 1 and self.exact_field('name') is not None
-
-    def is_single(self):
-        return len(self._specs_map) == 1
+    def _is_single(self):
+        return len(self._match_components) == 1
 
     def match(self, rec):
         """
         Accepts an `IndexRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
-        for f, v in iteritems(self._specs_map):
+        for f, v in iteritems(self._match_components):
             val = getattr(rec, f)
             if not (v.match(val) if hasattr(v, 'match') else v == val):
                 return False
         return True
 
-    def to_filename(self):
+    def _to_filename_do_not_use(self):
         # WARNING: this is potentially unreliable and use should probably be limited
         #   returns None if a filename can't be constructed
-        fn_field = self.exact_field('fn')
+        fn_field = self.get_exact_value('fn')
         if fn_field:
             return fn_field
-        vals = tuple(self.exact_field(x) for x in ('name', 'version', 'build'))
+        vals = tuple(self.get_exact_value(x) for x in ('name', 'version', 'build'))
         if not any(x is None for x in vals):
             return '%s-%s-%s.tar.bz2' % vals
         else:
             return None
 
-    def to_dict(self, args=True):
-        # arg=True adds 'optional' and 'target' fields to the dict
-        res = self._specs_map.copy()
-        if args and self.optional:
-            res['optional'] = bool(self.optional)
-        if args and self.target is not None:
-            res['target'] = self.target
-        return res
-
-    def _to_string(self, args=True, base=True):
-        # arg=True adds 'optional' and 'target' fields to the dict
-        nf = (3 if 'build' in self._specs_map else
-              (2 if 'version' in self._specs_map else 1)) if base else 0
-        flds = ('name', 'version', 'build')[:nf]
-        base = ' '.join(str(self._specs_map.get(f, '*')) for f in flds)
-        xtra = ['%s=%r' % (f, v) for f, v in sorted(iteritems(self._specs_map))
-                if f not in flds]
-        if args and self.optional:
-            xtra.append('optional' if base else 'optional=True')
-        if args and self.target:
-            xtra.append('target=' + self.target)
-        xtra = ','.join(xtra)
-        if not base:
-            return xtra
-        elif xtra:
-            return '%s (%s)' % (base, xtra)
-        else:
-            return base
-
-    def _eq_key(self):
-        return self._specs_map, self.optional, self.target
-
-    def __eq__(self, other):
-        return isinstance(other, MatchSpec) and self._eq_key() == other._eq_key()
-
-    def __hash__(self):
-        return hash(self._specs_map)
-
-    if sys.version_info[0] == 2:
-        def __ne__(self, other):
-            equal = self.__eq__(other)
-            return equal if equal is NotImplemented else not equal
-
     def __repr__(self):
-        return "MatchSpec(%s)" % (self._to_string(args=True, base=False),)
-
-    def __contains__(self, field):
-        return field in self._specs_map
+        builder = []
+        builder += ["%s=%r" % (c, self._match_components[c])
+                    for c in self.FIELD_NAMES if c in self._match_components]
+        if self.optional:
+            builder.append("optional=True")
+        if self.target:
+            builder.append("target=%r" % self.target)
+        return "%s(%s)" % (self.__class__.__name__, ', '.join(builder))
 
     def __str__(self):
-        return self._to_string(args=True, base=True)
+        builder = []
 
-    # Needed for back compatibility with conda-build and even some code
-    # within conda itself. Do not remove without coordination with the
-    # conda-build team
+        channel_matcher = self._match_components.get('channel')
+        if channel_matcher:
+            builder.append(text_type(channel_matcher))
 
+        subdir_matcher = self._match_components.get('subdir')
+        if subdir_matcher:
+            builder.append(('/%s' if builder else '*/%s') % subdir_matcher)
+
+        name_matcher = self._match_components.get('name', '*')
+        builder.append(('::%s' if builder else '%s') % name_matcher)
+
+        xtra = []
+
+        version = self._match_components.get('version')
+        if version:
+            version = text_type(version)
+            if any(s in version for s in '><$^|,'):
+                xtra.append("version='%s'" % version)
+            elif version.endswith('.*'):
+                builder.append('=' + version[:-2])
+            elif version.endswith('*'):
+                builder.append('=' + version[:-1])
+            else:
+                builder.append('==' + version)
+
+        _skip = ('channel', 'subdir', 'name', 'version')
+        for key in self.FIELD_NAMES:
+            if key not in _skip and key in self._match_components:
+                value = text_type(self._match_components[key])
+                if any(s in value for s in ', ='):
+                    xtra.append("%s='%s'" % (key, self._match_components[key]))
+                else:
+                    xtra.append("%s=%s" % (key, self._match_components[key]))
+
+        if xtra:
+            builder.append('[%s]' % ','.join(xtra))
+
+        return ''.join(builder)
+
+    def conda_build_form(self):
+        builder = []
+        name = self.get_exact_value('name')
+        assert name
+        builder.append(name)
+
+        build = self.get_raw_value('build')
+        version = self.get_raw_value('version')
+
+        if build:
+            assert version
+            builder += [version, build]
+        elif version:
+            builder.append(version)
+
+        return ' '.join(builder)
+
+    def __eq__(self, other):
+        if isinstance(other, MatchSpec):
+            self_key = self._match_components, self.optional, self.target
+            other_key = other._match_components, other.optional, other.target
+            return self_key == other_key
+        else:
+            return False
+
+    def __hash__(self):
+        return hash(self._match_components)
+
+    def __contains__(self, field):
+        return field in self._match_components
+
+    @staticmethod
+    def _build_components(**kwargs):
+        def _make(field_name, value):
+            if field_name not in IndexRecord.__fields__:
+                raise CondaValueError('Cannot match on field %s' % (field_name,))
+            elif isinstance(value, string_types):
+                value = text_type(value)
+
+            if hasattr(value, 'match'):
+                matcher = value
+            elif field_name in _implementors:
+                matcher = _implementors[field_name](value)
+            elif text_type(value):
+                matcher = StrMatch(value)
+            else:
+                raise NotImplementedError()
+
+            return matcher
+
+        return frozendict((key, _make(key, value)) for key, value in iteritems(kwargs))
+
+    @property
+    def name(self):
+        return self.get_exact_value('name') or '*'
+
+    #
+    # Remaining methods are for back compatibility with conda-build. Do not remove
+    # without coordination with the conda-build team.
+    #
     @property
     def strictness(self):
         # With the old MatchSpec, strictness==3 if name, version, and
-        # build were all specified. We've extended that to include any
-        # spec that deviates from the old name/version/build spec:
-        # additional fields, wildcard name matching, etc.
-        if sum(f in self._specs_map for f in ('name', 'version', 'build')) < len(self._specs_map):
+        # build were all specified.
+        s = sum(f in self._match_components for f in ('name', 'version', 'build'))
+        if s < len(self._match_components):
             return 3
-        elif not self.exact_field('name') or 'build' in self._specs_map:
+        elif not self.get_exact_value('name') or 'build' in self._match_components:
             return 3
-        elif 'version' in self._specs_map:
+        elif 'version' in self._match_components:
             return 2
         else:
             return 1
 
     @property
     def spec(self):
-        return self._to_string(args=False, base=True)
-
-    @property
-    def name(self):
-        return self.exact_field('name') or '*'
+        return self.conda_build_form()
 
     @property
     def version(self):
         # in the old MatchSpec object, version was a VersionSpec, not a str
         # so we'll keep that API here
-        return self._specs_map.get('version')
+        return self._match_components.get('version')
+
+
+def _parse_version_plus_build(v_plus_b):
+    """This should reliably pull the build string out of a version + build string combo.
+
+    Examples:
+        >>> _parse_version_plus_build("=1.2.3 0")
+        ('=1.2.3', '0')
+        >>> _parse_version_plus_build("1.2.3=0")
+        ('1.2.3', '0')
+        >>> _parse_version_plus_build(">=1.0 , < 2.0 py34_0")
+        ('>=1.0,<2.0', 'py34_0')
+        >>> _parse_version_plus_build(">=1.0 , < 2.0 =py34_0")
+        ('>=1.0,<2.0', 'py34_0')
+        >>> _parse_version_plus_build("=1.2.3 ")
+        ('=1.2.3', None)
+        >>> _parse_version_plus_build(">1.8,<2|==1.7")
+        ('>1.8,<2|==1.7', None)
+        >>> _parse_version_plus_build("* openblas_0")
+        ('*', 'openblas_0')
+        >>> _parse_version_plus_build("* *")
+        ('*', '*')
+
+    """
+    parts = re.search(r'((?:.+?)[^><!,|]?)(?:(?<![=!|,<>])(?:[ =])([^-=,|<>]+?))?$', v_plus_b)
+    if parts:
+        version, build = parts.groups()
+        build = build and build.strip()
+    else:
+        version, build = v_plus_b, None
+
+    return version and version.replace(' ', ''), build
+
+
+def _parse_legacy_dist(dist_str):
+    """
+    Examples:
+        >>> _parse_legacy_dist("_license-1.1-py27_1.tar.bz2")
+        ('_license', '1.1', 'py27_1')
+        >>> _parse_legacy_dist("_license-1.1-py27_1")
+        ('_license', '1.1', 'py27_1')
+
+    """
+    if dist_str.endswith(CONDA_TARBALL_EXTENSION):
+        dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
+    name, version, build = dist_str.rsplit('-', 2)
+    return name, version, build
+
+
+def _parse_channel(channel_val):
+    if not channel_val:
+        return None, None
+    chn = Channel(channel_val)
+    channel_name = chn.name if isinstance(chn, MultiChannel) else chn.canonical_name
+    return channel_name, chn.subdir
+
+
+def _parse_spec_str(spec_str):
+    # Step 1. strip '#' comment
+    if '#' in spec_str:
+        ndx = spec_str.index('#')
+        spec_str, _ = spec_str[:ndx], spec_str[ndx:]
+        spec_str.strip()
+
+    # Step 2. done if spec_str is a tarball
+    if spec_str.endswith(CONDA_TARBALL_EXTENSION):
+        # treat as a normal url
+        if not is_url(spec_str):
+            spec_str = path_to_url(expand(spec_str))
+
+        channel = Channel(spec_str)
+        if not channel.subdir:
+            # url is not a channel
+            raise CondaValueError("Invalid MatchSpec Channel: %s" % spec_str)
+        name, version, build = _parse_legacy_dist(channel.package_filename)
+        result = {
+            'channel': channel.canonical_name,
+            'subdir': channel.subdir,
+            'name': name,
+            'version': version,
+            'build': build,
+        }
+        return result
+
+    # Step 3. strip off brackets portion
+    brackets = {}
+    m1 = re.match(r'^(.*)(?:\[(.*)\])$', spec_str)
+    if m1:
+        spec_str, brackets_str = m1.groups()
+        brackets_str = brackets_str.strip("[]\n\r\t ")
+
+        m5 = re.finditer(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', brackets_str)
+        for match in m5:
+            key, _, value, _ = match.groups()
+            if not key or not value:
+                raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
+            brackets[key] = value
+
+    # Step 4. strip off '::' channel and namespace
+    m2 = spec_str.rsplit(':', 2)
+    m2_len = len(m2)
+    if m2_len == 3:
+        channel_str, namespace, spec_str = m2
+    elif m2_len == 2:
+        namespace, spec_str = m2
+        channel_str = None
+    elif m2_len:
+        spec_str = m2[0]
+        channel_str, namespace = None, None
+    else:
+        raise NotImplementedError()
+    channel, subdir = _parse_channel(channel_str)
+    if 'channel' in brackets:
+        b_channel, b_subdir = _parse_channel(brackets.pop('channel'))
+        if b_channel:
+            channel = b_channel
+        if b_subdir:
+            subdir = b_subdir
+    if 'subdir' in brackets:
+        subdir = brackets.pop('subdir')
+
+    # Step 5. strip off package name from remaining version + build
+    m3 = re.match(r'([^ =<>!]+)?([><!= ].+)?', spec_str)
+    if m3:
+        name, spec_str = m3.groups()
+        if name is None:
+            raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
+    else:
+        raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
+
+    # Step 6. sort out version + build
+    spec_str = spec_str and spec_str.strip()
+    if spec_str:
+        if '[' in spec_str:
+            raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
+
+        version, build = _parse_version_plus_build(spec_str)
+
+        # translate version '=1.2.3' to '1.2.3*'
+        # is it a simple version starting with '='? i.e. '=1.2.3'
+        if version.startswith('='):
+            test_str = version[1:]
+            if version.startswith('==') and build is None:
+                version = version[2:]
+            elif not any(c in test_str for c in "=,|"):
+                if build is None and not test_str.endswith('*'):
+                    version = test_str + '*'
+                else:
+                    version = test_str
+    else:
+        version, build = None, None
+
+    # Step 7. now compile components together
+    components = {}
+    components['name'] = name if name else '*'
+
+    if channel is not None:
+        components['channel'] = channel
+    if subdir is not None:
+        components['subdir'] = subdir
+    if namespace is not None:
+        # components['namespace'] = namespace
+        pass
+    if version is not None:
+        components['version'] = version
+    if build is not None:
+        components['build'] = build
+
+    # anything in brackets will now strictly override key as set in other area of spec str
+    components.update(brackets)
+
+    return components
+
+
+@with_metaclass(ABCMeta)
+class MatchInterface(object):
+
+    def __init__(self, value):
+        self._raw_value = value
+
+    @abstractmethod
+    def match(self, other):
+        raise NotImplementedError
+
+    def matches(self, value):
+        return self.match(value)
+
+    @property
+    def raw_value(self):
+        return self._raw_value
+
+    @abstractproperty
+    def exact_value(self):
+        """If the match value is an exact specification, returns the value.
+        Otherwise returns None.
+        """
+        raise NotImplementedError()
+
+
+class SplitStrMatch(MatchInterface):
+    __slots__ = '_raw_value',
+
+    def __init__(self, value):
+        super(SplitStrMatch, self).__init__(self._convert(value))
+
+    def _convert(self, value):
+        try:
+            return frozenset(value.replace(' ', ',').split(','))
+        except AttributeError:
+            if isiterable(value):
+                return frozenset(value)
+            raise
+
+    def match(self, other):
+        try:
+            return other and self._raw_value & other._raw_value
+        except AttributeError:
+            return self._raw_value & self._convert(other)
+
+    def __repr__(self):
+        if self._raw_value:
+            return "{%s}" % ', '.join("'%s'" % s for s in sorted(self._raw_value))
+        else:
+            return 'set()'
+
+    def __str__(self):
+        # this space delimiting makes me nauseous
+        return ' '.join(sorted(self._raw_value))
+
+    def __eq__(self, other):
+        return self.match(other)
+
+    def __hash__(self):
+        return hash(self._raw_value)
+
+    @property
+    def exact_value(self):
+        return self._raw_value
+
+
+class ChannelMatch(MatchInterface):
+    __slots__ = '_raw_value',
+
+    def __init__(self, value):
+        super(ChannelMatch, self).__init__(Channel(value))
+
+    def match(self, other):
+        try:
+            return self._raw_value.canonical_name == other._raw_value.canonical_name
+        except AttributeError:
+            return self._raw_value.canonical_name == Channel(other).canonical_name
+
+    def __str__(self):
+        return "%s" % self._raw_value.canonical_name
+
+    def __repr__(self):
+        return "'%s'" % self._raw_value.canonical_name
+
+    def __eq__(self, other):
+        return self.match(other)
+
+    def __hash__(self):
+        return hash(self._raw_value)
+
+    @property
+    def exact_value(self):
+        return self._raw_value
+
+
+class StrMatch(MatchInterface):
+    __slots__ = '_raw_value', '_re_match'
+
+    def __init__(self, value):
+        super(StrMatch, self).__init__(value)
+        self._re_match = None
+
+        if value.startswith('^') and value.endswith('$'):
+            self._re_match = re.compile(value).match
+        elif '*' in value:
+            self._re_match = re.compile(r'^(?:%s)$' % value.replace('*', r'.*')).match
+
+    def match(self, other):
+        try:
+            _other_val = other._raw_value
+        except AttributeError:
+            _other_val = text_type(other)
+
+        if self._re_match:
+            return self._re_match(_other_val)
+        else:
+            return self._raw_value == _other_val
+
+    def __str__(self):
+        return self._raw_value
+
+    def __repr__(self):
+        return "%s('%s')" % (self.__class__.__name__, self._raw_value)
+
+    def __eq__(self, other):
+        return self.match(other)
+
+    def __hash__(self):
+        return hash(self._raw_value)
+
+    @property
+    def exact_value(self):
+        return self._raw_value if self._re_match is None else None
+
+
+class LowerStrMatch(StrMatch):
+
+    def __init__(self, value):
+        super(LowerStrMatch, self).__init__(value.lower())
+
+
+_implementors = {
+    'name': LowerStrMatch,
+    'features': SplitStrMatch,
+    'track_features': SplitStrMatch,
+    'version': VersionSpec,
+    'build_number': BuildNumberMatch,
+    'channel': ChannelMatch,
+}

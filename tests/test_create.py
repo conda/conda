@@ -13,7 +13,6 @@ from os.path import basename, dirname, exists, isdir, isfile, join, lexists, rel
 from random import sample
 import re
 from shlex import split
-import shutil
 from shutil import copyfile, rmtree
 from subprocess import check_call
 import sys
@@ -28,7 +27,7 @@ from conda import CondaError, CondaMultiError
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import Context, context, reset_context
-from conda.cli.main import generate_parser
+from conda.cli.main import generate_parser, init_loggers
 from conda.cli.main_clean import configure_parser as clean_configure_parser
 from conda.cli.main_config import configure_parser as config_configure_parser
 from conda.cli.main_create import configure_parser as create_configure_parser
@@ -44,9 +43,9 @@ from conda.common.io import argv, captured, disable_logger, env_var, replace_log
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
 from conda.common.url import path_to_url
-from conda.common.yaml import yaml_load
+from conda.common.serialize import yaml_load
 from conda.core.linked_data import get_python_version_for_prefix, \
-    linked as install_linked, linked_data, linked_data_
+    linked as install_linked, linked_data, PrefixData
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
 from conda.exceptions import CondaHTTPError, DryRunExit, PackageNotFoundError, RemoveError, \
@@ -58,6 +57,7 @@ from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
 from conda.models.index_record import IndexRecord
+from conda.models.prefix_record import PrefixRecord
 from conda.utils import on_win
 
 try:
@@ -140,6 +140,7 @@ def run_command(command, prefix, *arguments, **kwargs):
 
     args = p.parse_args(split_command_line)
     context._set_argparse_args(args)
+    init_loggers(context)
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         with argv(['python_api'] + split_command_line), captured() as c, replace_log_streams():
@@ -206,7 +207,7 @@ def make_temp_channel(packages):
 
         pkg_data = pkg_data.dump()
         for field in ('url', 'channel', 'schannel'):
-            del pkg_data[field]
+            pkg_data.pop(field, None)
         repodata['packages'][fname] = IndexRecord(**pkg_data)
 
     with make_temp_env() as channel:
@@ -342,6 +343,65 @@ class IntegrationTests(TestCase):
             # 'conda' and can only be installed into the root environment: constructor
             assert not package_is_installed(prefix, 'constructor')
 
+    def test_json_create_install_update_remove(self):
+        # regression test for #5384
+
+        def assert_json_parsable(content):
+            string = None
+            try:
+                for string in content and content.split('\0') or ():
+                    json.loads(string)
+            except Exception as e:
+                log.warn(
+                    "Problem parsing json output.\n"
+                    "  content: %s\n"
+                    "  string: %s\n"
+                    "  error: %r",
+                    content, string, e
+                )
+                raise
+
+        try:
+            prefix = make_temp_prefix(str(uuid4())[:7])
+
+            stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5 --json")
+            assert_json_parsable(stdout)
+            assert not stderr
+
+            stdout, stderr = run_command(Commands.INSTALL, prefix, 'flask=0.10 --json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python-3')
+
+            # Test force reinstall
+            stdout, stderr = run_command(Commands.INSTALL, prefix, '--force', 'flask=0.10', '--json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python-3')
+
+            stdout, stderr = run_command(Commands.UPDATE, prefix, 'flask --json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert not package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'flask')
+            assert_package_is_installed(prefix, 'python-3')
+
+            stdout, stderr = run_command(Commands.REMOVE, prefix, 'flask --json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert not package_is_installed(prefix, 'flask-0.')
+            assert_package_is_installed(prefix, 'python-3')
+
+            stdout, stderr = run_command(Commands.INSTALL, prefix, '--revision 0', '--json')
+            assert_json_parsable(stdout)
+            assert not stderr
+            assert not package_is_installed(prefix, 'flask')
+            assert_package_is_installed(prefix, 'python-3')
+        finally:
+            rmtree(prefix, ignore_errors=True)
+
     def test_noarch_python_package_with_entry_points(self):
         with make_temp_env("-c conda-test flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
@@ -450,11 +510,6 @@ class IntegrationTests(TestCase):
             with make_temp_env(tar_bld_path) as prefix2:
                 assert_package_is_installed(prefix2, 'flask-')
 
-
-
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2017, 6, 1), strict=True,
-                       reason="Something happened in the conda shell command PR."
-                              "Probably caused by change in root path.")
     def test_tarball_install_and_bad_metadata(self):
         with make_temp_env("python flask=0.10.1 --json") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
@@ -497,7 +552,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'flask-')
 
             # regression test for #2599
-            linked_data_.clear()
+            PrefixData._cache_ = {}
             flask_metadata = glob(join(prefix, 'conda-meta', flask_fname[:-8] + '.json'))[-1]
             bad_metadata = join(prefix, 'conda-meta', 'flask.json')
             copyfile(flask_metadata, bad_metadata)
@@ -547,7 +602,7 @@ class IntegrationTests(TestCase):
                     del data[field]
             with open(fn, 'w') as f:
                 json.dump(data, f)
-            linked_data_.clear()
+            PrefixData._cache_ = {}
 
             with make_temp_env('-c conda-forge --clone "%s"' % prefix) as clone_prefix:
                 assert_package_is_installed(clone_prefix, 'python-3.5')
@@ -587,6 +642,10 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     def test_install_features(self):
+        with make_temp_env("python=2 numpy nomkl") as prefix:
+            numpy_details = get_conda_list_tuple(prefix, "numpy")
+            assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
+
         with make_temp_env("python=2 numpy") as prefix:
             numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 3 or 'nomkl' not in numpy_details[3]
@@ -610,7 +669,7 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe")
             assert not stderr
             for param_name in context.list_parameters():
-                assert re.search(r'^%s \(' % param_name, stdout, re.MULTILINE)
+                assert re.search(r'^# %s \(' % param_name, stdout, re.MULTILINE)
 
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe --json")
             assert not stderr
@@ -628,6 +687,19 @@ class IntegrationTests(TestCase):
                 json_obj = json.loads(stdout.strip())
                 assert json_obj['envvars'] == {'quiet': True}
                 assert json_obj['cmd_line'] == {'json': True}
+
+            run_command(Commands.CONFIG, prefix, "--set changeps1 false")
+            with pytest.raises(CondaError):
+                run_command(Commands.CONFIG, prefix, "--write-default")
+
+            rm_rf(join(prefix, 'condarc'))
+            run_command(Commands.CONFIG, prefix, "--write-default")
+
+            with open(join(prefix, 'condarc')) as fh:
+                data = fh.read()
+
+            for param_name in context.list_parameters():
+                assert re.search(r'^# %s \(' % param_name, data, re.MULTILINE)
 
     def test_conda_config_validate(self):
         with make_temp_env() as prefix:
@@ -713,6 +785,16 @@ class IntegrationTests(TestCase):
             run_command(Commands.UPDATE, prefix, "--all --no-pin")
             assert not package_is_installed(prefix, "python-2.7")
             assert not package_is_installed(prefix, "itsdangerous-0.23")
+
+    @pytest.mark.xfail(on_win, strict=True, reason="On Windows the Python package is pulled in as 'vc' feature-provider.")
+    def test_package_optional_pinning(self):
+        with make_temp_env("") as prefix:
+            run_command(Commands.CONFIG, prefix,
+                        "--add pinned_packages", "python=3.6.1=2")
+            run_command(Commands.INSTALL, prefix, "openssl")
+            assert not package_is_installed(prefix, "python")
+            run_command(Commands.INSTALL, prefix, "flask")
+            assert package_is_installed(prefix, "python-3.6.1")
 
     def test_update_deps_flag_absent(self):
         with make_temp_env("python=2 itsdangerous=0.23") as prefix:

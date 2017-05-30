@@ -250,7 +250,7 @@ from .collection import AttrDict, frozendict, make_immutable
 from .compat import (integer_types, iteritems, itervalues, odict, string_types, text_type,
                      with_metaclass, isiterable)
 from .exceptions import Raise, ValidationError
-from .ish import find_or_none
+from .ish import find_or_none, find_or_raise
 from .logz import DumpEncoder
 from .type_coercion import maybecall
 
@@ -369,12 +369,13 @@ class Field(object):
     _order_helper = 0
 
     def __init__(self, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, nullable=False, immutable=False, aliases=()):
         self._required = required
         self._validation = validation
         self._in_dump = in_dump
         self._nullable = nullable
         self._immutable = immutable
+        self._aliases = aliases
         self._default = default if callable(default) else self.box(None, default)
         if default is not None:
             self.validate(None, self.box(None, maybecall(default)))
@@ -535,12 +536,12 @@ class DateField(Field):
 class EnumField(Field):
 
     def __init__(self, enum_class, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, nullable=False, immutable=False, aliases=()):
         if not issubclass(enum_class, Enum):
             raise ValidationError(None, msg="enum_class must be an instance of Enum")
         self._type = enum_class
         super(EnumField, self).__init__(default, required, validation,
-                                        in_dump, nullable, immutable)
+                                        in_dump, nullable, immutable, aliases)
 
     def box(self, instance, val):
         if val is None:
@@ -564,10 +565,10 @@ class ListField(Field):
     _type = tuple
 
     def __init__(self, element_type, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, nullable=False, immutable=False, aliases=()):
         self._element_type = element_type
         super(ListField, self).__init__(default, required, validation,
-                                        in_dump, nullable, immutable)
+                                        in_dump, nullable, immutable, aliases)
 
     def box(self, instance, val):
         if val is None:
@@ -615,8 +616,9 @@ class MapField(Field):
     _type = frozendict
 
     def __init__(self, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False):
-        super(MapField, self).__init__(default, required, validation, in_dump, nullable, True)
+                 in_dump=True, nullable=False, aliases=()):
+        super(MapField, self).__init__(default, required, validation, in_dump, nullable, True,
+                                       aliases)
 
     def box(self, instance, val):
         # TODO: really need to make this recursive to make any lists or maps immutable
@@ -633,14 +635,13 @@ class MapField(Field):
                                            "{0}".format(self.name))
 
 
-
 class ComposableField(Field):
 
     def __init__(self, field_class, default=None, required=True, validation=None,
-                 in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, nullable=False, immutable=False, aliases=()):
         self._type = field_class
         super(ComposableField, self).__init__(default, required, validation,
-                                              in_dump, nullable, immutable)
+                                              in_dump, nullable, immutable, aliases)
 
     def box(self, instance, val):
         if val is None:
@@ -655,7 +656,14 @@ class ComposableField(Field):
                     val['slf'] = val.pop('self')
             except KeyError:
                 pass  # no key of 'self', so no worries
-            return val if isinstance(val, self._type) else self._type(**val)
+            if isinstance(val, self._type):
+                return val if isinstance(val, self._type) else self._type(**val)
+            elif isinstance(val, Mapping):
+                return self._type(**val)
+            elif isinstance(val, Sequence) and not isinstance(val, string_types):
+                return self._type(*val)
+            else:
+                return self._type(val)
 
     def dump(self, val):
         return None if val is None else val.dump()
@@ -689,11 +697,15 @@ class EntityType(type):
 
     def __init__(cls, name, bases, attr):
         super(EntityType, cls).__init__(name, bases, attr)
-        fields = odict(cls.__fields__) if hasattr(cls, '__fields__') else odict()
-        fields.update(sorted(((name, field.set_name(name))
-                                      for name, field in iteritems(cls.__dict__)
-                                      if isinstance(field, Field)),
-                                     key=lambda item: item[1]._order_helper))
+
+        fields = odict()
+        _field_sort_key = lambda x: x[1]._order_helper
+        for clz in reversed(type.mro(cls)):
+            clz_fields = ((name, field.set_name(name))
+                          for name, field in iteritems(clz.__dict__)
+                          if isinstance(field, Field))
+            fields.update(sorted(clz_fields, key=_field_sort_key))
+
         cls.__fields__ = frozendict(fields)
         if hasattr(cls, '__register__'):
             cls.__register__()
@@ -718,8 +730,11 @@ class Entity(object):
             try:
                 setattr(self, key, kwargs[key])
             except KeyError:
-                # handle the case of fields inherited from subclass but overrode on class object
-                if key in getattr(self, KEY_OVERRIDES_MAP):
+                alias = next((ls for ls in field._aliases if ls in kwargs), None)
+                if alias is not None:
+                    setattr(self, key, kwargs[alias])
+                elif key in getattr(self, KEY_OVERRIDES_MAP):
+                    # handle the case of fields inherited from subclass but overrode on class object
                     setattr(self, key, getattr(self, KEY_OVERRIDES_MAP)[key])
                 elif field.required and field.default is None:
                     raise ValidationError(key, msg="{0} requires a {1} field. Instantiated with "
@@ -736,8 +751,12 @@ class Entity(object):
         init_vars = dict()
         search_maps = tuple(AttrDict(o) if isinstance(o, dict) else o
                             for o in ((override_fields,) + objects))
-        for key in cls.__fields__:
-            init_vars[key] = find_or_none(key, search_maps)
+        for key, field in iteritems(cls.__fields__):
+            try:
+                init_vars[key] = find_or_raise(key, search_maps, field._aliases)
+            except AttributeError:
+                pass
+
         return cls(**init_vars)
 
     @classmethod
@@ -765,6 +784,8 @@ class Entity(object):
             # TODO: re-enable once aliases are implemented
             # if key.startswith('_'):
             #     return False
+            if '__' in key:
+                return False
             try:
                 getattr(self, key)
                 return True
