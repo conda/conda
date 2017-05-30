@@ -431,7 +431,8 @@ def native_path_to_unix(paths):  # pragma: unix no cover
         raise CalledProcessError(rc, command, message)
     if hasattr(stdout, 'decode'):
         stdout = stdout.decode('utf-8')
-    final = stdout.strip().split(':')
+    stdout = stdout.strip()
+    final = stdout and stdout.split(':') or ()
     return final[0] if single_path else tuple(final)
 
 
