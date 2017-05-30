@@ -419,8 +419,14 @@ def _read_channel_configuration(scheme, host, port, path):
         _scheme, _auth, _token = 'file', None, None
         return location, name, _scheme, _auth, _token
 
-    # Step 7. fall through to host:port as channel_location and path as channel_name
-    return (Url(host=host, port=port).url.rstrip('/'), path.strip('/') or None,
+    # Step 7. fall through to host:port/path as channel_location and path as channel_name
+    path_parts = path.rsplit('/', 1)
+    if len(path_parts) == 2:
+        path, name = path_parts
+    else:
+        path, name = None, path
+
+    return (Url(host=host, port=port, path=path).url.rstrip('/'), name.strip('/') or None,
             scheme or None, None, None)
 
 
