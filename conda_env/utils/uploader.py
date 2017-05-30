@@ -39,13 +39,22 @@ class Uploader(object):
     def __init__(self, packagename, env_file, **kwargs):
         self.packagename = packagename
         self.file = env_file
-        self.summary = kwargs.get('summary')
-        self.env_data = kwargs.get('env_data')
         self.basename = os.path.basename(env_file)
+        self.env_data = kwargs.get('env_data')
+
+    @property
+    def summary(self):
+        if self.env_data and self.env_data.get('summary'):
+            return self.env_data.get('summary')
+        else:
+            return ''
 
     @property
     def version(self):
-        return time.strftime('%Y.%m.%d.%H%M')
+        if self.env_data and self.env_data.get('version'):
+            return self.env_data.get('version')
+        else:
+            return time.strftime('%Y.%m.%d.%H%M')
 
     @property
     def user(self):
@@ -81,8 +90,10 @@ class Uploader(object):
         if self.is_ready():
             with open(self.file, mode='rb') as envfile:
                 return self.binstar.upload(self.username, self.packagename,
-                                           self.version, self.basename, envfile,
-                                           distribution_type=ENVIRONMENT_TYPE, attrs=self.env_data)
+                                           self.version, self.basename,
+                                           envfile,
+                                           distribution_type=ENVIRONMENT_TYPE,
+                                           attrs=self.env_data)
         else:
             raise exceptions.AlreadyExist()
 
@@ -100,13 +111,15 @@ class Uploader(object):
         try:
             self.binstar.package(self.username, self.packagename)
         except errors.NotFound:
-            self.binstar.add_package(self.username, self.packagename, self.summary)
+            self.binstar.add_package(
+                self.username, self.packagename, self.summary)
 
         # TODO: this should be removed as a hard requirement of binstar
         try:
             self.binstar.release(self.username, self.packagename, self.version)
         except errors.NotFound:
-            self.binstar.add_release(self.username, self.packagename, self.version, {}, '', '')
+            self.binstar.add_release(
+                self.username, self.packagename, self.version, {}, '', '')
 
         return True
 
@@ -115,7 +128,8 @@ class Uploader(object):
         Ensure that a package distribution does not exist.
         """
         try:
-            self.binstar.distribution(self.username, self.packagename, self.version, self.basename)
+            self.binstar.distribution(
+                self.username, self.packagename, self.version, self.basename)
         except errors.NotFound:
             return True
         else:

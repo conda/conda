@@ -37,9 +37,20 @@ channels:
   - malev
 '''
 
+environment_4 = '''
+name: env-1
+version: 1.0
+dependencies:
+  - python
+  - flask
+channels:
+  - malev
+'''
+
 test_env_name_1 = "env-1"
 test_env_name_2 = "snowflakes"
 test_env_name_3 = "env_foo"
+test_env_name_4 = "env_with_version"
 
 def escape_for_winpath(p):
     if p:
@@ -198,6 +209,71 @@ class IntegrationTests(unittest.TestCase):
         except Exception as e:
             self.assertIsInstance(e, SpecNotFound, str(e))
 
+
+
+##Start test with version in env
+@pytest.mark.integration
+class IntegrationTests(unittest.TestCase):
+
+    def setUp(self):
+        rm_rf("environment.yml")
+        if env_is_created(test_env_name_4):
+            run_env_command(Commands.ENV_REMOVE, test_env_name_4)
+
+    def tearDown(self):
+        rm_rf("environment.yml")
+        if env_is_created(test_env_name_4):
+            run_env_command(Commands.ENV_REMOVE, test_env_name_4)
+
+    def test_conda_env_create_no_file(self):
+        '''
+        Test `conda env create` without an environment.yml file
+        Should fail
+        '''
+        try:
+            run_env_command(Commands.ENV_CREATE, None)
+        except Exception as e:
+            self.assertIsInstance(e, SpecNotFound)
+
+
+    def test_create_valid_env(self):
+        '''
+        Creates an environment.yml file and
+        creates and environment with it
+        This tests the version
+        '''
+
+        create_env(environment_4)
+        run_env_command(Commands.ENV_CREATE, None)
+        self.assertTrue(env_is_created(test_env_name_4))
+
+        o, e = run_conda_command(Commands.INFO, None, "--json")
+        parsed = json.loads(o)
+        self.assertNotEqual(
+            len([env for env in parsed['envs'] if env.endswith(test_env_name_4)]),
+            0
+        )
+
+    def test_update(self):
+        create_env(environment_4)
+        run_env_command(Commands.ENV_CREATE, None)
+        create_env(environment_4)
+
+        run_env_command(Commands.ENV_UPDATE, test_env_name_4)
+
+        o, e = run_conda_command(Commands.LIST, test_env_name_4, "flask", "--json")
+        parsed = json.loads(o)
+        self.assertNotEqual(len(parsed), 0)
+
+    def test_name(self):
+        # smoke test for gh-254
+        create_env(environment_4)
+        try:
+            run_env_command(Commands.ENV_CREATE, test_env_name_4, "create")
+        except Exception as e:
+            self.assertIsInstance(e, SpecNotFound, str(e))
+
+##End version tests
 
 def env_is_created(env_name):
     """

@@ -3,8 +3,8 @@ from conda.resolve import normalized_version
 from .. import env
 from ..exceptions import EnvironmentFileNotDownloaded
 try:
+    from binstar_client.utils import get_server_api
     from binstar_client import errors
-    from binstar_client.utils import get_binstar
 except ImportError:
     get_binstar = None
 
@@ -32,7 +32,7 @@ class BinstarSpec(object):
         self.name = name
         self.quiet = False
         if get_binstar is not None:
-            self.binstar = get_binstar()
+            self.binstar = get_server_api()
         else:
             self.binstar = None
 

@@ -132,6 +132,40 @@ class EnvironmentTestCase(unittest.TestCase):
         }
         self.assertEqual(e.to_dict(), expected)
 
+    def test_version(self):
+        random_name = 'random{}'.format(random.randint(100, 200))
+        e = env.Environment(
+            name=random_name,
+            channels=['javascript'],
+            dependencies=['nodejs'],
+            version='1.0'
+        )
+
+        expected = {
+            'name': random_name,
+            'channels': ['javascript'],
+            'dependencies': ['nodejs'],
+            'version': '1.0'
+        }
+        self.assertEqual(e.to_dict(), expected)
+
+    def test_summary(self):
+        random_name = 'random{}'.format(random.randint(100, 200))
+        e = env.Environment(
+            name=random_name,
+            channels=['javascript'],
+            dependencies=['nodejs'],
+            summary='This is a summary'
+        )
+
+        expected = {
+            'name': random_name,
+            'channels': ['javascript'],
+            'dependencies': ['nodejs'],
+            'summary': 'This is a summary'
+        }
+        self.assertEqual(e.to_dict(), expected)
+
     def test_to_dict_returns_just_name_if_only_thing_present(self):
         e = env.Environment(name='simple')
         expected = {'name': 'simple'}
@@ -151,7 +185,8 @@ class EnvironmentTestCase(unittest.TestCase):
             'dependencies': ['nodejs']
         }
 
-        actual = yaml.load(StringIO(e.to_yaml()))
+        yaml_str = e.to_yaml()
+        actual = yaml.load(yaml_str)
         self.assertEqual(expected, actual)
 
     def test_to_yaml_returns_proper_yaml(self):
