@@ -19,4 +19,7 @@
 #
 # functoolz._sigs.create_signature_registry()
 
-__version__ = '0.8.0'
+# source: https://github.com/pytoolz/toolz
+# updated: 2017-05-30
+__version__ = '0.8.2'
+
