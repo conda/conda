@@ -185,7 +185,8 @@ class EnvironmentTestCase(unittest.TestCase):
             'dependencies': ['nodejs']
         }
 
-        actual = yaml.load(StringIO(e.to_yaml()))
+        yaml_str = e.to_yaml()
+        actual = yaml.load(yaml_str)
         self.assertEqual(expected, actual)
 
     def test_to_yaml_returns_proper_yaml(self):

@@ -3,7 +3,7 @@ import os
 import sys
 import textwrap
 
-from conda.cli import common, install as cli_install
+from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.misc import touch_nonadmin
 from .common import get_prefix
