@@ -1,19 +1,18 @@
 from __future__ import absolute_import, print_function
 
-import os
 from collections import OrderedDict
-
-from conda.common.yaml import yaml_load
+from copy import copy
+from itertools import chain
+import os
 
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
+from conda.common.serialize import yaml_load
 from conda.core.linked_data import linked
-from copy import copy
-from itertools import chain
-
 from conda_env.yaml import dump
 from . import compat, exceptions, yaml
 from .pip_util import add_pip_installed
+
 
 def load_from_directory(directory):
     """Load and return an ``Environment`` from a given ``directory``"""
