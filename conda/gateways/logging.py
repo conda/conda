@@ -93,10 +93,5 @@ def trace(self, message, *args, **kwargs):
 logging.addLevelName(TRACE, "TRACE")
 logging.Logger.trace = trace
 
-
-def warn(self, message, *args, **kwargs):
-    if self.isEnabledFor(WARN):
-        self._log(WARN, message, args, **kwargs)
-
-logging.addLevelName(WARN, "WARN")
-logging.Logger.warn = warn
+# suppress DeprecationWarning for warn method
+logging.Logger.warn = logging.Logger.warning
