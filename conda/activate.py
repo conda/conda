@@ -150,7 +150,7 @@ class Activator(object):
         help_flags = ('-h', '--help', '/?')
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
         help_requested = len(arguments) != len(non_help_args)
-        remainder_args = tuple(arg for arg in non_help_args if arg != command)
+        remainder_args = tuple(arg for arg in non_help_args if arg and arg != command)
 
         if not command:
             from .exceptions import ArgumentError

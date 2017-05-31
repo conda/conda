@@ -63,6 +63,9 @@ def make_win_ok(path):
 
 
 def print_ps1(env_dirs, raw_ps, number):
+    if ')' in raw_ps:
+        a, _, b = raw_ps.partition(') ')
+        raw_ps = b or a
     return u"(%s) %s" % (make_win_ok(env_dirs[number]), raw_ps)
 
 
@@ -343,6 +346,7 @@ def test_PS1_changeps1(shell):  # , bash_profile
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
+        assert not stderr
         assert_equals(stdout.strip(), print_ps1(env_dirs=gen_test_env_paths(envs, shell),
                                         raw_ps=shell_vars["raw_ps"], number=0).strip(), stderr)
 
@@ -374,14 +378,6 @@ def test_PS1_changeps1(shell):  # , bash_profile
         assert_equals(stdout.strip(), print_ps1(env_dirs=gen_test_env_paths(envs, shell),
                                         raw_ps=shell_vars["raw_ps"], number=0).strip(), stderr)
 
-        # deactivate doesn't do anything bad to PS1 when no env active to deactivate
-        commands = (shell_vars['command_setup'] + """
-        {source} {syspath}{binpath}deactivate
-        {printps1}
-        """).format(envs=envs, **shell_vars)
-        stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, shell_vars['raw_ps'], stderr)
-
         # deactivate script in activated env returns us to raw PS1
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}" {nul}
@@ -394,6 +390,14 @@ def test_PS1_changeps1(shell):  # , bash_profile
         # make sure PS1 is unchanged by faulty activate input
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" two args
+        {printps1}
+        """).format(envs=envs, **shell_vars)
+        stdout, stderr = run_in(commands, shell)
+        assert_equals(stdout, shell_vars['raw_ps'], stderr)
+
+        # deactivate doesn't do anything bad to PS1 when no env active to deactivate
+        commands = (shell_vars['command_setup'] + """
+        {source} {syspath}{binpath}deactivate
         {printps1}
         """).format(envs=envs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
