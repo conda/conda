@@ -264,6 +264,21 @@ def test_activate_root_simple(shell):
         assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shell=shell)), stdout, stderr)
         assert not stderr
 
+        # debug
+        if shell == 'bash.exe':
+            commands = (shell_vars['command_setup'] + """
+            {source} "{syspath}{binpath}activate" root
+            env | sort
+            echo {source} "{syspath}{binpath}deactivate"
+            {source} "{syspath}{binpath}deactivate"
+            env | sort
+            {printpath}
+            """).format(envs=envs, **shell_vars)
+            stdout, stderr = run_in(commands, shell)
+            sys.stdout.write(stdout)
+            sys.stderr.write(stderr)
+
+
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" root
         {source} "{syspath}{binpath}deactivate"
