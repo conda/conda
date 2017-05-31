@@ -33,10 +33,10 @@ _conda_set_vars() {
     if [ -n "${_CONDA_ROOT:+x}" ]; then
         # typically this should be for dev only; _CONDA_EXE should be written at top of file
         # for normal installs
-        _CONDA_EXE="$_CONDA_ROOT/$bin_dir/conda$exe_ext"
+        _CONDA_EXE=""$_CONDA_ROOT/$bin_dir/conda$exe_ext""
     fi
     if ! [ -f "$_CONDA_EXE" ]; then
-        _CONDA_EXE="python $PWD/shell/bin/conda"
+        _CONDA_EXE="python "$PWD/shell/bin/conda""
     fi
 
 }
@@ -53,7 +53,7 @@ _conda_hashr() {
 
 _conda_activate() {
     local ask_conda
-    ask_conda="$("$_CONDA_EXE" shell.posix activate "$@")" || return $?
+    ask_conda="$($_CONDA_EXE shell.posix activate "$@")" || return $?
     eval "$ask_conda"
 
     case "$_CONDA_SHELL_FLAVOR" in
@@ -76,7 +76,7 @@ _conda_activate() {
 
 _conda_deactivate() {
     local ask_conda
-    ask_conda="$("$_CONDA_EXE" shell.posix deactivate "$@")" || return $?
+    ask_conda="$($_CONDA_EXE shell.posix deactivate "$@")" || return $?
     eval "$ask_conda"
 
     if [ -z "$CONDA_PREFIX" ]; then
@@ -91,7 +91,7 @@ _conda_deactivate() {
 
 _conda_reactivate() {
     local ask_conda
-    ask_conda="$("$_CONDA_EXE" shell.posix reactivate "$@")" || return $?
+    ask_conda="$($_CONDA_EXE shell.posix reactivate "$@")" || return $?
     eval "$ask_conda"
 
     _conda_hashr
@@ -108,11 +108,11 @@ conda() {
             _conda_deactivate "$@"
             ;;
         install|update|uninstall|remove)
-            "$_CONDA_EXE" "$cmd" "$@"
+            $_CONDA_EXE "$cmd" "$@"
             _conda_reactivate
             ;;
         *)
-            "$_CONDA_EXE" "$cmd" "$@"
+            $_CONDA_EXE "$cmd" "$@"
             ;;
     esac
 }
