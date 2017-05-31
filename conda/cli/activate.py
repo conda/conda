@@ -69,6 +69,7 @@ def _get_prefix_paths(prefix):
         yield os.path.join(prefix, 'Library', 'usr', 'bin')
         yield os.path.join(prefix, 'Library', 'bin')
         yield os.path.join(prefix, 'Scripts')
+        yield os.path.join(prefix, 'bin')
     else:
         yield os.path.join(prefix, 'bin')
 

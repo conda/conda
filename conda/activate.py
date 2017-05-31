@@ -334,6 +334,7 @@ class Activator(object):
             yield join(prefix, 'Library', 'usr', 'bin')
             yield join(prefix, 'Library', 'bin')
             yield join(prefix, 'Scripts')
+            yield join(prefix, 'bin')
         else:
             yield join(prefix, 'bin')
 
