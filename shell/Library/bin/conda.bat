@@ -1,7 +1,11 @@
 @REM @SET _CONDA_EXE="%~dp0..\..\Scripts\conda.exe"
 
 @IF NOT "%_CONDA_EXE%" == "" GOTO skip_conda_exe_dev
-    @SET "_CONDA_EXE=python %~dp0..\..\bin\conda"
+    @IF "%CONDA_PYTHON_EXE%" == "" (
+        @SET "_CONDA_EXE=python %~dp0..\..\bin\conda"
+    ) ELSE (
+        SET "_CONDA_EXE=%CONDA_PYTHON_EXE% %~dp0..\..\bin\conda"
+    )
 :skip_conda_exe_dev
 
 @FOR /F "delims=" %%i IN ('@python -c "import ctypes; print(ctypes.cdll.kernel32.GetACP())"') DO @SET "PYTHONIOENCODING=%%i"
@@ -10,7 +14,7 @@
 @IF "%1"=="activate" GOTO :DO_ACTIVATE
 @IF "%1"=="deactivate" GOTO :DO_DEACTIVATE
 
-@CALL "%_CONDA_EXE%" %*
+@CALL %_CONDA_EXE% %*
 
 @REM This block should really be the equivalent of
 @REM   if "install" in %* GOTO :DO_DEACTIVATE
