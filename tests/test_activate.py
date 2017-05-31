@@ -230,31 +230,31 @@ class ActivatorUnitTests(TestCase):
                     assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                     assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
-    def test_activate_same_environment(self):
-        with tempdir() as td:
-            mkdir_p(join(td, 'conda-meta'))
-            activate_d_dir = mkdir_p(join(td, 'etc', 'conda', 'activate.d'))
-            activate_d_1 = join(activate_d_dir, 'see-me.sh')
-            activate_d_2 = join(activate_d_dir, 'dont-see-me.bat')
-            touch(join(activate_d_1))
-            touch(join(activate_d_2))
-
-            old_prefix = td
-            deactivate_d_dir = mkdir_p(join(old_prefix, 'etc', 'conda', 'deactivate.d'))
-            deactivate_d_1 = join(deactivate_d_dir, 'see-me.sh')
-            deactivate_d_2 = join(deactivate_d_dir, 'dont-see-me.bat')
-            touch(join(deactivate_d_1))
-            touch(join(deactivate_d_2))
-
-            with env_var('CONDA_SHLVL', '2'):
-                with env_var('CONDA_PREFIX', old_prefix):
-                    activator = Activator('posix')
-                    builder = activator.build_activate(td)
-
-                    assert builder['unset_vars'] == ()
-                    assert builder['set_vars'] == {}
-                    assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
-                    assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
+    # def test_activate_same_environment(self):
+    #     with tempdir() as td:
+    #         mkdir_p(join(td, 'conda-meta'))
+    #         activate_d_dir = mkdir_p(join(td, 'etc', 'conda', 'activate.d'))
+    #         activate_d_1 = join(activate_d_dir, 'see-me.sh')
+    #         activate_d_2 = join(activate_d_dir, 'dont-see-me.bat')
+    #         touch(join(activate_d_1))
+    #         touch(join(activate_d_2))
+    #
+    #         old_prefix = td
+    #         deactivate_d_dir = mkdir_p(join(old_prefix, 'etc', 'conda', 'deactivate.d'))
+    #         deactivate_d_1 = join(deactivate_d_dir, 'see-me.sh')
+    #         deactivate_d_2 = join(deactivate_d_dir, 'dont-see-me.bat')
+    #         touch(join(deactivate_d_1))
+    #         touch(join(deactivate_d_2))
+    #
+    #         with env_var('CONDA_SHLVL', '2'):
+    #             with env_var('CONDA_PREFIX', old_prefix):
+    #                 activator = Activator('posix')
+    #                 builder = activator.build_activate(td)
+    #
+    #                 assert builder['unset_vars'] == ()
+    #                 assert builder['set_vars'] == {}
+    #                 assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
+    #                 assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
     def test_build_deactivate_shlvl_2(self):
         with tempdir() as td:
