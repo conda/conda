@@ -211,9 +211,10 @@ class Activator(object):
         old_conda_prefix = os.getenv('CONDA_PREFIX')
         max_shlvl = self.context.max_shlvl
 
-        if old_conda_prefix == prefix:
-            return self.build_reactivate()
-        elif os.getenv('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
+        # TODO: consider re-enabling this in conda 4.5
+        # if old_conda_prefix == prefix:
+        #     return self.build_reactivate()
+        if os.getenv('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
             # in this case, user is attempting to activate the previous environment,
             #  i.e. step back down
             return self.build_deactivate()

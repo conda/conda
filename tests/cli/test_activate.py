@@ -121,13 +121,22 @@ def _format_vars(shell):
         base_path = shelldict['pathsep'].join(shelldict['path_to'](p)
                                               for p in chain.from_iterable((new_path_parts,
                                                                             old_path_parts)))
-
-    command_setup = """\
+    if shell == 'cmd.exe':
+        _command_setup = """\
+{set} "PYTHONPATH={PYTHONPATH}"
+{set} CONDARC=
+{set} CONDA_PATH_BACKUP=
+{set} "PATH={new_path}"
+"""
+    else:
+        _command_setup = """\
 {set} PYTHONPATH="{PYTHONPATH}"
 {set} CONDARC=
 {set} CONDA_PATH_BACKUP=
 {set} PATH="{new_path}"
-""".format(here=dirname(__file__), PYTHONPATH=shelldict['path_to'](PYTHONPATH),
+"""
+
+    command_setup = _command_setup.format(here=dirname(__file__), PYTHONPATH=shelldict['path_to'](PYTHONPATH),
            set=shelldict["set_var"], new_path=base_path)
     if shelldict["shell_suffix"] == '.bat':
         command_setup = "@echo off\n" + command_setup
@@ -250,6 +259,7 @@ def test_activate_root_simple(shell):
 
         stdout, stderr = run_in(commands, shell)
         assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shell=shell)), stdout, stderr)
+        assert not stderr
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" root
@@ -258,6 +268,7 @@ def test_activate_root_simple(shell):
         """).format(envs=envs, **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
+        assert not stderr
         stdout = strip_leading_library_bin(stdout, shells[shell])
         assert_equals(stdout, u'%s' % shell_vars['base_path'])
 
