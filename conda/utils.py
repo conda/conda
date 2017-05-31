@@ -113,7 +113,7 @@ msys2_shell_base = dict(
                         path_from=unix_path_to_win,
                         path_to=win_path_to_unix,
                         binpath="/Scripts/",  # mind the trailing slash.
-                        printpath="python -c \"import os; print(os.environ['PATH'])\" | cygpath --path -f -",  # NOQA
+                        printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
 
 if on_win:

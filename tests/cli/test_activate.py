@@ -104,7 +104,7 @@ def _format_vars(shell):
         new_path_parts = tuple(
             _get_prefix_paths(join(dirname(CONDA_PACKAGE_ROOT), 'shell'))
         ) + tuple(
-            _get_prefix_paths(dirname(sys.executable))
+            _get_prefix_paths(sys.prefix)
         )
     else:
         new_path_parts = (
@@ -112,9 +112,15 @@ def _format_vars(shell):
             dirname(sys.executable),
         )
 
-    base_path = shelldict['pathsep'].join(shelldict['path_to'](p)
-                                          for p in chain.from_iterable((new_path_parts,
-                                                                        old_path_parts)))
+    if shell == 'bash.exe':
+        from conda.activate import native_path_to_unix
+        base_paths = tuple(p for p in chain.from_iterable((new_path_parts, old_path_parts)))
+        base_path = ':'.join(native_path_to_unix(base_paths))
+
+    else:
+        base_path = shelldict['pathsep'].join(shelldict['path_to'](p)
+                                              for p in chain.from_iterable((new_path_parts,
+                                                                            old_path_parts)))
 
     command_setup = """\
 {set} PYTHONPATH="{PYTHONPATH}"
