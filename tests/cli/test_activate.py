@@ -34,7 +34,7 @@ def gen_test_env_paths(envs, shell, num_test_folders=5):
     for path in paths[:2]:
         # These tests assume only the first two paths can be activated
         # Create symlinks ONLY for the first two folders.
-        symlink_conda(path, sys.prefix, shell)
+        # symlink_conda(path, sys.prefix, shell)
         mkdir_p(join(path, 'conda-meta'))
         touch(join(path, 'conda-meta', 'history'))
     converter = shells[shell]["path_to"]
