@@ -210,13 +210,13 @@ def test_activate_bad_directory(shell):
         # Strange semicolons are here to defeat MSYS' automatic path conversion.
         #   See http://www.mingw.org/wiki/Posix_path_conversion
         commands = (shell_vars['command_setup'] + """
-        {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
+        {source} "{syspath}{binpath}activate" "{env_dirs[3]}"
         {printpath}
         """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
         # another semicolon here for comparison reasons with one above.
         assert 'could not find conda environment' in stderr.lower() or 'not a conda environment' in stderr.lower()
-        assert_not_in(env_dirs[2], stdout)
+        assert_not_in(env_dirs[3], stdout)
 
 
 @pytest.mark.installed
@@ -225,12 +225,12 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} {syspath}{binpath}activate "{env_dirs[0]}" {nul}
-        {source} "{syspath}{binpath}activate" "{env_dirs[2]}"
+        {source} "{syspath}{binpath}activate" "{env_dirs[3]}"
         {printpath}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shell)),stdout)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 1', shell)), stdout)
 
 
 @pytest.mark.installed
@@ -362,7 +362,6 @@ def test_PS1_changeps1(shell):  # , bash_profile
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert not stderr
         assert_equals(stdout, shell_vars['raw_ps'], stderr)
 
         # ensure that a failed activate does not touch PS1 (envs[3] folders do not exist.)
@@ -372,7 +371,6 @@ def test_PS1_changeps1(shell):  # , bash_profile
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert not stderr
         assert_equals(stdout.strip(), print_ps1(env_dirs=gen_test_env_paths(envs, shell),
                                         raw_ps=shell_vars["raw_ps"], number=0).strip(), stderr)
 
