@@ -539,11 +539,12 @@ def test_activate_from_env(shell):
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         env_dirs=gen_test_env_paths(envs, shell)
         commands = (shell_vars['command_setup'] + """
-        {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
-        {source} "activate" "{env_dirs[1]}"
+        {source} {syspath}{binpath}activate "{env_dirs[0]}"
+        {source} activate "{env_dirs[1]}"
         {printdefaultenv}
         """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
+        assert not stderr
         # rstrip on output is because the printing to console picks up an extra space
         assert_equals(stdout.rstrip(), make_win_ok(env_dirs[1]), stderr)
 
@@ -555,10 +556,11 @@ def test_deactivate_from_env(shell):
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
-        {source} "deactivate"
+        {source} deactivate
         {printdefaultenv}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
+        assert not stderr
         assert_equals(stdout, u'', stderr)
 
 
