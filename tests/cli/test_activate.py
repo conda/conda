@@ -362,6 +362,7 @@ def test_PS1_changeps1(shell):  # , bash_profile
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
+        assert not stderr
         assert_equals(stdout, shell_vars['raw_ps'], stderr)
 
         # ensure that a failed activate does not touch PS1 (envs[3] folders do not exist.)
@@ -371,6 +372,7 @@ def test_PS1_changeps1(shell):  # , bash_profile
         {printps1}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
+        assert not stderr
         assert_equals(stdout.strip(), print_ps1(env_dirs=gen_test_env_paths(envs, shell),
                                         raw_ps=shell_vars["raw_ps"], number=0).strip(), stderr)
 
@@ -536,7 +538,7 @@ def test_activate_from_env(shell):
         env_dirs=gen_test_env_paths(envs, shell)
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
-        {source} "{env_dirs[0]}{binpath}activate" "{env_dirs[1]}"
+        {source} "activate" "{env_dirs[1]}"
         {printdefaultenv}
         """).format(envs=envs, env_dirs=env_dirs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
@@ -551,7 +553,7 @@ def test_deactivate_from_env(shell):
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
-        {source} "{syspath}{binpath}deactivate"
+        {source} "deactivate"
         {printdefaultenv}
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
