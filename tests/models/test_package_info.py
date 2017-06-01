@@ -40,4 +40,4 @@ class DefaultPackageInfo(TestCase):
         self.assertIsInstance(package_info.paths_data.paths[0], PathData)
         self.assertIsInstance(package_info.index_json_record, IndexRecord)
         self.assertIsInstance(package_info.package_metadata.noarch, Noarch)
-        self.assertEquals(package_info.paths_data.paths[0].path, "test/path/1")
+        assert package_info.paths_data.paths[0].path == "test/path/1"

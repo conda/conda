@@ -457,7 +457,7 @@ class IntegrationTests(TestCase):
             revision_output = run_command(Commands.LIST, prefix, '--revisions')
             stdout = revision_output[0]
             stderr = revision_output[1]
-            self.assertEquals(stderr, '')
+            assert stderr == ''
             self.assertIsInstance(stdout, str)
 
     def test_list_with_pip_egg(self):

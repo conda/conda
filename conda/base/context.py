@@ -756,7 +756,8 @@ def _get_user_agent(context_platform):
 
     libc_family, libc_ver = linux_get_libc_version()
     if context_platform == 'linux':
-        distinfo = platform.linux_distribution()
+        from .._vendor.distro import linux_distribution
+        distinfo = linux_distribution(full_distribution_name=False)
         dist, ver = distinfo[0], distinfo[1]
     elif context_platform == 'osx':
         dist = 'OSX'

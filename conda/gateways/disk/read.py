@@ -51,7 +51,7 @@ def yield_lines(path):
                 yield line
     except (IOError, OSError) as e:
         if e.errno == ENOENT:
-            raise StopIteration
+            pass
         else:
             raise
 

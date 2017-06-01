@@ -132,7 +132,7 @@ class TestExecutePlan(unittest.TestCase):
         try:
             instructions.check_files_in_package(source_dir, files)
         except CondaFileIOError as e:
-            self.assertEquals(type(e), CondaFileIOError)
+            assert isinstance(e, CondaFileIOError)
         else:
             self.fail('CondaFileIOError not raised')
 

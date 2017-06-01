@@ -1,12 +1,10 @@
 from collections import OrderedDict
 import os
-import sys
 import random
-import textwrap
 import unittest
 
-from conda.common.serialize import get_yaml
-yaml = get_yaml()
+from conda.common.serialize import yaml_load
+
 
 try:
     from io import StringIO
@@ -42,9 +40,9 @@ class from_file_TestCase(unittest.TestCase):
 
     def test_with_pip(self):
         e = env.from_file(utils.support_file('with-pip.yml'))
-        self.assert_('pip' in e.dependencies)
-        self.assert_('foo' in e.dependencies['pip'])
-        self.assert_('baz' in e.dependencies['pip'])
+        assert 'pip' in e.dependencies
+        assert 'foo' in e.dependencies['pip']
+        assert 'baz' in e.dependencies['pip']
 
 
 class EnvironmentTestCase(unittest.TestCase):
@@ -151,7 +149,7 @@ class EnvironmentTestCase(unittest.TestCase):
             'dependencies': ['nodejs']
         }
 
-        actual = yaml.load(StringIO(e.to_yaml()))
+        actual = yaml_load(StringIO(e.to_yaml()))
         self.assertEqual(expected, actual)
 
     def test_to_yaml_returns_proper_yaml(self):
@@ -165,9 +163,9 @@ class EnvironmentTestCase(unittest.TestCase):
         expected = '\n'.join([
             "name: %s" % random_name,
             "channels:",
-            "- javascript",
+            "  - javascript",
             "dependencies:",
-            "- nodejs",
+            "  - nodejs",
             ""
         ])
 
@@ -188,9 +186,9 @@ class EnvironmentTestCase(unittest.TestCase):
         expected = "\n".join([
             'name: %s' % random_name,
             'channels:',
-            '- javascript',
+            '  - javascript',
             'dependencies:',
-            '- nodejs',
+            '  - nodejs',
             '',
         ])
         self.assertEqual(expected, s.output)
@@ -205,17 +203,17 @@ class EnvironmentTestCase(unittest.TestCase):
         expected = "\n".join([
             'name: nlp',
             'dependencies:',
-            '- nltk',
-            '- bar',
+            '  - nltk',
+            '  - bar',
             ''
         ])
         self.assertEqual(expected, s.output)
 
     def test_dependencies_update_after_adding(self):
         e = get_simple_environment()
-        self.assert_('bar' not in e.dependencies['conda'])
+        assert 'bar' not in e.dependencies['conda']
         e.dependencies.add('bar')
-        self.assert_('bar' in e.dependencies['conda'])
+        assert 'bar' in e.dependencies['conda']
 
 
 class DirectoryTestCase(unittest.TestCase):
@@ -236,7 +234,7 @@ class DirectoryTestCase(unittest.TestCase):
 
     def test_has_dependencies(self):
         self.assertEqual(1, len(self.env.dependencies['conda']))
-        self.assert_('numpy' in self.env.dependencies['conda'])
+        assert 'numpy' in self.env.dependencies['conda']
 
 
 class load_from_directory_example_TestCase(DirectoryTestCase):
@@ -291,7 +289,7 @@ class LoadEnvFromFileAndSaveTestCase(unittest.TestCase):
 
         e = env.load_from_directory(self.env_path)
         self.assertEqual(2, len(e.dependencies['conda']))
-        self.assert_('numpy' in e.dependencies['conda'])
+        assert 'numpy' in e.dependencies['conda']
 
 
 class EnvironmentSaveTestCase(unittest.TestCase):
