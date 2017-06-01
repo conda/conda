@@ -405,16 +405,6 @@ class SpecStrParsingTests(TestCase):
             "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
         }
 
-        url = "/hm/vagrant/miniconda/conda-bld/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
-        assert _parse_spec_str(url) == {
-            "channel": "file:///hm/vagrant/miniconda/conda-bld",
-            "subdir": "linux-64",
-            "name": "conda",
-            "version": "4.3.21.post699+1dab973",
-            "build": "py36h4a561cd_0",
-            "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
-        }
-
     def test_parse_spec_str_no_brackets(self):
         assert _parse_spec_str("numpy") == {
             "name": "numpy",
