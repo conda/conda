@@ -121,7 +121,6 @@ install_conda_shell_scripts() {
 
     local prefix=${1:-$INSTALL_PREFIX}
     local src_dir=${2:-${SRC_DIR:-$PWD}}
-    local symlink_scripts=${3:-1}
 
     local conda_exe="$prefix/$BIN_DIR/conda$EXE_EXT"
 
@@ -364,6 +363,7 @@ run_tests() {
         flake8 --statistics
     elif [ -n "$CONDA_BUILD" ]; then
         # conda_build_smoke_test
+        install_conda_shell_scripts
         conda_build_test
     elif [ -n "$SHELL_INTEGRATION" ]; then
         conda_unit_test
