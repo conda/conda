@@ -824,7 +824,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous-0.23')
             assert package_is_installed(prefix, 'flask')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 6, 1), reason="#5263", strict=True)
+    @pytest.mark.xfail(datetime.now() < datetime(2017, 7, 1), reason="#5263", strict=True)
     def test_update_deps_flag_present(self):
         with make_temp_env("python=2 itsdangerous=0.23") as prefix:
             assert package_is_installed(prefix, 'python-2')
