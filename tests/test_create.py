@@ -1243,8 +1243,11 @@ class IntegrationTests(TestCase):
                 assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
                 assert any(basename(f).startswith('flask-') for f in pkgs_dir_tarballs)
 
-                run_command(Commands.CLEAN, prefix, "--packages --yes")
-                run_command(Commands.CLEAN, prefix, "--tarballs --yes")
+                # --json flag is regression test for #5451
+                run_command(Commands.CLEAN, prefix, "--packages --yes --json")
+
+                # --json flag is regression test for #5451
+                run_command(Commands.CLEAN, prefix, "--tarballs --yes --json")
 
                 pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
                 pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
@@ -1269,7 +1272,8 @@ class IntegrationTests(TestCase):
 
         assert all(isdir(d) for d in itervalues(cache_dirs))
 
-        run_command(Commands.CLEAN, '', "--source-cache --yes")
+        # --json flag is regression test for #5451
+        run_command(Commands.CLEAN, '', "--source-cache --yes  --json")
 
         assert not all(isdir(d) for d in itervalues(cache_dirs))
 

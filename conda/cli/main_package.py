@@ -18,7 +18,6 @@ import tarfile
 import tempfile
 
 from .conda_argparse import add_parser_prefix
-from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context, get_prefix
 from ..common.compat import PY3, itervalues
 
@@ -143,6 +142,8 @@ def create_info(name, version, build_number, requires_py):
 
 shebang_pat = re.compile(r'^#!.+$', re.M)
 def fix_shebang(tmp_dir, path):
+    from ..install import PREFIX_PLACEHOLDER
+
     if open(path, 'rb').read(2) != '#!':
         return False
 

@@ -64,6 +64,15 @@
 * remove pycrypto as requirement on windows (#5326)
 
 
+## 4.3.22 (unreleased)
+
+### Improvements
+* resolve #5428 clean up cli import in conda 4.3.x (#5429)
+
+### Bug Fixes
+* fix #5451 conda clean --json bug (#5452)
+
+
 ## 4.3.21 (2017-05-25)
 
 ### Bug Fixes

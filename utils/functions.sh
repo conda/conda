@@ -232,6 +232,10 @@ install_conda_dev() {
     install_python $prefix
 
     $prefix/$BIN_DIR/pip install -r utils/requirements-test.txt
+    rm -rf conda/.version
+    # $prefix/bin/python utils/setup-testing.py develop
+    $prefix/bin/python utils/setup-testing.py --version > conda/.version
+
 
     if [ -n "$ON_WIN" ]; then
         $PYTHON_EXE utils/setup-testing.py develop  # this, just for the conda.exe and conda-env.exe file
@@ -375,7 +379,7 @@ conda_build_test() {
 
     # TODO: remove -k flag when conda/conda-build#1927 is merged
     $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "not xattr"
-    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests
+    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "not xattr"
     popd
 }
 
