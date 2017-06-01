@@ -202,6 +202,7 @@ def test_activate_env_from_env_with_root_activate(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
+        assert not stderr
         assert_in(shells[shell]['pathsep'].join(_envpaths(envs, 'test 2', shell)), stdout)
 
 

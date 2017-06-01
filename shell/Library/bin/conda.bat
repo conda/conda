@@ -2,9 +2,9 @@
 
 @IF NOT "%_CONDA_EXE%" == "" GOTO skip_conda_exe_dev
     @IF "%CONDA_PYTHON_EXE%" == "" (
-        @SET "_CONDA_EXE=python %~dp0..\..\bin\conda"
+        @SET "_CONDA_EXE=python "%~dp0..\..\bin\conda""
     ) ELSE (
-        @SET "_CONDA_EXE=%CONDA_PYTHON_EXE% %~dp0..\..\bin\conda"
+        @SET "_CONDA_EXE="%CONDA_PYTHON_EXE%" "%~dp0..\..\bin\conda""
     )
 :skip_conda_exe_dev
 
