@@ -51,7 +51,7 @@ log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
 stderrlog = getLogger('stderrlog')
 
-REPODATA_PICKLE_VERSION = 1
+REPODATA_PICKLE_VERSION = 2
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
 
@@ -389,10 +389,13 @@ def process_repodata(repodata, channel_url, schannel, priority):
     if not opackages:
         return repodata
 
+    subdir = repodata.get('info', {}).get('subdir') or Channel(channel_url).subdir
+
     repodata['_add_pip'] = add_pip = context.add_pip_as_python_dependency
     repodata['_pickle_version'] = REPODATA_PICKLE_VERSION
     repodata['_priority'] = priority = Priority(priority)
     repodata['_schannel'] = schannel
+    repodata['_subdir'] = subdir
 
     meta_in_common = {  # just need to make this once, then apply with .update()
         'arch': repodata.get('info', {}).get('arch'),
@@ -400,6 +403,7 @@ def process_repodata(repodata, channel_url, schannel, priority):
         'platform': repodata.get('info', {}).get('platform'),
         'priority': priority,
         'schannel': schannel,
+        'subdir': subdir,
     }
     packages = {}
     for fn, info in iteritems(opackages):

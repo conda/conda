@@ -7,7 +7,7 @@ PYPY = hasattr(sys, 'pypy_version_info')
 
 __all__ = ('map', 'filter', 'range', 'zip', 'reduce', 'zip_longest',
            'iteritems', 'iterkeys', 'itervalues', 'filterfalse',
-           'PY3', 'PY34', 'PYPY')
+           'PY3', 'PY34', 'PYPY', 'import_module')
 
 if PY3:
     map = map
@@ -31,3 +31,10 @@ else:
     iteritems = operator.methodcaller('iteritems')
     iterkeys = operator.methodcaller('iterkeys')
     itervalues = operator.methodcaller('itervalues')
+
+try:
+    from importlib import import_module
+except ImportError:
+    def import_module(name):
+        __import__(name)
+        return sys.modules[name]

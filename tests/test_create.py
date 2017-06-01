@@ -43,9 +43,9 @@ from conda.common.io import argv, captured, disable_logger, env_var, replace_log
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
 from conda.common.url import path_to_url
-from conda.common.yaml import yaml_load
+from conda.common.serialize import yaml_load
 from conda.core.linked_data import get_python_version_for_prefix, \
-    linked as install_linked, linked_data, linked_data_
+    linked as install_linked, linked_data, PrefixData
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
 from conda.exceptions import CondaHTTPError, DryRunExit, PackageNotFoundError, RemoveError, \
@@ -57,6 +57,7 @@ from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
 from conda.models.index_record import IndexRecord
+from conda.models.prefix_record import PrefixRecord
 from conda.utils import on_win
 
 try:
@@ -206,7 +207,7 @@ def make_temp_channel(packages):
 
         pkg_data = pkg_data.dump()
         for field in ('url', 'channel', 'schannel'):
-            del pkg_data[field]
+            pkg_data.pop(field, None)
         repodata['packages'][fname] = IndexRecord(**pkg_data)
 
     with make_temp_env() as channel:
@@ -456,7 +457,7 @@ class IntegrationTests(TestCase):
             revision_output = run_command(Commands.LIST, prefix, '--revisions')
             stdout = revision_output[0]
             stderr = revision_output[1]
-            self.assertEquals(stderr, '')
+            assert stderr == ''
             self.assertIsInstance(stdout, str)
 
     def test_list_with_pip_egg(self):
@@ -509,11 +510,6 @@ class IntegrationTests(TestCase):
             with make_temp_env(tar_bld_path) as prefix2:
                 assert_package_is_installed(prefix2, 'flask-')
 
-
-
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2017, 6, 1), strict=True,
-                       reason="Something happened in the conda shell command PR."
-                              "Probably caused by change in root path.")
     def test_tarball_install_and_bad_metadata(self):
         with make_temp_env("python flask=0.10.1 --json") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
@@ -556,7 +552,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'flask-')
 
             # regression test for #2599
-            linked_data_.clear()
+            PrefixData._cache_ = {}
             flask_metadata = glob(join(prefix, 'conda-meta', flask_fname[:-8] + '.json'))[-1]
             bad_metadata = join(prefix, 'conda-meta', 'flask.json')
             copyfile(flask_metadata, bad_metadata)
@@ -606,7 +602,7 @@ class IntegrationTests(TestCase):
                     del data[field]
             with open(fn, 'w') as f:
                 json.dump(data, f)
-            linked_data_.clear()
+            PrefixData._cache_ = {}
 
             with make_temp_env('-c conda-forge --clone "%s"' % prefix) as clone_prefix:
                 assert_package_is_installed(clone_prefix, 'python-3.5')
@@ -646,6 +642,10 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     def test_install_features(self):
+        with make_temp_env("python=2 numpy nomkl") as prefix:
+            numpy_details = get_conda_list_tuple(prefix, "numpy")
+            assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
+
         with make_temp_env("python=2 numpy") as prefix:
             numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 3 or 'nomkl' not in numpy_details[3]
@@ -700,6 +700,23 @@ class IntegrationTests(TestCase):
 
             for param_name in context.list_parameters():
                 assert re.search(r'^# %s \(' % param_name, data, re.MULTILINE)
+
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe --json")
+            assert not stderr
+            json_obj = json.loads(stdout.strip())
+            assert len(json_obj) >= 42
+            assert 'description' in json_obj[0]
+
+            with env_var('CONDA_QUIET', 'yes', reset_context):
+                stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources")
+                assert not stderr
+                assert 'envvars' in stdout.strip()
+
+                stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources --json")
+                assert not stderr
+                json_obj = json.loads(stdout.strip())
+                assert json_obj['envvars'] == {'quiet': True}
+                assert json_obj['cmd_line'] == {'json': True}
 
     def test_conda_config_validate(self):
         with make_temp_env() as prefix:
@@ -807,7 +824,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous-0.23')
             assert package_is_installed(prefix, 'flask')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 6, 1), reason="#5263", strict=True)
+    @pytest.mark.xfail(datetime.now() < datetime(2017, 7, 1), reason="#5263", strict=True)
     def test_update_deps_flag_present(self):
         with make_temp_env("python=2 itsdangerous=0.23") as prefix:
             assert package_is_installed(prefix, 'python-2')
@@ -1226,8 +1243,11 @@ class IntegrationTests(TestCase):
                 assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
                 assert any(basename(f).startswith('flask-') for f in pkgs_dir_tarballs)
 
-                run_command(Commands.CLEAN, prefix, "--packages --yes")
-                run_command(Commands.CLEAN, prefix, "--tarballs --yes")
+                # --json flag is regression test for #5451
+                run_command(Commands.CLEAN, prefix, "--packages --yes --json")
+
+                # --json flag is regression test for #5451
+                run_command(Commands.CLEAN, prefix, "--tarballs --yes --json")
 
                 pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
                 pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
@@ -1252,7 +1272,8 @@ class IntegrationTests(TestCase):
 
         assert all(isdir(d) for d in itervalues(cache_dirs))
 
-        run_command(Commands.CLEAN, '', "--source-cache --yes")
+        # --json flag is regression test for #5451
+        run_command(Commands.CLEAN, '', "--source-cache --yes  --json")
 
         assert not all(isdir(d) for d in itervalues(cache_dirs))
 

@@ -18,9 +18,8 @@ from .. import CondaError
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import isiterable, iteritems, string_types, text_type
-from ..common.configuration import pretty_list, pretty_map
 from ..common.constants import NULL
-from ..common.yaml import yaml_dump, yaml_load
+from ..common.serialize import yaml_dump, yaml_load
 from ..config import rc_other, sys_rc_path, user_rc_path
 
 descr = """
@@ -219,6 +218,8 @@ def execute(args, parser):
 
 
 def format_dict(d):
+    from ..common.configuration import pretty_list, pretty_map
+
     lines = []
     for k, v in iteritems(d):
         if isinstance(v, collections.Mapping):
@@ -427,6 +428,7 @@ def execute_config(args, parser):
             if not isinstance(rc_config.get(key, []), list):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
+                from ..exceptions import CouldntParseError
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
             if key == 'default_channels' and rc_path != sys_rc_path:
                 msg = "'default_channels' is only configurable for system installs"

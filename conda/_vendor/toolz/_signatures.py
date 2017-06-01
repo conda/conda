@@ -17,7 +17,7 @@ import inspect
 import itertools
 import operator
 
-from .compatibility import PY3
+from .compatibility import PY3, import_module
 from .functoolz import (is_partial_args, is_arity, has_varargs,
                         has_keywords, num_required_args)
 
@@ -706,10 +706,7 @@ signatures = {}
 def create_signature_registry(module_info=module_info, signatures=signatures):
     for module, info in module_info.items():
         if isinstance(module, str):
-            modnames = module.split('.')
-            module = __import__(module)
-            for attr in modnames[1:]:
-                module = getattr(module, attr)
+            module = import_module(module)
         for name, sigs in info.items():
             if hasattr(module, name):
                 new_sigs = tuple(expand_sig(sig) for sig in sigs)

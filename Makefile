@@ -17,6 +17,7 @@ clean:
 	@rm -rf *.egg-info* .cache build
 	@rm -f .coverage .coverage.* junit.xml tmpfile.rc conda/.version tempfile.rc coverage.xml
 	@rm -rf auxlib bin conda/progressbar
+	@rm -rf conda-build conda_build_test_recipe record.txt
 
 
 clean-all: clean

@@ -2,9 +2,10 @@
 
 ### New Features
 * constrained, optional dependencies (#4982)
-* conda shell function (#5044, #5141, #5162, #5169, #5182)
+* conda shell function (#5044, #5141, #5162, #5169, #5182, #5210)
 * resolve #5160 conda xontrib plugin (#5157)
 * resolve #1543 add support and tests for --no-deps and --only-deps (#5265)
+* resolve #988 allow channel name to be part of the package name spec (#5365)
 
 ### Deprecations/Breaking Changes
 * remove support for with_features_depends (#5191)
@@ -31,6 +32,7 @@
 * resolve #5358 conda should exec to subcommands, not subprocess (#5359)
 * resolve #5411 add 'conda config --write-default' (#5412)
 * resolve #5081 make pinned packages optional dependencies (#5414)
+* resolve #5430 eliminate current deprecation warnings (#5422)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -60,6 +62,15 @@
 * clean up FileNotFoundError and DirectoryNotFoundError (#5237)
 * add assertion that a path only has a single hard link before rewriting prefixes (#5305)
 * remove pycrypto as requirement on windows (#5326)
+
+
+## 4.3.22 (unreleased)
+
+### Improvements
+* resolve #5428 clean up cli import in conda 4.3.x (#5429)
+
+### Bug Fixes
+* fix #5451 conda clean --json bug (#5452)
 
 
 ## 4.3.21 (2017-05-25)

@@ -7,8 +7,9 @@ import unittest
 from conda.common.io import env_var
 
 from conda.base.constants import MAX_CHANNEL_PRIORITY
-from conda.base.context import reset_context
+from conda.base.context import reset_context, context
 from conda.common.compat import iteritems, text_type
+from conda.common.io import env_var
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.dist import Dist
 from conda.models.channel import Channel
@@ -23,11 +24,19 @@ from conda.resolve import MatchSpec, Resolve, NoPackagesFound, Unsatisfiable
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
-    repodata = json.load(fi)
+    packages = json.load(fi)
+    repodata = {
+        "info": {
+            "subdir": context.subdir,
+            "arch": context.arch_name,
+            "platform": context.platform,
+        },
+        "packages": packages,
+    }
 
 index = {}
 channel = Channel('defaults')
-supplement_index_with_repodata(index, {'packages': repodata}, channel, 1)
+supplement_index_with_repodata(index, repodata, channel, 1)
 supplement_index_with_features(index, ('mkl',))
 r = Resolve(index)
 
@@ -53,7 +62,7 @@ class TestSolve(unittest.TestCase):
         self.assertEqual(r.explicit(['zlib']), None)
         self.assertEqual(r.explicit(['zlib 1.2.7']), None)
         # because zlib has no dependencies it is also explicit
-        exp_result = r.explicit([MatchSpec('zlib 1.2.7 0', schannel='defaults')])
+        exp_result = r.explicit([MatchSpec('zlib 1.2.7 0', channel='defaults')])
         self.assertEqual(exp_result, [Dist('defaults::zlib-1.2.7-0.tar.bz2')])
 
     def test_explicit2(self):
@@ -113,8 +122,9 @@ class TestSolve(unittest.TestCase):
               'zlib-1.2.7-0.tar.bz2']])
 
     def test_mkl(self):
-        self.assertEqual(r.install(['mkl']),
-                         r.install(['mkl 11*', 'mkl@']))
+        a = r.install(['mkl 11*', 'mkl@'])
+        b = r.install(['mkl'])
+        assert a == b
 
     def test_accelerate(self):
         self.assertEqual(
@@ -171,8 +181,8 @@ def test_get_dists():
 
 
 def test_generate_eq():
-    dists = r.get_reduced_index(['anaconda'])
-    r2 = Resolve(dists, True, True)
+    reduced_index = r.get_reduced_index(['anaconda'])
+    r2 = Resolve(reduced_index, True, True)
     C = r2.gen_clauses()
     eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
     # Should satisfy the following criteria:
@@ -413,6 +423,10 @@ def test_nonexistent():
 def test_nonexistent_deps():
     index2 = index.copy()
     index2['mypackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*', 'notarealpackage 2.0*'],
@@ -421,6 +435,10 @@ def test_nonexistent_deps():
         'version': '1.0',
     })
     index2['mypackage-1.1-py33_0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*'],
@@ -429,6 +447,10 @@ def test_nonexistent_deps():
         'version': '1.1',
     })
     index2['anotherpackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage 1.1'],
@@ -437,6 +459,10 @@ def test_nonexistent_deps():
         'version': '1.0',
     })
     index2['anotherpackage-2.0-py33_0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage'],
@@ -519,6 +545,10 @@ def test_nonexistent_deps():
     # This time, the latest version is messed up
     index3 = index.copy()
     index3['mypackage-1.1-py33_0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*', 'notarealpackage 2.0*'],
@@ -527,6 +557,10 @@ def test_nonexistent_deps():
         'version': '1.1',
     })
     index3['mypackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'python 3.3*'],
@@ -535,6 +569,10 @@ def test_nonexistent_deps():
         'version': '1.0',
     })
     index3['anotherpackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage 1.0'],
@@ -543,6 +581,10 @@ def test_nonexistent_deps():
         'version': '1.0',
     })
     index3['anotherpackage-2.0-py33_0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['nose', 'mypackage'],
@@ -625,6 +667,10 @@ def test_nonexistent_deps():
 def test_install_package_with_feature():
     index2 = index.copy()
     index2['mypackage-1.0-featurepy33_0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': 'featurepy33_0',
         'build_number': 0,
         'depends': ['python 3.3*'],
@@ -633,6 +679,10 @@ def test_install_package_with_feature():
         'features': 'feature',
     })
     index2['feature-1.0-py33_0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': 'py33_0',
         'build_number': 0,
         'depends': ['python 3.3*'],
@@ -651,6 +701,10 @@ def test_install_package_with_feature():
 def test_circular_dependencies():
     index2 = index.copy()
     index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': '0',
         'build_number': 0,
         'depends': ['package2'],
@@ -659,6 +713,10 @@ def test_circular_dependencies():
         'version': '1.0',
     })
     index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': '0',
         'build_number': 0,
         'depends': ['package1'],
@@ -686,14 +744,22 @@ def test_circular_dependencies():
 def test_optional_dependencies():
     index2 = index.copy()
     index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': '0',
         'build_number': 0,
-        'depends': ['package2 >1.0 (optional)'],
+        'constrains': ['package2 >1.0'],
         'name': 'package1',
         'requires': ['package2'],
         'version': '1.0',
     })
     index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': '0',
         'build_number': 0,
         'depends': [],
@@ -702,6 +768,10 @@ def test_optional_dependencies():
         'version': '1.0',
     })
     index2['package2-2.0-0.tar.bz2'] = IndexRecord(**{
+        "channel": "defaults",
+        "subdir": context.subdir,
+        "md5": "0123456789",
+        "fn": "doesnt-matter-here",
         'build': '0',
         'build_number': 0,
         'depends': [],
@@ -775,6 +845,10 @@ def test_no_features():
 
     index2 = index.copy()
     index2["defaults::pandas-0.12.0-np16py27_0.tar.bz2"] = IndexRecord(**{
+            "channel": "defaults",
+            "subdir": context.subdir,
+            "md5": "0123456789",
+            "fn": "doesnt-matter-here",
             "build": "np16py27_0",
             "build_number": 0,
             "depends": [
@@ -794,6 +868,10 @@ def test_no_features():
         })
     # Make it want to choose the pro version by having it be newer.
     index2["defaults::numpy-1.6.2-py27_p5.tar.bz2"] = IndexRecord(**{
+            "channel": "defaults",
+            "subdir": context.subdir,
+            "md5": "0123456789",
+            "fn": "doesnt-matter-here",
             "build": "py27_p5",
             "build_number": 5,
             "depends": [

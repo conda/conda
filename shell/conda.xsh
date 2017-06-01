@@ -32,14 +32,14 @@ def _raise_pipeline_error(pipeline):
 
 
 def _conda_activate_handler(env_name_or_prefix):
-    pipeline = !(@(_CONDA_EXE) shell.activate xonsh @(env_name_or_prefix))
+    pipeline = !(@(_CONDA_EXE) shell.xonsh activate @(env_name_or_prefix))
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
     os.unlink(stdout)
 
 
 def _conda_deactivate_handler():
-    pipeline = !(@(_CONDA_EXE) shell.deactivate xonsh)
+    pipeline = !(@(_CONDA_EXE) shell.xonsh deactivate)
     stdout = _raise_pipeline_error(pipeline)
     source @(stdout)
     os.unlink(stdout)
@@ -55,7 +55,7 @@ def _conda_reactivate_handler(args, name_or_prefix_given):
     _raise_pipeline_error(pipeline)
 
     if not name_or_prefix_given:
-        pipeline = !(@(_CONDA_EXE) shell.reactivate xonsh)
+        pipeline = !(@(_CONDA_EXE) shell.xonsh reactivate)
         stdout = _raise_pipeline_error(pipeline)
         source @(stdout)
         os.unlink(stdout)

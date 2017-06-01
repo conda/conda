@@ -3,10 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EACCES, EPERM
 from io import open
-import json
 from logging import getLogger
 import os
-from os import X_OK, access, makedirs
+from os import X_OK, access
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copy as shutil_copy, copystat
 import sys
@@ -20,15 +19,13 @@ from .permissions import make_executable
 from .update import touch
 from ..subprocess import subprocess_call
 from ... import CondaError
-from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import ENVS_DIR_MAGIC_FILE, PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import ensure_binary, on_win
 from ...common.path import ensure_pad, win_path_double_escape, win_path_ok
-from ...core.portability import replace_long_shebang
+from ...common.serialize import json_dump
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
-from ...models.dist import Dist
 from ...models.enums import FileMode, LinkType
 
 log = getLogger(__name__)
@@ -63,8 +60,7 @@ if __name__ == '__main__':
 def write_as_json_to_file(file_path, obj):
     log.trace("writing json to file %s", file_path)
     with open(file_path, str('wb')) as fo:
-        json_str = json.dumps(obj, indent=2, sort_keys=True, separators=(',', ': '),
-                              cls=EntityEncoder)
+        json_str = json_dump(obj)
         fo.write(ensure_binary(json_str))
 
 
@@ -87,7 +83,10 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
         shebang = '#!%s\n' % python_full_path
         if hasattr(shebang, 'encode'):
             shebang = shebang.encode()
+
+        from ...core.portability import replace_long_shebang  # TODO: must be in wrong spot
         shebang = replace_long_shebang(FileMode.text, shebang)
+
         if hasattr(shebang, 'decode'):
             shebang = shebang.decode()
     else:
@@ -144,22 +143,6 @@ def extract_tarball(tarball_full_path, destination_directory=None):
             for fn in files:
                 p = join(root, fn)
                 os.lchown(p, 0, 0)
-
-
-def write_linked_package_record(prefix, record):
-    # write into <env>/conda-meta/<dist>.json
-    meta_dir = join(prefix, 'conda-meta')
-    if not isdir(meta_dir):
-        makedirs(meta_dir)
-    dist = Dist(record)
-    conda_meta_full_path = join(meta_dir, dist.to_filename('.json'))
-    if lexists(conda_meta_full_path):
-        maybe_raise(BasicClobberError(
-            source_path=None,
-            target_path=conda_meta_full_path,
-            context=context,
-        ), context)
-    write_as_json_to_file(conda_meta_full_path, record)
 
 
 def make_menu(prefix, file_path, remove=False):
