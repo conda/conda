@@ -206,9 +206,6 @@ class MatchSpecTests(TestCase):
         url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
         assert m(url) == "conda-canary/linux-64::conda==4.3.21.post699+1dab973[build=py36h4a561cd_0]"
 
-        url = "/hm/vagrant/miniconda/conda-bld/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
-        assert m(url) == "file:///hm/vagrant/miniconda/conda-bld/linux-64::conda==4.3.21.post699+1dab973[build=py36h4a561cd_0]"
-
     def test_exact_values(self):
         assert MatchSpec("*").get_exact_value('name') is None
         assert MatchSpec("numpy").get_exact_value('name') == 'numpy'

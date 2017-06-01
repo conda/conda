@@ -862,7 +862,7 @@ class InteractiveShell(object):
         env['PYTHONPATH'] = CONDA_PACKAGE_ROOT
         env = {str(k): str(v) for k, v in iteritems(env)}
 
-        p = PopenSpawn(self.shell_name, timeout=3, maxread=2000, searchwindowsize=None,
+        p = PopenSpawn(self.shell_name, timeout=6, maxread=2000, searchwindowsize=None,
                        logfile=sys.stdout, cwd=cwd, env=env, encoding=None,
                        codec_errors='strict')
         if self.init_command:
