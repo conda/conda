@@ -825,10 +825,13 @@ class InteractiveShell(object):
             'print_env_var': 'echo $%s',
         },
         'bash': {
-            'base_shell': 'posix',
+            'base_shell': 'posix',  # inheritance implemented in __init__
         },
         'dash': {
-            'base_shell': 'posix',
+            'base_shell': 'posix',  # inheritance implemented in __init__
+        },
+        'zsh': {
+            'base_shell': 'posix',  # inheritance implemented in __init__
         },
         'cmd.exe': {
             'activator': 'cmd.exe',
@@ -930,7 +933,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('CONDA_SHLVL', '1')
         shell.sendline('conda activate "%s"' % self.prefix)
         shell.assert_env_var('CONDA_SHLVL', '2')
-        shell.assert_env_var('CONDA_PREFIX', basename(self.prefix), True)
+        shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '1')
         shell.sendline('conda deactivate')
@@ -953,6 +956,11 @@ class ShellWrapperIntegrationTests(TestCase):
         with InteractiveShell('dash') as shell:
             shell.sendline('env | sort')
             self.basic_posix(shell)
+
+    # @pytest.mark.skipif(not which('zsh'), reason='zsh not installed')
+    # def test_zsh_basic_integration(self):
+    #     with InteractiveShell('zsh') as shell:
+    #         self.basic_posix(shell)
 
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
     def test_cmd_exe_basic_integration(self):

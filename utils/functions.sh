@@ -271,7 +271,7 @@ conda_unit_test() {
 
 
 conda_integration_test() {
-    $PYTEST_EXE $ADD_COV -m "integration and not installed"
+    $PYTEST_EXE $ADD_COV -m "integration and not installed" -v
 }
 
 

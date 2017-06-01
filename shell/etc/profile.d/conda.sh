@@ -33,14 +33,10 @@ _conda_set_vars() {
     if [ -n "${_CONDA_ROOT:+x}" ]; then
         # typically this should be for dev only; _CONDA_EXE should be written at top of file
         # for normal installs
-        _CONDA_EXE=""$_CONDA_ROOT/$bin_dir/conda$exe_ext""
+        _CONDA_EXE="$_CONDA_ROOT/../shell/bin/conda"
     fi
     if ! [ -f "$_CONDA_EXE" ]; then
-        if [ -n "$CONDA_PYTHON_EXE" ]; then
-            _CONDA_EXE="$CONDA_PYTHON_EXE $PWD/shell/bin/conda"
-        else
-            _CONDA_EXE="python "$PWD/shell/bin/conda""
-        fi
+        _CONDA_EXE="$PWD/shell/bin/conda"
     fi
 
 }
