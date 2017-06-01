@@ -278,7 +278,13 @@ install_conda_build() {
     $prefix/bin/conda config --set add_pip_as_python_dependency true
 
     # install conda-build
-    git clone -b $CONDA_BUILD --single-branch --depth 250 https://github.com/conda/conda-build.git
+    if [ -d conda-build ]; then
+        pushd conda-build
+        git checkout $CONDA_BUILD
+        popd
+    else
+        git clone -b $CONDA_BUILD --single-branch --depth 250 https://github.com/conda/conda-build.git
+    fi
     local site_packages=$($prefix/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
     rm -rf $site_packages/conda_build
     pushd conda-build
@@ -340,8 +346,8 @@ conda_build_smoke_test() {
 
     . $prefix/etc/profile.d/conda.sh
 
-    $prefix/$BIN_DIR/conda config --add channels conda-canary
-    $prefix/$BIN_DIR/conda build conda.recipe
+    conda config --add channels conda-canary
+    conda build conda.recipe
 }
 
 
