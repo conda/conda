@@ -75,16 +75,13 @@ from re import compile
 from shlex import split
 from subprocess import CalledProcessError, Popen, PIPE
 from fnmatch import fnmatchcase
+from distutils.command.build_py import build_py
+from distutils.command.sdist import sdist
 from distutils.util import convert_path
 
 try:
-    from setuptools.command.build_py import build_py
-    from setuptools.command.sdist import sdist
     from setuptools.command.test import test as TestCommand
 except ImportError:
-    from distutils.command.build_py import build_py
-    from distutils.command.sdist import sdist
-
     TestCommand = object
 
 log = getLogger(__name__)

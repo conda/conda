@@ -19,13 +19,15 @@ _conda_set_vars() {
         fi
     fi
 
-    if [ -n "${_CONDA_ROOT:+x}" ]; then
-        # typically this should be for dev only; _CONDA_EXE should be written at top of file
-        # for normal installs
-        _CONDA_EXE="$_CONDA_ROOT/../shell/bin/conda"
-    fi
-    if ! [ -f "$_CONDA_EXE" ]; then
-        _CONDA_EXE="$PWD/shell/bin/conda"
+    if ! [ -n "${_CONDA_EXE:+x}" ]; then
+        if [ -n "${_CONDA_ROOT:+x}" ]; then
+            # typically this should be for dev only; _CONDA_EXE should be written at top of file
+            # for normal installs
+            _CONDA_EXE="$_CONDA_ROOT/../shell/bin/conda"
+        fi
+        if ! [ -f "$_CONDA_EXE" ]; then
+            _CONDA_EXE="$PWD/shell/bin/conda"
+        fi
     fi
 
 }

@@ -34,7 +34,8 @@ set_vars() {
         export CONDA_EXE="$INSTALL_PREFIX/Scripts/conda.exe"
     else
         export PYTHON_EXE="$INSTALL_PREFIX/bin/python"
-        export CONDA_EXE="$INSTALL_PREFIX/bin/conda"
+        # export CONDA_EXE="$INSTALL_PREFIX/bin/conda"
+        export CONDA_EXE="shell/bin/conda"
     fi
 
     if [ -z "$PYTHON_VERSION" ]; then
@@ -66,6 +67,36 @@ install_miniconda() {
         fi
     fi
     "$prefix/$BIN_DIR/conda$EXE_EXT" info
+}
+
+
+install_conda_full() {
+    local prefix=${1:-$INSTALL_PREFIX}
+    local python_version=${2:-$PYTHON_VERSION}
+    local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
+
+    if ! [ -f "$prefix/conda-meta/history" ]; then
+        install_miniconda $prefix
+        $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip
+    fi
+
+    rm -rf \
+       $prefix/$BIN_DIR/activate* \
+       $prefix/$BIN_DIR/conda* \
+       $prefix/$BIN_DIR/deactivate* \
+       $prefix/etc/profile.d/conda.sh \
+       $prefix/conda-meta/conda-*.json \
+       $site_packages/conda*
+
+    $PYTHON_EXE --version
+    $prefix/$BIN_DIR/pip --version
+
+    $PYTHON_EXE conda.recipe/setup.py install --single-version-externally-managed --record record.txt
+
+    install_conda_shell_scripts $prefix
+
+    . "$prefix/etc/profile.d/conda.sh"
+
 }
 
 
@@ -122,11 +153,10 @@ install_conda_shell_scripts() {
     local prefix=${1:-$INSTALL_PREFIX}
     local src_dir=${2:-${SRC_DIR:-$PWD}}
 
-    local conda_exe="$prefix/$BIN_DIR/conda$EXE_EXT"
-
     mkdir -p "$prefix/etc/profile.d/"
     rm -f "$prefix/etc/profile.d/conda.sh"
-    echo "_CONDA_ROOT=\"$prefix\"" > "$prefix/etc/profile.d/conda.sh"
+    echo "_CONDA_EXE=\"$prefix/$BIN_DIR/conda$EXE_EXT\"" > "$prefix/etc/profile.d/conda.sh"
+    echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/etc/profile.d/conda.sh"
     cat "$src_dir/shell/etc/profile.d/conda.sh" >> "$prefix/etc/profile.d/conda.sh"
 
     mkdir -p "$prefix/$BIN_DIR"
@@ -197,15 +227,15 @@ install_conda_dev() {
 
     $prefix/$BIN_DIR/pip install -r utils/requirements-test.txt
 
-    if [ -n "$ON_WIN" ]; then
-        $PYTHON_EXE utils/setup-testing.py develop  # this, just for the conda.exe and conda-env.exe file
-        make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda.cli import main"
-        make_conda_entrypoint "$prefix/Scripts/conda-env-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda_env.cli.main import main"
-    else
-        $PYTHON_EXE setup.py develop
-        make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
-        make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
-    fi
+#    if [ -n "$ON_WIN" ]; then
+#        $PYTHON_EXE utils/setup-testing.py develop  # this, just for the conda.exe and conda-env.exe file
+#        make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda.cli import main"
+#        make_conda_entrypoint "$prefix/Scripts/conda-env-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda_env.cli.main import main"
+#    else
+#        $PYTHON_EXE setup.py develop
+#        make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
+#        make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
+#    fi
 
     # install_conda_shell_scripts "$prefix" "$src_dir"
 
@@ -228,19 +258,22 @@ install_conda_dev_usr_local() {
 install_conda_build() {
     local prefix=${1:-$INSTALL_PREFIX}
 
-    install_conda_dev $prefix
+    install_conda_full $prefix
+    conda config --set auto_update_conda false
 
     # install conda-build dependencies (runtime and test)
+    conda config --append channels conda-forge
     $prefix/bin/conda install -y -q -c conda-forge perl pytest-xdist
     $prefix/bin/conda install -y -q \
         anaconda-client numpy \
         filelock jinja2 patchelf conda-verify contextlib2 pkginfo
+    conda config --remove channels conda-forge
     $prefix/bin/pip install pytest-catchlog pytest-mock
 
     $prefix/bin/conda config --set add_pip_as_python_dependency true
 
     # install conda-build
-    git clone -b $CONDA_BUILD --single-branch --depth 100 https://github.com/conda/conda-build.git
+    git clone -b $CONDA_BUILD --single-branch --depth 250 https://github.com/conda/conda-build.git
     local site_packages=$($prefix/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
     rm -rf $site_packages/conda_build
     pushd conda-build
@@ -300,6 +333,8 @@ conda_activate_test() {
 conda_build_smoke_test() {
     local prefix=${1:-$INSTALL_PREFIX}
 
+    . $prefix/etc/profile.d/conda.sh
+
     $prefix/$BIN_DIR/conda config --add channels conda-canary
     $prefix/$BIN_DIR/conda build conda.recipe
 }
@@ -307,6 +342,8 @@ conda_build_smoke_test() {
 
 conda_build_test() {
     local prefix=${1:-$INSTALL_PREFIX}
+
+    . $prefix/etc/profile.d/conda.sh
 
     echo
     echo ">>>>>>>>>>>> running conda-build unit tests >>>>>>>>>>>>>>>>>>>>>"
