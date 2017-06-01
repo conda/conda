@@ -34,8 +34,8 @@ set_vars() {
         export CONDA_EXE="$INSTALL_PREFIX/Scripts/conda.exe"
     else
         export PYTHON_EXE="$INSTALL_PREFIX/bin/python"
-        # export CONDA_EXE="$INSTALL_PREFIX/bin/conda"
-        export CONDA_EXE="shell/bin/conda"
+        export CONDA_EXE="$INSTALL_PREFIX/bin/conda"
+        # export CONDA_EXE="shell/bin/conda"
     fi
 
     if [ -z "$PYTHON_VERSION" ]; then
@@ -227,15 +227,15 @@ install_conda_dev() {
 
     $prefix/$BIN_DIR/pip install -r utils/requirements-test.txt
 
-#    if [ -n "$ON_WIN" ]; then
-#        $PYTHON_EXE utils/setup-testing.py develop  # this, just for the conda.exe and conda-env.exe file
-#        make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda.cli import main"
-#        make_conda_entrypoint "$prefix/Scripts/conda-env-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda_env.cli.main import main"
-#    else
-#        $PYTHON_EXE setup.py develop
-#        make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
-#        make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
-#    fi
+    if [ -n "$ON_WIN" ]; then
+        $PYTHON_EXE utils/setup-testing.py develop  # this, just for the conda.exe and conda-env.exe file
+        make_conda_entrypoint "$prefix/Scripts/conda-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda.cli import main"
+        make_conda_entrypoint "$prefix/Scripts/conda-env-script.py" "$(cygpath -w "$PYTHON_EXE")" "$(cygpath -w "$src_dir")" "from conda_env.cli.main import main"
+    else
+        $PYTHON_EXE setup.py develop
+        make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
+        make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
+    fi
 
     # install_conda_shell_scripts "$prefix" "$src_dir"
 
@@ -261,13 +261,15 @@ install_conda_build() {
     install_conda_full $prefix
     conda config --set auto_update_conda false
 
+    $prefix/bin/pip install -r utils/requirements-test.txt
+
     # install conda-build dependencies (runtime and test)
     conda config --append channels conda-forge
     $prefix/bin/conda install -y -q -c conda-forge perl pytest-xdist
+    conda config --remove channels conda-forge
     $prefix/bin/conda install -y -q \
         anaconda-client numpy \
         filelock jinja2 patchelf conda-verify contextlib2 pkginfo
-    conda config --remove channels conda-forge
     $prefix/bin/pip install pytest-catchlog pytest-mock
 
     $prefix/bin/conda config --set add_pip_as_python_dependency true
@@ -400,7 +402,6 @@ run_tests() {
         flake8 --statistics
     elif [ -n "$CONDA_BUILD" ]; then
         # conda_build_smoke_test
-        install_conda_shell_scripts
         conda_build_test
     elif [ -n "$SHELL_INTEGRATION" ]; then
         conda_unit_test
