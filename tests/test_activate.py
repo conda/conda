@@ -860,6 +860,7 @@ class InteractiveShell(object):
             self.activator._get_starting_path_list(),
         )))
         env['PYTHONPATH'] = CONDA_PACKAGE_ROOT
+        env = {str(k): str(v) for k, v in iteritems(env)}
 
         p = PopenSpawn(self.shell_name, timeout=3, maxread=2000, searchwindowsize=None,
                        logfile=sys.stdout, cwd=cwd, env=env, encoding=None,
