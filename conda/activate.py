@@ -228,7 +228,7 @@ class Activator(object):
             set_vars = {
                 'CONDA_PYTHON_EXE': self.path_conversion(sys.executable),
                 'PATH': new_path,
-                'CONDA_PREFIX': self.path_conversion(prefix),
+                'CONDA_PREFIX': prefix,
                 'CONDA_SHLVL': old_conda_shlvl + 1,
                 'CONDA_DEFAULT_ENV': conda_default_env,
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
@@ -238,7 +238,7 @@ class Activator(object):
             new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix))
             set_vars = {
                 'PATH': new_path,
-                'CONDA_PREFIX': self.path_conversion(prefix),
+                'CONDA_PREFIX': prefix,
                 'CONDA_DEFAULT_ENV': conda_default_env,
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
@@ -247,7 +247,7 @@ class Activator(object):
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
             set_vars = {
                 'PATH': new_path,
-                'CONDA_PREFIX': self.path_conversion(prefix),
+                'CONDA_PREFIX': prefix,
                 'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
                 'CONDA_SHLVL': old_conda_shlvl + 1,
                 'CONDA_DEFAULT_ENV': conda_default_env,
