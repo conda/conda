@@ -3,7 +3,6 @@ machine:
     Etc/UTC
   environment:
     PYTHON_VERSION: 3.6
-    CONDA_BUILD: 2.1.15
 
 dependencies:
   pre:
