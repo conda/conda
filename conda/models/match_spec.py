@@ -13,7 +13,7 @@ from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..common.compat import isiterable, iteritems, string_types, text_type, with_metaclass
 from ..common.path import expand
-from ..common.url import is_url, path_to_url
+from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError
 
 try:
@@ -351,7 +351,7 @@ def _parse_spec_str(spec_str):
     if spec_str.endswith(CONDA_TARBALL_EXTENSION):
         # treat as a normal url
         if not is_url(spec_str):
-            spec_str = path_to_url(expand(spec_str))
+            spec_str = unquote(path_to_url(expand(spec_str)))
 
         channel = Channel(spec_str)
         if not channel.subdir:
@@ -364,6 +364,7 @@ def _parse_spec_str(spec_str):
             'name': name,
             'version': version,
             'build': build,
+            'fn': channel.package_filename,
         }
         return result
 

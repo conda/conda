@@ -199,6 +199,16 @@ class MatchSpecTests(TestCase):
         assert m("numpy[build=py3*_2, track_features='mkl debug']") == "numpy[build=py3*_2,track_features='debug mkl']"
         assert m("numpy[track_features='mkl,debug', build=py3*_2]") == "numpy[build=py3*_2,track_features='debug mkl']"
 
+    def test_tarball_match_specs(self):
+        def m(string):
+            return text_type(MatchSpec(string))
+
+        url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
+        assert m(url) == "conda-canary/linux-64::conda==4.3.21.post699+1dab973[build=py36h4a561cd_0]"
+
+        url = "/hm/vagrant/miniconda/conda-bld/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
+        assert m(url) == "file:///hm/vagrant/miniconda/conda-bld/linux-64::conda==4.3.21.post699+1dab973[build=py36h4a561cd_0]"
+
     def test_exact_values(self):
         assert MatchSpec("*").get_exact_value('name') is None
         assert MatchSpec("numpy").get_exact_value('name') == 'numpy'
@@ -381,11 +391,32 @@ class SpecStrParsingTests(TestCase):
             "name": "_license",
             "version": "1.1",
             "build": "py27_1",
+            "fn": "_license-1.1-py27_1.tar.bz2",
         }
 
         url = "some/not-a-subdir/_license-1.1-py27_1.tar.bz2"
         with pytest.raises(CondaValueError):
             _parse_spec_str(url)
+
+        url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
+        assert _parse_spec_str(url) == {
+            "channel": "conda-canary",
+            "subdir": "linux-64",
+            "name": "conda",
+            "version": "4.3.21.post699+1dab973",
+            "build": "py36h4a561cd_0",
+            "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
+        }
+
+        url = "/hm/vagrant/miniconda/conda-bld/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
+        assert _parse_spec_str(url) == {
+            "channel": "file:///hm/vagrant/miniconda/conda-bld",
+            "subdir": "linux-64",
+            "name": "conda",
+            "version": "4.3.21.post699+1dab973",
+            "build": "py36h4a561cd_0",
+            "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
+        }
 
     def test_parse_spec_str_no_brackets(self):
         assert _parse_spec_str("numpy") == {
