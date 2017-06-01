@@ -16,7 +16,6 @@ from conda.compat import TemporaryDirectory, chain
 from conda.config import root_dir
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.update import touch
-from conda.install import symlink_conda
 from conda.utils import on_win, shells, translate_stream, unix_path_to_win
 from tests.helpers import assert_equals, assert_in, assert_not_in
 
@@ -605,6 +604,7 @@ def test_activate_relative_path(shell):
             raise
         finally:
             os.chdir(cwd)
+        assert not stderr
         assert_equals(stdout.rstrip(), make_win_ok(env_dirs[0]), stderr)
 
 
@@ -626,7 +626,7 @@ def test_activate_does_not_leak_echo_setting(shell):
 
 @pytest.mark.installed
 def test_activate_non_ascii_char_in_path(shell):
-    if on_win and datetime.now() < datetime(2017, 6, 1) and shell == "bash.exe":
+    if on_win and datetime.now() < datetime(2017, 7, 1) and shell == "bash.exe":
         pytest.xfail("save for later")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix='Ånvs', dir=dirname(__file__)) as envs:
@@ -637,6 +637,7 @@ def test_activate_non_ascii_char_in_path(shell):
         """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
+        assert not stderr
 
         if shell == 'cmd.exe':
             assert_equals(stdout, u'', stderr)
@@ -662,6 +663,7 @@ def test_activate_has_extra_env_vars(shell):
         {echo} {var}
         """).format(envs=envs, env_dirs=env_dirs, var=shells[shell]["var_format"].format("TEST_VAR"), **shell_vars)
         stdout, stderr = run_in(commands, shell)
+        assert not stderr
         assert_equals(stdout, u'test', stderr)
 
         # Make sure the variable is reset after deactivation

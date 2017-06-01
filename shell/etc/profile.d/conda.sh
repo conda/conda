@@ -37,7 +37,7 @@ _conda_set_vars() {
     fi
     if ! [ -f "$_CONDA_EXE" ]; then
         if [ -n "$CONDA_PYTHON_EXE" ]; then
-            _CONDA_EXE="$CONDA_PYTHON_EXE "$PWD/shell/bin/conda""
+            _CONDA_EXE="$CONDA_PYTHON_EXE $PWD/shell/bin/conda"
         else
             _CONDA_EXE="python "$PWD/shell/bin/conda""
         fi
