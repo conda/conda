@@ -2,9 +2,10 @@
 
 ### New Features
 * constrained, optional dependencies (#4982)
-* conda shell function (#5044, #5141, #5162, #5169, #5182)
+* conda shell function (#5044, #5141, #5162, #5169, #5182, #5210)
 * resolve #5160 conda xontrib plugin (#5157)
 * resolve #1543 add support and tests for --no-deps and --only-deps (#5265)
+* resolve #988 allow channel name to be part of the package name spec (#5365)
 
 ### Deprecations/Breaking Changes
 * remove support for with_features_depends (#5191)
@@ -31,6 +32,7 @@
 * resolve #5358 conda should exec to subcommands, not subprocess (#5359)
 * resolve #5411 add 'conda config --write-default' (#5412)
 * resolve #5081 make pinned packages optional dependencies (#5414)
+* resolve #5430 eliminate current deprecation warnings (#5422)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
