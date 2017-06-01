@@ -138,11 +138,6 @@ def add_parser_create_install_update(p):
     add_parser_copy(p)
     add_parser_insecure(p)
     p.add_argument(
-        "--alt-hint",
-        action="store_true",
-        default=False,
-        help="Use an alternate algorithm to generate an unsatisfiability hint.")
-    p.add_argument(
         "--update-dependencies", "--update-deps",
         action="store_true",
         dest="update_deps",
