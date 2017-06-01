@@ -29,13 +29,16 @@ set_vars() {
         export INSTALL_PREFIX=/usr/local
     fi
 
+    if [ -n "$PREFIX" ]; then
+        export INSTALL_PREFIX="$PREFIX"
+    fi
+
     if [ -n "$ON_WIN" ]; then
         export PYTHON_EXE="$INSTALL_PREFIX/python.exe"
         export CONDA_EXE="$INSTALL_PREFIX/Scripts/conda.exe"
     else
         export PYTHON_EXE="$INSTALL_PREFIX/bin/python"
         export CONDA_EXE="$INSTALL_PREFIX/bin/conda"
-        # export CONDA_EXE="shell/bin/conda"
     fi
 
     if [ -z "$PYTHON_VERSION" ]; then
@@ -401,7 +404,7 @@ run_tests() {
     if [ "$FLAKE8" = true ]; then
         flake8 --statistics
     elif [ -n "$CONDA_BUILD" ]; then
-        # conda_build_smoke_test
+        conda_build_smoke_test
         conda_build_test
     elif [ -n "$SHELL_INTEGRATION" ]; then
         conda_unit_test
