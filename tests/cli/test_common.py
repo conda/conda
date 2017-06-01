@@ -7,7 +7,7 @@ import pytest
 from conda._vendor.auxlib.collection import AttrDict
 from conda.base.context import reset_context
 from conda.common.io import captured, env_var
-from conda.exceptions import DryRunExit
+from conda.exceptions import DryRunExit, CondaSystemExit
 
 try:
     from unittest.mock import Mock, patch
@@ -34,8 +34,8 @@ class ConfirmTests(TestCase):
             'dry_run': False,
         })
         from conda.cli.common import confirm_yn
-        choice = confirm_yn(args)
-        assert choice is False
+        with pytest.raises(CondaSystemExit):
+            confirm_yn(args)
 
     def test_dry_run_exit(self):
         args = AttrDict({

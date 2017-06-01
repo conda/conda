@@ -12,7 +12,7 @@ from os import listdir, lstat, walk
 from os.path import getsize, isdir, join
 import sys
 
-from .conda_argparse import add_parser_json, add_parser_yes
+from .conda_argparse import add_parser_json, add_parser_quiet, add_parser_yes
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
 
@@ -37,6 +37,7 @@ def configure_parser(sub_parsers):
     )
     add_parser_yes(p)
     add_parser_json(p)
+    add_parser_quiet(p)
     p.add_argument(
         "-a", "--all",
         action="store_true",
@@ -120,7 +121,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
-    if not context.json:
+    if not context.json or not context.yes:
         confirm_yn(args)
     if context.json and args.dry_run:
         return
@@ -151,7 +152,8 @@ def find_pkgs():
     pkgs_dirs = defaultdict(list)
     for pkgs_dir in context.pkgs_dirs:
         if not os.path.exists(pkgs_dir):
-            print("WARNING: {0} does not exist".format(pkgs_dir))
+            if not context.json:
+                print("WARNING: {0} does not exist".format(pkgs_dir))
             continue
         pkgs = [i for i in listdir(pkgs_dir)
                 if (isdir(join(pkgs_dir, i)) and  # only include actual packages
@@ -221,7 +223,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
         print(fmt % ('Total:', human_bytes(totalsize)))
         print()
 
-    if not context.json:
+    if not context.json or not context.yes:
         confirm_yn(args)
     if context.json and args.dry_run:
         return
@@ -272,27 +274,29 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
     from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
 
-    verbose = not context.json
+    verbose = not (context.json or context.quiet)
     if warnings:
         if verbose:
             for warning in warnings:
                 print(warning, file=sys.stderr)
         return
 
-    for cache_type in cache_dirs:
-        print("%s (%s)" % (cache_type, cache_dirs[cache_type]))
-        print("%-40s %10s" % ("Size:", human_bytes(cache_sizes[cache_type])))
-        print()
+    if verbose:
+        for cache_type in cache_dirs:
+            print("%s (%s)" % (cache_type, cache_dirs[cache_type]))
+            print("%-40s %10s" % ("Size:", human_bytes(cache_sizes[cache_type])))
+            print()
 
-    print("%-40s %10s" % ("Total:", human_bytes(total_size)))
+        print("%-40s %10s" % ("Total:", human_bytes(total_size)))
 
-    if not context.json:
+    if not context.json or not context.yes:
         confirm_yn(args)
     if context.json and args.dry_run:
         return
 
     for dir in cache_dirs.values():
-        print("Removing %s" % dir)
+        if verbose:
+            print("Removing %s" % dir)
         rm_rf(dir)
 
 
@@ -311,7 +315,7 @@ def execute(args, parser):
             'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize
         }
-        rm_tarballs(args, pkgs_dirs, totalsize, verbose=not context.json)
+        rm_tarballs(args, pkgs_dirs, totalsize, verbose=not (context.json or context.quiet))
 
     if args.index_cache or args.all:
         json_result['index_cache'] = {
@@ -331,7 +335,7 @@ def execute(args, parser):
             'pkg_sizes': {i: dict(zip(pkgs_dirs[i], pkgsizes[i])) for i in pkgs_dirs},
         }
         rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes,
-                verbose=not context.json)
+                verbose=not (context.json or context.quiet))
 
     if args.source_cache or args.all:
         json_result['source_cache'] = find_source_cache()

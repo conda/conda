@@ -154,7 +154,7 @@ def execute_search(args, parser):
     prefix = context.prefix_w_legacy_search
 
     linked = linked_data(prefix)
-    extracted = set(pc_entry.dist.name for pc_entry in PackageCache.get_all_extracted_entries())
+    extracted = set(pc_entry.name for pc_entry in PackageCache.get_all_extracted_entries())
 
     # XXX: Make this work with more than one platform
     platform = args.platform or ''

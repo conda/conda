@@ -21,6 +21,16 @@
 * resolve #3763, #4378 allow pip requirements.txt syntax in environment files (#3969)
 * resolve #5147 add 'config files' to conda info (#5269)
 * use --format=json to parse list of pip packages (#5205)
+* resolve #1427 remove startswith '.' environment name constraint (#5284)
+* link packages from extracted tarballs when tarball is gone (#5289)
+* resolve #2511 accept config information from stdin (#5309)
+* resolve #4302 add ability to set map parameters with conda config (#5310)
+* resolve #5256 enable conda config --get for all primitive parameters (#5312)
+* resolve #1992 add short flag -C for --use-index-cache (#5314)
+* resolve #2173 add --quiet option to conda clean (#5313)
+* resolve #5358 conda should exec to subcommands, not subprocess (#5359)
+* resolve #5411 add 'conda config --write-default' (#5412)
+* resolve #5081 make pinned packages optional dependencies (#5414)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -32,6 +42,11 @@
 * fix #4987 conda update --all no longer displays full list of packages (#5228)
 * fix #3489 don't error on remove --all if environment doesn't exist (#5231)
 * fix #1509 bash doesn't need full path for pre/post link/unlink scripts on unix (#5252)
+* fix #462 add regression test (#5286)
+* fix #5288 confirmation prompt doesn't accept no (#5291)
+* fix #1713 'conda package -w' is case dependent on Windows (#5308)
+* fix #5371 try falling back to pip's vendored requests if no requests available (#5372)
+* fix #5356 skip root logger configuration (#5380)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
@@ -43,17 +58,59 @@
 * extra config command tests (#5185)
 * add coverage for confirm (#5203)
 * clean up FileNotFoundError and DirectoryNotFoundError (#5237)
+* add assertion that a path only has a single hard link before rewriting prefixes (#5305)
+* remove pycrypto as requirement on windows (#5326)
 
 
-## 4.3.19 (unreleased)
+## 4.3.21 (2017-05-25)
+
+### Bug Fixes
+* fix #5420 conda-env update error (#5421)
+* fix #5425 is admin on win int not callable (#5426)
+
+
+## 4.3.20 (2017-05-23)
+
+### Improvements
+* resolve #5217 skip user confirm in python_api, force always_yes (#5404)
+
+### Bug Fixes
+* fix #5367 conda info always shows 'unknown' for admin indicator on Windows (#5368)
+* fix #5248 drop plan description information that might not alwasy be accurate (#5373)
+* fix #5378 duplicate log messages (#5379)
+* fix #5298 record has 'build', not 'build_string' (#5382)
+* fix #5384 silence logging info to avoid interfering with JSON output (#5393)
+* fix #5356 skip root/conda logger init for cli.python_api (#5405)
+
+### Non-User-Facing Changes
+* avoid persistent state after channel priority test (#5392)
+* resolve #5402 add regression test for #5384 (#5403)
+* clean up inner function definition inside for loop (#5406)
+
+
+## 4.3.19 (2017-05-18)
 
 ### Improvements
 * resolve #3689 better error messaging for missing anaconda-client (#5276)
 * resolve #4795 conda env export lacks -p flag (#5275)
+* resolve #5315 add alias verify_ssl for ssl_verify (#5316)
+* resolve #3399 add netrc existence/location to 'conda info' (#5333)
+* resolve #3810 add --prefix to conda env update (#5335)
 
 ### Bug Fixes
 * fix #5272 conda env export ugliness under python2 (#5273)
 * fix #4596 warning message from pip on conda env export (#5274)
+* fix #4986 --yes not functioning for conda clean (#5311)
+* fix #5329 unicode errors on Windows (#5328, #5357)
+* fix sys_prefix_unfollowed for Python 3 (#5334)
+* fix #5341 --json flag with conda-env (#5342)
+* fix 5321 ensure variable PROMPT is set in activate.bat (#5351)
+
+### Non-User-Facing Changes
+* test conda 4.3 with requests 2.14.2 (#5281)
+* remove pycrypto as requirement on windows (#5325)
+* fix typo avaialble -> available (#5345)
+* fix test failures related to menuinst update (#5344, #5362)
 
 
 ## 4.3.18 (2017-05-09)

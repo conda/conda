@@ -45,7 +45,6 @@ class ArgumentParser(ArgumentParserBase):
 
     def error(self, message):
         import re
-        import subprocess
         from .find_commands import find_executable
 
         exc = sys.exc_info()[1]
@@ -57,7 +56,7 @@ class ArgumentParser(ArgumentParserBase):
             else:
                 argument = None
             if argument and argument.dest == "cmd":
-                m = re.compile(r"invalid choice: '([\w\-]+)'").match(exc.message)
+                m = re.compile(r"invalid choice: u?'([\w\-]+)'").match(exc.message)
                 if m:
                     cmd = m.group(1)
                     executable = find_executable('conda-' + cmd)
@@ -67,13 +66,7 @@ class ArgumentParser(ArgumentParserBase):
 
                     args = [find_executable('conda-' + cmd)]
                     args.extend(sys.argv[2:])
-                    p = subprocess.Popen(args)
-                    try:
-                        p.communicate()
-                    except KeyboardInterrupt:
-                        p.wait()
-                    finally:
-                        sys.exit(p.returncode)
+                    os.execv(args[0], args)
 
         super(ArgumentParser, self).error(message)
 
@@ -82,7 +75,7 @@ class ArgumentParser(ArgumentParserBase):
 
         if self.prog == 'conda' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
             print("""
-other commands, such as "conda build", are avaialble when additional conda
+other commands, such as "conda build", are available when additional conda
 packages (e.g. conda-build) are installed
 """)
 
@@ -381,20 +374,10 @@ def add_parser_known(p):
 
 def add_parser_use_index_cache(p):
     p.add_argument(
-        "--use-index-cache",
+        "-C", "--use-index-cache",
         action="store_true",
         default=False,
-        help="Use cache of channel index files.",
-    )
-
-
-def add_parser_no_use_index_cache(p):
-    p.add_argument(
-        "--no-use-index-cache",
-        action="store_false",
-        default=True,
-        dest="use_index_cache",
-        help="Force fetching of channel index files.",
+        help="Use cache of channel index files, even if it has expired.",
     )
 
 

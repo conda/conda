@@ -14,7 +14,7 @@ from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
 from conda.common.configuration import LoadError
-from conda.common.yaml import yaml_load
+from conda.common.serialize import yaml_load
 from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel
 
@@ -656,14 +656,37 @@ def test_config_set():
     with make_temp_condarc() as rc:
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
                                                   '--set', 'always_yes', 'yes')
+        assert stdout == ''
+        assert stderr == ''
+        with open(rc) as fh:
+            content = yaml_load(fh.read())
+            assert content['always_yes'] is True
 
+        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
+                                                  '--set', 'always_yes', 'no')
+        assert stdout == ''
+        assert stderr == ''
+        with open(rc) as fh:
+            content = yaml_load(fh.read())
+            assert content['always_yes'] is False
+
+        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
+                                                  '--set', 'proxy_servers.http', '1.2.3.4:5678')
+        assert stdout == ''
+        assert stderr == ''
+        with open(rc) as fh:
+            content = yaml_load(fh.read())
+            assert content['always_yes'] is False
+            assert content['proxy_servers'] == {'http': '1.2.3.4:5678'}
+
+        stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
+                                                  '--set', 'ssl_verify', 'false')
         assert stdout == ''
         assert stderr == ''
 
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc,
-                                                  '--set', 'always_yes', 'no')
-
-        assert stdout == ''
+                                                  '--get', 'ssl_verify')
+        assert stdout.strip() == '--set ssl_verify False'
         assert stderr == ''
 
 

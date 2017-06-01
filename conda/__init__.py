@@ -92,7 +92,7 @@ class CondaMultiError(CondaError):
 
 
 class CondaExitZero(CondaError):
-    pass
+    return_code = 0
 
 
 ACTIVE_SUBPROCESSES = set()

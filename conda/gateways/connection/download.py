@@ -7,16 +7,15 @@ from os.path import basename, exists
 from threading import Lock
 import warnings
 
-from requests.exceptions import ConnectionError, HTTPError, InvalidSchema, SSLError
-
-from .. import CondaError
-from .._vendor.auxlib.ish import dals
-from .._vendor.auxlib.logz import stringify
-from ..base.context import context
-from ..common.compat import text_type
-from ..connection import CondaSession
-from ..exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
-                          MD5MismatchError, maybe_raise)
+from . import ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema, SSLError
+from ... import CondaError
+from ..._vendor.auxlib.ish import dals
+from ..._vendor.auxlib.logz import stringify
+from ...base.context import context
+from ...common.compat import text_type
+from ...connection import CondaSession
+from ...exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
+                           MD5MismatchError, maybe_raise)
 
 log = getLogger(__name__)
 
@@ -43,12 +42,7 @@ class SingleThreadCondaSession(CondaSession):
 
 
 def disable_ssl_verify_warning():
-    try:
-        from requests.packages.urllib3.connectionpool import InsecureRequestWarning
-    except ImportError:  # pragma: no cover
-        pass
-    else:
-        warnings.simplefilter('ignore', InsecureRequestWarning)
+    warnings.simplefilter('ignore', InsecureRequestWarning)
 
 
 def download(url, target_full_path, md5sum):

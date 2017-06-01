@@ -6,7 +6,7 @@ from os.path import basename
 import re
 import sys
 
-from ..base.constants import CONDA_TARBALL_EXTENSION, ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
 from ..common.compat import itervalues
 from ..models.match_spec import MatchSpec
@@ -72,9 +72,10 @@ def confirm_yn(args, message="Proceed", default='yes'):
     except KeyboardInterrupt as e:  # pragma: no cover
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.", e)
-    if choice == 'yes':
-        return True
-    return False
+    if choice == 'no':
+        from ..exceptions import CondaSystemExit
+        raise CondaSystemExit("Exiting.")
+    return True
 
 
 def ensure_name_or_prefix(args, command):
@@ -86,22 +87,13 @@ def ensure_name_or_prefix(args, command):
 
 def arg2spec(arg, json=False, update=False):
     try:
-        # spec_from_line can return None, especially for the case of a .tar.bz2 extension and
-        #   a space in the path
-        _arg = spec_from_line(arg)
-        if _arg is None:
-            if arg.endswith(CONDA_TARBALL_EXTENSION):
-                _arg = arg
-            else:
-                from ..exceptions import CondaValueError
-                raise CondaValueError("Cannot construct MatchSpec from: %r" % None)
-        spec = MatchSpec(_arg, normalize=True)
+        spec = MatchSpec(arg)
     except:
         from ..exceptions import CondaValueError
         raise CondaValueError('invalid package specification: %s' % arg)
 
     name = spec.name
-    if not spec.is_simple() and update:
+    if not spec._is_simple() and update:
         from ..exceptions import CondaValueError
         raise CondaValueError("""version specifications not allowed with 'update'; use
     conda update  %s%s  or

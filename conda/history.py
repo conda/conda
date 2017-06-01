@@ -12,7 +12,7 @@ import time
 import warnings
 
 from .base.constants import DEFAULTS_CHANNEL_NAME
-from .common.compat import itervalues
+from .common.compat import ensure_text_type, itervalues, open, text_type
 from .core.linked_data import linked
 from .exceptions import CondaFileIOError, CondaHistoryError
 from .gateways.disk.update import touch
@@ -34,7 +34,7 @@ class CondaHistoryWarning(Warning):
 
 def write_head(fo):
     fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
-    fo.write("# cmd: %s\n" % (' '.join(sys.argv)))
+    fo.write("# cmd: %s\n" % (' '.join(ensure_text_type(s) for s in sys.argv)))
 
 
 def is_diff(content):
@@ -301,10 +301,10 @@ class History(object):
                 fo.write('+%s\n' % fn)
 
     def write_specs(self, action, specs):
-        specs = [s.spec if isinstance(s, MatchSpec) else s for s in specs or () if s]
+        specs = [s if isinstance(s, MatchSpec) else s for s in specs or () if s]
         axn = action and action.lower() or 'unknown'
         with open(self.path, 'a') as fo:
-            fo.write("# %s specs: %s\n" % (axn, json.dumps(specs)))
+            fo.write("# %s specs: %s\n" % (axn, [text_type(s) for s in specs]))
 
 
 if __name__ == '__main__':

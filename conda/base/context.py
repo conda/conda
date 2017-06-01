@@ -15,12 +15,12 @@ from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
-from .._vendor.auxlib.path import expand
 from .._vendor.boltons.setutils import IndexedSet
 from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
+from ..common.path import expand
 from ..common.platform import linux_get_libc_version
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
@@ -116,7 +116,7 @@ class Context(Configuration):
 
     # remote connection details
     ssl_verify = PrimitiveParameter(True, element_type=string_types + (bool,),
-                                    aliases=('insecure',),
+                                    aliases=('insecure', 'verify_ssl',),
                                     validation=ssl_verify_validation)
     client_ssl_cert = PrimitiveParameter(None, aliases=('client_cert',),
                                          element_type=string_types + (NoneType,))
@@ -743,8 +743,11 @@ def _get_user_agent(context_platform):
     import platform
     try:
         from requests import __version__ as REQUESTS_VERSION
-    except ImportError:
-        REQUESTS_VERSION = "unknown"
+    except ImportError:  # pragma: no cover
+        try:
+            from pip._vendor.requests import __version__ as REQUESTS_VERSION
+        except ImportError:
+            REQUESTS_VERSION = "unknown"
 
     _user_agent = ("conda/{conda_ver} "
                    "requests/{requests_ver} "
@@ -753,7 +756,8 @@ def _get_user_agent(context_platform):
 
     libc_family, libc_ver = linux_get_libc_version()
     if context_platform == 'linux':
-        distinfo = platform.linux_distribution()
+        from .._vendor.distro import linux_distribution
+        distinfo = linux_distribution(full_distribution_name=False)
         dist, ver = distinfo[0], distinfo[1]
     elif context_platform == 'osx':
         dist = 'OSX'

@@ -5,9 +5,7 @@ from os.path import abspath, isdir
 import re as regex
 import sys
 
-from ..common.compat import on_win, text_type
-from ..exceptions import (ArgumentError, CondaSystemExit, CondaValueError,
-                          TooFewArgumentsError, TooManyArgumentsError)
+from ..common.compat import ensure_text_type, on_win, text_type
 from ..utils import shells
 
 
@@ -17,6 +15,7 @@ def help(command, shell):
     # get grandparent process name to see which shell we're using
     if command in ('..activate', '..checkenv'):
         if shell in ["cmd.exe", "powershell.exe"]:
+            from ..exceptions import CondaSystemExit
             raise CondaSystemExit("""Usage: activate ENV
 
 Adds the 'Scripts' and 'Library\\bin' directory of the environment ENV to the front of PATH.
@@ -24,6 +23,7 @@ ENV may either refer to just the name of the environment, or the full
 prefix path.""")
 
         else:
+            from ..exceptions import CondaSystemExit
             raise CondaSystemExit("""Usage: source activate ENV
 
 Adds the 'bin' directory of the environment ENV to the front of PATH.
@@ -31,17 +31,20 @@ ENV may either refer to just the name of the environment, or the full
 prefix path.""")
     elif command == '..deactivate':
         if shell in ["cmd.exe", "powershell.exe"]:
+            from ..exceptions import CondaSystemExit
             raise CondaSystemExit("""Usage: deactivate
 
 Removes the environment prefix, 'Scripts' and 'Library\\bin' directory
 of the environment ENV from the front of PATH.""")
         else:
+            from ..exceptions import CondaSystemExit
             raise CondaSystemExit("""Usage: source deactivate
 
 Removes the 'bin' directory of the environment activated with 'source
 activate' from PATH. """)
     else:
-        raise CondaSystemExit("No help available for command %s" % sys.argv[1])
+        from ..exceptions import CondaSystemExit
+        raise CondaSystemExit("No help available for command %s" % ensure_text_type(sys.argv[1]))
 
 
 def prefix_from_arg(arg, shell):
@@ -56,6 +59,7 @@ def prefix_from_arg(arg, shell):
         if isdir(abspath(native_path.strip("\""))):
             prefix = abspath(native_path.strip("\""))
         else:
+            from ..exceptions import CondaValueError
             raise CondaValueError('Could not find environment: %s' % native_path)
     else:
         prefix = locate_prefix_by_name(context, arg.replace('/', os.path.sep))
@@ -107,34 +111,41 @@ def get_activate_path(prefix, shell):
 
 def main():
     from ..base.constants import ROOT_ENV_NAME
-    if '-h' in sys.argv or '--help' in sys.argv:
-        # all execution paths sys.exit at end.
-        help(sys.argv[1], sys.argv[2])
+    from ..gateways.logging import initialize_logging
+    initialize_logging()
 
-    if len(sys.argv) > 2:
-        shell = sys.argv[2]
+    sys_argv = tuple(ensure_text_type(s) for s in sys.argv)
+
+    if '-h' in sys_argv or '--help' in sys_argv:
+        # all execution paths sys.exit at end.
+        help(sys_argv[1], sys_argv[2])
+
+    if len(sys_argv) > 2:
+        shell = sys_argv[2]
     else:
         shell = ''
 
-    if regex.match('^..(?:de|)activate$', sys.argv[1]):
-        arg_num = len(sys.argv)
+    if regex.match('^..(?:de|)activate$', sys_argv[1]):
+        arg_num = len(sys_argv)
         if arg_num != 4:
             num_expected = 2
             if arg_num < 4:
+                from ..exceptions import TooFewArgumentsError
                 raise TooFewArgumentsError(num_expected, arg_num - num_expected,
                                            "{} expected exactly two arguments:\
-                                            shell and env name".format(sys.argv[1]))
+                                            shell and env name".format(sys_argv[1]))
             if arg_num > 4:
-                raise TooManyArgumentsError(num_expected, arg_num - num_expected, sys.argv[2:],
+                from ..exceptions import TooManyArgumentsError
+                raise TooManyArgumentsError(num_expected, arg_num - num_expected, sys_argv[2:],
                                             "{} expected exactly two arguments:\
-                                             shell and env name".format(sys.argv[1]))
+                                             shell and env name".format(sys_argv[1]))
 
-    if sys.argv[1] == '..activate':
-        print(get_activate_path(sys.argv[3], shell))
+    if sys_argv[1] == '..activate':
+        print(get_activate_path(sys_argv[3], shell))
         sys.exit(0)
 
-    elif sys.argv[1] == '..deactivate.path':
-        activation_path = get_activate_path(sys.argv[3], shell)
+    elif sys_argv[1] == '..deactivate.path':
+        activation_path = get_activate_path(sys_argv[3], shell)
 
         if os.getenv('_CONDA_HOLD'):
             new_path = regex.sub(r'%s(:?)' % regex.escape(activation_path),
@@ -147,20 +158,23 @@ def main():
         print(new_path)
         sys.exit(0)
 
-    elif sys.argv[1] == '..checkenv':
-        if len(sys.argv) < 4:
+    elif sys_argv[1] == '..checkenv':
+        if len(sys_argv) < 4:
+            from ..exceptions import ArgumentError
             raise ArgumentError("Invalid arguments to checkenv.  Need shell and env name/path")
-        if len(sys.argv) > 4:
+        if len(sys_argv) > 4:
+            from ..exceptions import ArgumentError
             raise ArgumentError("did not expect more than one argument.")
-        if sys.argv[3].lower() == ROOT_ENV_NAME.lower():
+        if sys_argv[3].lower() == ROOT_ENV_NAME.lower():
             # no need to check root env and try to install a symlink there
             sys.exit(0)
             # raise CondaSystemExit
 
         # this should throw an error and exit if the env or path can't be found.
         try:
-            prefix_from_arg(sys.argv[3], shell)
+            prefix_from_arg(sys_argv[3], shell)
         except ValueError as e:
+            from ..exceptions import CondaValueError
             raise CondaValueError(text_type(e))
 
         # # Make sure an env always has the conda symlink
@@ -178,12 +192,13 @@ def main():
 
         sys.exit(0)
         # raise CondaSystemExit
-    elif sys.argv[1] == '..changeps1':
+    elif sys_argv[1] == '..changeps1':
         from ..base.context import context
         path = int(context.changeps1)
 
     else:
         # This means there is a bug in main.py
+        from ..exceptions import CondaValueError
         raise CondaValueError("unexpected command")
 
     # This print is actually what sets the PATH or PROMPT variable.  The shell

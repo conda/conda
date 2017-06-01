@@ -75,9 +75,23 @@ def generate_parser():
     return p, sub_parsers
 
 
+def init_loggers(context=None):
+    from logging import CRITICAL, DEBUG, getLogger
+    from ..gateways.logging import initialize_logging, set_all_logger_level, set_verbosity
+    initialize_logging()
+    if context and context.json:
+        # Silence logging info to avoid interfering with JSON output
+        for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
+            getLogger(logger).setLevel(CRITICAL + 1)
+
+    if context and context.debug:
+        set_all_logger_level(DEBUG)
+    elif context and context.verbosity:
+        set_verbosity(context.verbosity)
+
+
 def _main(*args):
     import importlib
-    from logging import CRITICAL, DEBUG, getLogger
 
     try:
         from cytoolz.itertoolz import concatv
@@ -86,9 +100,6 @@ def _main(*args):
 
     from ..base.constants import SEARCH_PATH
     from ..base.context import context
-    from ..gateways.logging import set_all_logger_level, set_verbosity
-
-    log = getLogger(__name__)
 
     if len(args) == 1:
         args = args + ('-h',)
@@ -112,35 +123,41 @@ def _main(*args):
     if (any(sname in args[0] for sname in ('conda', 'conda.exe', '__main__.py', 'conda-script.py'))
         and (args[1] in concatv(sub_parsers.choices, find_commands())
              or args[1].startswith('-'))):
-        log.debug("Ignoring first argument (%s), as it is not a subcommand", args[0])
+        # Ignoring first argument (%s), as it is not a subcommand
         args = args[1:]
 
     args = p.parse_args(args)
 
     context.__init__(SEARCH_PATH, 'conda', args)
-
-    if getattr(args, 'json', False):
-        # Silence logging info to avoid interfering with JSON output
-        for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
-            getLogger(logger).setLevel(CRITICAL + 1)
-
-    if context.debug:
-        set_all_logger_level(DEBUG)
-    elif context.verbosity:
-        set_verbosity(context.verbosity)
-        log.debug("verbosity set to %s", context.verbosity)
+    init_loggers(context)
 
     exit_code = args.func(args, p)
     if isinstance(exit_code, int):
         return exit_code
 
 
+def _ensure_text_type(value):
+    # copying here from conda/common/compat.py to avoid the import
+    try:
+        return value.decode('utf-8')
+    except AttributeError:
+        # AttributeError: '<>' object has no attribute 'decode'
+        # In this case assume already text_type and do nothing
+        return value
+    except UnicodeDecodeError:
+        try:
+            from requests.packages.chardet import detect
+        except ImportError:  # pragma: no cover
+            from pip._vendor.requests.packages.chardet import detect
+        encoding = detect(value).get('encoding') or 'utf-8'
+        return value.decode(encoding)
+
+
 def main(*args):
     if not args:
         args = sys.argv
 
-    if not args:
-        args = sys.argv
+    args = tuple(_ensure_text_type(s) for s in args)
 
     if len(args) > 1:
         try:
@@ -152,13 +169,12 @@ def main(*args):
                 import conda.cli.activate as activate
                 activate.main()
                 return
-            if argv1 in ('activate', 'deactivate'):
+            elif argv1 in ('activate', 'deactivate'):
                 from ..exceptions import CommandNotFoundError
                 raise CommandNotFoundError(argv1)
         except Exception as e:
             from ..exceptions import handle_exception
-            from ..gateways import initialize_logging
-            initialize_logging()
+            init_loggers()
             return handle_exception(e)
 
     from ..exceptions import conda_exception_handler

@@ -1,9 +1,13 @@
-from __future__ import print_function, division, absolute_import
-
-from logging import getLogger, CRITICAL
+from __future__ import absolute_import, division, print_function
 
 import os
 import sys
+
+from conda.base.constants import SEARCH_PATH
+from conda.base.context import context
+from conda.cli.conda_argparse import ArgumentParser
+from conda.cli.main import init_loggers
+from conda.gateways.logging import initialize_logging
 
 try:
     from conda.exceptions import conda_exception_handler
@@ -30,8 +34,6 @@ environment, please open a bug report at:
     else:
         raise e
 
-from conda.cli.conda_argparse import ArgumentParser
-
 from . import main_attach
 from . import main_create
 from . import main_export
@@ -39,7 +41,7 @@ from . import main_list
 from . import main_remove
 from . import main_upload
 from . import main_update
-from conda.base.context import context
+
 
 # TODO: This belongs in a helper library somewhere
 # Note: This only works with `conda-env` as a sub-command.  If this gets
@@ -66,17 +68,11 @@ def create_parser():
 
 
 def main():
+    initialize_logging()
     parser = create_parser()
     args = parser.parse_args()
-    context._set_argparse_args(args)
-    if getattr(args, 'json', False):
-        # # Silence logging info to avoid interfering with JSON output
-        # for logger in Logger.manager.loggerDict:
-        #     if logger not in ('fetch', 'progress'):
-        #         getLogger(logger).setLevel(CRITICAL + 1)
-        for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
-            getLogger(logger).setLevel(CRITICAL + 1)
-
+    context.__init__(SEARCH_PATH, 'conda', args)
+    init_loggers(context)
     return conda_exception_handler(args.func, args, parser)
 
 

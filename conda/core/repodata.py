@@ -16,10 +16,6 @@ from textwrap import dedent
 from time import time
 import warnings
 
-from requests import ConnectionError, HTTPError
-from requests.exceptions import InvalidSchema, SSLError
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-
 from .. import CondaError, iteritems
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
@@ -30,7 +26,9 @@ from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode, tex
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache import PackageCache
 from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError
-from ..gateways.connection import CondaSession
+from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
+                                   InvalidSchema, SSLError)
+from ..gateways.connection.session import CondaSession
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel
@@ -53,7 +51,7 @@ log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
 stderrlog = getLogger('stderrlog')
 
-REPODATA_PICKLE_VERSION = 1
+REPODATA_PICKLE_VERSION = 2
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
 
@@ -391,10 +389,13 @@ def process_repodata(repodata, channel_url, schannel, priority):
     if not opackages:
         return repodata
 
+    subdir = repodata.get('info', {}).get('subdir') or Channel(channel_url).subdir
+
     repodata['_add_pip'] = add_pip = context.add_pip_as_python_dependency
     repodata['_pickle_version'] = REPODATA_PICKLE_VERSION
     repodata['_priority'] = priority = Priority(priority)
     repodata['_schannel'] = schannel
+    repodata['_subdir'] = subdir
 
     meta_in_common = {  # just need to make this once, then apply with .update()
         'arch': repodata.get('info', {}).get('arch'),
@@ -402,6 +403,7 @@ def process_repodata(repodata, channel_url, schannel, priority):
         'platform': repodata.get('info', {}).get('platform'),
         'priority': priority,
         'schannel': schannel,
+        'subdir': subdir,
     }
     packages = {}
     for fn, info in iteritems(opackages):

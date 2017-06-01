@@ -21,16 +21,13 @@ from base64 import b64decode
 import cgi
 import ftplib
 from io import BytesIO
+from logging import getLogger
 import os
 
-from requests import Response
-from requests.adapters import BaseAdapter
-from requests.hooks import dispatch_hook
-
-from ..logging import getLogger
-from ...common.compat import StringIO
-from ...common.url import urlparse
-from ...exceptions import AuthenticationError
+from .. import BaseAdapter, Response, dispatch_hook
+from ....common.compat import StringIO
+from ....common.url import urlparse
+from ....exceptions import AuthenticationError
 
 log = getLogger(__name__)
 

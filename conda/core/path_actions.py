@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
-import json
 from logging import getLogger
 import os
 from os.path import dirname, join, splitext
@@ -11,11 +10,11 @@ from random import random
 import re
 from time import sleep
 
-from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
+from .linked_data import PrefixData, get_python_version_for_prefix
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
-from ..base.constants import PREFIX_MAGIC_FILE
+from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import iteritems, on_win, range
 from ..common.path import (ensure_pad, get_bin_directory_short_path, get_leaf_directories,
@@ -23,22 +22,24 @@ from ..common.path import (ensure_pad, get_bin_directory_short_path, get_leaf_di
                            is_private_env_path, parse_entry_point_def,
                            preferred_env_matches_prefix, pyc_path, url_to_path, win_path_ok)
 from ..common.url import path_to_url, unquote
-from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
+from ..exceptions import CondaUpgradeError, CondaVerificationError, LinkError, PaddingError
+from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_pyc, copy, create_application_entry_point,
                                     create_fake_executable_softlink, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
-                                    make_menu, write_as_json_to_file, write_linked_package_record)
+                                    make_menu)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
-from ..gateways.disk.link import symlink
+from ..gateways.disk.link import stat_nlink, symlink
 from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.test import softlink_supported
 from ..gateways.disk.update import backoff_rename, touch
-from ..gateways.download import download
 from ..history import History
 from ..models.dist import Dist
 from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType
-from ..models.index_record import IndexRecord, Link
+from ..models.index_record import Link
 from ..models.leased_path_entry import LeasedPathEntry
+from ..models.package_cache_record import PackageCacheRecord
+from ..models.prefix_record import PrefixRecord
 
 try:
     from cytoolz.itertoolz import concat, concatv
@@ -208,6 +209,20 @@ class LinkPathAction(CreateInPrefixPathAction):
     @classmethod
     def create_file_link_actions(cls, transaction_context, package_info, target_prefix,
                                  requested_link_type):
+        def get_prefix_replace(path_info):
+            if path_info.prefix_placeholder:
+                link_type = LinkType.copy
+                prefix_placehoder = path_info.prefix_placeholder
+                file_mode = path_info.file_mode
+            elif path_info.no_link or path_info.path_type == PathType.softlink:
+                link_type = LinkType.copy
+                prefix_placehoder, file_mode = '', None
+            else:
+                link_type = requested_link_type
+                prefix_placehoder, file_mode = '', None
+
+            return link_type, prefix_placehoder, file_mode
+
         def make_file_link_action(source_path_info):
             # TODO: this inner function is still kind of a mess
             noarch = package_info.index_json_record.noarch
@@ -221,22 +236,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                 The current version of conda is too old to install this package.
                 Please update conda."""))
 
-            def get_prefix_replace(path_info, requested_link_type):
-                if path_info.prefix_placeholder:
-                    link_type = LinkType.copy
-                    prefix_placehoder = path_info.prefix_placeholder
-                    file_mode = path_info.file_mode
-                elif path_info.no_link or path_info.path_type == PathType.softlink:
-                    link_type = LinkType.copy
-                    prefix_placehoder, file_mode = '', None
-                else:
-                    link_type = requested_link_type
-                    prefix_placehoder, file_mode = '', None
-
-                return link_type, prefix_placehoder, file_mode
-
-            link_type, placeholder, fmode = get_prefix_replace(source_path_info,
-                                                               requested_link_type)
+            link_type, placeholder, fmode = get_prefix_replace(source_path_info)
 
             if placeholder:
                 return PrefixReplaceLinkAction(transaction_context, package_info,
@@ -364,6 +364,14 @@ class PrefixReplaceLinkAction(LinkPathAction):
             log.trace("ignoring prefix update for symlink with source path %s",
                       self.source_full_path)
             return
+
+        num_links = stat_nlink(self.target_full_path)
+        if num_links > 1:
+            raise LinkError(dals("""
+            Refusing to rewrite prefixes in path with more than one link.
+              path: %s
+              links: %s
+            """) % (self.target_full_path, num_links))
 
         try:
             log.trace("rewriting prefixes in %s", self.target_full_path)
@@ -699,12 +707,20 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         #   of the paths that will be removed when the package is unlinked
 
         link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
-        linked_package_record = IndexRecord.from_objects(package_info.repodata_record,
-                                                         package_info.index_json_record,
-                                                         files=all_target_short_paths,
-                                                         link=link,
-                                                         url=package_info.url,
-                                                         leased_paths=leased_paths)
+        extracted_package_dir = package_info.extracted_package_dir
+        package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
+        # TODO: don't make above assumption; put package_tarball_full_path in package_info
+
+        linked_package_record = PrefixRecord.from_objects(
+            package_info.repodata_record,
+            package_info.index_json_record,
+            files=all_target_short_paths,
+            link=link,
+            url=package_info.url,
+            leased_paths=leased_paths,
+            extracted_package_dir=extracted_package_dir,
+            package_tarball_full_path=package_tarball_full_path,
+        )
 
         target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
         return cls(transaction_context, package_info, target_prefix, target_short_path,
@@ -716,21 +732,15 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
                                                               None, None, target_prefix,
                                                               target_short_path)
         self.linked_package_record = linked_package_record
-        self._linked_data_loaded = False
 
     def execute(self):
         log.trace("creating linked package record %s", self.target_full_path)
-        write_linked_package_record(self.target_prefix, self.linked_package_record)
-        load_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
-                         self.linked_package_record)
-        self._linked_data_loaded = True
+        PrefixData(self.target_prefix).insert(self.linked_package_record)
 
     def reverse(self):
         log.trace("reversing linked package record creation %s", self.target_full_path)
-        if self._linked_data_loaded:
-            delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),
-                               delete=False)
-        rm_rf(self.target_full_path)
+        # TODO: be careful about failure here, and being too strict
+        PrefixData(self.target_prefix).remove(self.linked_package_record.name)
 
 
 class UpdateHistoryAction(CreateInPrefixPathAction):
@@ -930,17 +940,11 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
 
     def execute(self):
         super(RemoveLinkedPackageRecordAction, self).execute()
-        delete_linked_data(self.target_prefix, Dist(self.linked_package_data),
-                           delete=False)
+        PrefixData(self.target_prefix).remove(self.linked_package_data.name)
 
     def reverse(self):
         super(RemoveLinkedPackageRecordAction, self).reverse()
-        with open(self.target_full_path, 'r') as fh:
-            meta_record = IndexRecord(**json.loads(fh.read()))
-        log.trace("reloading cache entry %s", self.target_full_path)
-        load_linked_data(self.target_prefix,
-                         Dist(self.linked_package_data).dist_name,
-                         meta_record)
+        PrefixData(self.target_prefix)._load_single_record(self.target_full_path)
 
 
 class UnregisterEnvironmentLocationAction(EnvsDirectoryPathAction):
@@ -1067,9 +1071,9 @@ class CacheUrlAction(PathAction):
                 # the package is already in a cache, so it came from a remote url somewhere;
                 #   make sure that remote url is the most recent url in the
                 #   writable cache urls.txt
-                origin_url = source_package_cache.urls_data.get_url(self.target_package_basename)
+                origin_url = source_package_cache._urls_data.get_url(self.target_package_basename)
                 if origin_url and Dist(origin_url).is_channel:
-                    target_package_cache.urls_data.add_url(origin_url)
+                    target_package_cache._urls_data.add_url(origin_url)
             else:
                 # so our tarball source isn't a package cache, but that doesn't mean it's not
                 #   in another package cache somewhere
@@ -1077,22 +1081,35 @@ class CacheUrlAction(PathAction):
                 #   record that url as the remote source url in urls.txt
                 # we do the search part of this operation before the create_link so that we
                 #   don't md5sum-match the file created by 'create_link'
+                # there is no point in looking for the tarball in the cache that we are writing
+                #   this file into because we have already removed the previous file if there was
+                #   any. This also makes sure that we ignore the md5sum of a possible extracted
+                #   directory that might exist in this cache because we are going to overwrite it
+                #   anyway when we extract the tarball.
                 source_md5sum = compute_md5sum(source_path)
-                pc_entry = PackageCache.tarball_file_in_cache(source_path, source_md5sum)
-                origin_url = pc_entry.get_urls_txt_value() if pc_entry else None
+                exclude_caches = self.target_pkgs_dir,
+                pc_entry = PackageCache.tarball_file_in_cache(source_path, source_md5sum,
+                                                              exclude_caches=exclude_caches)
+
+                if pc_entry:
+                    origin_url = target_package_cache._urls_data.get_url(
+                        pc_entry.extracted_package_dir
+                    )
+                else:
+                    origin_url = None
 
                 # copy the tarball to the writable cache
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy,
                             force=context.force)
 
                 if origin_url and Dist(origin_url).is_channel:
-                    target_package_cache.urls_data.add_url(origin_url)
+                    target_package_cache._urls_data.add_url(origin_url)
                 else:
-                    target_package_cache.urls_data.add_url(self.url)
+                    target_package_cache._urls_data.add_url(self.url)
 
         else:
             download(self.url, self.target_full_path, self.md5sum)
-            target_package_cache.urls_data.add_url(self.url)
+            target_package_cache._urls_data.add_url(self.url)
 
     def reverse(self):
         if lexists(self.hold_path):
@@ -1113,12 +1130,12 @@ class CacheUrlAction(PathAction):
 class ExtractPackageAction(PathAction):
 
     def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname,
-                 record):
+                 index_record):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
         self.hold_path = self.target_full_path + '.c~'
-        self.record = record
+        self.index_record = index_record
 
     def verify(self):
         self._verified = True
@@ -1126,7 +1143,7 @@ class ExtractPackageAction(PathAction):
     def execute(self):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
-        from .package_cache import PackageCache, PackageCacheEntry
+        from .package_cache import PackageCache
         log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
         if lexists(self.hold_path):
@@ -1145,15 +1162,23 @@ class ExtractPackageAction(PathAction):
                 else:
                     raise
         extract_tarball(self.source_full_path, self.target_full_path)
-        meta = join(self.target_full_path, 'info', 'repodata_record.json')
-        write_as_json_to_file(meta, self.record)
+        # meta = join(self.target_full_path, 'info', 'repodata_record.json')
+        # write_as_json_to_file(meta, self.record)
 
         target_package_cache = PackageCache(self.target_pkgs_dir)
+        recorded_url = target_package_cache._urls_data.get_url(self.source_full_path)
+        package_cache_record = PackageCacheRecord.from_objects(
+            self.index_record,
+            url=recorded_url,
+            package_tarball_full_path=self.source_full_path,
+            extracted_package_dir=self.target_full_path,
+        )
 
-        recorded_url = target_package_cache.urls_data.get_url(self.source_full_path)
-        dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
-        package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, dist)
-        target_package_cache[package_cache_entry.dist] = package_cache_entry
+        target_package_cache.insert(package_cache_record)
+
+        # dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
+        # package_cache_entry = PackageCacheRecord.make_legacy(self.target_pkgs_dir, dist)
+        # target_package_cache[package_cache_entry.dist] = package_cache_entry
 
     def reverse(self):
         rm_rf(self.target_full_path)

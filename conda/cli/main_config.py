@@ -9,7 +9,7 @@ from argparse import SUPPRESS
 import collections
 import json
 import os
-from os.path import join
+from os.path import isfile, join
 import sys
 from textwrap import wrap
 
@@ -20,9 +20,8 @@ from ..base.context import context
 from ..common.compat import isiterable, iteritems, string_types, text_type
 from ..common.configuration import pretty_list, pretty_map
 from ..common.constants import NULL
-from ..common.yaml import yaml_dump, yaml_load
-from ..config import (rc_bool_keys, rc_list_keys, rc_other, rc_string_keys, sys_rc_path,
-                      user_rc_path)
+from ..common.serialize import yaml_dump, yaml_load
+from ..config import rc_other, sys_rc_path, user_rc_path
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -140,6 +139,13 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         help="Describe available configuration parameters.",
     )
     action.add_argument(
+        "--write-default",
+        action="store_true",
+        help="Write the default configuration to a file. "
+             "Equivalent to `conda config --describe > ~/.condarc` "
+             "when no --env, --system, or --file flags are given.",
+    )
+    action.add_argument(
         "--get",
         nargs='*',
         action="store",
@@ -188,6 +194,11 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar="KEY",
     )
+    action.add_argument(
+        "--stdin",
+        action="store_true",
+        help="Apply configuration information given in yaml format piped through stdin.",
+    )
 
     p.add_argument(
         "-f", "--force",
@@ -227,8 +238,45 @@ def format_dict(d):
     return lines
 
 
-def execute_config(args, parser):
+def parameter_description_builder(name):
     from .._vendor.auxlib.entity import EntityEncoder
+    builder = []
+    details = context.describe_parameter(name)
+    aliases = details['aliases']
+    string_delimiter = details.get('string_delimiter')
+    element_types = details['element_types']
+    default_value_str = json.dumps(details['default_value'], cls=EntityEncoder)
+
+    if details['parameter_type'] == 'primitive':
+        builder.append("%s (%s)" % (name, ', '.join(sorted(set(et for et in element_types)))))
+    else:
+        builder.append("%s (%s: %s)" % (name, details['parameter_type'],
+                                        ', '.join(sorted(set(et for et in element_types)))))
+
+    if aliases:
+        builder.append("  aliases: %s" % ', '.join(aliases))
+    if string_delimiter:
+        builder.append("  string delimiter: '%s'" % string_delimiter)
+
+    builder.extend('  ' + line for line in wrap(details['description'], 70))
+
+    builder.append('')
+
+    builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
+
+    builder = ['# ' + line for line in builder]
+    builder.append('')
+    builder.append('')
+    return builder
+
+
+def execute_config(args, parser):
+    try:
+        from cytoolz.itertoolz import concat, groupby
+    except ImportError:  # pragma: no cover
+        from .._vendor.toolz.itertoolz import concat, groupby  # NOQA
+    from .._vendor.auxlib.entity import EntityEncoder
+
     json_warnings = []
     json_get = {}
 
@@ -272,26 +320,8 @@ def execute_config(args, parser):
                              sort_keys=True, indent=2, separators=(',', ': '),
                              cls=EntityEncoder))
         else:
-            for name in paramater_names:
-                details = context.describe_parameter(name)
-                aliases = details['aliases']
-                string_delimiter = details.get('string_delimiter')
-                element_types = details['element_types']
-                if details['parameter_type'] == 'primitive':
-                    print("%s (%s)" % (name, ', '.join(sorted(set(et for et in element_types)))))
-                else:
-                    print("%s (%s: %s)" % (name, details['parameter_type'],
-                                           ', '.join(sorted(set(et for et in element_types)))))
-                def_str = '  default: %s' % json.dumps(details['default_value'], indent=2,
-                                                       separators=(',', ': '),
-                                                       cls=EntityEncoder)
-                print('\n  '.join(def_str.split('\n')))
-                if aliases:
-                    print("  aliases: %s" % ', '.join(aliases))
-                if string_delimiter:
-                    print("  string delimiter: '%s'" % string_delimiter)
-                print('\n  '.join(wrap('  ' + details['description'], 70)))
-                print()
+            print('\n'.join(concat(parameter_description_builder(name)
+                                   for name in paramater_names)))
         return
 
     if args.validate:
@@ -310,6 +340,23 @@ def execute_config(args, parser):
     else:
         rc_path = user_rc_path
 
+    if args.write_default:
+        if isfile(rc_path):
+            with open(rc_path) as fh:
+                data = fh.read().strip()
+            if data:
+                raise CondaError("The file '%s' "
+                                 "already contains configuration information.\n"
+                                 "Remove the file to proceed.\n"
+                                 "Use `conda config --describe` to display default configuration."
+                                 % rc_path)
+
+        with open(rc_path, 'w') as fh:
+            paramater_names = context.list_parameters()
+            fh.write('\n'.join(concat(parameter_description_builder(name)
+                                      for name in paramater_names)))
+        return
+
     # read existing condarc
     if os.path.exists(rc_path):
         with open(rc_path, 'r') as fh:
@@ -317,13 +364,19 @@ def execute_config(args, parser):
     else:
         rc_config = {}
 
+    grouped_paramaters = groupby(lambda p: context.describe_parameter(p)['parameter_type'],
+                                 context.list_parameters())
+    primitive_parameters = grouped_paramaters['primitive']
+    sequence_parameters = grouped_paramaters['sequence']
+    map_parameters = grouped_paramaters['map']
+
     # Get
     if args.get is not None:
         context.validate_all()
         if args.get == []:
             args.get = sorted(rc_config.keys())
         for key in args.get:
-            if key not in rc_list_keys + rc_bool_keys + rc_string_keys:
+            if key not in primitive_parameters + sequence_parameters:
                 if key not in rc_other:
                     message = "unknown key %s" % key
                     if not context.json:
@@ -354,10 +407,17 @@ def execute_config(args, parser):
                     else:
                         print("--add", key, repr(item))
 
+    if args.stdin:
+        content = sys.stdin.read()
+        try:
+            parsed = yaml_load(content)
+        except Exception:  # pragma: no cover
+            from ..exceptions import ParseError
+            raise ParseError("invalid yaml content:\n%s" % content)
+        rc_config.update(parsed)
+
     # prepend, append, add
     for arg, prepend in zip((args.prepend, args.append), (True, False)):
-        sequence_parameters = [p for p in context.list_parameters()
-                               if context.describe_parameter(p)['parameter_type'] == 'sequence']
         for key, item in arg:
             if key == 'channels' and key not in rc_config:
                 rc_config[key] = ['defaults']
@@ -385,16 +445,20 @@ def execute_config(args, parser):
 
     # Set
     for key, item in args.set:
-        primitive_parameters = [p for p in context.list_parameters()
-                                if context.describe_parameter(p)['parameter_type'] == 'primitive']
-        if key not in primitive_parameters:
+        key, subkey = key.split('.', 1) if '.' in key else (key, None)
+        if key in primitive_parameters:
+            value = context.typify_parameter(key, item)
+            rc_config[key] = value
+        elif key in map_parameters:
+            argmap = rc_config.setdefault(key, {})
+            argmap[subkey] = item
+        else:
             from ..exceptions import CondaValueError
             raise CondaValueError("Key '%s' is not a known primitive parameter." % key)
-        value = context.typify_parameter(key, item)
-        rc_config[key] = value
 
     # Remove
     for key, item in args.remove:
+        key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key not in rc_config:
             if key != 'channels':
                 from ..exceptions import CondaKeyError
@@ -408,6 +472,7 @@ def execute_config(args, parser):
 
     # Remove Key
     for key, in args.remove_key:
+        key, subkey = key.split('.', 1) if '.' in key else (key, None)
         if key not in rc_config:
             from ..exceptions import CondaKeyError
             raise CondaKeyError(key, "key %r is not in the config file" %

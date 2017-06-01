@@ -11,7 +11,7 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from .base.constants import PathConflict
-from .common.compat import iteritems, iterkeys, on_win, string_types
+from .common.compat import ensure_text_type, iteritems, iterkeys, on_win, string_types
 from .common.signals import get_signal_name
 from .common.url import maybe_unquote
 
@@ -36,7 +36,7 @@ class ArgumentError(CondaError):
 
 class CommandArgumentError(ArgumentError):
     def __init__(self, message, **kwargs):
-        command = ' '.join(sys.argv)
+        command = ' '.join(ensure_text_type(s) for s in sys.argv)
         super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
 
 
@@ -393,7 +393,7 @@ class NoPackagesFoundError(CondaError):
         from .resolve import dashlist
         from .base.context import context
 
-        deps = set(q[-1].spec for q in bad_deps)
+        deps = set(q[-1] for q in bad_deps)
         if all(len(q) > 1 for q in bad_deps):
             what = "Dependencies" if len(bad_deps) > 1 else "Dependency"
         elif all(len(q) == 1 for q in bad_deps):
@@ -613,7 +613,7 @@ conda GitHub issue tracker at:
 
 """
         stderrlogger.info(message)
-        command = ' '.join(sys.argv)
+        command = ' '.join(ensure_text_type(s) for s in sys.argv)
         if ' info' not in command:
             from .cli.main_info import get_info_dict, get_main_info_str
             stderrlogger.info(get_main_info_str(get_info_dict()))
@@ -644,7 +644,8 @@ def maybe_raise(error, context):
 
 
 def handle_exception(e):
-    if isinstance(e, CondaExitZero):
+    return_code = getattr(e, 'return_code', None)
+    if return_code == 0:
         return 0
     elif isinstance(e, CondaError):
         from .base.context import context
@@ -652,10 +653,10 @@ def handle_exception(e):
             print_unexpected_error_message(e)
         else:
             print_conda_exception(e)
-        return 1
+        return return_code if return_code else 1
     else:
         print_unexpected_error_message(e)
-        return 1
+        return return_code if return_code else 1
 
 
 def conda_exception_handler(func, *args, **kwargs):

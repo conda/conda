@@ -8,14 +8,13 @@ from os.path import dirname, isdir, join
 import re
 
 from . import exp_backoff_fn, mkdir_p
-from .link import lexists
 from .delete import rm_rf
+from .link import lexists
 from ... import CondaError
 from ..._vendor.auxlib.entity import EntityEncoder
 from ..._vendor.auxlib.ish import dals
-from ..._vendor.auxlib.path import expand
 from ...common.compat import ensure_binary, ensure_text_type
-from ...common.path import win_path_backout, win_path_ok
+from ...common.path import expand, win_path_backout, win_path_ok
 
 log = getLogger(__name__)
 

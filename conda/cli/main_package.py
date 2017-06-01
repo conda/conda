@@ -263,9 +263,11 @@ def which_package(path):
     if prefix is None:
         from ..exceptions import CondaVerificationError
         raise CondaVerificationError("could not determine conda prefix from: %s" % path)
+
+    from ..common.path import paths_equal
     for dist in linked(prefix):
         meta = is_linked(prefix, dist)
-        if any(abspath(join(prefix, f)) == path for f in meta['files']):
+        if any(paths_equal(join(prefix, f), path) for f in meta['files']):
             yield dist
 
 
