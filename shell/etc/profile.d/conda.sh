@@ -19,17 +19,6 @@ _conda_set_vars() {
         fi
     fi
 
-    case "$(uname -s)" in
-        CYGWIN*|MINGW*|MSYS*)
-            local bin_dir="Scripts"
-            local exe_ext=".exe"
-            ;;
-        *)
-            local bin_dir="bin"
-            local exe_ext=""
-            ;;
-    esac
-
     if [ -n "${_CONDA_ROOT:+x}" ]; then
         # typically this should be for dev only; _CONDA_EXE should be written at top of file
         # for normal installs
