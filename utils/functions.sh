@@ -381,35 +381,15 @@ conda_build_test() {
 
 
 run_setup() {
-    set -e
-    set -x
-    env | sort
-
-    case "$(uname -s)" in
-        'Darwin')
-            install_conda_dev
-            ;;
-        'Linux')
-            if [[ $FLAKE8 == true ]]; then
-                pip install flake8
-            elif [[ $SUDO == true ]]; then
-                install_conda_dev_usr_local
-            elif [[ -n $CONDA_BUILD ]]; then
-                install_conda_build
-            else
-                install_conda_dev
-            fi
-            ;;
-        CYGWIN*|MINGW*|MSYS*)
-            install_conda_dev
-            ;;
-        *)  echo "setup not configured for $(uname -s)"
-            return 1
-            ;;
-    esac
-
-    set +e
-    set +x
+    if [[ $FLAKE8 == true ]]; then
+        pip install flake8
+    elif [[ $SUDO == true ]]; then
+        install_conda_dev_usr_local
+    elif [[ -n $CONDA_BUILD ]]; then
+        install_conda_build
+    else
+        install_conda_dev
+    fi
 }
 
 
