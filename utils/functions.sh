@@ -78,13 +78,13 @@ install_miniconda() {
 install_conda_full() {
     local prefix=${1:-$INSTALL_PREFIX}
     local python_version=${2:-$PYTHON_VERSION}
-    local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
 
     if ! [ -f "$prefix/conda-meta/history" ]; then
         install_miniconda $prefix
         $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip
     fi
 
+    local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
     rm -rf \
        $prefix/$BIN_DIR/activate* \
        $prefix/$BIN_DIR/conda* \
@@ -160,7 +160,8 @@ install_conda_shell_scripts() {
 
     mkdir -p "$prefix/etc/profile.d/"
     rm -f "$prefix/etc/profile.d/conda.sh"
-    echo "_CONDA_EXE=\"$prefix/$BIN_DIR/conda$EXE_EXT\"" > "$prefix/etc/profile.d/conda.sh"
+    local conda_exe="$prefix/$BIN_DIR/conda$EXE_EXT"
+    echo "_CONDA_EXE=\"$conda_exe\"" > "$prefix/etc/profile.d/conda.sh"
     echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/etc/profile.d/conda.sh"
     cat "$src_dir/shell/etc/profile.d/conda.sh" >> "$prefix/etc/profile.d/conda.sh"
 
@@ -182,7 +183,7 @@ install_conda_shell_scripts() {
         rm -f "$prefix/$BIN_DIR/activate.bat"
         cp "$src_dir/shell/Scripts/activate.bat" "$prefix/$BIN_DIR/activate.bat"
 
-        rm -f $bin_dir/deactivate.bat
+        rm -f "$prefix/$BIN_DIR/deactivate.bat"
         cp "$src_dir/shell/Scripts/deactivate.bat" "$prefix/$BIN_DIR/deactivate.bat"
 
         mkdir -p "$prefix/Library/bin"
@@ -266,36 +267,41 @@ install_conda_build() {
     install_conda_full $prefix
     conda config --set auto_update_conda false
 
-    $prefix/bin/pip install -r utils/requirements-test.txt
+    $prefix/$BIN_DIR/pip install -r utils/requirements-test.txt
 
     # install conda-build dependencies (runtime and test)
     conda config --append channels conda-forge
-    $prefix/bin/conda install -y -q -c conda-forge perl pytest-xdist
-    conda config --remove channels conda-forge
-    $prefix/bin/conda install -y -q \
+    $prefix/$BIN_DIR/conda install -y -q \
+        perl pytest-xdist pytest-catchlog pytest-mock \
         anaconda-client numpy \
-        filelock jinja2 patchelf conda-verify contextlib2 pkginfo
-    $prefix/bin/pip install pytest-catchlog pytest-mock
+        filelock jinja2 conda-verify contextlib2 pkginfo
+    conda config --remove channels conda-forge
+    if ! [ -n "$ON_WIN" ]; then
+        $prefix/$BIN_DIR/conda install -y -q patchelf
+    fi
 
-    $prefix/bin/conda config --set add_pip_as_python_dependency true
+    $prefix/$BIN_DIR/conda config --set add_pip_as_python_dependency true
 
     # install conda-build
+    local cb_branch="${CONDA_BUILD:-master}"
     if [ -d conda-build ]; then
         pushd conda-build
-        git checkout $CONDA_BUILD
+        git checkout $cb_branch
         popd
     else
-        git clone -b $CONDA_BUILD --single-branch --depth 250 https://github.com/conda/conda-build.git
+        git clone -b $cb_branch --single-branch --depth 500 https://github.com/conda/conda-build.git
     fi
-    local site_packages=$($prefix/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
+    local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
     rm -rf $site_packages/conda_build
     pushd conda-build
-    $prefix/bin/pip install --no-deps .
+    $prefix/$BIN_DIR/pip install --no-deps -U .
     popd
 
-    git clone https://github.com/conda/conda_build_test_recipe.git
+    if ! [ -d conda_build_test_recipe ]; then
+        git clone https://github.com/conda/conda_build_test_recipe.git
+    fi
 
-    $prefix/bin/conda info
+    $prefix/$BIN_DIR/conda info
 }
 
 
@@ -356,13 +362,13 @@ conda_build_smoke_test() {
 conda_build_test() {
     local prefix=${1:-$INSTALL_PREFIX}
 
-    . $prefix/etc/profile.d/conda.sh
-
     echo
     echo ">>>>>>>>>>>> running conda-build unit tests >>>>>>>>>>>>>>>>>>>>>"
     echo
 
-    export PATH="$prefix/bin:$PATH"  # cheating
+    # export PATH="$prefix/bin:$PATH"  # cheating
+    . $prefix/etc/profile.d/conda.sh
+    conda activate root
     conda info
 
     pushd conda-build
