@@ -8,12 +8,14 @@ set_vars() {
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
+            export ON_WIN=
             ;;
         'Linux')
             export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Linux-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
+            export ON_WIN=
             ;;
         CYGWIN*|MINGW*|MSYS*)
             export ON_WIN=true
@@ -411,7 +413,9 @@ run_tests() {
         flake8 --statistics
     elif [ -n "$CONDA_BUILD" ]; then
         conda_build_smoke_test
-        conda_build_test
+        if ! [ -n "$ON_WIN" ]; then
+            conda_build_test
+        fi
     elif [ -n "$SHELL_INTEGRATION" ]; then
         conda_unit_test
         conda_activate_test
