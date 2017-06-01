@@ -701,6 +701,23 @@ class IntegrationTests(TestCase):
             for param_name in context.list_parameters():
                 assert re.search(r'^# %s \(' % param_name, data, re.MULTILINE)
 
+            stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe --json")
+            assert not stderr
+            json_obj = json.loads(stdout.strip())
+            assert len(json_obj) >= 42
+            assert 'description' in json_obj[0]
+
+            with env_var('CONDA_QUIET', 'yes', reset_context):
+                stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources")
+                assert not stderr
+                assert 'envvars' in stdout.strip()
+
+                stdout, stderr = run_command(Commands.CONFIG, prefix, "--show-sources --json")
+                assert not stderr
+                json_obj = json.loads(stdout.strip())
+                assert json_obj['envvars'] == {'quiet': True}
+                assert json_obj['cmd_line'] == {'json': True}
+
     def test_conda_config_validate(self):
         with make_temp_env() as prefix:
             run_command(Commands.CONFIG, prefix, "--set ssl_verify no")
@@ -807,7 +824,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous-0.23')
             assert package_is_installed(prefix, 'flask')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 6, 1), reason="#5263", strict=True)
+    @pytest.mark.xfail(datetime.now() < datetime(2017, 7, 1), reason="#5263", strict=True)
     def test_update_deps_flag_present(self):
         with make_temp_env("python=2 itsdangerous=0.23") as prefix:
             assert package_is_installed(prefix, 'python-2')
