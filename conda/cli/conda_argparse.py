@@ -73,7 +73,7 @@ class ArgumentParser(ArgumentParserBase):
     def print_help(self):
         super(ArgumentParser, self).print_help()
 
-        if self.prog == 'conda' and sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
+        if sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
             print("""
 other commands, such as "conda build", are available when additional conda
 packages (e.g. conda-build) are installed

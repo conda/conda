@@ -16,11 +16,12 @@ log = getLogger(__name__)
 
 
 class Commands:
-    CONFIG = "config"
     CLEAN = "clean"
+    CONFIG = "config"
     CREATE = "create"
     INFO = "info"
     INSTALL = "install"
+    HELP = "help"
     LIST = "list"
     REMOVE = "remove"
     SEARCH = "search"
@@ -95,5 +96,6 @@ def run_command(command, *arguments, **kwargs):
         log.debug("\n  stdout: %s\n  stderr: %s", c.stdout, c.stderr)
         e.stdout, e.stderr = c.stdout, c.stderr
         raise e
+    return_code = return_code or 0
     log.debug("\n  stdout: %s\n  stderr: %s\n  return_code: %s", c.stdout, c.stderr, return_code)
     return c.stdout, c.stderr, return_code

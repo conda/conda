@@ -40,7 +40,7 @@ from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
 from conda.exceptions import CondaHTTPError, DryRunExit, PackageNotFoundError, RemoveError, \
-    conda_exception_handler
+    conda_exception_handler, EnvironmentLocationNotFound, CommandNotFoundError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -626,6 +626,26 @@ class IntegrationTests(TestCase):
                 # python on windows doesn't actually have real dependencies
                 assert package_is_installed(prefix, 'openssl')
             assert package_is_installed(prefix, 'itsdangerous')
+
+    def test_python_api(self):
+        from conda.cli.python_api import Commands as ApiCommands, run_command as api_run_command
+        stdout, stderr, rc = api_run_command(ApiCommands.HELP)
+        assert rc == 0
+        assert not stderr
+        assert "\n    install" in stdout
+
+        with pytest.raises(EnvironmentLocationNotFound):
+            api_run_command(ApiCommands.LIST, "-p not-a-real-path")
+
+        stdout, stderr, rc = api_run_command(ApiCommands.LIST, "-p not-a-real-path",
+                                             use_exception_handler=True)
+        assert rc == 1
+        assert "Not a conda environment" in stderr
+        assert not stdout
+
+        p = generate_parser()
+        with pytest.raises(CommandNotFoundError):
+            p.parse_args(["blarg", "--flag"])
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     def test_install_features(self):
