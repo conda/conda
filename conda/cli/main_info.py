@@ -156,9 +156,8 @@ def print_package_info(packages):
 
 def get_info_dict(system=False):
     from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
-    from ..base.context import conda_in_private_env, context
+    from ..base.context import conda_in_private_env, context, sys_rc_path, user_rc_path
     from ..common.url import mask_anaconda_token
-    from ..config import sys_rc_path, user_rc_path
     from ..models.channel import offline_keep, prioritize_channels
 
     try:

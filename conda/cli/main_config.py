@@ -16,11 +16,9 @@ from textwrap import wrap
 from .conda_argparse import add_parser_json
 from .. import CondaError
 from ..base.constants import CONDA_HOMEPAGE_URL
-from ..base.context import context
+from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, iteritems, string_types, text_type
 from ..common.constants import NULL
-from ..common.serialize import yaml_dump, yaml_load
-from ..config import rc_other, sys_rc_path, user_rc_path
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -241,6 +239,7 @@ def format_dict(d):
 
 def parameter_description_builder(name):
     from .._vendor.auxlib.entity import EntityEncoder
+    from ..common.serialize import yaml_dump
     builder = []
     details = context.describe_parameter(name)
     aliases = details['aliases']
@@ -277,6 +276,8 @@ def execute_config(args, parser):
     except ImportError:  # pragma: no cover
         from .._vendor.toolz.itertoolz import concat, groupby  # NOQA
     from .._vendor.auxlib.entity import EntityEncoder
+
+    from ..common.serialize import yaml_dump, yaml_load
 
     json_warnings = []
     json_get = {}
@@ -378,12 +379,11 @@ def execute_config(args, parser):
             args.get = sorted(rc_config.keys())
         for key in args.get:
             if key not in primitive_parameters + sequence_parameters:
-                if key not in rc_other:
-                    message = "unknown key %s" % key
-                    if not context.json:
-                        print(message, file=sys.stderr)
-                    else:
-                        json_warnings.append(message)
+                message = "unknown key %s" % key
+                if not context.json:
+                    print(message, file=sys.stderr)
+                else:
+                    json_warnings.append(message)
                 continue
             if key not in rc_config:
                 continue

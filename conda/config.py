@@ -5,12 +5,10 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from os.path import abspath, expanduser, join
-import sys
-
-from .base.context import context, non_x86_linux_machines
+from .base.context import context, non_x86_linux_machines, sys_rc_path, user_rc_path
 
 non_x86_linux_machines = non_x86_linux_machines
+sys_rc_path, user_rc_path = sys_rc_path, user_rc_path
 
 
 # ----- rc file -----
@@ -22,56 +20,8 @@ non_x86_linux_machines = non_x86_linux_machines
 # Also update the example condarc file when you add a key here! #
 #################################################################
 
-rc_list_keys = [
-    'channels',
-    'disallow',
-    'create_default_packages',
-    'track_features',
-    'envs_dirs',
-    'pkgs_dirs',
-    'default_channels',
-    'pinned_packages',
-]
-
-rc_bool_keys = [
-    'add_binstar_token',
-    'add_anaconda_token',
-    'add_pip_as_python_dependency',
-    'always_yes',
-    'always_copy',
-    'allow_softlinks',
-    'always_softlink',
-    'auto_update_conda',
-    'changeps1',
-    'use_pip',
-    'offline',
-    'binstar_upload',
-    'anaconda_upload',
-    'show_channel_urls',
-    'allow_other_channels',
-    'update_dependencies',
-    'channel_priority',
-    'shortcuts',
-]
-
-rc_string_keys = [
-    'channel_alias',
-    'client_ssl_cert',
-    'client_ssl_cert_key',
-    'default_python',
-]
-
-# Not supported by conda config yet
-rc_other = [
-    'proxy_servers',
-]
-
 root_dir = context.root_prefix
 root_writable = context.root_writable
-
-user_rc_path = abspath(expanduser('~/.condarc'))
-sys_rc_path = join(sys.prefix, '.condarc')
-
 
 get_rc_urls = lambda: context.channels
 
