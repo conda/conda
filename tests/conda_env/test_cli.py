@@ -1,24 +1,19 @@
 import json
 import os
-import unittest
-import tempfile
 from shlex import split
+import tempfile
+import unittest
 
 import pytest
 
-from conda_env.exceptions import SpecNotFound
-from conda_env.cli.main import create_parser
-
-from conda.base.context import context
 from conda.base.constants import ROOT_ENV_NAME
+from conda.base.context import context
+from conda.cli.main import generate_parser
 from conda.common.io import captured
 from conda.exceptions import EnvironmentNameNotFound
 from conda.install import rm_rf
-from conda.cli.main_create import configure_parser as conda_create_parser
-from conda.cli.main_list import configure_parser as list_parser
-from conda.cli.main_info import configure_parser as info_parser
-from conda.cli.main_install import configure_parser as install_parser
-from conda.cli.main import generate_parser
+from conda_env.cli.main import create_parser
+from conda_env.exceptions import SpecNotFound
 
 environment_1 = '''
 name: env-1
@@ -91,13 +86,6 @@ def run_env_command(command, prefix, *arguments):
 
     return c.stdout, c.stderr
 
-parser_config = {
-    Commands.CREATE: conda_create_parser,
-    Commands.LIST: list_parser,
-    Commands.INFO: info_parser,
-    Commands.INSTALL: install_parser
-}
-
 
 def run_conda_command(command, prefix, *arguments):
     """
@@ -107,9 +95,7 @@ def run_conda_command(command, prefix, *arguments):
         prefix: The prefix or the name of environment
         *arguments: Extra arguments
     """
-    p, sub_parsers = generate_parser()
-    assert command in parser_config, "Wrong command for conda {0}".format(command)
-    parser_config[command](sub_parsers)
+    p = generate_parser()
 
     prefix = escape_for_winpath(prefix)
     if arguments:

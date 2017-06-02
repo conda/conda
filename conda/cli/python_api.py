@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from importlib import import_module
 from logging import getLogger
 from shlex import split
 
 from ..base.constants import APP_NAME, SEARCH_PATH
 from ..base.context import context
 from ..cli.main import generate_parser
-from ..common.io import captured, replace_log_streams, argv, CaptureTarget
+from ..common.io import CaptureTarget, argv, captured, replace_log_streams
 from ..common.path import win_path_double_escape
 from ..exceptions import conda_exception_handler
 from ..gateways.logging import initialize_std_loggers
@@ -30,11 +29,6 @@ class Commands:
 
 STRING = CaptureTarget.STRING
 STDOUT = CaptureTarget.STDOUT
-
-
-def get_configure_parser_function(command):
-    module = 'conda.cli.main_' + command
-    return import_module(module).configure_parser
 
 
 def run_command(command, *arguments, **kwargs):
@@ -76,8 +70,7 @@ def run_command(command, *arguments, **kwargs):
     configuration_search_path = kwargs.get('search_path', SEARCH_PATH)
     stdout = kwargs.get('stdout', STRING)
     stderr = kwargs.get('stderr', STRING)
-    p, sub_parsers = generate_parser()
-    get_configure_parser_function(command)(sub_parsers)
+    p = generate_parser()
 
     arguments = map(win_path_double_escape, arguments)
     command_line = "%s %s" % (command, " ".join(arguments))

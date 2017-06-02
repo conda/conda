@@ -123,7 +123,7 @@ parser_config = {
 def run_command(command, prefix, *arguments, **kwargs):
     use_exception_handler = kwargs.get('use_exception_handler', False)
     arguments = list(arguments)
-    p, sub_parsers = generate_parser()
+    p = generate_parser()
     parser_config[command](sub_parsers)
 
     if command is Commands.CONFIG:
