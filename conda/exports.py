@@ -63,10 +63,6 @@ from .resolve import MatchSpec, NoPackagesFound, Resolve, Unsatisfiable, normali
 MatchSpec, NoPackagesFound, Resolve = MatchSpec, NoPackagesFound, Resolve
 Unsatisfiable, normalized_version = Unsatisfiable, normalized_version
 
-from .signature import KEYS, KEYS_DIR, hash_file, verify  # NOQA
-KEYS, KEYS_DIR = KEYS, KEYS_DIR
-hash_file, verify = hash_file, verify
-
 from .utils import hashsum_file, human_bytes, unix_path_to_win, url_path  # NOQA
 from .common.path import win_path_to_unix  # NOQA
 hashsum_file, human_bytes = hashsum_file, human_bytes
@@ -181,3 +177,18 @@ class memoized(object):  # pragma: no cover
                 value = self.func(*args, **kw)
                 self.cache[key] = value
                 return value
+
+
+# ######################
+# signature.py
+# ######################
+KEYS = None
+KEYS_DIR = None
+
+
+def hash_file(_):
+    return None  # pragma: no cover
+
+
+def verify(_):
+    return False  # pragma: no cover
