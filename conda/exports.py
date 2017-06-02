@@ -15,9 +15,6 @@ CondaError = CondaError
 from . import compat, plan  # NOQA
 compat, plan = compat, plan
 
-from .core.index import get_index  # NOQA
-get_index = get_index
-
 from .cli.common import specs_from_args, spec_from_line, specs_from_url  # NOQA
 from .cli.conda_argparse import add_parser_prefix, add_parser_channels  # NOQA
 add_parser_channels, add_parser_prefix = add_parser_channels, add_parser_prefix
@@ -43,8 +40,8 @@ from conda.gateways.connection.download import TmpDownload
 TmpDownload = TmpDownload
 handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
                                      "Now handled by CondaSession.")
-from .core.index import dist_str_in_index, fetch_index  # NOQA
-dist_str_in_index, fetch_index = dist_str_in_index, fetch_index
+from .core.index import dist_str_in_index, fetch_index, get_index  # NOQA
+dist_str_in_index, fetch_index, get_index = dist_str_in_index, fetch_index, get_index
 from .core.package_cache import download, rm_fetched  # NOQA
 download, rm_fetched = download, rm_fetched
 

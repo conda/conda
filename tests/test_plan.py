@@ -1,8 +1,7 @@
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
-import json
 import os
-from os.path import dirname, join
+from os.path import join
 import random
 import sys
 import unittest
@@ -12,48 +11,26 @@ import pytest
 from conda import CondaError
 from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
-from conda.common.compat import iteritems
 from conda.common.io import env_var
-from conda.core.index import supplement_index_with_repodata, supplement_index_with_features
 from conda.core.package_cache import ProgressiveFetchExtract
 from conda.core.solve import get_pinned_specs
 from conda.exceptions import NoPackagesFoundError
 from conda.gateways.disk.create import mkdir_p
 import conda.instructions as inst
-from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
 from conda.models.match_spec import MatchSpec
 from conda.plan import display_actions
 import conda.plan as plan
-from conda.resolve import Resolve
 from conda.utils import on_win
 from .decorators import skip_if_no_mock
 from .gateways.disk.test_permissions import tempdir
-from .helpers import captured, mock, tempdir
+from .helpers import captured, index, mock, r, tempdir
 
 try:
     from unittest.mock import patch
 except ImportError:
     from mock import patch
-
-with open(join(dirname(__file__), 'index.json')) as fi:
-    packages = json.load(fi)
-    repodata = {
-        "info": {
-            "subdir": context.subdir,
-            "arch": context.arch_name,
-            "platform": context.platform,
-        },
-        "packages": packages,
-    }
-
-index = {}
-channel = Channel('defaults')
-supplement_index_with_repodata(index, repodata, channel, 1)
-supplement_index_with_features(index, ('mkl',))
-r = Resolve(index)
-index = r.index
 
 
 def DPkg(s, **kwargs):
