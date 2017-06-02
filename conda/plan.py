@@ -11,7 +11,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath, basename
+from os.path import abspath
 import sys
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
@@ -22,7 +22,7 @@ from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .core.solve import get_install_transaction_single, get_pinned_specs, get_resolve_object
 from .exceptions import (ArgumentError, CondaIndexError,
-                         InstallError, RemoveError)
+                         RemoveError)
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
