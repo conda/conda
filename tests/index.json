@@ -4615,6 +4615,22 @@
     ],
     "version": "2.1"
   },
+  "db-5.3.28-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "name": "db",
+    "version": "5.3.28"
+  },
+  "db-f-0.96.003-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "python 2.7*"
+    ],
+    "name": "dbf",
+    "version": "0.96.003"
+  },
   "decorator-3.4.0-py26_0.tar.bz2": {
     "build": "py26_0",
     "build_number": 0,

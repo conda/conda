@@ -1137,3 +1137,22 @@ def test_update_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]]]
+
+
+def test_prefix_deps():
+    installed = r.install(['db 5.3.28', 'db-f 0.96.003'])
+    must_have = {r.package_name(dist): dist for dist in installed}
+    installed = r.dependency_sort(must_have)
+
+    results_should_be = [
+        'db-5.3.28-0',
+        'openssl-1.0.1c-0',
+        'readline-6.2-0',
+        'sqlite-3.7.13-0',
+        'system-5.8-1',
+        'tk-8.5.13-0',
+        'zlib-1.2.7-0',
+        'python-2.7.5-0',
+        'dbf-0.96.003-py27_0'
+    ]
+    assert [d.dist_name for d in installed] == results_should_be
