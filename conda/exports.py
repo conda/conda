@@ -15,7 +15,7 @@ CondaError = CondaError
 from . import compat, plan  # NOQA
 compat, plan = compat, plan
 
-from .api import get_index  # NOQA
+from .core.index import get_index  # NOQA
 get_index = get_index
 
 from .cli.common import specs_from_args, spec_from_line, specs_from_url  # NOQA
@@ -38,7 +38,8 @@ _toposort = _toposort
 from .gateways.disk.link import lchmod  # NOQA
 lchmod = lchmod
 
-from .fetch import TmpDownload  # NOQA
+from conda.gateways.connection.download import TmpDownload
+
 TmpDownload = TmpDownload
 handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
                                      "Now handled by CondaSession.")
@@ -72,15 +73,12 @@ win_path_to_unix, url_path = win_path_to_unix, url_path
 from .gateways.disk.read import compute_md5sum  # NOQA
 md5_file = compute_md5sum
 
-from .config import sys_rc_path  # NOQA
-sys_rc_path = sys_rc_path
-
 from .models.version import VersionOrder  # NOQA
 VersionOrder = VersionOrder
 
 import conda.base.context  # NOQA
-from .base.context import get_prefix as context_get_prefix, non_x86_linux_machines  # NOQA
-non_x86_linux_machines = non_x86_linux_machines
+from .base.context import get_prefix as context_get_prefix, non_x86_linux_machines, sys_rc_path  # NOQA
+non_x86_linux_machines, sys_rc_path = non_x86_linux_machines, sys_rc_path
 
 from ._vendor.auxlib.entity import EntityEncoder # NOQA
 EntityEncoder = EntityEncoder
@@ -113,14 +111,6 @@ from .models.enums import FileMode  # NOQA
 FileMode = FileMode
 from .models.enums import PathType  # NOQA
 PathType = PathType
-
-
-if PY3:
-    import configparser  # NOQA  # pragma: py2 no cover
-else:
-    import ConfigParser as configparser  # NOQA  # pragma: py3 no cover
-configparser = configparser
-
 
 from .compat import TemporaryDirectory  # NOQA
 TemporaryDirectory = TemporaryDirectory

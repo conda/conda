@@ -3,17 +3,19 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import hashlib
 from logging import DEBUG, getLogger
-from os.path import basename, exists
+from os.path import basename, exists, join
+import tempfile
 from threading import Lock
 import warnings
 
 from . import ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema, SSLError
+from .session import CondaSession
+from ..disk.delete import rmtree
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
 from ..._vendor.auxlib.logz import stringify
 from ...base.context import context
 from ...common.compat import text_type
-from ...connection import CondaSession
 from ...exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
                            MD5MismatchError, maybe_raise)
 
@@ -139,3 +141,30 @@ def download(url, target_full_path, md5sum):
     finally:
         if content_length:
             getLogger('fetch.stop').info(None)
+
+
+class TmpDownload(object):
+    """
+    Context manager to handle downloads to a tempfile
+    """
+    def __init__(self, url, verbose=True):
+        self.url = url
+        self.verbose = verbose
+
+    def __enter__(self):
+        if '://' not in self.url:
+            # if we provide the file itself, no tmp dir is created
+            self.tmp_dir = None
+            return self.url
+        else:
+            if self.verbose:
+                from ...console import setup_handlers
+                setup_handlers()
+            self.tmp_dir = tempfile.mkdtemp()
+            dst = join(self.tmp_dir, basename(self.url))
+            download(self.url, dst, None)
+            return dst
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.tmp_dir:
+            rmtree(self.tmp_dir)

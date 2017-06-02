@@ -11,9 +11,9 @@ import tempfile
 import pytest
 
 from conda import CONDA_PACKAGE_ROOT
+from conda.base.context import context
 from conda.cli.activate import _get_prefix_paths, binpath_from_arg
 from conda.compat import TemporaryDirectory, chain
-from conda.config import root_dir
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.update import touch
 from conda.utils import on_win, shells, translate_stream, unix_path_to_win
@@ -283,7 +283,7 @@ def test_activate_root_simple(shell):
         """).format(envs=envs, **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shell=shell)), stdout, stderr)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(context.root_prefix, shell=shell)), stdout, stderr)
         assert not stderr
 
         # debug TODO: remove
