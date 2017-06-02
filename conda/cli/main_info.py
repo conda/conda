@@ -373,7 +373,7 @@ def execute(args, parser):
 WARNING: could not import _license.show_info
 # try:
 # $ conda install -n root _license""")
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             log.warn('%r', e)
 
     if context.json:
