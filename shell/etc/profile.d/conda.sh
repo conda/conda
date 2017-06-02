@@ -49,7 +49,7 @@ _conda_activate() {
 
     case "$_CONDA_SHELL_FLAVOR" in
         dash)
-            if [ "$(echo "$PS1" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
+            if [ "$(echo "${PS1-}" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
                 PS1='$CONDA_PROMPT_MODIFIER\[\]'"$PS1"
             fi
             ;;
@@ -57,7 +57,7 @@ _conda_activate() {
             if [ "${PS1:0:22}" != '$CONDA_PROMPT_MODIFIER' ]; then
                 # the extra \[\] is because the prompt fails for some reason if there's no
                 # character after the end of the environment variable name
-                PS1='$CONDA_PROMPT_MODIFIER\[\]'"$PS1"
+                PS1='$CONDA_PROMPT_MODIFIER\[\]'"${PS1-}"
             fi
             ;;
     esac
@@ -72,8 +72,8 @@ _conda_deactivate() {
 
     if [ -z "${CONDA_PREFIX+x}" ]; then
         case "$_CONDA_SHELL_FLAVOR" in
-            dash) PS1=$(echo "$PS1" | awk '{ string=substr($0, 27); print string; }') ;;
-            *) PS1=${PS1:26} ;;
+            dash) PS1=$(echo "${PS1-}" | awk '{ string=substr($0, 27); print string; }') ;;
+            *) [ -n "${PS1+x}" ] && PS1=${PS1:26} ;;
         esac
     fi
 
