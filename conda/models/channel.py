@@ -123,7 +123,7 @@ def _read_channel_configuration(scheme, host, port, path):
 
 def parse_conda_channel_url(url):
     (scheme, auth, token, platform, package_filename,
-     host, port, path, query) = split_conda_url_easy_parts(url)
+     host, port, path, query) = split_conda_url_easy_parts(url, context.known_subdirs)
 
     # recombine host, port, path to get a channel_name and channel_location
     (channel_location, channel_name, configured_scheme, configured_auth,
