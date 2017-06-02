@@ -28,14 +28,12 @@ through the Require and Prevent functions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain, combinations
-import logging
+from logging import getLogger
 import pycosat
 
-from .common.compat import iteritems
-from .exceptions import CondaValueError
+from .compat import iteritems
 
-dotlog = logging.getLogger('dotupdate')
-log = logging.getLogger(__name__)
+log = getLogger(__name__)
 
 
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
@@ -434,17 +432,7 @@ class Clauses(object):
                 if not additional[-1]:
                     return None
                 clauses = chain(clauses, additional)
-        try:
-            solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
-        except TypeError:
-            # pycosat 0.6.1 should not require this; pycosat 0.6.0 did, but we
-            # have made conda dependent on pycosat 0.6.1. However, issue #2276
-            # suggests that some people are still seeing this behavior even when
-            # pycosat 0.6.1 is installed. Until we can understand why, this
-            # needs to stay. I still don't want to invoke it unnecessarily,
-            # because for large clauses lists it is slow.
-            clauses = list(map(list, clauses))
-            solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
+        solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
         if solution in ("UNSAT", "UNKNOWN"):
             return None
         if additional and includeIf:
@@ -577,7 +565,7 @@ def evaluate_eq(eq, sol):
     return sum(eq.get(s, 0) for s in sol if type(s) is not bool)
 
 
-def minimal_unsatisfiable_subset(clauses, sat, log=False):
+def minimal_unsatisfiable_subset(clauses, sat):
     """
     Given a set of clauses, find a minimal unsatisfiable subset (an
     unsatisfiable core)
@@ -585,8 +573,6 @@ def minimal_unsatisfiable_subset(clauses, sat, log=False):
     A set is a minimal unsatisfiable subset if no proper subset is
     unsatisfiable.  A set of clauses may have many minimal unsatisfiable
     subsets of different sizes.
-
-    If log=True, progress bars will be displayed with the progress.
 
     sat should be a function that takes a tuple of clauses and returns True if
     the clauses are satisfiable and False if they are not.  The algorithm will
@@ -615,32 +601,9 @@ def minimal_unsatisfiable_subset(clauses, sat, log=False):
     B with this property.
 
     """
-    if log:
-        from .console import setup_verbose_handlers
-        setup_verbose_handlers()
-
-        def start(x):
-            return logging.getLogger('progress.start').info(x)
-
-        def update(x, y):
-            logging.getLogger('progress.update').info(("%s/%s" % (x, y), x))
-
-        def stop():
-            return logging.getLogger('progress.stop').info(None)
-    else:
-
-        def start(x):
-            pass
-
-        def update(x, y):
-            pass
-
-        def stop():
-            pass
-
     clauses = tuple(clauses)
     if sat(clauses):
-        raise CondaValueError("Clauses are not unsatisfiable")
+        raise ValueError("Clauses are not unsatisfiable")
 
     def split(S):
         """
@@ -676,11 +639,9 @@ def minimal_unsatisfiable_subset(clauses, sat, log=False):
         # progress by that much.
         if not sat(A + include):
             d += len(B)
-            update(d, L)
             return minimal_unsat(A, include)
         if not sat(B + include):
             d += len(A)
-            update(d, L)
             return minimal_unsat(B, include)
 
         Astar = minimal_unsat(A, B + include)
@@ -690,7 +651,5 @@ def minimal_unsatisfiable_subset(clauses, sat, log=False):
     global L, d
     L = len(clauses)
     d = 0
-    start(L)
     ret = minimal_unsat(clauses)
-    stop()
     return ret
