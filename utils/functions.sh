@@ -399,6 +399,7 @@ run_setup() {
 
 run_tests() {
     set -e
+    set -u
     if [ "$FLAKE8" = true ]; then
         flake8 --statistics
     elif [ -n "$CONDA_BUILD" ]; then

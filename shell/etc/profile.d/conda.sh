@@ -19,8 +19,8 @@ _conda_set_vars() {
         fi
     fi
 
-    if ! [ -n "${_CONDA_EXE:+x}" ]; then
-        if [ -n "${_CONDA_ROOT:+x}" ]; then
+    if [ -z "${_CONDA_EXE+x}" ]; then
+        if [ -z "${_CONDA_ROOT+x}" ]; then
             # typically this should be for dev only; _CONDA_EXE should be written at top of file
             # for normal installs
             _CONDA_EXE="$_CONDA_ROOT/../shell/bin/conda"
@@ -70,7 +70,7 @@ _conda_deactivate() {
     ask_conda="$($_CONDA_EXE shell.posix deactivate "$@")" || return $?
     eval "$ask_conda"
 
-    if [ -z "$CONDA_PREFIX" ]; then
+    if [ -z "${CONDA_PREFIX+x}" ]; then
         case "$_CONDA_SHELL_FLAVOR" in
             dash) PS1=$(echo "$PS1" | awk '{ string=substr($0, 27); print string; }') ;;
             *) PS1=${PS1:26} ;;
@@ -111,7 +111,7 @@ conda() {
 
 _conda_set_vars
 
-if [ -z "$CONDA_SHLVL" ]; then
+if [ -z "${CONDA_SHLVL+x}" ]; then
     export CONDA_SHLVL=0
 fi
 
