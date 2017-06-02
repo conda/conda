@@ -228,6 +228,7 @@ def get_info_dict(system=False):
         default_prefix=context.default_prefix,
         channels=channels,
         user_rc_path=user_rc_path,
+        rc_path=user_rc_path,
         sys_rc_path=sys_rc_path,
         # is_foreign=bool(foreign),
         offline=context.offline,
