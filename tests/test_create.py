@@ -28,24 +28,15 @@ from conda._vendor.auxlib.entity import EntityEncoder
 from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import Context, context, reset_context
 from conda.cli.main import generate_parser, init_loggers
-from conda.cli.main_clean import configure_parser as clean_configure_parser
-from conda.cli.main_config import configure_parser as config_configure_parser
-from conda.cli.main_create import configure_parser as create_configure_parser
-from conda.cli.main_info import configure_parser as info_configure_parser
-from conda.cli.main_install import configure_parser as install_configure_parser
-from conda.cli.main_list import configure_parser as list_configure_parser
-from conda.cli.main_remove import configure_parser as remove_configure_parser
-from conda.cli.main_search import configure_parser as search_configure_parser
-from conda.cli.main_update import configure_parser as update_configure_parser
 from conda.common.compat import PY2, iteritems, itervalues, text_type
 from conda.common.io import argv, captured, disable_logger, env_var, replace_log_streams, \
     stderr_log_level
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
-from conda.common.url import path_to_url
 from conda.common.serialize import yaml_load
-from conda.core.linked_data import get_python_version_for_prefix, \
-    linked as install_linked, linked_data, PrefixData
+from conda.common.url import path_to_url
+from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
+    linked as install_linked, linked_data
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
 from conda.exceptions import CondaHTTPError, DryRunExit, PackageNotFoundError, RemoveError, \
@@ -57,7 +48,6 @@ from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
 from conda.models.index_record import IndexRecord
-from conda.models.prefix_record import PrefixRecord
 from conda.utils import on_win
 
 try:
@@ -107,24 +97,10 @@ class Commands:
     UPDATE = "update"
 
 
-parser_config = {
-    Commands.CONFIG: config_configure_parser,
-    Commands.CLEAN: clean_configure_parser,
-    Commands.CREATE: create_configure_parser,
-    Commands.INFO: info_configure_parser,
-    Commands.INSTALL: install_configure_parser,
-    Commands.LIST: list_configure_parser,
-    Commands.REMOVE: remove_configure_parser,
-    Commands.SEARCH: search_configure_parser,
-    Commands.UPDATE: update_configure_parser,
-}
-
-
 def run_command(command, prefix, *arguments, **kwargs):
     use_exception_handler = kwargs.get('use_exception_handler', False)
     arguments = list(arguments)
-    p, sub_parsers = generate_parser()
-    parser_config[command](sub_parsers)
+    p = generate_parser()
 
     if command is Commands.CONFIG:
         arguments.append('--file "{0}"'.format(join(prefix, 'condarc')))
@@ -328,6 +304,11 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
 
+            stdout, stderr = run_command(Commands.LIST, prefix, '--revisions')
+            assert not stderr
+            assert " (rev 4)\n" in stdout
+            assert not " (rev 5)\n" in stdout
+
             run_command(Commands.INSTALL, prefix, '--revision 0')
             assert not package_is_installed(prefix, 'flask')
             assert_package_is_installed(prefix, 'python-3')
@@ -393,6 +374,12 @@ class IntegrationTests(TestCase):
             assert not stderr
             assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
+
+            stdout, stderr = run_command(Commands.LIST, prefix, '--revisions --json')
+            assert not stderr
+            json_obj = json.loads(stdout)
+            assert len(json_obj) == 5
+            assert json_obj[4]["rev"] == 4
 
             stdout, stderr = run_command(Commands.INSTALL, prefix, '--revision 0', '--json')
             assert_json_parsable(stdout)

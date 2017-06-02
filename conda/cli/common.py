@@ -2,11 +2,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from contextlib import contextmanager
 from functools import partial
-from os.path import basename
+from os import listdir
+from os.path import basename, isdir, isfile, join
 import re
 import sys
 
-from ..base.constants import ROOT_ENV_NAME
+from ..base.constants import PREFIX_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
 from ..common.compat import itervalues
 from ..models.match_spec import MatchSpec
@@ -210,8 +211,21 @@ def stdout_json_success(success=True, **kwargs):
     stdout_json(result)
 
 
+def list_prefixes():
+    # Lists all the prefixes that conda knows about.
+    for envs_dir in context.envs_dirs:
+        if not isdir(envs_dir):
+            continue
+        for dn in sorted(listdir(envs_dir)):
+            prefix = join(envs_dir, dn)
+            if isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE)):
+                prefix = join(envs_dir, dn)
+                yield prefix
+
+    yield context.root_prefix
+
+
 def handle_envs_list(acc, output=True):
-    from .. import misc
 
     if output:
         print("# conda environments:")
@@ -225,7 +239,7 @@ def handle_envs_list(acc, output=True):
         if output:
             print(fmt % (name, default, prefix))
 
-    for prefix in misc.list_prefixes():
+    for prefix in list_prefixes():
         disp_env(prefix)
         if prefix != context.root_prefix:
             acc.append(prefix)

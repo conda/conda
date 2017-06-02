@@ -11,7 +11,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath, basename
+from os.path import abspath
 import sys
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
@@ -22,7 +22,7 @@ from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .core.solve import get_install_transaction_single, get_pinned_specs, get_resolve_object
 from .exceptions import (ArgumentError, CondaIndexError,
-                         InstallError, RemoveError)
+                         RemoveError)
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
@@ -452,55 +452,55 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     return actions
 
 
-def augment_specs(prefix, specs, pinned=True):
-    """
-    Include additional specs for conda and (optionally) pinned packages.
-
-    Parameters
-    ----------
-    prefix : str
-        Environment prefix.
-    specs : list of MatchSpec
-        List of package specifications to augment.
-    pinned : bool, optional
-        Optionally include pinned specs for the current environment.
-
-    Returns
-    -------
-    augmented_specs : list of MatchSpec
-       List of augmented package specifications.
-    """
-    specs = list(specs)
-
-    # Get conda-meta/pinned
-    if pinned:
-        pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s", pinned_specs)
-        specs.extend(pinned_specs)
-
-    # Support aggressive auto-update conda
-    #   Only add a conda spec if conda and conda-env are not in the specs.
-    #   Also skip this step if we're offline.
-    root_only_specs_str = ('conda', 'conda-env')
-    conda_in_specs_str = any(spec for spec in specs if spec.name in root_only_specs_str)
-
-    if abspath(prefix) == context.root_prefix:
-        if context.auto_update_conda and not context.offline and not conda_in_specs_str:
-            specs.append(MatchSpec('conda'))
-            specs.append(MatchSpec('conda-env'))
-    elif basename(prefix).startswith('_'):
-        # Anything (including conda) can be installed into environments
-        # starting with '_', mainly to allow conda-build to build conda
-        pass
-    elif conda_in_specs_str:
-        raise InstallError("Error: 'conda' can only be installed into the "
-                           "root environment")
-
-    # Support track_features config parameter
-    if context.track_features:
-        specs.extend(x + '@' for x in context.track_features)
-
-    return tuple(specs)
+# def augment_specs(prefix, specs, pinned=True):
+#     """
+#     Include additional specs for conda and (optionally) pinned packages.
+#
+#     Parameters
+#     ----------
+#     prefix : str
+#         Environment prefix.
+#     specs : list of MatchSpec
+#         List of package specifications to augment.
+#     pinned : bool, optional
+#         Optionally include pinned specs for the current environment.
+#
+#     Returns
+#     -------
+#     augmented_specs : list of MatchSpec
+#        List of augmented package specifications.
+#     """
+#     specs = list(specs)
+#
+#     # Get conda-meta/pinned
+#     if pinned:
+#         pinned_specs = get_pinned_specs(prefix)
+#         log.debug("Pinned specs=%s", pinned_specs)
+#         specs.extend(pinned_specs)
+#
+#     # Support aggressive auto-update conda
+#     #   Only add a conda spec if conda and conda-env are not in the specs.
+#     #   Also skip this step if we're offline.
+#     root_only_specs_str = ('conda', 'conda-env')
+#     conda_in_specs_str = any(spec for spec in specs if spec.name in root_only_specs_str)
+#
+#     if abspath(prefix) == context.root_prefix:
+#         if context.auto_update_conda and not context.offline and not conda_in_specs_str:
+#             specs.append(MatchSpec('conda'))
+#             specs.append(MatchSpec('conda-env'))
+#     elif basename(prefix).startswith('_'):
+#         # Anything (including conda) can be installed into environments
+#         # starting with '_', mainly to allow conda-build to build conda
+#         pass
+#     elif conda_in_specs_str:
+#         raise InstallError("Error: 'conda' can only be installed into the "
+#                            "root environment")
+#
+#     # Support track_features config parameter
+#     if context.track_features:
+#         specs.extend(x + '@' for x in context.track_features)
+#
+#     return tuple(specs)
 
 
 def _remove_actions(prefix, specs, index, force=False, pinned=True):

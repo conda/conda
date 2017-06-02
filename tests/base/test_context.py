@@ -174,8 +174,6 @@ class ContextCustomRcTests(TestCase):
 
     def test_conda_build_root_dir(self):
         assert context.conda_build['root-dir'] == "/some/test/path"
-        from conda.config import rc
-        assert rc.get('conda-build')['root-dir'] == "/some/test/path"
 
     def test_clobber_enum(self):
         with env_var("CONDA_PATH_CONFLICT", 'prevent', reset_context):

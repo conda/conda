@@ -49,6 +49,9 @@ _arch_names = {
     64: 'x86_64',
 }
 
+user_rc_path = abspath(expanduser('~/.condarc'))
+sys_rc_path = join(sys.prefix, '.condarc')
+
 
 def channel_alias_validation(value):
     if value and not has_scheme(value):
