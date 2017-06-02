@@ -283,7 +283,7 @@ class LinkPathAction(CreateInPrefixPathAction):
 
     def verify(self):
         # TODO: consider checking hashsums
-        if self.link_type != LinkType.directory and not lexists(self.source_full_path):
+        if self.link_type != LinkType.directory and not lexists(self.source_full_path):  # pragma: no cover  # NOQA
             # This backoff loop is added because of some weird race condition conda-build
             # experiences. Would be nice at some point to get to the bottom of why it happens.
 

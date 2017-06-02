@@ -55,13 +55,13 @@ def linux_get_libc_version():
         )
         try:
             val = str(confstr(v))
-        except:
+        except:  # pragma: no cover
             pass
         else:
             if val:
                 break
 
-    if not val:
+    if not val:  # pragma: no cover
         # Weird, play it safe and assume glibc 2.5
         family, version = 'glibc', '2.5'
         log.warning("Failed to detect libc family and version, assuming %s/%s", family, version)

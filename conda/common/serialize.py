@@ -55,6 +55,12 @@ def yaml_load(string):
 
 
 def yaml_load_safe(string):
+    """
+    Examples:
+        >>> yaml_load_safe("key: value")
+        {'key': 'value'}
+
+    """
     return yaml.load(string, Loader=yaml.SafeLoader, version="1.2")
 
 

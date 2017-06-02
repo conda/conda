@@ -69,16 +69,6 @@ def env_vars(var_map, callback=None):
 
 
 @contextmanager
-def cwd(directory):
-    saved_cwd = getcwd()
-    try:
-        chdir(directory)
-        yield
-    finally:
-        chdir(saved_cwd)
-
-
-@contextmanager
 def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
     """Capture outputs of sys.stdout and sys.stderr.
 
