@@ -215,22 +215,6 @@ def read_has_prefix(path):
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
 
 
-def read_files(path):
-    ParseResult = namedtuple('ParseResult', ('filepath', 'hash', 'bytes', 'type'))
-
-    def parse_line(line):
-        # 'filepath', 'hash', 'bytes', 'type'
-        parts = line.split(',')
-        if len(parts) == 4:
-            return ParseResult(*parts)
-        elif len(parts) == 1:
-            return ParseResult(parts[0], None, None, None)
-        else:
-            raise CondaVerificationError("Invalid files at path: %s" % path)
-
-    return tuple(parse_line(line) for line in yield_lines(path))
-
-
 def read_no_link(info_dir):
     return set(chain(yield_lines(join(info_dir, 'no_link')),
                      yield_lines(join(info_dir, 'no_softlink'))))
@@ -238,15 +222,3 @@ def read_no_link(info_dir):
 
 def read_soft_links(extracted_package_directory, files):
     return tuple(f for f in files if islink(join(extracted_package_directory, f)))
-
-
-def get_json_content(path_to_json):
-    if isfile(path_to_json):
-        try:
-            with open(path_to_json, "r") as f:
-                json_content = json.load(f)
-        except json.decoder.JSONDecodeError:
-            json_content = {}
-    else:
-        json_content = {}
-    return json_content
