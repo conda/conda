@@ -198,7 +198,7 @@ class Dist(Entity):
             channel = text_type(Channel(base_url))
         else:
             url_no_tarball = url.rsplit('/', 1)[0]
-            platform = has_platform(url_no_tarball)
+            platform = has_platform(url_no_tarball, context.known_subdirs)
             base_url = url_no_tarball.rsplit('/', 1)[0] if platform else url_no_tarball
             channel = Channel(base_url).canonical_name if platform else UNKNOWN_CHANNEL
 
