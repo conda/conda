@@ -82,8 +82,8 @@ def print_activate(arg):
         # To activate this environment, use:
         # > activate %s
         #
-        # To deactivate this environment, use:
-        # > deactivate %s
+        # To deactivate an active environment, use:
+        # > deactivate
         #
         # * for power-users using bash, you must source
         #
@@ -96,8 +96,8 @@ def print_activate(arg):
             # To activate this environment, use:
             # > conda activate %s
             #
-            # To deactivate this environment, use:
-            # > conda deactivate %s
+            # To deactivate an active environment, use:
+            # > conda deactivate
             #
             """)
         else:
@@ -106,12 +106,12 @@ def print_activate(arg):
             # To activate this environment, use:
             # > source activate %s
             #
-            # To deactivate this environment, use:
-            # > source deactivate %s
+            # To deactivate an active environment, use:
+            # > source deactivate
             #
             """)
 
-    return message % (arg, arg)
+    return message % arg
 
 
 def get_revision(arg, json=False):
