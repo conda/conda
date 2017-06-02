@@ -77,7 +77,7 @@ def configure_parser(sub_parsers):
     p.set_defaults(func=execute)
 
 
-def get_user_site():
+def get_user_site():  # pragma: no cover
     site_dirs = []
     try:
         if not on_win:
@@ -351,7 +351,7 @@ def execute(args, parser):
             for cmd in sorted(set(find_commands() + ('build',))):
                 print("conda-%s: %s" % (cmd, find_executable('conda-' + cmd)))
             print("user site dirs: ", end='')
-            site_dirs = get_user_site()
+            site_dirs = info_dict['site_dirs']
             if site_dirs:
                 print(site_dirs[0])
             else:

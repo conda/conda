@@ -22,10 +22,10 @@ def is_admin_on_windows():  # pragma: unix no cover
     try:
         from ctypes import windll
         return windll.shell32.IsUserAnAdmin() != 0
-    except ImportError as e:
+    except ImportError as e:  # pragma: no cover
         log.debug('%r', e)
         return 'unknown'
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         log.info('%r', e)
         return 'unknown'
 
@@ -71,7 +71,7 @@ def linux_get_libc_version():
     # NPTL is just the name of the threading library, even though the
     # version refers to that of uClibc. readlink() can help to try to
     # figure out a better name instead.
-    if family == 'NPTL':
+    if family == 'NPTL':  # pragma: no cover
         clibs = glob('/lib/libc.so*')
         for clib in clibs:
             clib = readlink(clib)

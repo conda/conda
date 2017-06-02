@@ -143,7 +143,7 @@ primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool
 def ensure_binary(value):
     try:
         return value.encode('utf-8')
-    except AttributeError:
+    except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'encode'
         # In this case assume already binary type and do nothing
         return value
@@ -152,11 +152,11 @@ def ensure_binary(value):
 def ensure_text_type(value):
     try:
         return value.decode('utf-8')
-    except AttributeError:
+    except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'decode'
         # In this case assume already text_type and do nothing
         return value
-    except UnicodeDecodeError:
+    except UnicodeDecodeError:  # pragma: no cover
         try:
             from requests.packages.chardet import detect
         except ImportError:  # pragma: no cover
@@ -168,7 +168,7 @@ def ensure_text_type(value):
 def ensure_unicode(value):
     try:
         return value.decode('unicode_escape')
-    except AttributeError:
+    except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'decode'
         # In this case assume already unicode and do nothing
         return value
