@@ -2,9 +2,12 @@
 
 ### Improvements
 * resolve #5428 clean up cli import in conda 4.3.x (#5429)
+* resolve #5302 add warning when creating environment with space in path (#5477)
 
 ### Bug Fixes
 * fix #5451 conda clean --json bug (#5452)
+* fix #5400 confusing deactivate message (#5473)
+* fix #5459 custom subdir channel parsing (#5478)
 
 
 ## 4.3.21 (2017-05-25)
