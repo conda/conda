@@ -54,7 +54,7 @@ _conda_activate() {
             fi
             ;;
         *)
-            if [ "${PS1:0:22}" != '$CONDA_PROMPT_MODIFIER' ]; then
+            if [ -z "${PS1+x}" ] || [ "${PS1:0:22}" != '$CONDA_PROMPT_MODIFIER' ]; then
                 # the extra \[\] is because the prompt fails for some reason if there's no
                 # character after the end of the environment variable name
                 PS1='$CONDA_PROMPT_MODIFIER\[\]'"${PS1-}"
