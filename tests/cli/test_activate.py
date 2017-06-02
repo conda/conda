@@ -592,11 +592,15 @@ def test_deactivate_from_env(shell):
     """Tests whether the deactivate bat file or link in the activated environment works OK"""
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
-        commands = (shell_vars['command_setup'] + """
+        commands = shell_vars['command_setup']
+        if 'ash' in shell:
+            commands += "set +u\n"
+        commands += """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
         {source} deactivate
         {printdefaultenv}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        """
+        commands = (commands).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert not stderr
         assert_equals(stdout, u'', stderr)
