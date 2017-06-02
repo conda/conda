@@ -61,32 +61,6 @@ def EXTRACT_CMD(state, arg):
     raise NotImplementedError()
 
 
-def RM_EXTRACTED_CMD(state, dist):
-    # TODO: check conda-build to see if we can remove this
-    return None
-
-
-def RM_FETCHED_CMD(state, dist):
-    # TODO: check conda-build to see if we can remove this
-    return None
-
-
-def PROGRESS_CMD(state, arg):
-    state['i'] = 0
-    state['maxval'] = int(arg)
-    getLogger('progress.start').info(state['maxval'])
-
-
-def SYMLINK_CONDA_CMD(state, arg):
-    prefix = state['prefix']
-    if basename(state['prefix']).startswith('_') or prefix in (context.root_prefix,
-                                                               context.conda_prefix):
-        log.debug("Conda environment at %s "
-                  "start with '_'. Skipping symlinking conda.", state['prefix'])
-        return
-    # symlink_conda(prefix, arg)
-
-
 def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
     assert isinstance(progressive_fetch_extract, ProgressiveFetchExtract)
     progressive_fetch_extract.execute()
@@ -112,13 +86,13 @@ commands = {
     PREFIX: PREFIX_CMD,
     PRINT: PRINT_CMD,
     FETCH: FETCH_CMD,
-    PROGRESS: PROGRESS_CMD,
+    PROGRESS: lambda x, y: None,
     EXTRACT: EXTRACT_CMD,
-    RM_EXTRACTED: RM_EXTRACTED_CMD,
-    RM_FETCHED: RM_FETCHED_CMD,
+    RM_EXTRACTED: lambda x, y: None,
+    RM_FETCHED: lambda x, y: None,
     UNLINK: None,
     LINK: None,
-    SYMLINK_CONDA: SYMLINK_CONDA_CMD,
+    SYMLINK_CONDA: lambda x, y: None,
     UNLINKLINKTRANSACTION: UNLINKLINKTRANSACTION_CMD,
     PROGRESSIVEFETCHEXTRACT: PROGRESSIVEFETCHEXTRACT_CMD,
 }

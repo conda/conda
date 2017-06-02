@@ -617,11 +617,6 @@ class Resolve(object):
         log.debug('explicit(%r) finished', specs)
         return res
 
-    def sum_matches(self, fn1, fn2):
-        assert isinstance(fn1, Dist)
-        assert isinstance(fn2, Dist)
-        return sum(self.match(ms, fn2) for ms in self.ms_depends(fn1))
-
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')
         if not installed:
