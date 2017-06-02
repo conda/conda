@@ -225,7 +225,7 @@ def get_resolve_object(index, prefix):
 
 
 def get_install_transaction(prefix, index, spec_strs, force=False, only_names=None,
-                            always_copy=False, pinned=True, minimal_hint=False, update_deps=True,
+                            always_copy=False, pinned=True, update_deps=True,
                             prune=False, channel_priority_map=None, is_update=False):
     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
@@ -259,7 +259,7 @@ def get_install_transaction(prefix, index, spec_strs, force=False, only_names=No
         if len(env_add_map) == len(registered_packages) == 0:
             # short-circuit the rest of this logic
             return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
-                                                  always_copy, pinned, minimal_hint, update_deps,
+                                                  always_copy, pinned, update_deps,
                                                   prune, channel_priority_map, is_update)
 
         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(itervalues(env_add_map)))
@@ -332,14 +332,13 @@ def get_install_transaction(prefix, index, spec_strs, force=False, only_names=No
     else:
         # disregard any requested preferred env
         return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
-                                              always_copy, pinned, minimal_hint, update_deps,
+                                              always_copy, pinned, update_deps,
                                               prune, channel_priority_map, is_update)
 
 
 def get_install_transaction_single(prefix, index, specs, force=False, only_names=None,
-                                   always_copy=False, pinned=True, minimal_hint=False,
-                                   update_deps=True, prune=False, channel_priority_map=None,
-                                   is_update=False):
+                                   always_copy=False, pinned=True, update_deps=True,
+                                   prune=False, channel_priority_map=None, is_update=False):
     specs = tuple(MatchSpec(s) for s in specs)
     r = get_resolve_object(index.copy(), prefix)
     unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
