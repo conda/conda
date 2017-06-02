@@ -211,19 +211,21 @@ def stdout_json_success(success=True, **kwargs):
     stdout_json(result)
 
 
-def handle_envs_list(acc, output=True):
-    def list_prefixes():
-        # Lists all the prefixes that conda knows about.
-        for envs_dir in context.envs_dirs:
-            if not isdir(envs_dir):
-                continue
-            for dn in sorted(listdir(envs_dir)):
+def list_prefixes():
+    # Lists all the prefixes that conda knows about.
+    for envs_dir in context.envs_dirs:
+        if not isdir(envs_dir):
+            continue
+        for dn in sorted(listdir(envs_dir)):
+            prefix = join(envs_dir, dn)
+            if isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE)):
                 prefix = join(envs_dir, dn)
-                if isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE)):
-                    prefix = join(envs_dir, dn)
-                    yield prefix
+                yield prefix
 
-        yield context.root_prefix
+    yield context.root_prefix
+
+
+def handle_envs_list(acc, output=True):
 
     if output:
         print("# conda environments:")

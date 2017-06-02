@@ -8,6 +8,7 @@ import pytest
 
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
+from conda.cli.common import list_prefixes
 from conda.cli.main import generate_parser
 from conda.common.io import captured
 from conda.exceptions import EnvironmentNameNotFound
@@ -193,10 +194,9 @@ def env_is_created(env_name):
     Returns: True if created
              False otherwise
     """
-    from conda import misc
-    from os.path import  basename
+    from os.path import basename
 
-    for prefix in misc.list_prefixes():
+    for prefix in list_prefixes():
         name = (ROOT_ENV_NAME if prefix == context.root_dir else
                 basename(prefix))
         if name == env_name:
