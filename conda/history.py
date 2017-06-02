@@ -85,15 +85,7 @@ class History(object):
         self.update()
 
     def init_log_file(self):
-        if isfile(self.path):
-            return
-        else:
-            touch(self.path, True)
-            # dists = linked(self.prefix)
-            # if dists:
-            #     self.write_dists(dists)
-            # else:
-            #     touch(self.path, True)
+        touch(self.path, True)
 
     def file_is_empty(self):
         return os.stat(self.path).st_size == 0
@@ -281,14 +273,6 @@ class History(object):
                     event['install'].append(pkg)
             result.append(event)
         return result
-
-    def write_dists(self, dists):
-        if not isdir(self.meta_dir):
-            os.makedirs(self.meta_dir)
-        with open(self.path, 'w') as fo:
-            if dists:
-                for dist in sorted(dists):
-                    fo.write('%s\n' % dist)
 
     def write_changes(self, last_state, current_state):
         if not isdir(self.meta_dir):

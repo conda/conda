@@ -158,7 +158,7 @@ def get_info_dict(system=False):
     from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
     from ..base.context import conda_in_private_env, context
     from ..common.url import mask_anaconda_token
-    from ..config import rc_path, sys_rc_path, user_rc_path
+    from ..config import sys_rc_path, user_rc_path
     from ..models.channel import offline_keep, prioritize_channels
 
     try:
@@ -228,7 +228,6 @@ def get_info_dict(system=False):
         envs_dirs=context.envs_dirs,
         default_prefix=context.default_prefix,
         channels=channels,
-        rc_path=rc_path,
         user_rc_path=user_rc_path,
         sys_rc_path=sys_rc_path,
         # is_foreign=bool(foreign),
@@ -291,8 +290,8 @@ def get_main_info_str(info_dict):
            envs directories : %(_envs_dirs)s
               package cache : %(_pkgs_dirs)s
                channel URLs : %(_channels)s
-                config file : %(rc_path)s
-               config files : %(_config_files)s
+           user config file : %(user_rc_path)s
+     populated config files : %(_config_files)s
                  netrc file : %(netrc_file)s
                offline mode : %(offline)s
                  user-agent : %(user_agent)s\

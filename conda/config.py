@@ -3,13 +3,13 @@
 #
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-from __future__ import print_function, division, absolute_import, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
+from os.path import abspath, expanduser, join
 import sys
-from os.path import abspath, expanduser, isfile, join
 
 from .base.context import context, non_x86_linux_machines
+
 non_x86_linux_machines = non_x86_linux_machines
 
 
@@ -75,36 +75,7 @@ sys_rc_path = join(sys.prefix, '.condarc')
 
 get_rc_urls = lambda: context.channels
 
-
-def get_local_urls():
-    from .models.channel import get_conda_build_local_url
-    return get_conda_build_local_url() or []
-
-
-class RC(object):
-
-    def get(self, key, default=None):
-        key = key.replace('-', '_')
-        return getattr(context, key, default)
-
-
-rc = RC()
 envs_dirs = context.envs_dirs
-
-
-def get_rc_path():
-    path = os.getenv('CONDARC')
-    if path == ' ':
-        return None
-    if path:
-        return path
-    for path in user_rc_path, sys_rc_path:
-        if isfile(path):
-            return path
-    return None
-
-
-rc_path = get_rc_path()
 
 pkgs_dirs = list(context.pkgs_dirs)
 default_prefix = context.default_prefix
