@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 from logging import getLogger
-from os.path import basename, isfile, join
+from os.path import isfile, join
 
 from .base.context import context
 from .core.link import UnlinkLinkTransaction

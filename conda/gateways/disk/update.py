@@ -1,20 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import json
 from logging import getLogger
 from os import rename as os_rename, utime
-from os.path import dirname, isdir, join
+from os.path import dirname, isdir
 import re
 
 from . import exp_backoff_fn, mkdir_p
 from .delete import rm_rf
 from .link import lexists
-from ... import CondaError
-from ..._vendor.auxlib.entity import EntityEncoder
-from ..._vendor.auxlib.ish import dals
-from ...common.compat import ensure_binary, ensure_text_type
-from ...common.path import expand, win_path_backout, win_path_ok
+from ...common.path import expand
 
 log = getLogger(__name__)
 
