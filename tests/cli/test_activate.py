@@ -137,6 +137,8 @@ def _format_vars(shell):
 {set} CONDA_PATH_BACKUP=
 {set} PATH="{new_path}"
 """
+        if 'bash' in shell:
+            _command_setup += "set -u\n"
 
     command_setup = _command_setup.format(here=dirname(__file__), PYTHONPATH=shelldict['path_to'](PYTHONPATH),
            set=shelldict["set_var"], new_path=base_path)

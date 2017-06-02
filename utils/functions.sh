@@ -329,6 +329,7 @@ conda_unit_test() {
 
 
 conda_integration_test() {
+    set -u
     $PYTEST_EXE $ADD_COV -m "integration and not installed" -v
 }
 
@@ -343,6 +344,8 @@ conda_activate_test() {
 
     $PYTHON_EXE -c "import conda; print(conda.__version__)"
     $CONDA_EXE info
+
+    set -u
 
     if [ -n "$ON_WIN" ]; then
         $PYTEST_EXE $ADD_COV -m "installed" --shell=bash.exe --shell=cmd.exe
@@ -399,7 +402,6 @@ run_setup() {
 
 run_tests() {
     set -e
-    set -u
     if [ "$FLAKE8" = true ]; then
         flake8 --statistics
     elif [ -n "$CONDA_BUILD" ]; then
