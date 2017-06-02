@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from difflib import get_close_matches
 import errno
-import logging
+from logging import getLogger
 import os
 from os.path import abspath, basename, exists, isdir, join
 import re
@@ -29,7 +29,8 @@ from ..models.channel import prioritize_channels
 from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions_list,
                     is_root_prefix, nothing_to_do, revert_actions)
 
-log = logging.getLogger(__name__)
+log = getLogger(__name__)
+stderr = getLogger('stderr')
 
 
 def check_prefix(prefix, json=False):
@@ -46,6 +47,11 @@ def check_prefix(prefix, json=False):
 
     if error:
         raise CondaValueError(error, json)
+
+    if ' ' in prefix:
+        stderr.warn("WARNING: A space was detected in your requested environment path\n"
+                    "'%s'\n"
+                    "Spaces in paths can sometimes be problematic." % prefix)
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
