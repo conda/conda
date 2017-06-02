@@ -21,17 +21,6 @@ _conda_set_vars() {
         fi
     fi
 
-    case "$(uname -s)" in
-        CYGWIN*|MINGW*|MSYS*)
-            local bin_dir="Scripts"
-            local exe_ext=".exe"
-            ;;
-        *)
-            local bin_dir="bin"
-            local exe_ext=""
-            ;;
-    esac
-
     # https://unix.stackexchange.com/questions/4650/determining-path-to-sourced-shell-script/
     local script_dir
     case "$_CONDA_SHELL_FLAVOR" in
@@ -41,7 +30,7 @@ _conda_set_vars() {
         *) script_dir="$(cd "$(dirname "$_")" && echo "$PWD")";;
     esac
 
-    if [ -z "$_CONDA_ROOT" ]; then
+    if [ -z "${_CONDA_ROOT+x}" ]; then
         _CONDA_ROOT="$(dirname "$script_dir")"
     fi
 
@@ -50,11 +39,11 @@ _conda_set_vars() {
 _conda_script_is_sourced() {
     # http://stackoverflow.com/a/28776166/2127762
     sourced=0
-    if [ -n "$ZSH_EVAL_CONTEXT" ]; then
+    if [ -n "${ZSH_EVAL_CONTEXT:+x}" ]; then
       case $ZSH_EVAL_CONTEXT in *:file) sourced=1;; esac
-    elif [ -n "$KSH_VERSION" ]; then
+    elif [ -n "${KSH_VERSION:+x}" ]; then
       [ "$(cd $(dirname -- $0) && pwd -P)/$(basename -- $0)" != "$(cd $(dirname -- ${.sh.file}) && pwd -P)/$(basename -- ${.sh.file})" ] && sourced=1
-    elif [ -n "$BASH_VERSION" ]; then
+    elif [ -n "${BASH_VERSION:+x}" ]; then
       [ "${BASH_SOURCE[0]}" = "$0" ] && sourced=1
     else # All other shells: examine $0 for known shell binary filenames
       # Detects `sh` and `dash`; add additional shell filenames as needed.
