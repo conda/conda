@@ -75,9 +75,7 @@ def execute(args, parser):
     name = args.remote_definition or args.name
 
     try:
-        if args.file:
-            args.file = expand(args.file)
-        spec = specs.detect(name=name, filename=args.file,
+        spec = specs.detect(name=name, filename=expand(args.file),
                             directory=os.getcwd())
         env = spec.environment
 

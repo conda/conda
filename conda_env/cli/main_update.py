@@ -3,6 +3,7 @@ import os
 import sys
 import textwrap
 
+from conda._vendor.auxlib.path import expand
 from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.misc import touch_nonadmin
@@ -66,7 +67,7 @@ def execute(args, parser):
     name = args.remote_definition or args.name
 
     try:
-        spec = install_specs.detect(name=name, filename=args.file,
+        spec = install_specs.detect(name=name, filename=expand(args.file),
                                     directory=os.getcwd())
         env = spec.environment
     except exceptions.SpecNotFound:
