@@ -20,7 +20,6 @@ from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
 from logging import getLogger
 from unittest import TestCase
-import conda.models.channel
 
 try:
     from unittest.mock import patch
@@ -246,6 +245,31 @@ class AnacondaServerChannelTests(TestCase):
         assert channel.urls(with_credentials=True) == [
             "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/%s" % self.platform,
             "https://10.2.3.4:8080/conda/t/x1029384756/bioconda/noarch",
+        ]
+
+    def test_token_in_custom_channel(self):
+        channel = Channel("https://10.2.8.9:8080/conda/t/tk-987-321/bioconda/label/dev")
+        assert channel.name == "bioconda/label/dev"
+        assert channel.location == "10.2.8.9:8080/conda"
+        assert channel.urls() == [
+            "https://10.2.8.9:8080/conda/bioconda/label/dev/%s" % self.platform,
+            "https://10.2.8.9:8080/conda/bioconda/label/dev/noarch",
+        ]
+        assert channel.urls(with_credentials=True) == [
+            "https://10.2.8.9:8080/conda/t/tk-987-321/bioconda/label/dev/%s" % self.platform,
+            "https://10.2.8.9:8080/conda/t/tk-987-321/bioconda/label/dev/noarch",
+        ]
+
+        channel = Channel("https://10.2.8.9:8080/conda/t/tk-987-321/bioconda")
+        assert channel.name == "bioconda"
+        assert channel.location == "10.2.8.9:8080/conda"
+        assert channel.urls() == [
+            "https://10.2.8.9:8080/conda/bioconda/%s" % self.platform,
+            "https://10.2.8.9:8080/conda/bioconda/noarch",
+        ]
+        assert channel.urls(with_credentials=True) == [
+            "https://10.2.8.9:8080/conda/t/tk-987-321/bioconda/%s" % self.platform,
+            "https://10.2.8.9:8080/conda/t/tk-987-321/bioconda/noarch",
         ]
 
 

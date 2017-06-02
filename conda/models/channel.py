@@ -16,10 +16,10 @@ from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
 
 try:
     from cytoolz.functoolz import excepts
-    from cytoolz.itertoolz import concatv, topk
+    from cytoolz.itertoolz import concatv, drop
 except ImportError:  # pragma: no cover
     from .._vendor.toolz.functoolz import excepts  # NOQA
-    from .._vendor.toolz.itertoolz import concatv, topk  # NOQA
+    from .._vendor.toolz.itertoolz import concatv, drop  # NOQA
 
 log = getLogger(__name__)
 
@@ -420,7 +420,13 @@ def _read_channel_configuration(scheme, host, port, path):
         return location, name, _scheme, _auth, _token
 
     # Step 7. fall through to host:port as channel_location and path as channel_name
-    return (Url(host=host, port=port).url.rstrip('/'), path.strip('/') or None,
+    #  but bump the first token of paths starting with /conda for compatibility with
+    #  Anaconda Enterprise Repository software.
+    bump = None
+    path_parts = path.strip('/').split('/')
+    if path_parts and path_parts[0] == 'conda':
+        bump, path = 'conda', '/'.join(drop(1, path_parts))
+    return (Url(host=host, port=port, path=bump).url.rstrip('/'), path.strip('/') or None,
             scheme or None, None, None)
 
 
