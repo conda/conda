@@ -9,6 +9,7 @@
 
 ### Deprecations/Breaking Changes
 * remove support for with_features_depends (#5191)
+* resolve #5468 remove --alt-hint from CLI API (#5469)
 
 ### Improvements
 * filter out unwritable package caches from conda clean command (#4620)
@@ -49,6 +50,7 @@
 * fix #1713 'conda package -w' is case dependent on Windows (#5308)
 * fix #5371 try falling back to pip's vendored requests if no requests available (#5372)
 * fix #5356 skip root logger configuration (#5380)
+* fix #5466 scrambled URL of non-alias channel with token (#5467)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve.__init__ (#4333)
