@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from contextlib import contextmanager
+from enum import Enum
 import logging
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
@@ -15,6 +16,15 @@ from .._vendor.auxlib.logz import NullHandler
 log = getLogger(__name__)
 
 _FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s")
+
+
+class CaptureTarget(Enum):
+    """Constants used for contextmanager captured.
+
+    Used similarily like the constants PIPE, STDOUT for stdlib's subprocess.Popen.
+    """
+    STRING = -1
+    STDOUT = -2
 
 
 @contextmanager
@@ -69,20 +79,58 @@ def cwd(directory):
 
 
 @contextmanager
-def captured():
+def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
+    """Capture outputs of sys.stdout and sys.stderr.
+
+    If stdout is STRING, capture sys.stdout as a string,
+    if stdout is None, do not capture sys.stdout, leaving it untouched,
+    otherwise redirect sys.stdout to the file-like object given by stdout.
+
+    Behave correspondingly for stderr with the exception that if stderr is STDOUT,
+    redirect sys.stderr to stdout target and set stderr attribute of yielded object to None.
+
+    Args:
+        stdout: capture target for sys.stdout, one of STRING, None, or file-like object
+        stderr: capture target for sys.stderr, one of STRING, STDOUT, None, or file-like object
+
+    Yields:
+        CapturedText: has attributes stdout, stderr which are either strings, None or the
+            corresponding file-like function argument.
+    """
     # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
     # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
     class CapturedText(object):
         pass
     saved_stdout, saved_stderr = sys.stdout, sys.stderr
-    sys.stdout = outfile = StringIO()
-    sys.stderr = errfile = StringIO()
+    if stdout == CaptureTarget.STRING:
+        sys.stdout = outfile = StringIO()
+    else:
+        outfile = stdout
+        if outfile is not None:
+            sys.stdout = outfile
+    if stderr == CaptureTarget.STRING:
+        sys.stderr = errfile = StringIO()
+    elif stderr == CaptureTarget.STDOUT:
+        sys.stderr = errfile = outfile
+    else:
+        errfile = stderr
+        if errfile is not None:
+            sys.stderr = errfile
     c = CapturedText()
     log.info("overtaking stderr and stdout")
     try:
         yield c
     finally:
-        c.stdout, c.stderr = outfile.getvalue(), errfile.getvalue()
+        if stdout == CaptureTarget.STRING:
+            c.stdout = outfile.getvalue()
+        else:
+            c.stdout = outfile
+        if stderr == CaptureTarget.STRING:
+            c.stderr = errfile.getvalue()
+        elif stderr == CaptureTarget.STDOUT:
+            c.stderr = None
+        else:
+            c.stderr = errfile
         sys.stdout, sys.stderr = saved_stdout, saved_stderr
         log.info("stderr and stdout yielding back")
 
