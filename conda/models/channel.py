@@ -115,7 +115,7 @@ class Channel(object):
         else:
             # at this point assume we don't have a bare (non-scheme) url
             #   e.g. this would be bad:  repo.continuum.io/pkgs/free
-            _stripped, platform = split_platform(value)
+            _stripped, platform = split_platform(value, context.known_subdirs)
             if _stripped in context.custom_multichannels:
                 return MultiChannel(_stripped, context.custom_multichannels[_stripped], platform)
             else:
@@ -349,7 +349,7 @@ def _get_channel_for_name(channel_name):
                 return None
             return _get_channel_for_name_helper(test_name)
 
-    _stripped, platform = split_platform(channel_name)
+    _stripped, platform = split_platform(channel_name, context.known_subdirs)
     channel = _get_channel_for_name_helper(_stripped)
 
     if channel is not None:
