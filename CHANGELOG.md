@@ -34,6 +34,7 @@
 * resolve #5411 add 'conda config --write-default' (#5412)
 * resolve #5081 make pinned packages optional dependencies (#5414)
 * resolve #5430 eliminate current deprecation warnings (#5422)
+* resolve #5470 make stdout/stderr capture in python_api customizable (#5471)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -51,9 +52,11 @@
 * fix #5371 try falling back to pip's vendored requests if no requests available (#5372)
 * fix #5356 skip root logger configuration (#5380)
 * fix #5466 scrambled URL of non-alias channel with token (#5467)
+* fix #5444 environment.yml file not found (#5475)
+* fix #3200 use proper unbound checks in bash code and test (#5476)
 
 ### Non-User-Facing Changes
-* eliminate index modification in Resolve.__init__ (#4333)
+* eliminate index modification in Resolve init (#4333)
 * new MatchSpec implementation (#4158)
 * update conda.recipe for 4.4 (#5086)
 * resolve #5118 organization and cleanup for 4.4 release (#5115)
@@ -64,7 +67,8 @@
 * clean up FileNotFoundError and DirectoryNotFoundError (#5237)
 * add assertion that a path only has a single hard link before rewriting prefixes (#5305)
 * remove pycrypto as requirement on windows (#5326)
-
+* import cleanup, dead code removal, coverage improvements, and other
+  housekeeping (#5472, #5474, #5480)
 
 ## 4.3.22 (unreleased)
 
