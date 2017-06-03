@@ -9,7 +9,7 @@ from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
+                        PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -276,6 +276,10 @@ class Context(Configuration):
     @property
     def subdirs(self):
         return self._subdirs if self._subdirs else (self.subdir, 'noarch')
+
+    @memoizedproperty
+    def known_subdirs(self):
+        return frozenset(concatv(PLATFORM_DIRECTORIES, self.subdirs))
 
     @property
     def bits(self):

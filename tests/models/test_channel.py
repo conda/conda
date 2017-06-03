@@ -840,7 +840,7 @@ class UrlChannelTests(TestCase):
                 ("file:///some/place/on/my/machine/noarch", ("file:///some/place/on/my/machine", 2)),
             ))
 
-    def test_subdirs(self):
+    def test_subdirs_env_var(self):
         subdirs = ('linux-highest', 'linux-64', 'noarch')
 
         def _channel_urls(channels=None):
@@ -874,6 +874,13 @@ class UrlChannelTests(TestCase):
                 ("https://conda.anaconda.org/conda-forge/linux-again", ("conda-forge", 1)),
                 ("https://conda.anaconda.org/conda-forge/noarch", ("conda-forge", 1)),
             ))
+
+    def test_subdir_env_var(self):
+        with env_var('CONDA_SUBDIR', 'osx-1012-x84_64', reset_context):
+            channel = Channel('https://conda.anaconda.org/msarahan/osx-1012-x84_64/clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2')
+            assert channel.base_url == 'https://conda.anaconda.org/msarahan'
+            assert channel.package_filename == 'clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2'
+            assert channel.platform == 'osx-1012-x84_64'  # the platform attribute is misnamed here in conda 4.3; conda 4.4 code can correctly use the channel.subdir attribute
 
 
 class UnknownChannelTests(TestCase):

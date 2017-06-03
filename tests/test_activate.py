@@ -1001,4 +1001,3 @@ class ShellWrapperIntegrationTests(TestCase):
 
             shell.sendline("conda activate -h blah blah")
             shell.expect('help requested for activate')
-
