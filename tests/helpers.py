@@ -26,11 +26,11 @@ from conda.resolve import Resolve
 
 try:
     from unittest import mock
+    from unittest.mock import patch
 except ImportError:
-    try:
-        import mock
-    except ImportError:
-        mock = None
+    import mock
+    from mock import patch
+
 
 from contextlib import contextmanager
 

@@ -416,9 +416,6 @@ class Resolve(object):
     def package_name(self, dist):
         return self.package_quad(dist)[0]
 
-    def is_superceded(self, dist):
-        return dist in self.index or self.index.get('superceded', '')
-
     def get_pkgs(self, ms, emptyok=False):
         # legacy method for conda-build
         # TODO: remove in conda 4.4

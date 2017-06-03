@@ -160,7 +160,7 @@ class PackageRef(BasePackageRef):
     def schannel(self):
         return self.channel.canonical_name
 
-    @memoizedproperty
+    @property
     def _pkey(self):
         return self.channel.canonical_name, self.subdir, self.name, self.version, self.build
 
@@ -199,7 +199,7 @@ class IndexJsonRecord(BasePackageRef):
         return tuple(itervalues(result))
 
 
-class RepodataRecord(IndexJsonRecord, PackageRef):
+class PackageRecord(IndexJsonRecord, PackageRef):
     # important for "choosing" a package (i.e. the solver), listing packages
     # (like search), and for verifying downloads
 
@@ -232,7 +232,7 @@ class PathDataV1(PathData):
     inode_paths = ListField(string_types, required=False, nullable=True)
 
 
-IndexRecord = RepodataRecord
+IndexRecord = PackageRecord
 
 # class IndexRecord(DictSafeMixin, Entity):
 #     _lazy_validate = True

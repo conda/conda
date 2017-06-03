@@ -7,10 +7,15 @@ from genericpath import exists
 from logging import getLogger
 from os.path import basename, join
 
+from conda.models.dist import Dist
+from enum import Enum
+
+from conda.common.constants import NULL
 from .envs_manager import EnvsDirectory
-from .index import _supplement_index_with_prefix
+from .index import (_supplement_index_with_cache, _supplement_index_with_features,
+                    _supplement_index_with_prefix, fetch_index)
 from .link import PrefixSetup, UnlinkLinkTransaction
-from .linked_data import linked_data
+from .linked_data import PrefixData, linked_data
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import UNKNOWN_CHANNEL
 from ..base.context import context
@@ -19,6 +24,7 @@ from ..common.path import ensure_pad
 from ..exceptions import InstallError
 from ..gateways.disk.test import prefix_is_writable
 from ..history import History
+from ..models.channel import Channel
 from ..models.match_spec import MatchSpec
 from ..resolve import Resolve
 
@@ -31,18 +37,298 @@ except ImportError:
 log = getLogger(__name__)
 
 
-def get_pinned_specs(prefix):
-    """Find pinned specs from file and return a tuple of MatchSpec."""
-    pinfile = join(prefix, 'conda-meta', 'pinned')
-    if exists(pinfile):
-        with open(pinfile) as f:
-            from_file = (i for i in f.read().strip().splitlines()
-                         if i and not i.strip().startswith('#'))
-    else:
-        from_file = ()
+"""
 
-    return tuple(MatchSpec(s, optional=True) for s in
-                 concatv(context.pinned_packages, from_file))
+
+
+conda update -h
+
+Conda attempts to install the newest versions of the requested packages. To
+accomplish this, it may update some packages that are already installed, or
+install additional packages. To prevent existing packages from updating,
+use the --no-update-deps option. This may force conda to install older
+versions of the requested packages, and it does not prevent additional
+dependency packages from being installed.
+
+If you wish to skip dependency checking altogether, use the '--force'
+option. This may result in an environment with incompatible packages, so
+this option must be used with great caution.
+
+  -f, --force           Force install (even when package already installed),
+                        implies --no-deps.
+
+
+
+
+conda remove -h
+
+This command will also remove any package that depends on any of the
+specified packages as well---unless a replacement can be found without
+that dependency. If you wish to skip this dependency checking and remove
+just the requested packages, add the '--force' option. Note however that
+this may result in a broken environment, so use this with caution.
+
+
+
+  --force               Forces removal of a package without removing packages
+                        that depend on it. Using this option will usually
+                        leave your environment in a broken and inconsistent
+                        state.
+
+"""
+
+class DepsModifier(Enum):
+    NO_DEPS = 'no_deps'
+    ONLY_DEPS = 'only_deps'
+    UPDATE_DEPS = 'update_deps'
+    UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
+    FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
+
+
+
+
+
+class Solver(object):
+
+    def __init__(self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=()):
+        """
+
+        Args:
+            prefix (str):
+                The conda prefix / environment location for which the :class:`Solver`
+                is being instantiated.
+            channels (Sequence[:class:`Channel`]): 
+                A prioritized list of channels to use for the solution. 
+            subdirs (Sequence[str]):
+                A prioritized list of subdirs to use for the solution.
+            specs_to_add (Set[:class:`MatchSpec`]):
+                The set of package specs to add to the prefix.
+            specs_to_remove (Set[:class:`MatchSpec`]):
+                The set of package specs to remove from the prefix.
+
+        """
+        self.prefix = prefix
+        self.channels = IndexedSet(Channel(c) for c in channels or context.channels)
+        self.subdirs = tuple(s for s in subdirs or context.subdirs)
+        self.specs_to_add = frozenset(MatchSpec(s) for s in specs_to_add)
+        self.specs_to_remove = frozenset(MatchSpec(s) for s in specs_to_remove)
+
+        assert all(s in context.known_subdirs for s in self.subdirs)
+        self._prepared = False
+
+    def solve_final_state(self, prune=NULL, force_reinstall=NULL, deps_modifier=None,
+                          ignore_pinned=NULL):
+        """Gives the final, solved state of the environment.
+        
+        Args:
+            prune (bool):
+                If ``True``, the solution will not contain packages that were 
+                previously brought into the environment as dependencies but are no longer 
+                required as dependencies and are not user-requested.
+            force_reinstall (bool):
+                Actually, the historic behavior is that force just bypasses the SAT solver entirely.
+                Force has different meanings for specs_to_remove vs specs_to_add.
+                For requested specs_to_add that are already satisfied in the environment,
+                    instructs the solver to remove the package and spec from the environment,
+                    and then add it back--possibly with the exact package instance modified, 
+                    depending on the spec exactness.
+                Therefore, this should NOT be equivalent to context.force!
+            deps_modifier (DepsModifier):
+                An optional flag indicating special solver handling for dependencies. The
+                default solver behavior is to be as conservative as possible with dependency
+                updates (in the case the dependency already exists in the environment), while 
+                still ensuring all dependencies are satisfied.
+            ignore_pinned (bool):
+                If ``True``, the solution will ignore pinned package configuration
+                for the prefix.
+
+        Returns:
+            Tuple[PackageRef]:
+                In sorted dependency order from roots to leaves, the package references for 
+                the solved state of the environment.
+
+        """
+        index, r = self._prepare()
+        prune = prune is NULL and context.prune or prune
+        force_reinstall = force_reinstall is NULL and context.force or force_reinstall
+        ignore_pinned = ignore_pinned is NULL and context.ignore_pinned or ignore_pinned
+        specs_to_remove = self.specs_to_remove
+        specs_to_add = self.specs_to_add
+
+        log.debug("solving prefix %s\n"
+                  "  specs_to_remove: %s\n"
+                  "  specs_to_add: %s\n"
+                  "  prune: %s", self.prefix, specs_to_remove, specs_to_add, prune)
+
+        # declare starting point
+        # if prune is True, our starting point is an empty solution
+        prefix_data = PrefixData(self.prefix)
+        solution = () if prune else tuple(Dist(d) for d in prefix_data.iter_records())
+
+        # run initial removal operation
+        # if force_reinstall, specs_to_add get included with specs_to_remove
+        if solution:
+            if force_reinstall and specs_to_add:
+                solution = r.remove(concatv(specs_to_remove, specs_to_add), solution)
+            elif specs_to_remove:
+                solution = r.remove(specs_to_remove, solution)
+
+        # if there are no specs_to_add, maybe we should be done now?
+        if not specs_to_add:
+            solution = IndexedSet(index[d] for d in solution)
+            return solution
+
+        # get specs from history, and replace any historically-requested specs with
+        # the current specs_to_add
+        specs_map = History(self.prefix).get_requested_specs_map()
+        specs_map.update((s.name, s) for s in self.specs_to_add)
+
+        # collect "optional"-type specs, which represent pinned specs and
+        # aggressive update specs
+        optional_specs = set()
+        if not ignore_pinned:
+            optional_specs.update(get_pinned_specs(self.prefix))
+        if not context.offline:
+            optional_specs.update(context.aggressive_update_packages)
+
+        # support track_features config parameter
+        track_features_specs = ()
+        if context.track_features:
+            track_features_specs = (MatchSpec(x + '@') for x in context.track_features)
+
+        compiled_specs_to_add = tuple(concatv(
+            itervalues(specs_map),
+            optional_specs,
+            track_features_specs,
+        ))
+
+        # NO_DEPS = 'no_deps'
+        # ONLY_DEPS = 'only_deps'
+        # UPDATE_DEPS = 'update_deps'
+        # UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
+        # FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
+
+
+
+        log.debug("final specs to add:\n    %s\n",
+                  "\n    ".join(text_type(s) for s in compiled_specs_to_add))
+        solution = r.install(compiled_specs_to_add,
+                             solution,
+                             update_deps=context.update_dependencies)
+
+        # now do safety checks on the solution
+        # assert all pinned specs are compatible with what's in solved_linked_dists
+        # don't uninstall conda or its dependencies, probably need to check elsewhere
+
+
+        solution = IndexedSet(r.dependency_sort({d.name: d for d in solution}))
+
+        log.debug("solved prefix %s\n"
+                  "  solved_linked_dists:\n"
+                  "    %s\n",
+                  self.prefix, "\n    ".join(text_type(d) for d in solution))
+
+        solution = IndexedSet(index[d] for d in solution)
+
+        return solution
+
+
+
+
+
+
+
+
+    def solve_for_diff(self, prune=False, force_reinstall=False, deps_modifier=None,
+                          ignore_pinned=False):
+        """Gives the package references to remove from an environment, followed by
+        the package references to add to an environment.
+        
+        Args:
+            prune (bool):
+                See :meth:`solve_final_state`.
+            force_reinstall (bool):
+                See :meth:`solve_final_state`.
+            deps_modifier (DepsModifier):
+                See :meth:`solve_final_state`.
+            ignore_pinned (bool):
+                See :meth:`solve_final_state`.
+
+        Returns:
+            Tuple[PackageRef], Tuple[PackageRef]:
+
+        """
+        # need to take the final state, but force_reinstall and deps_modifier are also relevant here (also add back requested specs if force_reinstall)
+        force_reinstall = force_reinstall is NULL and context.force or force_reinstall
+        final_dists = self.solve_final_state(prune, force_reinstall, deps_modifier, ignore_pinned)
+
+        unlink_dists, link_dists = None, None
+        return unlink_dists, link_dists
+
+
+    def solve_for_transaction(self, prune=False, force_reinstall=False, deps_modifier=None,
+                          ignore_pinned=False):
+        """
+        
+        Args:
+            prune (bool):
+                See :meth:`solve_final_state`.
+            force_reinstall (bool):
+                See :meth:`solve_final_state`.
+            deps_modifier (DepsModifier):
+                See :meth:`solve_final_state`.
+            ignore_pinned (bool):
+                See :meth:`solve_final_state`.
+
+        Returns:
+            UnlinkLinkTransaction:
+
+        """
+        if self.prefix == context.root_prefix and context.enable_private_envs:
+            # hold on, it's a while ride
+            pass
+        else:
+            unlink_dists, link_dists = self.solve_for_diff(prune, force_reinstall,
+                                                           deps_modifier, ignore_pinned)
+            stp = PrefixSetup(self.index, self.prefix, unlink_dists, link_dists, 'INSTALL',
+                              self.specs_to_add, self.specs_to_remove)
+            return UnlinkLinkTransaction(stp)
+
+    def _prepare(self):
+        if self._prepared:
+            return self.index, self.r
+
+        def build_channel_priority_map():
+            return odict((subdir_url, (c.canonical_name, priority))
+                         for priority, c in enumerate(self.channels)
+                         for subdir_url in c.urls(True, self.subdirs))
+
+        channel_priority_map = build_channel_priority_map()
+        index = fetch_index(channel_priority_map, context.use_index_cache)
+
+        known_channels = tuple(c.canonical_name for c in self.channels)
+
+        _supplement_index_with_prefix(index, self.prefix, known_channels)
+        _supplement_index_with_cache(index, known_channels)
+        _supplement_index_with_features(index)
+
+        self.index = index
+        self.r = Resolve(index)
+        return self.index, self.r
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
@@ -88,13 +374,14 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
 
 
 def _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add):
+    # TODO: this should probably be part of the History manager, and brought in through PrefixData
+
     # add in specs from requested history,
     #   but not if we're requesting a spec with the same name in this operation
     ignore_these_spec_names = set(s.name for s in concatv(specs_to_remove, specs_to_add))
     user_requested_specs_and_dists = History(prefix).get_requested_specs()
 
     # this effectively pins packages to channels on first use
-    #  might not ultimately be the desired behavior
     user_requested_specs_and_schannels = (
         (s, (d and d.channel or UNKNOWN_CHANNEL))
         for s, d in user_requested_specs_and_dists
@@ -113,6 +400,7 @@ def _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add):
     specs_map = {s.name: s for s in requested_specs_from_history
                  if s.name not in ignore_these_spec_names}
 
+    # don't include conda if auto_update_conda is off
     if not context.auto_update_conda and not any(s.name == 'conda' for s in specs_to_add):
         specs_map.pop('conda', None)
         specs_map.pop('conda-env', None)
@@ -222,6 +510,19 @@ def get_resolve_object(index, prefix):
     _supplement_index_with_prefix(index, prefix, {})
     r = Resolve(index)
     return r
+
+
+def get_install_transaction_single(prefix, index, specs, force=False, only_names=None,
+                                   always_copy=False, pinned=True, update_deps=True,
+                                   prune=False, channel_priority_map=None, is_update=False):
+    specs = tuple(MatchSpec(s) for s in specs)
+    r = get_resolve_object(index.copy(), prefix)
+    unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
+
+    stp = PrefixSetup(r.index, prefix, unlink_dists, link_dists, 'INSTALL',
+                      tuple(specs))
+    txn = UnlinkLinkTransaction(stp)
+    return txn
 
 
 def get_install_transaction(prefix, index, spec_strs, force=False, only_names=None,
@@ -336,20 +637,7 @@ def get_install_transaction(prefix, index, spec_strs, force=False, only_names=No
                                               prune, channel_priority_map, is_update)
 
 
-def get_install_transaction_single(prefix, index, specs, force=False, only_names=None,
-                                   always_copy=False, pinned=True, update_deps=True,
-                                   prune=False, channel_priority_map=None, is_update=False):
-    specs = tuple(MatchSpec(s) for s in specs)
-    r = get_resolve_object(index.copy(), prefix)
-    unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
-
-    stp = PrefixSetup(r.index, prefix, unlink_dists, link_dists, 'INSTALL',
-                      tuple(specs))
-    txn = UnlinkLinkTransaction(stp)
-    return txn
-
-
-def augment_specs(prefix, specs, pinned=True):
+def augment_specs(prefix, specs, ignore_pinned=None):
     _specs = list(specs)
 
     # get conda-meta/pinned
@@ -381,3 +669,17 @@ def augment_specs(prefix, specs, pinned=True):
     if context.track_features:
         _specs.extend(x + '@' for x in context.track_features)
     return _specs
+
+
+def get_pinned_specs(prefix):
+    """Find pinned specs from file and return a tuple of MatchSpec."""
+    pinfile = join(prefix, 'conda-meta', 'pinned')
+    if exists(pinfile):
+        with open(pinfile) as f:
+            from_file = (i for i in f.read().strip().splitlines()
+                         if i and not i.strip().startswith('#'))
+    else:
+        from_file = ()
+
+    return tuple(MatchSpec(s, optional=True) for s in
+                 concatv(context.pinned_packages, from_file))

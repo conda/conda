@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 
-from .index_record import Link, PathDataV1, PriorityField, RepodataRecord
+from .index_record import Link, PathDataV1, PriorityField, PackageRecord
 from .leased_path_entry import LeasedPathEntry
 from .._vendor.auxlib.entity import ComposableField, ListField, StringField
 from ..common.compat import string_types
@@ -11,7 +11,7 @@ from ..common.compat import string_types
 log = getLogger(__name__)
 
 
-class PrefixRecord(RepodataRecord):
+class PrefixRecord(PackageRecord):
 
     package_tarball_full_path = StringField(required=False)
     extracted_package_dir = StringField(required=False)

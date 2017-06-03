@@ -5,14 +5,14 @@ from errno import ENOENT
 from logging import getLogger
 from os.path import basename, join
 
-from .index_record import RepodataRecord
+from .index_record import PackageRecord
 from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.auxlib.entity import StringField
 
 log = getLogger(__name__)
 
 
-class PackageCacheRecord(RepodataRecord):
+class PackageCacheRecord(PackageRecord):
 
     package_tarball_full_path = StringField()
     extracted_package_dir = StringField()

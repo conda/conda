@@ -14,7 +14,7 @@ from ..common.compat import iteritems, itervalues
 from ..gateways.disk.read import read_index_json
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
-from ..models.index_record import EMPTY_LINK, IndexRecord, RepodataRecord
+from ..models.index_record import EMPTY_LINK, IndexRecord, PackageRecord
 
 try:
     from cytoolz.itertoolz import take
@@ -62,6 +62,8 @@ def fetch_index(channel_urls, use_cache=False, index=None):
     if not context.json:
         stdoutlog.info("Fetching package metadata ...")
 
+    use_cache = use_cache or context.use_index_cache
+
     CollectTask = namedtuple('CollectTask', ('url', 'schannel', 'priority'))
     tasks = [CollectTask(url, *cdata) for url, cdata in iteritems(channel_urls)]
     repodatas = collect_all_repodata(use_cache, tasks)
@@ -87,7 +89,7 @@ def _supplement_index_with_prefix(index, prefix, channels):
     for dist, info in iteritems(linked_data(prefix)):
         if dist in index:
             # The downloaded repodata takes priority, so we do not overwrite.
-            # We do, however, copy the link information so that the solver
+            # We do, however, copy the link information so that the solver (i.e. resolve)
             # knows this package is installed.
             old_record = index[dist]
             link = info.get('link') or EMPTY_LINK
@@ -120,7 +122,7 @@ def _supplement_index_with_cache(index, channels):
         index_json_record = read_index_json(pkg_dir)
         # See the discussion above about priority assignments.
         priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-        repodata_record = RepodataRecord.from_objects(
+        repodata_record = PackageRecord.from_objects(
             index_json_record,
             fn=dist.to_filename(),
             schannel=dist.channel,

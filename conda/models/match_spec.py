@@ -174,6 +174,7 @@ class MatchSpec(object):
 
         xtra = []
 
+        version_exact = False
         version = self._match_components.get('version')
         if version:
             version = text_type(version)
@@ -183,10 +184,26 @@ class MatchSpec(object):
                 builder.append('=' + version[:-2])
             elif version.endswith('*'):
                 builder.append('=' + version[:-1])
+            elif version.startswith('=='):
+                builder.append(version)
+                version_exact = True
             else:
                 builder.append('==' + version)
+                version_exact = True
 
-        _skip = ('channel', 'subdir', 'name', 'version')
+        build = self._match_components.get('build')
+        if build:
+            build = text_type(build)
+            if any(s in build for s in '><$^|,'):
+                xtra.append("build='%s'" % build)
+            elif '*' in build:
+                xtra.append("build=%s" % build)
+            elif version_exact:
+                builder.append('=' + build)
+            else:
+                xtra.append("build=%s" % build)
+
+        _skip = ('channel', 'subdir', 'name', 'version', 'build')
         for key in self.FIELD_NAMES:
             if key not in _skip and key in self._match_components:
                 value = text_type(self._match_components[key])
@@ -414,9 +431,11 @@ def _parse_spec_str(spec_str):
     else:
         raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
 
-    # Step 6. sort out version + build
+    # Step 6. consider the legacy dist case, other otherwise sort out version + build
     spec_str = spec_str and spec_str.strip()
-    if spec_str:
+    if spec_str is None and name.count('-') >= 2:
+        name, version, build = _parse_legacy_dist(name)
+    elif spec_str:
         if '[' in spec_str:
             raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
 

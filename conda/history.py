@@ -187,6 +187,19 @@ class History(object):
                     spec_map.pop(name, None)
         return set(itervalues(spec_map))
 
+    def get_requested_specs_map(self):
+        spec_map = {}
+        for request in self.get_user_requests():
+            axn = request.get('action', '')
+            if axn.startswith('install'):
+                specs = (MatchSpec(s) for s in request['specs'] if s)
+                spec_map.update(((s.name, s) for s in specs))
+            elif axn.startswith('remove'):
+                for name in (MatchSpec(s).name for s in request['specs']):
+                    spec_map.pop(name, None)
+        return spec_map
+
+
     def construct_states(self):
         """
         return a list of tuples(datetime strings, set of distributions)
