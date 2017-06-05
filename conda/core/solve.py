@@ -7,6 +7,7 @@ from genericpath import exists
 from logging import getLogger
 from os.path import basename, join
 
+from conda.models.dag import SimpleDag
 from conda.models.dist import Dist
 from enum import Enum
 
@@ -137,7 +138,12 @@ class Solver(object):
                 An optional flag indicating special solver handling for dependencies. The
                 default solver behavior is to be as conservative as possible with dependency
                 updates (in the case the dependency already exists in the environment), while 
-                still ensuring all dependencies are satisfied.
+                still ensuring all dependencies are satisfied.  Options include
+                    * NO_DEPS
+                    * ONLY_DEPS
+                    * UPDATE_DEPS
+                    * UPDATE_DEPS_ONLY_DEPS
+                    * FREEZE_DEPS  # freeze is a better name for --no-update-deps
             ignore_pinned (bool):
                 If ``True``, the solution will ignore pinned package configuration
                 for the prefix.
@@ -160,55 +166,97 @@ class Solver(object):
                   "  specs_to_add: %s\n"
                   "  prune: %s", self.prefix, specs_to_remove, specs_to_add, prune)
 
-        # declare starting point
-        # if prune is True, our starting point is an empty solution
+        # declare starting point, the initial state of the environment
         prefix_data = PrefixData(self.prefix)
-        solution = () if prune else tuple(Dist(d) for d in prefix_data.iter_records())
+        solution = tuple(Dist(d) for d in prefix_data.iter_records())
 
-        # run initial removal operation
-        # if force_reinstall, specs_to_add get included with specs_to_remove
-        if solution:
-            if force_reinstall and specs_to_add:
-                solution = r.remove(concatv(specs_to_remove, specs_to_add), solution)
-            elif specs_to_remove:
-                solution = r.remove(specs_to_remove, solution)
+        removed = ()
+        if specs_to_remove:
+            pre_solution = set(solution)
+            solution = r.remove(specs_to_remove, solution)
+            removed = pre_solution - set(solution)
 
-        # if there are no specs_to_add, maybe we should be done now?
-        if not specs_to_add:
-            solution = IndexedSet(index[d] for d in solution)
-            return solution
 
-        # get specs from history, and replace any historically-requested specs with
-        # the current specs_to_add
-        specs_map = History(self.prefix).get_requested_specs_map()
-        specs_map.update((s.name, s) for s in self.specs_to_add)
+        def collect_specs():
+            # get specs from history, and replace any historically-requested specs with
+            # the current specs_to_add
+            specs_map = History(self.prefix).get_requested_specs_map()
+            dag = SimpleDag(prefix_data.iter_records(), itervalues(specs_map))
 
-        # collect "optional"-type specs, which represent pinned specs and
-        # aggressive update specs
-        optional_specs = set()
-        if not ignore_pinned:
-            optional_specs.update(get_pinned_specs(self.prefix))
-        if not context.offline:
-            optional_specs.update(context.aggressive_update_packages)
+            # here, add target for each spec
+            for pkg_name, spec in iteritems(specs_map):
+                matches_for_spec = dag.spec_matches.get(spec)
+                if matches_for_spec:
+                    if len(matches_for_spec) > 1:
+                        raise NotImplementedError()  # IDontKnowWhatToDoYetError
+                    else:
+                        record_match = matches_for_spec[0]
+                        specs_map[pkg_name] = MatchSpec(spec, target=record_match)
 
-        # support track_features config parameter
-        track_features_specs = ()
-        if context.track_features:
-            track_features_specs = (MatchSpec(x + '@') for x in context.track_features)
 
-        compiled_specs_to_add = tuple(concatv(
-            itervalues(specs_map),
-            optional_specs,
-            track_features_specs,
-        ))
+            for spec in specs_to_remove:
+                specs_map.pop(spec.name, None)
 
-        # NO_DEPS = 'no_deps'
-        # ONLY_DEPS = 'only_deps'
-        # UPDATE_DEPS = 'update_deps'
+            # remove specs that got removed in the initial r.remove() operation above
+            remove_specs = []
+            for rec in removed:
+                for spec in itervalues(specs_map):
+                    if spec.match(rec):
+                        remove_specs.append(spec)
+                        continue
+            for spec in remove_specs:
+                specs_map.pop(spec.name, None)
+
+
+            specs_map.update((s.name, s) for s in self.specs_to_add)
+
+            # collect "optional"-type specs, which represent pinned specs and
+            # aggressive update specs
+            optional_specs = set()
+            if not ignore_pinned:
+                optional_specs.update(get_pinned_specs(self.prefix))
+            if not context.offline:
+                optional_specs.update(context.aggressive_update_packages)
+
+            # support track_features config parameter
+            track_features_specs = ()
+            if context.track_features:
+                track_features_specs = (MatchSpec(x + '@') for x in context.track_features)
+
+            compiled_specs_to_add = tuple(concatv(
+                itervalues(specs_map),
+                optional_specs,
+                track_features_specs,
+            ))
+
+            return compiled_specs_to_add
+
+
+
+
+
+        # # run initial removal operation
+        # # if force_reinstall, specs_to_add get included with specs_to_remove
+        # if solution:
+        #     if force_reinstall and specs_to_add:
+        #         solution = r.remove(concatv(specs_to_remove, specs_to_add), solution)
+        #     elif specs_to_remove:
+        #         solution = r.remove(specs_to_remove, solution)
+
+        # # if there are no specs_to_add, maybe we should be done now?
+        # if not specs_to_add:
+        #     solution = IndexedSet(index[d] for d in solution)
+        #     return solution
+
+
+
+        # NO_DEPS = 'no_deps'  # filter solution
+        # ONLY_DEPS = 'only_deps'  # filter solution
+        # UPDATE_DEPS = 'update_deps'  # use dag to add additional a specs
         # UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
         # FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
 
-
+        compiled_specs_to_add = collect_specs()
 
         log.debug("final specs to add:\n    %s\n",
                   "\n    ".join(text_type(s) for s in compiled_specs_to_add))
@@ -220,14 +268,18 @@ class Solver(object):
         # assert all pinned specs are compatible with what's in solved_linked_dists
         # don't uninstall conda or its dependencies, probably need to check elsewhere
 
+        if prune:
+            solution = IndexedSet(r.dependency_sort({d.name: d for d in solution}))
+            solution = IndexedSet(index[d] for d in solution)
+            dag = SimpleDag(solution, compiled_specs_to_add)
+            dag.prune()
+            solution = tuple(Dist(rec) for rec in dag.records)
 
         solution = IndexedSet(r.dependency_sort({d.name: d for d in solution}))
-
         log.debug("solved prefix %s\n"
                   "  solved_linked_dists:\n"
                   "    %s\n",
                   self.prefix, "\n    ".join(text_type(d) for d in solution))
-
         solution = IndexedSet(index[d] for d in solution)
 
         return solution
