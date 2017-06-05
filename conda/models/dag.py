@@ -5,6 +5,7 @@ from collections import defaultdict
 from logging import getLogger
 
 from .match_spec import MatchSpec
+from ..common.url import quote as url_quote
 
 log = getLogger(__name__)
 
@@ -62,7 +63,8 @@ class SimpleDag(object):
             label = "%s %s" % (node.record.name, node.record.version)
             if node.specs:
                 # TODO: combine?
-                label += "\\n%s" % node.specs[0]
+                spec = node.specs[0]
+                label += "\\n%s" % ("?%s" if spec.optional else "%s") % spec
             if node.is_orphan:
                 shape = "box"
             elif node.is_root:
@@ -80,9 +82,8 @@ class SimpleDag(object):
         return '\n'.join(builder)
 
     def open_url(self):
-        from ..common.url import quote
         import webbrowser
-        url = "https://condaviz.glitch.me/%s" % quote(self.dot_repr())
+        url = "https://condaviz.glitch.me/%s" % url_quote(self.dot_repr())
         print(url)
         browser = webbrowser.get("safari")
         browser.open_new_tab(url)
@@ -100,7 +101,7 @@ class SimpleDag(object):
         def remove_leaves_one_pass():
             removed_leaves = []
             for leaf in self.leaves:
-                if not leaf.specs:
+                if not leaf.specs or leaf.specs[0].optional:
                     self.nodes.remove(leaf)
                     self.records.remove(leaf.record)
                     for parent in leaf.required_parents:

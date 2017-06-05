@@ -84,6 +84,7 @@ class DepsModifier(Enum):
     UPDATE_DEPS = 'update_deps'
     UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
     FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
+    UPDATE_ALL = 'update_all'
 
 
 
@@ -181,19 +182,8 @@ class Solver(object):
             # get specs from history, and replace any historically-requested specs with
             # the current specs_to_add
             specs_map = History(self.prefix).get_requested_specs_map()
-            dag = SimpleDag(prefix_data.iter_records(), itervalues(specs_map))
 
-            # here, add target for each spec
-            for pkg_name, spec in iteritems(specs_map):
-                matches_for_spec = dag.spec_matches.get(spec)
-                if matches_for_spec:
-                    if len(matches_for_spec) > 1:
-                        raise NotImplementedError()  # IDontKnowWhatToDoYetError
-                    else:
-                        record_match = matches_for_spec[0]
-                        specs_map[pkg_name] = MatchSpec(spec, target=record_match)
-
-
+            # remove specs in specs_to_remove
             for spec in specs_to_remove:
                 specs_map.pop(spec.name, None)
 
@@ -207,8 +197,25 @@ class Solver(object):
             for spec in remove_specs:
                 specs_map.pop(spec.name, None)
 
+            # for the remaining specs in specs_map, add target to each spec
+            for pkg_name, spec in iteritems(specs_map):
+                matches_for_spec = tuple(rec for rec in solution if spec.match(rec))
+                if matches_for_spec:
+                    if len(matches_for_spec) > 1:
+                        raise NotImplementedError()  # IDontKnowWhatToDoYetError
+                    else:
+                        specs_map[pkg_name] = MatchSpec(spec, target=Dist(matches_for_spec[0]).full_name)
 
-            specs_map.update((s.name, s) for s in self.specs_to_add)
+            # now add in explicitly requested specs from specs_to_add
+            # this overrides any name-matching spec already in the spec map
+            specs_map.update((s.name, s) for s in specs_to_add)
+
+            # dag = SimpleDag(prefix_data.iter_records(), itervalues(specs_map))
+            #
+            # if deps_modifier == DepsModifier.UPDATE_DEPS:
+            #     dag = SimpleDag(solution, final_environment_specs)
+            #
+
 
             # collect "optional"-type specs, which represent pinned specs and
             # aggressive update specs
@@ -252,17 +259,37 @@ class Solver(object):
 
         # NO_DEPS = 'no_deps'  # filter solution
         # ONLY_DEPS = 'only_deps'  # filter solution
-        # UPDATE_DEPS = 'update_deps'  # use dag to add additional a specs
+        # UPDATE_DEPS = 'update_deps'  # use dag to add additional specs
         # UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
         # FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
 
-        compiled_specs_to_add = collect_specs()
+        final_environment_specs = collect_specs()
+
+        if deps_modifier == DepsModifier.UPDATE_DEPS:
+            dag = SimpleDag(solution, final_environment_specs)
+
 
         log.debug("final specs to add:\n    %s\n",
-                  "\n    ".join(text_type(s) for s in compiled_specs_to_add))
-        solution = r.install(compiled_specs_to_add,
+                  "\n    ".join(text_type(s) for s in final_environment_specs))
+        pre_solution = solution
+        solution = r.install(final_environment_specs,
                              solution,
                              update_deps=context.update_dependencies)
+        if deps_modifier == DepsModifier.NO_DEPS:
+            dont_add_packages = []
+            new_packages = set(solution) - set(pre_solution)
+            for record in new_packages:
+                if not any(spec.match(record) for spec in specs_to_add):
+                    dont_add_packages.append(record)
+            solution = tuple(rec for rec in solution if rec not in dont_add_packages)
+        elif deps_modifier == DepsModifier.ONLY_DEPS:
+            dont_add_packages = []
+            new_packages = set(solution) - set(pre_solution)
+            for record in new_packages:
+                if any(spec.match(record) for spec in specs_to_add):
+                    dont_add_packages.append(record)
+            solution = tuple(rec for rec in solution if rec not in dont_add_packages)
+
 
         # now do safety checks on the solution
         # assert all pinned specs are compatible with what's in solved_linked_dists
@@ -271,7 +298,7 @@ class Solver(object):
         if prune:
             solution = IndexedSet(r.dependency_sort({d.name: d for d in solution}))
             solution = IndexedSet(index[d] for d in solution)
-            dag = SimpleDag(solution, compiled_specs_to_add)
+            dag = SimpleDag(solution, final_environment_specs)
             dag.prune()
             solution = tuple(Dist(rec) for rec in dag.records)
 
