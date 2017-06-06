@@ -35,7 +35,7 @@ _toposort = _toposort
 from .gateways.disk.link import lchmod  # NOQA
 lchmod = lchmod
 
-from conda.gateways.connection.download import TmpDownload
+from .gateways.connection.download import TmpDownload  # NOQA
 
 TmpDownload = TmpDownload
 handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
@@ -172,7 +172,7 @@ from .core.linked_data import PrefixData as _PrefixData  # NOQA
 
 def rm_rf(path, max_retries=5, trash=True):
     _rm_rf(path, max_retries, trash)
-    _PrefixData._cache_ = {}
+    _PrefixData._cache_.pop(path.rstrip('/\\'), None)
 
 
 # ######################

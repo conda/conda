@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
+from os.path import (abspath, basename, expanduser, isdir, isfile, join, normpath,
                      split as path_split)
 from platform import machine
 import sys
