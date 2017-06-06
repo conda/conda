@@ -1,1 +1,1 @@
-@CALL %~dp0..\Library\bin\conda.bat deactivate
+@CALL "%~dp0..\Library\bin\conda.bat" deactivate %*
