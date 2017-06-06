@@ -156,11 +156,12 @@ class Solver(object):
 
         """
         index, r = self._prepare()
-        prune = prune is NULL and context.prune or prune
+        prune = context.prune if prune is NULL else prune
         force_reinstall = force_reinstall is NULL and context.force or force_reinstall
         ignore_pinned = ignore_pinned is NULL and context.ignore_pinned or ignore_pinned
         specs_to_remove = self.specs_to_remove
         specs_to_add = self.specs_to_add
+        update_deps = deps_modifier == DepsModifier.UPDATE_DEPS or context.update_dependencies
 
         log.debug("solving prefix %s\n"
                   "  specs_to_remove: %s\n"
@@ -171,72 +172,90 @@ class Solver(object):
         prefix_data = PrefixData(self.prefix)
         solution = tuple(Dist(d) for d in prefix_data.iter_records())
 
-        removed = ()
-        if specs_to_remove:
-            pre_solution = set(solution)
-            solution = r.remove(specs_to_remove, solution)
-            removed = pre_solution - set(solution)
+        # removed = ()
+        # if specs_to_remove:
+        #     pre_solution = set(solution)
+        #     solution = r.remove(specs_to_remove, solution)
+        #     removed = pre_solution - set(solution)
 
 
-        def collect_specs():
-            # get specs from history, and replace any historically-requested specs with
-            # the current specs_to_add
-            specs_map = History(self.prefix).get_requested_specs_map()
 
-            # remove specs in specs_to_remove
-            for spec in specs_to_remove:
-                specs_map.pop(spec.name, None)
+        if prune:
+            specs_map = {}
+        else:
+            specs_map = {d.name: MatchSpec(d.name) for d in solution}
 
-            # remove specs that got removed in the initial r.remove() operation above
-            remove_specs = []
-            for rec in removed:
-                for spec in itervalues(specs_map):
-                    if spec.match(rec):
-                        remove_specs.append(spec)
-                        continue
-            for spec in remove_specs:
-                specs_map.pop(spec.name, None)
+        # get specs from history, and replace any historically-requested specs with
+        # the current specs_to_add
+        specs_map.update(History(self.prefix).get_requested_specs_map())
 
-            # for the remaining specs in specs_map, add target to each spec
-            for pkg_name, spec in iteritems(specs_map):
-                matches_for_spec = tuple(rec for rec in solution if spec.match(rec))
-                if matches_for_spec:
-                    if len(matches_for_spec) > 1:
-                        raise NotImplementedError()  # IDontKnowWhatToDoYetError
-                    else:
-                        specs_map[pkg_name] = MatchSpec(spec, target=Dist(matches_for_spec[0]).full_name)
+        dag = SimpleDag((index[dist] for dist in solution), itervalues(specs_map))
 
-            # now add in explicitly requested specs from specs_to_add
-            # this overrides any name-matching spec already in the spec map
-            specs_map.update((s.name, s) for s in specs_to_add)
+        removed_records = []
+        for spec in specs_to_remove:
+            removed_records.extend(dag.remove_spec(spec))
 
-            # dag = SimpleDag(prefix_data.iter_records(), itervalues(specs_map))
-            #
-            # if deps_modifier == DepsModifier.UPDATE_DEPS:
-            #     dag = SimpleDag(solution, final_environment_specs)
-            #
+        for rec in removed_records:
+            specs_map.pop(rec.name, None)
+        solution = tuple(Dist(rec) for rec in dag.records)
 
 
-            # collect "optional"-type specs, which represent pinned specs and
-            # aggressive update specs
-            optional_specs = set()
-            if not ignore_pinned:
-                optional_specs.update(get_pinned_specs(self.prefix))
-            if not context.offline:
-                optional_specs.update(context.aggressive_update_packages)
 
-            # support track_features config parameter
-            track_features_specs = ()
-            if context.track_features:
-                track_features_specs = (MatchSpec(x + '@') for x in context.track_features)
 
-            compiled_specs_to_add = tuple(concatv(
-                itervalues(specs_map),
-                optional_specs,
-                track_features_specs,
-            ))
+        # # remove specs in specs_to_remove
+        # for spec in specs_to_remove:
+        #     specs_map.pop(spec.name, None)
+        #
+        # # remove specs that got removed in the initial r.remove() operation above
+        # remove_specs = []
+        # for rec in removed:
+        #     for spec in itervalues(specs_map):
+        #         if spec.match(rec):
+        #             remove_specs.append(spec)
+        #             continue
+        # for spec in remove_specs:
+        #     specs_map.pop(spec.name, None)
 
-            return compiled_specs_to_add
+
+        # for the remaining specs in specs_map, add target to each spec
+        for pkg_name, spec in iteritems(specs_map):
+            matches_for_spec = tuple(rec for rec in solution if spec.match(rec))
+            if matches_for_spec:
+                if len(matches_for_spec) > 1:
+                    raise NotImplementedError()  # IDontKnowWhatToDoYetError
+                else:
+                    target = Dist(matches_for_spec[0]).full_name
+                    specs_map[pkg_name] = MatchSpec(spec, target=target)
+
+        if deps_modifier == DepsModifier.UPDATE_ALL:
+            specs_map = {pkg_name: MatchSpec(spec.name)
+                         for pkg_name, spec in iteritems(specs_map)}
+
+
+        # now add in explicitly requested specs from specs_to_add
+        # this overrides any name-matching spec already in the spec map
+        specs_map.update((s.name, s) for s in specs_to_add)
+
+
+
+        # collect "optional"-type specs, which represent pinned specs and
+        # aggressive update specs
+        optional_specs = set()
+        if not ignore_pinned:
+            optional_specs.update(get_pinned_specs(self.prefix))
+        if not context.offline:
+            optional_specs.update(context.aggressive_update_packages)
+
+        # support track_features config parameter
+        track_features_specs = ()
+        if context.track_features:
+            track_features_specs = (MatchSpec(x + '@') for x in context.track_features)
+
+        compiled_specs_to_add = tuple(concatv(
+            itervalues(specs_map),
+            optional_specs,
+            track_features_specs,
+        ))
 
 
 
@@ -263,18 +282,17 @@ class Solver(object):
         # UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
         # FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
 
-        final_environment_specs = collect_specs()
-
-        if deps_modifier == DepsModifier.UPDATE_DEPS:
-            dag = SimpleDag(solution, final_environment_specs)
+        final_environment_specs = compiled_specs_to_add
 
 
         log.debug("final specs to add:\n    %s\n",
                   "\n    ".join(text_type(s) for s in final_environment_specs))
         pre_solution = solution
+
         solution = r.install(final_environment_specs,
                              solution,
-                             update_deps=context.update_dependencies)
+                             update_deps=update_deps)
+
         if deps_modifier == DepsModifier.NO_DEPS:
             dont_add_packages = []
             new_packages = set(solution) - set(pre_solution)
@@ -297,8 +315,7 @@ class Solver(object):
 
         if prune:
             solution = IndexedSet(r.dependency_sort({d.name: d for d in solution}))
-            solution = IndexedSet(index[d] for d in solution)
-            dag = SimpleDag(solution, final_environment_specs)
+            dag = SimpleDag((index[d] for d in solution), final_environment_specs)
             dag.prune()
             solution = tuple(Dist(rec) for rec in dag.records)
 

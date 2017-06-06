@@ -667,21 +667,21 @@ class Resolve(object):
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
         limit, preserve = self.bad_installed(installed, specs)
-        for pkg in installed:
-            if pkg not in self.index:
-                continue
-            name, version, build, schannel = self.package_quad(pkg)
-            if name in snames or limit is not None and name not in limit:
-                continue
-            # If update_deps=True, set the target package in MatchSpec so that
-            # the solver can minimize the version change. If update_deps=False,
-            # fix the version and build so that no change is possible.
-            if update_deps:
-                spec = MatchSpec(name=name, target=pkg.full_name)
-            else:
-                spec = MatchSpec(name=name, version=version,
-                                 build=build, channel=schannel)
-            specs.append(spec)
+        # for pkg in installed:
+        #     if pkg not in self.index:
+        #         continue
+        #     name, version, build, schannel = self.package_quad(pkg)
+        #     if name in snames or limit is not None and name not in limit:
+        #         continue
+        #     # If update_deps=True, set the target package in MatchSpec so that
+        #     # the solver can minimize the version change. If update_deps=False,
+        #     # fix the version and build so that no change is possible.
+        #     if update_deps:
+        #         spec = MatchSpec(name=name, target=pkg.full_name)
+        #     else:
+        #         spec = MatchSpec(name=name, version=version,
+        #                          build=build, channel=schannel)
+        #     specs.append(spec)
         return specs, preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):

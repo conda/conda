@@ -167,7 +167,7 @@ class Context(Configuration):
     ignore_pinned = PrimitiveParameter(False)
     shortcuts = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
-    update_dependencies = PrimitiveParameter(True, aliases=('update_deps',))
+    update_dependencies = PrimitiveParameter(False, aliases=('update_deps',))
     verbosity = PrimitiveParameter(0, aliases=('verbose',), element_type=int)
 
     # conda_build

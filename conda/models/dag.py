@@ -18,37 +18,33 @@ class SimpleDag(object):
     # Nodes don't yet have a 'constrained_by' method of optional constrained dependencies.
 
     def __init__(self, records, specs):
-        self.records = list(records)
-        self.specs = list(specs)
-
-        self.nodes = nodes = []
-        self.roots = roots = []
-        self.leaves = leaves = []
-        self.orphans = orphans = []
-        self.spec_matches = spec_matches = defaultdict(list)
+        self.nodes = []
+        self.spec_matches = defaultdict(list)
 
         for record in records:
-            new_node = Node(record)
-            nodes.append(new_node)
-            for old_node in nodes:
-                if new_node.constrained_by(old_node):
-                    new_node.optional_parents.append(old_node)
-                    old_node.optional_children.append(new_node)
-                elif new_node.depends_on(old_node):
-                    new_node.required_parents.append(old_node)
-                    old_node.required_children.append(new_node)
+            Node(self, record)
 
-        for node in nodes:
-            for spec in specs:
-                if spec.match(node.record):
-                    node.specs.append(spec)
-                    spec_matches[spec].append(node)
-            if node.is_orphan:
-                orphans.append(node)
-            elif node.is_root:
-                roots.append(node)
-            elif node.is_leaf:
-                leaves.append(node)
+        for spec in specs:
+            self.add_spec(spec)
+
+    def add_spec(self, spec):
+        for node in self.nodes:
+            if spec.match(node.record):
+                node.specs.append(spec)
+                self.spec_matches[spec].append(node)
+
+    def remove_spec(self, spec):
+        removed = []
+        for node in iter(self.nodes):
+            if spec.match(node.record):
+                removed.extend(self.remove_node_and_children(node))
+        return removed
+
+    def remove_node_and_children(self, node):
+        for child in node.required_children:
+            for record in self.remove_node_and_children(child):
+                yield record
+        yield self.remove(node)
 
     def dot_repr(self, title=None):
         # graphviz DOT graph description language
@@ -88,33 +84,31 @@ class SimpleDag(object):
         browser = webbrowser.get("safari")
         browser.open_new_tab(url)
 
+    @property
+    def orphans(self):
+        return (node for node in self.nodes if node.is_orphan)
+
+    @property
+    def roots(self):
+        return (node for node in self.nodes if node.is_root)
+
+    @property
+    def leaves(self):
+        return (node for node in self.nodes if node.is_leaf)
+
+    @property
+    def records(self):
+        return (node.record for node in self.nodes)
+
     def prune(self):
-        removed_orphans = []
         for orphan in self.orphans:
             if not orphan.specs:
                 self.nodes.remove(orphan)
-                self.records.remove(orphan.record)
-                removed_orphans.append(orphan)
-        for orphan in removed_orphans:
-            self.orphans.remove(orphan)
 
         def remove_leaves_one_pass():
-            removed_leaves = []
             for leaf in self.leaves:
                 if not leaf.specs or leaf.specs[0].optional:
-                    self.nodes.remove(leaf)
-                    self.records.remove(leaf.record)
-                    for parent in leaf.required_parents:
-                        parent.required_children.remove(leaf)
-                        if not parent.has_children:
-                            self.leaves.append(parent)
-                    for parent in leaf.optional_parents:
-                        parent.optional_children.remove(leaf)
-                        if not parent.has_children:
-                            self.leaves.append(parent)
-                    removed_leaves.append(leaf)
-            for leaf in removed_leaves:
-                self.leaves.remove(leaf)
+                    self.remove(leaf)
 
         num_nodes_pre = len(self.nodes)
         remove_leaves_one_pass()
@@ -123,6 +117,21 @@ class SimpleDag(object):
             num_nodes_pre = num_nodes_post
             remove_leaves_one_pass()
             num_nodes_post = len(self.nodes)
+
+    def remove(self, node):
+        for parent in node.required_parents:
+            parent.required_children.remove(node)
+        for parent in node.optional_parents:
+            parent.optional_children.remove(node)
+        for child in node.required_children:
+            child.required_parents.remove(node)
+        for child in node.optional_children:
+            child.optional_parents.remove(node)
+        for spec in node.specs:
+            self.spec_matches[spec].remove(node)
+        self.nodes.remove(node)
+        return node.record
+
 
 
 
@@ -133,21 +142,54 @@ class SimpleDag(object):
 
 
 class Node(object):
-    def __init__(self, record):
+
+    def __init__(self, dag, record):
         self.record = record
         self._constrains = tuple(MatchSpec(s).name for s in record.constrains)
+        self._depends = tuple(MatchSpec(s).name for s in record.depends)
+
         self.optional_parents = []
         self.optional_children = []
-        self._depends = tuple(MatchSpec(s).name for s in record.depends)
         self.required_parents = []
         self.required_children = []
         self.specs = []
+
+        for old_node in dag.nodes:
+            if self.constrained_by(old_node):
+                self.optional_parents.append(old_node)
+                old_node.optional_children.append(self)
+            elif self.depends_on(old_node):
+                self.required_parents.append(old_node)
+                old_node.required_children.append(self)
+            elif old_node.constrained_by(self):
+                old_node.optional_parents.append(self)
+                self.optional_children.append(old_node)
+            elif old_node.depends_on(self):
+                old_node.required_parents.append(self)
+                self.required_children.append(old_node)
+
+        for spec in dag.spec_matches:
+            if spec.match(record):
+                self.specs.append(spec)
+                dag.spec_matches[spec].append(self)
+
+        dag.nodes.append(self)
 
     def constrained_by(self, other):
         return other.record.name in self._constrains
 
     def depends_on(self, other):
         return other.record.name in self._depends
+
+    def all_descendants(self):
+        def _all_descendants():
+            for child in self.required_children:
+                for gchild in child.required_children:
+                    yield gchild
+                yield child
+        import pdb; pdb.set_trace()
+        return tuple(_all_descendants())
+
 
     has_children = property(lambda self: self.required_children or self.optional_children)
     has_parents = property(lambda self: self.required_parents or self.optional_parents)
