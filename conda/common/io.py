@@ -2,12 +2,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from contextlib import contextmanager
-from enum import Enum
 import logging
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
-from os import chdir, getcwd
 import sys
+
+from enum import Enum
 
 from .compat import StringIO, iteritems
 from .constants import NULL

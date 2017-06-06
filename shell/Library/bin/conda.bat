@@ -17,11 +17,11 @@
 @CALL %_CONDA_EXE% %*
 
 @REM This block should really be the equivalent of
-@REM   if "install" in %* GOTO :DO_DEACTIVATE
-@IF "%1"=="install" GOTO :DO_DEACTIVATE
-@IF "%1"=="update" GOTO :DO_DEACTIVATE
-@IF "%1"=="remove" GOTO :DO_DEACTIVATE
-@IF "%1"=="uninstall" GOTO :DO_DEACTIVATE
+@REM   if "install" in %* GOTO :DO_REACTIVATE
+@IF "%1"=="install" GOTO :DO_REACTIVATE
+@IF "%1"=="update" GOTO :DO_REACTIVATE
+@IF "%1"=="remove" GOTO :DO_REACTIVATE
+@IF "%1"=="uninstall" GOTO :DO_REACTIVATE
 
 @GOTO :End
 

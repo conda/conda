@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from conda.api import get_index
+from conda.core.index import get_index
 from conda.cli import common
 from conda.core.solve import get_install_transaction
 from conda.models.channel import prioritize_channels

@@ -35,7 +35,7 @@ _toposort = _toposort
 from .gateways.disk.link import lchmod  # NOQA
 lchmod = lchmod
 
-from conda.gateways.connection.download import TmpDownload
+from .gateways.connection.download import TmpDownload  # NOQA
 
 TmpDownload = TmpDownload
 handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
@@ -45,8 +45,8 @@ dist_str_in_index, fetch_index, get_index = dist_str_in_index, fetch_index, get_
 from .core.package_cache import download, rm_fetched  # NOQA
 download, rm_fetched = download, rm_fetched
 
-from .install import package_cache, prefix_placeholder, rm_rf, symlink_conda  # NOQA
-package_cache, prefix_placeholder, rm_rf, symlink_conda = package_cache, prefix_placeholder, rm_rf, symlink_conda  # NOQA
+from .install import package_cache, prefix_placeholder, symlink_conda  # NOQA
+package_cache, prefix_placeholder, symlink_conda = package_cache, prefix_placeholder, symlink_conda  # NOQA
 
 from .gateways.disk.delete import delete_trash, move_to_trash  # NOQA
 delete_trash, move_to_trash = delete_trash, move_to_trash
@@ -95,6 +95,7 @@ platform = conda.base.context.context.platform
 root_dir = conda.base.context.context.root_prefix
 root_writable = conda.base.context.context.root_writable
 subdir = conda.base.context.context.subdir
+conda_private = conda.base.context.context.conda_private
 from .models.channel import get_conda_build_local_url  # NOQA
 get_rc_urls = lambda: list(conda.base.context.context.channels)
 get_local_urls = lambda: list(get_conda_build_local_url()) or []
@@ -164,6 +165,15 @@ class memoized(object):  # pragma: no cover
                 value = self.func(*args, **kw)
                 self.cache[key] = value
                 return value
+
+
+from .gateways.disk.delete import rm_rf as _rm_rf  # NOQA
+from .core.linked_data import PrefixData as _PrefixData  # NOQA
+
+
+def rm_rf(path, max_retries=5, trash=True):
+    _rm_rf(path, max_retries, trash)
+    _PrefixData._cache_.pop(path.rstrip('/\\'), None)
 
 
 # ######################
