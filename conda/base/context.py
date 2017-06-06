@@ -258,6 +258,10 @@ class Context(Configuration):
             return _arch_names[self.bits]
 
     @property
+    def conda_private(self):
+        return conda_in_private_env()
+
+    @property
     def platform(self):
         return _platform_map.get(sys.platform, 'unknown')
 

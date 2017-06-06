@@ -95,6 +95,7 @@ platform = conda.base.context.context.platform
 root_dir = conda.base.context.context.root_prefix
 root_writable = conda.base.context.context.root_writable
 subdir = conda.base.context.context.subdir
+conda_private = conda.base.context.context.conda_private
 from .models.channel import get_conda_build_local_url  # NOQA
 get_rc_urls = lambda: list(conda.base.context.context.channels)
 get_local_urls = lambda: list(get_conda_build_local_url()) or []
