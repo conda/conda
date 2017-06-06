@@ -137,7 +137,7 @@ def spec_from_line(line):
 
 
 def specs_from_url(url, json=False):
-    from ..fetch import TmpDownload
+    from conda.gateways.connection.download import TmpDownload
 
     explicit = False
     with TmpDownload(url, verbose=False) as path:

@@ -9,7 +9,6 @@ import socket
 
 from .path import split_filename
 from .._vendor.auxlib.decorators import memoize
-from .._vendor.auxlib.ish import dals
 from .._vendor.urllib3.exceptions import LocationParseError
 from .._vendor.urllib3.util.url import Url, parse_url
 from ..common.compat import on_win
@@ -28,19 +27,10 @@ except ImportError:  # pragma: py3 no cover
 log = getLogger(__name__)
 
 
-def urlunparse(data):
-    return stdlib_urlparse(data) or None
-
-
 @memoize
 def path_to_url(path):
     if not path:
-        message = dals("""
-        Empty argument to `path_to_url()` not allowed.
-        path cannot be '%r'
-        """ % path)
-        from ..exceptions import CondaValueError
-        raise CondaValueError(message)
+        raise ValueError('Not allowed: %r' % path)
     if path.startswith('file:/'):
         return path
     path = abspath(expanduser(path))
@@ -69,6 +59,13 @@ def url_to_s3_info(url):
 
 
 def is_url(url):
+    """
+    Examples:
+        >>> is_url(None)
+        False
+        >>> is_url("s3://some/bucket")
+        True
+    """
     if not url:
         return False
     try:

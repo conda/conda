@@ -25,6 +25,60 @@ log = getLogger(__name__)
 stdoutlog = getLogger('stdoutlog')
 
 
+def get_index(channel_urls=(), prepend=True, platform=None,
+              use_local=False, use_cache=False, unknown=None, prefix=None):
+    """
+    Return the index of packages available on the channels
+
+    If prepend=False, only the channels passed in as arguments are used.
+    If platform=None, then the current platform is used.
+    If prefix is supplied, then the packages installed in that prefix are added.
+    """
+    if use_local:
+        channel_urls = ['local'] + list(channel_urls)
+    if prepend:
+        channel_urls += context.channels
+    if context.offline and unknown is None:
+        unknown = True
+
+    subdirs = (platform, 'noarch') if platform is not None else context.subdirs
+    channel_priority_map = prioritize_channels(channel_urls, subdirs=subdirs)
+    index = fetch_index(channel_priority_map, use_cache=use_cache)
+
+    if prefix or unknown:
+        known_channels = {chnl for chnl, _ in itervalues(channel_priority_map)}
+    if prefix:
+        _supplement_index_with_prefix(index, prefix, known_channels)
+    if unknown:
+        _supplement_index_with_cache(index, known_channels)
+    if context.track_features:
+        _supplement_index_with_features(index)
+    return index
+
+
+def fetch_index(channel_urls, use_cache=False, index=None):
+    # type: (prioritize_channels(), bool, bool, Dict[Dist, IndexRecord]) -> Dict[Dist, IndexRecord]
+    log.debug('channel_urls=' + repr(channel_urls))
+    if not context.json:
+        stdoutlog.info("Fetching package metadata ...")
+
+    CollectTask = namedtuple('CollectTask', ('url', 'schannel', 'priority'))
+    tasks = [CollectTask(url, *cdata) for url, cdata in iteritems(channel_urls)]
+    repodatas = collect_all_repodata(use_cache, tasks)
+    # type: List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
+    #   this is sorta a lie; actually more primitve types
+
+    if index is None:
+        index = {}
+    for _, repodata in reversed(repodatas):
+        if repodata:
+            index.update(repodata.get('packages', {}))
+
+    if not context.json:
+        stdoutlog.info('\n')
+    return index
+
+
 def _supplement_index_with_prefix(index, prefix, channels):
     # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None
     # supplement index with information from prefix/conda-meta
@@ -76,30 +130,7 @@ def _supplement_index_with_cache(index, channels):
         index[dist] = repodata_record
 
 
-def supplement_index_with_repodata(index, repodata, channel, priority):
-    repodata_info = repodata['info']
-    arch = repodata_info.get('arch')
-    platform = repodata_info.get('platform')
-    subdir = repodata_info.get('subdir')
-    if not subdir:
-        subdir = "%s-%s" % (repodata_info['platform'], repodata_info['arch'])
-    auth = channel.auth
-    for fn, info in iteritems(repodata['packages']):
-        rec = IndexRecord.from_objects(info,
-                                       fn=fn,
-                                       arch=arch,
-                                       platform=platform,
-                                       channel=channel,
-                                       subdir=subdir,
-                                       # schannel=schannel,
-                                       priority=priority,
-                                       # url=join_url(channel_url, fn),
-                                       auth=auth)
-        dist = Dist(rec)
-        index[dist] = rec
-
-
-def supplement_index_with_features(index, features=()):
+def _supplement_index_with_features(index, features=()):
     defaults = Channel('defaults')
     for feat in chain(context.track_features, features):
         fname = feat + '@'
@@ -114,60 +145,6 @@ def supplement_index_with_features(index, features=()):
             build_number=0,
             fn=fname)
         index[Dist(rec)] = rec
-
-
-def get_index(channel_urls=(), prepend=True, platform=None,
-              use_local=False, use_cache=False, unknown=None, prefix=None):
-    """
-    Return the index of packages available on the channels
-
-    If prepend=False, only the channels passed in as arguments are used.
-    If platform=None, then the current platform is used.
-    If prefix is supplied, then the packages installed in that prefix are added.
-    """
-    if use_local:
-        channel_urls = ['local'] + list(channel_urls)
-    if prepend:
-        channel_urls += context.channels
-    if context.offline and unknown is None:
-        unknown = True
-
-    subdirs = (platform, 'noarch') if platform is not None else context.subdirs
-    channel_priority_map = prioritize_channels(channel_urls, subdirs=subdirs)
-    index = fetch_index(channel_priority_map, use_cache=use_cache)
-
-    if prefix or unknown:
-        known_channels = {chnl for chnl, _ in itervalues(channel_priority_map)}
-    if prefix:
-        _supplement_index_with_prefix(index, prefix, known_channels)
-    if unknown:
-        _supplement_index_with_cache(index, known_channels)
-    if context.track_features:
-        supplement_index_with_features(index)
-    return index
-
-
-def fetch_index(channel_urls, use_cache=False, index=None):
-    # type: (prioritize_channels(), bool, bool, Dict[Dist, IndexRecord]) -> Dict[Dist, IndexRecord]
-    log.debug('channel_urls=' + repr(channel_urls))
-    if not context.json:
-        stdoutlog.info("Fetching package metadata ...")
-
-    CollectTask = namedtuple('CollectTask', ('url', 'schannel', 'priority'))
-    tasks = [CollectTask(url, *cdata) for url, cdata in iteritems(channel_urls)]
-    repodatas = collect_all_repodata(use_cache, tasks)
-    # type: List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
-    #   this is sorta a lie; actually more primitve types
-
-    if index is None:
-        index = {}
-    for _, repodata in reversed(repodatas):
-        if repodata:
-            index.update(repodata.get('packages', {}))
-
-    if not context.json:
-        stdoutlog.info('\n')
-    return index
 
 
 def dist_str_in_index(index, dist_str):

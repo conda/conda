@@ -4,7 +4,6 @@ import sys
 
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda.base.context import context, get_prefix as context_get_prefix
-from conda.config import root_dir
 
 root_env_name = 'root'
 
@@ -22,7 +21,7 @@ def get_prefix(args, search=True):
 
 def find_prefix_name(name):
     if name == root_env_name:
-        return root_dir
+        return context.root_prefix
     # always search cwd in addition to envs dirs (for relative path access)
     for envs_dir in list(context.envs_dirs) + [os.getcwd(), ]:
         prefix = join(envs_dir, name)

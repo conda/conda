@@ -10,7 +10,7 @@ from conda.base.constants import DEFAULT_CHANNEL_ALIAS
 from conda.base.context import reset_context
 from conda.common.io import env_var
 from conda.exceptions import CondaHTTPError
-from conda.fetch import TmpDownload
+from conda.gateways.connection.download import TmpDownload
 from conda.core.repodata import fetch_repodata
 from conda.core.package_cache import download
 

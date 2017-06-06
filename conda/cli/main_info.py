@@ -137,7 +137,7 @@ def pretty_package(dist, pkg):
 
 def print_package_info(packages):
     from .common import arg2spec, stdout_json
-    from ..api import get_index
+    from ..core.index import get_index
     from ..base.context import context
     from ..resolve import Resolve
     index = get_index()
@@ -248,8 +248,7 @@ def get_info_dict(system=False):
         info_dict['GID'] = os.getegid()
 
     if system:
-        evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_DEFAULT_ENV',
-                 'CIO_TEST', 'CONDA_ENVS_PATH']
+        evars = ['PATH', 'PYTHONPATH', 'PYTHONHOME', 'CONDA_DEFAULT_ENV', 'CONDA_ENVS_PATH']
 
         if context.platform == 'linux':
             evars.append('LD_LIBRARY_PATH')
@@ -373,7 +372,7 @@ def execute(args, parser):
 WARNING: could not import _license.show_info
 # try:
 # $ conda install -n root _license""")
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             log.warn('%r', e)
 
     if context.json:

@@ -1122,7 +1122,7 @@ class IntegrationTests(TestCase):
         assert not glob(join(index_cache_dir, "*.json"))
 
     def test_use_index_cache(self):
-        from conda.connection import CondaSession
+        from conda.gateways.connection.session import CondaSession
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         with make_temp_env(prefix=prefix):
@@ -1172,7 +1172,7 @@ class IntegrationTests(TestCase):
             # that a) it fails because the dependencies are not available and b)
             # we don't try to download the repodata from non-local channels but we do
             # download repodata from local channels.
-            from conda.connection import CondaSession
+            from conda.gateways.connection.session import CondaSession
 
             orig_get = CondaSession.get
 
@@ -1258,6 +1258,8 @@ class IntegrationTests(TestCase):
         }
 
         assert all(isdir(d) for d in itervalues(cache_dirs))
+
+        run_command(Commands.CLEAN, '', "--source-cache --yes")
 
         # --json flag is regression test for #5451
         run_command(Commands.CLEAN, '', "--source-cache --yes  --json")

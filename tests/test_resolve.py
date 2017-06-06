@@ -1,44 +1,15 @@
 from __future__ import absolute_import, print_function
 
-import json
-import os
 import unittest
 
-from conda.common.io import env_var
-
-from conda.base.constants import MAX_CHANNEL_PRIORITY
-from conda.base.context import reset_context, context
-from conda.common.compat import iteritems, text_type
+from conda.base.context import context, reset_context
+from conda.common.compat import iteritems
 from conda.common.io import env_var
 from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.dist import Dist
-from conda.models.channel import Channel
 from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve
-from conda.core.index import supplement_index_with_repodata, supplement_index_with_features
-from os.path import dirname, join
-
-import pytest
-
-from conda.resolve import MatchSpec, Resolve, NoPackagesFound, Unsatisfiable
-from tests.helpers import raises
-
-with open(join(dirname(__file__), 'index.json')) as fi:
-    packages = json.load(fi)
-    repodata = {
-        "info": {
-            "subdir": context.subdir,
-            "arch": context.arch_name,
-            "platform": context.platform,
-        },
-        "packages": packages,
-    }
-
-index = {}
-channel = Channel('defaults')
-supplement_index_with_repodata(index, repodata, channel, 1)
-supplement_index_with_features(index, ('mkl',))
-r = Resolve(index)
+from .helpers import index, r, raises
 
 f_mkl = set(['mkl'])
 
