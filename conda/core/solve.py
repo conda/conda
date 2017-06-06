@@ -305,17 +305,6 @@ class Solver(object):
 
         # TODO: add back 'noarch: python' to unlink and link if python version changes
 
-        # r_linked = Resolve(linked_data(prefix))
-        # for spec in remove_satisfied_specs:
-        #     if r_linked.find_matches(spec):
-        #         spec_name = spec.name
-        #         unlink_dist = next((d for d in dists_for_unlinking if d.name == spec_name), None)
-        #         link_dist = next((d for d in dists_for_linking if d.name == spec_name), None)
-        #         if unlink_dist:
-        #             dists_for_unlinking.discard(unlink_dist)
-        #         if link_dist:
-        #             dists_for_linking.discard(link_dist)
-
         return unlink_dists, link_dists
 
 
