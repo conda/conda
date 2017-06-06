@@ -172,14 +172,6 @@ class Solver(object):
         prefix_data = PrefixData(self.prefix)
         solution = tuple(Dist(d) for d in prefix_data.iter_records())
 
-        # removed = ()
-        # if specs_to_remove:
-        #     pre_solution = set(solution)
-        #     solution = r.remove(specs_to_remove, solution)
-        #     removed = pre_solution - set(solution)
-
-
-
         if prune:
             specs_map = {}
         else:
@@ -189,32 +181,16 @@ class Solver(object):
         # the current specs_to_add
         specs_map.update(History(self.prefix).get_requested_specs_map())
 
-        dag = SimpleDag((index[dist] for dist in solution), itervalues(specs_map))
+        if specs_to_remove:
+            dag = SimpleDag((index[dist] for dist in solution), itervalues(specs_map))
 
-        removed_records = []
-        for spec in specs_to_remove:
-            removed_records.extend(dag.remove_spec(spec))
+            removed_records = []
+            for spec in specs_to_remove:
+                removed_records.extend(dag.remove_spec(spec))
 
-        for rec in removed_records:
-            specs_map.pop(rec.name, None)
-        solution = tuple(Dist(rec) for rec in dag.records)
-
-
-
-
-        # # remove specs in specs_to_remove
-        # for spec in specs_to_remove:
-        #     specs_map.pop(spec.name, None)
-        #
-        # # remove specs that got removed in the initial r.remove() operation above
-        # remove_specs = []
-        # for rec in removed:
-        #     for spec in itervalues(specs_map):
-        #         if spec.match(rec):
-        #             remove_specs.append(spec)
-        #             continue
-        # for spec in remove_specs:
-        #     specs_map.pop(spec.name, None)
+            for rec in removed_records:
+                specs_map.pop(rec.name, None)
+            solution = tuple(Dist(rec) for rec in dag.records)
 
 
         # for the remaining specs in specs_map, add target to each spec
@@ -236,8 +212,6 @@ class Solver(object):
         # this overrides any name-matching spec already in the spec map
         specs_map.update((s.name, s) for s in specs_to_add)
 
-
-
         # collect "optional"-type specs, which represent pinned specs and
         # aggressive update specs
         optional_specs = set()
@@ -251,30 +225,11 @@ class Solver(object):
         if context.track_features:
             track_features_specs = (MatchSpec(x + '@') for x in context.track_features)
 
-        compiled_specs_to_add = tuple(concatv(
+        final_environment_specs = tuple(concatv(
             itervalues(specs_map),
             optional_specs,
             track_features_specs,
         ))
-
-
-
-
-
-        # # run initial removal operation
-        # # if force_reinstall, specs_to_add get included with specs_to_remove
-        # if solution:
-        #     if force_reinstall and specs_to_add:
-        #         solution = r.remove(concatv(specs_to_remove, specs_to_add), solution)
-        #     elif specs_to_remove:
-        #         solution = r.remove(specs_to_remove, solution)
-
-        # # if there are no specs_to_add, maybe we should be done now?
-        # if not specs_to_add:
-        #     solution = IndexedSet(index[d] for d in solution)
-        #     return solution
-
-
 
         # NO_DEPS = 'no_deps'  # filter solution
         # ONLY_DEPS = 'only_deps'  # filter solution
@@ -282,16 +237,10 @@ class Solver(object):
         # UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
         # FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
 
-        final_environment_specs = compiled_specs_to_add
-
-
         log.debug("final specs to add:\n    %s\n",
                   "\n    ".join(text_type(s) for s in final_environment_specs))
         pre_solution = solution
-
-        solution = r.install(final_environment_specs,
-                             solution,
-                             update_deps=update_deps)
+        solution = r.install(final_environment_specs, solution, update_deps=update_deps)
 
         if deps_modifier == DepsModifier.NO_DEPS:
             dont_add_packages = []
@@ -308,13 +257,11 @@ class Solver(object):
                     dont_add_packages.append(record)
             solution = tuple(rec for rec in solution if rec not in dont_add_packages)
 
-
         # now do safety checks on the solution
         # assert all pinned specs are compatible with what's in solved_linked_dists
         # don't uninstall conda or its dependencies, probably need to check elsewhere
 
         if prune:
-            solution = IndexedSet(r.dependency_sort({d.name: d for d in solution}))
             dag = SimpleDag((index[d] for d in solution), final_environment_specs)
             dag.prune()
             solution = tuple(Dist(rec) for rec in dag.records)
@@ -327,11 +274,6 @@ class Solver(object):
         solution = IndexedSet(index[d] for d in solution)
 
         return solution
-
-
-
-
-
 
 
 
@@ -354,11 +296,29 @@ class Solver(object):
             Tuple[PackageRef], Tuple[PackageRef]:
 
         """
-        # need to take the final state, but force_reinstall and deps_modifier are also relevant here (also add back requested specs if force_reinstall)
+        # need to take the final state, but force_reinstall and deps_modifier are
+        # also relevant here (also add back requested specs if force_reinstall)
         force_reinstall = force_reinstall is NULL and context.force or force_reinstall
         final_dists = self.solve_final_state(prune, force_reinstall, deps_modifier, ignore_pinned)
 
-        unlink_dists, link_dists = None, None
+        previous_dists = IndexedSet(iterkeys(linked_data(self.prefix)))
+
+        unlink_dists = previous_dists - final_dists
+        link_dists = final_dists - previous_dists
+
+        # TODO: add back 'noarch: python' to unlink and link if python version changes
+
+        # r_linked = Resolve(linked_data(prefix))
+        # for spec in remove_satisfied_specs:
+        #     if r_linked.find_matches(spec):
+        #         spec_name = spec.name
+        #         unlink_dist = next((d for d in dists_for_unlinking if d.name == spec_name), None)
+        #         link_dist = next((d for d in dists_for_linking if d.name == spec_name), None)
+        #         if unlink_dist:
+        #             dists_for_unlinking.discard(unlink_dist)
+        #         if link_dist:
+        #             dists_for_linking.discard(link_dist)
+
         return unlink_dists, link_dists
 
 
@@ -386,8 +346,10 @@ class Solver(object):
         else:
             unlink_dists, link_dists = self.solve_for_diff(prune, force_reinstall,
                                                            deps_modifier, ignore_pinned)
+            unlink_dists = tuple(Dist(d) for d in unlink_dists)
+            link_dists = tuple(Dist(d) for d in link_dists)
             stp = PrefixSetup(self.index, self.prefix, unlink_dists, link_dists, 'INSTALL',
-                              self.specs_to_add, self.specs_to_remove)
+                              self.specs_to_add)
             return UnlinkLinkTransaction(stp)
 
     def _prepare(self):
@@ -453,7 +415,7 @@ def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
                                     solved_linked_dists,
                                     update_deps=context.update_dependencies)
 
-    if context.respect_pinned:
+    if not context.ignore_pinned:
         # TODO: assert all pinned specs are compatible with what's in solved_linked_dists
         pass
 
@@ -737,7 +699,7 @@ def augment_specs(prefix, specs, ignore_pinned=None):
     _specs = list(specs)
 
     # get conda-meta/pinned
-    if context.respect_pinned:
+    if not context.ignore_pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s", pinned_specs)
         _specs += [MatchSpec(spec) for spec in pinned_specs]

@@ -131,7 +131,7 @@ def execute_search(args, parser):
     from .common import (arg2spec, disp_features, ensure_override_channels_requires_channel,
                          ensure_use_local, stdout_json)
     from ..resolve import Resolve
-    from ..api import get_index
+    from ..core.index import get_index
     from ..models.match_spec import MatchSpec
     from ..core.linked_data import linked as linked_data
     from ..core.package_cache import PackageCache

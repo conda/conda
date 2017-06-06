@@ -11,8 +11,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath
+from os.path import abspath, basename
 import sys
+
+from conda._vendor.boltons.setutils import IndexedSet
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
@@ -20,7 +22,8 @@ from .common.compat import on_win
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
-from .core.solve import get_install_transaction_single, get_pinned_specs, get_resolve_object
+from .core.solve import get_install_transaction_single, get_pinned_specs, get_resolve_object, \
+    Solver
 from .exceptions import (ArgumentError, CondaIndexError,
                          RemoveError)
 from .history import History
@@ -442,9 +445,12 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                     pinned=True, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):  # pragma: no cover
     # this is for conda-build
-    txn = get_install_transaction_single(prefix, index, specs, force, only_names, always_copy,
-                                         pinned, update_deps, prune,
-                                         channel_priority_map, is_update)
+    channel_names = IndexedSet(Channel(url).canonical_name for url in channel_priority_map)
+    channels = IndexedSet(Channel(cn) for cn in channel_names)
+    subdirs = IndexedSet(basename(url) for url in channel_priority_map)
+
+    solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
+    txn = solver.solve_for_transaction(prune, ignore_pinned=not pinned)
     prefix_setup = txn.prefix_setups[prefix]
     actions = get_blank_actions(prefix)
     actions['UNLINK'].extend(prefix_setup.unlink_dists)

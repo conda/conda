@@ -19,7 +19,7 @@ from ..common.compat import on_win, text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
-from ..core.solve import get_install_transaction, get_pinned_specs
+from ..core.solve import get_install_transaction, get_pinned_specs, Solver
 from ..exceptions import (CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotFoundError, DryRunExit,
                           EnvironmentLocationNotFound, NoPackagesFoundError, PackageNotFoundError,
@@ -251,12 +251,17 @@ def install(args, parser, command='install'):
             progressive_fetch_extract = unlink_link_transaction.get_pfe()
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
-                _channel_priority_map = prioritize_channels(index_args['channel_urls'])
-                unlink_link_transaction = get_install_transaction(
-                    prefix, index, specs, force=args.force, only_names=only_names,
-                    pinned=context.respect_pinned, always_copy=context.always_copy,
-                    update_deps=context.update_dependencies,
-                    channel_priority_map=_channel_priority_map, is_update=isupdate)
+                solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
+                unlink_link_transaction = solver.solve_for_transaction(context.prune)
+
+
+                # _channel_priority_map = prioritize_channels(index_args['channel_urls'])
+                # unlink_link_transaction = get_install_transaction(
+                #     prefix, index, specs, force=args.force, only_names=only_names,
+                #     pinned=not context.ignore_pinned, always_copy=context.always_copy,
+                #     update_deps=context.update_dependencies,
+                #     channel_priority_map=_channel_priority_map, is_update=isupdate)
+
                 progressive_fetch_extract = unlink_link_transaction.get_pfe()
     except NoPackagesFoundError as e:
         error_message = [e.args[0]]

@@ -137,7 +137,7 @@ def pretty_package(dist, pkg):
 
 def print_package_info(packages):
     from .common import arg2spec, stdout_json
-    from ..api import get_index
+    from ..core.index import get_index
     from ..base.context import context
     from ..resolve import Resolve
     index = get_index()
