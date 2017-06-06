@@ -250,12 +250,9 @@ class Solver(object):
                     dont_add_packages.append(record)
             solution = tuple(rec for rec in solution if rec not in dont_add_packages)
         elif deps_modifier == DepsModifier.ONLY_DEPS:
-            dont_add_packages = []
-            new_packages = set(solution) - set(pre_solution)
-            for record in new_packages:
-                if any(spec.match(record) for spec in specs_to_add):
-                    dont_add_packages.append(record)
-            solution = tuple(rec for rec in solution if rec not in dont_add_packages)
+            dag = SimpleDag((index[d] for d in solution), specs_to_add)
+            dag.remove_leaf_nodes_with_specs()
+            solution = tuple(Dist(rec) for rec in dag.records)
 
         # now do safety checks on the solution
         # assert all pinned specs are compatible with what's in solved_linked_dists

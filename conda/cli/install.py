@@ -252,8 +252,10 @@ def install(args, parser, command='install'):
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
                 solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
-                unlink_link_transaction = solver.solve_for_transaction(context.prune)
-
+                unlink_link_transaction = solver.solve_for_transaction(
+                    context.prune, deps_modifier=context.deps_modifier,
+                    ignore_pinned=context.ignore_pinned,
+                )
 
                 # _channel_priority_map = prioritize_channels(index_args['channel_urls'])
                 # unlink_link_transaction = get_install_transaction(

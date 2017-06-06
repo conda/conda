@@ -433,9 +433,9 @@ def _parse_spec_str(spec_str):
 
     # Step 6. consider the legacy dist case, other otherwise sort out version + build
     spec_str = spec_str and spec_str.strip()
-    if spec_str is None and name.count('-') >= 2:
-        name, version, build = _parse_legacy_dist(name)
-    elif spec_str:
+    # if spec_str is None and name.count('-') >= 2:
+    #     name, version, build = _parse_legacy_dist(name)
+    if spec_str:
         if '[' in spec_str:
             raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
 

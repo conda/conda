@@ -204,11 +204,11 @@ class MatchSpecTests(TestCase):
         assert m("numpy==1.10=py38_0") == "numpy==1.10=py38_0"
         assert m("numpy[version=1.10 build=py38_0]") == "numpy==1.10=py38_0"
 
-        # a full, exact spec looks like 'defaults/linux-64::numpy==1.8=py26_0'
-        # can we take an old dist str and reliably parse it with MatchSpec?
-        assert m("numpy-1.10-py38_0") == "numpy==1.10=py38_0"
-        assert m("numpy-1.10-py38_0[channel=defaults]") == "defaults::numpy==1.10=py38_0"
-        assert m("*/win-32::numpy-1.10-py38_0[channel=defaults]") == "defaults/win-32::numpy==1.10=py38_0"
+        # # a full, exact spec looks like 'defaults/linux-64::numpy==1.8=py26_0'
+        # # can we take an old dist str and reliably parse it with MatchSpec?
+        # assert m("numpy-1.10-py38_0") == "numpy==1.10=py38_0"
+        # assert m("numpy-1.10-py38_0[channel=defaults]") == "defaults::numpy==1.10=py38_0"
+        # assert m("*/win-32::numpy-1.10-py38_0[channel=defaults]") == "defaults/win-32::numpy==1.10=py38_0"
 
     def test_tarball_match_specs(self):
         def m(string):
@@ -417,25 +417,25 @@ class SpecStrParsingTests(TestCase):
             "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
         }
 
-    def test_parse_spec_str_legacy_dist_format(self):
-        assert _parse_spec_str("numpy-1.8-py26_0") == {
-            "name": "numpy",
-            "version": "1.8",
-            "build": "py26_0",
-        }
-        assert _parse_spec_str("numpy-1.8-py26_0[channel=defaults]") == {
-            "channel": "defaults",
-            "name": "numpy",
-            "version": "1.8",
-            "build": "py26_0",
-        }
-        assert _parse_spec_str("*/win-32::numpy-1.8-py26_0[channel=defaults]") == {
-            "channel": "defaults",
-            "subdir": "win-32",
-            "name": "numpy",
-            "version": "1.8",
-            "build": "py26_0",
-        }
+    # def test_parse_spec_str_legacy_dist_format(self):
+    #     assert _parse_spec_str("numpy-1.8-py26_0") == {
+    #         "name": "numpy",
+    #         "version": "1.8",
+    #         "build": "py26_0",
+    #     }
+    #     assert _parse_spec_str("numpy-1.8-py26_0[channel=defaults]") == {
+    #         "channel": "defaults",
+    #         "name": "numpy",
+    #         "version": "1.8",
+    #         "build": "py26_0",
+    #     }
+    #     assert _parse_spec_str("*/win-32::numpy-1.8-py26_0[channel=defaults]") == {
+    #         "channel": "defaults",
+    #         "subdir": "win-32",
+    #         "name": "numpy",
+    #         "version": "1.8",
+    #         "build": "py26_0",
+    #     }
 
     def test_parse_spec_str_no_brackets(self):
         assert _parse_spec_str("numpy") == {

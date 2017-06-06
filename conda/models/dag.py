@@ -132,6 +132,12 @@ class SimpleDag(object):
         self.nodes.remove(node)
         return node.record
 
+    def remove_leaf_nodes_with_specs(self):
+        leaves = tuple(self.leaves)
+        for leaf in leaves:
+            if leaf.specs:
+                self.remove(leaf)
+
 
 
 

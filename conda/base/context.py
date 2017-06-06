@@ -367,6 +367,22 @@ class Context(Configuration):
             return MatchSpec('openssl', optional=True),
 
     @property
+    def deps_modifier(self):
+        from ..core.solve import DepsModifier
+        if self.update_dependencies and self.only_dependencies:
+            return DepsModifier.UPDATE_DEPS_ONLY_DEPS
+        elif self.update_dependencies:
+            return DepsModifier.UPDATE_DEPS
+        elif self.only_dependencies:
+            return DepsModifier.ONLY_DEPS
+        elif self.no_dependencies:
+            return DepsModifier.NO_DEPS
+        elif self._argparse_args and 'all' in self._argparse_args and self._argparse_args.all:
+            return DepsModifier.UPDATE_ALL
+        else:
+            return None
+
+    @property
     def prefix(self):
         return get_prefix(self, self._argparse_args, False)
 

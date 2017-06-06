@@ -199,7 +199,6 @@ class History(object):
                     spec_map.pop(name, None)
         return spec_map
 
-
     def construct_states(self):
         """
         return a list of tuples(datetime strings, set of distributions)
