@@ -10,7 +10,7 @@ The conda configuration file (.condarc)
 
 The conda configuration file  (.condarc) is an OPTIONAL runtime configuration
 file which allows advanced users to configure various aspects of conda, such as which
-channels it searches for packages, proxy settings, environment directories, etc.
+channels it searches for packages, proxy settings, environment directories, and so on.
 
 A .condarc file is not included by default, but it is automatically created in
 the user’s home directory the first time you run the ``conda config`` command.
@@ -307,7 +307,6 @@ may be to *pin* them. See :ref:`pinning-packages` for more information.
 Conda build configuration
 =========================
 
-
 Specify conda build output root directory
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -336,7 +335,7 @@ Token to be used for Anaconda.org uploads (conda-build 3.0+)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Tokens are a means of authenticating with anaconda.org without needing to login.
-You can pass your token to conda-build via this condarc setting, or via a CLI
+You can pass your token to conda-build with this condarc setting, or with a CLI
 argument.  This is unset by default.  Setting it implicitly enables anaconda_upload.
 
 .. code-block:: yaml
@@ -348,8 +347,8 @@ argument.  This is unset by default.  Setting it implicitly enables anaconda_upl
 Limit build ouptut verbosity (conda-build 3.0+)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Conda-build's output verbosity can be reduced with the ``quiet`` setting. The
-opposite - more verbosity - is a CLI flag only, ``--debug``
+Conda-build's output verbosity can be reduced with the ``quiet`` setting. For 
+more verbosity use the CLI flag ``--debug``.
 
 .. code-block:: yaml
 
@@ -406,7 +405,7 @@ Skip building packages that already exist (conda-build 3.0+)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default, conda-build builds all recipes that you specify. You can instead
-skip recipes that are already built. Recipes are skipped if and only if *all* of
+skip recipes that are already built. A recipe is skipped if and only if *all* of
 its outputs are available on your currently configured channels.
 
 .. code-block:: yaml
