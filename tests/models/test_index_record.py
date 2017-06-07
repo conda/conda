@@ -46,4 +46,6 @@ class PrefixRecordTests(TestCase):
             preferred_env=None,
             arch=None,
             platform=None,
+            features='',
+            track_features='',
         )

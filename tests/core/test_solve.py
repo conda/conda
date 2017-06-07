@@ -1,21 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
-
-from conda.common.io import env_var
-from conda.core.index import _supplement_index_with_prefix, _supplement_index_with_features
-from conda.core.linked_data import PrefixData
-from conda.history import History
-from conda.models.dag import SimpleDag
-from conda.models.dist import Dist
-
 from conda.base.context import context, reset_context
-from conda.core.solve import Solver, DepsModifier
+from conda.common.io import env_var
+from conda.core.linked_data import PrefixData
+from conda.core.solve import DepsModifier, Solver
+from conda.history import History
 from conda.models.channel import Channel
+from conda.models.dist import Dist
 from conda.models.prefix_record import PrefixRecord
 from conda.resolve import MatchSpec
-from ..helpers import index, r, patch
+from ..helpers import index, patch, r
 
 prefix = '/a/test/c/prefix'
 
@@ -718,103 +713,102 @@ def test_broken_install():
 
 
 
-# def test_install_uninstall_features():
-#     with env_var("CONDA_TRACK_FEATURES", 'mkl', reset_context):
-#         PrefixData._cache_ = {}
-#         specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.6.*")
-#         solver = Solver(prefix, (Channel('defaults'),), context.subdirs, specs_to_add=specs)
-#         solver.index = index
-#         solver.r = r
-#         solver._prepared = True
-#         final_state_1 = solver.solve_final_state()
-#
-#         # SimpleDag(final_state_1, specs).open_url()
-#         print([Dist(rec).full_name for rec in final_state_1])
-#
-#         order = [
-#             'defaults::openssl-1.0.1c-0',
-#             'defaults::readline-6.2-0',
-#             'defaults::sqlite-3.7.13-0',
-#             'defaults::system-5.8-1',
-#             'defaults::tk-8.5.13-0',
-#             'defaults::zlib-1.2.7-0',
-#             'defaults::mkl-rt-11.0-p0',
-#             'defaults::python-2.7.5-0',
-#             'defaults::numpy-1.6.2-py27_p4',
-#             'defaults::pytz-2013b-py27_0',
-#             'defaults::six-1.3.0-py27_0',
-#             'defaults::dateutil-2.1-py27_1',
-#             'defaults::scipy-0.12.0-np16py27_p0',
-#             'defaults::pandas-0.11.0-np16py27_1',
-#         ]
-#         assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
-#
-#     # no more track_features in configuration
-#     # just remove the pandas package, but the mkl feature "stays in the environment"
-#     # that is, the current mkl packages aren't switched out
-#     PrefixData._cache_ = {}
-#     pd = PrefixData(prefix)
-#     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in final_state_1}
-#     spec_map = {spec.name: spec for spec in specs}
-#     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-#         solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
-#                         specs_to_remove=(MatchSpec("pandas"),))
-#         solver.index = index
-#         solver.r = r
-#         solver._prepared = True
-#
-#         final_state_2 = solver.solve_final_state()
-#         # SimpleDag(final_state_2, specs).open_url()
-#         print([Dist(rec).full_name for rec in final_state_2])
-#
-#         order = (
-#             'defaults::openssl-1.0.1c-0',
-#             'defaults::readline-6.2-0',
-#             'defaults::sqlite-3.7.13-0',
-#             'defaults::system-5.8-1',
-#             'defaults::tk-8.5.13-0',
-#             'defaults::zlib-1.2.7-0',
-#             'defaults::mkl-rt-11.0-p0',
-#             'defaults::python-2.7.5-0',
-#             'defaults::numpy-1.6.2-py27_p4',
-#             'defaults::pytz-2013b-py27_0',
-#             'defaults::six-1.3.0-py27_0',
-#             'defaults::dateutil-2.1-py27_1',
-#             'defaults::scipy-0.12.0-np16py27_p0',
-#         )
-#         assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
-#
-#     # now remove the mkl feature
-#     PrefixData._cache_ = {}
-#     pd = PrefixData(prefix)
-#     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in final_state_2}
-#     specs = MatchSpec("python=2.7"), MatchSpec("numpy 1.6.*")
-#     spec_map = {spec.name: spec for spec in specs}
-#     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-#         solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
-#                         specs_to_remove=(MatchSpec(track_features="mkl"),))
-#         # _supplement_index_with_features(index, ("mkl",))
-#         solver.index = index
-#         solver.r = r
-#         solver._prepared = True
-#
-#         final_state_2 = solver.solve_final_state()
-#         # SimpleDag(final_state_2, specs).open_url()
-#         print([Dist(rec).full_name for rec in final_state_2])
-#
-#         order = (
-#             'defaults::openssl-1.0.1c-0',
-#             'defaults::readline-6.2-0',
-#             'defaults::sqlite-3.7.13-0',
-#             'defaults::system-5.8-1',
-#             'defaults::tk-8.5.13-0',
-#             'defaults::zlib-1.2.7-0',
-#             'defaults::mkl-rt-11.0-p0',
-#             'defaults::python-2.7.5-0',
-#             'defaults::numpy-1.6.2-py27_p4',
-#             'defaults::pytz-2013b-py27_0',
-#             'defaults::six-1.3.0-py27_0',
-#             'defaults::dateutil-2.1-py27_1',
-#             'defaults::scipy-0.12.0-np16py27_p0',
-#         )
-#         assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+def test_install_uninstall_features():
+    with env_var("CONDA_TRACK_FEATURES", 'mkl', reset_context):
+        PrefixData._cache_ = {}
+        specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.6.*")
+        solver = Solver(prefix, (Channel('defaults'),), context.subdirs, specs_to_add=specs)
+        solver.index = index
+        solver.r = r
+        solver._prepared = True
+        final_state_1 = solver.solve_final_state()
+
+        # SimpleDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_1])
+
+        order = [
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::mkl-rt-11.0-p0',
+            'defaults::python-2.7.5-0',
+            'defaults::numpy-1.6.2-py27_p4',
+            'defaults::pytz-2013b-py27_0',
+            'defaults::six-1.3.0-py27_0',
+            'defaults::dateutil-2.1-py27_1',
+            'defaults::scipy-0.12.0-np16py27_p0',
+            'defaults::pandas-0.11.0-np16py27_1',
+        ]
+        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+
+    # no more track_features in configuration
+    # just remove the pandas package, but the mkl feature "stays in the environment"
+    # that is, the current mkl packages aren't switched out
+    PrefixData._cache_ = {}
+    pd = PrefixData(prefix)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in final_state_1}
+    spec_map = {spec.name: spec for spec in specs}
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
+                        specs_to_remove=(MatchSpec("pandas"),))
+        solver.index = index
+        solver.r = r
+        solver._prepared = True
+
+        final_state_2 = solver.solve_final_state()
+        # SimpleDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::mkl-rt-11.0-p0',
+            'defaults::python-2.7.5-0',
+            'defaults::numpy-1.6.2-py27_p4',
+            'defaults::pytz-2013b-py27_0',
+            'defaults::six-1.3.0-py27_0',
+            'defaults::dateutil-2.1-py27_1',
+            'defaults::scipy-0.12.0-np16py27_p0',
+        )
+        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+
+    # now remove the mkl feature
+    PrefixData._cache_ = {}
+    pd = PrefixData(prefix)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in final_state_2}
+    specs = MatchSpec("python=2.7"), MatchSpec("numpy 1.6.*")
+    spec_map = {spec.name: spec for spec in specs}
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
+                        specs_to_remove=(MatchSpec(track_features="mkl"),))
+        # _supplement_index_with_features(index, ("mkl",))
+        solver.index = index
+        solver.r = r
+        solver._prepared = True
+
+        final_state_2 = solver.solve_final_state()
+        # SimpleDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+
+        order = [
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::python-2.7.5-0',
+            'defaults::numpy-1.6.2-py27_4',
+            'defaults::pytz-2013b-py27_0',
+            'defaults::six-1.3.0-py27_0',
+            'defaults::dateutil-2.1-py27_1',
+            # 'defaults::scipy-0.12.0-np16py27_p0', scipy is out here because it wasn't a requested spec
+        ]
+        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)

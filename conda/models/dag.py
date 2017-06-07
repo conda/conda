@@ -38,6 +38,12 @@ class SimpleDag(object):
         for node in iter(self.nodes):
             if spec.match(node.record):
                 removed.extend(self.remove_node_and_children(node))
+        # if spec is a track_features spec, then we also need to remove packages that match
+        # those features
+        for feature in spec.get_raw_value('track_features') or ():
+            for node in iter(self.nodes):
+                if MatchSpec(features=feature).match(node.record):
+                    removed.extend(self.remove_node_and_children(node))
         return removed
 
     def remove_node_and_children(self, node):

@@ -40,7 +40,7 @@ class Resolve(object):
 
         for dist, info in iteritems(index):
             groups.setdefault(info['name'], []).append(dist)
-            for feat in info.get('track_features', '').split():
+            for feat in info.get('track_features') or ():
                 trackers.setdefault(feat, []).append(dist)
 
         self.groups = groups  # Dict[package_name, List[Dist]]
@@ -395,14 +395,14 @@ class Resolve(object):
                 (valid, ver, -cpri, bld, bs, ts))
 
     def features(self, dist):
-        _features = self.index[dist].get('features', ())
+        _features = self.index[dist].get('features') or ()
         if isinstance(_features, string_types):
             _features = _features.split()
         assert isiterable(_features)
         return set(_features)
 
     def track_features(self, dist):
-        return set(self.index[dist].get('track_features', '').split())
+        return set(self.index[dist].get('track_features') or ())
 
     def package_quad(self, dist):
         rec = self.index.get(dist, None)

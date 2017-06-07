@@ -114,7 +114,7 @@ def display_actions(actions, index, show_channel_urls=None):
         packages[pkg][1] = rec['version'] + '-' + rec['build']
         records[pkg][1] = rec
         linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
-        features[pkg][1] = ','.join(rec.get('features', ()))
+        features[pkg][1] = ','.join(rec.get('features') or ())
     for arg in actions.get(UNLINK, []):
         dist = Dist(arg)
         rec = index[dist]
@@ -122,7 +122,7 @@ def display_actions(actions, index, show_channel_urls=None):
         channels[pkg][0] = channel_str(rec)
         packages[pkg][0] = rec['version'] + '-' + rec['build']
         records[pkg][0] = rec
-        features[pkg][0] = ','.join(rec.get('features', ()))
+        features[pkg][0] = ','.join(rec.get('features') or ())
 
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}

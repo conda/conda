@@ -51,7 +51,7 @@ log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
 stderrlog = getLogger('stderrlog')
 
-REPODATA_PICKLE_VERSION = 2
+REPODATA_PICKLE_VERSION = 3
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
 

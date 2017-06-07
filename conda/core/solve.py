@@ -190,23 +190,31 @@ class Solver(object):
             # solver.  Otherwise, we can remove using simple tree traversal.
             track_features_specs = tuple(spec for spec in specs_to_remove if 'track_features' in spec)
             if track_features_specs:
-                # TODO: I'm guessing we can use the dag to get around invoking SAT here too
-                feature_names = tuple(concat(spec.get_exact_value('track_features')
-                                             for spec in track_features_specs))
-                pre_solution = solution
-                solution = r.remove(specs_to_remove, solution)
-                removed_dists = set(pre_solution) - set(solution)
-                removed_records = tuple(index[dist] for dist in removed_dists)
+                dag = SimpleDag((index[dist] for dist in solution), itervalues(specs_map))
+
+                removed_records = []
+                for spec in specs_to_remove:
+                    removed_records.extend(dag.remove_spec(spec))
+
+                # if the spec was a track_features spec, then we need to also remove every package
+                # with a feature that matches the track_feature
+                feature_names = set(concat(spec.get_raw_value('track_features')
+                                           for spec in track_features_specs))
                 for rec in removed_records:
                     # We keep specs (minus the feature part) for the non track_features packages
-                    if hasattr(rec, 'features') and (set(rec.features) & set(feature_names)):
+                    # if they're in the history specs
+                    if set(rec.features or ()) & set(feature_names) and rec.name in specs_from_history_map:
                         spec = specs_map.get(rec.name, MatchSpec(rec.name))
                         spec._match_components.pop('features', None)
                         specs_map[spec.name] = spec
-                    elif any(spec.name == rec.name for spec in specs_to_remove):
+                    # elif any(spec.name == rec.name for spec in specs_to_remove):
+                    #     specs_map.pop(rec.name, None)
+                    # elif set(rec.track_features or ()) & set(feature_names):
+                    #     specs_map.pop(rec.name, None)
+                    else:
                         specs_map.pop(rec.name, None)
-                    elif hasattr(rec, 'track_features') and (set(rec.track_features.split(' ')) & set(feature_names)):
-                        specs_map.pop(rec.name, None)
+
+                solution = tuple(Dist(rec) for rec in dag.records)
             else:
                 dag = SimpleDag((index[dist] for dist in solution), itervalues(specs_map))
 
