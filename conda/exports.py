@@ -134,3 +134,10 @@ ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call
 
 from .core.repodata import cache_fn_url  # NOQA
 cache_fn_url = cache_fn_url
+
+
+# ##############################
+# conda constructor imports
+# ##############################
+from .models.channel import prioritize_channels
+prioritize_channels = prioritize_channels
