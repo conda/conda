@@ -278,6 +278,7 @@ class Solver(object):
         # UPDATE_DEPS = 'update_deps'  # use dag to add additional specs
         # UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
         # FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
+        #   maybe we don't need freeze_deps
 
         # look for conflicts we can avoid by neutering specs that have a target
         # (e.g. removing version constraint) and also making them optional
@@ -314,7 +315,7 @@ class Solver(object):
             dag = SimpleDag((index[d] for d in solution), specs_to_add)
             dag.remove_leaf_nodes_with_specs()
             solution = tuple(Dist(rec) for rec in dag.records)
-        elif deps_modifier == DepsModifier.UPDATE_DEPS:
+        elif deps_modifier in (DepsModifier.UPDATE_DEPS, DepsModifier.UPDATE_DEPS_ONLY_DEPS):
             # we basically have to solve again, because it's only now we know the dependency
             # chain of specs_to_add
             specs_to_add_names = set(spec.name for spec in specs_to_add)
@@ -332,6 +333,12 @@ class Solver(object):
                                for spec in grouped_specs[True])
             final_environment_specs = new_final_environment_specs | update_specs
             solution = r.solve(final_environment_specs)
+
+            if deps_modifier == DepsModifier.UPDATE_DEPS_ONLY_DEPS:
+                # duplicated from DepsModifier.ONLY_DEPS
+                dag = SimpleDag((index[d] for d in solution), specs_to_add)
+                dag.remove_leaf_nodes_with_specs()
+                solution = tuple(Dist(rec) for rec in dag.records)
 
         # TODO
         # now do safety checks on the solution
