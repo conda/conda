@@ -664,7 +664,7 @@ class Resolve(object):
 
     def install_specs(self, specs, installed, update_deps=True):
         specs = list(map(MatchSpec, specs))
-        snames = {s.name for s in specs}
+        # snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
         limit, preserve = self.bad_installed(installed, specs)
         # for pkg in installed:

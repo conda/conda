@@ -19,14 +19,13 @@ from ..common.compat import on_win, text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
-from ..core.solve import get_install_transaction, get_pinned_specs, Solver
+from ..core.solve import Solver, get_pinned_specs
 from ..exceptions import (CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotFoundError, DryRunExit,
                           EnvironmentLocationNotFound, NoPackagesFoundError, PackageNotFoundError,
                           PackageNotInstalledError, TooManyArgumentsError,
                           UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
-from ..models.channel import prioritize_channels
 from ..plan import revert_actions
 
 log = getLogger(__name__)
@@ -226,15 +225,15 @@ def install(args, parser, command='install'):
                       prepend=index_args['prepend'], platform=None,
                       use_local=index_args['use_local'], use_cache=index_args['use_cache'],
                       unknown=index_args['unknown'], prefix=prefix)
-    ospecs = list(specs)
+    # ospecs = list(specs)
 
     if args.force:
         args.no_deps = True
 
-    if args.no_deps:
-        only_names = set(s.split()[0] for s in ospecs)
-    else:
-        only_names = None
+    # if args.no_deps:
+    #     only_names = set(s.split()[0] for s in ospecs)
+    # else:
+    #     only_names = None
 
     if not isdir(prefix) and not newenv:
         if args.mkdir:

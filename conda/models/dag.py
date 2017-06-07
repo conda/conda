@@ -73,7 +73,8 @@ class SimpleDag(object):
             for child in node.required_children:
                 builder.append('    "%s" -> "%s";' % (child.record.name, node.record.name))
             for child in node.optional_children:
-                builder.append('    "%s -> "%s" [color=lightgray];' % (child.record.name, node.record.name))
+                builder.append('    "%s -> "%s" [color=lightgray];' % (child.record.name,
+                                                                       node.record.name))
         builder.append('}')
         return '\n'.join(builder)
 
@@ -139,14 +140,6 @@ class SimpleDag(object):
                 self.remove(leaf)
 
 
-
-
-
-
-
-
-
-
 class Node(object):
 
     def __init__(self, dag, record):
@@ -193,13 +186,10 @@ class Node(object):
                 for gchild in child.required_children:
                     yield gchild
                 yield child
-        import pdb; pdb.set_trace()
         return tuple(_all_descendants())
-
 
     has_children = property(lambda self: self.required_children or self.optional_children)
     has_parents = property(lambda self: self.required_parents or self.optional_parents)
     is_root = property(lambda self: self.has_children and not self.has_parents)
     is_leaf = property(lambda self: self.has_parents and not self.has_children)
     is_orphan = property(lambda self: not self.has_parents and not self.has_children)
-

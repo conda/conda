@@ -5,7 +5,6 @@ from functools import total_ordering
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PathType, Platform
-from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
 from ..base.context import context

@@ -1,18 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
 from copy import copy
 from genericpath import exists
 from logging import getLogger
 from os.path import basename, join
 
-from conda.models.dag import SimpleDag
-from conda.models.dist import Dist
 from enum import Enum
 
-from conda.common.constants import NULL
-from .envs_manager import EnvsDirectory
 from .index import (_supplement_index_with_cache, _supplement_index_with_features,
                     _supplement_index_with_prefix, fetch_index)
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -21,11 +16,12 @@ from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, odict, text_type
-from ..common.path import ensure_pad
+from ..common.constants import NULL
 from ..exceptions import InstallError
-from ..gateways.disk.test import prefix_is_writable
 from ..history import History
 from ..models.channel import Channel
+from ..models.dag import SimpleDag
+from ..models.dist import Dist
 from ..models.match_spec import MatchSpec
 from ..resolve import Resolve
 
@@ -78,6 +74,7 @@ this may result in a broken environment, so use this with caution.
 
 """
 
+
 class DepsModifier(Enum):
     NO_DEPS = 'no_deps'
     ONLY_DEPS = 'only_deps'
@@ -85,9 +82,6 @@ class DepsModifier(Enum):
     UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
     FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
     UPDATE_ALL = 'update_all'
-
-
-
 
 
 class Solver(object):
@@ -99,8 +93,8 @@ class Solver(object):
             prefix (str):
                 The conda prefix / environment location for which the :class:`Solver`
                 is being instantiated.
-            channels (Sequence[:class:`Channel`]): 
-                A prioritized list of channels to use for the solution. 
+            channels (Sequence[:class:`Channel`]):
+                A prioritized list of channels to use for the solution.
             subdirs (Sequence[str]):
                 A prioritized list of subdirs to use for the solution.
             specs_to_add (Set[:class:`MatchSpec`]):
@@ -121,24 +115,25 @@ class Solver(object):
     def solve_final_state(self, prune=NULL, force_reinstall=NULL, deps_modifier=None,
                           ignore_pinned=NULL):
         """Gives the final, solved state of the environment.
-        
+
         Args:
             prune (bool):
-                If ``True``, the solution will not contain packages that were 
-                previously brought into the environment as dependencies but are no longer 
+                If ``True``, the solution will not contain packages that were
+                previously brought into the environment as dependencies but are no longer
                 required as dependencies and are not user-requested.
             force_reinstall (bool):
-                Actually, the historic behavior is that force just bypasses the SAT solver entirely.
+                Actually, the historic behavior is that force just bypasses the SAT solver
+                entirely.
                 Force has different meanings for specs_to_remove vs specs_to_add.
                 For requested specs_to_add that are already satisfied in the environment,
                     instructs the solver to remove the package and spec from the environment,
-                    and then add it back--possibly with the exact package instance modified, 
+                    and then add it back--possibly with the exact package instance modified,
                     depending on the spec exactness.
                 Therefore, this should NOT be equivalent to context.force!
             deps_modifier (DepsModifier):
                 An optional flag indicating special solver handling for dependencies. The
                 default solver behavior is to be as conservative as possible with dependency
-                updates (in the case the dependency already exists in the environment), while 
+                updates (in the case the dependency already exists in the environment), while
                 still ensuring all dependencies are satisfied.  Options include
                     * NO_DEPS
                     * ONLY_DEPS
@@ -151,7 +146,7 @@ class Solver(object):
 
         Returns:
             Tuple[PackageRef]:
-                In sorted dependency order from roots to leaves, the package references for 
+                In sorted dependency order from roots to leaves, the package references for
                 the solved state of the environment.
 
         """
@@ -192,7 +187,6 @@ class Solver(object):
                 specs_map.pop(rec.name, None)
             solution = tuple(Dist(rec) for rec in dag.records)
 
-
         # for the remaining specs in specs_map, add target to each spec
         for pkg_name, spec in iteritems(specs_map):
             matches_for_spec = tuple(rec for rec in solution if spec.match(rec))
@@ -206,7 +200,6 @@ class Solver(object):
         if deps_modifier == DepsModifier.UPDATE_ALL:
             specs_map = {pkg_name: MatchSpec(spec.name)
                          for pkg_name, spec in iteritems(specs_map)}
-
 
         # now add in explicitly requested specs from specs_to_add
         # this overrides any name-matching spec already in the spec map
@@ -272,13 +265,11 @@ class Solver(object):
 
         return solution
 
-
-
     def solve_for_diff(self, prune=False, force_reinstall=False, deps_modifier=None,
-                          ignore_pinned=False):
+                       ignore_pinned=False):
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
-        
+
         Args:
             prune (bool):
                 See :meth:`solve_final_state`.
@@ -307,11 +298,10 @@ class Solver(object):
 
         return unlink_dists, link_dists
 
-
     def solve_for_transaction(self, prune=False, force_reinstall=False, deps_modifier=None,
-                          ignore_pinned=False):
+                              ignore_pinned=False):
         """
-        
+
         Args:
             prune (bool):
                 See :meth:`solve_final_state`.
@@ -359,20 +349,6 @@ class Solver(object):
         self.index = index
         self.r = Resolve(index)
         return self.index, self.r
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
@@ -556,129 +532,116 @@ def get_resolve_object(index, prefix):
     return r
 
 
-def get_install_transaction_single(prefix, index, specs, force=False, only_names=None,
-                                   always_copy=False, pinned=True, update_deps=True,
-                                   prune=False, channel_priority_map=None, is_update=False):
-    specs = tuple(MatchSpec(s) for s in specs)
-    r = get_resolve_object(index.copy(), prefix)
-    unlink_dists, link_dists = solve_for_actions(prefix, r, specs_to_add=specs, prune=prune)
-
-    stp = PrefixSetup(r.index, prefix, unlink_dists, link_dists, 'INSTALL',
-                      tuple(specs))
-    txn = UnlinkLinkTransaction(stp)
-    return txn
-
-
-def get_install_transaction(prefix, index, spec_strs, force=False, only_names=None,
-                            always_copy=False, pinned=True, update_deps=True,
-                            prune=False, channel_priority_map=None, is_update=False):
-    # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
-    #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
-
-    # split out specs into potentially multiple preferred envs if:
-    #  1. the user default env (root_prefix) is the prefix being considered here
-    #  2. the user has not specified the --name or --prefix command-line flags
-    if (prefix == context.root_prefix
-            and not context.prefix_specified
-            and prefix_is_writable(prefix)
-            and context.enable_private_envs):
-
-        # a registered package CANNOT be installed in the root env
-        # if ANY package requesting a private env is required in the root env, all packages for
-        #   that requested env must instead be installed in the root env
-
-        root_r = get_resolve_object(index.copy(), context.root_prefix)
-
-        def get_env_for_spec(spec):
-            # use resolve's get_dists_for_spec() to find the "best" matching record
-            record_for_spec = root_r.index[root_r.get_dists_for_spec(spec, emptyok=False)[-1]]
-            return ensure_pad(record_for_spec.preferred_env)
-
-        # specs grouped by target env, the 'None' key holds the specs for the root env
-        env_add_map = groupby(get_env_for_spec, (MatchSpec(s) for s in spec_strs))
-        requested_root_specs_to_add = {s for s in env_add_map.pop(None, ())}
-
-        ed = EnvsDirectory(join(context.root_prefix, 'envs'))
-        registered_packages = ed.get_registered_packages_keyed_on_env_name()
-
-        if len(env_add_map) == len(registered_packages) == 0:
-            # short-circuit the rest of this logic
-            return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
-                                                  always_copy, pinned, update_deps,
-                                                  prune, channel_priority_map, is_update)
-
-        root_specs_to_remove = set(MatchSpec(s.name) for s in concat(itervalues(env_add_map)))
-        required_root_dists, _ = solve_prefix(context.root_prefix, root_r,
-                                              specs_to_remove=root_specs_to_remove,
-                                              specs_to_add=requested_root_specs_to_add,
-                                              prune=True)
-
-        required_root_package_names = tuple(d.name for d in required_root_dists)
-
-        # first handle pulling back requested specs to root
-        forced_root_specs_to_add = set()
-        pruned_env_add_map = defaultdict(list)
-        for env_name, specs in iteritems(env_add_map):
-            for spec in specs:
-                spec_name = MatchSpec(spec).name
-                if spec_name in required_root_package_names:
-                    forced_root_specs_to_add.add(spec)
-                else:
-                    pruned_env_add_map[env_name].append(spec)
-        env_add_map = pruned_env_add_map
-
-        # second handle pulling back registered specs to root
-        env_remove_map = defaultdict(list)
-        for env_name, registered_package_entries in iteritems(registered_packages):
-            for rpe in registered_package_entries:
-                if rpe['package_name'] in required_root_package_names:
-                    # ANY registered packages in this environment need to be pulled back
-                    for pe in registered_package_entries:
-                        # add an entry in env_remove_map
-                        # add an entry in forced_root_specs_to_add
-                        pname = pe['package_name']
-                        env_remove_map[env_name].append(MatchSpec(pname))
-                        forced_root_specs_to_add.add(MatchSpec(pe['requested_spec']))
-                break
-
-        unlink_link_map = odict()
-
-        # solve all neede preferred_env prefixes
-        for env_name in set(concatv(env_add_map, env_remove_map)):
-            specs_to_add = env_add_map[env_name]
-            spec_to_remove = env_remove_map[env_name]
-            pfx = ed.preferred_env_to_prefix(env_name)
-            unlink, link = solve_for_actions(pfx, get_resolve_object(index.copy(), pfx),
-                                             specs_to_remove=spec_to_remove,
-                                             specs_to_add=specs_to_add,
-                                             prune=True)
-            unlink_link_map[env_name] = unlink, link, specs_to_add
-
-        # now solve root prefix
-        # we have to solve root a second time in all cases, because this time we don't prune
-        root_specs_to_add = set(concatv(requested_root_specs_to_add, forced_root_specs_to_add))
-        root_unlink, root_link = solve_for_actions(context.root_prefix, root_r,
-                                                   specs_to_remove=root_specs_to_remove,
-                                                   specs_to_add=root_specs_to_add)
-        if root_unlink or root_link:
-            # this needs to be added to odict last; the private envs need to be updated first
-            unlink_link_map[None] = root_unlink, root_link, root_specs_to_add
-
-        def make_txn_setup(pfx, unlink, link, specs):
-            # TODO: this index here is probably wrong; needs to be per-prefix
-            return PrefixSetup(index, pfx, unlink, link, 'INSTALL',
-                               tuple(specs))
-
-        txn_args = tuple(make_txn_setup(ed.to_prefix(ensure_pad(env_name)), *oink)
-                         for env_name, oink in iteritems(unlink_link_map))
-        txn = UnlinkLinkTransaction(*txn_args)
-        return txn
-
-    else:
-        # disregard any requested preferred env
-        return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
-                                              always_copy, pinned, update_deps,
-                                              prune, channel_priority_map, is_update)
+# def get_install_transaction(prefix, index, spec_strs, force=False, only_names=None,
+#                             always_copy=False, pinned=True, update_deps=True,
+#                             prune=False, channel_priority_map=None, is_update=False):
+#     # type: (str, Dict[Dist, Record], List[str], bool, Option[List[str]], bool, bool, bool,
+#     #        bool, bool, bool, Dict[str, Sequence[str, int]]) -> List[Dict[weird]]
+#
+#     # split out specs into potentially multiple preferred envs if:
+#     #  1. the user default env (root_prefix) is the prefix being considered here
+#     #  2. the user has not specified the --name or --prefix command-line flags
+#     if (prefix == context.root_prefix
+#             and not context.prefix_specified
+#             and prefix_is_writable(prefix)
+#             and context.enable_private_envs):
+#
+#         # a registered package CANNOT be installed in the root env
+#         # if ANY package requesting a private env is required in the root env, all packages for
+#         #   that requested env must instead be installed in the root env
+#
+#         root_r = get_resolve_object(index.copy(), context.root_prefix)
+#
+#         def get_env_for_spec(spec):
+#             # use resolve's get_dists_for_spec() to find the "best" matching record
+#             record_for_spec = root_r.index[root_r.get_dists_for_spec(spec, emptyok=False)[-1]]
+#             return ensure_pad(record_for_spec.preferred_env)
+#
+#         # specs grouped by target env, the 'None' key holds the specs for the root env
+#         env_add_map = groupby(get_env_for_spec, (MatchSpec(s) for s in spec_strs))
+#         requested_root_specs_to_add = {s for s in env_add_map.pop(None, ())}
+#
+#         ed = EnvsDirectory(join(context.root_prefix, 'envs'))
+#         registered_packages = ed.get_registered_packages_keyed_on_env_name()
+#
+#         if len(env_add_map) == len(registered_packages) == 0:
+#             # short-circuit the rest of this logic
+#             return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
+#                                                   always_copy, pinned, update_deps,
+#                                                   prune, channel_priority_map, is_update)
+#
+#         root_specs_to_remove = set(MatchSpec(s.name) for s in concat(itervalues(env_add_map)))
+#         required_root_dists, _ = solve_prefix(context.root_prefix, root_r,
+#                                               specs_to_remove=root_specs_to_remove,
+#                                               specs_to_add=requested_root_specs_to_add,
+#                                               prune=True)
+#
+#         required_root_package_names = tuple(d.name for d in required_root_dists)
+#
+#         # first handle pulling back requested specs to root
+#         forced_root_specs_to_add = set()
+#         pruned_env_add_map = defaultdict(list)
+#         for env_name, specs in iteritems(env_add_map):
+#             for spec in specs:
+#                 spec_name = MatchSpec(spec).name
+#                 if spec_name in required_root_package_names:
+#                     forced_root_specs_to_add.add(spec)
+#                 else:
+#                     pruned_env_add_map[env_name].append(spec)
+#         env_add_map = pruned_env_add_map
+#
+#         # second handle pulling back registered specs to root
+#         env_remove_map = defaultdict(list)
+#         for env_name, registered_package_entries in iteritems(registered_packages):
+#             for rpe in registered_package_entries:
+#                 if rpe['package_name'] in required_root_package_names:
+#                     # ANY registered packages in this environment need to be pulled back
+#                     for pe in registered_package_entries:
+#                         # add an entry in env_remove_map
+#                         # add an entry in forced_root_specs_to_add
+#                         pname = pe['package_name']
+#                         env_remove_map[env_name].append(MatchSpec(pname))
+#                         forced_root_specs_to_add.add(MatchSpec(pe['requested_spec']))
+#                 break
+#
+#         unlink_link_map = odict()
+#
+#         # solve all neede preferred_env prefixes
+#         for env_name in set(concatv(env_add_map, env_remove_map)):
+#             specs_to_add = env_add_map[env_name]
+#             spec_to_remove = env_remove_map[env_name]
+#             pfx = ed.preferred_env_to_prefix(env_name)
+#             unlink, link = solve_for_actions(pfx, get_resolve_object(index.copy(), pfx),
+#                                              specs_to_remove=spec_to_remove,
+#                                              specs_to_add=specs_to_add,
+#                                              prune=True)
+#             unlink_link_map[env_name] = unlink, link, specs_to_add
+#
+#         # now solve root prefix
+#         # we have to solve root a second time in all cases, because this time we don't prune
+#         root_specs_to_add = set(concatv(requested_root_specs_to_add, forced_root_specs_to_add))
+#         root_unlink, root_link = solve_for_actions(context.root_prefix, root_r,
+#                                                    specs_to_remove=root_specs_to_remove,
+#                                                    specs_to_add=root_specs_to_add)
+#         if root_unlink or root_link:
+#             # this needs to be added to odict last; the private envs need to be updated first
+#             unlink_link_map[None] = root_unlink, root_link, root_specs_to_add
+#
+#         def make_txn_setup(pfx, unlink, link, specs):
+#             # TODO: this index here is probably wrong; needs to be per-prefix
+#             return PrefixSetup(index, pfx, unlink, link, 'INSTALL',
+#                                tuple(specs))
+#
+#         txn_args = tuple(make_txn_setup(ed.to_prefix(ensure_pad(env_name)), *oink)
+#                          for env_name, oink in iteritems(unlink_link_map))
+#         txn = UnlinkLinkTransaction(*txn_args)
+#         return txn
+#
+#     else:
+#         # disregard any requested preferred env
+#         return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
+#                                               always_copy, pinned, update_deps,
+#                                               prune, channel_priority_map, is_update)
 
 
 def augment_specs(prefix, specs, ignore_pinned=None):
