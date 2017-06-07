@@ -14,6 +14,7 @@ from logging import getLogger
 from os.path import abspath, basename
 import sys
 
+from conda.core.index import _supplement_index_with_prefix
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
@@ -21,7 +22,7 @@ from .common.compat import on_win
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
-from .core.solve import Solver, get_pinned_specs, get_resolve_object
+from .core.solve import Solver, get_pinned_specs
 from .exceptions import ArgumentError, CondaIndexError, RemoveError
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
@@ -583,7 +584,9 @@ def revert_actions(prefix, revision=-1, index=None):
     if state == curr:
         return {}  # TODO: return txn with nothing_to_do
 
-    r = get_resolve_object(index, prefix)
+    _supplement_index_with_prefix(index, prefix, {})
+    r = Resolve(index)
+
     state = r.dependency_sort({d.name: d for d in (Dist(s) for s in state)})
     curr = set(Dist(s) for s in curr)
 

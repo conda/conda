@@ -326,18 +326,27 @@ def install(args, parser, command='install'):
             raise CondaImportError(text_type(e))
         raise
 
-    if unlink_link_transaction.nothing_to_do and not newenv:
-        if context.json:
-            common.stdout_json_success(message='All requested packages already installed.')
-        else:
-            print('\n# All requested packages already installed.\n')
-        return
+    handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args, newenv)
+
+
+
+def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args, newenv, remove_op=False):
+    if unlink_link_transaction.nothing_to_do:
+        if remove_op:
+            error_message = "No packages found to remove from environment."
+            raise PackageNotFoundError(error_message)
+        elif not newenv:
+            if context.json:
+                common.stdout_json_success(message='All requested packages already installed.')
+            else:
+                print('\n# All requested packages already installed.\n')
+            return
 
     if not context.json:
         unlink_link_transaction.display_actions(progressive_fetch_extract)
-        common.confirm_yn(args)
+        common.confirm_yn()
 
-    elif args.dry_run:
+    elif context.dry_run:
         common.stdout_json_success(unlink_link_transaction=unlink_link_transaction, prefix=prefix,
                                    dry_run=True)
         raise DryRunExit()

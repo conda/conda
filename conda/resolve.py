@@ -614,6 +614,23 @@ class Resolve(object):
         log.debug('explicit(%r) finished', specs)
         return res
 
+    def environment_is_consistent(self, installed):
+        log.debug('Checking if the current environment is consistent')
+        if not installed:
+            return None, []
+        dists = {}  # Dict[Dist, Record]
+        specs = []
+        for dist in installed:
+            dist = Dist(dist)
+            rec = self.index[dist]
+            dists[dist] = rec
+            specs.append(MatchSpec(' '.join(self.package_quad(dist)[:3])))
+        r2 = Resolve(dists, True, True)
+        C = r2.gen_clauses()
+        constraints = r2.generate_spec_constraints(C, specs)
+        solution = C.sat(constraints)
+        return bool(solution)
+
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')
         if not installed:
@@ -664,24 +681,24 @@ class Resolve(object):
 
     def install_specs(self, specs, installed, update_deps=True):
         specs = list(map(MatchSpec, specs))
-        # snames = {s.name for s in specs}
+        snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
         limit, preserve = self.bad_installed(installed, specs)
-        # for pkg in installed:
-        #     if pkg not in self.index:
-        #         continue
-        #     name, version, build, schannel = self.package_quad(pkg)
-        #     if name in snames or limit is not None and name not in limit:
-        #         continue
-        #     # If update_deps=True, set the target package in MatchSpec so that
-        #     # the solver can minimize the version change. If update_deps=False,
-        #     # fix the version and build so that no change is possible.
-        #     if update_deps:
-        #         spec = MatchSpec(name=name, target=pkg.full_name)
-        #     else:
-        #         spec = MatchSpec(name=name, version=version,
-        #                          build=build, channel=schannel)
-        #     specs.append(spec)
+        for pkg in installed:
+            if pkg not in self.index:
+                continue
+            name, version, build, schannel = self.package_quad(pkg)
+            if name in snames or limit is not None and name not in limit:
+                continue
+            # If update_deps=True, set the target package in MatchSpec so that
+            # the solver can minimize the version change. If update_deps=False,
+            # fix the version and build so that no change is possible.
+            if update_deps:
+                spec = MatchSpec(name=name, target=pkg.full_name)
+            else:
+                spec = MatchSpec(name=name, version=version,
+                                 build=build, channel=schannel)
+            specs.append(spec)
         return specs, preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):

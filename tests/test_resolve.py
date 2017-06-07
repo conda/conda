@@ -934,7 +934,7 @@ def test_broken_install():
     installed1 = list(installed)
     installed1[1] = Dist('defaults::numpy-1.7.1-py33_p0.tar.bz2')
     assert set(r.install([], installed1)) == set(installed1)
-    assert r.install(['numpy 1.6*'], installed1) == installed
+    assert r.install(['numpy 1.6*'], installed1) == installed  # adding numpy spec again snaps the packages back to a consistent state
 
     # Add an incompatible pandas; installation should be untouched, then fixed
     installed2 = list(installed)

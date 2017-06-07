@@ -126,7 +126,7 @@ class MatchSpec(object):
         return len(self._match_components) == 1
 
     def match(self, rec):
-        """
+        """f
         Accepts an `IndexRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
