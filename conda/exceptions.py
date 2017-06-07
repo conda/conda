@@ -403,7 +403,7 @@ class NoPackagesFoundError(CondaError):
         else:
             what = "Packages/dependencies"
         bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
-        msg = '%s missing in current %s channels: %s' % (what, context.subdir, bad_deps)
+        msg = '%s missing in current channels: %s' % (what, bad_deps)
         super(NoPackagesFoundError, self).__init__(msg)
         self.pkgs = deps
 
