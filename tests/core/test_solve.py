@@ -31,7 +31,7 @@ def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_s
         yield solver
 
 
-def test_1():
+def test_solve_1():
     specs = MatchSpec("numpy"),
 
     with get_solver(specs) as solver:
@@ -65,15 +65,6 @@ def test_1():
             'defaults::numpy-1.7.1-py27_0',
         )
         assert tuple(final_state) == tuple(index[Dist(d)] for d in order)
-
-
-def test_prune_2():
-    specs_to_remove = MatchSpec("python=2"),
-    history_specs = MatchSpec("sqlite=3"),
-    with get_solver(specs_to_remove=specs_to_remove, history_specs=history_specs) as solver:
-        final_state = solver.solve_final_state(prune=True)
-        print(final_state)
-        assert len(final_state) == 1
 
 
 def test_prune_1():
@@ -155,6 +146,15 @@ def test_prune_1():
             'defaults::numpy-1.6.2-py27_4',
         )
         assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+
+
+def test_prune_2():
+    specs_to_remove = MatchSpec("python=2"),
+    history_specs = MatchSpec("sqlite=3"),
+    with get_solver(specs_to_remove=specs_to_remove, history_specs=history_specs) as solver:
+        final_state = solver.solve_final_state(prune=True)
+        print(final_state)
+        assert len(final_state) == 1
 
 
 def test_no_deps_1():
@@ -253,27 +253,27 @@ def test_only_deps_2():
         )
         assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
 
-    # specs_to_add = MatchSpec("numba=0.5"),
-    # with get_solver(specs_to_add) as solver: # , prefix_records=final_state_1, history_specs=specs
-    #     final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
-    #     # SimpleDag(final_state_2, specs).open_url()
-    #     print([Dist(rec).full_name for rec in final_state_2])
-    #     order = (
-    #         'defaults::openssl-1.0.1c-0',
-    #         'defaults::readline-6.2-0',
-    #         'defaults::sqlite-3.7.13-0',
-    #         'defaults::system-5.8-1',
-    #         'defaults::tk-8.5.13-0',
-    #         'defaults::zlib-1.2.7-0',
-    #         'defaults::llvm-3.2-0',
-    #         'defaults::python-2.7.5-0',
-    #         'defaults::llvmpy-0.10.0-py27_0',
-    #         'defaults::meta-0.4.2.dev-py27_0',
-    #         'defaults::nose-1.3.0-py27_0',
-    #         'defaults::numpy-1.7.1-py27_0',
-    #         # 'defaults::numba-0.5.0-np17py27_0',
-    #     )
-    #     assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+    specs_to_add = MatchSpec("numba=0.5"),
+    with get_solver(specs_to_add) as solver: # , prefix_records=final_state_1, history_specs=specs
+        final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
+        # SimpleDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::llvm-3.2-0',
+            'defaults::python-2.7.5-0',
+            'defaults::llvmpy-0.10.0-py27_0',
+            'defaults::meta-0.4.2.dev-py27_0',
+            'defaults::nose-1.3.0-py27_0',
+            'defaults::numpy-1.7.1-py27_0',
+            # 'defaults::numba-0.5.0-np17py27_0',
+        )
+        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("numba=0.5"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -502,8 +502,8 @@ def test_broken_install():
         assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
         assert r.environment_is_consistent(order)
 
-    # Actually I think this part might be wrong behavior
-    # # Removing pandas should fix numpy, since pandas depends on it
+    # Actually I think this part might be wrong behavior:
+    #    # Removing pandas should fix numpy, since pandas depends on it
     # I think removing pandas should probably leave the broken numpy. That seems more consistent.
 
     # order_3 = list(order_original)
@@ -552,7 +552,6 @@ def test_broken_install():
     #     ]
     #     assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
     #     assert r.environment_is_consistent(order)
-
 
 
 def test_install_uninstall_features():
@@ -629,3 +628,83 @@ def test_install_uninstall_features():
             # 'defaults::scipy-0.12.0-np16py27_p0', scipy is out here because it wasn't a requested spec
         )
         assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+
+
+def test_update_deps_1():
+    specs = MatchSpec("python=2"),
+    with get_solver(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # SimpleDag(final_state_1, specs).open_url()
+        # print([Dist(rec).full_name for rec in final_state_1])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::python-2.7.5-0',
+        )
+        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+
+    specs_to_add = MatchSpec("numpy=1.7.0"), MatchSpec("python=2.7.3")
+    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        # SimpleDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::python-2.7.3-7',
+            'defaults::nose-1.3.0-py27_0',
+            'defaults::numpy-1.7.0-py27_0',
+        )
+        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+
+    specs_to_add = MatchSpec("iopro"),
+    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
+        final_state_3 = solver.solve_final_state()
+        # SimpleDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_3])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::unixodbc-2.3.1-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::python-2.7.3-7',
+            'defaults::nose-1.3.0-py27_0',
+            'defaults::numpy-1.7.0-py27_0',
+            'defaults::iopro-1.5.0-np17py27_p0',
+        )
+        assert tuple(final_state_3) == tuple(index[Dist(d)] for d in order)
+
+    specs_to_add = MatchSpec("iopro"),
+    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
+        final_state_3 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS)
+        # SimpleDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_3])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::unixodbc-2.3.1-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::python-2.7.5-0',   # with update_deps, numpy should switch from 1.7.0 to 1.7.1
+            'defaults::nose-1.3.0-py27_0',
+            'defaults::numpy-1.7.1-py27_0',  # with update_deps, numpy should switch from 1.7.0 to 1.7.1
+            'defaults::iopro-1.5.0-np17py27_p0',
+        )
+        assert tuple(final_state_3) == tuple(index[Dist(d)] for d in order)
+
+
+# def test_freeze_deps_1():
+#     raise NotImplementedError()

@@ -27,6 +27,9 @@ class SimpleDag(object):
         for spec in specs:
             self.add_spec(spec)
 
+    def get_node_by_name(self, name):
+        return next((node for node in self.nodes if node.record.name == name), None)
+
     def add_spec(self, spec):
         for node in self.nodes:
             if spec.match(node.record):
@@ -192,6 +195,18 @@ class Node(object):
                 for gchild in child.required_children:
                     yield gchild
                 yield child
+        return tuple(_all_descendants())
+
+    def all_ascendants(self):
+        def _all_descendants():
+            for parent in self.required_parents:
+                for gparent in parent.required_parents:
+                    yield gparent
+                yield parent
+            for parent in self.optional_parents:
+                for gparent in parent.optional_parents:
+                    yield gparent
+                yield parent
         return tuple(_all_descendants())
 
     has_children = property(lambda self: self.required_children or self.optional_children)

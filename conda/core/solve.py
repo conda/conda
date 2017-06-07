@@ -314,6 +314,24 @@ class Solver(object):
             dag = SimpleDag((index[d] for d in solution), specs_to_add)
             dag.remove_leaf_nodes_with_specs()
             solution = tuple(Dist(rec) for rec in dag.records)
+        elif deps_modifier == DepsModifier.UPDATE_DEPS:
+            # we basically have to solve again, because it's only now we know the dependency
+            # chain of specs_to_add
+            specs_to_add_names = set(spec.name for spec in specs_to_add)
+            update_names = set()
+            dag = SimpleDag((index[d] for d in solution), final_environment_specs)
+            for spec in specs_to_add:
+                node = dag.get_node_by_name(spec.name)
+                for ascendant in node.all_ascendants():
+                    ascendant_name = ascendant.record.name
+                    if ascendant_name not in specs_to_add_names:
+                        update_names.add(ascendant_name)
+            grouped_specs = groupby(lambda s: s.name in update_names, final_environment_specs)
+            new_final_environment_specs = set(grouped_specs[False])
+            update_specs = set(MatchSpec(spec.name, optional=spec.optional)
+                               for spec in grouped_specs[True])
+            final_environment_specs = new_final_environment_specs | update_specs
+            solution = r.solve(final_environment_specs)
 
         # TODO
         # now do safety checks on the solution
