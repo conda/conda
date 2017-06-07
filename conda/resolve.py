@@ -631,6 +631,26 @@ class Resolve(object):
         solution = C.sat(constraints)
         return bool(solution)
 
+    def get_conflicting_specs(self, specs):
+        reduced_index = self.get_reduced_index(specs)
+
+        # Check if satisfiable
+        def mysat(specs, add_if=False):
+            constraints = r2.generate_spec_constraints(C, specs)
+            return C.sat(constraints, add_if)
+
+        r2 = Resolve(reduced_index, True, True)
+        C = r2.gen_clauses()
+        solution = mysat(specs, True)
+        if solution:
+            return ()
+        else:
+            specs = minimal_unsatisfiable_subset(specs, sat=mysat)
+            return specs
+
+
+
+
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')
         if not installed:

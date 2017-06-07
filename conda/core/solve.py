@@ -207,10 +207,6 @@ class Solver(object):
                         spec = specs_map.get(rec.name, MatchSpec(rec.name))
                         spec._match_components.pop('features', None)
                         specs_map[spec.name] = spec
-                    # elif any(spec.name == rec.name for spec in specs_to_remove):
-                    #     specs_map.pop(rec.name, None)
-                    # elif set(rec.track_features or ()) & set(feature_names):
-                    #     specs_map.pop(rec.name, None)
                     else:
                         specs_map.pop(rec.name, None)
 
@@ -271,7 +267,7 @@ class Solver(object):
         if context.track_features:
             track_features_specs = (MatchSpec(x + '@') for x in context.track_features)
 
-        final_environment_specs = tuple(concatv(
+        final_environment_specs = set(concatv(
             itervalues(specs_map),
             optional_specs,
             track_features_specs,
@@ -283,21 +279,29 @@ class Solver(object):
         # UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
         # FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
 
+        # look for conflicts we can avoid by neutering specs that have a target
+        # (e.g. removing version constraint) and also making them optional
+        conflicting_specs = r.get_conflicting_specs(final_environment_specs)
+        for spec in conflicting_specs:
+            if spec.target:
+                final_environment_specs.remove(spec)
+                neutered_spec = MatchSpec(spec.name, target=spec.target, optional=True)
+                final_environment_specs.add(neutered_spec)
+
         log.debug("final specs to add:\n    %s\n",
                   "\n    ".join(text_type(s) for s in final_environment_specs))
         pre_solution = solution
-        # solution = r.install(final_environment_specs, solution, update_deps=update_deps)
         solution = r.solve(final_environment_specs)
 
         # add back to solution inconsistent packages
         if add_back_map:
-            add_dists, add_specs = [], []
+            add_dists, add_specs = [], set()
             for name, (dist, spec) in iteritems(add_back_map):
                 if not any(d.name == name for d in solution):
                     add_dists.append(dist)
-                    add_specs.append(spec)
+                    add_specs.add(spec)
             solution += add_dists
-            final_environment_specs += tuple(add_specs)
+            final_environment_specs |= add_specs
 
         if deps_modifier == DepsModifier.NO_DEPS:
             dont_add_packages = []
@@ -311,6 +315,7 @@ class Solver(object):
             dag.remove_leaf_nodes_with_specs()
             solution = tuple(Dist(rec) for rec in dag.records)
 
+        # TODO
         # now do safety checks on the solution
         # assert all pinned specs are compatible with what's in solved_linked_dists
         # don't uninstall conda or its dependencies, probably need to check elsewhere
