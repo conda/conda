@@ -746,17 +746,17 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
 class UpdateHistoryAction(CreateInPrefixPathAction):
 
     @classmethod
-    def create_actions(cls, transaction_context, target_prefix, requested_specs, command_action):
+    def create_actions(cls, transaction_context, target_prefix, remove_specs, update_specs):
         target_short_path = join('conda-meta', 'history')
-        return cls(transaction_context, target_prefix, target_short_path, requested_specs,
-                   command_action),
+        return cls(transaction_context, target_prefix, target_short_path,
+                   remove_specs, update_specs),
 
-    def __init__(self, transaction_context, target_prefix, target_short_path, requested_specs,
-                 command_action):
+    def __init__(self, transaction_context, target_prefix, target_short_path, remove_specs,
+                 update_specs):
         super(UpdateHistoryAction, self).__init__(transaction_context, None, None, None,
                                                   target_prefix, target_short_path)
-        self.requested_specs = requested_specs
-        self.command_action = command_action
+        self.remove_specs = remove_specs
+        self.update_specs = update_specs
 
         self.hold_path = self.target_full_path + '.c~'
 
@@ -768,7 +768,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
 
         h = History(self.target_prefix)
         h.update()
-        h.write_specs(self.command_action, self.requested_specs)
+        h.write_specs(self.remove_specs, self.update_specs)
 
     def reverse(self):
         if lexists(self.hold_path):

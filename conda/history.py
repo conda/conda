@@ -102,8 +102,6 @@ class History(object):
                               CondaHistoryWarning)
                 return
             curr = set(map(str, linked(self.prefix)))
-            # if last == curr and not self.file_is_empty():
-            #     return
             self.write_changes(last, curr)
         except IOError as e:
             if e.errno == errno.EACCES:
@@ -162,9 +160,14 @@ class History(object):
                     item['action'] = action
                     specs = specs and specs.replace("'", '"') or ""
                     if specs.startswith('['):
-                        item['specs'] = json.loads(specs.replace('u"', '"'))
+                        specs = json.loads(specs.replace('u"', '"'))
                     else:
-                        item['specs'] = specs.split(',')
+                        specs = specs.split(',')
+                    if specs and action in ('update', 'install', 'create'):
+                        item['update_specs'] = item['specs'] = specs
+                    elif specs and action in ('remove', 'uninstall'):
+                        item['remove_specs'] = item['specs'] = specs
+
             if 'cmd' in item:
                 res.append(item)
             dists = groupby(itemgetter(0), unused_cont)
@@ -190,13 +193,11 @@ class History(object):
     def get_requested_specs_map(self):
         spec_map = {}
         for request in self.get_user_requests():
-            axn = request.get('action', '')
-            if axn.startswith('install'):
-                specs = (MatchSpec(s) for s in request['specs'] if s)
-                spec_map.update(((s.name, s) for s in specs))
-            elif axn.startswith('remove'):
-                for name in (MatchSpec(s).name for s in request['specs']):
-                    spec_map.pop(name, None)
+            remove_specs = (MatchSpec(spec) for spec in request.get('remove_specs', ()))
+            for spec in remove_specs:
+                spec_map.pop(spec.name, None)
+            update_specs = (MatchSpec(spec) for spec in request.get('update_specs', ()))
+            spec_map.update(((s.name, s) for s in update_specs))
         return spec_map
 
     def construct_states(self):
@@ -296,11 +297,15 @@ class History(object):
             for fn in sorted(current_state - last_state):
                 fo.write('+%s\n' % fn)
 
-    def write_specs(self, action, specs):
-        specs = [s if isinstance(s, MatchSpec) else s for s in specs or () if s]
-        axn = action and action.lower() or 'unknown'
-        with open(self.path, 'a') as fo:
-            fo.write("# %s specs: %s\n" % (axn, [text_type(s) for s in specs]))
+    def write_specs(self, remove_specs=(), update_specs=()):
+        remove_specs = [text_type(MatchSpec(s)) for s in remove_specs]
+        update_specs = [text_type(MatchSpec(s)) for s in update_specs]
+        if update_specs or remove_specs:
+            with open(self.path, 'a') as fh:
+                if remove_specs:
+                    fh.write("# remove specs: %s\n" % remove_specs)
+                if update_specs:
+                    fh.write("# update specs: %s\n" % update_specs)
 
 
 if __name__ == '__main__':

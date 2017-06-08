@@ -301,11 +301,11 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
         pfe = ProgressiveFetchExtract(index, link_dists)
         pfe.prepare()
 
-        stp = PrefixSetup(index, prefix, unlink_dists, link_dists, axn, specs)
+        stp = PrefixSetup(index, prefix, unlink_dists, link_dists, (), specs)
         plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, UnlinkLinkTransaction(stp)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
     elif axn in ('INSTALL', 'CREATE'):
-        plan.insert(0, (UNLINKLINKTRANSACTION, (prefix, (), (), axn, specs)))
+        plan.insert(0, (UNLINKLINKTRANSACTION, (prefix, (), (), (), specs)))
 
     return plan
 
@@ -448,7 +448,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     subdirs = IndexedSet(basename(url) for url in channel_priority_map)
 
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
-    txn = solver.solve_for_transaction(prune, ignore_pinned=not pinned)
+    txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
     prefix_setup = txn.prefix_setups[prefix]
     actions = get_blank_actions(prefix)
     actions['UNLINK'].extend(prefix_setup.unlink_dists)
@@ -605,8 +605,7 @@ def revert_actions(prefix, revision=-1, index=None):
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
 
-    stp = PrefixSetup(index, prefix, unlink_dists, link_dists, 'INSTALL',
-                      user_requested_specs)
+    stp = PrefixSetup(index, prefix, unlink_dists, link_dists, (), user_requested_specs)
     txn = UnlinkLinkTransaction(stp)
     return txn
 

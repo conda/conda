@@ -31,7 +31,7 @@ def install(prefix, specs, args, env, prune=False):
     subdirs = IndexedSet(basename(url) for url in _channel_priority_map)
 
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
-    unlink_link_transaction = solver.solve_for_transaction(prune)
+    unlink_link_transaction = solver.solve_for_transaction(prune=prune)
 
     with common.json_progress_bars(json=args.json and not args.quiet):
         pfe = unlink_link_transaction.get_pfe()

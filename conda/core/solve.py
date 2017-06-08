@@ -386,12 +386,8 @@ class Solver(object):
                                                            force_remove, force_reinstall)
             unlink_dists = tuple(Dist(d) for d in unlink_dists)
             link_dists = tuple(Dist(d) for d in link_dists)
-            if self.specs_to_remove:
-                stp = PrefixSetup(self.index, self.prefix, unlink_dists, link_dists, 'REMOVE',
-                                  self.specs_to_remove)
-            else:
-                stp = PrefixSetup(self.index, self.prefix, unlink_dists, link_dists, 'INSTALL',
-                                  self.specs_to_add)
+            stp = PrefixSetup(self.index, self.prefix, unlink_dists, link_dists,
+                              self.specs_to_remove, self.specs_to_add)
             return UnlinkLinkTransaction(stp)
 
     def _prepare(self):

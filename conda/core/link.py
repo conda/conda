@@ -110,8 +110,8 @@ PrefixSetup = namedtuple('PrefixSetup', (
     'target_prefix',
     'unlink_dists',
     'link_dists',
-    'command_action',
-    'requested_specs',
+    'remove_specs',
+    'update_specs',
 ))
 
 PrefixActionGroup = namedtuple('PrefixActionGroup', (
@@ -170,7 +170,7 @@ class UnlinkLinkTransaction(object):
 
         for stp in itervalues(self.prefix_setups):
             grps = self._prepare(stp.index, stp.target_prefix, stp.unlink_dists, stp.link_dists,
-                                 stp.command_action, stp.requested_specs)
+                                 stp.remove_specs, stp.update_specs)
             self.prefix_action_groups[stp.target_prefix] = PrefixActionGroup(*grps)
 
         self._prepared = True
@@ -199,8 +199,7 @@ class UnlinkLinkTransaction(object):
         self._execute(tuple(concat(interleave(itervalues(self.prefix_action_groups)))))
 
     @classmethod
-    def _prepare(cls, index, target_prefix, unlink_dists, link_dists, command_action,
-                 requested_specs):
+    def _prepare(cls, index, target_prefix, unlink_dists, link_dists, remove_specs, update_specs):
 
         # make sure prefix directory exists
         if not isdir(target_prefix):
@@ -251,7 +250,7 @@ class UnlinkLinkTransaction(object):
         else:
             unregister_action_groups = ()
 
-        matchspecs_for_link_dists = match_specs_to_dists(packages_info_to_link, requested_specs)
+        matchspecs_for_link_dists = match_specs_to_dists(packages_info_to_link, update_specs)
         link_action_groups = tuple(
             ActionGroup('link', pkg_info, cls.make_link_actions(transaction_context, pkg_info,
                                                                 target_prefix, lt, spec),
@@ -261,7 +260,8 @@ class UnlinkLinkTransaction(object):
         )
 
         history_actions = UpdateHistoryAction.create_actions(
-            transaction_context, target_prefix, requested_specs, command_action)
+            transaction_context, target_prefix, remove_specs, update_specs,
+        )
         if link_action_groups:
             register_actions = RegisterEnvironmentLocationAction(transaction_context,
                                                                  target_prefix),
