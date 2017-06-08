@@ -431,8 +431,10 @@ def _parse_spec_str(spec_str):
     else:
         raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
 
-    # Step 6. consider the legacy dist case, other otherwise sort out version + build
+    # Step 6. otherwise sort out version + build
     spec_str = spec_str and spec_str.strip()
+    # This was an attempt to make MatchSpec('numpy-1.11.0-py27_0') work like we'd want. It's
+    # not possible though because plenty of packages have names with more than one '-'.
     # if spec_str is None and name.count('-') >= 2:
     #     name, version, build = _parse_legacy_dist(name)
     if spec_str:
