@@ -289,7 +289,8 @@ class Solver(object):
             for name, (dist, spec) in iteritems(add_back_map):
                 if not any(d.name == name for d in solution):
                     add_dists.append(dist)
-                    add_specs.add(spec)
+                    if spec:
+                        add_specs.add(spec)
             solution += add_dists
             final_environment_specs |= add_specs
 
