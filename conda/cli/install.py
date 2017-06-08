@@ -329,8 +329,8 @@ def install(args, parser, command='install'):
     handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args, newenv)
 
 
-
-def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args, newenv, remove_op=False):
+def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args, newenv,
+               remove_op=False):
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             error_message = "No packages found to remove from environment."

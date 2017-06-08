@@ -648,9 +648,6 @@ class Resolve(object):
             specs = minimal_unsatisfiable_subset(specs, sat=mysat)
             return specs
 
-
-
-
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')
         if not installed:

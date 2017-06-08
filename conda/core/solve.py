@@ -7,7 +7,6 @@ from os.path import join
 
 from enum import Enum
 
-from conda.common.path import paths_equal
 from .index import (_supplement_index_with_cache, _supplement_index_with_features,
                     _supplement_index_with_prefix, fetch_index)
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -16,6 +15,7 @@ from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
 from ..common.constants import NULL
+from ..common.path import paths_equal
 from ..exceptions import PackageNotFoundError
 from ..history import History
 from ..models.channel import Channel
@@ -31,41 +31,9 @@ except ImportError:
 
 log = getLogger(__name__)
 
-# """
-# conda update -h
-#
-# Conda attempts to install the newest versions of the requested packages. To
-# accomplish this, it may update some packages that are already installed, or
-# install additional packages. To prevent existing packages from updating,
-# use the --no-update-deps option. This may force conda to install older
-# versions of the requested packages, and it does not prevent additional
-# dependency packages from being installed.
-#
-# If you wish to skip dependency checking altogether, use the '--force'
-# option. This may result in an environment with incompatible packages, so
-# this option must be used with great caution.
-#
-#   -f, --force           Force install (even when package already installed),
-#                         implies --no-deps.
-#
-# conda remove -h
-#
-# This command will also remove any package that depends on any of the
-# specified packages as well---unless a replacement can be found without
-# that dependency. If you wish to skip this dependency checking and remove
-# just the requested packages, add the '--force' option. Note however that
-# this may result in a broken environment, so use this with caution.
-#
-#
-#
-#   --force               Forces removal of a package without removing packages
-#                         that depend on it. Using this option will usually
-#                         leave your environment in a broken and inconsistent
-#                         state.
-# """
-
 
 class DepsModifier(Enum):
+    """Flags to enable alternate handling of dependencies."""
     NO_DEPS = 'no_deps'
     ONLY_DEPS = 'only_deps'
     UPDATE_DEPS = 'update_deps'
@@ -77,10 +45,17 @@ class DepsModifier(Enum):
 
 
 class Solver(object):
+    """
+    A high-level API to conda's solver. Three public methods are provided to access a solution
+    in various forms.
+      * :meth:`solve_final_state`
+      * :meth:`solve_for_diff`
+      * :meth:`solve_for_transaction`
+
+    """
 
     def __init__(self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=()):
         """
-
         Args:
             prefix (str):
                 The conda prefix / environment location for which the :class:`Solver`
@@ -104,7 +79,7 @@ class Solver(object):
         assert all(s in context.known_subdirs for s in self.subdirs)
         self._prepared = False
 
-    def solve_final_state(self, deps_modifier=None, prune=NULL, ignore_pinned=NULL,
+    def solve_final_state(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
                           force_remove=NULL):
         """Gives the final, solved state of the environment.
 
@@ -137,6 +112,7 @@ class Solver(object):
         index, r = self._prepare()
         prune = context.prune if prune is NULL else prune
         ignore_pinned = context.ignore_pinned if ignore_pinned is NULL else ignore_pinned
+        deps_modifier = context.deps_modifier if deps_modifier is NULL else deps_modifier
         if isinstance(deps_modifier, string_types):
             deps_modifier = DepsModifier(deps_modifier.lower())
         specs_to_remove = self.specs_to_remove
@@ -287,7 +263,7 @@ class Solver(object):
                         final_environment_specs.add(spec)
 
         # Special case handling for various DepsModifer flags. Maybe this block could be pulled
-        # out into its own method?
+        # out into its own non-public helper method?
         if deps_modifier == DepsModifier.NO_DEPS:
             # In the NO_DEPS case we're just filtering out packages from the solution.
             dont_add_packages = []
@@ -343,26 +319,8 @@ class Solver(object):
                   self.prefix, "\n    ".join(text_type(d) for d in solution))
         return IndexedSet(index[d] for d in solution)
 
-    def _check_solution(self, solution, pinned_specs):
-        # Ensure that solution is consistent with pinned specs.
-        for spec in pinned_specs:
-            spec = MatchSpec(spec, optional=False)
-            if not any(spec.match(d) for d in solution):
-                # if the spec doesn't match outright, make sure there's no package by that
-                # name in the solution
-                assert not any(d.name == spec.name for d in solution)
-
-        # Ensure conda or its dependencies aren't being uninstalled in conda's own environment.
-        if paths_equal(self.prefix, context.conda_prefix) and not context.force:
-            conda_spec = MatchSpec("conda")
-            conda_dist = next((conda_spec.match(d) for d in solution), None)
-            assert conda_dist
-            conda_deps_specs = self.r.ms_depends(conda_dist)
-            for spec in conda_deps_specs:
-                assert any(spec.match(d) for d in solution)
-
     def solve_for_diff(self, deps_modifier=None, prune=NULL, ignore_pinned=NULL,
-                          force_remove=NULL, force_reinstall=NULL):
+                       force_remove=NULL, force_reinstall=NULL):
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -395,6 +353,7 @@ class Solver(object):
         link_dists = final_records - previous_dists
 
         # TODO: add back 'noarch: python' to unlink and link if python version changes
+        # TODO: implement force_reinstall
 
         return unlink_dists, link_dists
 
@@ -460,6 +419,41 @@ class Solver(object):
         self.r = Resolve(index)
         return self.index, self.r
 
+    def _check_solution(self, solution, pinned_specs):
+        # Ensure that solution is consistent with pinned specs.
+        for spec in pinned_specs:
+            spec = MatchSpec(spec, optional=False)
+            if not any(spec.match(d) for d in solution):
+                # if the spec doesn't match outright, make sure there's no package by that
+                # name in the solution
+                assert not any(d.name == spec.name for d in solution)
+
+        # Ensure conda or its dependencies aren't being uninstalled in conda's own environment.
+        if paths_equal(self.prefix, context.conda_prefix) and not context.force:
+            conda_spec = MatchSpec("conda")
+            conda_dist = next((conda_spec.match(d) for d in solution), None)
+            assert conda_dist
+            conda_deps_specs = self.r.ms_depends(conda_dist)
+            for spec in conda_deps_specs:
+                assert any(spec.match(d) for d in solution)
+
+
+def get_pinned_specs(prefix):
+    """Find pinned specs from file and return a tuple of MatchSpec."""
+    pinfile = join(prefix, 'conda-meta', 'pinned')
+    if exists(pinfile):
+        with open(pinfile) as f:
+            from_file = (i for i in f.read().strip().splitlines()
+                         if i and not i.strip().startswith('#'))
+    else:
+        from_file = ()
+
+    return tuple(MatchSpec(s, optional=True) for s in
+                 concatv(context.pinned_packages, from_file))
+
+
+# NOTE: The remaining code in this module is being left for development reference until
+#  the context.enable_private_envs portion is implemented in :meth:`solve_for_transaction`.
 
 # def solve_prefix(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
 #     # this function gives a "final state" for an existing prefix given just these simple inputs
@@ -690,17 +684,3 @@ class Solver(object):
 #         return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
 #                                               always_copy, pinned, update_deps,
 #                                               prune, channel_priority_map, is_update)
-
-
-def get_pinned_specs(prefix):
-    """Find pinned specs from file and return a tuple of MatchSpec."""
-    pinfile = join(prefix, 'conda-meta', 'pinned')
-    if exists(pinfile):
-        with open(pinfile) as f:
-            from_file = (i for i in f.read().strip().splitlines()
-                         if i and not i.strip().startswith('#'))
-    else:
-        from_file = ()
-
-    return tuple(MatchSpec(s, optional=True) for s in
-                 concatv(context.pinned_packages, from_file))

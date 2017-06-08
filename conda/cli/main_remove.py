@@ -99,11 +99,6 @@ def configure_parser(sub_parsers, name='remove'):
 
 
 def execute(args, parser):
-    try:
-        from cytoolz.itertoolz import groupby
-    except ImportError:
-        from .._vendor.toolz.itertoolz import groupby
-
     from .common import (confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
                          specs_from_args, stdout_json)
     from ..base.context import context
@@ -166,10 +161,6 @@ def execute(args, parser):
             })
         return
 
-
-
-
-
     else:
         if args.features:
             specs = tuple(MatchSpec(track_features=f) for f in set(args.package_names))
@@ -180,18 +171,12 @@ def execute(args, parser):
             channel_urls = ()
             subdirs = ()
         solver = Solver(prefix, channel_urls, subdirs, specs_to_remove=specs)
-        txn = solver.solve_for_transaction(
-            context.prune,
-            deps_modifier=context.deps_modifier,
-            ignore_pinned=context.ignore_pinned,
-            force_remove=args.force,
-        )
+        txn = solver.solve_for_transaction(force_remove=args.force)
         pfe = txn.get_pfe()
         handle_txn(pfe, txn, prefix, args, False, True)
 
-
-
-
+    # Keep this code for dev reference until private envs can be re-enabled in
+    # Solver.solve_for_transaction
 
     # specs = None
     # if args.features:
@@ -234,7 +219,7 @@ def execute(args, parser):
     #     action_groups = tuple(action_groups)
     # else:
     #     specs = specs_from_args(args.package_names)
-    #     if sys.prefix == abspath(prefix) and names_in_specs(ROOT_NO_RM, specs) and not args.force:
+    #     if sys.prefix == abspath(prefix) and names_in_specs(ROOT_NO_RM, specs) and not args.force:  # NOQA
     #         raise CondaEnvironmentError('cannot remove %s from root environment' %
     #                                     ', '.join(ROOT_NO_RM))
     #     action_groups = (remove_actions(prefix, list(specs), index=index,
