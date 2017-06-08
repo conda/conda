@@ -724,3 +724,160 @@ def test_update_deps_1():
             # 'defaults::iopro-1.5.0-np17py27_p0',
         )
         assert tuple(final_state_3) == tuple(index[Dist(d)] for d in order)
+
+
+def test_pinned_1():
+    specs = MatchSpec("numpy"),
+    with get_solver(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # SimpleDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_1])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::python-3.3.2-0',
+            'defaults::numpy-1.7.1-py33_0',
+        )
+        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+
+    with env_var("CONDA_PINNED_PACKAGES", "python=2.6&iopro<=1.4.2", reset_context):
+        specs = MatchSpec("system=5.8=0"),
+        with get_solver(specs) as solver:
+            final_state_1 = solver.solve_final_state()
+            # SimpleDag(final_state_1, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_1])
+            order = (
+                'defaults::system-5.8-0',
+            )
+            assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+
+        specs_to_add = MatchSpec("python"),
+        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                        history_specs=specs) as solver:
+            final_state_2 = solver.solve_final_state(ignore_pinned=True)
+            # SimpleDag(final_state_1, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_2])
+            order = (
+                'defaults::openssl-1.0.1c-0',
+                'defaults::readline-6.2-0',
+                'defaults::sqlite-3.7.13-0',
+                'defaults::system-5.8-0',
+                'defaults::tk-8.5.13-0',
+                'defaults::zlib-1.2.7-0',
+                'defaults::python-3.3.2-0',
+            )
+            assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+
+        specs_to_add = MatchSpec("python"),
+        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                        history_specs=specs) as solver:
+            final_state_2 = solver.solve_final_state()
+            # SimpleDag(final_state_1, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_2])
+            order = (
+                'defaults::openssl-1.0.1c-0',
+                'defaults::readline-6.2-0',
+                'defaults::sqlite-3.7.13-0',
+                'defaults::system-5.8-0',
+                'defaults::tk-8.5.13-0',
+                'defaults::zlib-1.2.7-0',
+                'defaults::python-2.6.8-6',
+            )
+            assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+
+        specs_to_add = MatchSpec("numba"),
+        history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"),
+        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_2,
+                        history_specs=history_specs) as solver:
+            final_state_3 = solver.solve_final_state()
+            # SimpleDag(final_state_1, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_3])
+            order = (
+                'defaults::openssl-1.0.1c-0',
+                'defaults::readline-6.2-0',
+                'defaults::sqlite-3.7.13-0',
+                'defaults::system-5.8-0',
+                'defaults::tk-8.5.13-0',
+                'defaults::zlib-1.2.7-0',
+                'defaults::llvm-3.2-0',
+                'defaults::python-2.6.8-6',
+                'defaults::argparse-1.2.1-py26_0',
+                'defaults::llvmpy-0.11.2-py26_0',
+                'defaults::numpy-1.7.1-py26_0',
+                'defaults::numba-0.8.1-np17py26_0',
+            )
+            assert tuple(final_state_3) == tuple(index[Dist(d)] for d in order)
+
+        specs_to_add = MatchSpec("python"),
+        history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
+        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_3,
+                        history_specs=history_specs) as solver:
+            final_state_4 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS)
+            # SimpleDag(final_state_1, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_4])
+            order = (
+                'defaults::openssl-1.0.1c-0',
+                'defaults::readline-6.2-0',
+                'defaults::sqlite-3.7.13-0',
+                'defaults::system-5.8-1',
+                'defaults::tk-8.5.13-0',
+                'defaults::zlib-1.2.7-0',
+                'defaults::llvm-3.2-0',
+                'defaults::python-2.6.8-6',
+                'defaults::argparse-1.2.1-py26_0',
+                'defaults::llvmpy-0.11.2-py26_0',
+                'defaults::numpy-1.7.1-py26_0',
+                'defaults::numba-0.8.1-np17py26_0',
+            )
+            assert tuple(final_state_4) == tuple(index[Dist(d)] for d in order)
+
+        specs_to_add = MatchSpec("python"),
+        history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
+        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
+                        history_specs=history_specs) as solver:
+            final_state_5 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
+            # SimpleDag(final_state_1, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_5])
+            order = (
+                'defaults::openssl-1.0.1c-0',
+                'defaults::readline-6.2-0',
+                'defaults::sqlite-3.7.13-0',
+                'defaults::system-5.8-1',
+                'defaults::tk-8.5.13-0',
+                'defaults::zlib-1.2.7-0',
+                'defaults::llvm-3.2-0',
+                'defaults::python-2.6.8-6',
+                'defaults::argparse-1.2.1-py26_0',
+                'defaults::llvmpy-0.11.2-py26_0',
+                'defaults::numpy-1.7.1-py26_0',
+                'defaults::numba-0.8.1-np17py26_0',
+            )
+            assert tuple(final_state_5) == tuple(index[Dist(d)] for d in order)
+
+    # now update without pinning
+    specs_to_add = MatchSpec("python"),
+    history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
+    with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
+                    history_specs=history_specs) as solver:
+        final_state_5 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
+        # SimpleDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_5])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::llvm-3.2-0',
+            'defaults::python-3.3.2-0',
+            'defaults::llvmpy-0.11.2-py33_0',
+            'defaults::numpy-1.7.1-py33_0',
+            'defaults::numba-0.8.1-np17py33_0',
+        )
+        assert tuple(final_state_5) == tuple(index[Dist(d)] for d in order)
+

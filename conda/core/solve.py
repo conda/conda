@@ -32,45 +32,38 @@ except ImportError:
 log = getLogger(__name__)
 
 
-"""
-
-
-
-conda update -h
-
-Conda attempts to install the newest versions of the requested packages. To
-accomplish this, it may update some packages that are already installed, or
-install additional packages. To prevent existing packages from updating,
-use the --no-update-deps option. This may force conda to install older
-versions of the requested packages, and it does not prevent additional
-dependency packages from being installed.
-
-If you wish to skip dependency checking altogether, use the '--force'
-option. This may result in an environment with incompatible packages, so
-this option must be used with great caution.
-
-  -f, --force           Force install (even when package already installed),
-                        implies --no-deps.
-
-
-
-
-conda remove -h
-
-This command will also remove any package that depends on any of the
-specified packages as well---unless a replacement can be found without
-that dependency. If you wish to skip this dependency checking and remove
-just the requested packages, add the '--force' option. Note however that
-this may result in a broken environment, so use this with caution.
-
-
-
-  --force               Forces removal of a package without removing packages
-                        that depend on it. Using this option will usually
-                        leave your environment in a broken and inconsistent
-                        state.
-
-"""
+# """
+# conda update -h
+#
+# Conda attempts to install the newest versions of the requested packages. To
+# accomplish this, it may update some packages that are already installed, or
+# install additional packages. To prevent existing packages from updating,
+# use the --no-update-deps option. This may force conda to install older
+# versions of the requested packages, and it does not prevent additional
+# dependency packages from being installed.
+#
+# If you wish to skip dependency checking altogether, use the '--force'
+# option. This may result in an environment with incompatible packages, so
+# this option must be used with great caution.
+#
+#   -f, --force           Force install (even when package already installed),
+#                         implies --no-deps.
+#
+# conda remove -h
+#
+# This command will also remove any package that depends on any of the
+# specified packages as well---unless a replacement can be found without
+# that dependency. If you wish to skip this dependency checking and remove
+# just the requested packages, add the '--force' option. Note however that
+# this may result in a broken environment, so use this with caution.
+#
+#
+#
+#   --force               Forces removal of a package without removing packages
+#                         that depend on it. Using this option will usually
+#                         leave your environment in a broken and inconsistent
+#                         state.
+# """
 
 
 class DepsModifier(Enum):
@@ -78,8 +71,8 @@ class DepsModifier(Enum):
     ONLY_DEPS = 'only_deps'
     UPDATE_DEPS = 'update_deps'
     UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
-    FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
     UPDATE_ALL = 'update_all'
+    FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
 
 
 class Solver(object):
@@ -154,11 +147,9 @@ class Solver(object):
 
         index, r = self._prepare()
         prune = context.prune if prune is NULL else prune
-        force_reinstall = force_reinstall is NULL and context.force or force_reinstall
         ignore_pinned = ignore_pinned is NULL and context.ignore_pinned or ignore_pinned
         specs_to_remove = self.specs_to_remove
         specs_to_add = self.specs_to_add
-        update_deps = deps_modifier == DepsModifier.UPDATE_DEPS or context.update_dependencies
 
         log.debug("solving prefix %s\n"
                   "  specs_to_remove: %s\n"
@@ -169,7 +160,9 @@ class Solver(object):
         prefix_data = PrefixData(self.prefix)
         solution = tuple(Dist(d) for d in prefix_data.iter_records())
 
-        if prune:
+        if prune or deps_modifier == DepsModifier.UPDATE_ALL:
+            # start with empty specs map for UPDATE_ALL because we're optimizing the update
+            # only for specs the user has requested; it's ok to remove dependencies
             specs_map = {}
         else:
             specs_map = {d.name: MatchSpec(d.name) for d in solution}
@@ -272,13 +265,6 @@ class Solver(object):
             optional_specs,
             track_features_specs,
         ))
-
-        # NO_DEPS = 'no_deps'  # filter solution
-        # ONLY_DEPS = 'only_deps'  # filter solution
-        # UPDATE_DEPS = 'update_deps'  # use dag to add additional specs
-        # UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
-        # FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
-        #   maybe we don't need freeze_deps
 
         # look for conflicts we can avoid by neutering specs that have a target
         # (e.g. removing version constraint) and also making them optional
