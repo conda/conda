@@ -197,7 +197,7 @@ def test_no_deps_1():
 
     specs_to_add = MatchSpec("numba"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-        final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.NO_DEPS)
+        final_state_2 = solver.solve_final_state(deps_modifier='NO_DEPS')
         # SimpleDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
@@ -880,4 +880,61 @@ def test_pinned_1():
             'defaults::numba-0.8.1-np17py33_0',
         )
         assert tuple(final_state_5) == tuple(index[Dist(d)] for d in order)
+
+
+def test_no_update_deps_1():  # i.e. FREEZE_DEPS
+    # NOTE: So far, NOT actually testing the FREEZE_DEPS flag.  I'm unable to contrive a
+    # situation where it's actually needed.
+
+    specs = MatchSpec("python=2"),
+    with get_solver(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # SimpleDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_1])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::python-2.7.5-0',
+        )
+        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+
+    specs_to_add = MatchSpec("zope.interface"),
+    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        # SimpleDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::python-2.7.5-0',
+            'defaults::nose-1.3.0-py27_0',
+            'defaults::zope.interface-4.0.5-py27_0',
+        )
+        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+
+    specs_to_add = MatchSpec("zope.interface>4.1"),
+    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        # SimpleDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::python-3.3.2-0',
+            'defaults::nose-1.3.0-py33_0',
+            'defaults::zope.interface-4.1.1.1-py33_0',
+        )
+        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
 

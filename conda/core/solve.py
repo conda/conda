@@ -13,7 +13,7 @@ from .link import PrefixSetup, UnlinkLinkTransaction
 from .linked_data import PrefixData, linked_data
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
-from ..common.compat import iteritems, iterkeys, itervalues, odict, text_type
+from ..common.compat import iteritems, iterkeys, itervalues, odict, text_type, string_types
 from ..common.constants import NULL
 from ..exceptions import PackageNotFoundError
 from ..history import History
@@ -72,7 +72,9 @@ class DepsModifier(Enum):
     UPDATE_DEPS = 'update_deps'
     UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
     UPDATE_ALL = 'update_all'
-    FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
+    # FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
+    # So far, unable to contrive in tests a situation where --no-update-deps / FREEZE_DEPS
+    #  is actually needed.  And in that case the `conda update -h` docs might need updating.
 
 
 class Solver(object):
@@ -103,8 +105,7 @@ class Solver(object):
         assert all(s in context.known_subdirs for s in self.subdirs)
         self._prepared = False
 
-    def solve_final_state(self, prune=NULL, force_reinstall=NULL, deps_modifier=None,
-                          ignore_pinned=NULL, force_remove=NULL):
+    def solve_final_state(self, deps_modifier=None, prune=NULL, ignore_pinned=NULL, force_remove=NULL):
         """Gives the final, solved state of the environment.
 
         Args:
@@ -147,7 +148,9 @@ class Solver(object):
 
         index, r = self._prepare()
         prune = context.prune if prune is NULL else prune
-        ignore_pinned = ignore_pinned is NULL and context.ignore_pinned or ignore_pinned
+        ignore_pinned = context.ignore_pinned if ignore_pinned is NULL else ignore_pinned
+        if isinstance(deps_modifier, string_types):
+            deps_modifier = DepsModifier(deps_modifier.lower())
         specs_to_remove = self.specs_to_remove
         specs_to_add = self.specs_to_add
 
