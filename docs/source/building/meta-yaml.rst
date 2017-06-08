@@ -561,6 +561,16 @@ Note that ``run_exports`` can be specified both in the build section, and on
 a per-output basis for split packages.
 
 
+The potential downside of this feature is that it takes some control over constraints away from downstream users.  If an upstream package has a problematic run_exports constraint, you can ignore it in your recipe by listing the upstream package name in the ``build/ignore_run_exports`` section:
+
+
+.. code-block:: yaml
+
+  build:
+    ignore_run_exports:
+      - libstdc++
+
+
 Requirements section
 --------------------
 

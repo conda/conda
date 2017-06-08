@@ -262,7 +262,7 @@ First, the meta.yaml file:
              - {{ pin_subpackage('libxgboost', exact=True) }}
              - python  {{ python }}
 
-       - name: py-xgboost
+       - name: r-xgboost
          requirements:
              - {{ pin_subpackage('libxgboost', exact=True)
              - r-base  {{ r_base }}
@@ -556,7 +556,7 @@ requirements, and a variant that includes two numpy versions:
 
 .. code-block:: python
 
-    variants = [{'numpy': ['1.10', '1.11'], 'ignore_version': ['numpy]}]
+    variants = [{'numpy': ['1.10', '1.11'], 'ignore_version': ['numpy']}]
 
 meta.yaml:
 
@@ -882,7 +882,7 @@ meta.yaml:
        build:
            - numpy {{ numpy }}
        run:
-           - {{ pin_compatible('numpy', max_pin='x.x'] }}
+           - {{ pin_compatible('numpy', max_pin='x.x') }}
 
 
 This would yield a pinning of ``>=1.11.2,<1.12``
@@ -903,7 +903,7 @@ meta.yaml:
        build:
            - numpy {{ numpy }}
        run:
-           - {{ pin_compatible('numpy', min_pin='x.x', max_pin='x.x'] }}
+           - {{ pin_compatible('numpy', min_pin='x.x', max_pin='x.x') }}
 
 
 This would yield a pinning of ``>=1.11,<1.12``
