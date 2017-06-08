@@ -7,13 +7,14 @@ from os.path import join
 
 from enum import Enum
 
+from conda.common.path import paths_equal
 from .index import (_supplement_index_with_cache, _supplement_index_with_features,
                     _supplement_index_with_prefix, fetch_index)
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .linked_data import PrefixData, linked_data
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
-from ..common.compat import iteritems, iterkeys, itervalues, odict, text_type, string_types
+from ..common.compat import iteritems, itervalues, odict, string_types, text_type
 from ..common.constants import NULL
 from ..exceptions import PackageNotFoundError
 from ..history import History
@@ -238,22 +239,23 @@ class Solver(object):
         # this overrides any name-matching spec already in the spec map
         specs_map.update((s.name, s) for s in specs_to_add)
 
-        # collect "optional"-type specs, which represent pinned specs and aggressive update specs
-        optional_specs = set()
-        if not ignore_pinned:
-            optional_specs.update(get_pinned_specs(self.prefix))
-        if not context.offline:
-            optional_specs.update(context.aggressive_update_packages)
-
-        # support track_features config parameter
-        track_features_specs = ()
+        # collect additional specs to add to the solution
+        track_features_specs = pinned_specs = aggresive_update_specs = conda_update_specs = ()
         if context.track_features:
-            track_features_specs = (MatchSpec(x + '@') for x in context.track_features)
+            track_features_specs = tuple(MatchSpec(x + '@') for x in context.track_features)
+        if not ignore_pinned:
+            pinned_specs = get_pinned_specs(self.prefix)
+        if not context.offline:
+            aggresive_update_specs = context.aggressive_update_packages
+        if context.auto_update_conda and paths_equal(self.prefix, context.conda_prefix):
+            conda_update_specs = MatchSpec("conda")
 
         final_environment_specs = set(concatv(
             itervalues(specs_map),
-            optional_specs,
             track_features_specs,
+            pinned_specs,
+            aggresive_update_specs,
+            conda_update_specs,
         ))
 
         # We've previously checked `solution` for consistency (which at that point was the
@@ -327,15 +329,12 @@ class Solver(object):
                 dag.remove_leaf_nodes_with_specs()
                 solution = tuple(Dist(rec) for rec in dag.records)
 
-        # TODO
-        # now do safety checks on the solution
-        # assert all pinned specs are compatible with what's in solved_linked_dists
-        # don't uninstall conda or its dependencies, probably need to check elsewhere
-
         if prune:
             dag = PrefixDag((index[d] for d in solution), final_environment_specs)
             dag.prune()
             solution = tuple(Dist(rec) for rec in dag.records)
+
+        self._check_solution(solution, pinned_specs)
 
         solution = IndexedSet(r.dependency_sort({d.name: d for d in solution}))
         log.debug("solved prefix %s\n"
@@ -343,6 +342,24 @@ class Solver(object):
                   "    %s\n",
                   self.prefix, "\n    ".join(text_type(d) for d in solution))
         return IndexedSet(index[d] for d in solution)
+
+    def _check_solution(self, solution, pinned_specs):
+        # Ensure that solution is consistent with pinned specs.
+        for spec in pinned_specs:
+            spec = MatchSpec(spec, optional=False)
+            if not any(spec.match(d) for d in solution):
+                # if the spec doesn't match outright, make sure there's no package by that
+                # name in the solution
+                assert not any(d.name == spec.name for d in solution)
+
+        # Ensure conda or its dependencies aren't being uninstalled in conda's own environment.
+        if paths_equal(self.prefix, context.conda_prefix) and not context.force:
+            conda_spec = MatchSpec("conda")
+            conda_dist = next((conda_spec.match(d) for d in solution), None)
+            assert conda_dist
+            conda_deps_specs = self.r.ms_depends(conda_dist)
+            for spec in conda_deps_specs:
+                assert any(spec.match(d) for d in solution)
 
     def solve_for_diff(self, deps_modifier=None, prune=NULL, ignore_pinned=NULL,
                           force_remove=NULL, force_reinstall=NULL):
@@ -372,11 +389,8 @@ class Solver(object):
                 dependency order from roots to leaves.
 
         """
-        final_records = self.solve_final_state(prune, force_reinstall, deps_modifier, ignore_pinned,
-                                             force_remove)
-
+        final_records = self.solve_final_state(deps_modifier, prune, ignore_pinned, force_remove)
         previous_dists = IndexedSet(itervalues(linked_data(self.prefix)))
-
         unlink_dists = previous_dists - final_records
         link_dists = final_records - previous_dists
 
@@ -489,46 +503,12 @@ class Solver(object):
 #     return solved_linked_dists, specs_to_add
 
 
-# def _get_relevant_specs_from_history(prefix, specs_to_remove, specs_to_add):
-#     # TODO: this should probably be part of the History manager, and brought in through PrefixData
-#
-#     # add in specs from requested history,
-#     #   but not if we're requesting a spec with the same name in this operation
-#     ignore_these_spec_names = set(s.name for s in concatv(specs_to_remove, specs_to_add))
-#     user_requested_specs_and_dists = History(prefix).get_requested_specs()
-#
-#     # this effectively pins packages to channels on first use
-#     user_requested_specs_and_schannels = (
-#         (s, (d and d.channel or UNKNOWN_CHANNEL))
-#         for s, d in user_requested_specs_and_dists
-#     )
-#     requested_specs_from_history = tuple(
-#         (MatchSpec(s, channel=schannel) if schannel != UNKNOWN_CHANNEL else s)
-#         for s, schannel in user_requested_specs_and_schannels
-#         if not s.name.endswith('@')  # no clue
-#     )
-#
-#     # # don't pin packages to channels on first use, in lieu of above code block
-#     # user_requested_specs = tuple(map(itemgetter(0), user_requested_specs_and_dists))
-#
-#     log.debug("user requested specs from history:\n    %s\n",
-#               "\n    ".join(text_type(s) for s in requested_specs_from_history))
-#     specs_map = {s.name: s for s in requested_specs_from_history
-#                  if s.name not in ignore_these_spec_names}
-#
-#     # don't include conda if auto_update_conda is off
-#     if not context.auto_update_conda and not any(s.name == 'conda' for s in specs_to_add):
-#         specs_map.pop('conda', None)
-#         specs_map.pop('conda-env', None)
-#
-#     return tuple(s for s in itervalues(specs_map))
-
-
 # def solve_for_actions(prefix, r, specs_to_remove=(), specs_to_add=(), prune=False):
 #     # this is not for force-removing packages, which doesn't invoke the solver
 #
 #     solved_dists, _specs_to_add = solve_prefix(prefix, r, specs_to_remove, specs_to_add, prune)
-#     # TODO: this _specs_to_add part should be refactored when we can better pin package channel origin  # NOQA
+#     # TODO: this _specs_to_add part should be refactored when we can better pin package channel
+#     #     origin  # NOQA
 #     dists_for_unlinking, dists_for_linking = sort_unlink_link_from_solve(prefix, solved_dists,
 #                                                                          _specs_to_add)
 #
@@ -552,7 +532,8 @@ class Solver(object):
 #         # remove all dists that match a specs_to_add, as long as that dist isn't a dependency
 #         #   of other specs_to_add
 #         _index = r.index
-#         _match_any = lambda spec, dists: next((dist for dist in dists if spec.match(_index[dist])),
+#         _match_any = lambda spec, dists: next((dist for dist in dists
+#                                                if spec.match(_index[dist])),
 #                                               None)
 #         _is_dependency = lambda spec, dist: any(r.depends_on(s, dist.name)
 #                                                 for s in specs_to_add if s != spec)
@@ -576,28 +557,6 @@ class Solver(object):
 #     return dists_for_unlinking, dists_for_linking
 
 
-# def forced_reinstall_specs(prefix, solved_dists, dists_for_unlinking, dists_for_linking,
-#                            specs_to_add):
-#     _dists_for_unlinking, _dists_for_linking = copy(dists_for_unlinking), copy(dists_for_linking)
-#     old_linked_dists = IndexedSet(iterkeys(linked_data(prefix)))
-#
-#     # re-install any specs_to_add
-#     def find_first(dists, package_name):
-#         return next((d for d in dists if d.name == package_name), None)
-#
-#     for spec in specs_to_add:
-#         spec_name = MatchSpec(spec).name
-#         old_dist_with_same_name = find_first(old_linked_dists, spec_name)
-#         if old_dist_with_same_name:
-#             _dists_for_unlinking.add(old_dist_with_same_name)
-#
-#         new_dist_with_same_name = find_first(solved_dists, spec_name)
-#         if new_dist_with_same_name:
-#             _dists_for_linking.add(new_dist_with_same_name)
-#
-#     return _dists_for_unlinking, _dists_for_linking
-
-
 # def sort_unlink_link_from_solve(prefix, solved_dists, remove_satisfied_specs):
 #     # solved_dists should be the return value of solve_prefix()
 #     old_linked_dists = IndexedSet(iterkeys(linked_data(prefix)))
@@ -619,13 +578,6 @@ class Solver(object):
 #     #             dists_for_linking.discard(link_dist)
 #
 #     return dists_for_unlinking, dists_for_linking
-
-
-# def get_resolve_object(index, prefix):
-#     # instantiate resolve object
-#     _supplement_index_with_prefix(index, prefix, {})
-#     r = Resolve(index)
-#     return r
 
 
 # def get_install_transaction(prefix, index, spec_strs, force=False, only_names=None,
@@ -738,40 +690,6 @@ class Solver(object):
 #         return get_install_transaction_single(prefix, index, spec_strs, force, only_names,
 #                                               always_copy, pinned, update_deps,
 #                                               prune, channel_priority_map, is_update)
-
-
-# def augment_specs(prefix, specs, ignore_pinned=None):
-#     _specs = list(specs)
-#
-#     # get conda-meta/pinned
-#     if not context.ignore_pinned:
-#         pinned_specs = get_pinned_specs(prefix)
-#         log.debug("Pinned specs=%s", pinned_specs)
-#         _specs += [MatchSpec(spec) for spec in pinned_specs]
-#
-#     # support aggressive auto-update conda
-#     #   Only add a conda spec if conda and conda-env are not in the specs.
-#     #   Also skip this step if we're offline.
-#     root_only = ('conda', 'conda-env')
-#     mss = [MatchSpec(s) for s in _specs if s.name.startswith(root_only)]
-#     mss = [ms for ms in mss if ms.name in root_only]
-#
-#     if prefix == context.root_prefix:
-#         if context.auto_update_conda and not context.offline and not mss:
-#             log.debug("Adding 'conda' to specs.")
-#             _specs.append(MatchSpec('conda'))
-#             _specs.append(MatchSpec('conda-env'))
-#     elif basename(prefix).startswith('_'):
-#         # anything (including conda) can be installed into environments
-#         # starting with '_', mainly to allow conda-build to build conda
-#         pass
-#     elif mss:
-#         raise InstallError("Error: 'conda' can only be installed into the root environment")
-#
-#     # support track_features config parameter
-#     if context.track_features:
-#         _specs.extend(x + '@' for x in context.track_features)
-#     return _specs
 
 
 def get_pinned_specs(prefix):

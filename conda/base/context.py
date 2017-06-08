@@ -365,10 +365,7 @@ class Context(Configuration):
     @property
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
-        if self.auto_update_conda:
-            return MatchSpec('openssl', optional=True), MatchSpec('conda', optional=True),
-        else:
-            return MatchSpec('openssl', optional=True),
+        return MatchSpec('openssl', optional=True),
 
     @property
     def deps_modifier(self):
