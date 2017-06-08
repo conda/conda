@@ -105,23 +105,11 @@ class Solver(object):
         assert all(s in context.known_subdirs for s in self.subdirs)
         self._prepared = False
 
-    def solve_final_state(self, deps_modifier=None, prune=NULL, ignore_pinned=NULL, force_remove=NULL):
+    def solve_final_state(self, deps_modifier=None, prune=NULL, ignore_pinned=NULL,
+                          force_remove=NULL):
         """Gives the final, solved state of the environment.
 
         Args:
-            prune (bool):
-                If ``True``, the solution will not contain packages that were
-                previously brought into the environment as dependencies but are no longer
-                required as dependencies and are not user-requested.
-            force_reinstall (bool):
-                Actually, the historic behavior is that force just bypasses the SAT solver
-                entirely.
-                Force has different meanings for specs_to_remove vs specs_to_add.
-                For requested specs_to_add that are already satisfied in the environment,
-                    instructs the solver to remove the package and spec from the environment,
-                    and then add it back--possibly with the exact package instance modified,
-                    depending on the spec exactness.
-                Therefore, this should NOT be equivalent to context.force!
             deps_modifier (DepsModifier):
                 An optional flag indicating special solver handling for dependencies. The
                 default solver behavior is to be as conservative as possible with dependency
@@ -131,10 +119,15 @@ class Solver(object):
                     * ONLY_DEPS
                     * UPDATE_DEPS
                     * UPDATE_DEPS_ONLY_DEPS
-                    * FREEZE_DEPS  # freeze is a better name for --no-update-deps
+            prune (bool):
+                If ``True``, the solution will not contain packages that were
+                previously brought into the environment as dependencies but are no longer
+                required as dependencies and are not user-requested.
             ignore_pinned (bool):
                 If ``True``, the solution will ignore pinned package configuration
                 for the prefix.
+            force_remove (bool):
+                Forces removal of a package without removing packages that depend on it.
 
         Returns:
             Tuple[PackageRef]:
@@ -143,8 +136,8 @@ class Solver(object):
 
         """
         # NOTE: when working with MatchSpec objects,
-        #  - to *minimize* the version change, set MatchSpec(name=name, target=dist.full_name)
-        #  - to *freeze* the package, set all the components of MatchSpec individually
+        #  - to minimize the version change, set MatchSpec(name=name, target=dist.full_name)
+        #  - to freeze the package, set all the components of MatchSpec individually
 
         index, r = self._prepare()
         prune = context.prune if prune is NULL else prune
@@ -349,53 +342,61 @@ class Solver(object):
 
         return solution
 
-    def solve_for_diff(self, prune=False, force_reinstall=False, deps_modifier=None,
-                       ignore_pinned=False, force_remove=NULL):
+    def solve_for_diff(self, deps_modifier=None, prune=NULL, ignore_pinned=NULL,
+                          force_remove=NULL, force_reinstall=NULL):
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
         Args:
-            prune (bool):
-                See :meth:`solve_final_state`.
-            force_reinstall (bool):
-                See :meth:`solve_final_state`.
             deps_modifier (DepsModifier):
+                See :meth:`solve_final_state`.
+            prune (bool):
                 See :meth:`solve_final_state`.
             ignore_pinned (bool):
                 See :meth:`solve_final_state`.
+            force_remove (bool):
+                See :meth:`solve_final_state`.
+            force_reinstall (bool):
+                For requested specs_to_add that are already satisfied in the environment,
+                    instructs the solver to remove the package and spec from the environment,
+                    and then add it back--possibly with the exact package instance modified,
+                    depending on the spec exactness.
 
         Returns:
             Tuple[PackageRef], Tuple[PackageRef]:
+                A two-tuple of PackageRef sequences.  The first is the group of packages to
+                remove from the environment, in sorted dependency order from leaves to roots.
+                The second is the group of packages to add to the environment, in sorted
+                dependency order from roots to leaves.
 
         """
-        # need to take the final state, but force_reinstall and deps_modifier are
-        # also relevant here (also add back requested specs if force_reinstall)
-        force_reinstall = force_reinstall is NULL and context.force or force_reinstall
-        final_dists = self.solve_final_state(prune, force_reinstall, deps_modifier, ignore_pinned,
+        final_records = self.solve_final_state(prune, force_reinstall, deps_modifier, ignore_pinned,
                                              force_remove)
 
-        previous_dists = IndexedSet(iterkeys(linked_data(self.prefix)))
+        previous_dists = IndexedSet(itervalues(linked_data(self.prefix)))
 
-        unlink_dists = previous_dists - final_dists
-        link_dists = final_dists - previous_dists
+        unlink_dists = previous_dists - final_records
+        link_dists = final_records - previous_dists
 
         # TODO: add back 'noarch: python' to unlink and link if python version changes
 
         return unlink_dists, link_dists
 
-    def solve_for_transaction(self, prune=False, force_reinstall=False, deps_modifier=None,
-                              ignore_pinned=False, force_remove=NULL):
+    def solve_for_transaction(self, deps_modifier=None, prune=NULL, ignore_pinned=NULL,
+                              force_remove=NULL, force_reinstall=False):
         """
 
         Args:
-            prune (bool):
-                See :meth:`solve_final_state`.
-            force_reinstall (bool):
-                See :meth:`solve_final_state`.
             deps_modifier (DepsModifier):
+                See :meth:`solve_final_state`.
+            prune (bool):
                 See :meth:`solve_final_state`.
             ignore_pinned (bool):
                 See :meth:`solve_final_state`.
+            force_remove (bool):
+                See :meth:`solve_final_state`.
+            force_reinstall (bool):
+                See :meth:`solve_for_diff`.
 
         Returns:
             UnlinkLinkTransaction:
@@ -405,9 +406,8 @@ class Solver(object):
             # hold on, it's a while ride
             raise NotImplementedError()
         else:
-            unlink_dists, link_dists = self.solve_for_diff(prune, force_reinstall,
-                                                           deps_modifier, ignore_pinned,
-                                                           force_remove)
+            unlink_dists, link_dists = self.solve_for_diff(deps_modifier, prune, ignore_pinned,
+                                                           force_remove, force_reinstall)
             unlink_dists = tuple(Dist(d) for d in unlink_dists)
             link_dists = tuple(Dist(d) for d in link_dists)
             if self.specs_to_remove:
