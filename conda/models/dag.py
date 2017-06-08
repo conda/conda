@@ -10,12 +10,11 @@ from ..common.url import quote as url_quote
 log = getLogger(__name__)
 
 
-class SimpleDag(object):
+class PrefixDag(object):
     # This is in conda.models and not conda.common because it isn't general and assumes
     #   knowledge of record and match_spec structure.
     # Not immutable.  Also optimizing for convenience, not performance.
     #   For < ~1,000 packages, performance shouldn't be a problem.
-    # Nodes don't yet have a 'constrained_by' method of optional constrained dependencies.
 
     def __init__(self, records, specs):
         self.nodes = []
@@ -87,12 +86,16 @@ class SimpleDag(object):
         builder.append('}')
         return '\n'.join(builder)
 
+    def format_url(self):
+        return "https://condaviz.glitch.me/%s" % url_quote(self.dot_repr())
+
     def open_url(self):
         import webbrowser
-        url = "https://condaviz.glitch.me/%s" % url_quote(self.dot_repr())
-        print(url)
+        # TODO: remove this "safari" specifier once Apple gets its act together and
+        # releases macOS 10.12.6
         browser = webbrowser.get("safari")
-        browser.open_new_tab(url)
+        browser.open_new_tab(self.format_url())
+        # webbrowser.open_new_tab(self.format_url())
 
     @property
     def orphans(self):

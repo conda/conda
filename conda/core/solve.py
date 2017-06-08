@@ -18,7 +18,7 @@ from ..common.constants import NULL
 from ..exceptions import PackageNotFoundError
 from ..history import History
 from ..models.channel import Channel
-from ..models.dag import SimpleDag
+from ..models.dag import PrefixDag
 from ..models.dist import Dist
 from ..models.match_spec import MatchSpec
 from ..resolve import Resolve
@@ -173,7 +173,7 @@ class Solver(object):
             _track_features_specs = (spec for spec in specs_to_remove if 'track_features' in spec)
             feature_names = set(concat(spec.get_raw_value('track_features')
                                        for spec in _track_features_specs))
-            dag = SimpleDag((index[dist] for dist in solution), itervalues(specs_map))
+            dag = PrefixDag((index[dist] for dist in solution), itervalues(specs_map))
 
             removed_records = []
             for spec in specs_to_remove:
@@ -299,7 +299,7 @@ class Solver(object):
             # specs_to_add.  It's important to only remove leaf nodes, because a typical use
             # might be `conda install --only-deps python=2 flask`, and in that case we'd want
             # to keep python.
-            dag = SimpleDag((index[d] for d in solution), specs_to_add)
+            dag = PrefixDag((index[d] for d in solution), specs_to_add)
             dag.remove_leaf_nodes_with_specs()
             solution = tuple(Dist(rec) for rec in dag.records)
         elif deps_modifier in (DepsModifier.UPDATE_DEPS, DepsModifier.UPDATE_DEPS_ONLY_DEPS):
@@ -307,7 +307,7 @@ class Solver(object):
             # chain of specs_to_add.
             specs_to_add_names = set(spec.name for spec in specs_to_add)
             update_names = set()
-            dag = SimpleDag((index[d] for d in solution), final_environment_specs)
+            dag = PrefixDag((index[d] for d in solution), final_environment_specs)
             for spec in specs_to_add:
                 node = dag.get_node_by_name(spec.name)
                 for ascendant in node.all_ascendants():
@@ -323,7 +323,7 @@ class Solver(object):
 
             if deps_modifier == DepsModifier.UPDATE_DEPS_ONLY_DEPS:
                 # duplicated from DepsModifier.ONLY_DEPS
-                dag = SimpleDag((index[d] for d in solution), specs_to_add)
+                dag = PrefixDag((index[d] for d in solution), specs_to_add)
                 dag.remove_leaf_nodes_with_specs()
                 solution = tuple(Dist(rec) for rec in dag.records)
 
@@ -333,7 +333,7 @@ class Solver(object):
         # don't uninstall conda or its dependencies, probably need to check elsewhere
 
         if prune:
-            dag = SimpleDag((index[d] for d in solution), final_environment_specs)
+            dag = PrefixDag((index[d] for d in solution), final_environment_specs)
             dag.prune()
             solution = tuple(Dist(rec) for rec in dag.records)
 
@@ -386,7 +386,8 @@ class Solver(object):
 
     def solve_for_transaction(self, deps_modifier=None, prune=NULL, ignore_pinned=NULL,
                               force_remove=NULL, force_reinstall=False):
-        """
+        """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
+        on an environment.
 
         Args:
             deps_modifier (DepsModifier):
@@ -421,6 +422,9 @@ class Solver(object):
             return UnlinkLinkTransaction(stp)
 
     def _prepare(self):
+        # All of this _prepare() method is hidden away down here. Someday we may want to further
+        # abstract away the use of `index` or the Resolve object.
+
         if self._prepared:
             return self.index, self.r
 
