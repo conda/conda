@@ -348,16 +348,25 @@ class Solver(object):
 
         """
         final_records = self.solve_final_state(deps_modifier, prune, ignore_pinned, force_remove)
-        previous_dists = IndexedSet(itervalues(linked_data(self.prefix)))
-        unlink_dists = previous_dists - final_records
-        link_dists = final_records - previous_dists
+        previous_records = IndexedSet(itervalues(linked_data(self.prefix)))
+        unlink_records = previous_records - final_records
+        link_records = final_records - previous_records
+
+        if force_reinstall:
+            for spec in self.specs_to_add:
+                rec = next((rec for rec in final_records if spec.match(rec)), None)
+                assert rec
+                link_records.add(rec)
+                unlink_records.add(rec)
 
         # TODO: add back 'noarch: python' to unlink and link if python version changes
-        # TODO: implement force_reinstall
+        # TODO: get the sort order correct for unlink_records
+        # TODO: force_reinstall might not yet be fully implemented in :meth:`solve_final_state`,
+        #       at least as described in the docstring.
 
-        return unlink_dists, link_dists
+        return unlink_records, link_records
 
-    def solve_for_transaction(self, deps_modifier=None, prune=NULL, ignore_pinned=NULL,
+    def solve_for_transaction(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
                               force_remove=NULL, force_reinstall=False):
         """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
@@ -386,7 +395,7 @@ class Solver(object):
                                                            force_remove, force_reinstall)
             unlink_dists = tuple(Dist(d) for d in unlink_dists)
             link_dists = tuple(Dist(d) for d in link_dists)
-            stp = PrefixSetup(self.index, self.prefix, unlink_dists, link_dists,
+            stp = PrefixSetup(self._index, self.prefix, unlink_dists, link_dists,
                               self.specs_to_remove, self.specs_to_add)
             return UnlinkLinkTransaction(stp)
 
@@ -395,7 +404,7 @@ class Solver(object):
         # abstract away the use of `index` or the Resolve object.
 
         if self._prepared:
-            return self.index, self.r
+            return self._index, self._r
 
         def build_channel_priority_map():
             return odict((subdir_url, (c.canonical_name, priority))
@@ -411,9 +420,9 @@ class Solver(object):
         _supplement_index_with_cache(index, known_channels)
         _supplement_index_with_features(index)
 
-        self.index = index
-        self.r = Resolve(index)
-        return self.index, self.r
+        self._index = index
+        self._r = Resolve(index)
+        return self._index, self._r
 
     def _check_solution(self, solution, pinned_specs):
         # Ensure that solution is consistent with pinned specs.
@@ -429,7 +438,7 @@ class Solver(object):
             conda_spec = MatchSpec("conda")
             conda_dist = next((conda_spec.match(d) for d in solution), None)
             assert conda_dist
-            conda_deps_specs = self.r.ms_depends(conda_dist)
+            conda_deps_specs = self._r.ms_depends(conda_dist)
             for spec in conda_deps_specs:
                 assert any(spec.match(d) for d in solution)
 

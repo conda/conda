@@ -75,6 +75,7 @@ class UserRequestsTestCase(unittest.TestCase):
                           'cmd': ['conda', 'install', 'pyflakes'],
                           'date': '2016-02-18 22:53:20',
                           'specs': ['pyflakes', 'conda', 'python 2.7*'],
+                          'update_specs': ['pyflakes', 'conda', 'python 2.7*'],
                           'unlink_dists': (),
                           'link_dists': ['+pyflakes-1.0.0-py27_0'],
                           })

@@ -221,20 +221,6 @@ def install(args, parser, command='install'):
             print(print_activate(args.name if args.name else prefix))
         return
 
-    index = get_index(channel_urls=index_args['channel_urls'],
-                      prepend=index_args['prepend'], platform=None,
-                      use_local=index_args['use_local'], use_cache=index_args['use_cache'],
-                      unknown=index_args['unknown'], prefix=prefix)
-    # ospecs = list(specs)
-
-    if args.force:
-        args.no_deps = True
-
-    # if args.no_deps:
-    #     only_names = set(s.split()[0] for s in ospecs)
-    # else:
-    #     only_names = None
-
     if not isdir(prefix) and not newenv:
         if args.mkdir:
             try:
@@ -244,22 +230,22 @@ def install(args, parser, command='install'):
         else:
             raise EnvironmentLocationNotFound(prefix)
 
+    index = {}
     try:
         if isinstall and args.revision:
+            index = get_index(channel_urls=index_args['channel_urls'],
+                              prepend=index_args['prepend'], platform=None,
+                              use_local=index_args['use_local'], use_cache=index_args['use_cache'],
+                              unknown=index_args['unknown'], prefix=prefix)
             unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
             progressive_fetch_extract = unlink_link_transaction.get_pfe()
         else:
             with common.json_progress_bars(json=context.json and not context.quiet):
                 solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
-                unlink_link_transaction = solver.solve_for_transaction()
-
-                # _channel_priority_map = prioritize_channels(index_args['channel_urls'])
-                # unlink_link_transaction = get_install_transaction(
-                #     prefix, index, specs, force=args.force, only_names=only_names,
-                #     pinned=not context.ignore_pinned, always_copy=context.always_copy,
-                #     update_deps=context.update_dependencies,
-                #     channel_priority_map=_channel_priority_map, is_update=isupdate)
-
+                index, _ = solver._prepare()
+                unlink_link_transaction = solver.solve_for_transaction(
+                    force_reinstall=context.force,
+                )
                 progressive_fetch_extract = unlink_link_transaction.get_pfe()
     except NoPackagesFoundError as e:
         error_message = [e.args[0]]

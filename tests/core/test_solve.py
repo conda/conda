@@ -997,3 +997,34 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
         )
         assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
 
+
+def test_force_reinstall_1():
+    specs = MatchSpec("python=2"),
+    with get_solver(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # SimpleDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_1])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::python-2.7.5-0',
+        )
+        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+
+    specs_to_add = specs
+    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        unlink_dists, link_dists = solver.solve_for_diff()
+        assert not unlink_dists
+        assert not link_dists
+
+        unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
+        assert len(unlink_dists) == len(link_dists) == 1
+        assert unlink_dists[0] == link_dists[0]
+
+        unlink_dists, link_dists = solver.solve_for_diff()
+        assert not unlink_dists
+        assert not link_dists
