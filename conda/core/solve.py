@@ -46,8 +46,9 @@ class DepsModifier(Enum):
 
 class Solver(object):
     """
-    A high-level API to conda's solver. Three public methods are provided to access a solution
-    in various forms.
+    A high-level API to conda's solving logic. Three public methods are provided to access a
+    solution in various forms.
+
       * :meth:`solve_final_state`
       * :meth:`solve_for_diff`
       * :meth:`solve_for_transaction`
@@ -388,7 +389,9 @@ class Solver(object):
 
         """
         if self.prefix == context.root_prefix and context.enable_private_envs:
-            # hold on, it's a while ride
+            # This path has the ability to generate a multi-prefix transaction. The basic logic
+            # is in the commented out get_install_transaction() function below. Exercised at
+            # the integration level in the PrivateEnvIntegrationTests in test_create.py.
             raise NotImplementedError()
         else:
             unlink_dists, link_dists = self.solve_for_diff(deps_modifier, prune, ignore_pinned,
@@ -397,6 +400,8 @@ class Solver(object):
             link_dists = tuple(Dist(d) for d in link_dists)
             stp = PrefixSetup(self._index, self.prefix, unlink_dists, link_dists,
                               self.specs_to_remove, self.specs_to_add)
+            # TODO: Only explicitly requested remove and update specs are being included in
+            #   History right now. Do we need to include other categories from the solve?
             return UnlinkLinkTransaction(stp)
 
     def _prepare(self):

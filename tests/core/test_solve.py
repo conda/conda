@@ -25,8 +25,8 @@ def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_s
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        solver.index = index
-        solver.r = r
+        solver._index = index
+        solver._r = r
         solver._prepared = True
         yield solver
 
