@@ -95,7 +95,7 @@ about any setting, simply accept the defaults as they all can be changed later:
 
 Now close and re-open your terminal window for the changes to take effect.
 
-To test your installation, enter the command ``conda list.`` If installed 
+To test your installation, enter the command ``conda list`` If installed 
 correctly, you will see a list of packages that were installed. 
 
 Next, go to our :doc:`30-minute conda test drive </test-drive>`.
