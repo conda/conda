@@ -545,6 +545,7 @@ class UnlinkLinkTransaction(object):
             # is python being linked? we're done
             full_version = linking_new_python.index_json_record.version
             assert full_version
+            log.debug("found in current transaction python version %s", full_version)
             return get_major_minor_version(full_version)
 
         # is python already linked and not being unlinked? that's ok too
@@ -555,9 +556,11 @@ class UnlinkLinkTransaction(object):
             unlinking_this_python = next(find_python, None)
             if unlinking_this_python is None:
                 # python is not being unlinked
+                log.debug("found in current prefix python version %s", linked_python_version)
                 return linked_python_version
 
         # there won't be any python in the finished environment
+        log.debug("no python version found in prefix")
         return None
 
     @staticmethod
