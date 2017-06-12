@@ -70,21 +70,16 @@ class MatchSpec(object):
     """
     The easiest way to build `MatchSpec` objects that match to arbitrary fields is to
     use a keyword syntax.  For instance,
-
         MatchSpec(name='foo', build='py2*', channel='conda-forge')
-
     matches any package named `foo` built with a Python 2 build string in the
     `conda-forge` channel.  Available keywords to be matched against are fields of
     the `IndexRecord` model object.
-
     Strings are interpreted using the following conventions:
       - If the string begins with `^` and ends with `$`, it is converted to a regex.
       - If the string contains an asterisk (`*`), it is transformed from a glob to a regex.
       - Otherwise, an exact match to the string is sought.
-
     The `.match()` method accepts an `IndexRecord` or dictionary, and matches can pull
     from any field in that record.
-
     Great pain has been taken to preserve back-compatibility with the standard
     `name version build` syntax. But strictly speaking it is not necessary. Now, the
     following are all equivalent:
@@ -92,7 +87,6 @@ class MatchSpec(object):
       - `MatchSpec("* [name='foo',version='1.0',build='py27_0']", optional=True)`
       - `MatchSpec("foo[version='1.0',optional,build='py27_0']")`
       - `MatchSpec(name='foo', optional=True, version='1.0', build='py27_0')`
-
     """
 
     FIELD_NAMES = (
@@ -126,7 +120,7 @@ class MatchSpec(object):
         return len(self._match_components) == 1
 
     def match(self, rec):
-        """
+        """f
         Accepts an `IndexRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
@@ -174,6 +168,7 @@ class MatchSpec(object):
 
         xtra = []
 
+        version_exact = False
         version = self._match_components.get('version')
         if version:
             version = text_type(version)
@@ -183,10 +178,26 @@ class MatchSpec(object):
                 builder.append('=' + version[:-2])
             elif version.endswith('*'):
                 builder.append('=' + version[:-1])
+            elif version.startswith('=='):
+                builder.append(version)
+                version_exact = True
             else:
                 builder.append('==' + version)
+                version_exact = True
 
-        _skip = ('channel', 'subdir', 'name', 'version')
+        build = self._match_components.get('build')
+        if build:
+            build = text_type(build)
+            if any(s in build for s in '><$^|,'):
+                xtra.append("build='%s'" % build)
+            elif '*' in build:
+                xtra.append("build=%s" % build)
+            elif version_exact:
+                builder.append('=' + build)
+            else:
+                xtra.append("build=%s" % build)
+
+        _skip = ('channel', 'subdir', 'name', 'version', 'build')
         for key in self.FIELD_NAMES:
             if key not in _skip and key in self._match_components:
                 value = text_type(self._match_components[key])
@@ -287,7 +298,6 @@ class MatchSpec(object):
 
 def _parse_version_plus_build(v_plus_b):
     """This should reliably pull the build string out of a version + build string combo.
-
     Examples:
         >>> _parse_version_plus_build("=1.2.3 0")
         ('=1.2.3', '0')
@@ -305,7 +315,6 @@ def _parse_version_plus_build(v_plus_b):
         ('*', 'openblas_0')
         >>> _parse_version_plus_build("* *")
         ('*', '*')
-
     """
     parts = re.search(r'((?:.+?)[^><!,|]?)(?:(?<![=!|,<>])(?:[ =])([^-=,|<>]+?))?$', v_plus_b)
     if parts:
@@ -324,7 +333,6 @@ def _parse_legacy_dist(dist_str):
         ('_license', '1.1', 'py27_1')
         >>> _parse_legacy_dist("_license-1.1-py27_1")
         ('_license', '1.1', 'py27_1')
-
     """
     if dist_str.endswith(CONDA_TARBALL_EXTENSION):
         dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
@@ -414,8 +422,12 @@ def _parse_spec_str(spec_str):
     else:
         raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
 
-    # Step 6. sort out version + build
+    # Step 6. otherwise sort out version + build
     spec_str = spec_str and spec_str.strip()
+    # This was an attempt to make MatchSpec('numpy-1.11.0-py27_0') work like we'd want. It's
+    # not possible though because plenty of packages have names with more than one '-'.
+    # if spec_str is None and name.count('-') >= 2:
+    #     name, version, build = _parse_legacy_dist(name)
     if spec_str:
         if '[' in spec_str:
             raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
