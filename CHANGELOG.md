@@ -1,13 +1,16 @@
-## 4.3.22 (unreleased)
+## 4.3.22 (2017-06-12)
 
 ### Improvements
 * resolve #5428 clean up cli import in conda 4.3.x (#5429)
 * resolve #5302 add warning when creating environment with space in path (#5477)
+* for ftp connections, ignore host IP from PASV as it is often wrong (#5489)
+* expose common race condition exceptions in exports for conda-build (#5498)
 
 ### Bug Fixes
 * fix #5451 conda clean --json bug (#5452)
 * fix #5400 confusing deactivate message (#5473)
 * fix #5459 custom subdir channel parsing (#5478)
+* fix #5483 problem with setuptools / pkg_resources import (#5496)
 
 
 ## 4.3.21 (2017-05-25)
