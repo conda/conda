@@ -13,12 +13,13 @@ import os
 from os.path import abspath, basename, exists, isdir, join
 import re
 
+from conda._vendor.boltons.setutils import IndexedSet
 from . import common
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import on_win, text_type
-from ..core.index import get_index
+from ..common.compat import on_win, text_type, itervalues
+from ..core.index import get_index, get_channel_priority_map
 from ..core.linked_data import linked as install_linked
 from ..exceptions import (CondaEnvironmentNotFoundError, CondaIOError, CondaImportError,
                           CondaOSError, CondaSystemExit, CondaValueError, DirectoryNotFoundError,
@@ -308,8 +309,16 @@ def install(args, parser, command='install'):
                 error_message.append("\n\nNote that you have pinned specs in %s:" % path)
                 error_message.append("\n\n    %r" % (pinned_specs,))
 
-            error_message = ''.join(error_message)
-            raise PackageNotFoundError(error_message)
+            channel_priority_map = get_channel_priority_map(
+                channel_urls=index_args['channel_urls'],
+                prepend=index_args['prepend'],
+                platform=None,
+                use_local=index_args['use_local'],
+            )
+
+            channels_urls = tuple(channel_priority_map)
+
+            raise PackageNotFoundError(error_message, channels_urls)
 
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error

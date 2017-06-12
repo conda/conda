@@ -328,8 +328,17 @@ class MD5MismatchError(CondaError):
 
 
 class PackageNotFoundError(CondaError):
-    def __init__(self, message, **kwargs):
-        super(PackageNotFoundError, self).__init__(message, **kwargs)
+
+    def __init__(self, message, channel_urls=(), **kwargs):
+        from .resolve import dashlist
+        channels = dashlist(channel_urls)
+        msg = dals("""
+        %(text)s
+
+        We have searched for the package in the following channels:
+        %(channels)s
+        """)
+        super(PackageNotFoundError, self).__init__(msg, text=message[0], channels=channels)
 
 
 class PackageNotInstalledError(PackageNotFoundError):
@@ -393,8 +402,6 @@ class NoPackagesFoundError(CondaError):
 
     def __init__(self, bad_deps):
         from .resolve import dashlist
-        from .base.context import context
-
         deps = set(q[-1].spec for q in bad_deps)
         if all(len(q) > 1 for q in bad_deps):
             what = "Dependencies" if len(bad_deps) > 1 else "Dependency"
@@ -404,6 +411,7 @@ class NoPackagesFoundError(CondaError):
             what = "Packages/dependencies"
         bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
         msg = '%s missing in current channels: %s' % (what, bad_deps)
+
         super(NoPackagesFoundError, self).__init__(msg)
         self.pkgs = deps
 
@@ -440,7 +448,6 @@ class UnsatisfiableError(CondaError):
                         found = True
                 if not found:
                     chains[key] = [{val} for val in vals]
-            bad_deps = []
             for key, csets in iteritems(chains):
                 deps = []
                 for name, cset in zip(key, csets):
