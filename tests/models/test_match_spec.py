@@ -7,12 +7,10 @@ import pytest
 from conda import text_type
 from conda.base.context import context
 from conda.cli.common import arg2spec, spec_from_line
-from conda.common.path import expand
-from conda.common.url import path_to_url
 from conda.exceptions import CondaValueError
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord, PackageRecord
+from conda.models.index_record import IndexRecord
 from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
 from conda.models.version import VersionSpec
 
@@ -187,9 +185,9 @@ class MatchSpecTests(TestCase):
         assert m("conda-forge/linux-64::numpy") == "conda-forge/linux-64::numpy"
         assert m("numpy[channel=conda-forge,subdir=noarch]") == "conda-forge/noarch::numpy"
 
-        assert m("numpy[subdir=win-32]") == '*/win-32::numpy'
-        assert m("*/win-32::numpy") == '*/win-32::numpy'
-        assert m("*/win-32::numpy[subdir=\"osx-64\"]") == '*/osx-64::numpy'
+        assert m("numpy[subdir=win-32]") == 'numpy[subdir=win-32]'
+        assert m("*/win-32::numpy") == 'numpy[subdir=win-32]'
+        assert m("*/win-32::numpy[subdir=\"osx-64\"]") == 'numpy[subdir=osx-64]'
 
         # TODO: should the result in these example pull out subdir?
         assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "defaults/linux-32::numpy"
@@ -289,7 +287,7 @@ class MatchSpecTests(TestCase):
         assert p.match(Dist(channel='defaults', dist_name='python-3.5.1-0', name='python',
                             version='3.5.1', build_string='0', build_number=0, base_url=None,
                             platform=None))
-        assert p.match(PackageRecord(name='python', version='3.5.1', build='0', build_number=0,
+        assert p.match(IndexRecord(name='python', version='3.5.1', build='0', build_number=0,
                                      depends=('openssl 1.0.2*', 'readline 6.2*', 'sqlite',
                                                'tk 8.5*', 'xz 5.0.5', 'zlib 1.2*', 'pip'),
                                      channel=Channel(scheme='https', auth=None,
@@ -547,3 +545,24 @@ class SpecStrParsingTests(TestCase):
     def test_parse_errors(self):
         with pytest.raises(CondaValueError):
             _parse_spec_str('!xyz 1.3')
+
+    def test_parse_channel_subdir(self):
+        assert _parse_spec_str("conda-forge::foo>=1.0") == {
+            "channel": "conda-forge",
+            "name": "foo",
+            "version": ">=1.0",
+        }
+
+        assert _parse_spec_str("conda-forge/linux-32::foo>=1.0") == {
+            "channel": "conda-forge",
+            "subdir": "linux-32",
+            "name": "foo",
+            "version": ">=1.0",
+        }
+
+        assert _parse_spec_str("*/linux-32::foo>=1.0") == {
+            "channel": "*",
+            "subdir": "linux-32",
+            "name": "foo",
+            "version": ">=1.0",
+        }

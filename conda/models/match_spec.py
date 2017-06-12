@@ -135,6 +135,8 @@ class MatchSpec(object):
         'conda-forge::foo=1.0'
         >>> str(MatchSpec('conda-forge/linux-64::foo>=1.0'))
         "conda-forge/linux-64::foo[version='>=1.0']"
+        >>> str(MatchSpec('*/linux-64::foo>=1.0'))
+        "foo[subdir=linux-64,version='>=1.0']"
 
     """
 
@@ -203,26 +205,30 @@ class MatchSpec(object):
 
     def __str__(self):
         builder = []
+        brackets = []
 
         channel_matcher = self._match_components.get('channel')
-        if channel_matcher:
+        if channel_matcher and channel_matcher.exact_value:
             builder.append(text_type(channel_matcher))
+        elif channel_matcher and not channel_matcher.matches_all:
+            brackets.append("channel=%s" % text_type(channel_matcher))
 
         subdir_matcher = self._match_components.get('subdir')
         if subdir_matcher:
-            builder.append(('/%s' if builder else '*/%s') % subdir_matcher)
+            if channel_matcher and channel_matcher.exact_value:
+                builder.append('/%s' % subdir_matcher)
+            else:
+                brackets.append("subdir=%s" % subdir_matcher)
 
         name_matcher = self._match_components.get('name', '*')
         builder.append(('::%s' if builder else '%s') % name_matcher)
-
-        xtra = []
 
         version_exact = False
         version = self._match_components.get('version')
         if version:
             version = text_type(version)
             if any(s in version for s in '><$^|,'):
-                xtra.append("version='%s'" % version)
+                brackets.append("version='%s'" % version)
             elif version.endswith('.*'):
                 builder.append('=' + version[:-2])
             elif version.endswith('*'):
@@ -238,25 +244,25 @@ class MatchSpec(object):
         if build:
             build = text_type(build)
             if any(s in build for s in '><$^|,'):
-                xtra.append("build='%s'" % build)
+                brackets.append("build='%s'" % build)
             elif '*' in build:
-                xtra.append("build=%s" % build)
+                brackets.append("build=%s" % build)
             elif version_exact:
                 builder.append('=' + build)
             else:
-                xtra.append("build=%s" % build)
+                brackets.append("build=%s" % build)
 
         _skip = ('channel', 'subdir', 'name', 'version', 'build')
         for key in self.FIELD_NAMES:
             if key not in _skip and key in self._match_components:
                 value = text_type(self._match_components[key])
                 if any(s in value for s in ', ='):
-                    xtra.append("%s='%s'" % (key, self._match_components[key]))
+                    brackets.append("%s='%s'" % (key, self._match_components[key]))
                 else:
-                    xtra.append("%s=%s" % (key, self._match_components[key]))
+                    brackets.append("%s=%s" % (key, self._match_components[key]))
 
-        if xtra:
-            builder.append('[%s]' % ','.join(xtra))
+        if brackets:
+            builder.append('[%s]' % ','.join(brackets))
 
         return ''.join(builder)
 
@@ -585,35 +591,6 @@ class SplitStrMatch(MatchInterface):
         return self._raw_value
 
 
-class ChannelMatch(MatchInterface):
-    __slots__ = '_raw_value',
-
-    def __init__(self, value):
-        super(ChannelMatch, self).__init__(Channel(value))
-
-    def match(self, other):
-        try:
-            return self._raw_value.canonical_name == other._raw_value.canonical_name
-        except AttributeError:
-            return self._raw_value.canonical_name == Channel(other).canonical_name
-
-    def __str__(self):
-        return "%s" % self._raw_value.canonical_name
-
-    def __repr__(self):
-        return "'%s'" % self._raw_value.canonical_name
-
-    def __eq__(self, other):
-        return self.match(other)
-
-    def __hash__(self):
-        return hash(self._raw_value)
-
-    @property
-    def exact_value(self):
-        return self._raw_value
-
-
 class StrMatch(MatchInterface):
     __slots__ = '_raw_value', '_re_match'
 
@@ -652,6 +629,46 @@ class StrMatch(MatchInterface):
     @property
     def exact_value(self):
         return self._raw_value if self._re_match is None else None
+
+    @property
+    def matches_all(self):
+        return self._raw_value == '*'
+
+
+class ChannelMatch(StrMatch):
+
+    def __init__(self, value):
+        self._re_match = None
+
+        if isinstance(value, string_types):
+            if value.startswith('^') and value.endswith('$'):
+                self._re_match = re.compile(value).match
+            elif '*' in value:
+                self._re_match = re.compile(r'^(?:%s)$' % value.replace('*', r'.*')).match
+            else:
+                value = Channel(value)
+
+        super(StrMatch, self).__init__(value)
+
+    def match(self, other):
+        try:
+            _other_val = Channel(other._raw_value)
+        except AttributeError:
+            _other_val = Channel(other)
+
+        if self._re_match:
+            return self._re_match(_other_val.canonical_name)
+        else:
+            return self._raw_value.canonical_name == _other_val.canonical_name
+
+    def __str__(self):
+        try:
+            return "%s" % self._raw_value.canonical_name
+        except AttributeError:
+            return "%s" % self._raw_value
+
+    def __repr__(self):
+        return "'%s'" % self.__str__()
 
 
 class LowerStrMatch(StrMatch):
