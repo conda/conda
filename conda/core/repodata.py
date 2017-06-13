@@ -23,7 +23,8 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
-from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode, text_type, with_metaclass
+from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode,
+                             text_type, with_metaclass)
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache import PackageCache
 from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError
