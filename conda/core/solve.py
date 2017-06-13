@@ -40,8 +40,6 @@ class DepsModifier(Enum):
     UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
     UPDATE_ALL = 'update_all'
     FREEZE_INSTALLED = 'freeze_installed'  # freeze is a better name for --no-update-deps
-    # So far, unable to contrive in tests a situation where --no-update-deps / FREEZE_DEPS
-    #  is actually needed.  And in that case the `conda update -h` docs might need updating.
 
 
 class Solver(object):
