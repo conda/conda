@@ -2,7 +2,7 @@
 
 ### New Features
 * constrained, optional dependencies (#4982)
-* conda shell function (#5044, #5141, #5162, #5169, #5182, #5210)
+* conda shell function (#5044, #5141, #5162, #5169, #5182, #5210, #5482)
 * resolve #5160 conda xontrib plugin (#5157)
 * resolve #1543 add support and tests for --no-deps and --only-deps (#5265)
 * resolve #988 allow channel name to be part of the package name spec (#5365)
@@ -13,7 +13,7 @@
 
 ### Improvements
 * filter out unwritable package caches from conda clean command (#4620)
-* envs_manager, requested spec history, declarative solve, and private env tests (#4676, #5114, #5094, #5145)
+* envs_manager, requested spec history, declarative solve, and private env tests (#4676, #5114, #5094, #5145, #5492)
 * make python entry point format match pip entry points (#5010)
 * resolve #5113 clean up CLI imports to improve process startup time (#4799)
 * resolve #5121 add features/track_features support for MatchSpec (#5054)
@@ -54,6 +54,7 @@
 * fix #5466 scrambled URL of non-alias channel with token (#5467)
 * fix #5444 environment.yml file not found (#5475)
 * fix #3200 use proper unbound checks in bash code and test (#5476)
+* invalidate PrefixData cache on rm_rf for conda-build (#5491, #5499)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
