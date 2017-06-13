@@ -144,8 +144,8 @@ class ExceptionTests(TestCase):
 
         json_obj = json.loads(c.stdout)
         assert not c.stderr
-        assert json_obj['exception_type'] == "<class 'conda.exceptions.FileNotFoundError'>"
-        assert json_obj['exception_name'] == 'FileNotFoundError'
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.PathNotFoundError'>"
+        assert json_obj['exception_name'] == 'PathNotFoundError'
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
 
@@ -154,7 +154,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "FileNotFoundError: Groot"
+        assert c.stderr.strip() == "PathNotFoundError: Groot"
 
     def test_DirectoryNotFoundError(self):
         directory = "Groot"
