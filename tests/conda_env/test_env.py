@@ -76,8 +76,8 @@ class EnvironmentTestCase(unittest.TestCase):
 
     def test_builds_spec_from_line_raw_dependency(self):
         # TODO Refactor this inside conda to not be a raw string
-        e = env.Environment(dependencies=['nltk=3.0.0=np18py27'])
-        expected = OrderedDict([('conda', ['nltk==3.0.0=np18py27'])])
+        e = env.Environment(dependencies=['nltk=3.0.0=np18py27_0'])
+        expected = OrderedDict([('conda', ['nltk==3.0.0=np18py27_0'])])
         self.assertEqual(e.dependencies, expected)
 
     def test_args_are_wildcarded(self):
