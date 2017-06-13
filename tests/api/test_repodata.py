@@ -4,9 +4,9 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
-from conda.repodata import RepoData  # the interface to be tested
-import conda.core.repodata as _impl  # the backend to be mocked
-import conda.core.index as _index    # the old interface to be tested
+from conda.core.repodata import RepoData  # the interface to be tested
+import conda.core.repodata as _impl       # the backend to be mocked
+import conda.core.index as _index         # the old interface to be tested
 
 from unittest import TestCase
 import pytest

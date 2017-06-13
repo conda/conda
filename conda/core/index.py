@@ -13,7 +13,7 @@ from ..gateways.disk.read import read_index_json
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord, RepodataRecord
-from ..repodata import RepoData
+from .repodata import RepoData
 
 try:
     from cytoolz.itertoolz import take

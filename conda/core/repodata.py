@@ -15,6 +15,7 @@ import re
 from textwrap import dedent
 from time import time
 import warnings
+from collections import OrderedDict
 
 from .. import CondaError, iteritems
 from .._vendor.auxlib.entity import EntityEncoder
@@ -22,7 +23,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
-from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode, text_type
+from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode, text_type, with_metaclass
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache import PackageCache
 from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError
@@ -45,7 +46,7 @@ try:
 except ImportError:  # pragma: no cover
     import pickle
 
-__all__ = ('collect_all_repodata',)
+__all__ = ('RepoData', 'collect_all_repodata',)
 
 log = getLogger(__name__)
 dotlog = getLogger('dotupdate')
@@ -53,6 +54,101 @@ stderrlog = getLogger('stderrlog')
 
 REPODATA_PICKLE_VERSION = 2
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
+
+
+class RepoDataType(type):
+    """This (meta) class provides (ordered) dictionary-like access to Repodata."""
+
+    def __init__(cls, name, bases, dict):
+        cls._instances = OrderedDict()
+
+    def __getitem__(cls, url):
+        return cls._instances[url]
+
+    def __iter__(cls):
+        return iter(cls._instances)
+
+    def __reversed__(cls):
+        return reversed(cls._instances)
+
+    def __len__(cls):
+        return len(cls._instances)
+
+@with_metaclass(RepoDataType)
+class RepoData(object):
+    """This object represents all the package metainfo of a single channel."""
+
+    @staticmethod
+    def enable(url, name, priority, cache_dir=None):
+        RepoData._instances[url] = RepoData(url, name, priority, cache_dir)
+
+    @staticmethod
+    def get(url):
+        return RepoData._instances.get(url)
+
+    @staticmethod
+    def clear():
+        RepoData._instances.clear()
+
+    @staticmethod
+    def load_all(use_cache=False):
+        try:
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(10) as e:
+                for rd in RepoData._instances.values():
+                    e.submit(rd.load(use_cache=use_cache, session=CondaSession()))
+        except (ImportError) as e:
+            for rd in RepoData._instances.values():
+                rd.load(use_cache=use_cache, session=CondaSession())
+
+    def __init__(self, url, name, priority, cache_dir=None):
+        """Create a RepoData object."""
+
+        self.url = url
+        self.name = name
+        self.priority = priority
+        self.cache_dir = cache_dir
+        self._data = None
+
+    def load(self, use_cache=False, session=None):
+        """Syncs this object with an upstream RepoData object."""
+
+        session = session if session else CondaSession()
+        self._data = fetch_repodata(self.url, self.name, self.priority,
+                                    cache_dir=self.cache_dir,
+                                    use_cache=use_cache, session=session)
+
+    def _persist(self, cache_dir=None):
+        """Save data to local cache."""
+
+        cache_path = join(cache_dir or self.cache_dir or create_cache_dir(),
+                          cache_fn_url(self.url))
+        write_pickled_repodata(cache_path, self._data)
+
+    def query(self, query):
+        """query information about a package"""
+        raise NotImplemented
+
+    def contains(self, package_ref):
+        """Check whether the package is contained in this channel."""
+        raise NotImplemented
+
+    def validate(self, package_ref):
+        """Check whether the package could be added to this channel."""
+        raise NotImplemented
+
+    def add(self, package_ref):
+        """Add the given package-ref to this channel."""
+        raise NotImplemented
+
+    def remove(self, package_ref):
+        """Remove the given package-ref from this channel."""
+        raise NotImplemented
+
+    @property
+    def index(self):
+        # WARNING: This method will soon be deprecated.
+        return self._data
 
 
 def collect_all_repodata(use_cache, tasks):
