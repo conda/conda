@@ -19,13 +19,13 @@ _conda_set_vars() {
         fi
     fi
 
-    if ! [ -n "${_CONDA_EXE:+x}" ]; then
+    if [ -z "${_CONDA_EXE+x}" ]; then
         if [ -n "${_CONDA_ROOT:+x}" ]; then
             # typically this should be for dev only; _CONDA_EXE should be written at top of file
             # for normal installs
             _CONDA_EXE="$_CONDA_ROOT/../shell/bin/conda"
         fi
-        if ! [ -f "$_CONDA_EXE" ]; then
+        if ! [ -f "${_CONDA_EXE-x}" ]; then
             _CONDA_EXE="$PWD/shell/bin/conda"
         fi
     fi
@@ -49,15 +49,15 @@ _conda_activate() {
 
     case "$_CONDA_SHELL_FLAVOR" in
         dash)
-            if [ "$(echo "$PS1" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
+            if [ "$(echo "${PS1-}" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
                 PS1='$CONDA_PROMPT_MODIFIER\[\]'"$PS1"
             fi
             ;;
         *)
-            if [ "${PS1:0:22}" != '$CONDA_PROMPT_MODIFIER' ]; then
+            if [ -z "${PS1+x}" ] || [ "${PS1:0:22}" != '$CONDA_PROMPT_MODIFIER' ]; then
                 # the extra \[\] is because the prompt fails for some reason if there's no
                 # character after the end of the environment variable name
-                PS1='$CONDA_PROMPT_MODIFIER\[\]'"$PS1"
+                PS1='$CONDA_PROMPT_MODIFIER\[\]'"${PS1-}"
             fi
             ;;
     esac
@@ -70,10 +70,10 @@ _conda_deactivate() {
     ask_conda="$($_CONDA_EXE shell.posix deactivate "$@")" || return $?
     eval "$ask_conda"
 
-    if [ -z "$CONDA_PREFIX" ]; then
+    if [ -z "${CONDA_PREFIX+x}" ]; then
         case "$_CONDA_SHELL_FLAVOR" in
-            dash) PS1=$(echo "$PS1" | awk '{ string=substr($0, 27); print string; }') ;;
-            *) PS1=${PS1:26} ;;
+            dash) PS1=$(echo "${PS1-}" | awk '{ string=substr($0, 27); print string; }') ;;
+            *) [ -n "${PS1:+x}" ] && PS1=${PS1:26} ;;
         esac
     fi
 
@@ -111,7 +111,7 @@ conda() {
 
 _conda_set_vars
 
-if [ -z "$CONDA_SHLVL" ]; then
+if [ -z "${CONDA_SHLVL+x}" ]; then
     export CONDA_SHLVL=0
 fi
 

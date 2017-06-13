@@ -106,7 +106,6 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
         return
 
     if verbose:
-        from ..utils import human_bytes
         print("Will remove the following tarballs:")
         print()
 
@@ -130,7 +129,6 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
             try:
-                from ..gateways.disk.delete import rm_rf
                 if rm_rf(os.path.join(pkgs_dir, fn)):
                     if verbose:
                         print("Removed %s" % fn)

@@ -16,10 +16,10 @@ from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
 
 try:
     from cytoolz.functoolz import excepts
-    from cytoolz.itertoolz import concatv, topk
+    from cytoolz.itertoolz import concatv, drop
 except ImportError:  # pragma: no cover
     from .._vendor.toolz.functoolz import excepts  # NOQA
-    from .._vendor.toolz.itertoolz import concatv, topk  # NOQA
+    from .._vendor.toolz.itertoolz import concatv, drop  # NOQA
 
 log = getLogger(__name__)
 
@@ -115,7 +115,7 @@ class Channel(object):
         else:
             # at this point assume we don't have a bare (non-scheme) url
             #   e.g. this would be bad:  repo.continuum.io/pkgs/free
-            _stripped, platform = split_platform(value)
+            _stripped, platform = split_platform(value, context.known_subdirs)
             if _stripped in context.custom_multichannels:
                 return MultiChannel(_stripped, context.custom_multichannels[_stripped], platform)
             else:
@@ -349,7 +349,7 @@ def _get_channel_for_name(channel_name):
                 return None
             return _get_channel_for_name_helper(test_name)
 
-    _stripped, platform = split_platform(channel_name)
+    _stripped, platform = split_platform(channel_name, context.known_subdirs)
     channel = _get_channel_for_name_helper(_stripped)
 
     if channel is not None:
@@ -420,13 +420,19 @@ def _read_channel_configuration(scheme, host, port, path):
         return location, name, _scheme, _auth, _token
 
     # Step 7. fall through to host:port as channel_location and path as channel_name
-    return (Url(host=host, port=port).url.rstrip('/'), path.strip('/') or None,
+    #  but bump the first token of paths starting with /conda for compatibility with
+    #  Anaconda Enterprise Repository software.
+    bump = None
+    path_parts = path.strip('/').split('/')
+    if path_parts and path_parts[0] == 'conda':
+        bump, path = 'conda', '/'.join(drop(1, path_parts))
+    return (Url(host=host, port=port, path=bump).url.rstrip('/'), path.strip('/') or None,
             scheme or None, None, None)
 
 
 def parse_conda_channel_url(url):
     (scheme, auth, token, platform, package_filename,
-     host, port, path, query) = split_conda_url_easy_parts(url)
+     host, port, path, query) = split_conda_url_easy_parts(url, context.known_subdirs)
 
     # recombine host, port, path to get a channel_name and channel_location
     (channel_location, channel_name, configured_scheme, configured_auth,

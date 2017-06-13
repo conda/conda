@@ -15,9 +15,6 @@ CondaError = CondaError
 from . import compat, plan  # NOQA
 compat, plan = compat, plan
 
-from .api import get_index  # NOQA
-get_index = get_index
-
 from .cli.common import specs_from_args, spec_from_line, specs_from_url  # NOQA
 from .cli.conda_argparse import add_parser_prefix, add_parser_channels  # NOQA
 add_parser_channels, add_parser_prefix = add_parser_channels, add_parser_prefix
@@ -38,17 +35,18 @@ _toposort = _toposort
 from .gateways.disk.link import lchmod  # NOQA
 lchmod = lchmod
 
-from .fetch import TmpDownload  # NOQA
+from .gateways.connection.download import TmpDownload  # NOQA
+
 TmpDownload = TmpDownload
 handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
                                      "Now handled by CondaSession.")
-from .core.index import dist_str_in_index, fetch_index  # NOQA
-dist_str_in_index, fetch_index = dist_str_in_index, fetch_index
+from .core.index import dist_str_in_index, fetch_index, get_index  # NOQA
+dist_str_in_index, fetch_index, get_index = dist_str_in_index, fetch_index, get_index
 from .core.package_cache import download, rm_fetched  # NOQA
 download, rm_fetched = download, rm_fetched
 
-from .install import package_cache, prefix_placeholder, rm_rf, symlink_conda  # NOQA
-package_cache, prefix_placeholder, rm_rf, symlink_conda = package_cache, prefix_placeholder, rm_rf, symlink_conda  # NOQA
+from .install import package_cache, prefix_placeholder, symlink_conda  # NOQA
+package_cache, prefix_placeholder, symlink_conda = package_cache, prefix_placeholder, symlink_conda  # NOQA
 
 from .gateways.disk.delete import delete_trash, move_to_trash  # NOQA
 delete_trash, move_to_trash = delete_trash, move_to_trash
@@ -63,10 +61,6 @@ from .resolve import MatchSpec, NoPackagesFound, Resolve, Unsatisfiable, normali
 MatchSpec, NoPackagesFound, Resolve = MatchSpec, NoPackagesFound, Resolve
 Unsatisfiable, normalized_version = Unsatisfiable, normalized_version
 
-from .signature import KEYS, KEYS_DIR, hash_file, verify  # NOQA
-KEYS, KEYS_DIR = KEYS, KEYS_DIR
-hash_file, verify = hash_file, verify
-
 from .utils import hashsum_file, human_bytes, unix_path_to_win, url_path  # NOQA
 from .common.path import win_path_to_unix  # NOQA
 hashsum_file, human_bytes = hashsum_file, human_bytes
@@ -76,15 +70,12 @@ win_path_to_unix, url_path = win_path_to_unix, url_path
 from .gateways.disk.read import compute_md5sum  # NOQA
 md5_file = compute_md5sum
 
-from .config import sys_rc_path  # NOQA
-sys_rc_path = sys_rc_path
-
 from .models.version import VersionOrder  # NOQA
 VersionOrder = VersionOrder
 
 import conda.base.context  # NOQA
-from .base.context import get_prefix as context_get_prefix, non_x86_linux_machines  # NOQA
-non_x86_linux_machines = non_x86_linux_machines
+from .base.context import get_prefix as context_get_prefix, non_x86_linux_machines, sys_rc_path  # NOQA
+non_x86_linux_machines, sys_rc_path = non_x86_linux_machines, sys_rc_path
 
 from ._vendor.auxlib.entity import EntityEncoder # NOQA
 EntityEncoder = EntityEncoder
@@ -104,12 +95,17 @@ platform = conda.base.context.context.platform
 root_dir = conda.base.context.context.root_prefix
 root_writable = conda.base.context.context.root_writable
 subdir = conda.base.context.context.subdir
+conda_private = conda.base.context.context.conda_private
 from .models.channel import get_conda_build_local_url  # NOQA
 get_rc_urls = lambda: list(conda.base.context.context.channels)
 get_local_urls = lambda: list(get_conda_build_local_url()) or []
 load_condarc = lambda fn: conda.base.context.reset_context([fn])
-from .exceptions import PaddingError  # NOQA
+from .exceptions import PaddingError, LinkError, CondaOSError, CondaFileNotFoundError  # NOQA
 PaddingError = PaddingError
+LinkError = LinkError
+CondaOSError = CondaOSError
+# PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
+PathNotFoundError = CondaFileNotFoundError
 from .gateways.disk.link import CrossPlatformStLink  # NOQA
 CrossPlatformStLink = CrossPlatformStLink
 
@@ -117,14 +113,6 @@ from .models.enums import FileMode  # NOQA
 FileMode = FileMode
 from .models.enums import PathType  # NOQA
 PathType = PathType
-
-
-if PY3:
-    import configparser  # NOQA  # pragma: py2 no cover
-else:
-    import ConfigParser as configparser  # NOQA  # pragma: py3 no cover
-configparser = configparser
-
 
 from .compat import TemporaryDirectory  # NOQA
 TemporaryDirectory = TemporaryDirectory
@@ -181,3 +169,27 @@ class memoized(object):  # pragma: no cover
                 value = self.func(*args, **kw)
                 self.cache[key] = value
                 return value
+
+
+from .gateways.disk.delete import rm_rf as _rm_rf  # NOQA
+from .core.linked_data import PrefixData as _PrefixData  # NOQA
+
+
+def rm_rf(path, max_retries=5, trash=True):
+    _rm_rf(path, max_retries, trash)
+    _PrefixData._cache_.pop(path.rstrip('/\\'), None)
+
+
+# ######################
+# signature.py
+# ######################
+KEYS = None
+KEYS_DIR = None
+
+
+def hash_file(_):
+    return None  # pragma: no cover
+
+
+def verify(_):
+    return False  # pragma: no cover

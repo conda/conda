@@ -11,9 +11,9 @@ import tempfile
 import pytest
 
 from conda import CONDA_PACKAGE_ROOT
+from conda.base.context import context
 from conda.cli.activate import _get_prefix_paths, binpath_from_arg
 from conda.compat import TemporaryDirectory, chain
-from conda.config import root_dir
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.update import touch
 from conda.utils import on_win, shells, translate_stream, unix_path_to_win
@@ -137,6 +137,8 @@ def _format_vars(shell):
 {set} CONDA_PATH_BACKUP=
 {set} PATH="{new_path}"
 """
+        if 'bash' in shell:
+            _command_setup += "set -u\n"
 
     command_setup = _command_setup.format(here=dirname(__file__), PYTHONPATH=shelldict['path_to'](PYTHONPATH),
            set=shelldict["set_var"], new_path=base_path)
@@ -281,7 +283,7 @@ def test_activate_root_simple(shell):
         """).format(envs=envs, **shell_vars)
 
         stdout, stderr = run_in(commands, shell)
-        assert_in(shells[shell]['pathsep'].join(_envpaths(root_dir, shell=shell)), stdout, stderr)
+        assert_in(shells[shell]['pathsep'].join(_envpaths(context.root_prefix, shell=shell)), stdout, stderr)
         assert not stderr
 
         # debug TODO: remove
@@ -590,11 +592,15 @@ def test_deactivate_from_env(shell):
     """Tests whether the deactivate bat file or link in the activated environment works OK"""
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
-        commands = (shell_vars['command_setup'] + """
+        commands = shell_vars['command_setup']
+        if 'ash' in shell:
+            commands += "set +u\n"
+        commands += """
         {source} "{syspath}{binpath}activate" "{env_dirs[0]}"
         {source} deactivate
         {printdefaultenv}
-        """).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
+        """
+        commands = (commands).format(envs=envs, env_dirs=gen_test_env_paths(envs, shell), **shell_vars)
         stdout, stderr = run_in(commands, shell)
         assert not stderr
         assert_equals(stdout, u'', stderr)

@@ -5,11 +5,11 @@ import logging
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, string_types, isiterable, text_type
+from .common.compat import isiterable, iteritems, iterkeys, itervalues, string_types, text_type
+from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
 from .console import setup_handlers
 from .exceptions import NoPackagesFoundError, UnsatisfiableError
-from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
 from .models.match_spec import MatchSpec
 from .models.version import normalized_version
@@ -616,11 +616,6 @@ class Resolve(object):
         res = [Dist(add_defaults_if_no_channel(f)) for f in sorted(res)]
         log.debug('explicit(%r) finished', specs)
         return res
-
-    def sum_matches(self, fn1, fn2):
-        assert isinstance(fn1, Dist)
-        assert isinstance(fn2, Dist)
-        return sum(self.match(ms, fn2) for ms in self.ms_depends(fn1))
 
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')

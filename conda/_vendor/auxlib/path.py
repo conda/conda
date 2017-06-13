@@ -6,7 +6,7 @@ from os import chdir, getcwd
 from os.path import abspath, dirname, exists, expanduser, expandvars, isdir, isfile, join, sep
 try:
     import pkg_resources
-except ImportError:
+except Exception:
     pkg_resources = None
 import sys
 

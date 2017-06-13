@@ -1,6 +1,9 @@
 from os.path import basename
-import conda.config as config
+
+from conda.base.constants import ROOT_ENV_NAME
+from conda.base.context import context
 from ..exceptions import EnvironmentAlreadyInNotebook, NBFormatNotInstalled
+
 try:
     import nbformat
 except ImportError:
@@ -38,8 +41,8 @@ class Notebook(object):
 
 def current_env():
     """Retrieves dictionary with current environment's name and prefix"""
-    if config.default_prefix == config.root_dir:
-        name = config.root_env_name
+    if context.default_prefix == context.root_prefix:
+        name = ROOT_ENV_NAME
     else:
-        name = basename(config.default_prefix)
+        name = basename(context.default_prefix)
     return name

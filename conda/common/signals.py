@@ -44,7 +44,7 @@ def signal_handler(handler):
             try:
                 prev_handler = signal.signal(sig, handler)
                 _thread_local.previous_handlers.append((sig, prev_handler))
-            except ValueError as e:
+            except ValueError as e:  # pragma: no cover
                 # ValueError: signal only works in main thread
                 log.debug('%r', e)
     try:

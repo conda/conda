@@ -1,10 +1,11 @@
-from itertools import combinations, permutations, product, chain
+from itertools import chain, combinations, permutations, product
 
 import pytest
 
-from conda.logic import (Clauses, evaluate_eq, minimal_unsatisfiable_subset)
+from conda.common.compat import iteritems, string_types
+from conda.common.logic import (Clauses, evaluate_eq, minimal_unsatisfiable_subset)
 from tests.helpers import raises
-from conda.common.compat import string_types, iteritems
+
 
 # These routines implement logical tests with short-circuiting
 # and propogation of unknown values:

@@ -11,7 +11,6 @@ import re
 import shutil
 import sys
 
-from .base.constants import PREFIX_MAGIC_FILE
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, on_win, open
 from .common.path import expand, url_to_path, win_path_ok
@@ -172,22 +171,6 @@ def untracked(prefix, exclude_self_build=False):
                     (path.endswith('.pyc') and path[:-1] in conda_files))}
 
 
-def which_prefix(path):
-    """
-    given the path (to a (presumably) conda installed file) return the
-    environment prefix in which the file in located
-    """
-    prefix = abspath(path)
-    while True:
-        if isdir(join(prefix, 'conda-meta')):
-            # we found the it, so let's return it
-            return prefix
-        if prefix == dirname(prefix):
-            # we cannot chop off any more directories, so we didn't find it
-            return None
-        prefix = dirname(prefix)
-
-
 def touch_nonadmin(prefix):
     """
     Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)
@@ -320,25 +303,3 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     actions = explicit(urls, prefix2, verbose=not quiet, index=index,
                        force_extract=False, index_args=index_args)
     return actions, untracked_files
-
-
-def make_icon_url(info):
-    if info.get('channel') and info.get('icon'):
-        base_url = dirname(info['channel'])
-        icon_fn = info['icon']
-        return '%s/icons/%s' % (base_url, icon_fn)
-    return ''
-
-
-def list_prefixes():
-    # Lists all the prefixes that conda knows about.
-    for envs_dir in context.envs_dirs:
-        if not isdir(envs_dir):
-            continue
-        for dn in sorted(os.listdir(envs_dir)):
-            prefix = join(envs_dir, dn)
-            if isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE)):
-                prefix = join(envs_dir, dn)
-                yield prefix
-
-    yield context.root_prefix
