@@ -20,7 +20,7 @@ from .. import CondaError, iteritems
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import CONDA_HOMEPAGE_URL
+from ..base.constants import CONDA_HOMEPAGE_URL, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode, text_type
 from ..common.url import join_url, maybe_unquote
@@ -384,6 +384,22 @@ def read_local_repodata(cache_path, channel_url, schannel, priority, etag, mod_s
             return local_repodata
 
 
+def make_feature_record(feature_name):
+    # necessary for the SAT solver to do the right thing with features
+    pkg_name = feature_name + '@'
+    return IndexRecord(
+        name=pkg_name,
+        version='0',
+        build='0',
+        channel=UNKNOWN_CHANNEL,
+        subdir=context.subdir,
+        md5="0123456789",
+        track_features=feature_name,
+        build_number=0,
+        fn=pkg_name,
+    )
+
+
 def process_repodata(repodata, channel_url, schannel, priority):
     opackages = repodata.setdefault('packages', {})
     if not opackages:
@@ -406,6 +422,7 @@ def process_repodata(repodata, channel_url, schannel, priority):
         'subdir': subdir,
     }
     packages = {}
+    feature_names = set()
     for fn, info in iteritems(opackages):
         info['fn'] = fn
         info['url'] = join_url(channel_url, fn)
@@ -414,6 +431,15 @@ def process_repodata(repodata, channel_url, schannel, priority):
         info.update(meta_in_common)
         rec = IndexRecord(**info)
         packages[Dist(rec)] = rec
+        if rec.features:
+            feature_names.update(rec.features)
+        if rec.track_features:
+            feature_names.update(rec.track_features)
+
+    for feature_name in feature_names:
+        rec = make_feature_record(feature_name)
+        packages[Dist(rec)] = rec
+
     repodata['packages'] = packages
 
 

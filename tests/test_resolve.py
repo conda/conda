@@ -9,7 +9,9 @@ from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve
-from .helpers import index, r, raises
+from .helpers import raises, get_index_r_1
+
+index, r, = get_index_r_1()
 
 f_mkl = set(['mkl'])
 

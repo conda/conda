@@ -7,7 +7,7 @@ from logging import getLogger
 
 from .linked_data import linked_data
 from .package_cache import PackageCache
-from .repodata import collect_all_repodata
+from .repodata import collect_all_repodata, make_feature_record
 from ..base.constants import MAX_CHANNEL_PRIORITY
 from ..base.context import context
 from ..common.compat import iteritems, itervalues
@@ -133,19 +133,8 @@ def _supplement_index_with_cache(index, channels):
 
 
 def _supplement_index_with_features(index, features=()):
-    defaults = Channel('defaults')
     for feat in chain(context.track_features, features):
-        fname = feat + '@'
-        rec = IndexRecord(
-            name=fname,
-            version='0',
-            build='0',
-            channel=defaults,
-            subdir=context.subdir,
-            md5="0123456789",
-            track_features=feat,
-            build_number=0,
-            fn=fname)
+        rec = make_feature_record(feat)
         index[Dist(rec)] = rec
 
 

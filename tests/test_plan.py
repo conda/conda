@@ -25,7 +25,9 @@ import conda.plan as plan
 from conda.utils import on_win
 from .decorators import skip_if_no_mock
 from .gateways.disk.test_permissions import tempdir
-from .helpers import captured, index, mock, r, tempdir
+from .helpers import captured, mock, tempdir, get_index_r_1
+
+index, r, = get_index_r_1()
 
 try:
     from unittest.mock import patch

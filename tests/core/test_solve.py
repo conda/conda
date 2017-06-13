@@ -12,7 +12,7 @@ from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.prefix_record import PrefixRecord
 from conda.resolve import MatchSpec
-from ..helpers import index, patch, r
+from ..helpers import patch, get_index_r_1
 
 
 @contextmanager
@@ -22,6 +22,7 @@ def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_s
     pd = PrefixData(prefix)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
+    index, r = get_index_r_1()
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -47,7 +48,7 @@ def test_solve_1():
             'defaults::python-3.3.2-0',
             'defaults::numpy-1.7.1-py33_0',
         )
-        assert tuple(final_state) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("python=2"),
     with get_solver(specs_to_add=specs_to_add,
@@ -64,7 +65,7 @@ def test_solve_1():
             'defaults::python-2.7.5-0',
             'defaults::numpy-1.7.1-py27_0',
         )
-        assert tuple(final_state) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_prune_1():
@@ -98,7 +99,7 @@ def test_prune_1():
             'defaults::mkl-11.0-np16py27_p0',
             'defaults::accelerate-1.1.0-np16py27_p0',
         )
-        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_remove = MatchSpec("numbapro"),
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
@@ -128,7 +129,7 @@ def test_prune_1():
             'defaults::scikit-learn-0.13.1-np16py27_p0',
             'defaults::mkl-11.0-np16py27_p0',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
@@ -145,7 +146,7 @@ def test_prune_1():
             'defaults::python-2.7.3-7',
             'defaults::numpy-1.6.2-py27_4',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_prune_2():
@@ -173,7 +174,7 @@ def test_force_remove_1():
             'defaults::python-2.7.5-0',
             'defaults::numpy-1.7.1-py27_0',
         )
-        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_remove = MatchSpec("python"),
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
@@ -189,7 +190,7 @@ def test_force_remove_1():
             'defaults::tk-8.5.13-0',
             'defaults::zlib-1.2.7-0',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_remove = MatchSpec("python"),
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
@@ -206,14 +207,14 @@ def test_force_remove_1():
             'defaults::zlib-1.2.7-0',
             'defaults::numpy-1.7.1-py27_0',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
     with get_solver(prefix_records=final_state_2) as solver:
         final_state_3 = solver.solve_final_state(prune=True)
         # SimpleDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_3])
         order = ()
-        assert tuple(final_state_3) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_no_deps_1():
@@ -231,7 +232,7 @@ def test_no_deps_1():
             'defaults::zlib-1.2.7-0',
             'defaults::python-2.7.5-0',
         )
-        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("numba"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -252,7 +253,7 @@ def test_no_deps_1():
             'defaults::numpy-1.7.1-py27_0',
             'defaults::numba-0.8.1-np17py27_0'
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("numba"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -269,7 +270,7 @@ def test_no_deps_1():
             'defaults::python-2.7.5-0',
             'defaults::numba-0.8.1-np17py27_0',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_only_deps_1():
@@ -291,7 +292,7 @@ def test_only_deps_1():
             'defaults::meta-0.4.2.dev-py27_0',
             'defaults::numpy-1.7.1-py27_0',
         )
-        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_only_deps_2():
@@ -310,7 +311,7 @@ def test_only_deps_2():
             'defaults::python-2.7.3-7',
             'defaults::numpy-1.5.1-py27_4',
         )
-        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("numba=0.5"),
     with get_solver(specs_to_add) as solver:
@@ -332,7 +333,7 @@ def test_only_deps_2():
             'defaults::numpy-1.7.1-py27_0',
             # 'defaults::numba-0.5.0-np17py27_0',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("numba=0.5"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -354,7 +355,7 @@ def test_only_deps_2():
             'defaults::numpy-1.7.1-py27_0',
             # 'defaults::numba-0.5.0-np17py27_0',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_update_all_1():
@@ -373,7 +374,7 @@ def test_update_all_1():
             'defaults::python-2.6.8-6',
             'defaults::numpy-1.5.1-py26_4',
         )
-        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("numba=0.6"), MatchSpec("numpy")
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -394,7 +395,7 @@ def test_update_all_1():
             'defaults::numpy-1.7.1-py26_0',
             'defaults::numba-0.6.0-np17py26_0',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("numba=0.6"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -416,7 +417,7 @@ def test_update_all_1():
             'defaults::numpy-1.7.1-py27_0',
             'defaults::numba-0.6.0-np17py27_0'
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_broken_install():
@@ -440,14 +441,14 @@ def test_broken_install():
             'defaults::scipy-0.12.0-np16py27_0',
             'defaults::pandas-0.11.0-np16py27_1',
         ]
-        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order_original)
-        assert r.environment_is_consistent(order_original)
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order_original)
+        assert solver._r.environment_is_consistent(order_original)
 
     # Add an incompatible numpy; installation should be untouched
     order_1 = list(order_original)
     order_1[7] = "defaults::numpy-1.7.1-py33_p0"
-    order_1_records = [index[Dist(d)] for d in order_1]
-    assert not r.environment_is_consistent(order_1)
+    order_1_records = [solver._index[Dist(d)] for d in order_1]
+    assert not solver._r.environment_is_consistent(order_1)
 
     specs_to_add = MatchSpec("flask"),
     with get_solver(specs_to_add, prefix_records=order_1_records, history_specs=specs) as solver:
@@ -472,8 +473,8 @@ def test_broken_install():
             'defaults::scipy-0.12.0-np16py27_0',
             'defaults::pandas-0.11.0-np16py27_1'
         ]
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
-        assert not r.environment_is_consistent(order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert not solver._r.environment_is_consistent(order)
 
     # adding numpy spec again snaps the packages back to a consistent state
     specs_to_add = MatchSpec("flask"), MatchSpec("numpy 1.6.*"),
@@ -499,14 +500,14 @@ def test_broken_install():
             'defaults::scipy-0.12.0-np16py27_0',
             'defaults::pandas-0.11.0-np16py27_1',
         ]
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
-        assert r.environment_is_consistent(order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert solver._r.environment_is_consistent(order)
 
     # Add an incompatible pandas; installation should be untouched, then fixed
     order_2 = list(order_original)
     order_2[12] = 'defaults::pandas-0.11.0-np17py27_1'
-    order_2_records = [index[Dist(d)] for d in order_2]
-    assert not r.environment_is_consistent(order_2)
+    order_2_records = [solver._index[Dist(d)] for d in order_2]
+    assert not solver._r.environment_is_consistent(order_2)
 
     specs_to_add = MatchSpec("flask"),
     with get_solver(specs_to_add, prefix_records=order_2_records, history_specs=specs) as solver:
@@ -531,8 +532,8 @@ def test_broken_install():
             'defaults::scipy-0.12.0-np16py27_0',
             'defaults::pandas-0.11.0-np17py27_1',
         ]
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
-        assert not r.environment_is_consistent(order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert not solver._r.environment_is_consistent(order)
 
     # adding pandas spec again snaps the packages back to a consistent state
     specs_to_add = MatchSpec("flask"), MatchSpec("pandas"),
@@ -558,8 +559,8 @@ def test_broken_install():
             'defaults::scipy-0.12.0-np16py27_0',
             'defaults::pandas-0.11.0-np16py27_1',
         ]
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
-        assert r.environment_is_consistent(order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert solver._r.environment_is_consistent(order)
 
     # Actually I think this part might be wrong behavior:
     #    # Removing pandas should fix numpy, since pandas depends on it
@@ -609,7 +610,7 @@ def test_broken_install():
     #         'defaults::flask-0.9-py27_0',
     #         'defaults::scipy-0.12.0-np16py27_0',
     #     ]
-    #     assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+    #     assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
     #     assert r.environment_is_consistent(order)
 
 
@@ -636,7 +637,7 @@ def test_install_uninstall_features():
                 'defaults::scipy-0.12.0-np16py27_p0',
                 'defaults::pandas-0.11.0-np16py27_1',
             )
-            assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
     # no more track_features in configuration
     # just remove the pandas package, but the mkl feature "stays in the environment"
@@ -662,7 +663,7 @@ def test_install_uninstall_features():
             'defaults::dateutil-2.1-py27_1',
             'defaults::scipy-0.12.0-np16py27_p0',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
     # now remove the mkl feature
     specs_to_remove = MatchSpec(track_features="mkl"),
@@ -686,7 +687,7 @@ def test_install_uninstall_features():
             'defaults::dateutil-2.1-py27_1',
             # 'defaults::scipy-0.12.0-np16py27_p0', scipy is out here because it wasn't a requested spec
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_update_deps_1():
@@ -704,7 +705,7 @@ def test_update_deps_1():
             'defaults::zlib-1.2.7-0',
             'defaults::python-2.7.5-0',
         )
-        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("numpy=1.7.0"), MatchSpec("python=2.7.3")
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -722,7 +723,7 @@ def test_update_deps_1():
             'defaults::nose-1.3.0-py27_0',
             'defaults::numpy-1.7.0-py27_0',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
@@ -742,7 +743,7 @@ def test_update_deps_1():
             'defaults::numpy-1.7.0-py27_0',
             'defaults::iopro-1.5.0-np17py27_p0',
         )
-        assert tuple(final_state_3) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
@@ -762,7 +763,7 @@ def test_update_deps_1():
             'defaults::numpy-1.7.1-py27_0',  # with update_deps, numpy should switch from 1.7.0 to 1.7.1
             'defaults::iopro-1.5.0-np17py27_p0',
         )
-        assert tuple(final_state_3) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
@@ -782,7 +783,7 @@ def test_update_deps_1():
             'defaults::numpy-1.7.1-py27_0',  # with update_deps, numpy should switch from 1.7.0 to 1.7.1
             # 'defaults::iopro-1.5.0-np17py27_p0',
         )
-        assert tuple(final_state_3) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_pinned_1():
@@ -801,7 +802,7 @@ def test_pinned_1():
             'defaults::python-3.3.2-0',
             'defaults::numpy-1.7.1-py33_0',
         )
-        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
     with env_var("CONDA_PINNED_PACKAGES", "python=2.6&iopro<=1.4.2", reset_context):
         specs = MatchSpec("system=5.8=0"),
@@ -812,7 +813,7 @@ def test_pinned_1():
             order = (
                 'defaults::system-5.8-0',
             )
-            assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
         specs_to_add = MatchSpec("python"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
@@ -829,7 +830,7 @@ def test_pinned_1():
                 'defaults::zlib-1.2.7-0',
                 'defaults::python-3.3.2-0',
             )
-            assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
         specs_to_add = MatchSpec("python"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
@@ -846,7 +847,7 @@ def test_pinned_1():
                 'defaults::zlib-1.2.7-0',
                 'defaults::python-2.6.8-6',
             )
-            assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
         specs_to_add = MatchSpec("numba"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"),
@@ -869,7 +870,7 @@ def test_pinned_1():
                 'defaults::numpy-1.7.1-py26_0',
                 'defaults::numba-0.8.1-np17py26_0',
             )
-            assert tuple(final_state_3) == tuple(index[Dist(d)] for d in order)
+            assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
 
         specs_to_add = MatchSpec("python"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
@@ -892,7 +893,7 @@ def test_pinned_1():
                 'defaults::numpy-1.7.1-py26_0',
                 'defaults::numba-0.8.1-np17py26_0',
             )
-            assert tuple(final_state_4) == tuple(index[Dist(d)] for d in order)
+            assert tuple(final_state_4) == tuple(solver._index[Dist(d)] for d in order)
 
         specs_to_add = MatchSpec("python"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
@@ -915,7 +916,7 @@ def test_pinned_1():
                 'defaults::numpy-1.7.1-py26_0',
                 'defaults::numba-0.8.1-np17py26_0',
             )
-            assert tuple(final_state_5) == tuple(index[Dist(d)] for d in order)
+            assert tuple(final_state_5) == tuple(solver._index[Dist(d)] for d in order)
 
     # now update without pinning
     specs_to_add = MatchSpec("python"),
@@ -938,7 +939,7 @@ def test_pinned_1():
             'defaults::numpy-1.7.1-py33_0',
             'defaults::numba-0.8.1-np17py33_0',
         )
-        assert tuple(final_state_5) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_5) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_no_update_deps_1():  # i.e. FREEZE_DEPS
@@ -959,7 +960,7 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
             'defaults::zlib-1.2.7-0',
             'defaults::python-2.7.5-0',
         )
-        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("zope.interface"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -977,7 +978,7 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
             'defaults::nose-1.3.0-py27_0',
             'defaults::zope.interface-4.0.5-py27_0',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = MatchSpec("zope.interface>4.1"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -995,7 +996,7 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
             'defaults::nose-1.3.0-py33_0',
             'defaults::zope.interface-4.1.1.1-py33_0',
         )
-        assert tuple(final_state_2) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_force_reinstall_1():
@@ -1013,7 +1014,7 @@ def test_force_reinstall_1():
             'defaults::zlib-1.2.7-0',
             'defaults::python-2.7.5-0',
         )
-        assert tuple(final_state_1) == tuple(index[Dist(d)] for d in order)
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
     specs_to_add = specs
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -1028,3 +1029,10 @@ def test_force_reinstall_1():
         unlink_dists, link_dists = solver.solve_for_diff()
         assert not unlink_dists
         assert not link_dists
+
+
+#
+# def test_freeze_deps_1():
+#
+#
+#
