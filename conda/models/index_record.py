@@ -5,11 +5,10 @@ from functools import total_ordering
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PathType, Platform
-from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
 from ..base.context import context
-from ..common.compat import itervalues, string_types, text_type
+from ..common.compat import itervalues, string_types, text_type, isiterable
 
 
 @total_ordering
@@ -63,10 +62,20 @@ EMPTY_LINK = Link(source='')
 
 
 class FeaturesField(ListField):
+
+    def __init__(self, **kwargs):
+        super(FeaturesField, self).__init__(string_types, **kwargs)
+
     def box(self, instance, val):
         if isinstance(val, string_types):
-            val = val.split(' ')
+            val = val.replace(' ', ',').split(',')
         return super(FeaturesField, self).box(instance, val)
+
+    def dump(self, val):
+        if isiterable(val):
+            return ' '.join(val)
+        else:
+            return val or ''
 
 
 class ChannelField(ComposableField):
@@ -160,7 +169,7 @@ class PackageRef(BasePackageRef):
     def schannel(self):
         return self.channel.canonical_name
 
-    @memoizedproperty
+    @property
     def _pkey(self):
         return self.channel.canonical_name, self.subdir, self.name, self.version, self.build
 
@@ -179,8 +188,8 @@ class IndexJsonRecord(BasePackageRef):
     depends = ListField(string_types, default=())
     constrains = ListField(string_types, default=())
 
-    features = FeaturesField(string_types, required=False)
-    track_features = StringField(required=False)
+    features = FeaturesField(required=False, nullable=True)
+    track_features = FeaturesField(required=False, nullable=True)
 
     subdir = SubdirField()
     # package_type = EnumField(NoarchType, required=False)  # previously noarch
@@ -199,7 +208,7 @@ class IndexJsonRecord(BasePackageRef):
         return tuple(itervalues(result))
 
 
-class RepodataRecord(IndexJsonRecord, PackageRef):
+class PackageRecord(IndexJsonRecord, PackageRef):
     # important for "choosing" a package (i.e. the solver), listing packages
     # (like search), and for verifying downloads
 
@@ -232,7 +241,7 @@ class PathDataV1(PathData):
     inode_paths = ListField(string_types, required=False, nullable=True)
 
 
-IndexRecord = RepodataRecord
+IndexRecord = PackageRecord
 
 # class IndexRecord(DictSafeMixin, Entity):
 #     _lazy_validate = True

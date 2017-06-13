@@ -1292,7 +1292,7 @@ def test_pinned_specs():
     # Test pinned specs environment variable
     specs_str_1 = ("numpy 1.11", "python >3")
     specs_1 = tuple(MatchSpec(spec_str, optional=True) for spec_str in specs_str_1)
-    with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_str_1), reset_context):
+    with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_1), reset_context):
         pinned_specs = get_pinned_specs("/none")
         assert pinned_specs == specs_1
         assert pinned_specs != specs_str_1
@@ -1319,7 +1319,7 @@ def test_pinned_specs():
 
         with env_var('CONDA_PREFIX', td, reset_context):
             run_command(Commands.CONFIG, "--env --add pinned_packages requests=2.13")
-            with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_str_2), reset_context):
+            with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_2), reset_context):
                 pinned_specs = get_pinned_specs(td)
                 expected = specs_2 + (MatchSpec("requests 2.13.*", optional=True),) + specs_1
                 assert pinned_specs == expected

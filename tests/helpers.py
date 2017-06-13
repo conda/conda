@@ -3,6 +3,7 @@ Helpers for the tests
 """
 from __future__ import absolute_import, division, print_function
 
+from copy import copy
 import json
 import os
 from os.path import dirname, join
@@ -11,6 +12,8 @@ from shlex import split
 import sys
 from tempfile import gettempdir
 from uuid import uuid4
+
+from conda._vendor.auxlib.collection import frozendict
 
 from conda import cli
 from conda.base.context import context, reset_context
@@ -26,11 +29,11 @@ from conda.resolve import Resolve
 
 try:
     from unittest import mock
+    from unittest.mock import patch
 except ImportError:
-    try:
-        import mock
-    except ImportError:
-        mock = None
+    import mock
+    from mock import patch
+
 
 from contextlib import contextmanager
 
@@ -179,9 +182,15 @@ with open(join(dirname(__file__), 'index.json')) as fi:
         "packages": packages,
     }
 
+
 index = {}
 channel = Channel('defaults')
 supplement_index_with_repodata(index, repodata, channel, 1)
 _supplement_index_with_features(index, ('mkl',))
+index = frozendict(index)
 r = Resolve(index)
 index = r.index
+
+def get_index_resolve():
+    return index.copy(), copy(r)
+

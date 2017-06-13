@@ -11,18 +11,19 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath
+from os.path import abspath, basename
 import sys
 
+from conda.core.index import _supplement_index_with_prefix
+from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
 from .common.compat import on_win
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
-from .core.solve import get_install_transaction_single, get_pinned_specs, get_resolve_object
-from .exceptions import (ArgumentError, CondaIndexError,
-                         RemoveError)
+from .core.solve import Solver, get_pinned_specs
+from .exceptions import ArgumentError, CondaIndexError, RemoveError
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
@@ -113,7 +114,7 @@ def display_actions(actions, index, show_channel_urls=None):
         packages[pkg][1] = rec['version'] + '-' + rec['build']
         records[pkg][1] = rec
         linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
-        features[pkg][1] = ','.join(rec.get('features', ()))
+        features[pkg][1] = ','.join(rec.get('features') or ())
     for arg in actions.get(UNLINK, []):
         dist = Dist(arg)
         rec = index[dist]
@@ -121,7 +122,7 @@ def display_actions(actions, index, show_channel_urls=None):
         channels[pkg][0] = channel_str(rec)
         packages[pkg][0] = rec['version'] + '-' + rec['build']
         records[pkg][0] = rec
-        features[pkg][0] = ','.join(rec.get('features', ()))
+        features[pkg][0] = ','.join(rec.get('features') or ())
 
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
@@ -300,11 +301,11 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
         pfe = ProgressiveFetchExtract(index, link_dists)
         pfe.prepare()
 
-        stp = PrefixSetup(index, prefix, unlink_dists, link_dists, axn, specs)
+        stp = PrefixSetup(index, prefix, unlink_dists, link_dists, (), specs)
         plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, UnlinkLinkTransaction(stp)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
     elif axn in ('INSTALL', 'CREATE'):
-        plan.insert(0, (UNLINKLINKTRANSACTION, (prefix, (), (), axn, specs)))
+        plan.insert(0, (UNLINKLINKTRANSACTION, (prefix, (), (), (), specs)))
 
     return plan
 
@@ -442,9 +443,12 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                     pinned=True, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):  # pragma: no cover
     # this is for conda-build
-    txn = get_install_transaction_single(prefix, index, specs, force, only_names, always_copy,
-                                         pinned, update_deps, prune,
-                                         channel_priority_map, is_update)
+    channel_names = IndexedSet(Channel(url).canonical_name for url in channel_priority_map)
+    channels = IndexedSet(Channel(cn) for cn in channel_names)
+    subdirs = IndexedSet(basename(url) for url in channel_priority_map)
+
+    solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
+    txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
     prefix_setup = txn.prefix_setups[prefix]
     actions = get_blank_actions(prefix)
     actions['UNLINK'].extend(prefix_setup.unlink_dists)
@@ -580,7 +584,9 @@ def revert_actions(prefix, revision=-1, index=None):
     if state == curr:
         return {}  # TODO: return txn with nothing_to_do
 
-    r = get_resolve_object(index, prefix)
+    _supplement_index_with_prefix(index, prefix, {})
+    r = Resolve(index)
+
     state = r.dependency_sort({d.name: d for d in (Dist(s) for s in state)})
     curr = set(Dist(s) for s in curr)
 
@@ -599,8 +605,7 @@ def revert_actions(prefix, revision=-1, index=None):
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
 
-    stp = PrefixSetup(index, prefix, unlink_dists, link_dists, 'INSTALL',
-                      user_requested_specs)
+    stp = PrefixSetup(index, prefix, unlink_dists, link_dists, (), user_requested_specs)
     txn = UnlinkLinkTransaction(stp)
     return txn
 

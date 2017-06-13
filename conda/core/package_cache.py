@@ -23,7 +23,7 @@ from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_in
                                   read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
-from ..models.index_record import RepodataRecord, PackageRef
+from ..models.index_record import PackageRecord, PackageRef
 from ..models.package_cache_record import PackageCacheRecord
 
 try:
@@ -66,7 +66,7 @@ class PackageCache(object):
     def insert(self, package_cache_record):
 
         meta = join(package_cache_record.extracted_package_dir, 'info', 'repodata_record.json')
-        write_as_json_to_file(meta, RepodataRecord.from_objects(package_cache_record))
+        write_as_json_to_file(meta, PackageRecord.from_objects(package_cache_record))
 
         self._package_cache_records[package_cache_record] = package_cache_record
 

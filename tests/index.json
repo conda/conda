@@ -21187,5 +21187,21 @@
       "python 3.3"
     ],
     "version": "4.0.5"
+  },
+    "zope.interface-4.1.1.1-py33_0.tar.bz2": {
+    "build": "py33_0",
+    "build_number": 0,
+    "depends": [
+      "nose",
+      "python 3.3*"
+    ],
+    "md5": "12345bb66c4fa51a591eaf991c4214cd",
+    "name": "zope.interface",
+    "requires": [
+      "nose 1.2.1",
+      "python 3.3"
+    ],
+    "version": "4.1.1.1"
   }
+
 }
