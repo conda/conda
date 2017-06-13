@@ -1177,3 +1177,16 @@ def test_freeze_deps_1():
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         with pytest.raises(UnsatisfiableError):
             solver.solve_final_state(deps_modifier=DepsModifier.FREEZE_INSTALLED)
+
+
+def test_optional_deps_1():
+    specs = MatchSpec('openssl', optional=True), MatchSpec('itsdangerous'),
+    with get_solver_2(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # SimpleDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_1])
+        order = (
+            'defaults::python-1.0.1-0',
+            'defaults::itsdangerous-0.24-py_0',
+        )
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
