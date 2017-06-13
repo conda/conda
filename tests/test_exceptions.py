@@ -7,7 +7,7 @@ from conda import text_type
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import reset_context, context
 from conda.common.io import captured, env_var, replace_log_streams
-from conda.exceptions import CommandNotFoundError, FileNotFoundError, CondaHTTPError, CondaKeyError, \
+from conda.exceptions import CommandNotFoundError, PathNotFoundError, CondaHTTPError, CondaKeyError, \
     CondaRevisionError, DirectoryNotFoundError, MD5MismatchError, PackageNotFoundError, TooFewArgumentsError, \
     TooManyArgumentsError, conda_exception_handler, BasicClobberError, KnownPackageClobberError, \
     UnknownPackageClobberError, SharedLinkPathClobberError, BinaryPrefixReplacementError, BinaryPrefixReplacementError
@@ -137,7 +137,7 @@ class ExceptionTests(TestCase):
 
     def test_CondaFileNotFoundError(self):
         filename = "Groot"
-        exc = FileNotFoundError(filename)
+        exc = PathNotFoundError(filename)
         with env_var("CONDA_JSON", "yes", reset_context):
             with captured() as c, replace_log_streams():
                 conda_exception_handler(_raise_helper, exc)
