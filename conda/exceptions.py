@@ -185,10 +185,10 @@ class CommandNotFoundError(CondaError):
         super(CommandNotFoundError, self).__init__(message, command=command)
 
 
-class FileNotFoundError(CondaError, OSError):
+class PathNotFoundError(CondaError, OSError):
     def __init__(self, path):
         message = "%(path)s"
-        super(FileNotFoundError, self).__init__(message, path=path)
+        super(PathNotFoundError, self).__init__(message, path=path)
 
 
 class DirectoryNotFoundError(CondaError):
