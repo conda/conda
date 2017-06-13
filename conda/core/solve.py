@@ -217,6 +217,13 @@ class Solver(object):
             specs_map = {pkg_name: MatchSpec(spec.name, optional=spec.optional)
                          for pkg_name, spec in iteritems(specs_map)}
 
+        # For the aggressive_update_packages configuration parameter, we strip any of the
+        # previous constraints that have come from the environment.
+        if not context.offline:
+            for spec in context.aggressive_update_packages:
+                if any(spec.match(d) for d in solution):
+                    specs_map[spec.name] = spec
+
         # add in explicitly requested specs from specs_to_add
         # this overrides any name-matching spec already in the spec map
         specs_map.update((s.name, s) for s in specs_to_add)
@@ -227,8 +234,6 @@ class Solver(object):
             track_features_specs = tuple(MatchSpec(x + '@') for x in context.track_features)
         if not ignore_pinned:
             pinned_specs = get_pinned_specs(self.prefix)
-        if not context.offline:
-            aggresive_update_specs = context.aggressive_update_packages
         if context.auto_update_conda and paths_equal(self.prefix, context.conda_prefix):
             conda_update_specs = MatchSpec("conda")
 
@@ -236,7 +241,6 @@ class Solver(object):
             itervalues(specs_map),
             track_features_specs,
             pinned_specs,
-            aggresive_update_specs,
             conda_update_specs,
         ))
 
