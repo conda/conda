@@ -3,16 +3,20 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from contextlib import contextmanager
 
+import pytest
+
 from conda.base.context import context, reset_context
 from conda.common.io import env_var
 from conda.core.linked_data import PrefixData
 from conda.core.solve import DepsModifier, Solver
+from conda.exceptions import UnsatisfiableError
 from conda.history import History
 from conda.models.channel import Channel
+from conda.models.dag import PrefixDag
 from conda.models.dist import Dist
 from conda.models.prefix_record import PrefixRecord
 from conda.resolve import MatchSpec
-from ..helpers import patch, get_index_r_1
+from ..helpers import patch, get_index_r_1, get_index_r_2
 
 
 @contextmanager
@@ -23,6 +27,23 @@ def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_s
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     index, r = get_index_r_1()
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
+                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+        solver._index = index
+        solver._r = r
+        solver._prepared = True
+        yield solver
+
+
+@contextmanager
+def get_solver_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+    prefix = '/a/test/c/prefix'
+    PrefixData._cache_ = {}
+    pd = PrefixData(prefix)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
+    spec_map = {spec.name: spec for spec in history_specs}
+    index, r = get_index_r_2()
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -73,7 +94,7 @@ def test_prune_1():
 
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_1])
         order = (
             'defaults::libnvvm-1.0-p0',
@@ -105,7 +126,7 @@ def test_prune_1():
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(prune=False)
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::libnvvm-1.0-p0',
@@ -134,7 +155,7 @@ def test_prune_1():
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(prune=True)
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -162,7 +183,7 @@ def test_force_remove_1():
     specs = MatchSpec("numpy[build=*py27*]"),
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_1])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -180,7 +201,7 @@ def test_force_remove_1():
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -196,7 +217,7 @@ def test_force_remove_1():
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(force_remove=True)
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -211,7 +232,7 @@ def test_force_remove_1():
 
     with get_solver(prefix_records=final_state_2) as solver:
         final_state_3 = solver.solve_final_state(prune=True)
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_3])
         order = ()
         assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
@@ -221,7 +242,7 @@ def test_no_deps_1():
     specs = MatchSpec("python=2"),
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         # print([Dist(rec).full_name for rec in final_state_1])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -237,7 +258,7 @@ def test_no_deps_1():
     specs_to_add = MatchSpec("numba"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -258,7 +279,7 @@ def test_no_deps_1():
     specs_to_add = MatchSpec("numba"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier='NO_DEPS')
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -277,7 +298,7 @@ def test_only_deps_1():
     specs = MatchSpec("numba[build=*py27*]"),
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         # print([Dist(rec).full_name for rec in final_state_1])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -299,7 +320,7 @@ def test_only_deps_2():
     specs = MatchSpec("numpy=1.5"), MatchSpec("python=2.7.3"),
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_1])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -316,7 +337,7 @@ def test_only_deps_2():
     specs_to_add = MatchSpec("numba=0.5"),
     with get_solver(specs_to_add) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -338,7 +359,7 @@ def test_only_deps_2():
     specs_to_add = MatchSpec("numba=0.5"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -362,7 +383,7 @@ def test_update_all_1():
     specs = MatchSpec("numpy=1.5"), MatchSpec("python=2.6"), MatchSpec("system[build_number=0]")
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_1])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -379,7 +400,7 @@ def test_update_all_1():
     specs_to_add = MatchSpec("numba=0.6"), MatchSpec("numpy")
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -400,7 +421,7 @@ def test_update_all_1():
     specs_to_add = MatchSpec("numba=0.6"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -424,7 +445,7 @@ def test_broken_install():
     specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.6.*")
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_1])
         order_original = [
             'defaults::openssl-1.0.1c-0',
@@ -453,7 +474,7 @@ def test_broken_install():
     specs_to_add = MatchSpec("flask"),
     with get_solver(specs_to_add, prefix_records=order_1_records, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = [
             'defaults::openssl-1.0.1c-0',
@@ -480,7 +501,7 @@ def test_broken_install():
     specs_to_add = MatchSpec("flask"), MatchSpec("numpy 1.6.*"),
     with get_solver(specs_to_add, prefix_records=order_1_records, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = [
             'defaults::openssl-1.0.1c-0',
@@ -512,7 +533,7 @@ def test_broken_install():
     specs_to_add = MatchSpec("flask"),
     with get_solver(specs_to_add, prefix_records=order_2_records, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = [
             'defaults::openssl-1.0.1c-0',
@@ -539,7 +560,7 @@ def test_broken_install():
     specs_to_add = MatchSpec("flask"), MatchSpec("pandas"),
     with get_solver(specs_to_add, prefix_records=order_2_records, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = [
             'defaults::openssl-1.0.1c-0',
@@ -590,7 +611,7 @@ def test_broken_install():
     #
     #     final_state_2 = solver.solve_final_state()
     #
-    #     # SimpleDag(final_state_2, specs).open_url()
+    #     # PrefixDag(final_state_2, specs).open_url()
     #     print([Dist(rec).full_name for rec in final_state_2])
     #
     #     order = [
@@ -619,7 +640,7 @@ def test_install_uninstall_features():
     with env_var("CONDA_TRACK_FEATURES", 'mkl', reset_context):
         with get_solver(specs) as solver:
             final_state_1 = solver.solve_final_state()
-            # SimpleDag(final_state_1, specs).open_url()
+            # PrefixDag(final_state_1, specs).open_url()
             print([Dist(rec).full_name for rec in final_state_1])
             order = (
                 'defaults::openssl-1.0.1c-0',
@@ -646,7 +667,7 @@ def test_install_uninstall_features():
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -671,7 +692,7 @@ def test_install_uninstall_features():
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_2,
                     history_specs=history_specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -694,7 +715,7 @@ def test_update_deps_1():
     specs = MatchSpec("python=2"),
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         # print([Dist(rec).full_name for rec in final_state_1])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -710,7 +731,7 @@ def test_update_deps_1():
     specs_to_add = MatchSpec("numpy=1.7.0"), MatchSpec("python=2.7.3")
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -728,7 +749,7 @@ def test_update_deps_1():
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
         final_state_3 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_3])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -748,7 +769,7 @@ def test_update_deps_1():
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
         final_state_3 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS)
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_3])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -768,7 +789,7 @@ def test_update_deps_1():
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
         final_state_3 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS_ONLY_DEPS)
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_3])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -790,7 +811,7 @@ def test_pinned_1():
     specs = MatchSpec("numpy"),
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_1])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -808,7 +829,7 @@ def test_pinned_1():
         specs = MatchSpec("system=5.8=0"),
         with get_solver(specs) as solver:
             final_state_1 = solver.solve_final_state()
-            # SimpleDag(final_state_1, specs).open_url()
+            # PrefixDag(final_state_1, specs).open_url()
             print([Dist(rec).full_name for rec in final_state_1])
             order = (
                 'defaults::system-5.8-0',
@@ -819,7 +840,7 @@ def test_pinned_1():
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state(ignore_pinned=True)
-            # SimpleDag(final_state_1, specs).open_url()
+            # PrefixDag(final_state_1, specs).open_url()
             print([Dist(rec).full_name for rec in final_state_2])
             order = (
                 'defaults::openssl-1.0.1c-0',
@@ -836,7 +857,7 @@ def test_pinned_1():
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state()
-            # SimpleDag(final_state_1, specs).open_url()
+            # PrefixDag(final_state_1, specs).open_url()
             print([Dist(rec).full_name for rec in final_state_2])
             order = (
                 'defaults::openssl-1.0.1c-0',
@@ -854,7 +875,7 @@ def test_pinned_1():
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_2,
                         history_specs=history_specs) as solver:
             final_state_3 = solver.solve_final_state()
-            # SimpleDag(final_state_1, specs).open_url()
+            # PrefixDag(final_state_1, specs).open_url()
             print([Dist(rec).full_name for rec in final_state_3])
             order = (
                 'defaults::openssl-1.0.1c-0',
@@ -877,7 +898,7 @@ def test_pinned_1():
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_3,
                         history_specs=history_specs) as solver:
             final_state_4 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS)
-            # SimpleDag(final_state_1, specs).open_url()
+            # PrefixDag(final_state_1, specs).open_url()
             print([Dist(rec).full_name for rec in final_state_4])
             order = (
                 'defaults::openssl-1.0.1c-0',
@@ -900,7 +921,7 @@ def test_pinned_1():
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
                         history_specs=history_specs) as solver:
             final_state_5 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
-            # SimpleDag(final_state_1, specs).open_url()
+            # PrefixDag(final_state_1, specs).open_url()
             print([Dist(rec).full_name for rec in final_state_5])
             order = (
                 'defaults::openssl-1.0.1c-0',
@@ -924,7 +945,7 @@ def test_pinned_1():
     with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
                     history_specs=history_specs) as solver:
         final_state_5 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_5])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -949,7 +970,7 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
     specs = MatchSpec("python=2"),
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_1])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -965,7 +986,7 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
     specs_to_add = MatchSpec("zope.interface"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -983,7 +1004,7 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
     specs_to_add = MatchSpec("zope.interface>4.1"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # SimpleDag(final_state_2, specs).open_url()
+        # PrefixDag(final_state_2, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_2])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -1003,7 +1024,7 @@ def test_force_reinstall_1():
     specs = MatchSpec("python=2"),
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # SimpleDag(final_state_1, specs).open_url()
+        # PrefixDag(final_state_1, specs).open_url()
         print([Dist(rec).full_name for rec in final_state_1])
         order = (
             'defaults::openssl-1.0.1c-0',
@@ -1031,8 +1052,128 @@ def test_force_reinstall_1():
         assert not link_dists
 
 
-#
-# def test_freeze_deps_1():
-#
-#
-#
+@pytest.mark.integration  # this test is slower, so we'll lump it into integration
+def test_freeze_deps_1():
+    specs = MatchSpec("six=1.7"),
+    with get_solver_2(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # PrefixDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_1])
+        order = (
+            'defaults::openssl-1.0.2l-0',
+            'defaults::readline-6.2-2',
+            'defaults::sqlite-3.13.0-0',
+            'defaults::tk-8.5.18-0',
+            'defaults::xz-5.2.2-1',
+            'defaults::zlib-1.2.8-3',
+            'defaults::python-3.4.5-0',
+            'defaults::six-1.7.3-py34_0',
+        )
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+
+    # to keep six=1.7 as a requested spec, we have to downgrade python to 2.7
+    specs_to_add = MatchSpec("bokeh"),
+    with get_solver_2(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'defaults::mkl-2017.0.1-0',
+            'defaults::openssl-1.0.2l-0',
+            'defaults::readline-6.2-2',
+            'defaults::sqlite-3.13.0-0',
+            'defaults::tk-8.5.18-0',
+            'defaults::xz-5.2.2-1',
+            'defaults::yaml-0.1.6-0',
+            'defaults::zlib-1.2.8-3',
+            'defaults::python-2.7.13-0',
+            'defaults::backports-1.0-py27_0',
+            'defaults::backports_abc-0.5-py27_0',
+            'defaults::futures-3.1.1-py27_0',
+            'defaults::markupsafe-0.23-py27_2',
+            'defaults::numpy-1.13.0-py27_0',
+            'defaults::pyyaml-3.12-py27_0',
+            'defaults::requests-2.14.2-py27_0',
+            'defaults::setuptools-27.2.0-py27_0',
+            'defaults::six-1.7.3-py27_0',
+            'defaults::jinja2-2.9.6-py27_0',
+            'defaults::python-dateutil-2.6.0-py27_0',
+            'defaults::singledispatch-3.4.0.3-py27_0',
+            'defaults::ssl_match_hostname-3.4.0.2-py27_1',
+            'defaults::tornado-4.5.1-py27_0',
+            'defaults::bokeh-0.12.5-py27_1',
+        )
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+
+    # now we can't install the latest bokeh 0.12.5, but instead we get bokeh 0.12.4
+    specs_to_add = MatchSpec("bokeh"),
+    with get_solver_2(specs_to_add, prefix_records=final_state_1,
+                      history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'defaults::mkl-2017.0.1-0',
+            'defaults::openssl-1.0.2l-0',
+            'defaults::readline-6.2-2',
+            'defaults::sqlite-3.13.0-0',
+            'defaults::tk-8.5.18-0',
+            'defaults::xz-5.2.2-1',
+            'defaults::yaml-0.1.6-0',
+            'defaults::zlib-1.2.8-3',
+            'defaults::python-3.4.5-0',
+            'defaults::backports_abc-0.5-py34_0',
+            'defaults::markupsafe-0.23-py34_2',
+            'defaults::numpy-1.13.0-py34_0',
+            'defaults::pyyaml-3.12-py34_0',
+            'defaults::requests-2.14.2-py34_0',
+            'defaults::setuptools-27.2.0-py34_0',
+            'defaults::six-1.7.3-py34_0',
+            'defaults::jinja2-2.9.6-py34_0',
+            'defaults::python-dateutil-2.6.0-py34_0',
+            'defaults::tornado-4.4.2-py34_0',
+            'defaults::bokeh-0.12.4-py34_0',
+        )
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+
+    # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
+    specs_to_add = MatchSpec("bokeh=0.12.5"),
+    with get_solver_2(specs_to_add, prefix_records=final_state_1,
+                      history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'defaults::mkl-2017.0.1-0',
+            'defaults::openssl-1.0.2l-0',
+            'defaults::readline-6.2-2',
+            'defaults::sqlite-3.13.0-0',
+            'defaults::tk-8.5.18-0',
+            'defaults::xz-5.2.2-1',
+            'defaults::yaml-0.1.6-0',
+            'defaults::zlib-1.2.8-3',
+            'defaults::python-2.7.13-0',
+            'defaults::backports-1.0-py27_0',
+            'defaults::backports_abc-0.5-py27_0',
+            'defaults::futures-3.1.1-py27_0',
+            'defaults::markupsafe-0.23-py27_2',
+            'defaults::numpy-1.13.0-py27_0',
+            'defaults::pyyaml-3.12-py27_0',
+            'defaults::requests-2.14.2-py27_0',
+            'defaults::setuptools-27.2.0-py27_0',
+            'defaults::six-1.7.3-py27_0',
+            'defaults::jinja2-2.9.6-py27_0',
+            'defaults::python-dateutil-2.6.0-py27_0',
+            'defaults::singledispatch-3.4.0.3-py27_0',
+            'defaults::ssl_match_hostname-3.4.0.2-py27_1',
+            'defaults::tornado-4.5.1-py27_0',
+            'defaults::bokeh-0.12.5-py27_1',
+        )
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+
+    # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
+    specs_to_add = MatchSpec("bokeh=0.12.5"),
+    with get_solver_2(specs_to_add, prefix_records=final_state_1,
+                      history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
+        with pytest.raises(UnsatisfiableError):
+            solver.solve_final_state(deps_modifier=DepsModifier.FREEZE_INSTALLED)

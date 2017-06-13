@@ -88,6 +88,10 @@ class Dist(Entity):
         return self.build_string
 
     @property
+    def subdir(self):
+        return self.platform
+
+    @property
     def pair(self):
         return self.channel or DEFAULTS_CHANNEL_NAME, self.dist_name
 

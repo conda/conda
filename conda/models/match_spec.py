@@ -7,7 +7,7 @@ import re
 
 from .channel import Channel, MultiChannel
 from .dist import Dist
-from .index_record import IndexRecord
+from .index_record import IndexRecord, PackageRef
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -28,10 +28,11 @@ class MatchSpecType(type):
             if isinstance(spec_arg, MatchSpec) and not kwargs:
                 return spec_arg
             elif isinstance(spec_arg, MatchSpec):
-                kwargs.setdefault('optional', spec_arg.optional)
-                kwargs.setdefault('target', spec_arg.target)
-                kwargs.update(spec_arg._match_components)
-                return super(MatchSpecType, cls).__call__(**kwargs)
+                new_kwargs = dict(spec_arg._match_components)
+                new_kwargs.setdefault('optional', spec_arg.optional)
+                new_kwargs.setdefault('target', spec_arg.target)
+                new_kwargs.update(**kwargs)
+                return super(MatchSpecType, cls).__call__(**new_kwargs)
             elif isinstance(spec_arg, string_types):
                 parsed = _parse_spec_str(spec_arg)
                 parsed.update(kwargs)
@@ -39,20 +40,28 @@ class MatchSpecType(type):
             elif isinstance(spec_arg, Mapping):
                 parsed = dict(spec_arg, **kwargs)
                 return super(MatchSpecType, cls).__call__(**parsed)
-            elif isinstance(spec_arg, Dist):
-                # TODO: remove this branch
+            elif isinstance(spec_arg, PackageRef):
                 parsed = {
-                    'fn': spec_arg.to_filename(),
                     'channel': spec_arg.channel,
+                    'subdir': spec_arg.subdir,
+                    'name': spec_arg.name,
+                    'version': spec_arg.version,
+                    'build': spec_arg.build,
                 }
+                parsed.update(kwargs)
                 return super(MatchSpecType, cls).__call__(**parsed)
-            elif isinstance(spec_arg, IndexRecord):
-                # TODO: remove this branch
+            elif isinstance(spec_arg, Dist):
+                # TODO: remove this branch when we get rid of Dist
                 parsed = {
                     'name': spec_arg.name,
-                    'fn': spec_arg.fn,
-                    'channel': spec_arg.channel,
+                    'version': spec_arg.version,
+                    'build': spec_arg.build,
                 }
+                if spec_arg.channel:
+                    parsed['channel'] = spec_arg.channel
+                if spec_arg.subdir:
+                    parsed['subdir'] = spec_arg.subdir
+                parsed.update(kwargs)
                 return super(MatchSpecType, cls).__call__(**parsed)
             elif hasattr(spec_arg, 'dump'):
                 parsed = spec_arg.dump()
@@ -92,6 +101,15 @@ class MatchSpec(object):
       - `MatchSpec("* [name='foo',version='1.0',build='py27_0']", optional=True)`
       - `MatchSpec("foo[version='1.0',optional,build='py27_0']")`
       - `MatchSpec(name='foo', optional=True, version='1.0', build='py27_0')`
+
+    To fully-specify a package with a full, exact spec, the fields
+      - channel
+      - subdir
+      - name
+      - version
+      - build
+    must be given as exact values.  In the future, the namespace field will be added to this list.
+    Alternatively, an exact spec is given by '*[md5=12345678901234567890123456789012]'.
 
     """
 

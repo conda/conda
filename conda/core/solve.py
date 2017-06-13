@@ -39,7 +39,7 @@ class DepsModifier(Enum):
     UPDATE_DEPS = 'update_deps'
     UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
     UPDATE_ALL = 'update_all'
-    # FREEZE_DEPS = 'freeze_deps'  # freeze is a better name for --no-update-deps
+    FREEZE_INSTALLED = 'freeze_installed'  # freeze is a better name for --no-update-deps
     # So far, unable to contrive in tests a situation where --no-update-deps / FREEZE_DEPS
     #  is actually needed.  And in that case the `conda update -h` docs might need updating.
 
@@ -199,8 +199,13 @@ class Solver(object):
             matches_for_spec = tuple(rec for rec in solution if spec.match(rec))
             if matches_for_spec:
                 assert len(matches_for_spec) == 1
-                target = Dist(matches_for_spec[0]).full_name
-                specs_map[pkg_name] = MatchSpec(spec, target=target)
+                target_dist = matches_for_spec[0]
+                if deps_modifier == DepsModifier.FREEZE_INSTALLED:
+                    new_spec = MatchSpec(index[target_dist])
+                else:
+                    target = Dist(target_dist).full_name
+                    new_spec = MatchSpec(spec, target=target)
+                specs_map[pkg_name] = new_spec
 
         # If we're in UPDATE_ALL mode, we need to drop all the constraints attached to specs,
         # so they can all float and the solver can find the most up-to-date solution. In the case
