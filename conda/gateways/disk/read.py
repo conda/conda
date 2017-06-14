@@ -20,7 +20,7 @@ from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...common.compat import ensure_text_type
-from ...exceptions import CondaUpgradeError, CondaVerificationError, FileNotFoundError
+from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
 from ...models.index_record import IndexJsonRecord, IndexRecord
@@ -58,7 +58,7 @@ def yield_lines(path):
 
 def compute_md5sum(file_full_path):
     if not isfile(file_full_path):
-        raise FileNotFoundError(file_full_path)
+        raise PathNotFoundError(file_full_path)
 
     hash_md5 = hashlib.md5()
     with open(file_full_path, "rb") as fh:
