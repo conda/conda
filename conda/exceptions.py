@@ -355,6 +355,10 @@ class CondaHTTPError(CondaError):
         _message += "CF-RAY: %s\n\n" % cf_ray if cf_ray else "\n"
         message = _message + message
 
+        status_code = status_code or '000'
+        reason = reason or 'CONNECTION FAILED'
+        elapsed_time = elapsed_time or '-'
+
         from ._vendor.auxlib.logz import stringify
         response_details = (stringify(response) or '') if response else ''
 
