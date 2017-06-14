@@ -5,18 +5,25 @@ r1 = requests.get('https://repo.continuum.io/pkgs/free/linux-64/repodata.json')
 r1.raise_for_status()
 r2 = requests.get('https://conda.anaconda.org/conda-test/noarch/repodata.json')
 r2.raise_for_status()
+r3 = requests.get('https://conda.anaconda.org/conda-test/linux-64/repodata.json')
+r3.raise_for_status()
 
 r1json = r1.json()
 r2json = r2.json()
+r3json = r3.json()
 
-packages = r1json['packages']
+packages = r3json['packages'].copy()
+packages.update(r1json['packages'])
 packages.update(r2json['packages'])
+
+
 
 keep_list = (
     'asn1crypto',
     'astroid',
     'backports',
     'backports_abc',
+    'bkcharts',
     'bokeh',
     'boto3',
     'botocore',
@@ -162,3 +169,24 @@ if missing_in_whitelist:
 with open('index2.json', 'w') as fh:
     fh.write(json.dumps(keep, indent=2, sort_keys=True, separators=(',', ': ')))
 
+
+keep = {}
+packages = r2json['packages'].copy()
+packages.update(r3json['packages'])
+missing_in_whitelist = set()
+
+for fn, info in packages.items():
+    if info['name'] in keep_list:
+        keep[fn] = info
+        for dep in info['depends']:
+            dep = dep.split()[0]
+            if dep not in keep_list:
+                missing_in_whitelist.add(dep)
+
+if missing_in_whitelist:
+    print(">>> missing <<<")
+    print(missing_in_whitelist)
+
+
+with open('index3.json', 'w') as fh:
+    fh.write(json.dumps(keep, indent=2, sort_keys=True, separators=(',', ': ')))

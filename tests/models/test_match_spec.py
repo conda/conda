@@ -114,7 +114,7 @@ class MatchSpecTests(TestCase):
         assert a != d
         assert hash(a) == hash(b)
         assert hash(a) == hash(c)
-        assert hash(a) == hash(d)
+        assert hash(a) != hash(d)
         c = MatchSpec('python')
         d = MatchSpec('python 2.7.4')
         e = MatchSpec('python', version='2.7.4')
@@ -271,8 +271,8 @@ class MatchSpecTests(TestCase):
         assert hash(a) == hash(b)
         assert a is b
 
-        assert a == c
-        assert hash(a) == hash(c)
+        assert a != c
+        assert hash(a) != hash(c)
 
         assert a != d
         assert hash(a) != hash(d)

@@ -261,7 +261,7 @@ class MatchSpec(object):
             return False
 
     def __hash__(self):
-        return hash(self._match_components)
+        return hash((self._match_components, self.optional, self.target))
 
     def __contains__(self, field):
         return field in self._match_components

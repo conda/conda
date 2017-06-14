@@ -632,6 +632,8 @@ class Resolve(object):
         return bool(solution)
 
     def get_conflicting_specs(self, specs):
+        if not specs:
+            return ()
         reduced_index = self.get_reduced_index(specs)
 
         # Check if satisfiable
