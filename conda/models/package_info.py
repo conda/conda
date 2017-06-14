@@ -75,3 +75,22 @@ class PackageInfo(ImmutableEntity):
     icondata = StringField(required=False, nullable=True)
     package_metadata = ComposableField(PackageMetadata, required=False, nullable=True)
     paths_data = ComposableField(PathsData)
+
+    def dist_str(self):
+        return "%s::%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build)
+
+    @property
+    def name(self):
+        return self.repodata_record.name
+
+    @property
+    def version(self):
+        return self.repodata_record.version
+
+    @property
+    def build(self):
+        return self.repodata_record.build
+
+    @property
+    def build_number(self):
+        return self.repodata_record.build_number

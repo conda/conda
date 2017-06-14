@@ -17,8 +17,8 @@ from ..common.constants import NULL
 from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
-from ..gateways.disk.create import create_package_cache_directory, write_as_json_to_file, \
-    extract_tarball
+from ..gateways.disk.create import (create_package_cache_directory, extract_tarball,
+                                    write_as_json_to_file)
 from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_index_json,
                                   read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
@@ -333,8 +333,8 @@ class UrlsData(object):
 class ProgressiveFetchExtract(object):
 
     @staticmethod
-    def make_actions_for_dist(dist, record):
-        assert record is not None, dist
+    def make_actions_for_record(record):
+        assert record is not None
         # returns a cache_action and extract_action
 
         # look in all caches for a dist that's already extracted and matches
@@ -378,13 +378,13 @@ class ProgressiveFetchExtract(object):
             cache_axn = CacheUrlAction(
                 url=path_to_url(pc_entry_read_only_cache.package_tarball_full_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
-                target_package_basename=dist.to_filename(),
+                target_package_basename=record.fn,
                 md5sum=md5,
             )
             extract_axn = ExtractPackageAction(
                 source_full_path=cache_axn.target_full_path,
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
-                target_extracted_dirname=dist.dist_name,
+                target_extracted_dirname=record.fn[:-len(CONDA_TARBALL_EXTENSION)],
                 index_record=record,
             )
             return cache_axn, extract_axn
@@ -392,25 +392,32 @@ class ProgressiveFetchExtract(object):
         # if we got here, we couldn't find a matching package in the caches
         #   we'll have to download one; fetch and extract
         cache_axn = CacheUrlAction(
-            url=record.get('url') or dist.to_url(),
+            url=record.get('url'),
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_package_basename=dist.to_filename(),
+            target_package_basename=record.fn,
             md5sum=md5,
         )
         extract_axn = ExtractPackageAction(
             source_full_path=cache_axn.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_extracted_dirname=dist.dist_name,
+            target_extracted_dirname=record.fn[:-len(CONDA_TARBALL_EXTENSION)],
             index_record=record,
         )
         return cache_axn, extract_axn
 
-    def __init__(self, index, link_dists):
-        self.index = index
-        self.link_dists = link_dists
+    def __init__(self, link_prefs):
+        """
+        Args:
+            link_prefs (Tuple[PackageRef]):
+                A sequence of :class:`PackageRef`s to ensure available in a known
+                package cache, typically for a follow-on :class:`UnlinkLinkTransaction`.
+                Here, "available" means the package tarball is both downloaded and extracted
+                to a package directory.
+        """
+        self.link_precs = link_prefs
 
         log.debug("instantiating ProgressiveFetchExtract with\n"
-                  "  %s\n", '\n  '.join(text_type(dist) for dist in link_dists))
+                  "  %s\n", '\n  '.join(pkg_rec.dist_str() for pkg_rec in link_prefs))
 
         self.cache_actions = ()
         self.extract_actions = ()
@@ -421,8 +428,8 @@ class ProgressiveFetchExtract(object):
         if self._prepared:
             return
 
-        paired_actions = tuple(self.make_actions_for_dist(dist, self.index[dist])
-                               for dist in self.link_dists)
+        paired_actions = tuple(self.make_actions_for_record(pkg_record)
+                               for pkg_record in self.link_precs)
         if len(paired_actions) > 0:
             cache_actions, extract_actions = zip(*paired_actions)
             self.cache_actions = tuple(ca for ca in cache_actions if ca)
@@ -472,7 +479,7 @@ class ProgressiveFetchExtract(object):
         raise CondaMultiError(exceptions)
 
     def __hash__(self):
-        return hash(self.link_dists)
+        return hash(self.link_precs)
 
     def __eq__(self, other):
         return hash(self) == hash(other)

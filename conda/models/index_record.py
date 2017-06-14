@@ -1,14 +1,34 @@
 # -*- coding: utf-8 -*-
+"""
+                         +----------------+
+                         | BasePackageRef |
+                         +-------+--------+
+                                 |
+              +------------+     |     +-----------------+
+              | PackageRef <-----+-----> IndexJsonRecord |
+              +------+-----+           +-------+---------+
+                     |                         |
+                     +-----------+-------------+
+                                 |
+                         +-------v-------+
+                         | PackageRecord |
+                         +--+---------+--+
++--------------------+      |         |      +--------------+
+| PackageCacheRecord <------+         +------> PrefixRecord |
++--------------------+                       +--------------+
+
+
+"""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import total_ordering
 
 from .channel import Channel
-from .enums import FileMode, LinkType, NoarchType, PathType, Platform
+from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, StringField)
 from ..base.context import context
-from ..common.compat import itervalues, string_types, text_type, isiterable
+from ..common.compat import isiterable, itervalues, string_types, text_type
 
 
 @total_ordering
@@ -157,6 +177,7 @@ class BasePackageRef(DictSafeMixin, Entity):
 
 
 class PackageRef(BasePackageRef):
+    # the canonical code abbreviation for PackageRef is `pref`
     # fields required to uniquely identifying a package
 
     channel = ChannelField(aliases=('schannel',))
@@ -164,6 +185,7 @@ class PackageRef(BasePackageRef):
     fn = FilenameField(aliases=('filename',))
 
     md5 = StringField(required=False, nullable=True)
+    url = StringField(required=False, nullable=True)
 
     @property
     def schannel(self):
@@ -178,6 +200,9 @@ class PackageRef(BasePackageRef):
 
     def __eq__(self, other):
         return self._pkey == other._pkey
+
+    def dist_str(self):
+        return "%s::%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build)
 
 
 class IndexJsonRecord(BasePackageRef):
@@ -209,13 +234,20 @@ class IndexJsonRecord(BasePackageRef):
 
 
 class PackageRecord(IndexJsonRecord, PackageRef):
+    # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
+    # PackageCacheRecord (`pcrec`) or PrefixRecord (`prefix_rec`)
+    #
     # important for "choosing" a package (i.e. the solver), listing packages
     # (like search), and for verifying downloads
+    #
+    # this is the highest level of the record inheritance model that MatchSpec is designed to
+    # work with
 
     date = StringField(required=False)
     priority = PriorityField(required=False)
     size = IntegerField(required=False)
-    url = StringField(required=False, nullable=True)
+
+    package_type = EnumField(PackageType, required=False, nullable=True)
 
 
 class PathData(Entity):

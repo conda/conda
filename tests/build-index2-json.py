@@ -149,30 +149,44 @@ keep_list = (
     'zlib',
 )
 
+# keep = {}
+# missing_in_whitelist = set()
+#
+# for fn, info in packages.items():
+#     if info['name'] in keep_list:
+#         keep[fn] = info
+#         for dep in info['depends']:
+#             dep = dep.split()[0]
+#             if dep not in keep_list:
+#                 missing_in_whitelist.add(dep)
+#
+# if missing_in_whitelist:
+#     print(">>> missing <<<")
+#     print(missing_in_whitelist)
+#
+# with open('index2.json', 'w') as fh:
+#     fh.write(json.dumps(keep, indent=2, sort_keys=True, separators=(',', ': ')))
+
+
+
+keep_list = (
+    'needs-spiffy-test-app',
+    'openssl',
+    'python',
+    'readline',
+    'spiffy-test-app',
+    'sqlite',
+    'system',
+    'tk',
+    'uses-spiffy-test-app',
+    'xz',
+    'zlib',
+)
+
+
 keep = {}
-missing_in_whitelist = set()
-
-for fn, info in packages.items():
-    if info['name'] in keep_list:
-        keep[fn] = info
-        for dep in info['depends']:
-            dep = dep.split()[0]
-            if dep not in keep_list:
-                missing_in_whitelist.add(dep)
-
-
-if missing_in_whitelist:
-    print(">>> missing <<<")
-    print(missing_in_whitelist)
-
-
-with open('index2.json', 'w') as fh:
-    fh.write(json.dumps(keep, indent=2, sort_keys=True, separators=(',', ': ')))
-
-
-keep = {}
-packages = r2json['packages'].copy()
-packages.update(r3json['packages'])
+# packages = r2json['packages'].copy()
+# packages.update(r3json['packages'])
 missing_in_whitelist = set()
 
 for fn, info in packages.items():

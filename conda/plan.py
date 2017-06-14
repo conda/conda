@@ -297,11 +297,14 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
         link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
         unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
 
+        unlink_precs = tuple(index[d] for d in unlink_dists)
+        link_precs = tuple(index[d] for d in link_dists)
+
         # TODO: ideally we'd move these two lines before both the y/n confirmation and the --dry-run exit  # NOQA
-        pfe = ProgressiveFetchExtract(index, link_dists)
+        pfe = ProgressiveFetchExtract(link_precs)
         pfe.prepare()
 
-        stp = PrefixSetup(index, prefix, unlink_dists, link_dists, (), specs)
+        stp = PrefixSetup(prefix, unlink_precs, link_precs, (), specs)
         plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, UnlinkLinkTransaction(stp)))
         plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
     elif axn in ('INSTALL', 'CREATE'):
@@ -605,7 +608,9 @@ def revert_actions(prefix, revision=-1, index=None):
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
 
-    stp = PrefixSetup(index, prefix, unlink_dists, link_dists, (), user_requested_specs)
+    unlink_precs = tuple(index[d] for d in unlink_dists)
+    link_precs = tuple(index[d] for d in link_dists)
+    stp = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs)
     txn = UnlinkLinkTransaction(stp)
     return txn
 

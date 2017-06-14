@@ -113,6 +113,14 @@ class LeasedPathType(Enum):
         return self.name
 
 
+class PackageType(Enum):
+    NOARCH_GENERIC = 'noarch_generic'
+    NOARCH_PYTHON = 'noarch_python'
+    PRELINK_NOARCH_PYTHON = 'prelink_noarch_python'
+    SHADOW_PRIVATE_ENV = 'shadow_private_env'
+
+
+
 class NoarchType(Enum):
     generic = 'generic'
     python = 'python'

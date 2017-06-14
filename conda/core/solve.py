@@ -356,24 +356,24 @@ class Solver(object):
                 dependency order from roots to leaves.
 
         """
-        final_records = self.solve_final_state(deps_modifier, prune, ignore_pinned, force_remove)
+        final_precs = self.solve_final_state(deps_modifier, prune, ignore_pinned, force_remove)
         previous_records = IndexedSet(itervalues(linked_data(self.prefix)))
-        unlink_records = previous_records - final_records
-        link_records = final_records - previous_records
+        unlink_precs = previous_records - final_precs
+        link_precs = final_precs - previous_records
 
         if force_reinstall:
             for spec in self.specs_to_add:
-                rec = next((rec for rec in final_records if spec.match(rec)), None)
-                assert rec
-                link_records.add(rec)
-                unlink_records.add(rec)
+                prec = next((rec for rec in final_precs if spec.match(rec)), None)
+                assert prec
+                link_precs.add(prec)
+                unlink_precs.add(prec)
 
         # TODO: add back 'noarch: python' to unlink and link if python version changes
         # TODO: get the sort order correct for unlink_records
         # TODO: force_reinstall might not yet be fully implemented in :meth:`solve_final_state`,
         #       at least as described in the docstring.
 
-        return unlink_records, link_records
+        return unlink_precs, link_precs
 
     def solve_for_transaction(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
                               force_remove=NULL, force_reinstall=False):
@@ -402,11 +402,9 @@ class Solver(object):
             # the integration level in the PrivateEnvIntegrationTests in test_create.py.
             raise NotImplementedError()
         else:
-            unlink_dists, link_dists = self.solve_for_diff(deps_modifier, prune, ignore_pinned,
+            unlink_precs, link_precs = self.solve_for_diff(deps_modifier, prune, ignore_pinned,
                                                            force_remove, force_reinstall)
-            unlink_dists = tuple(Dist(d) for d in unlink_dists)
-            link_dists = tuple(Dist(d) for d in link_dists)
-            stp = PrefixSetup(self._index, self.prefix, unlink_dists, link_dists,
+            stp = PrefixSetup(self.prefix, unlink_precs, link_precs,
                               self.specs_to_remove, self.specs_to_add)
             # TODO: Only explicitly requested remove and update specs are being included in
             #   History right now. Do we need to include other categories from the solve?

@@ -232,3 +232,26 @@ def get_index_r_2():
     return index, r
 
 
+@memoize
+def get_index_r_3():
+    with open(join(dirname(__file__), 'index3.json')) as fi:
+        packages = json.load(fi)
+        repodata = {
+            "info": {
+                "subdir": context.subdir,
+                "arch": context.arch_name,
+                "platform": context.platform,
+            },
+            "packages": packages,
+        }
+
+    index = {}
+    channel = Channel('defaults')
+    supplement_index_with_repodata(index, repodata, channel, 1)
+    add_feature_records(index)
+    index = frozendict(index)
+    r = Resolve(index)
+    index = r.index
+    return index, r
+
+

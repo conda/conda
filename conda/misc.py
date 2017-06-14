@@ -92,7 +92,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         from .console import setup_verbose_handlers
         setup_verbose_handlers()
     link_dists = tuple(iterkeys(fetch_recs))
-    pfe = ProgressiveFetchExtract(fetch_recs, link_dists)
+    pfe = ProgressiveFetchExtract(tuple(itervalues(fetch_recs)))
     pfe.execute()
 
     # dists could have been updated with more accurate urls

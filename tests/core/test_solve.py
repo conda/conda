@@ -2,10 +2,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from contextlib import contextmanager
+import os
+from unittest import TestCase
 
+from os.path import join
 import pytest
 
-from conda.base.context import context, reset_context
+from conda.base.context import context, reset_context, Context
 from conda.common.io import env_var
 from conda.core.linked_data import PrefixData
 from conda.core.solve import DepsModifier, Solver
@@ -16,8 +19,13 @@ from conda.models.dag import PrefixDag
 from conda.models.dist import Dist
 from conda.models.prefix_record import PrefixRecord
 from conda.resolve import MatchSpec
-from ..helpers import patch, get_index_r_1, get_index_r_2
+from ..helpers import patch, get_index_r_1, get_index_r_2, get_index_r_3
+from conda.common.compat import iteritems
 
+try:
+    from unittest.mock import Mock, patch
+except ImportError:
+    from mock import Mock, patch
 
 @contextmanager
 def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
@@ -44,6 +52,23 @@ def get_solver_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     index, r = get_index_r_2()
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
+                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+        solver._index = index
+        solver._r = r
+        solver._prepared = True
+        yield solver
+
+
+@contextmanager
+def get_solver_3(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+    prefix = '/a/test/c/prefix'
+    PrefixData._cache_ = {}
+    pd = PrefixData(prefix)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
+    spec_map = {spec.name: spec for spec in history_specs}
+    index, r = get_index_r_3()
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -1177,3 +1202,73 @@ def test_freeze_deps_1():
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         with pytest.raises(UnsatisfiableError):
             solver.solve_final_state(deps_modifier=DepsModifier.FREEZE_INSTALLED)
+
+class PrivateEnvTests(TestCase):
+
+    def setUp(self):
+        self.prefix = '/a/test/c/prefix'
+
+        self.preferred_env = "_spiffy-test-app_"
+        self.preferred_env_prefix = join(self.prefix, 'envs', self.preferred_env)
+
+        # self.save_path_conflict = os.environ.get('CONDA_PATH_CONFLICT')
+        self.saved_values = {}
+        self.saved_values['CONDA_ROOT_PREFIX'] = os.environ.get('CONDA_ROOT_PREFIX')
+        self.saved_values['CONDA_ENABLE_PRIVATE_ENVS'] = os.environ.get('CONDA_ENABLE_PRIVATE_ENVS')
+
+        # os.environ['CONDA_PATH_CONFLICT'] = 'prevent'
+        os.environ['CONDA_ROOT_PREFIX'] = self.prefix
+        os.environ['CONDA_ENABLE_PRIVATE_ENVS'] = 'true'
+
+        reset_context()
+
+    def tearDown(self):
+        for key, value in iteritems(self.saved_values):
+            if value is not None:
+                os.environ[key] = value
+            else:
+                del os.environ[key]
+
+        reset_context()
+
+    @patch.object(Context, 'prefix_specified')
+    def test_simple_install_uninstall(self, prefix_specified):
+        prefix_specified.__get__ = Mock(return_value=False)
+
+        specs = MatchSpec("spiffy-test-app"),
+        with get_solver_3(specs) as solver:
+            final_state_1 = solver.solve_final_state()
+            # PrefixDag(final_state_1, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_1])
+            order = (
+                'defaults::openssl-1.0.2l-0',
+                'defaults::readline-6.2-2',
+                'defaults::sqlite-3.13.0-0',
+                'defaults::tk-8.5.18-0',
+                'defaults::zlib-1.2.8-3',
+                'defaults::python-2.7.13-0',
+                'defaults::spiffy-test-app-2.0-py27hf99fac9_0',
+            )
+            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+
+        specs_to_add = MatchSpec("uses-spiffy-test-app"),
+        with get_solver_3(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+            final_state_2 = solver.solve_final_state()
+            # PrefixDag(final_state_2, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_2])
+            order = (
+
+            )
+            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+
+        specs = specs + specs_to_add
+        specs_to_remove = MatchSpec("uses-spiffy-test-app"),
+        with get_solver_3(specs_to_remove=specs_to_remove, prefix_records=final_state_2,
+                          history_specs=specs) as solver:
+            final_state_3 = solver.solve_final_state()
+            # PrefixDag(final_state_2, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_3])
+            order = (
+
+            )
+            assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)

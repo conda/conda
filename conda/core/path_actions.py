@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
 from logging import getLogger
 import os
-from os.path import dirname, join, splitext
+from os.path import basename, dirname, join, splitext
 from random import random
 import re
 from time import sleep
@@ -21,7 +21,7 @@ from ..common.path import (ensure_pad, get_bin_directory_short_path, get_leaf_di
                            get_python_noarch_target_path, get_python_short_path,
                            is_private_env_path, parse_entry_point_def,
                            preferred_env_matches_prefix, pyc_path, url_to_path, win_path_ok)
-from ..common.url import path_to_url, unquote
+from ..common.url import has_platform, path_to_url, unquote
 from ..exceptions import CondaUpgradeError, CondaVerificationError, LinkError, PaddingError
 from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_pyc, copy, create_application_entry_point,
@@ -34,7 +34,6 @@ from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
 from ..gateways.disk.test import softlink_supported
 from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
-from ..models.dist import Dist
 from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType
 from ..models.index_record import Link
 from ..models.leased_path_entry import LeasedPathEntry
@@ -722,7 +721,7 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
             package_tarball_full_path=package_tarball_full_path,
         )
 
-        target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
+        target_short_path = 'conda-meta/%s.json' % basename(extracted_package_dir)
         return cls(transaction_context, package_info, target_prefix, target_short_path,
                    linked_package_record),
 
@@ -828,7 +827,7 @@ class RegisterPrivateEnvAction(EnvsDirectoryPathAction):
         self.requested_spec = requested_spec
         self.leased_paths = leased_paths
 
-        fn = Dist(package_info).to_filename('.json')
+        fn = basename(package_info.extracted_package_dir) + '.json'
         self.conda_meta_path = join(self.target_prefix, 'conda-meta', fn)
 
     def execute(self):
@@ -1072,7 +1071,7 @@ class CacheUrlAction(PathAction):
                 #   make sure that remote url is the most recent url in the
                 #   writable cache urls.txt
                 origin_url = source_package_cache._urls_data.get_url(self.target_package_basename)
-                if origin_url and Dist(origin_url).is_channel:
+                if origin_url and has_platform(origin_url, context.known_platforms):
                     target_package_cache._urls_data.add_url(origin_url)
             else:
                 # so our tarball source isn't a package cache, but that doesn't mean it's not
@@ -1102,7 +1101,7 @@ class CacheUrlAction(PathAction):
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy,
                             force=context.force)
 
-                if origin_url and Dist(origin_url).is_channel:
+                if origin_url and has_platform(origin_url, context.known_platforms):
                     target_package_cache._urls_data.add_url(origin_url)
                 else:
                     target_package_cache._urls_data.add_url(self.url)

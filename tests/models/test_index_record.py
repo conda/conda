@@ -48,4 +48,5 @@ class PrefixRecordTests(TestCase):
             platform=None,
             features='',
             track_features='',
+            package_type=None,
         )
