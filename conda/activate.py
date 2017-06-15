@@ -265,6 +265,13 @@ class Activator(object):
     def build_deactivate(self):
         # query environment
         old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))
+        if old_conda_shlvl <= 0:
+            return {
+                'unset_vars': (),
+                'set_vars': {},
+                'deactivate_scripts': (),
+                'activate_scripts': (),
+            }
         old_conda_prefix = os.environ['CONDA_PREFIX']
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
