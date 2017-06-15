@@ -664,17 +664,6 @@ def print_unexpected_error_message(e):
             try:
                 stdin = timeout(40, input)
                 do_upload = stdin and boolify(stdin)
-                if stdin is None:
-                    # means timeout was reached
-                    sys.stderr.write('\nTimeout reached. No report sent.\n')
-                if stdin and do_upload is False:
-                    sys.stderr.write(
-                        "\n"
-                        "No report sent. To permanently opt-out, use\n"
-                        "\n"
-                        "    $ conda config --set report_errors false\n"
-                        "\n"
-                    )
 
             except Exception as e:  # pragma: no cover
                 log.debug('%r', e)
@@ -698,14 +687,25 @@ def print_unexpected_error_message(e):
         except Exception as e:  # pragma: no cover
             log.info('%r', e)
 
-    if stdin and do_upload is True:
+        if stdin:
+            sys.stderr.write(
+                "\n"
+                "Thank you for helping to improve conda.\n"
+                "Opt-in to automatically sending reports (and not see this message again)\n"
+                "by running\n"
+                "\n"
+                "    $ conda config --set report_errors true\n"
+                "\n"
+            )
+    elif ask_for_upload and stdin is None:
+        # means timeout was reached for `input`
+        sys.stderr.write('\nTimeout reached. No report sent.\n')
+    elif ask_for_upload:
         sys.stderr.write(
             "\n"
-            "Thank you for helping to improve conda.\n"
-            "Opt-in to automatically sending reports (and not see this message again)\n"
-            "by running\n"
+            "No report sent. To permanently opt-out, use\n"
             "\n"
-            "    $ conda config --set report_errors true\n"
+            "    $ conda config --set report_errors false\n"
             "\n"
         )
 
