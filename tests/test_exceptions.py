@@ -1,17 +1,22 @@
 import json
 from unittest import TestCase
 
-from conda.common.compat import on_win
-
 from conda import text_type
+from conda._vendor.auxlib.collection import AttrDict
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import reset_context, context
+from conda.base.context import context, reset_context
+from conda.common.compat import on_win
 from conda.common.io import captured, env_var, replace_log_streams
-from conda.exceptions import CommandNotFoundError, PathNotFoundError, CondaHTTPError, CondaKeyError, \
-    CondaRevisionError, DirectoryNotFoundError, MD5MismatchError, PackageNotFoundError, TooFewArgumentsError, \
-    TooManyArgumentsError, conda_exception_handler, BasicClobberError, KnownPackageClobberError, \
-    UnknownPackageClobberError, SharedLinkPathClobberError, BinaryPrefixReplacementError, BinaryPrefixReplacementError
+from conda.exceptions import BasicClobberError, BinaryPrefixReplacementError, CommandNotFoundError, \
+    CondaHTTPError, CondaKeyError, CondaRevisionError, DirectoryNotFoundError, \
+    KnownPackageClobberError, MD5MismatchError, PackageNotFoundError, PathNotFoundError, \
+    SharedLinkPathClobberError, TooFewArgumentsError, TooManyArgumentsError, \
+    UnknownPackageClobberError, conda_exception_handler, print_unexpected_error_message
 
+try:
+    from unittest.mock import Mock, patch
+except ImportError:
+    from mock import Mock, patch
 
 def _raise_helper(exception):
     raise exception
@@ -381,6 +386,47 @@ class ExceptionTests(TestCase):
             message = ("CommandNotFoundError: 'activate is not a conda command.\n"
                        "Did you mean 'source activate'?")
         assert c.stderr.strip() == message
+
+    @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
+    @patch('requests.post', return_value=None)
+    def test_print_unexpected_error_message_1(self, head_mock, post_mock):
+        with env_var('CONDA_REPORT_ERRORS', 'true', reset_context):
+            e = AssertionError()
+            with captured() as c:
+                print_unexpected_error_message(e)
+
+            assert head_mock.call_count == 1
+            assert post_mock.call_count == 1
+            assert c.stdout == ''
+            assert "conda is private" in c.stderr
+
+    @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
+    @patch('requests.post', return_value=None)
+    def test_print_unexpected_error_message_2(self, head_mock, post_mock):
+        with env_var('CONDA_JSON', 'true', reset_context):
+            with env_var('CONDA_YES', 'yes', reset_context):
+                e = AssertionError()
+                with captured() as c:
+                    print_unexpected_error_message(e)
+
+                assert head_mock.call_count == 1
+                assert post_mock.call_count == 1
+                assert len(json.loads(c.stdout)['conda_info']['channels']) >= 2
+                assert not c.stderr
+
+    @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
+    @patch('requests.post', return_value=None)
+    @patch('conda.exceptions.input', return_value='y')
+    def test_print_unexpected_error_message_3(self, head_mock, post_mock, input_mock):
+        e = AssertionError()
+        with captured() as c:
+            print_unexpected_error_message(e)
+
+        assert input_mock.call_count == 1
+        assert head_mock.call_count == 1
+        assert post_mock.call_count == 1
+        assert c.stdout == ''
+        assert "conda is private" in c.stderr
 
     def test_BinaryPrefixReplacementError(self):
         new_data_length = 1104

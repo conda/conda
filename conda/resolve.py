@@ -735,7 +735,8 @@ class Resolve(object):
     def solve(self, specs, returnall=False, _remove=False):
         # type: (List[str], bool) -> List[Dist]
         try:
-            stdoutlog.info("Solving package specifications: ")
+            if not context.json:
+                stdoutlog.info("Solving package specifications: ")
             log.debug("Solving for %s", specs)
 
             # Find the compliant packages
@@ -845,16 +846,18 @@ class Resolve(object):
                 psols2 = list(map(set, psolutions))
                 common = set.intersection(*psols2)
                 diffs = [sorted(set(sol) - common) for sol in psols2]
-                stdoutlog.info(
-                    '\nWarning: %s possible package resolutions '
-                    '(only showing differing packages):%s%s' %
-                    ('>10' if nsol > 10 else nsol,
-                     dashlist(', '.join(diff) for diff in diffs),
-                     '\n  ... and others' if nsol > 10 else ''))
+                if not context.json:
+                    stdoutlog.info(
+                        '\nWarning: %s possible package resolutions '
+                        '(only showing differing packages):%s%s' %
+                        ('>10' if nsol > 10 else nsol,
+                         dashlist(', '.join(diff) for diff in diffs),
+                         '\n  ... and others' if nsol > 10 else ''))
 
             def stripfeat(sol):
                 return sol.split('[')[0]
-            stdoutlog.info('\n')
+            if not context.json:
+                stdoutlog.info('\n')
 
             if returnall:
                 return [sorted(Dist(stripfeat(dname)) for dname in psol) for psol in psolutions]
@@ -862,5 +865,6 @@ class Resolve(object):
                 return sorted(Dist(stripfeat(dname)) for dname in psolutions[0])
 
         except:
-            stdoutlog.info('\n')
+            if not context.json:
+                stdoutlog.info('\n')
             raise

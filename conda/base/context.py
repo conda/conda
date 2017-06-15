@@ -152,7 +152,7 @@ class Context(Configuration):
                                         validation=default_python_validation)
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
-    always_yes = PrimitiveParameter(False, aliases=('yes',))
+    always_yes = PrimitiveParameter(None, aliases=('yes',), element_type=(bool, NoneType))
     channel_priority = PrimitiveParameter(True)
     debug = PrimitiveParameter(False)
     dry_run = PrimitiveParameter(False)
@@ -163,6 +163,7 @@ class Context(Configuration):
     only_dependencies = PrimitiveParameter(False, aliases=('only_deps',))
     quiet = PrimitiveParameter(False)
     prune = PrimitiveParameter(False)
+    report_errors = PrimitiveParameter(None, element_type=(bool, NoneType))
     respect_pinned = PrimitiveParameter(True)
     shortcuts = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
@@ -691,6 +692,11 @@ def get_help_dict():
             Once conda has connected to a remote resource and sent an HTTP request, the
             read timeout is the number of seconds conda will wait for the server to send
             a response.
+            """),
+        'report_errors': dals("""
+            Opt in, or opt out, of automatic error reporting to core maintainers. Error
+            reports are anonymous, with only the error stack trace and information given
+            by `conda info` being sent.
             """),
         'rollback_enabled': dals("""
             Should any error occur during an unlink/link transaction, revert any disk
