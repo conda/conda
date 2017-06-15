@@ -482,7 +482,7 @@ class Context(Configuration):
             argparse_channels = tuple(self._argparse_args['channel'] or ())
             if argparse_channels and argparse_channels == self._channels:
                 return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
-        return self._channels
+        return self._channels or ()
 
     def get_descriptions(self):
         return get_help_dict()
