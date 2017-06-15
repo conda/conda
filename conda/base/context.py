@@ -9,7 +9,8 @@ from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
+                        PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME, SEARCH_PATH,
+                        ERROR_UPLOAD_URL)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -147,7 +148,6 @@ class Context(Configuration):
     migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
     _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
 
-    # command line
     default_python = PrimitiveParameter(default_python_default(),
                                         validation=default_python_validation)
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
@@ -156,6 +156,7 @@ class Context(Configuration):
     channel_priority = PrimitiveParameter(True)
     debug = PrimitiveParameter(False)
     dry_run = PrimitiveParameter(False)
+    error_upload_url = PrimitiveParameter(ERROR_UPLOAD_URL)
     force = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
     no_dependencies = PrimitiveParameter(False, aliases=('no_deps',))
@@ -476,6 +477,7 @@ class Context(Configuration):
             'default_python',
             'dry_run',
             'enable_private_envs',
+            'error_upload_url',
             'force_32bit',
             'max_shlvl',
             'migrated_custom_channels',

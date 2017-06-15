@@ -12,7 +12,7 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
-from .base.constants import ERROR_UPLOAD_URL, PathConflict
+from .base.constants import PathConflict
 from .common.compat import ensure_text_type, input, iteritems, iterkeys, on_win, string_types
 from .common.io import timeout
 from .common.signals import get_signal_name
@@ -689,8 +689,8 @@ def print_unexpected_error_message(e):
             # That is, when following a 301 or 302, it turns a POST into a GET.
             # And no way to disable.  WTF
             import requests
-            response = requests.head(ERROR_UPLOAD_URL, headers=headers, timeout=_timeout)
-            location = response.headers.get('Location', ERROR_UPLOAD_URL)
+            response = requests.head(context.error_upload_url, headers=headers, timeout=_timeout)
+            location = response.headers.get('Location', context.error_upload_url)
             response = requests.post(location, headers=headers, timeout=_timeout, data=data)
             log.debug("upload response status: %s", response and response.status_code)
         except Exception as e:  # pragma: no cover
