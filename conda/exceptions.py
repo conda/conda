@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from datetime import timedelta
 import json
 from logging import getLogger
+import os
 import sys
 from traceback import format_exc
 
@@ -615,6 +616,13 @@ def print_unexpected_error_message(e):
         'conda_info': info_dict,
     }
 
+    try:
+        isatty = os.isatty(0)
+    except Exception as e:
+        log.debug('%r', e)
+        # given how the rest of this function is constructed, better to assume True here
+        isatty = True
+
     if context.report_errors is False:
         ask_for_upload = False
         do_upload = False
@@ -622,6 +630,9 @@ def print_unexpected_error_message(e):
         ask_for_upload = False
         do_upload = True
     elif context.json or context.quiet:
+        ask_for_upload = False
+        do_upload = not context.offline and context.always_yes
+    elif not isatty:
         ask_for_upload = False
         do_upload = not context.offline and context.always_yes
     else:

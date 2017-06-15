@@ -425,7 +425,8 @@ class ExceptionTests(TestCase):
     @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='y')
-    def test_print_unexpected_error_message_upload_3(self, input_mock, post_mock, head_mock):
+    @patch('conda.exceptions.os.isatty', return_value=True)
+    def test_print_unexpected_error_message_upload_3(self, isatty_mock, input_mock, post_mock, head_mock):
         try:
             assert 0
         except AssertionError:
@@ -462,7 +463,8 @@ class ExceptionTests(TestCase):
     @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='n')
-    def test_print_unexpected_error_message_opt_out_2(self, input_mock, post_mock, head_mock):
+    @patch('conda.exceptions.os.isatty', return_value=True)
+    def test_print_unexpected_error_message_opt_out_2(self, isatty_mock, input_mock, post_mock, head_mock):
         try:
             assert 0
         except AssertionError:
