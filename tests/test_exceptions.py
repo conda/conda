@@ -387,9 +387,12 @@ class ExceptionTests(TestCase):
                        "Did you mean 'source activate'?")
         assert c.stderr.strip() == message
 
-    @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
-    @patch('requests.post', return_value=None)
-    def test_print_unexpected_error_message_upload_1(self, post_mock, head_mock):
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
+    def test_print_unexpected_error_message_upload_1(self, post_mock):
         try:
             assert 0
         except AssertionError:
@@ -399,14 +402,18 @@ class ExceptionTests(TestCase):
             with captured() as c:
                 print_unexpected_error_message(e)
 
-            assert head_mock.call_count == 1
-            assert post_mock.call_count == 1
+            assert post_mock.call_count == 2
             assert c.stdout == ''
             assert "conda is private" in c.stderr
 
-    @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
-    @patch('requests.post', return_value=None)
-    def test_print_unexpected_error_message_upload_2(self, post_mock, head_mock):
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(headers=AttrDict(Location='somewhere.again'), status_code=301,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
+    def test_print_unexpected_error_message_upload_2(self, post_mock):
         try:
             assert 0
         except AssertionError:
@@ -417,16 +424,18 @@ class ExceptionTests(TestCase):
                 with captured() as c:
                     print_unexpected_error_message(e)
 
-                assert head_mock.call_count == 1
-                assert post_mock.call_count == 1
+                assert post_mock.call_count == 3
                 assert len(json.loads(c.stdout)['conda_info']['channels']) >= 2
                 assert not c.stderr
 
-    @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
-    @patch('requests.post', return_value=None)
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
     @patch('conda.exceptions.input', return_value='y')
     @patch('conda.exceptions.os.isatty', return_value=True)
-    def test_print_unexpected_error_message_upload_3(self, isatty_mock, input_mock, post_mock, head_mock):
+    def test_print_unexpected_error_message_upload_3(self, isatty_mock, input_mock, post_mock):
         try:
             assert 0
         except AssertionError:
@@ -436,8 +445,7 @@ class ExceptionTests(TestCase):
             print_unexpected_error_message(e)
 
         assert input_mock.call_count == 1
-        assert head_mock.call_count == 1
-        assert post_mock.call_count == 1
+        assert post_mock.call_count == 2
         assert c.stdout == ''
         assert "conda is private" in c.stderr
 

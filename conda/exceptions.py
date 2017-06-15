@@ -593,45 +593,7 @@ def print_conda_exception(exception):
         stderrlogger.info("\n%r", exception)
 
 
-def print_unexpected_error_message(e):
-    try:
-        traceback = format_exc()
-    except AttributeError:  # pragma: no cover
-        if sys.version_info[:2] == (3, 4):
-            # AttributeError: 'NoneType' object has no attribute '__context__'
-            traceback = ''
-        else:
-            raise
-
-    from .base.context import context
-
-    # bomb = "\U0001F4A3 "
-    # explosion = "\U0001F4A5 "
-    # fire = "\U0001F525 "
-    # print("%s  %s  %s" % (3*bomb, 3*explosion, 3*fire))
-
-    command = ' '.join(ensure_text_type(s) for s in sys.argv)
-    info_dict = {}
-    if ' info' not in command:
-        try:
-            from .cli.main_info import get_info_dict
-            info_dict = get_info_dict()
-        except Exception as info_e:
-            info_traceback = format_exc()
-            info_dict = {
-                'error': repr(info_e),
-                'error_type': info_e.__class__.__name__,
-                'traceback': info_traceback,
-            }
-
-    error_report = {
-        'error': repr(e),
-        'error_type': e.__class__.__name__,
-        'command': command,
-        'traceback': traceback,
-        'conda_info': info_dict,
-    }
-
+def _calculate_ask_do_upload(context):
     try:
         isatty = os.isatty(0) or on_win
     except Exception as e:
@@ -655,6 +617,12 @@ def print_unexpected_error_message(e):
         ask_for_upload = True
         do_upload = False
 
+    return ask_for_upload, do_upload
+
+
+def _print_exception_message_and_prompt(context, error_report):
+    ask_for_upload, do_upload = _calculate_ask_do_upload(context)
+
     stdin = None
     if context.json:
         from .cli.common import stdout_json
@@ -666,14 +634,14 @@ def print_unexpected_error_message(e):
                 "An unexpected error has occurred. Conda has prepared the following report."
             )
         message_builder.append('')
-        message_builder.append('`$ %s`' % command)
+        message_builder.append('`$ %s`' % error_report['command'])
         message_builder.append('')
-        message_builder.extend('    ' + line for line in traceback.splitlines())
+        message_builder.extend('    ' + line for line in error_report['traceback'].splitlines())
         message_builder.append('')
-        if info_dict:
+        if error_report['conda_info']:
             from .cli.main_info import get_main_info_str
             try:
-                message_builder.append(get_main_info_str(info_dict))
+                message_builder.append(get_main_info_str(error_report['conda_info']))
             except Exception as e:
                 message_builder.append('conda info could not be constructed.')
                 message_builder.append('%r' % e)
@@ -699,23 +667,74 @@ def print_unexpected_error_message(e):
                 log.debug('%r', e)
                 do_upload = False
 
-    if do_upload:
-        headers = {
-            'User-Agent': context.user_agent,
-        }
-        _timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'
+    return do_upload, ask_for_upload, stdin
+
+
+def _execute_upload(context, error_report):
+    headers = {
+        'User-Agent': context.user_agent,
+    }
+    _timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+    data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'
+    try:
+        # requests does not follow HTTP standards for redirects of non-GET methods
+        # That is, when following a 301 or 302, it turns a POST into a GET.
+        # And no way to disable.  WTF
+        import requests
+        q = 0
+        url = context.error_upload_url
+        response = requests.post(url, headers=headers, timeout=_timeout, data=data)
+        response.raise_for_status()
+        while response.status_code in (301, 302) and response.headers.get('Location'):
+            url = response.headers['Location']
+            response = requests.post(url, headers=headers, timeout=_timeout, data=data)
+            response.raise_for_status()
+            q += 1
+            if q > 15:
+                raise CondaError("Redirect limit exceeded")
+        log.debug("upload response status: %s", response and response.status_code)
+    except Exception as e:  # pragma: no cover
+        log.info('%r', e)
+
+
+def print_unexpected_error_message(e):
+    try:
+        traceback = format_exc()
+    except AttributeError:  # pragma: no cover
+        if sys.version_info[:2] == (3, 4):
+            # AttributeError: 'NoneType' object has no attribute '__context__'
+            traceback = ''
+        else:
+            raise
+
+    from .base.context import context
+
+    command = ' '.join(ensure_text_type(s) for s in sys.argv)
+    info_dict = {}
+    if ' info' not in command:
         try:
-            # requests does not follow HTTP standards for redirects of non-GET methods
-            # That is, when following a 301 or 302, it turns a POST into a GET.
-            # And no way to disable.  WTF
-            import requests
-            response = requests.head(context.error_upload_url, headers=headers, timeout=_timeout)
-            location = response.headers.get('Location', context.error_upload_url)
-            response = requests.post(location, headers=headers, timeout=_timeout, data=data)
-            log.debug("upload response status: %s", response and response.status_code)
-        except Exception as e:  # pragma: no cover
-            log.info('%r', e)
+            from .cli.main_info import get_info_dict
+            info_dict = get_info_dict()
+        except Exception as info_e:
+            info_traceback = format_exc()
+            info_dict = {
+                'error': repr(info_e),
+                'error_type': info_e.__class__.__name__,
+                'traceback': info_traceback,
+            }
+
+    error_report = {
+        'error': repr(e),
+        'error_type': e.__class__.__name__,
+        'command': command,
+        'traceback': traceback,
+        'conda_info': info_dict,
+    }
+
+    do_upload, ask_for_upload, stdin = _print_exception_message_and_prompt(context, error_report)
+
+    if do_upload:
+        _execute_upload(context, error_report)
 
         if stdin:
             sys.stderr.write(
