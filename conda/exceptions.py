@@ -594,7 +594,15 @@ def print_conda_exception(exception):
 
 
 def print_unexpected_error_message(e):
-    traceback = format_exc()
+    try:
+        traceback = format_exc()
+    except AttributeError:  # pragma: no cover
+        if sys.version_info[:2] == (3, 4):
+            # AttributeError: 'NoneType' object has no attribute '__context__'
+            traceback = ''
+        else:
+            raise
+
     from .base.context import context
 
     # bomb = "\U0001F4A3 "
