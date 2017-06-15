@@ -605,8 +605,16 @@ def print_unexpected_error_message(e):
     command = ' '.join(ensure_text_type(s) for s in sys.argv)
     info_dict = {}
     if ' info' not in command:
-        from .cli.main_info import get_info_dict
-        info_dict = get_info_dict()
+        try:
+            from .cli.main_info import get_info_dict
+            info_dict = get_info_dict()
+        except Exception as info_e:
+            info_traceback = format_exc()
+            info_dict = {
+                'error': repr(info_e),
+                'error_type': info_e.__class__.__name__,
+                'traceback': info_traceback,
+            }
 
     error_report = {
         'error': repr(e),

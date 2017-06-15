@@ -9,8 +9,8 @@ from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME, SEARCH_PATH,
-                        ERROR_UPLOAD_URL)
+                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME,
+                        SEARCH_PATH)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -477,7 +477,7 @@ class Context(Configuration):
             'default_python',
             'dry_run',
             'enable_private_envs',
-            'error_upload_url',
+            'error_upload_url',  # should remain undocumented
             'force_32bit',
             'max_shlvl',
             'migrated_custom_channels',
