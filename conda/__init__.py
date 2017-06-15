@@ -88,6 +88,9 @@ class CondaMultiError(CondaError):
                     error="Multiple Errors Encountered.",
                     )
 
+    def contains(self, exception_class):
+        return any(isinstance(e, exception_class) for e in self.errors)
+
 
 class CondaExitZero(CondaError):
     pass
