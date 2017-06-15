@@ -630,6 +630,7 @@ def print_unexpected_error_message(e):
         ask_for_upload = True
         do_upload = False
 
+    stdin = None
     if context.json:
         from .cli.common import stdout_json
         stdout_json(error_report)
@@ -665,7 +666,16 @@ def print_unexpected_error_message(e):
                 do_upload = stdin and boolify(stdin)
                 if stdin is None:
                     # means timeout was reached
-                    sys.stderr.write('\nTimeout reached. No report uploaded.\n')
+                    sys.stderr.write('\nTimeout reached. No report sent.\n')
+                if stdin and do_upload is False:
+                    sys.stderr.write(
+                        "\n"
+                        "No report sent. To permanently opt-out, use\n"
+                        "\n"
+                        "    $ conda config --set report_errors false\n"
+                        "\n"
+                    )
+
             except Exception as e:  # pragma: no cover
                 log.debug('%r', e)
                 do_upload = False
@@ -688,15 +698,14 @@ def print_unexpected_error_message(e):
         except Exception as e:  # pragma: no cover
             log.info('%r', e)
 
-        if not (context.json or context.quiet):
-            sys.stderr.write("\nThank you for helping to improve conda.\n")
-
-    if context.report_errors is None and not (context.json or context.quiet):
+    if stdin and do_upload is True:
         sys.stderr.write(
-            "If you'd like to opt-in to automatically sending reports (and not\n"
-            "see this message again), run\n"
             "\n"
-            "    conda config --set report_errors true\n"
+            "Thank you for helping to improve conda.\n"
+            "Opt-in to automatically sending reports (and not see this message again)\n"
+            "by running\n"
+            "\n"
+            "    $ conda config --set report_errors true\n"
             "\n"
         )
 
