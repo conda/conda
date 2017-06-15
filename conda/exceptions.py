@@ -608,22 +608,20 @@ def print_unexpected_error_message(e):
         info_dict = get_info_dict()
 
     error_report = {
-            'error': repr(e),
-            'error_type': '%s' % type(e),
-            'command': command,
-            'traceback': traceback,
-            'conda_info': info_dict,
-        }
+        'error': repr(e),
+        'error_type': e.__class__.__name__,
+        'command': command,
+        'traceback': traceback,
+        'conda_info': info_dict,
+    }
 
     if context.report_errors is False:
-        #
         ask_for_upload = False
         do_upload = False
     elif context.report_errors is True or context.always_yes:
         ask_for_upload = False
         do_upload = True
     elif context.json or context.quiet:
-        #
         ask_for_upload = False
         do_upload = not context.offline and context.always_yes
     else:

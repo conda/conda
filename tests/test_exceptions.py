@@ -390,6 +390,10 @@ class ExceptionTests(TestCase):
     @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
     @patch('requests.post', return_value=None)
     def test_print_unexpected_error_message_upload_1(self, post_mock, head_mock):
+        try:
+            assert 0
+        except AssertionError:
+            pass
         with env_var('CONDA_REPORT_ERRORS', 'true', reset_context):
             e = AssertionError()
             with captured() as c:
@@ -403,6 +407,10 @@ class ExceptionTests(TestCase):
     @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
     @patch('requests.post', return_value=None)
     def test_print_unexpected_error_message_upload_2(self, post_mock, head_mock):
+        try:
+            assert 0
+        except AssertionError:
+            pass
         with env_var('CONDA_JSON', 'true', reset_context):
             with env_var('CONDA_YES', 'yes', reset_context):
                 e = AssertionError()
@@ -418,6 +426,10 @@ class ExceptionTests(TestCase):
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='y')
     def test_print_unexpected_error_message_upload_3(self, input_mock, post_mock, head_mock):
+        try:
+            assert 0
+        except AssertionError:
+            pass
         e = AssertionError()
         with captured() as c:
             print_unexpected_error_message(e)
@@ -432,6 +444,10 @@ class ExceptionTests(TestCase):
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='n')
     def test_print_unexpected_error_message_opt_out_1(self, input_mock, post_mock, head_mock):
+        try:
+            assert 0
+        except AssertionError:
+            pass
         with env_var('CONDA_REPORT_ERRORS', 'false', reset_context):
             e = AssertionError()
             with captured() as c:
@@ -447,6 +463,10 @@ class ExceptionTests(TestCase):
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='n')
     def test_print_unexpected_error_message_opt_out_2(self, input_mock, post_mock, head_mock):
+        try:
+            assert 0
+        except AssertionError:
+            pass
         e = AssertionError()
         with captured() as c:
             print_unexpected_error_message(e)
