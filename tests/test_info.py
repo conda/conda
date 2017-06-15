@@ -3,10 +3,17 @@ from __future__ import absolute_import, division, print_function
 import json
 
 import pytest
+import sys
 
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
+from conda.common.io import env_var
 from tests.helpers import assert_equals, assert_in
+
+try:
+    from unittest.mock import Mock, patch
+except ImportError:
+    from mock import Mock, patch
 
 
 def test_info():
@@ -55,3 +62,22 @@ def test_info_package_json():
     assert set(out.keys()) == {"numpy"}
     assert len(out["numpy"]) > 1
     assert isinstance(out["numpy"], list)
+
+
+@patch('conda.cli.install.install', side_effect=KeyError('blarg'))
+def test_get_info_dict(cli_install_mock):
+    with env_var('CONDA_REPORT_ERRORS', 'false', reset_context):
+        out, err, rc = run_command(Commands.CREATE, "-n blargblargblarg blarg --dry-run",
+                                   use_exception_handler=True)
+        sys.stdout.write(out)
+        sys.stderr.write(err)
+        assert not out
+        assert "conda info could not be constructed" not in err
+
+        out, err, rc = run_command(Commands.CREATE, "-n blargblargblarg blarg --dry-run --json",
+                                   use_exception_handler=True)
+        sys.stdout.write(out)
+        sys.stderr.write(err)
+        assert not err
+        json_obj = json.loads(out)
+        assert json_obj['conda_info']['conda_version']

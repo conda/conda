@@ -812,8 +812,13 @@ class Configuration(object):
 
             if match is not None:
                 try:
-                    typed_value = typify_data_structure(match.value(parameter),
-                                                        parameter._element_type)
+                    untyped_value = match.value(parameter)
+                    if untyped_value is None:
+                        if isinstance(parameter, SequenceParameter):
+                            untyped_value = ()
+                        elif isinstance(parameter, MapParameter):
+                            untyped_value = {}
+                    typed_value = typify_data_structure(untyped_value, parameter._element_type)
                 except TypeCoercionError as e:
                     validation_errors.append(CustomValidationError(match.key, e.value,
                                                                    match.source, text_type(e)))
