@@ -224,20 +224,23 @@ def timeout(timeout_secs, func, *args, **kwargs):
     if on_win:
         # Why does Windows have to be so difficult all the time? Kind of gets old.
         # Guess we'll bypass Windows timeouts for now.
-        return func(*args, **kwargs)
+        try:
+            return func(*args, **kwargs)
+        except KeyboardInterrupt:
+            return default_return
+    else:
+        class TimeoutException(Exception):
+            pass
 
-    class TimeoutException(Exception):
-        pass
+        def interrupt(signum, frame):
+            raise TimeoutException()
 
-    def interrupt(signum, frame):
-        raise TimeoutException()
+        signal.signal(signal.SIGALRM, interrupt)
+        signal.alarm(timeout_secs)
 
-    signal.signal(signal.SIGALRM, interrupt)
-    signal.alarm(timeout_secs)
-
-    try:
-        ret = func(*args, **kwargs)
-        signal.alarm(0)
-        return ret
-    except (TimeoutException,  KeyboardInterrupt):
-        return default_return
+        try:
+            ret = func(*args, **kwargs)
+            signal.alarm(0)
+            return ret
+        except (TimeoutException,  KeyboardInterrupt):
+            return default_return
