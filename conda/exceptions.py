@@ -633,7 +633,7 @@ def print_unexpected_error_message(e):
     }
 
     try:
-        isatty = os.isatty(0)
+        isatty = os.isatty(0) or on_win
     except Exception as e:
         log.debug('%r', e)
         # given how the rest of this function is constructed, better to assume True here
@@ -672,8 +672,13 @@ def print_unexpected_error_message(e):
         message_builder.append('')
         if info_dict:
             from .cli.main_info import get_main_info_str
-            message_builder.append(get_main_info_str(info_dict))
-            message_builder.append('')
+            try:
+                message_builder.append(get_main_info_str(info_dict))
+            except Exception as e:
+                message_builder.append('conda info could not be constructed.')
+                message_builder.append('%r' % e)
+        message_builder.append('')
+
         if ask_for_upload:
             message_builder.append(
                 "An unexpected error has occurred. Conda has prepared the above report."
