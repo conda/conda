@@ -10,7 +10,7 @@ import sys
 
 from enum import Enum
 
-from .compat import StringIO, iteritems
+from .compat import StringIO, iteritems, on_win
 from .constants import NULL
 from .._vendor.auxlib.logz import NullHandler
 
@@ -221,6 +221,10 @@ def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatt
 
 def timeout(timeout_secs, func, *args, **kwargs):
     default_return = kwargs.pop('default_return', None)
+    if on_win:
+        # Why does Windows have to be so difficult all the time? Kind of gets old.
+        # Guess we'll bypass Windows timeouts for now.
+        return func(*args, **kwargs)
 
     class TimeoutException(Exception):
         pass
