@@ -676,6 +676,7 @@ def _execute_upload(context, error_report):
     }
     _timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
     data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'
+    response = None
     try:
         # requests does not follow HTTP standards for redirects of non-GET methods
         # That is, when following a 301 or 302, it turns a POST into a GET.
@@ -695,6 +696,16 @@ def _execute_upload(context, error_report):
         log.debug("upload response status: %s", response and response.status_code)
     except Exception as e:  # pragma: no cover
         log.info('%r', e)
+    try:
+        if response and response.ok:
+            sys.stderr.write("Upload successful.\n")
+        else:
+            sys.stderr.write("Upload did not complete.")
+            if response and response.status_code:
+                sys.stderr.write(" HTTP %s" % response.status_code)
+            sys.stderr.write("\n")
+    except Exception as e:
+        log.debug("%r" % e)
 
 
 def print_unexpected_error_message(e):
