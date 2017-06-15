@@ -100,8 +100,12 @@ from .models.channel import get_conda_build_local_url  # NOQA
 get_rc_urls = lambda: list(conda.base.context.context.channels)
 get_local_urls = lambda: list(get_conda_build_local_url()) or []
 load_condarc = lambda fn: conda.base.context.reset_context([fn])
-from .exceptions import PaddingError  # NOQA
+from .exceptions import PaddingError, LinkError, CondaOSError, PathNotFoundError  # NOQA
 PaddingError = PaddingError
+LinkError = LinkError
+CondaOSError = CondaOSError
+# PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
+PathNotFoundError = CondaFileNotFoundError = PathNotFoundError
 from .gateways.disk.link import CrossPlatformStLink  # NOQA
 CrossPlatformStLink = CrossPlatformStLink
 
