@@ -389,7 +389,7 @@ class ExceptionTests(TestCase):
 
     @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
     @patch('requests.post', return_value=None)
-    def test_print_unexpected_error_message_1(self, head_mock, post_mock):
+    def test_print_unexpected_error_message_upload_1(self, post_mock, head_mock):
         with env_var('CONDA_REPORT_ERRORS', 'true', reset_context):
             e = AssertionError()
             with captured() as c:
@@ -402,7 +402,7 @@ class ExceptionTests(TestCase):
 
     @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
     @patch('requests.post', return_value=None)
-    def test_print_unexpected_error_message_2(self, head_mock, post_mock):
+    def test_print_unexpected_error_message_upload_2(self, post_mock, head_mock):
         with env_var('CONDA_JSON', 'true', reset_context):
             with env_var('CONDA_YES', 'yes', reset_context):
                 e = AssertionError()
@@ -417,7 +417,7 @@ class ExceptionTests(TestCase):
     @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='y')
-    def test_print_unexpected_error_message_3(self, head_mock, post_mock, input_mock):
+    def test_print_unexpected_error_message_upload_3(self, input_mock, post_mock, head_mock):
         e = AssertionError()
         with captured() as c:
             print_unexpected_error_message(e)
@@ -425,6 +425,35 @@ class ExceptionTests(TestCase):
         assert input_mock.call_count == 1
         assert head_mock.call_count == 1
         assert post_mock.call_count == 1
+        assert c.stdout == ''
+        assert "conda is private" in c.stderr
+
+    @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
+    @patch('requests.post', return_value=None)
+    @patch('conda.exceptions.input', return_value='n')
+    def test_print_unexpected_error_message_opt_out_1(self, input_mock, post_mock, head_mock):
+        with env_var('CONDA_REPORT_ERRORS', 'false', reset_context):
+            e = AssertionError()
+            with captured() as c:
+                print_unexpected_error_message(e)
+
+            assert input_mock.call_count == 0
+            assert head_mock.call_count == 0
+            assert post_mock.call_count == 0
+            assert c.stdout == ''
+            assert "conda is private" in c.stderr
+
+    @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
+    @patch('requests.post', return_value=None)
+    @patch('conda.exceptions.input', return_value='n')
+    def test_print_unexpected_error_message_opt_out_2(self, input_mock, post_mock, head_mock):
+        e = AssertionError()
+        with captured() as c:
+            print_unexpected_error_message(e)
+
+        assert input_mock.call_count == 1
+        assert head_mock.call_count == 0
+        assert post_mock.call_count == 0
         assert c.stdout == ''
         assert "conda is private" in c.stderr
 
