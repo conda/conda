@@ -721,7 +721,7 @@ def print_unexpected_error_message(e):
             sys.stderr.write(
                 "\n"
                 "Thank you for helping to improve conda.\n"
-                "Opt-in to automatically sending reports (and not see this message again)\n"
+                "Opt-in to always sending reports (and not see this message again)\n"
                 "by running\n"
                 "\n"
                 "    $ conda config --set report_errors true\n"
