@@ -449,10 +449,9 @@ class ExceptionTests(TestCase):
         assert c.stdout == ''
         assert "conda is private" in c.stderr
 
-    @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='n')
-    def test_print_unexpected_error_message_opt_out_1(self, input_mock, post_mock, head_mock):
+    def test_print_unexpected_error_message_opt_out_1(self, input_mock, post_mock):
         try:
             assert 0
         except AssertionError:
@@ -463,16 +462,14 @@ class ExceptionTests(TestCase):
                 print_unexpected_error_message(e)
 
             assert input_mock.call_count == 0
-            assert head_mock.call_count == 0
             assert post_mock.call_count == 0
             assert c.stdout == ''
             assert "conda is private" in c.stderr
 
-    @patch('requests.head', return_value=AttrDict(headers=AttrDict(Location='')))
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='n')
     @patch('conda.exceptions.os.isatty', return_value=True)
-    def test_print_unexpected_error_message_opt_out_2(self, isatty_mock, input_mock, post_mock, head_mock):
+    def test_print_unexpected_error_message_opt_out_2(self, isatty_mock, input_mock, post_mock):
         try:
             assert 0
         except AssertionError:
@@ -482,7 +479,6 @@ class ExceptionTests(TestCase):
             print_unexpected_error_message(e)
 
         assert input_mock.call_count == 1
-        assert head_mock.call_count == 0
         assert post_mock.call_count == 0
         assert c.stdout == ''
         assert "conda is private" in c.stderr
