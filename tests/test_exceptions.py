@@ -235,7 +235,8 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == dals("""
-        PackageNotFoundError: Potato is missing in current channels.
+        PackageNotFoundError: Packages missing in current channels:
+               Potato
 
         """).strip()
 
