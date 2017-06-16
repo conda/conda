@@ -327,21 +327,7 @@ class MD5MismatchError(CondaError):
                                                actual_md5sum=actual_md5sum)
 
 
-class PackageNotFoundError(CondaError):
-
-    def __init__(self, message, channel_urls=(), **kwargs):
-        from .resolve import dashlist
-        channels = dashlist(channel_urls)
-        msg = dals("""
-        %(text)s
-
-        We have searched for the package in the following channels:
-        %(channels)s
-        """)
-        super(PackageNotFoundError, self).__init__(msg, text=message[0], channels=channels)
-
-
-class PackageNotInstalledError(PackageNotFoundError):
+class PackageNotInstalledError(CondaError):
 
     def __init__(self, prefix, package_name):
         message = dals("""
@@ -388,32 +374,23 @@ class AuthenticationError(CondaError):
     pass
 
 
-class NoPackagesFoundError(CondaError):
-    """An exception to report that requested packages are missing.
+class PackageNotFoundError(CondaError):
 
-    Args:
-        bad_deps: a list of tuples of MatchSpecs, assumed to be dependency
-        chains, from top level to bottom.
-
-    Returns:
-        Raises an exception with a formatted message detailing the
-        missing packages and/or dependencies.
-    """
-
-    def __init__(self, bad_deps):
+    def __init__(self, bad_pkg, channel_urls=()):
         from .resolve import dashlist
-        deps = set(q[-1].spec for q in bad_deps)
-        if all(len(q) > 1 for q in bad_deps):
-            what = "Dependencies" if len(bad_deps) > 1 else "Dependency"
-        elif all(len(q) == 1 for q in bad_deps):
-            what = "Packages" if len(bad_deps) > 1 else "Package"
-        else:
-            what = "Packages/dependencies"
-        bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
-        msg = '%s missing in current channels: %s' % (what, bad_deps)
+        channels = dashlist(channel_urls)
 
-        super(NoPackagesFoundError, self).__init__(msg)
-        self.pkgs = deps
+        msg = dals("""
+        %(pkg)s is missing in current channels.
+
+        """)
+        if channel_urls:
+            msg += dals("""
+            We have searched for the packages in the following channels:
+            %(channels)s
+            """)
+
+        super(PackageNotFoundError, self).__init__(msg, pkg=bad_pkg, channels=channels)
 
 
 class UnsatisfiableError(CondaError):

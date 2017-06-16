@@ -118,13 +118,14 @@ package.""",
 
 def execute(args, parser):
     from ..exceptions import PackageNotFoundError
-    from ..resolve import NoPackagesFoundError
+    from ..resolve import ResolvePackageNotFound
 
     try:
         execute_search(args, parser)
-    except NoPackagesFoundError as e:
+    except ResolvePackageNotFound as e:
         error_message = text_type(e)
         raise PackageNotFoundError(error_message)
+
 
 def execute_search(args, parser):
     import re
