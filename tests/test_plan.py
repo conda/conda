@@ -915,7 +915,7 @@ def generate_mocked_resolve(pkgs, install=None):
         # Here, spec should be a MatchSpec
         res = groups[spec.name]
         if not res and not emptyok:
-            raise PackageNoutFound([(spec,)])
+            raise PackageNotFoundError([(spec,)])
         return res
 
     def get_explicit(spec):
