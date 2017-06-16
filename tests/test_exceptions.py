@@ -215,10 +215,7 @@ class ExceptionTests(TestCase):
     def test_PackageNotFoundError(self):
         package = "Potato"
         with env_var("CONDA_JSON", "yes", reset_context):
-            #SUBDIR/CHANNEL output testing
-            #with env_var("CONDA_SUBDIR", 'osx-32', reset_context):
             with captured() as c, replace_log_streams():
-                #channel_urls = tuple(get_channel_priority_map(context.channels))
                 exc = PackageNotFoundError(package)
                 conda_exception_handler(_raise_helper, exc)
 
@@ -229,14 +226,13 @@ class ExceptionTests(TestCase):
         assert json_obj['error'] == repr(exc)
 
         with env_var("CONDA_JSON", "no", reset_context):
-            #with env_var("CONDA_SUBDIR", 'osx-32', reset_context):
             with captured() as c, replace_log_streams():
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == dals("""
+        assert c.stderr == dals("""
         PackageNotFoundError: Packages missing in current channels:
-               Potato
+          - Potato
 
         """).strip()
 

@@ -8,7 +8,7 @@ from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, CONDA_T
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
 from .console import setup_handlers
-from .exceptions import CondaValueError, UnsatisfiableError
+from .exceptions import CondaValueError, UnsatisfiableError, PackageNotFoundError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
 from .models.index_record import IndexRecord
@@ -307,7 +307,8 @@ class Resolve(object):
             filter = self.default_filter(feats)
             bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
-            raise ResolvePackageNotFound(bad_deps)
+            pkg = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
+            raise PackageNotFoundError(pkg)
         return spec2, feats
 
     def find_conflicts(self, specs):

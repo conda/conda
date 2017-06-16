@@ -22,6 +22,7 @@ import shutil
 
 from datetime import datetime
 
+from conda._vendor.auxlib.ish import dals
 from conda.gateways.anaconda_client import read_binstar_tokens
 import pytest
 import requests
@@ -899,7 +900,6 @@ class IntegrationTests(TestCase):
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert len(json_obj.keys()) == 0
 
-    @pytest.mark.timeout(30)
     def test_bad_anaconda_token_infinite_loop(self):
         # First, confirm we get a 401 UNAUTHORIZED response from anaconda.org
         response = requests.get("https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/"
@@ -1199,9 +1199,19 @@ class IntegrationTests(TestCase):
             with pytest.raises(PackageNotFoundError) as exc:
                 run_command(Commands.REMOVE, prefix, 'numpi')
 
-            #exc_string = '%r' % exc.value
-            #assert exc_string == "PackageNotFoundError: No packages named 'numpi' found to remove from environment."
+            exc_string = '%r' % exc.value
+            assert exc_string.strip() == """
+            PackageNotFoundError: Packages missing in current channels:
+        No packages named 'numpi' found to remove from environment.
+            """.strip()
+
             assert_package_is_installed(prefix, 'numpy')
+
+            with pytest.raises(PackageNotFoundError) as exc:
+                run_command(Commands.INSTALL, prefix, 'numpi pando')
+            new_exc_string = '%r' %exc.value
+            print(new_exc_string)
+            assert exc_string == "hello world"
 
     def test_conda_list_json(self):
         def pkg_info(s):
