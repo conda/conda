@@ -22,7 +22,6 @@ import shutil
 
 from datetime import datetime
 
-from conda._vendor.auxlib.ish import dals
 from conda.gateways.anaconda_client import read_binstar_tokens
 import pytest
 import requests
