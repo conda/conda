@@ -6,14 +6,12 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from difflib import get_close_matches
 import errno
-from logging import getLogger
 import os
-from os.path import abspath, basename, exists, isdir, join
 import re
+from logging import getLogger
+from os.path import abspath, basename, exists, isdir, join
 
-from ..resolve import ResolvePackageNotFound, dashlist
 from . import common
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
@@ -23,12 +21,13 @@ from ..core.index import get_index, get_channel_priority_map
 from ..core.linked_data import linked as install_linked
 from ..exceptions import (CondaEnvironmentNotFoundError, CondaIOError, CondaImportError,
                           CondaOSError, CondaSystemExit, CondaValueError, DirectoryNotFoundError,
-                          DryRunExit, PackageNotFoundError,PackageNotInstalledError,
-                          TooManyArgumentsError, UnsatisfiableError,)
+                          DryRunExit, PackageNotFoundError, PackageNotInstalledError,
+                          TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
 from ..plan import (display_actions, execute_actions, install_actions_list,
                     is_root_prefix, nothing_to_do, revert_actions)
+from ..resolve import ResolvePackageNotFound, dashlist
 
 log = getLogger(__name__)
 stderr = getLogger('stderr')
@@ -260,21 +259,6 @@ def install(args, parser, command='install'):
     except ResolvePackageNotFound as e:
         pkg = e.args[0]
         pkg = dashlist(' -> '.join(map(str, q)) for q in pkg)
-
-        #packages = {index[fn]['name'] for fn in index}
-        #for pkg in sorted(e.pkgs):
-        #     pkg = [pkg.split()]
-        #     if pkg in packages:
-        #         continue
-        #close = get_close_matches(pkg, packages, cutoff=0.7)
-        #     if not close:
-        #         continue
-        #     if nfound == 0:
-        #         error_message.append("\n\nClose matches found; did you mean one of these?\n")
-        #     error_message.append("\n    %s: %s" % (pkg, ', '.join(close)))
-        #     nfound += 1
-        # if len(e.pkgs) > 1:
-        #     error_message.append('\n\n(and similarly for the other packages)')
 
         channel_priority_map = get_channel_priority_map(
             channel_urls=index_args['channel_urls'],
