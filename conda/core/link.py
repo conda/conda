@@ -7,6 +7,7 @@ import os
 from os.path import basename, dirname, isdir, join
 from subprocess import CalledProcessError
 import sys
+from tempfile import mkdtemp
 from traceback import format_exc
 import warnings
 
@@ -164,8 +165,11 @@ class UnlinkLinkTransaction(object):
         if self._prepared:
             return
 
+        self.transaction_context = {}
+
         for stp in itervalues(self.prefix_setups):
-            grps = self._prepare(stp.target_prefix, stp.unlink_precs, stp.link_precs,
+            grps = self._prepare(self.transaction_context, stp.target_prefix,
+                                 stp.unlink_precs, stp.link_precs,
                                  stp.remove_specs, stp.update_specs)
             self.prefix_action_groups[stp.target_prefix] = PrefixActionGroup(*grps)
 
@@ -175,6 +179,8 @@ class UnlinkLinkTransaction(object):
         if not self._prepared:
             self.prepare()
 
+        assert not context.dry_run
+
         if context.skip_safety_checks:
             self._verified = True
             return
@@ -182,7 +188,11 @@ class UnlinkLinkTransaction(object):
         exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
 
         if exceptions:
-            maybe_raise(CondaMultiError(exceptions), context)
+            try:
+                maybe_raise(CondaMultiError(exceptions), context)
+            except:
+                rm_rf(self.transaction_context['temp_dir'])
+                raise
         else:
             log.info(exceptions)
 
@@ -191,11 +201,17 @@ class UnlinkLinkTransaction(object):
     def execute(self):
         if not self._verified:
             self.verify()
+
         assert not context.dry_run
-        self._execute(tuple(concat(interleave(itervalues(self.prefix_action_groups)))))
+
+        try:
+            self._execute(tuple(concat(interleave(itervalues(self.prefix_action_groups)))))
+        finally:
+            rm_rf(self.transaction_context['temp_dir'])
 
     @classmethod
-    def _prepare(cls, target_prefix, unlink_precs, link_precs, remove_specs, update_specs):
+    def _prepare(cls, transaction_context, target_prefix, unlink_precs, link_precs,
+                 remove_specs, update_specs):
 
         # make sure prefix directory exists
         if not isdir(target_prefix):
@@ -224,13 +240,14 @@ class UnlinkLinkTransaction(object):
 
         # make all the path actions
         # no side effects allowed when instantiating these action objects
-        transaction_context = dict()
         python_version = cls.get_python_version(target_prefix,
                                                 pcrecs_to_unlink,
                                                 packages_info_to_link)
         transaction_context['target_python_version'] = python_version
         sp = get_python_site_packages_short_path(python_version)
         transaction_context['target_site_packages_short_path'] = sp
+
+        transaction_context['temp_dir'] = mkdtemp()
 
         unlink_action_groups = tuple(ActionGroup(
             'unlink',
@@ -329,7 +346,8 @@ class UnlinkLinkTransaction(object):
         # Verification 1. each path either doesn't already exist in the prefix, or will be unlinked
         link_paths_dict = defaultdict(list)
         for axn in create_lpr_actions:
-            for path in axn.linked_package_record.files:
+            for link_path_action in axn.all_link_path_actions:
+                path = link_path_action.target_short_path
                 path = lower_on_win(path)
                 link_paths_dict[path].append(axn)
                 if path not in unlink_paths and lexists(join(target_prefix, path)):
@@ -339,19 +357,19 @@ class UnlinkLinkTransaction(object):
                         key=lambda prefix_rec: path in prefix_rec.files
                     )
                     if colliding_prefix_rec:
-                        yield KnownPackageClobberError(path, axn.linked_package_record.dist_str(),
+                        yield KnownPackageClobberError(path, axn.prefix_record.dist_str(),
                                                        colliding_prefix_rec.dist_str(),
                                                        context)
                     else:
                         yield UnknownPackageClobberError(path,
-                                                         axn.linked_package_record.dist_str(),
+                                                         axn.prefix_record.dist_str(),
                                                          context)
 
         # Verification 2. there's only a single instance of each path
         for path, axns in iteritems(link_paths_dict):
             if len(axns) > 1:
                 yield SharedLinkPathClobberError(
-                    path, tuple(axn.linked_package_record.dist_str() for axn in axns), context
+                    path, tuple(axn.prefix_record.dist_str() for axn in axns), context
                 )
 
     @staticmethod
@@ -584,7 +602,7 @@ class UnlinkLinkTransaction(object):
         #     application_entry_point_actions = ()
         #     application_softlink_actions = ()
 
-        all_target_short_paths = tuple(axn.target_short_path for axn in concatv(
+        all_link_path_actions = tuple(concatv(
             file_link_actions,
             python_entry_point_actions,
             compile_pyc_actions,
@@ -596,8 +614,12 @@ class UnlinkLinkTransaction(object):
         # ))
 
         meta_create_actions = CreateLinkedPackageRecordAction.create_actions(
-            *required_quad, all_target_short_paths=all_target_short_paths,
+            *required_quad,
+            # all_target_short_paths=all_target_short_paths,
             # leased_paths=leased_paths,
+            requested_spec=requested_spec,
+            all_link_path_actions=all_link_path_actions,
+
         )
 
         # if requested_spec:
@@ -609,7 +631,6 @@ class UnlinkLinkTransaction(object):
 
         # the ordering here is significant
         return tuple(concatv(
-            meta_create_actions,
             create_directory_actions,
             file_link_actions,
             create_nonadmin_actions,
@@ -618,6 +639,7 @@ class UnlinkLinkTransaction(object):
             create_menu_actions,
             # application_entry_point_actions,
             # register_private_env_actions,
+            meta_create_actions,
         ))
 
     def make_legacy_action_groups(self, pfe):

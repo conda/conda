@@ -21,6 +21,8 @@ class PrefixRecord(PackageRecord):
     link = ComposableField(Link, required=False)
     # app = ComposableField(App, required=False)
 
+    requested_spec = StringField(required=False)
+
     # the channel priority when the package was installed into the prefix
     priority = PriorityField(required=False)
 

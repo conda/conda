@@ -4,39 +4,37 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
 from logging import getLogger
-import os
-from os.path import basename, dirname, join, splitext
+from os.path import basename, dirname, getsize, join
 from random import random
 import re
 from time import sleep
+from uuid import uuid4
 
-from .linked_data import PrefixData, get_python_version_for_prefix
+from .linked_data import PrefixData
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
-from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
+from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..common.compat import iteritems, on_win, range
-from ..common.path import (ensure_pad, get_bin_directory_short_path, get_leaf_directories,
+from ..common.compat import iteritems, on_win, range, text_type
+from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
-                           is_private_env_path, parse_entry_point_def,
-                           preferred_env_matches_prefix, pyc_path, url_to_path, win_path_ok)
+                           parse_entry_point_def,
+                           pyc_path, url_to_path, win_path_ok)
 from ..common.url import has_platform, path_to_url, unquote
-from ..exceptions import CondaUpgradeError, CondaVerificationError, LinkError, PaddingError
+from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
 from ..gateways.connection.download import download
-from ..gateways.disk.create import (compile_pyc, copy, create_application_entry_point,
-                                    create_fake_executable_softlink, create_hard_link_or_copy,
+from ..gateways.disk.create import (compile_pyc, copy, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
                                     make_menu, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
-from ..gateways.disk.link import stat_nlink, symlink
-from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists, read_index_json
-from ..gateways.disk.test import softlink_supported
+from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
+                                  read_index_json)
 from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType
-from ..models.index_record import Link, PackageRecord
+from ..models.index_record import Link, PackageRecord, PathDataV1, PathsData
 from ..models.leased_path_entry import LeasedPathEntry
 from ..models.match_spec import MatchSpec
 from ..models.package_cache_record import PackageCacheRecord
@@ -210,12 +208,15 @@ class LinkPathAction(CreateInPrefixPathAction):
     @classmethod
     def create_file_link_actions(cls, transaction_context, package_info, target_prefix,
                                  requested_link_type):
-        def get_prefix_replace(path_info):
-            if path_info.prefix_placeholder:
+        def get_prefix_replace(source_path_data):
+            if source_path_data.path_type == PathType.softlink:
                 link_type = LinkType.copy
-                prefix_placehoder = path_info.prefix_placeholder
-                file_mode = path_info.file_mode
-            elif path_info.no_link or path_info.path_type == PathType.softlink:
+                prefix_placehoder, file_mode = '', None
+            elif source_path_data.prefix_placeholder:
+                link_type = LinkType.copy
+                prefix_placehoder = source_path_data.prefix_placeholder
+                file_mode = source_path_data.file_mode
+            elif source_path_data.no_link:
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:
@@ -224,31 +225,32 @@ class LinkPathAction(CreateInPrefixPathAction):
 
             return link_type, prefix_placehoder, file_mode
 
-        def make_file_link_action(source_path_info):
+        def make_file_link_action(source_path_data):
             # TODO: this inner function is still kind of a mess
             noarch = package_info.index_json_record.noarch
             if noarch == NoarchType.python:
                 sp_dir = transaction_context['target_site_packages_short_path']
-                target_short_path = get_python_noarch_target_path(source_path_info.path, sp_dir)
+                target_short_path = get_python_noarch_target_path(source_path_data.path, sp_dir)
             elif noarch is None or noarch == NoarchType.generic:
-                target_short_path = source_path_info.path
+                target_short_path = source_path_data.path
             else:
                 raise CondaUpgradeError(dals("""
                 The current version of conda is too old to install this package.
                 Please update conda."""))
 
-            link_type, placeholder, fmode = get_prefix_replace(source_path_info)
+            link_type, placeholder, fmode = get_prefix_replace(source_path_data)
 
             if placeholder:
                 return PrefixReplaceLinkAction(transaction_context, package_info,
                                                package_info.extracted_package_dir,
-                                               source_path_info.path,
+                                               source_path_data.path,
                                                target_prefix, target_short_path,
-                                               placeholder, fmode)
+                                               placeholder, fmode, source_path_data)
             else:
                 return LinkPathAction(transaction_context, package_info,
-                                      package_info.extracted_package_dir, source_path_info.path,
-                                      target_prefix, target_short_path, link_type)
+                                      package_info.extracted_package_dir, source_path_data.path,
+                                      target_prefix, target_short_path,
+                                      link_type, source_path_data)
         return tuple(make_file_link_action(spi) for spi in package_info.paths_data.paths)
 
     @classmethod
@@ -257,7 +259,7 @@ class LinkPathAction(CreateInPrefixPathAction):
         leaf_directories = get_leaf_directories(axn.target_short_path for axn in file_link_actions)
         return tuple(
             cls(transaction_context, package_info, None, None,
-                target_prefix, directory_short_path, LinkType.directory)
+                target_prefix, directory_short_path, LinkType.directory, None)
             for directory_short_path in leaf_directories
         )
 
@@ -275,15 +277,15 @@ class LinkPathAction(CreateInPrefixPathAction):
 
     def __init__(self, transaction_context, package_info,
                  extracted_package_dir, source_short_path,
-                 target_prefix, target_short_path, link_type):
+                 target_prefix, target_short_path, link_type, source_path_data):
         super(LinkPathAction, self).__init__(transaction_context, package_info,
                                              extracted_package_dir, source_short_path,
                                              target_prefix, target_short_path)
         self.link_type = link_type
         self._execute_successful = False
+        self.source_path_data = source_path_data
 
     def verify(self):
-        # TODO: consider checking hashsums
         if self.link_type != LinkType.directory and not lexists(self.source_full_path):  # pragma: no cover  # NOQA
             # This backoff loop is added because of some weird race condition conda-build
             # experiences. Would be nice at some point to get to the bottom of why it happens.
@@ -310,6 +312,73 @@ class LinkPathAction(CreateInPrefixPathAction):
                 """ % (self.package_info.index_json_record.name,
                        self.package_info.extracted_package_dir,
                        self.source_short_path)))
+
+        source_path_data = self.source_path_data
+        if self.link_type == LinkType.directory:
+            self.prefix_path_data = None
+        elif self.link_type == LinkType.softlink:
+            self.prefix_path_data = PathDataV1.from_objects(
+                self.source_path_data,
+                path_type=PathType.softlink,
+            )
+        elif self.link_type == LinkType.directory:
+            self.prefix_path_data = None
+        elif self.link_type == LinkType.copy and source_path_data.path_type == PathType.softlink:
+            self.prefix_path_data = PathDataV1.from_objects(
+                self.source_path_data,
+                path_type=PathType.softlink,
+            )
+
+        elif source_path_data.path_type == PathType.hardlink:
+            try:
+                reported_sha256 = source_path_data.sha256
+            except AttributeError:
+                reported_sha256 = None
+            source_sha256 = compute_sha256sum(self.source_full_path)
+            if reported_sha256 and reported_sha256 != source_sha256:
+                return CondaVerificationError(dals("""
+                The package for %s located at %s
+                appears to be corrupted. The path '%s'
+                has a sha256 mismatch.
+                  reported sha256: %s
+                  actual sha256: %s
+                """ % (self.package_info.index_json_record.name,
+                       self.package_info.extracted_package_dir,
+                       self.source_short_path,
+                       reported_sha256,
+                       source_sha256,
+                       )))
+
+            try:
+                reported_size_in_bytes = source_path_data.size_in_bytes
+            except AttributeError:
+                reported_size_in_bytes = None
+
+            if reported_size_in_bytes:
+                source_size_in_bytes = getsize(self.source_full_path)
+                if reported_size_in_bytes != source_size_in_bytes:
+                    return CondaVerificationError(dals("""
+                    The package for %s located at %s
+                    appears to be corrupted. The path '%s'
+                    has an incorrect size.
+                      reported size: %s bytes
+                      actual size: %s bytes
+                    """ % (self.package_info.index_json_record.name,
+                           self.package_info.extracted_package_dir,
+                           self.source_short_path,
+                           reported_size_in_bytes,
+                           source_size_in_bytes,
+                           )))
+
+            self.prefix_path_data = PathDataV1.from_objects(
+                source_path_data,
+                sha256=source_sha256,
+                sha256_in_prefix=source_sha256,
+            )
+        else:
+            raise NotImplementedError()
+
+
         self._verified = True
 
     def execute(self):
@@ -331,56 +400,55 @@ class PrefixReplaceLinkAction(LinkPathAction):
 
     def __init__(self, transaction_context, package_info,
                  extracted_package_dir, source_short_path,
-                 target_prefix, target_short_path, prefix_placeholder, file_mode):
+                 target_prefix, target_short_path,
+                 prefix_placeholder, file_mode, source_path_data):
         super(PrefixReplaceLinkAction, self).__init__(transaction_context, package_info,
                                                       extracted_package_dir, source_short_path,
                                                       target_prefix, target_short_path,
-                                                      LinkType.copy)
+                                                      LinkType.copy, source_path_data)
         self.prefix_placeholder = prefix_placeholder
         self.file_mode = file_mode
 
     def verify(self):
-        if not (self.prefix_placeholder or self.file_mode):
-            return CondaVerificationError(dals("""
-            The package for %s located at %s
-            appears to be corrupted. For the file at path %s
-            a prefix_placeholder and file_mode must be specified. Instead got values
-            of '%s' and '%s'.
-            """ % (self.package_info.index_json_record.name,
-                   self.package_info.extracted_package_dir,
-                   self.source_short_path, self.prefix_placeholder, self.file_mode)))
-        if not isfile(self.source_full_path):
-            return CondaVerificationError(dals("""
-            The package for %s located at %s
-            appears to be corrupted. The path '%s'
-            specified in the package manifest is not a file.
-            """ % (self.package_info.index_json_record.name,
-                   self.package_info.extracted_package_dir,
-                   self.source_short_path)))
-        self._verified = True
+        validation_error = super(PrefixReplaceLinkAction, self).verify()
+        if validation_error:
+            return validation_error
 
-    def execute(self):
-        super(PrefixReplaceLinkAction, self).execute()
         if islink(self.source_full_path):
             log.trace("ignoring prefix update for symlink with source path %s",
                       self.source_full_path)
-            return
+            # return
+            assert False, "I don't think this is the right place to ignore this"
 
-        num_links = stat_nlink(self.target_full_path)
-        if num_links > 1:
-            raise LinkError(dals("""
-            Refusing to rewrite prefixes in path with more than one link.
-              path: %s
-              links: %s
-            """) % (self.target_full_path, num_links))
+        self.intermediate_path = join(self.transaction_context['temp_dir'], text_type(uuid4()))
+
+        log.trace("copying %s => %s", self.source_full_path, self.intermediate_path)
+        create_link(self.source_full_path, self.intermediate_path, LinkType.copy)
 
         try:
             log.trace("rewriting prefixes in %s", self.target_full_path)
-            update_prefix(self.target_full_path, self.target_prefix, self.prefix_placeholder,
+            update_prefix(self.intermediate_path, self.target_prefix, self.prefix_placeholder,
                           self.file_mode)
         except _PaddingError:
             raise PaddingError(self.target_full_path, self.prefix_placeholder,
                                len(self.prefix_placeholder))
+
+        sha256_in_prefix = compute_sha256sum(self.intermediate_path)
+
+        self.prefix_path_data = PathDataV1.from_objects(
+            self.prefix_path_data,
+            file_mode=self.file_mode,
+            path_type=PathType.hardlink,
+            prefix_placeholder=self.prefix_placeholder,
+            sha256_in_prefix=sha256_in_prefix,
+        )
+
+        self._verified = True
+
+    def execute(self):
+        log.trace("linking %s => %s", self.intermediate_path, self.target_full_path)
+        create_link(self.intermediate_path, self.target_full_path, LinkType.hardlink)
+        self._execute_successful = True
 
 
 class MakeMenuAction(CreateInPrefixPathAction):
@@ -457,6 +525,13 @@ class CompilePycAction(CreateInPrefixPathAction):
                                                target_prefix, target_short_path)
         self._execute_successful = False
 
+    def verify(self):
+        super(CompilePycAction, self).verify()
+        self.prefix_path_data = PathDataV1(
+            _path=self.target_short_path,
+            path_type=PathType.pyc_file,
+        )
+
     def execute(self):
         # compile_pyc is sometimes expected to fail, for example a python 3.6 file
         #   installed into a python 2 environment, but no code paths actually importing it
@@ -512,6 +587,13 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         self.module = module
         self.func = func
         self._execute_successful = False
+
+    def verify(self):
+        super(CreatePythonEntryPointAction, self).verify()
+        self.prefix_path_data = PathDataV1(
+            _path=self.target_short_path,
+            path_type=PathType.windows_python_entry_point if on_win else PathType.unix_python_entry_point,
+        )
 
     def execute(self):
         log.trace("creating python entry point %s", self.target_full_path)
@@ -703,47 +785,61 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
-                       all_target_short_paths):  # TODO: leased_paths, requested_specs
-        # 'all_target_short_paths' is especially significant here, because it is the record
-        #   of the paths that will be removed when the package is unlinked
+                       requested_spec, all_link_path_actions):
 
-        link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
         extracted_package_dir = package_info.extracted_package_dir
+        target_short_path = 'conda-meta/%s.json' % basename(extracted_package_dir)
+        return cls(transaction_context, package_info, target_prefix, target_short_path,
+                   requested_link_type, requested_spec, all_link_path_actions),
+
+    def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
+                 requested_link_type, requested_spec, all_link_path_actions):
+        super(CreateLinkedPackageRecordAction, self).__init__(transaction_context, package_info,
+                                                              None, None, target_prefix,
+                                                              target_short_path)
+        self.requested_link_type = requested_link_type
+        self.requested_spec = requested_spec
+        self.all_link_path_actions = all_link_path_actions
+
+    def verify(self):
+
+        link = Link(
+            source=self.package_info.extracted_package_dir,
+            type=self.requested_link_type,
+        )
+        extracted_package_dir = self.package_info.extracted_package_dir
         package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
         # TODO: don't make above assumption; put package_tarball_full_path in package_info
 
-        linked_package_record = PrefixRecord.from_objects(
-            package_info.repodata_record,
-            package_info.index_json_record,
-            package_info.package_metadata,
-            paths_data=package_info.paths_data,
-            files=all_target_short_paths,
+        files = (x.target_short_path for x in self.all_link_path_actions if x)
+
+        paths_data = PathsData(
+            paths_version=1,
+            paths=(x.prefix_path_data for x in self.all_link_path_actions
+                   if x and x.prefix_path_data),
+        )
+
+        self.prefix_record = PrefixRecord.from_objects(
+            self.package_info.repodata_record,
+            self.package_info.index_json_record,
+            self.package_info.package_metadata,
+            requested_spec=text_type(self.requested_spec),
+            paths_data=paths_data,
+            files=files,
             link=link,
-            url=package_info.url,
-            # leased_paths=leased_paths,
+            url=self.package_info.url,
             extracted_package_dir=extracted_package_dir,
             package_tarball_full_path=package_tarball_full_path,
         )
 
-        target_short_path = 'conda-meta/%s.json' % basename(extracted_package_dir)
-        return cls(transaction_context, package_info, target_prefix, target_short_path,
-                   linked_package_record),
-
-    def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
-                 linked_package_record):
-        super(CreateLinkedPackageRecordAction, self).__init__(transaction_context, package_info,
-                                                              None, None, target_prefix,
-                                                              target_short_path)
-        self.linked_package_record = linked_package_record
-
     def execute(self):
         log.trace("creating linked package record %s", self.target_full_path)
-        PrefixData(self.target_prefix).insert(self.linked_package_record)
+        PrefixData(self.target_prefix).insert(self.prefix_record)
 
     def reverse(self):
         log.trace("reversing linked package record creation %s", self.target_full_path)
         # TODO: be careful about failure here, and being too strict
-        PrefixData(self.target_prefix).remove(self.linked_package_record.name)
+        PrefixData(self.target_prefix).remove(self.prefix_record.name)
 
 
 class UpdateHistoryAction(CreateInPrefixPathAction):

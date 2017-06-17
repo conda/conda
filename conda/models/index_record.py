@@ -193,6 +193,8 @@ class PathDataV1(PathData):
     size_in_bytes = IntegerField(required=False, nullable=True)
     inode_paths = ListField(string_types, required=False, nullable=True)
 
+    sha256_in_prefix = StringField(required=False, nullable=True)
+
 
 class PathsData(Entity):
     # from info/paths.json
