@@ -23,8 +23,8 @@ from ...common.compat import ensure_text_type
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
-from ...models.index_record import IndexJsonRecord, IndexRecord
-from ...models.package_info import PackageInfo, PackageMetadata, PathData, PathDataV1, PathsData
+from ...models.index_record import IndexJsonRecord, IndexRecord, PathData, PathDataV1, PathsData
+from ...models.package_info import PackageInfo, PackageMetadata
 
 log = getLogger(__name__)
 
@@ -180,9 +180,10 @@ def read_paths_json(extracted_package_directory):
                     path_info["path_type"] = PathType.hardlink
                 yield PathData(**path_info)
 
+        paths = tuple(read_files_file())
         paths_data = PathsData(
             paths_version=0,
-            paths=read_files_file(),
+            paths=paths,
         )
     return paths_data
 

@@ -165,6 +165,52 @@ class FilenameField(StringField):
             return self.unbox(instance, instance_type, fn)
 
 
+
+
+
+
+
+
+
+
+
+class PathData(Entity):
+    _path = StringField()
+    prefix_placeholder = StringField(required=False, nullable=True, default=None, default_in_dump=False)
+    file_mode = EnumField(FileMode, required=False, nullable=True)
+    no_link = BooleanField(required=False, nullable=True, default=None, default_in_dump=False)
+    path_type = EnumField(PathType)
+
+    @property
+    def path(self):
+        # because I don't have aliases as an option for entity fields yet
+        return self._path
+
+
+class PathDataV1(PathData):
+    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
+    sha256 = StringField(required=False, nullable=True)
+    size_in_bytes = IntegerField(required=False, nullable=True)
+    inode_paths = ListField(string_types, required=False, nullable=True)
+
+
+class PathsData(Entity):
+    # from info/paths.json
+    paths_version = IntegerField()
+    paths = ListField(PathData)
+
+
+
+
+
+
+
+
+
+
+
+
+
 class BasePackageRef(DictSafeMixin, Entity):
     name = StringField()
     version = StringField()
@@ -246,27 +292,7 @@ class PackageRecord(IndexJsonRecord, PackageRef):
     package_type = EnumField(PackageType, required=False, nullable=True)
 
 
-class PathData(Entity):
-    # this is from conda/models/package_info.py
 
-    _path = StringField()
-    prefix_placeholder = StringField(required=False, nullable=True, default=None, default_in_dump=False)
-    file_mode = EnumField(FileMode, required=False, nullable=True)
-    no_link = BooleanField(required=False, nullable=True, default=None, default_in_dump=False)
-    path_type = EnumField(PathType)
-
-    @property
-    def path(self):
-        # because I don't have aliases as an option for entity fields yet
-        return self._path
-
-
-class PathDataV1(PathData):
-    # this is from conda/models/package_info.py
-    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
-    sha256 = StringField(required=False, nullable=True)
-    size_in_bytes = IntegerField(required=False, nullable=True)
-    inode_paths = ListField(string_types, required=False, nullable=True)
 
 
 IndexRecord = PackageRecord

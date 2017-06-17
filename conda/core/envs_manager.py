@@ -114,10 +114,10 @@ class EnvsDirectory(object):
         _data = {}
         if self._registered_envs:
             _data['registered_envs'] = self._registered_envs
-        if self._leased_paths:
-            _data['leased_paths'] = self._leased_paths
-        if self._preferred_env_packages:
-            _data['preferred_env_packages'] = self._preferred_env_packages
+        # if self._leased_paths:
+        #     _data['leased_paths'] = self._leased_paths
+        # if self._preferred_env_packages:
+        #     _data['preferred_env_packages'] = self._preferred_env_packages
 
         if _data:
             if not self.is_writable:
@@ -137,15 +137,15 @@ class EnvsDirectory(object):
         # mutable structure for use within this class
         return self._envs_dir_data.setdefault('registered_envs', [])
 
-    @property
-    def _leased_paths(self):
-        # mutable structure for use within this class
-        return self._envs_dir_data.setdefault('leased_paths', [])
-
-    @property
-    def _preferred_env_packages(self):
-        # mutable structure for use within this class
-        return self._envs_dir_data.setdefault('preferred_env_packages', [])
+    # @property
+    # def _leased_paths(self):
+    #     # mutable structure for use within this class
+    #     return self._envs_dir_data.setdefault('leased_paths', [])
+    #
+    # @property
+    # def _preferred_env_packages(self):
+    #     # mutable structure for use within this class
+    #     return self._envs_dir_data.setdefault('preferred_env_packages', [])
 
     @property
     def is_writable(self):
@@ -287,98 +287,98 @@ class EnvsDirectory(object):
         if idx is not None:
             self._registered_envs.pop(idx)
 
-    # ############################
-    # leased paths
-    # ############################
-
-    def get_leased_path_entry(self, target_short_path, default=None):
-        current_lp = next((lp for lp in self._leased_paths
-                           if lp._path == target_short_path),
-                          default)
-        return current_lp
-
-    def assert_path_not_leased(self, target_short_path):
-        current_lp = self.get_leased_path_entry(target_short_path)
-        if current_lp:
-            message = dals("""
-            A path in '%(root_prefix)s'
-            is already in use by another environment.
-              path: %(target_short_path)s
-              current prefix: %(current_prefix)s
-            """)
-            current_prefix = current_lp.target_prefix
-            raise CondaError(message,
-                             root_prefix=self.root_dir,
-                             target_short_path=target_short_path,
-                             current_prefix=current_prefix)
-
-    def add_leased_path(self, leased_path_entry):
-        self.assert_path_not_leased(leased_path_entry._path)
-        self._leased_paths.append(leased_path_entry)
-
-    def remove_leased_paths_for_package(self, package_name):
-        q = 0
-        while q < len(self._leased_paths):
-            leased_path_entry = self._leased_paths[q]
-            if leased_path_entry.package_name == package_name:
-                self._leased_paths.pop(q)
-            else:
-                q += 1
-
-    # def remove_leased_path(self, target_short_path):
-    #     lp_idx = next((q for q, lp in enumerate(self._leased_paths)
-    #                    if lp._path == target_short_path),
+    # # ############################
+    # # leased paths
+    # # ############################
+    #
+    # def get_leased_path_entry(self, target_short_path, default=None):
+    #     current_lp = next((lp for lp in self._leased_paths
+    #                        if lp._path == target_short_path),
+    #                       default)
+    #     return current_lp
+    #
+    # def assert_path_not_leased(self, target_short_path):
+    #     current_lp = self.get_leased_path_entry(target_short_path)
+    #     if current_lp:
+    #         message = dals("""
+    #         A path in '%(root_prefix)s'
+    #         is already in use by another environment.
+    #           path: %(target_short_path)s
+    #           current prefix: %(current_prefix)s
+    #         """)
+    #         current_prefix = current_lp.target_prefix
+    #         raise CondaError(message,
+    #                          root_prefix=self.root_dir,
+    #                          target_short_path=target_short_path,
+    #                          current_prefix=current_prefix)
+    #
+    # def add_leased_path(self, leased_path_entry):
+    #     self.assert_path_not_leased(leased_path_entry._path)
+    #     self._leased_paths.append(leased_path_entry)
+    #
+    # def remove_leased_paths_for_package(self, package_name):
+    #     q = 0
+    #     while q < len(self._leased_paths):
+    #         leased_path_entry = self._leased_paths[q]
+    #         if leased_path_entry.package_name == package_name:
+    #             self._leased_paths.pop(q)
+    #         else:
+    #             q += 1
+    #
+    # # def remove_leased_path(self, target_short_path):
+    # #     lp_idx = next((q for q, lp in enumerate(self._leased_paths)
+    # #                    if lp._path == target_short_path),
+    # #                   None)
+    # #     if lp_idx is not None:
+    # #         self._leased_paths.pop(lp_idx)
+    #
+    # def get_leased_path_entries_for_package(self, package_name):
+    #     return tuple(lpe for lpe in self._leased_paths if lpe.package_name == package_name)
+    #
+    # # ############################
+    # # preferred env packages
+    # # ############################
+    #
+    # def add_preferred_env_package(self, preferred_env_name, package_name, conda_meta_path,
+    #                               requested_spec):
+    #     # assert package of same name not already installed in root env
+    #     # assert there's not already a similar entry
+    #     preferred_env_packages_entry = {
+    #         'package_name': package_name,
+    #         'conda_meta_path': conda_meta_path,
+    #         'preferred_env_name': ensure_pad(preferred_env_name),
+    #         'requested_spec': text_type(requested_spec),
+    #     }
+    #     self._preferred_env_packages.append(preferred_env_packages_entry)
+    #
+    # def remove_preferred_env_package(self, package_name):
+    #     lp_idx = next((q for q, lp in enumerate(self._preferred_env_packages)
+    #                    if lp['package_name'] == package_name),
     #                   None)
-    #     if lp_idx is not None:
-    #         self._leased_paths.pop(lp_idx)
-
-    def get_leased_path_entries_for_package(self, package_name):
-        return tuple(lpe for lpe in self._leased_paths if lpe.package_name == package_name)
-
-    # ############################
-    # preferred env packages
-    # ############################
-
-    def add_preferred_env_package(self, preferred_env_name, package_name, conda_meta_path,
-                                  requested_spec):
-        # assert package of same name not already installed in root env
-        # assert there's not already a similar entry
-        preferred_env_packages_entry = {
-            'package_name': package_name,
-            'conda_meta_path': conda_meta_path,
-            'preferred_env_name': ensure_pad(preferred_env_name),
-            'requested_spec': text_type(requested_spec),
-        }
-        self._preferred_env_packages.append(preferred_env_packages_entry)
-
-    def remove_preferred_env_package(self, package_name):
-        lp_idx = next((q for q, lp in enumerate(self._preferred_env_packages)
-                       if lp['package_name'] == package_name),
-                      None)
-        self._preferred_env_packages.pop(lp_idx) if lp_idx is not None else None
-        self.remove_leased_paths_for_package(package_name)
-
-    def get_registered_preferred_env(self, package_name):
-        pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
-        return pep and pep['preferred_env_name']
-
-    def get_registered_packages(self):
-        # returns Map[package_name, env_name]
-        return {pep['package_name']: pep for pep in self._preferred_env_packages}
-
-    def get_registered_packages_keyed_on_env_name(self):
-        get_env_name = lambda x: x['preferred_env_name']
-        return groupby(get_env_name, self._preferred_env_packages)
-
-    def get_private_env_prefix(self, spec_str):
-        package_name = spec_str.split()[0]
-        pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
-        return join(self.envs_dir, pep['preferred_env_name']) if pep else None
-
-    def get_preferred_env_package_entry(self, spec_str):
-        package_name = spec_str.split()[0]
-        pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
-        return pep or None
+    #     self._preferred_env_packages.pop(lp_idx) if lp_idx is not None else None
+    #     self.remove_leased_paths_for_package(package_name)
+    #
+    # def get_registered_preferred_env(self, package_name):
+    #     pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
+    #     return pep and pep['preferred_env_name']
+    #
+    # def get_registered_packages(self):
+    #     # returns Map[package_name, env_name]
+    #     return {pep['package_name']: pep for pep in self._preferred_env_packages}
+    #
+    # def get_registered_packages_keyed_on_env_name(self):
+    #     get_env_name = lambda x: x['preferred_env_name']
+    #     return groupby(get_env_name, self._preferred_env_packages)
+    #
+    # def get_private_env_prefix(self, spec_str):
+    #     package_name = spec_str.split()[0]
+    #     pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
+    #     return join(self.envs_dir, pep['preferred_env_name']) if pep else None
+    #
+    # def get_preferred_env_package_entry(self, spec_str):
+    #     package_name = spec_str.split()[0]
+    #     pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
+    #     return pep or None
 
 
 def get_prefix(ctx, args, search=True):

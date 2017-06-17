@@ -5,7 +5,7 @@ from logging import getLogger
 
 from .channel import Channel
 from .enums import FileMode, NoarchType, PathType
-from .index_record import IndexRecord, IndexJsonRecord
+from .index_record import IndexRecord, IndexJsonRecord, PathsData
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, Entity, EnumField,
                                      ImmutableEntity, IntegerField, ListField, StringField)
 from ..common.compat import string_types
@@ -35,31 +35,6 @@ class PackageMetadata(Entity):
     noarch = ComposableField(Noarch, required=False, nullable=True)
     preferred_env = ComposableField(PreferredEnv, required=False, nullable=True, default=None, default_in_dump=False)
 
-
-class PathData(Entity):
-    _path = StringField()
-    prefix_placeholder = StringField(required=False, nullable=True, default=None, default_in_dump=False)
-    file_mode = EnumField(FileMode, required=False, nullable=True)
-    no_link = BooleanField(required=False, nullable=True, default=None, default_in_dump=False)
-    path_type = EnumField(PathType)
-
-    @property
-    def path(self):
-        # because I don't have aliases as an option for entity fields yet
-        return self._path
-
-
-class PathDataV1(PathData):
-    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
-    sha256 = StringField(required=False, nullable=True)
-    size_in_bytes = IntegerField(required=False, nullable=True)
-    inode_paths = ListField(string_types, required=False, nullable=True)
-
-
-class PathsData(Entity):
-    # from info/paths.json
-    paths_version = IntegerField()
-    paths = ListField(PathData)
 
 
 class PackageInfo(ImmutableEntity):

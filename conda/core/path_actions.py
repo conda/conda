@@ -178,31 +178,31 @@ class CreateInPrefixPathAction(PrefixPathAction):
         return join(prfx, win_path_ok(shrt_pth)) if prfx and shrt_pth else None
 
 
-@with_metaclass(ABCMeta)
-class CreateLeasedPathAction(CreateInPrefixPathAction):
-    def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
-                 target_prefix, target_short_path):
-        super(CreateLeasedPathAction, self).__init__(transaction_context, package_info,
-                                                     source_prefix, source_short_path,
-                                                     target_prefix, target_short_path)
-        self.leased_path_entry = LeasedPathEntry(
-            _path=target_short_path,
-            target_path=self.source_full_path,
-            target_prefix=source_prefix,
-            leased_path=self.target_full_path,
-            package_name=package_info.index_json_record.name,
-            leased_path_type=self.leased_path_type,
-        )
-        self._execute_successful = False
-
-    def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing leased path creation %s", self.target_full_path)
-            rm_rf(self.target_full_path)
-
-    @abstractproperty
-    def leased_path_type(self):
-        raise NotImplementedError()
+# @with_metaclass(ABCMeta)
+# class CreateLeasedPathAction(CreateInPrefixPathAction):
+#     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
+#                  target_prefix, target_short_path):
+#         super(CreateLeasedPathAction, self).__init__(transaction_context, package_info,
+#                                                      source_prefix, source_short_path,
+#                                                      target_prefix, target_short_path)
+#         self.leased_path_entry = LeasedPathEntry(
+#             _path=target_short_path,
+#             target_path=self.source_full_path,
+#             target_prefix=source_prefix,
+#             leased_path=self.target_full_path,
+#             package_name=package_info.index_json_record.name,
+#             leased_path_type=self.leased_path_type,
+#         )
+#         self._execute_successful = False
+#
+#     def reverse(self):
+#         if self._execute_successful:
+#             log.trace("reversing leased path creation %s", self.target_full_path)
+#             rm_rf(self.target_full_path)
+#
+#     @abstractproperty
+#     def leased_path_type(self):
+#         raise NotImplementedError()
 
 
 class LinkPathAction(CreateInPrefixPathAction):
@@ -563,139 +563,139 @@ class CreateApplicationEntryPointWindowsExeAction(LinkPathAction):
         return LeasedPathType.application_entry_point_windows_exe
 
 
-class CreateApplicationEntryPointAction(CreateLeasedPathAction):
-
-    @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-        preferred_env = package_info.repodata_record.preferred_env
-        if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
-            exe_paths = (package_info.package_metadata
-                         and package_info.package_metadata.preferred_env
-                         and package_info.package_metadata.preferred_env.executable_paths
-                         or ())
-
-            # target_prefix for the instantiated path action is the root prefix, not the same
-            #   as target_prefix for the larger transaction
-            assert is_private_env_path(target_prefix)
-            root_prefix = dirname(dirname(target_prefix))
-
-            if on_win:
-                def make_app_entry_point_axns(exe_path):
-                    assert exe_path.endswith(('.exe', '.bat'))
-                    target_short_path = exe_path[:-4] + "-script.py"
-                    yield cls(transaction_context, package_info, target_prefix, exe_path,
-                              root_prefix, target_short_path)
-
-                    yield CreateApplicationEntryPointWindowsExeAction.create_actions(
-                        transaction_context, package_info, root_prefix,
-                        LinkType.hardlink, exe_path[:-4] + ".exe"
-                    )
-                return tuple(concat(make_app_entry_point_axns(executable_short_path)
-                                    for executable_short_path in exe_paths))
-
-            else:
-                return tuple(
-                    cls(transaction_context, package_info, target_prefix, executable_short_path,
-                        root_prefix, executable_short_path)
-                    for executable_short_path in exe_paths
-                )
-        else:
-            return ()
-
-    def execute(self):
-        log.trace("creating application entry point %s => %s",
-                  self.source_full_path, self.target_full_path)
-        if self.source_prefix == context.conda_prefix:
-            # this could blow up for the special case of application entry points in conda's
-            #   private environment
-            # in that case, probably should use the python version from transaction_context
-            conda_python_version = self.transaction_context['target_python_version']
-        else:
-            conda_python_version = get_python_version_for_prefix(context.conda_prefix)
-        conda_python_short_path = get_python_short_path(conda_python_version)
-        conda_python_full_path = join(context.conda_prefix, win_path_ok(conda_python_short_path))
-        create_application_entry_point(self.source_full_path, self.target_full_path,
-                                       conda_python_full_path)
-        self._execute_successful = True
-
-    @property
-    def leased_path_type(self):
-        return LeasedPathType.application_entry_point
-
-
-class CreateApplicationSoftlinkAction(CreateLeasedPathAction):
-
-    @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-        preferred_env = package_info.repodata_record.preferred_env
-        if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
-            softlink_paths = (package_info.package_metadata
-                              and package_info.package_metadata.preferred_env
-                              and package_info.package_metadata.preferred_env.softlink_paths
-                              or ())
-
-            # target_prefix for the instantiated path action is the root prefix, not the same
-            #   as target_prefix for the larger transaction
-            assert is_private_env_path(target_prefix)
-            root_prefix = dirname(dirname(target_prefix))
-            softlink_supported_test_file = join(target_prefix, PREFIX_MAGIC_FILE)
-
-            def make_softlink_exe_axn(softlink_short_path):
-                if not on_win:  # pragma: win no cover
-                    root_short_path = softlink_short_path
-                    softlink_method = 'softlink'
-                else:  # pragma: unix no cover
-                    windows_pathext = os.getenv('PATHEXT', '').lower().split(';')
-                    path_root, path_ext = splitext(softlink_short_path)
-
-                    if softlink_supported(softlink_supported_test_file, root_prefix):
-                        root_short_path = softlink_short_path
-                        softlink_method = 'softlink'
-                    elif path_ext.lower() in windows_pathext:
-                        root_short_path = splitext(softlink_short_path)[0] + '.bat'
-                        softlink_method = 'fake_exe_softlink'
-                    else:
-                        root_short_path = softlink_short_path
-                        softlink_method = 'softlink_or_fail_ok'
-
-                return cls(transaction_context, package_info, target_prefix, softlink_short_path,
-                           root_prefix, root_short_path, softlink_method)
-
-            return tuple(make_softlink_exe_axn(softlink_short_path)
-                         for softlink_short_path in softlink_paths)
-
-        else:
-            return ()
-
-    def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
-                 target_prefix, target_short_path, softlink_method):
-        super(CreateApplicationSoftlinkAction, self).__init__(transaction_context, package_info,
-                                                              source_prefix, source_short_path,
-                                                              target_prefix, target_short_path)
-        self.softlink_method = softlink_method
-
-    def execute(self):
-        log.trace("creating application softlink via %s %s => %s",
-                  self.softlink_method, self.source_full_path, self.target_full_path)
-        getattr(self, self.softlink_method)()
-        self._execute_successful = True
-
-    def softlink(self):
-        symlink(self.source_full_path, self.target_full_path)
-        assert islink(self.target_full_path)
-
-    def fake_exe_softlink(self):  # pragma: unix no cover
-        create_fake_executable_softlink(self.source_full_path, self.target_full_path)
-
-    def softlink_or_fail_ok(self):  # pragma: unix no cover
-        try:
-            symlink(self.source_full_path, self.target_full_path)
-        except (IOError, OSError) as e:
-            log.trace('%r', e)
-
-    @property
-    def leased_path_type(self):
-        return LeasedPathType.application_softlink
+# class CreateApplicationEntryPointAction(CreateLeasedPathAction):
+#
+#     @classmethod
+#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
+#         preferred_env = package_info.repodata_record.preferred_env
+#         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
+#             exe_paths = (package_info.package_metadata
+#                          and package_info.package_metadata.preferred_env
+#                          and package_info.package_metadata.preferred_env.executable_paths
+#                          or ())
+#
+#             # target_prefix for the instantiated path action is the root prefix, not the same
+#             #   as target_prefix for the larger transaction
+#             assert is_private_env_path(target_prefix)
+#             root_prefix = dirname(dirname(target_prefix))
+#
+#             if on_win:
+#                 def make_app_entry_point_axns(exe_path):
+#                     assert exe_path.endswith(('.exe', '.bat'))
+#                     target_short_path = exe_path[:-4] + "-script.py"
+#                     yield cls(transaction_context, package_info, target_prefix, exe_path,
+#                               root_prefix, target_short_path)
+#
+#                     yield CreateApplicationEntryPointWindowsExeAction.create_actions(
+#                         transaction_context, package_info, root_prefix,
+#                         LinkType.hardlink, exe_path[:-4] + ".exe"
+#                     )
+#                 return tuple(concat(make_app_entry_point_axns(executable_short_path)
+#                                     for executable_short_path in exe_paths))
+#
+#             else:
+#                 return tuple(
+#                     cls(transaction_context, package_info, target_prefix, executable_short_path,
+#                         root_prefix, executable_short_path)
+#                     for executable_short_path in exe_paths
+#                 )
+#         else:
+#             return ()
+#
+#     def execute(self):
+#         log.trace("creating application entry point %s => %s",
+#                   self.source_full_path, self.target_full_path)
+#         if self.source_prefix == context.conda_prefix:
+#             # this could blow up for the special case of application entry points in conda's
+#             #   private environment
+#             # in that case, probably should use the python version from transaction_context
+#             conda_python_version = self.transaction_context['target_python_version']
+#         else:
+#             conda_python_version = get_python_version_for_prefix(context.conda_prefix)
+#         conda_python_short_path = get_python_short_path(conda_python_version)
+#         conda_python_full_path = join(context.conda_prefix, win_path_ok(conda_python_short_path))
+#         create_application_entry_point(self.source_full_path, self.target_full_path,
+#                                        conda_python_full_path)
+#         self._execute_successful = True
+#
+#     @property
+#     def leased_path_type(self):
+#         return LeasedPathType.application_entry_point
+#
+#
+# class CreateApplicationSoftlinkAction(CreateLeasedPathAction):
+#
+#     @classmethod
+#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
+#         preferred_env = package_info.repodata_record.preferred_env
+#         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
+#             softlink_paths = (package_info.package_metadata
+#                               and package_info.package_metadata.preferred_env
+#                               and package_info.package_metadata.preferred_env.softlink_paths
+#                               or ())
+#
+#             # target_prefix for the instantiated path action is the root prefix, not the same
+#             #   as target_prefix for the larger transaction
+#             assert is_private_env_path(target_prefix)
+#             root_prefix = dirname(dirname(target_prefix))
+#             softlink_supported_test_file = join(target_prefix, PREFIX_MAGIC_FILE)
+#
+#             def make_softlink_exe_axn(softlink_short_path):
+#                 if not on_win:  # pragma: win no cover
+#                     root_short_path = softlink_short_path
+#                     softlink_method = 'softlink'
+#                 else:  # pragma: unix no cover
+#                     windows_pathext = os.getenv('PATHEXT', '').lower().split(';')
+#                     path_root, path_ext = splitext(softlink_short_path)
+#
+#                     if softlink_supported(softlink_supported_test_file, root_prefix):
+#                         root_short_path = softlink_short_path
+#                         softlink_method = 'softlink'
+#                     elif path_ext.lower() in windows_pathext:
+#                         root_short_path = splitext(softlink_short_path)[0] + '.bat'
+#                         softlink_method = 'fake_exe_softlink'
+#                     else:
+#                         root_short_path = softlink_short_path
+#                         softlink_method = 'softlink_or_fail_ok'
+#
+#                 return cls(transaction_context, package_info, target_prefix, softlink_short_path,
+#                            root_prefix, root_short_path, softlink_method)
+#
+#             return tuple(make_softlink_exe_axn(softlink_short_path)
+#                          for softlink_short_path in softlink_paths)
+#
+#         else:
+#             return ()
+#
+#     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
+#                  target_prefix, target_short_path, softlink_method):
+#         super(CreateApplicationSoftlinkAction, self).__init__(transaction_context, package_info,
+#                                                               source_prefix, source_short_path,
+#                                                               target_prefix, target_short_path)
+#         self.softlink_method = softlink_method
+#
+#     def execute(self):
+#         log.trace("creating application softlink via %s %s => %s",
+#                   self.softlink_method, self.source_full_path, self.target_full_path)
+#         getattr(self, self.softlink_method)()
+#         self._execute_successful = True
+#
+#     def softlink(self):
+#         symlink(self.source_full_path, self.target_full_path)
+#         assert islink(self.target_full_path)
+#
+#     def fake_exe_softlink(self):  # pragma: unix no cover
+#         create_fake_executable_softlink(self.source_full_path, self.target_full_path)
+#
+#     def softlink_or_fail_ok(self):  # pragma: unix no cover
+#         try:
+#             symlink(self.source_full_path, self.target_full_path)
+#         except (IOError, OSError) as e:
+#             log.trace('%r', e)
+#
+#     @property
+#     def leased_path_type(self):
+#         return LeasedPathType.application_softlink
 
 
 class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
@@ -703,7 +703,7 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
-                       all_target_short_paths, leased_paths):  # TODO: requested_specs
+                       all_target_short_paths):  # TODO: leased_paths, requested_specs
         # 'all_target_short_paths' is especially significant here, because it is the record
         #   of the paths that will be removed when the package is unlinked
 
@@ -715,10 +715,12 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
         linked_package_record = PrefixRecord.from_objects(
             package_info.repodata_record,
             package_info.index_json_record,
+            package_info.package_metadata,
+            paths_data=package_info.paths_data,
             files=all_target_short_paths,
             link=link,
             url=package_info.url,
-            leased_paths=leased_paths,
+            # leased_paths=leased_paths,
             extracted_package_dir=extracted_package_dir,
             package_tarball_full_path=package_tarball_full_path,
         )
@@ -806,57 +808,57 @@ class RegisterEnvironmentLocationAction(EnvsDirectoryPathAction):
             ed.write_to_disk()
 
 
-class RegisterPrivateEnvAction(EnvsDirectoryPathAction):
-
-    @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_spec,
-                       leased_paths):
-        preferred_env = package_info.repodata_record.preferred_env
-        if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
-            return cls(transaction_context, package_info, context.root_prefix, preferred_env,
-                       requested_spec, leased_paths),
-        else:
-            return ()
-
-    def __init__(self, transaction_context, package_info, root_prefix, env_name, requested_spec,
-                 leased_paths):
-        self.root_prefix = root_prefix
-        self.env_name = ensure_pad(env_name)
-        target_prefix = join(self.root_prefix, 'envs', self.env_name)
-        super(RegisterPrivateEnvAction, self).__init__(transaction_context, target_prefix)
-
-        self.package_name = package_info.index_json_record.name
-        self.requested_spec = requested_spec
-        self.leased_paths = leased_paths
-
-        fn = basename(package_info.extracted_package_dir) + '.json'
-        self.conda_meta_path = join(self.target_prefix, 'conda-meta', fn)
-
-    def execute(self):
-        log.trace("registering private env for %s", self.target_prefix)
-
-        # touches env prefix entry in catalog.json
-        # updates leased_paths
-        from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.envs_dir_path)
-
-        self.envs_dir_state = ed._get_state()
-
-        for leased_path_entry in self.leased_paths:
-            ed.add_leased_path(leased_path_entry)
-
-        ed.add_preferred_env_package(self.env_name, self.package_name, self.conda_meta_path,
-                                     self.requested_spec)
-        ed.write_to_disk()
-        self._execute_successful = True
-
-    def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)
-            from .envs_manager import EnvsDirectory
-            ed = EnvsDirectory(self.envs_dir_path)
-            ed._set_state(self.envs_dir_state)
-            ed.write_to_disk()
+# class RegisterPrivateEnvAction(EnvsDirectoryPathAction):
+#
+#     @classmethod
+#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_spec,
+#                        leased_paths):
+#         preferred_env = package_info.repodata_record.preferred_env
+#         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
+#             return cls(transaction_context, package_info, context.root_prefix, preferred_env,
+#                        requested_spec, leased_paths),
+#         else:
+#             return ()
+#
+#     def __init__(self, transaction_context, package_info, root_prefix, env_name, requested_spec,
+#                  leased_paths):
+#         self.root_prefix = root_prefix
+#         self.env_name = ensure_pad(env_name)
+#         target_prefix = join(self.root_prefix, 'envs', self.env_name)
+#         super(RegisterPrivateEnvAction, self).__init__(transaction_context, target_prefix)
+#
+#         self.package_name = package_info.index_json_record.name
+#         self.requested_spec = requested_spec
+#         self.leased_paths = leased_paths
+#
+#         fn = basename(package_info.extracted_package_dir) + '.json'
+#         self.conda_meta_path = join(self.target_prefix, 'conda-meta', fn)
+#
+#     def execute(self):
+#         log.trace("registering private env for %s", self.target_prefix)
+#
+#         # touches env prefix entry in catalog.json
+#         # updates leased_paths
+#         from .envs_manager import EnvsDirectory
+#         ed = EnvsDirectory(self.envs_dir_path)
+#
+#         self.envs_dir_state = ed._get_state()
+#
+#         for leased_path_entry in self.leased_paths:
+#             ed.add_leased_path(leased_path_entry)
+#
+#         ed.add_preferred_env_package(self.env_name, self.package_name, self.conda_meta_path,
+#                                      self.requested_spec)
+#         ed.write_to_disk()
+#         self._execute_successful = True
+#
+#     def reverse(self):
+#         if self._execute_successful:
+#             log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)
+#             from .envs_manager import EnvsDirectory
+#             ed = EnvsDirectory(self.envs_dir_path)
+#             ed._set_state(self.envs_dir_state)
+#             ed.write_to_disk()
 
 
 # ######################################################
@@ -971,60 +973,60 @@ class UnregisterEnvironmentLocationAction(EnvsDirectoryPathAction):
             ed.write_to_disk()
 
 
-class UnregisterPrivateEnvAction(EnvsDirectoryPathAction):
-
-    @classmethod
-    def create_actions(cls, transaction_context, linked_package_data, target_prefix):
-        preferred_env = ensure_pad(linked_package_data.preferred_env)
-        if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
-            package_name = linked_package_data.name
-
-            from .envs_manager import EnvsDirectory
-            envs_directory_path = EnvsDirectory.get_envs_directory_for_prefix(target_prefix)
-            ed = EnvsDirectory(envs_directory_path)
-
-            ed.get_leased_path_entries_for_package(package_name)
-
-            leased_path_entries = ed.get_leased_path_entries_for_package(package_name)
-            leased_paths_to_remove = tuple(lpe._path for lpe in leased_path_entries)
-            unlink_leased_path_actions = (UnlinkPathAction(transaction_context, None,
-                                                           context.root_prefix, lp)
-                                          for lp in leased_paths_to_remove)
-
-            unregister_private_env_actions = cls(transaction_context, context.root_prefix,
-                                                 package_name),
-
-            return concatv(unlink_leased_path_actions, unregister_private_env_actions)
-
-        else:
-            return ()
-
-    def __init__(self, transaction_context, root_prefix, package_name):
-        super(UnregisterPrivateEnvAction, self).__init__(transaction_context, root_prefix)
-        self.root_prefix = root_prefix
-        self.package_name = package_name
-
-    def execute(self):
-        log.trace("unregistering private env for %s", self.package_name)
-
-        from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.envs_dir_path)
-
-        self.envs_dir_state = ed._get_state()
-
-        ed.remove_preferred_env_package(self.package_name)
-
-        ed.write_to_disk()
-        self._execute_successful = True
-
-    def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing environment unregistration in catalog for %s",
-                      self.target_prefix)
-            from .envs_manager import EnvsDirectory
-            ed = EnvsDirectory(self.envs_dir_path)
-            ed._set_state(self.envs_dir_state)
-            ed.write_to_disk()
+# class UnregisterPrivateEnvAction(EnvsDirectoryPathAction):
+#
+#     @classmethod
+#     def create_actions(cls, transaction_context, linked_package_data, target_prefix):
+#         preferred_env = ensure_pad(linked_package_data.preferred_env)
+#         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
+#             package_name = linked_package_data.name
+#
+#             from .envs_manager import EnvsDirectory
+#             envs_directory_path = EnvsDirectory.get_envs_directory_for_prefix(target_prefix)
+#             ed = EnvsDirectory(envs_directory_path)
+#
+#             ed.get_leased_path_entries_for_package(package_name)
+#
+#             leased_path_entries = ed.get_leased_path_entries_for_package(package_name)
+#             leased_paths_to_remove = tuple(lpe._path for lpe in leased_path_entries)
+#             unlink_leased_path_actions = (UnlinkPathAction(transaction_context, None,
+#                                                            context.root_prefix, lp)
+#                                           for lp in leased_paths_to_remove)
+#
+#             unregister_private_env_actions = cls(transaction_context, context.root_prefix,
+#                                                  package_name),
+#
+#             return concatv(unlink_leased_path_actions, unregister_private_env_actions)
+#
+#         else:
+#             return ()
+#
+#     def __init__(self, transaction_context, root_prefix, package_name):
+#         super(UnregisterPrivateEnvAction, self).__init__(transaction_context, root_prefix)
+#         self.root_prefix = root_prefix
+#         self.package_name = package_name
+#
+#     def execute(self):
+#         log.trace("unregistering private env for %s", self.package_name)
+#
+#         from .envs_manager import EnvsDirectory
+#         ed = EnvsDirectory(self.envs_dir_path)
+#
+#         self.envs_dir_state = ed._get_state()
+#
+#         ed.remove_preferred_env_package(self.package_name)
+#
+#         ed.write_to_disk()
+#         self._execute_successful = True
+#
+#     def reverse(self):
+#         if self._execute_successful:
+#             log.trace("reversing environment unregistration in catalog for %s",
+#                       self.target_prefix)
+#             from .envs_manager import EnvsDirectory
+#             ed = EnvsDirectory(self.envs_dir_path)
+#             ed._set_state(self.envs_dir_state)
+#             ed.write_to_disk()
 
 
 # ######################################################

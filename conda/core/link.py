@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict, namedtuple
 from logging import getLogger
 import os
-from os.path import dirname, isdir, join, basename
+from os.path import basename, dirname, isdir, join
 from subprocess import CalledProcessError
 import sys
 from traceback import format_exc
@@ -12,18 +12,16 @@ import warnings
 
 from .linked_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
 from .package_cache import PackageCache
-from .path_actions import (CompilePycAction, CreateApplicationEntryPointAction,
-                           CreateApplicationSoftlinkAction, CreateLinkedPackageRecordAction,
-                           CreateNonadminAction, CreatePythonEntryPointAction, LinkPathAction,
-                           MakeMenuAction, RegisterEnvironmentLocationAction,
-                           RegisterPrivateEnvAction, RemoveLinkedPackageRecordAction,
+from .path_actions import (CompilePycAction, CreateLinkedPackageRecordAction, CreateNonadminAction,
+                           CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
+                           RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
                            RemoveMenuAction, UnlinkPathAction, UnregisterEnvironmentLocationAction,
-                           UnregisterPrivateEnvAction, UpdateHistoryAction)
+                           UpdateHistoryAction)
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
+from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
@@ -80,15 +78,15 @@ def make_unlink_actions(transaction_context, target_prefix, package_cache_record
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)
 
-    unregister_private_package_actions = UnregisterPrivateEnvAction.create_actions(
-        transaction_context, package_cache_record, target_prefix
-    )
+    # unregister_private_package_actions = UnregisterPrivateEnvAction.create_actions(
+    #     transaction_context, package_cache_record, target_prefix
+    # )
 
     return tuple(concatv(
         remove_menu_actions,
         unlink_path_actions,
         directory_remove_actions,
-        unregister_private_package_actions,
+        # unregister_private_package_actions,
         remove_conda_meta_actions,
     ))
 
@@ -575,16 +573,16 @@ class UnlinkLinkTransaction(object):
         compile_pyc_actions = CompilePycAction.create_actions(*required_quad,
                                                               file_link_actions=file_link_actions)
 
-        if requested_spec:
-            application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
-                *required_quad
-            )
-            application_softlink_actions = CreateApplicationSoftlinkAction.create_actions(
-                *required_quad
-            )
-        else:
-            application_entry_point_actions = ()
-            application_softlink_actions = ()
+        # if requested_spec:
+        #     application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(
+        #         *required_quad
+        #     )
+        #     application_softlink_actions = CreateApplicationSoftlinkAction.create_actions(
+        #         *required_quad
+        #     )
+        # else:
+        #     application_entry_point_actions = ()
+        #     application_softlink_actions = ()
 
         all_target_short_paths = tuple(axn.target_short_path for axn in concatv(
             file_link_actions,
@@ -592,22 +590,22 @@ class UnlinkLinkTransaction(object):
             compile_pyc_actions,
         ))
 
-        leased_paths = tuple(axn.leased_path_entry for axn in concatv(
-            application_entry_point_actions,
-            application_softlink_actions,
-        ))
+        # leased_paths = tuple(axn.leased_path_entry for axn in concatv(
+        #     application_entry_point_actions,
+        #     application_softlink_actions,
+        # ))
 
         meta_create_actions = CreateLinkedPackageRecordAction.create_actions(
             *required_quad, all_target_short_paths=all_target_short_paths,
-            leased_paths=leased_paths
+            # leased_paths=leased_paths,
         )
 
-        if requested_spec:
-            register_private_env_actions = RegisterPrivateEnvAction.create_actions(
-                transaction_context, package_info, target_prefix, requested_spec, leased_paths
-            )
-        else:
-            register_private_env_actions = ()
+        # if requested_spec:
+        #     register_private_env_actions = RegisterPrivateEnvAction.create_actions(
+        #         transaction_context, package_info, target_prefix, requested_spec, leased_paths
+        #     )
+        # else:
+        #     register_private_env_actions = ()
 
         # the ordering here is significant
         return tuple(concatv(
@@ -618,8 +616,8 @@ class UnlinkLinkTransaction(object):
             python_entry_point_actions,
             compile_pyc_actions,
             create_menu_actions,
-            application_entry_point_actions,
-            register_private_env_actions,
+            # application_entry_point_actions,
+            # register_private_env_actions,
         ))
 
     def make_legacy_action_groups(self, pfe):
