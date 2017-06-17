@@ -116,8 +116,9 @@ class LeasedPathType(Enum):
 class PackageType(Enum):
     NOARCH_GENERIC = 'noarch_generic'
     NOARCH_PYTHON = 'noarch_python'
-    PRELINK_NOARCH_PYTHON = 'prelink_noarch_python'
+    NOARCH_PRELINK_PYTHON = 'noarch_prelink_python'
     SHADOW_PRIVATE_ENV = 'shadow_private_env'
+    SHADOW_PIP = 'shadow_pip'
 
 
 
