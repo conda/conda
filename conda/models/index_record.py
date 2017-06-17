@@ -214,8 +214,8 @@ class IndexJsonRecord(BasePackageRef):
 
     subdir = SubdirField()
     # package_type = EnumField(NoarchType, required=False)  # previously noarch
-    noarch = NoarchField(NoarchType, required=False, nullable=True)  # TODO: rename to package_type
-    preferred_env = StringField(required=False, nullable=True)
+    noarch = NoarchField(NoarchType, required=False, nullable=True, default=None, default_in_dump=False)  # TODO: rename to package_type
+    preferred_env = StringField(required=False, nullable=True, default=None, default_in_dump=False)
 
     license = StringField(required=False)
     license_family = StringField(required=False)
@@ -250,9 +250,9 @@ class PathData(Entity):
     # this is from conda/models/package_info.py
 
     _path = StringField()
-    prefix_placeholder = StringField(required=False, nullable=True)
+    prefix_placeholder = StringField(required=False, nullable=True, default=None, default_in_dump=False)
     file_mode = EnumField(FileMode, required=False, nullable=True)
-    no_link = BooleanField(required=False, nullable=True)
+    no_link = BooleanField(required=False, nullable=True, default=None, default_in_dump=False)
     path_type = EnumField(PathType)
 
     @property

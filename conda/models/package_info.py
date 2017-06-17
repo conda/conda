@@ -20,7 +20,7 @@ class NoarchField(EnumField):
 
 class Noarch(Entity):
     type = NoarchField(NoarchType)
-    entry_points = ListField(string_types, required=False, nullable=True)
+    entry_points = ListField(string_types, required=False, nullable=True, default=None, default_in_dump=False)
 
 
 class PreferredEnv(Entity):
@@ -33,14 +33,14 @@ class PackageMetadata(Entity):
     # from info/package_metadata.json
     package_metadata_version = IntegerField()
     noarch = ComposableField(Noarch, required=False, nullable=True)
-    preferred_env = ComposableField(PreferredEnv, required=False, nullable=True)
+    preferred_env = ComposableField(PreferredEnv, required=False, nullable=True, default=None, default_in_dump=False)
 
 
 class PathData(Entity):
     _path = StringField()
-    prefix_placeholder = StringField(required=False, nullable=True)
+    prefix_placeholder = StringField(required=False, nullable=True, default=None, default_in_dump=False)
     file_mode = EnumField(FileMode, required=False, nullable=True)
-    no_link = BooleanField(required=False, nullable=True)
+    no_link = BooleanField(required=False, nullable=True, default=None, default_in_dump=False)
     path_type = EnumField(PathType)
 
     @property
