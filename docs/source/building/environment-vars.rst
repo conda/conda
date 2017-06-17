@@ -63,6 +63,8 @@ override this behavior.)
     - Inherited from your shell environment. May be used to set additional
       arguments to make, such as `-j2`, which will use 2 CPU cores to build
       your recipe.
+  * - ``PY_VER``
+    - Python version building against (Set via `--python` arg or via `CONDA_PY` environment variable.)
   * - ``NPY_VER``
     - Numpy version building against (Set via `--numpy` arg or via `CONDA_NPY` environment variable.)
   * - ``PATH``
