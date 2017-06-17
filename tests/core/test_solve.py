@@ -1121,12 +1121,13 @@ def test_freeze_deps_1():
             'defaults::requests-2.14.2-py27_0',
             'defaults::setuptools-27.2.0-py27_0',
             'defaults::six-1.7.3-py27_0',
+            'defaults::bkcharts-0.2-py27_0',
             'defaults::jinja2-2.9.6-py27_0',
             'defaults::python-dateutil-2.6.0-py27_0',
             'defaults::singledispatch-3.4.0.3-py27_0',
             'defaults::ssl_match_hostname-3.4.0.2-py27_1',
             'defaults::tornado-4.5.1-py27_0',
-            'defaults::bokeh-0.12.5-py27_1',
+            'defaults::bokeh-0.12.6-py27_0',
         )
         assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 

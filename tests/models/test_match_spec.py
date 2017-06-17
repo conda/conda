@@ -235,8 +235,6 @@ class MatchSpecTests(TestCase):
         assert MatchSpec(url=url, md5="1234").match(pref2)
         assert MatchSpec(url=url, md5="1234").get('md5') == "1234"
 
-
-
         url = "file:///var/folders/cp/7r2s_s593j7_cpdtxxsmct880000gp/T/edfc ñçêáôß/flask-0.10.1-py35_2.tar.bz2"
         assert m(url) == "*[url='%s']" % url
         # url = '*[url="file:///var/folders/cp/7r2s_s593j7_cpdtxxsmct880000gp/T/edfc ñçêáôß/flask-0.10.1-py35_2.tar.bz2"]'

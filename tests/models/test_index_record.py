@@ -23,6 +23,7 @@ class PrefixRecordTests(TestCase):
             md5='0123456789',
             files=(),
         )
+        assert pr.url == "https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2"
         assert pr.channel.canonical_name == 'defaults'
         assert pr.subdir == "win-32"
         assert pr.fn == "austin-1.2.3-py34_2.tar.bz2"
@@ -39,14 +40,6 @@ class PrefixRecordTests(TestCase):
             channel=channel_str,
             subdir="win-32",
             fn="austin-1.2.3-py34_2.tar.bz2",
-            auth=None,
             constrains=(),
             depends=(),
-            noarch=None,
-            preferred_env=None,
-            arch=None,
-            platform=None,
-            features='',
-            track_features='',
-            package_type=None,
         )

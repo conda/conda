@@ -100,11 +100,9 @@ class FeaturesField(ListField):
 
 class ChannelField(ComposableField):
 
-    def __init__(self, default=None, validation=None,
-                 in_dump=True, nullable=False, immutable=False, aliases=()):
+    def __init__(self, aliases=()):
         self._type = Channel
-        super(ComposableField, self).__init__(default, False, validation,
-                                              in_dump, nullable, immutable, aliases)
+        super(ComposableField, self).__init__(required=False, aliases=aliases)
 
     def dump(self, val):
         return val and text_type(val)
@@ -149,10 +147,8 @@ class SubdirField(StringField):
 
 class FilenameField(StringField):
 
-    def __init__(self, default=None, validation=None,
-                 in_dump=True, nullable=False, immutable=False, aliases=()):
-        super(FilenameField, self).__init__(default, False, validation, in_dump, nullable,
-                                            immutable, aliases)
+    def __init__(self, aliases=()):
+        super(FilenameField, self).__init__(required=False, aliases=aliases)
 
     def __get__(self, instance, instance_type):
         try:
@@ -184,7 +180,7 @@ class PackageRef(BasePackageRef):
     subdir = SubdirField()
     fn = FilenameField(aliases=('filename',))
 
-    md5 = StringField(required=False, nullable=True)
+    md5 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
     url = StringField(required=False, nullable=True)
 
     @property
@@ -213,8 +209,8 @@ class IndexJsonRecord(BasePackageRef):
     depends = ListField(string_types, default=())
     constrains = ListField(string_types, default=())
 
-    features = FeaturesField(required=False, nullable=True)
-    track_features = FeaturesField(required=False, nullable=True)
+    features = FeaturesField(required=False, default=(), default_in_dump=False)
+    track_features = FeaturesField(required=False, default=(), default_in_dump=False)
 
     subdir = SubdirField()
     # package_type = EnumField(NoarchType, required=False)  # previously noarch
