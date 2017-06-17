@@ -194,7 +194,7 @@ class Solver(object):
         #  - to minimize the version change, set MatchSpec(name=name, target=dist.full_name)
         #  - to freeze the package, set all the components of MatchSpec individually
         for pkg_name, spec in iteritems(specs_map):
-            matches_for_spec = tuple(rec for rec in solution if spec.match(rec))
+            matches_for_spec = tuple(dist for dist in solution if spec.match(index[dist]))
             if matches_for_spec:
                 assert len(matches_for_spec) == 1
                 target_dist = matches_for_spec[0]
@@ -277,9 +277,9 @@ class Solver(object):
             # In the NO_DEPS case we're just filtering out packages from the solution.
             dont_add_packages = []
             new_packages = set(solution) - set(pre_solution)
-            for record in new_packages:
-                if not any(spec.match(record) for spec in specs_to_add):
-                    dont_add_packages.append(record)
+            for dist in new_packages:
+                if not any(spec.match(index[dist]) for spec in specs_to_add):
+                    dont_add_packages.append(dist)
             solution = tuple(rec for rec in solution if rec not in dont_add_packages)
         elif deps_modifier == DepsModifier.ONLY_DEPS:
             # Using a special instance of the DAG to remove leaf nodes that match the original

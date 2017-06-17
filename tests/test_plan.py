@@ -860,50 +860,6 @@ class TestDeprecatedExecutePlan(unittest.TestCase):
         self.assertEqual(INSTRUCTION_CMD.arg, 'arg')
 
 
-class PlanFromActionsTests(unittest.TestCase):
-    py_ver = ''.join(str(x) for x in sys.version_info[:2])
-
-    def test_plan_link_menuinst(self):
-        menuinst = Dist('menuinst-1.4.2-py27_0')
-        menuinst_record = DPkg(menuinst)
-        ipython = Dist('ipython-5.1.0-py27_1')
-        ipython_record = DPkg(ipython)
-        actions = defaultdict(list)
-        actions.update({
-            'PREFIX': 'aprefix',
-            'LINK': [ipython, menuinst],
-        })
-
-        conda_plan = plan.plan_from_actions(actions, {
-            menuinst: menuinst_record,
-            ipython: ipython_record,
-        })
-
-        expected_plan = [
-            ('PREFIX', 'aprefix'),
-            ('PRINT', 'Linking packages ...'),
-            # ('PROGRESS', '2'),
-            ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract((ipython_record, menuinst_record))),
-            ('UNLINKLINKTRANSACTION', ((), (ipython), menuinst)),
-        ]
-
-        if on_win:
-            # menuinst should be linked first
-            expected_plan = [
-                ('PREFIX', 'aprefix'),
-                ('PRINT', 'Linking packages ...'),
-                # ('PROGRESS', '1'),
-                ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract((menuinst_record, ipython_record))),
-                ('UNLINKLINKTRANSACTION', ((), (menuinst, ipython))),
-            ]
-
-            # last_two = expected_plan[-2:]
-            # expected_plan[-2:] = last_two[::-1]
-        assert expected_plan[0] == conda_plan[0]
-        assert expected_plan[1] == conda_plan[1]
-        # assert expected_plan[2] == conda_plan[2]  fails, but probably isn't relevant anymore
-
-
 def generate_mocked_resolve(pkgs, install=None):
     mock_package = namedtuple("IndexRecord",
                               ["preferred_env", "name", "schannel", "version", "fn"])

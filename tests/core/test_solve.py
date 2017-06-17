@@ -1203,6 +1203,7 @@ def test_freeze_deps_1():
         with pytest.raises(UnsatisfiableError):
             solver.solve_final_state(deps_modifier=DepsModifier.FREEZE_INSTALLED)
 
+
 class PrivateEnvTests(TestCase):
 
     def setUp(self):
@@ -1231,44 +1232,44 @@ class PrivateEnvTests(TestCase):
 
         reset_context()
 
-    @patch.object(Context, 'prefix_specified')
-    def test_simple_install_uninstall(self, prefix_specified):
-        prefix_specified.__get__ = Mock(return_value=False)
-
-        specs = MatchSpec("spiffy-test-app"),
-        with get_solver_3(specs) as solver:
-            final_state_1 = solver.solve_final_state()
-            # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_1])
-            order = (
-                'defaults::openssl-1.0.2l-0',
-                'defaults::readline-6.2-2',
-                'defaults::sqlite-3.13.0-0',
-                'defaults::tk-8.5.18-0',
-                'defaults::zlib-1.2.8-3',
-                'defaults::python-2.7.13-0',
-                'defaults::spiffy-test-app-2.0-py27hf99fac9_0',
-            )
-            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
-
-        specs_to_add = MatchSpec("uses-spiffy-test-app"),
-        with get_solver_3(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-            final_state_2 = solver.solve_final_state()
-            # PrefixDag(final_state_2, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_2])
-            order = (
-
-            )
-            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
-
-        specs = specs + specs_to_add
-        specs_to_remove = MatchSpec("uses-spiffy-test-app"),
-        with get_solver_3(specs_to_remove=specs_to_remove, prefix_records=final_state_2,
-                          history_specs=specs) as solver:
-            final_state_3 = solver.solve_final_state()
-            # PrefixDag(final_state_2, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_3])
-            order = (
-
-            )
-            assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
+    # @patch.object(Context, 'prefix_specified')
+    # def test_simple_install_uninstall(self, prefix_specified):
+    #     prefix_specified.__get__ = Mock(return_value=False)
+    #
+    #     specs = MatchSpec("spiffy-test-app"),
+    #     with get_solver_3(specs) as solver:
+    #         final_state_1 = solver.solve_final_state()
+    #         # PrefixDag(final_state_1, specs).open_url()
+    #         print([Dist(rec).full_name for rec in final_state_1])
+    #         order = (
+    #             'defaults::openssl-1.0.2l-0',
+    #             'defaults::readline-6.2-2',
+    #             'defaults::sqlite-3.13.0-0',
+    #             'defaults::tk-8.5.18-0',
+    #             'defaults::zlib-1.2.8-3',
+    #             'defaults::python-2.7.13-0',
+    #             'defaults::spiffy-test-app-2.0-py27hf99fac9_0',
+    #         )
+    #         assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+    #
+    #     specs_to_add = MatchSpec("uses-spiffy-test-app"),
+    #     with get_solver_3(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    #         final_state_2 = solver.solve_final_state()
+    #         # PrefixDag(final_state_2, specs).open_url()
+    #         print([Dist(rec).full_name for rec in final_state_2])
+    #         order = (
+    #
+    #         )
+    #         assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+    #
+    #     specs = specs + specs_to_add
+    #     specs_to_remove = MatchSpec("uses-spiffy-test-app"),
+    #     with get_solver_3(specs_to_remove=specs_to_remove, prefix_records=final_state_2,
+    #                       history_specs=specs) as solver:
+    #         final_state_3 = solver.solve_final_state()
+    #         # PrefixDag(final_state_2, specs).open_url()
+    #         print([Dist(rec).full_name for rec in final_state_3])
+    #         order = (
+    #
+    #         )
+    #         assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)

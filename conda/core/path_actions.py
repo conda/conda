@@ -27,16 +27,18 @@ from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_pyc, copy, create_application_entry_point,
                                     create_fake_executable_softlink, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
-                                    make_menu)
+                                    make_menu, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.link import stat_nlink, symlink
-from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
+from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists, read_index_json
 from ..gateways.disk.test import softlink_supported
 from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
+from ..models.channel import Channel
 from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType
-from ..models.index_record import Link
+from ..models.index_record import Link, PackageRecord
 from ..models.leased_path_entry import LeasedPathEntry
+from ..models.match_spec import MatchSpec
 from ..models.package_cache_record import PackageCacheRecord
 from ..models.prefix_record import PrefixRecord
 
@@ -1129,12 +1131,13 @@ class CacheUrlAction(PathAction):
 class ExtractPackageAction(PathAction):
 
     def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname,
-                 index_record):
+                 record_or_spec, md5sum):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
         self.hold_path = self.target_full_path + '.c~'
-        self.index_record = index_record
+        self.record_or_spec = record_or_spec
+        self.md5sum = md5sum
 
     def verify(self):
         self._verified = True
@@ -1161,18 +1164,29 @@ class ExtractPackageAction(PathAction):
                 else:
                     raise
         extract_tarball(self.source_full_path, self.target_full_path)
-        # meta = join(self.target_full_path, 'info', 'repodata_record.json')
-        # write_as_json_to_file(meta, self.record)
+
+        index_json_record = read_index_json(self.target_full_path)
+
+        if isinstance(self.record_or_spec, MatchSpec):
+            url = self.record_or_spec.get_raw_value('url')
+            assert url
+            channel = Channel(url) if has_platform(url, context.known_subdirs) else Channel(None)
+            fn = basename(url)
+            md5 = self.md5sum or compute_md5sum(self.source_full_path)
+            repodata_record = PackageRecord.from_objects(index_json_record, url=url,
+                                                         channel=channel, fn=fn, md5=md5)
+        else:
+            repodata_record = PackageRecord.from_objects(self.record_or_spec, index_json_record)
+
+        repodata_record_path = join(self.target_full_path, 'info', 'repodata_record.json')
+        write_as_json_to_file(repodata_record_path, repodata_record)
 
         target_package_cache = PackageCache(self.target_pkgs_dir)
-        recorded_url = target_package_cache._urls_data.get_url(self.source_full_path)
         package_cache_record = PackageCacheRecord.from_objects(
-            self.index_record,
-            url=recorded_url,
+            repodata_record,
             package_tarball_full_path=self.source_full_path,
             extracted_package_dir=self.target_full_path,
         )
-
         target_package_cache.insert(package_cache_record)
 
         # dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))

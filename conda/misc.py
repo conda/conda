@@ -5,27 +5,26 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 import os
-from os.path import (abspath, dirname, exists, expanduser, isdir, isfile, join,
-                     relpath)
+from os.path import abspath, dirname, exists, expanduser, isdir, isfile, join, relpath
 import re
 import shutil
 import sys
 
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, on_win, open
-from .common.path import expand, url_to_path, win_path_ok
+from .common.compat import iteritems, itervalues, on_win, open
+from .common.path import expand
 from .common.url import is_url, join_url, path_to_url, unquote
-from .core.index import _supplement_index_with_cache, get_index
-from .core.linked_data import linked_data
+from .core.index import get_index
+from .core.link import PrefixSetup, UnlinkLinkTransaction
+from .core.linked_data import PrefixData, linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
-from .exceptions import PathNotFoundError, PackageNotFoundError, ParseError
+from .exceptions import PackageNotFoundError, ParseError
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink
-from .instructions import LINK, UNLINK
 from .models.dist import Dist
 from .models.index_record import IndexRecord
-from .plan import execute_actions
-from .resolve import MatchSpec, Resolve
+from .models.match_spec import MatchSpec
+from .resolve import Resolve
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -48,7 +47,7 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
     actions = defaultdict(list)
     actions['PREFIX'] = prefix
 
-    fetch_recs = {}
+    fetch_specs = []
     for spec in specs:
         if spec == '@EXPLICIT':
             continue
@@ -64,58 +63,31 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         url = join_url(url_p, fn)
         # url_p is everything but the tarball_basename and the md5sum
 
-        # If the path points to a file in the package cache, we need to use
-        # the dist name that corresponds to that package. The MD5 may not
-        # match, but we will let PFE below worry about that
-        dist = None
-        if url.startswith('file:/'):
-            path = win_path_ok(url_to_path(url))
-            if dirname(path) in context.pkgs_dirs:
-                if not exists(path):
-                    raise PathNotFoundError(path)
-                pc_entry = PackageCache.tarball_file_in_cache(path)
-                dist = Dist(pc_entry)
-                url = dist.to_url()
-                if not url:
-                    pc = PackageCache(dirname(pc_entry.extracted_package_dir))
-                    url = pc._urls_data.get_url(pc_entry.extracted_package_dir)
-                    dist = Dist(url)
-                md5sum = md5sum or pc_entry.md5sum
-        dist = dist or Dist(url)
-        fetch_recs[dist] = IndexRecord(name=dist.name, version=dist.version, build=dist.build,
-                                       build_number=dist.build_number, arch=dist.platform,
-                                       channel=dist.channel, schannel=dist.channel, fn=dist.fn,
-                                       url=url, md5=md5sum)
+        fetch_specs.append(MatchSpec(url, md5=md5sum) if md5sum else MatchSpec(url))
 
-    # perform any necessary fetches and extractions
-    if verbose:
-        from .console import setup_verbose_handlers
-        setup_verbose_handlers()
-    link_dists = tuple(iterkeys(fetch_recs))
-    pfe = ProgressiveFetchExtract(tuple(itervalues(fetch_recs)))
+    pfe = ProgressiveFetchExtract(fetch_specs)
     pfe.execute()
 
-    # dists could have been updated with more accurate urls
-    # TODO: I'm stuck here
+    # now make an UnlinkLinkTransaction with the PackageCacheRecords as inputs
+    # need to add package name to fetch_specs so that history parsing keeps track of them correctly
+    specs_pcrecs = tuple([spec, next(PackageCache.query_all(spec), None)] for spec in fetch_specs)
+    assert not any(spec_pcrec[1] is None for spec_pcrec in specs_pcrecs)
 
-    # Now get the index---but the only index we need is the package cache
-    index = {}
-    _supplement_index_with_cache(index, ())
+    precs_to_remove = []
+    prefix_data = PrefixData(prefix)
+    for q, (spec, pcrec) in enumerate(specs_pcrecs):
+        new_spec = MatchSpec(spec, name=pcrec.name)
+        specs_pcrecs[q][0] = new_spec
 
-    # unlink any installed packages with same package name
-    link_names = {index[d]['name'] for d in link_dists}
-    actions[UNLINK].extend(d for d, r in iteritems(linked_data(prefix))
-                           if r['name'] in link_names)
+        prec = prefix_data.get(pcrec.name, None)
+        if prec:
+            precs_to_remove.append(prec)
 
-    # need to get the install order right, especially to install python in the prefix
-    #  before python noarch packages
-    r = Resolve(index)
-    actions[LINK].extend(link_dists)
-    actions[LINK] = r.dependency_sort({r.package_name(dist): dist for dist in actions[LINK]})
-    actions['ACTION'] = 'EXPLICIT'
+    stp = PrefixSetup(prefix, precs_to_remove, tuple(sp[1] for sp in specs_pcrecs),
+                      (), tuple(sp[0] for sp in specs_pcrecs))
 
-    execute_actions(actions, index, verbose=verbose)
-    return actions
+    txn = UnlinkLinkTransaction(stp)
+    txn.execute()
 
 
 def rel_path(prefix, path, windows_forward_slashes=True):

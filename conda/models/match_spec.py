@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import Mapping
+from os.path import basename
 import re
 
 from .channel import Channel, MultiChannel
@@ -121,6 +122,7 @@ class MatchSpec(object):
         'build',
         'build_number',
         'track_features',
+        'url',
         'md5',
     )
 
@@ -136,6 +138,13 @@ class MatchSpec(object):
     def get_raw_value(self, field_name):
         v = self._match_components.get(field_name)
         return v and v.raw_value
+
+    def get(self, field_name, default=None):
+        v = self.get_raw_value(field_name)
+        return default if v is None else v
+
+    def dist_str(self):
+        return self.__str__()
 
     def _is_simple(self):
         return len(self._match_components) == 1 and self.get_exact_value('name') is not None
@@ -224,6 +233,9 @@ class MatchSpec(object):
         _skip = ('channel', 'subdir', 'name', 'version', 'build')
         for key in self.FIELD_NAMES:
             if key not in _skip and key in self._match_components:
+                if key == 'url' and channel_matcher:
+                    # skip url in canonical str if channel already included
+                    continue
                 value = text_type(self._match_components[key])
                 if any(s in value for s in ', ='):
                     xtra.append("%s='%s'" % (key, self._match_components[key]))
@@ -319,6 +331,14 @@ class MatchSpec(object):
         # so we'll keep that API here
         return self._match_components.get('version')
 
+    @property
+    def fn(self):
+        val = self.get_raw_value('fn') or self.get_raw_value('url')
+        if val:
+            val = basename(val)
+        assert val
+        return val
+
 
 def _parse_version_plus_build(v_plus_b):
     """This should reliably pull the build string out of a version + build string combo.
@@ -389,18 +409,24 @@ def _parse_spec_str(spec_str):
             spec_str = unquote(path_to_url(expand(spec_str)))
 
         channel = Channel(spec_str)
-        if not channel.subdir:
+        if channel.subdir:
+            name, version, build = _parse_legacy_dist(channel.package_filename)
+            result = {
+                'channel': channel.canonical_name,
+                'subdir': channel.subdir,
+                'name': name,
+                'version': version,
+                'build': build,
+                'fn': channel.package_filename,
+                'url': spec_str,
+            }
+        else:
             # url is not a channel
-            raise CondaValueError("Invalid MatchSpec Channel: %s" % spec_str)
-        name, version, build = _parse_legacy_dist(channel.package_filename)
-        result = {
-            'channel': channel.canonical_name,
-            'subdir': channel.subdir,
-            'name': name,
-            'version': version,
-            'build': build,
-            'fn': channel.package_filename,
-        }
+            return {
+                'name': '*',
+                'fn': basename(spec_str),
+                'url': spec_str,
+            }
         return result
 
     # Step 3. strip off brackets portion

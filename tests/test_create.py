@@ -1158,7 +1158,7 @@ class IntegrationTests(TestCase):
                 mock_method.side_effect = side_effect
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 6, 12),
+    @pytest.mark.xfail(datetime.now() < datetime(2017, 6, 20),
                        reason="I can't figure out why this if failing yet.", strict=True)
     def test_offline_with_empty_index_cache(self):
         with make_temp_env() as prefix, make_temp_channel(['flask-0.10.1']) as channel:

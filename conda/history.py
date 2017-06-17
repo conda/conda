@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from ast import literal_eval
 import errno
-import json
 import logging
 from operator import itemgetter
 import os
@@ -158,10 +158,10 @@ class History(object):
                 if m:
                     action, specs = m.groups()
                     item['action'] = action
-                    specs = specs and specs.replace("'", '"') or ""
+                    specs = specs or ""
                     if specs.startswith('['):
-                        specs = json.loads(specs.replace('u"', '"'))
-                    else:
+                        specs = literal_eval(specs)
+                    elif '[' not in specs:
                         specs = specs.split(',')
                     if specs and action in ('update', 'install', 'create'):
                         item['update_specs'] = item['specs'] = specs

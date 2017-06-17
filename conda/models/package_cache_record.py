@@ -8,14 +8,32 @@ from os.path import basename, join
 from .index_record import PackageRecord
 from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.auxlib.entity import StringField
+from ..exceptions import PathNotFoundError
 
 log = getLogger(__name__)
+
+
+class Md5Field(StringField):
+
+    def __init__(self):
+        super(Md5Field, self).__init__(required=False, nullable=True)
+
+    def __get__(self, instance, instance_type):
+        val = super(Md5Field, self).__get__(instance, instance_type)
+        if val is None:
+            try:
+                return instance._calculate_md5sum()
+            except PathNotFoundError:
+                return None
+        return val
 
 
 class PackageCacheRecord(PackageRecord):
 
     package_tarball_full_path = StringField()
     extracted_package_dir = StringField()
+
+    md5 = Md5Field()
 
     @property
     def is_fetched(self):
@@ -32,26 +50,10 @@ class PackageCacheRecord(PackageRecord):
     def tarball_basename(self):
         return basename(self.package_tarball_full_path)
 
-    def tarball_matches_md5(self, md5sum):
-        return self.md5sum == md5sum
-
-    def tarball_matches_md5_if(self, md5sum):
-        return not md5sum or self.md5sum == md5sum
-
     @property
     def package_cache_writable(self):
         from ..core.package_cache import PackageCache
         return PackageCache(self.pkgs_dir).is_writable
-
-    @property
-    def md5sum(self):
-        repodata_record = self._get_repodata_record()
-        if repodata_record is not None and repodata_record.md5:
-            return repodata_record.md5
-        elif self.is_fetched:
-            return self._calculate_md5sum()
-        else:
-            return None
 
     def get_urls_txt_value(self):
         from ..core.package_cache import PackageCache
@@ -69,8 +71,14 @@ class PackageCacheRecord(PackageRecord):
                 return None
             raise  # pragma: no cover
 
-    @memoizemethod
     def _calculate_md5sum(self):
-        assert self.is_fetched
-        from ..gateways.disk.read import compute_md5sum
-        return compute_md5sum(self.package_tarball_full_path)
+        memoized_md5 = getattr(self, '_memoized_md5', None)
+        if memoized_md5:
+            return memoized_md5
+
+        from os.path import isfile
+        if isfile(self.package_tarball_full_path):
+            from ..gateways.disk.read import compute_md5sum
+            md5sum = compute_md5sum(self.package_tarball_full_path)
+            setattr(self, '_memoized_md5', md5sum)
+            return md5sum
