@@ -22,7 +22,7 @@ log = getLogger(__name__)
 
 
 def platform_in_record(platform, record):
-    return ("/%s/" % platform in record.url) or ("/noarch/" in record.url)
+    return record.name.endswith('@') or ("/%s/" % platform in record.url) or ("/noarch/" in record.url)
 
 
 @pytest.mark.integration
