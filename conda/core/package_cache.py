@@ -73,6 +73,7 @@ class PackageCache(object):
 
     def load(self):
         self.__package_cache_records = _package_cache_records = {}
+        self._check_writable()  # called here to create the cache if it doesn't exist
 
         for base_name in self._dedupe_pkgs_dir_contents(listdir(self.pkgs_dir)):
             full_path = join(self.pkgs_dir, base_name)
