@@ -6,6 +6,7 @@ import sys
 
 from enum import Enum
 
+from .._vendor.auxlib.decorators import classproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.type_coercion import TypeCoercionError, boolify
 from ..common.compat import string_types
@@ -92,7 +93,12 @@ class PathType(Enum):
     linked_package_record = 'linked_package_record'  # a package's .json file in conda-meta
     pyc_file = 'pyc_file'
     unix_python_entry_point = 'unix_python_entry_point'
-    windows_python_entry_point = 'windows_python_entry_point'
+    windows_python_entry_point_script = 'windows_python_entry_point_script'
+    windows_python_entry_point_exe = 'windows_python_entry_point_exe'
+
+    @classproperty
+    def basic_types(self):
+        return (PathType.hardlink, PathType.softlink, PathType.directory)
 
     def __str__(self):
         return self.name

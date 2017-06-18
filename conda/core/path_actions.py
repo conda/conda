@@ -271,9 +271,13 @@ class LinkPathAction(CreateInPrefixPathAction):
         source_short_path = 'Scripts/conda.exe'
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = "Scripts/%s.exe" % command
+        source_path_data = PathDataV1(
+            _path=target_short_path,
+            path_type=PathType.windows_python_entry_point_exe,
+        )
         return cls(transaction_context, package_info, source_directory,
                    source_short_path, target_prefix, target_short_path,
-                   requested_link_type)
+                   requested_link_type, source_path_data)
 
     def __init__(self, transaction_context, package_info,
                  extracted_package_dir, source_short_path,
@@ -284,6 +288,7 @@ class LinkPathAction(CreateInPrefixPathAction):
         self.link_type = link_type
         self._execute_successful = False
         self.source_path_data = source_path_data
+        self.prefix_path_data = None
 
     def verify(self):
         if self.link_type != LinkType.directory and not lexists(self.source_full_path):  # pragma: no cover  # NOQA
@@ -314,19 +319,25 @@ class LinkPathAction(CreateInPrefixPathAction):
                        self.source_short_path)))
 
         source_path_data = self.source_path_data
+        try:
+            source_path_type = source_path_data.path_type
+        except AttributeError:
+            source_path_type = None
+        if source_path_type in PathType.basic_types:
+            # this let's us keep the non-generic path types like windows_python_entry_point_exe
+            source_path_type = None
+
         if self.link_type == LinkType.directory:
             self.prefix_path_data = None
         elif self.link_type == LinkType.softlink:
             self.prefix_path_data = PathDataV1.from_objects(
                 self.source_path_data,
-                path_type=PathType.softlink,
+                path_type=source_path_type or PathType.softlink,
             )
-        elif self.link_type == LinkType.directory:
-            self.prefix_path_data = None
         elif self.link_type == LinkType.copy and source_path_data.path_type == PathType.softlink:
             self.prefix_path_data = PathDataV1.from_objects(
                 self.source_path_data,
-                path_type=PathType.softlink,
+                path_type=source_path_type or PathType.softlink,
             )
 
         elif source_path_data.path_type == PathType.hardlink:
@@ -374,6 +385,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                 source_path_data,
                 sha256=source_sha256,
                 sha256_in_prefix=source_sha256,
+                path_type=source_path_type or PathType.hardlink,
             )
         else:
             raise NotImplementedError()
@@ -590,7 +602,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
     def verify(self):
         super(CreatePythonEntryPointAction, self).verify()
         if on_win:
-            path_type = PathType.windows_python_entry_point
+            path_type = PathType.windows_python_entry_point_script
         else:
             path_type = PathType.unix_python_entry_point
         self.prefix_path_data = PathDataV1(
