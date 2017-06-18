@@ -44,6 +44,7 @@ SEARCH_PATH = (
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
 CONDA_HOMEPAGE_URL = 'https://conda.io'
+ERROR_UPLOAD_URL = 'https://conda.io/conda-post/unexpected-error'
 DEFAULTS_CHANNEL_NAME = 'defaults'
 
 PLATFORM_DIRECTORIES = ("linux-64",
