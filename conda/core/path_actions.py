@@ -378,7 +378,6 @@ class LinkPathAction(CreateInPrefixPathAction):
         else:
             raise NotImplementedError()
 
-
         self._verified = True
 
     def execute(self):
@@ -590,9 +589,13 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     def verify(self):
         super(CreatePythonEntryPointAction, self).verify()
+        if on_win:
+            path_type = PathType.windows_python_entry_point
+        else:
+            path_type = PathType.unix_python_entry_point
         self.prefix_path_data = PathDataV1(
             _path=self.target_short_path,
-            path_type=PathType.windows_python_entry_point if on_win else PathType.unix_python_entry_point,
+            path_type=path_type,
         )
 
     def execute(self):
@@ -648,7 +651,7 @@ class CreateApplicationEntryPointWindowsExeAction(LinkPathAction):
 # class CreateApplicationEntryPointAction(CreateLeasedPathAction):
 #
 #     @classmethod
-#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
+#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):  # NOQA
 #         preferred_env = package_info.repodata_record.preferred_env
 #         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
 #             exe_paths = (package_info.package_metadata
@@ -708,7 +711,7 @@ class CreateApplicationEntryPointWindowsExeAction(LinkPathAction):
 # class CreateApplicationSoftlinkAction(CreateLeasedPathAction):
 #
 #     @classmethod
-#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
+#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):  # NOQA
 #         preferred_env = package_info.repodata_record.preferred_env
 #         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
 #             softlink_paths = (package_info.package_metadata
@@ -950,7 +953,7 @@ class RegisterEnvironmentLocationAction(EnvsDirectoryPathAction):
 #
 #     def reverse(self):
 #         if self._execute_successful:
-#             log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)
+#             log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)  # NOQA
 #             from .envs_manager import EnvsDirectory
 #             ed = EnvsDirectory(self.envs_dir_path)
 #             ed._set_state(self.envs_dir_state)

@@ -165,18 +165,10 @@ class FilenameField(StringField):
             return self.unbox(instance, instance_type, fn)
 
 
-
-
-
-
-
-
-
-
-
 class PathData(Entity):
     _path = StringField()
-    prefix_placeholder = StringField(required=False, nullable=True, default=None, default_in_dump=False)
+    prefix_placeholder = StringField(required=False, nullable=True, default=None,
+                                     default_in_dump=False)
     file_mode = EnumField(FileMode, required=False, nullable=True)
     no_link = BooleanField(required=False, nullable=True, default=None, default_in_dump=False)
     path_type = EnumField(PathType)
@@ -200,17 +192,6 @@ class PathsData(Entity):
     # from info/paths.json
     paths_version = IntegerField()
     paths = ListField(PathData)
-
-
-
-
-
-
-
-
-
-
-
 
 
 class BasePackageRef(DictSafeMixin, Entity):
@@ -262,7 +243,8 @@ class IndexJsonRecord(BasePackageRef):
 
     subdir = SubdirField()
     # package_type = EnumField(NoarchType, required=False)  # previously noarch
-    noarch = NoarchField(NoarchType, required=False, nullable=True, default=None, default_in_dump=False)  # TODO: rename to package_type
+    noarch = NoarchField(NoarchType, required=False, nullable=True, default=None,
+                         default_in_dump=False)  # TODO: rename to package_type
     preferred_env = StringField(required=False, nullable=True, default=None, default_in_dump=False)
 
     license = StringField(required=False)
@@ -292,9 +274,6 @@ class PackageRecord(IndexJsonRecord, PackageRef):
     size = IntegerField(required=False)
 
     package_type = EnumField(PackageType, required=False, nullable=True)
-
-
-
 
 
 IndexRecord = PackageRecord

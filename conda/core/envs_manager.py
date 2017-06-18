@@ -8,12 +8,10 @@ from os import getcwd, listdir
 from os.path import basename, dirname, isdir, isfile, join, normpath
 
 from .. import CondaError
-from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.entity import EntityEncoder
-from .._vendor.auxlib.ish import dals
 from ..base.constants import ENVS_DIR_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import text_type, with_metaclass
+from ..common.compat import with_metaclass
 from ..common.path import ensure_pad, expand, right_pad_os_sep
 from ..exceptions import CondaValueError, EnvironmentNameNotFound, NotWritableError
 from ..gateways.disk.create import create_envs_directory
@@ -21,9 +19,9 @@ from ..gateways.disk.test import file_path_is_writable
 from ..models.leased_path_entry import LeasedPathEntry
 
 try:
-    from cytoolz.itertoolz import concatv, groupby
+    from cytoolz.itertoolz import concatv
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concatv, groupby
+    from .._vendor.toolz.itertoolz import concatv
 
 log = getLogger(__name__)
 

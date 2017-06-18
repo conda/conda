@@ -121,7 +121,6 @@ class PackageType(Enum):
     SHADOW_PIP = 'shadow_pip'
 
 
-
 class NoarchType(Enum):
     generic = 'generic'
     python = 'python'

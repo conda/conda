@@ -413,7 +413,8 @@ class UnlinkLinkTransaction(object):
             pkg_names_already_lnkd = tuple(rec.name for rec in get_linked_data(conda_final_prefix)
                                            or ())
             pkg_names_being_lnkd = tuple(prec.name for prec in conda_final_setup.link_precs or ())
-            pkg_names_being_unlnkd = tuple(prec.name for prec in conda_final_setup.unlink_precs or ())
+            pkg_names_being_unlnkd = tuple(prec.name
+                                           for prec in conda_final_setup.unlink_precs or ())
             conda_linked_depends = conda_prec.depends
 
         for conda_dependency in conda_linked_depends:

@@ -103,7 +103,8 @@ class PackageCache(object):
         # returns a generator
         param = package_ref_or_match_spec
         if isinstance(param, MatchSpec):
-            return (pcrec for pcrec in itervalues(self._package_cache_records) if param.match(pcrec))
+            return (pcrec for pcrec in itervalues(self._package_cache_records)
+                    if param.match(pcrec))
         else:
             # assume isinstance(param, PackageRef)
             return (pcrec for pcrec in itervalues(self._package_cache_records) if pcrec == param)
@@ -117,7 +118,6 @@ class PackageCache(object):
             cls.writable_caches(pkgs_dirs),
             cls.read_only_caches(pkgs_dirs),
         ))
-
 
     # ##########################################################################################
     # these class methods reach across all package cache directories (usually context.pkgs_dirs)
@@ -409,10 +409,11 @@ class ProgressiveFetchExtract(object):
                 target_package_basename=pcrec_from_read_only_cache.fn,
                 md5sum=md5,
             )
+            trgt_extracted_dirname = pcrec_from_read_only_cache.fn[:-len(CONDA_TARBALL_EXTENSION)]
             extract_axn = ExtractPackageAction(
                 source_full_path=cache_axn.target_full_path,
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
-                target_extracted_dirname=pcrec_from_read_only_cache.fn[:-len(CONDA_TARBALL_EXTENSION)],
+                target_extracted_dirname=trgt_extracted_dirname,
                 record_or_spec=pcrec_from_read_only_cache,
                 md5sum=pcrec_from_read_only_cache.md5,
             )

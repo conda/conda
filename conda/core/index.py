@@ -12,7 +12,7 @@ from ..base.constants import MAX_CHANNEL_PRIORITY
 from ..base.context import context
 from ..common.compat import iteritems, itervalues
 from ..gateways.disk.read import read_index_json
-from ..models.channel import Channel, prioritize_channels
+from ..models.channel import prioritize_channels
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord, PackageRecord
 

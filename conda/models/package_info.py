@@ -4,9 +4,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 
 from .channel import Channel
-from .enums import FileMode, NoarchType, PathType
-from .index_record import IndexRecord, IndexJsonRecord, PathsData
-from .._vendor.auxlib.entity import (BooleanField, ComposableField, Entity, EnumField,
+from .enums import NoarchType
+from .index_record import IndexJsonRecord, IndexRecord, PathsData
+from .._vendor.auxlib.entity import (ComposableField, Entity, EnumField,
                                      ImmutableEntity, IntegerField, ListField, StringField)
 from ..common.compat import string_types
 
@@ -20,7 +20,8 @@ class NoarchField(EnumField):
 
 class Noarch(Entity):
     type = NoarchField(NoarchType)
-    entry_points = ListField(string_types, required=False, nullable=True, default=None, default_in_dump=False)
+    entry_points = ListField(string_types, required=False, nullable=True, default=None,
+                             default_in_dump=False)
 
 
 class PreferredEnv(Entity):
@@ -33,8 +34,8 @@ class PackageMetadata(Entity):
     # from info/package_metadata.json
     package_metadata_version = IntegerField()
     noarch = ComposableField(Noarch, required=False, nullable=True)
-    preferred_env = ComposableField(PreferredEnv, required=False, nullable=True, default=None, default_in_dump=False)
-
+    preferred_env = ComposableField(PreferredEnv, required=False, nullable=True, default=None,
+                                    default_in_dump=False)
 
 
 class PackageInfo(ImmutableEntity):
