@@ -2,16 +2,18 @@
 
 ### New Features
 * constrained, optional dependencies (#4982)
-* conda shell function (#5044, #5141, #5162, #5169, #5182)
+* conda shell function (#5044, #5141, #5162, #5169, #5182, #5210, #5482)
 * resolve #5160 conda xontrib plugin (#5157)
 * resolve #1543 add support and tests for --no-deps and --only-deps (#5265)
+* resolve #988 allow channel name to be part of the package name spec (#5365)
 
 ### Deprecations/Breaking Changes
 * remove support for with_features_depends (#5191)
+* resolve #5468 remove --alt-hint from CLI API (#5469)
 
 ### Improvements
 * filter out unwritable package caches from conda clean command (#4620)
-* envs_manager, requested spec history, declarative solve, and private env tests (#4676, #5114, #5094, #5145)
+* envs_manager, requested spec history, declarative solve, and private env tests (#4676, #5114, #5094, #5145, #5492)
 * make python entry point format match pip entry points (#5010)
 * resolve #5113 clean up CLI imports to improve process startup time (#4799)
 * resolve #5121 add features/track_features support for MatchSpec (#5054)
@@ -29,6 +31,10 @@
 * resolve #1992 add short flag -C for --use-index-cache (#5314)
 * resolve #2173 add --quiet option to conda clean (#5313)
 * resolve #5358 conda should exec to subcommands, not subprocess (#5359)
+* resolve #5411 add 'conda config --write-default' (#5412)
+* resolve #5081 make pinned packages optional dependencies (#5414)
+* resolve #5430 eliminate current deprecation warnings (#5422)
+* resolve #5470 make stdout/stderr capture in python_api customizable (#5471)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -45,9 +51,13 @@
 * fix #1713 'conda package -w' is case dependent on Windows (#5308)
 * fix #5371 try falling back to pip's vendored requests if no requests available (#5372)
 * fix #5356 skip root logger configuration (#5380)
+* fix #5466 scrambled URL of non-alias channel with token (#5467)
+* fix #5444 environment.yml file not found (#5475)
+* fix #3200 use proper unbound checks in bash code and test (#5476)
+* invalidate PrefixData cache on rm_rf for conda-build (#5491, #5499)
 
 ### Non-User-Facing Changes
-* eliminate index modification in Resolve.__init__ (#4333)
+* eliminate index modification in Resolve init (#4333)
 * new MatchSpec implementation (#4158)
 * update conda.recipe for 4.4 (#5086)
 * resolve #5118 organization and cleanup for 4.4 release (#5115)
@@ -58,15 +68,49 @@
 * clean up FileNotFoundError and DirectoryNotFoundError (#5237)
 * add assertion that a path only has a single hard link before rewriting prefixes (#5305)
 * remove pycrypto as requirement on windows (#5326)
+* import cleanup, dead code removal, coverage improvements, and other
+  housekeeping (#5472, #5474, #5480)
 
 
-## 4.3.20 (2017-05-19)
+## 4.3.22 (2017-06-12)
+
+### Improvements
+* resolve #5428 clean up cli import in conda 4.3.x (#5429)
+* resolve #5302 add warning when creating environment with space in path (#5477)
+* for ftp connections, ignore host IP from PASV as it is often wrong (#5489)
+* expose common race condition exceptions in exports for conda-build (#5498)
+
+### Bug Fixes
+* fix #5451 conda clean --json bug (#5452)
+* fix #5400 confusing deactivate message (#5473)
+* fix #5459 custom subdir channel parsing (#5478)
+* fix #5483 problem with setuptools / pkg_resources import (#5496)
+
+
+## 4.3.21 (2017-05-25)
+
+### Bug Fixes
+* fix #5420 conda-env update error (#5421)
+* fix #5425 is admin on win int not callable (#5426)
+
+
+## 4.3.20 (2017-05-23)
+
+### Improvements
+* resolve #5217 skip user confirm in python_api, force always_yes (#5404)
 
 ### Bug Fixes
 * fix #5367 conda info always shows 'unknown' for admin indicator on Windows (#5368)
 * fix #5248 drop plan description information that might not alwasy be accurate (#5373)
 * fix #5378 duplicate log messages (#5379)
 * fix #5298 record has 'build', not 'build_string' (#5382)
+* fix #5384 silence logging info to avoid interfering with JSON output (#5393)
+* fix #5356 skip root/conda logger init for cli.python_api (#5405)
+
+### Non-User-Facing Changes
+* avoid persistent state after channel priority test (#5392)
+* resolve #5402 add regression test for #5384 (#5403)
+* clean up inner function definition inside for loop (#5406)
 
 
 ## 4.3.19 (2017-05-18)

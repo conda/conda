@@ -13,15 +13,17 @@ from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
 import shlex
+import tarfile
 
 from .link import islink, lexists
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...exceptions import FileNotFoundError, CondaUpgradeError, CondaVerificationError
+from ...common.compat import ensure_text_type
+from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
-from ...models.index_record import IndexRecord
+from ...models.index_record import IndexJsonRecord, IndexRecord
 from ...models.package_info import PackageInfo, PackageMetadata, PathData, PathDataV1, PathsData
 
 log = getLogger(__name__)
@@ -49,14 +51,14 @@ def yield_lines(path):
                 yield line
     except (IOError, OSError) as e:
         if e.errno == ENOENT:
-            raise StopIteration
+            pass
         else:
             raise
 
 
 def compute_md5sum(file_full_path):
     if not isfile(file_full_path):
-        raise FileNotFoundError(file_full_path)
+        raise PathNotFoundError(file_full_path)
 
     hash_md5 = hashlib.md5()
     with open(file_full_path, "rb") as fh:
@@ -77,17 +79,18 @@ def find_first_existing(*globs):
 # functions supporting read_package_info()
 # ####################################################
 
-def read_package_info(record, extracted_package_directory):
-    index_json_record = read_index_json(extracted_package_directory)
-    icondata = read_icondata(extracted_package_directory)
-    package_metadata = read_package_metadata(extracted_package_directory)
-    paths_data = read_paths_json(extracted_package_directory)
+def read_package_info(record, package_cache_record):
+    epd = package_cache_record.extracted_package_dir
+    index_json_record = read_index_json(epd)
+    icondata = read_icondata(epd)
+    package_metadata = read_package_metadata(epd)
+    paths_data = read_paths_json(epd)
 
     return PackageInfo(
-        extracted_package_dir=extracted_package_directory,
+        extracted_package_dir=epd,
         channel=Channel(record.schannel or record.channel),
         repodata_record=record,
-        url=record.url,
+        url=package_cache_record.url,
 
         index_json_record=index_json_record,
         icondata=icondata,
@@ -98,8 +101,14 @@ def read_package_info(record, extracted_package_directory):
 
 def read_index_json(extracted_package_directory):
     with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
-        record = IndexRecord(**json.load(fi))  # TODO: change to LinkedPackageData
+        record = IndexJsonRecord(**json.load(fi))
     return record
+
+
+def read_index_json_from_tarball(package_tarball_full_path):
+    with tarfile.open(package_tarball_full_path) as tf:
+        contents = tf.extractfile('info/index.json').read()
+        return IndexJsonRecord(**json.loads(ensure_text_type(contents)))
 
 
 def read_repodata_json(extracted_package_directory):
@@ -206,22 +215,6 @@ def read_has_prefix(path):
     return {pr.filepath: (pr.placeholder, pr.filemode) for pr in parsed_lines}
 
 
-def read_files(path):
-    ParseResult = namedtuple('ParseResult', ('filepath', 'hash', 'bytes', 'type'))
-
-    def parse_line(line):
-        # 'filepath', 'hash', 'bytes', 'type'
-        parts = line.split(',')
-        if len(parts) == 4:
-            return ParseResult(*parts)
-        elif len(parts) == 1:
-            return ParseResult(parts[0], None, None, None)
-        else:
-            raise CondaVerificationError("Invalid files at path: %s" % path)
-
-    return tuple(parse_line(line) for line in yield_lines(path))
-
-
 def read_no_link(info_dir):
     return set(chain(yield_lines(join(info_dir, 'no_link')),
                      yield_lines(join(info_dir, 'no_softlink'))))
@@ -229,15 +222,3 @@ def read_no_link(info_dir):
 
 def read_soft_links(extracted_package_directory, files):
     return tuple(f for f in files if islink(join(extracted_package_directory, f)))
-
-
-def get_json_content(path_to_json):
-    if isfile(path_to_json):
-        try:
-            with open(path_to_json, "r") as f:
-                json_content = json.load(f)
-        except json.decoder.JSONDecodeError:
-            json_content = {}
-    else:
-        json_content = {}
-    return json_content

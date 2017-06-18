@@ -9,7 +9,6 @@ import socket
 
 from .path import split_filename
 from .._vendor.auxlib.decorators import memoize
-from .._vendor.auxlib.ish import dals
 from .._vendor.urllib3.exceptions import LocationParseError
 from .._vendor.urllib3.util.url import Url, parse_url
 from ..common.compat import on_win
@@ -28,19 +27,10 @@ except ImportError:  # pragma: py3 no cover
 log = getLogger(__name__)
 
 
-def urlunparse(data):
-    return stdlib_urlparse(data) or None
-
-
 @memoize
 def path_to_url(path):
     if not path:
-        message = dals("""
-        Empty argument to `path_to_url()` not allowed.
-        path cannot be '%r'
-        """ % path)
-        from ..exceptions import CondaValueError
-        raise CondaValueError(message)
+        raise ValueError('Not allowed: %r' % path)
     if path.startswith('file:/'):
         return path
     path = abspath(expanduser(path))
@@ -69,6 +59,13 @@ def url_to_s3_info(url):
 
 
 def is_url(url):
+    """
+    Examples:
+        >>> is_url(None)
+        False
+        >>> is_url("s3://some/bucket")
+        True
+    """
     if not url:
         return False
     try:
@@ -191,29 +188,28 @@ def split_anaconda_token(url):
     return cleaned_url.rstrip('/'), token
 
 
-def split_platform(url):
+def split_platform(url, known_platforms):
     """
 
     Examples:
-        >>> split_platform("https://1.2.3.4/t/tk-123/osx-64/path")
+        >>> from conda.base.constants import PLATFORM_DIRECTORIES
+        >>> split_platform("https://1.2.3.4/t/tk-123/osx-64/path", PLATFORM_DIRECTORIES)
         (u'https://1.2.3.4/t/tk-123/path', u'osx-64')
 
     """
-    from ..base.constants import PLATFORM_DIRECTORIES
-    _platform_match_regex = r'/(%s)/?' % r'|'.join(r'%s' % d for d in PLATFORM_DIRECTORIES)
+    _platform_match_regex = r'/(%s)/?' % r'|'.join(r'%s' % d for d in known_platforms)
     _platform_match = re.search(_platform_match_regex, url, re.IGNORECASE)
     platform = _platform_match.groups()[0] if _platform_match else None
     cleaned_url = url.replace('/' + platform, '', 1) if platform is not None else url
     return cleaned_url.rstrip('/'), platform
 
 
-def has_platform(url):
-    from ..base.constants import PLATFORM_DIRECTORIES
+def has_platform(url, known_platforms):
     url_no_package_name, _ = split_filename(url)
     if not url_no_package_name:
         return None
     maybe_a_platform = url_no_package_name.rsplit('/', 1)[-1]
-    return maybe_a_platform in PLATFORM_DIRECTORIES and maybe_a_platform or None
+    return maybe_a_platform in known_platforms and maybe_a_platform or None
 
 
 def _split_package_filename(url):
@@ -239,10 +235,10 @@ def split_scheme_auth_token(url):
     return remainder_url, url_parts.scheme, url_parts.auth, token
 
 
-def split_conda_url_easy_parts(url):
+def split_conda_url_easy_parts(url, known_platforms):
     # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
-    cleaned_url, platform = split_platform(cleaned_url)
+    cleaned_url, platform = split_platform(cleaned_url, known_platforms)
     cleaned_url, package_filename = _split_package_filename(cleaned_url)
 
     # TODO: split out namespace using regex

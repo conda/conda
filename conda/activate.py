@@ -3,15 +3,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from glob import glob
 import os
-from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
+from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, normpath
 import re
 import sys
 from tempfile import NamedTemporaryFile
 
 try:
-    from cytoolz.itertoolz import concatv
+    from cytoolz.itertoolz import concatv, drop
 except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concatv  # NOQA
+    from ._vendor.toolz.itertoolz import concatv, drop  # NOQA
 
 
 class Activator(object):
@@ -36,16 +36,18 @@ class Activator(object):
     # To implement support for a new shell, ideally one would only need to add shell-specific
     # information to the __init__ method of this class.
 
-    def __init__(self, shell):
+    def __init__(self, shell, arguments=None):
         from .base.context import context
         self.context = context
         self.shell = shell
+        self._raw_arguments = arguments
 
         if shell == 'posix':
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
             self.script_extension = '.sh'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+            self.shift_args = 0
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'export %s="%s"'
@@ -56,6 +58,7 @@ class Activator(object):
             self.path_conversion = native_path_to_unix
             self.script_extension = '.csh'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+            self.shift_args = 0
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'setenv %s "%s"'
@@ -66,6 +69,7 @@ class Activator(object):
             self.path_conversion = native_path_to_unix
             self.script_extension = '.xsh'
             self.tempfile_extension = '.xsh'
+            self.shift_args = 0
 
             self.unset_var_tmpl = 'del $%s'
             self.set_var_tmpl = '$%s = "%s"'
@@ -76,6 +80,7 @@ class Activator(object):
             self.path_conversion = path_identity
             self.script_extension = '.bat'
             self.tempfile_extension = '.bat'
+            self.shift_args = 1
 
             self.unset_var_tmpl = '@SET %s='
             self.set_var_tmpl = '@SET "%s=%s"'
@@ -86,6 +91,7 @@ class Activator(object):
             self.path_conversion = native_path_to_unix
             self.script_extension = '.fish'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+            self.shift_args = 0
 
             self.unset_var_tmpl = 'set -e %s'
             self.set_var_tmpl = 'set -gx %s "%s"'
@@ -96,6 +102,7 @@ class Activator(object):
             self.path_conversion = path_identity
             self.script_extension = '.ps1'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+            self.shift_args = 0
 
             self.unset_var_tmpl = 'Remove-Variable %s'
             self.set_var_tmpl = '$env:%s = "%s"'
@@ -115,8 +122,8 @@ class Activator(object):
         else:
             raise NotImplementedError()
 
-    def activate(self, name_or_prefix):
-        return self._finalize(self._yield_commands(self.build_activate(name_or_prefix)),
+    def activate(self):
+        return self._finalize(self._yield_commands(self.build_activate(self.env_name_or_prefix)),
                               self.tempfile_extension)
 
     def deactivate(self):
@@ -126,6 +133,48 @@ class Activator(object):
     def reactivate(self):
         return self._finalize(self._yield_commands(self.build_reactivate()),
                               self.tempfile_extension)
+
+    def execute(self):
+        # return value meant to be written to stdout
+        self._parse_and_set_args(self._raw_arguments)
+        return getattr(self, self.command)()
+
+    def _parse_and_set_args(self, arguments):
+        # the first index of arguments MUST be either activate, deactivate, or reactivate
+        if arguments is None:
+            from .exceptions import ArgumentError
+            raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
+
+        command = arguments[0]
+        arguments = tuple(drop(self.shift_args + 1, arguments))
+        help_flags = ('-h', '--help', '/?')
+        non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
+        help_requested = len(arguments) != len(non_help_args)
+        remainder_args = tuple(arg for arg in non_help_args if arg and arg != command)
+
+        if not command:
+            from .exceptions import ArgumentError
+            raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
+        elif help_requested:
+            from . import CondaError
+            class Help(CondaError):  # NOQA
+                pass
+            raise Help("help requested for %s" % command)
+        elif command not in ('activate', 'deactivate', 'reactivate'):
+            from .exceptions import ArgumentError
+            raise ArgumentError("invalid command '%s'" % command)
+        elif command == 'activate' and len(remainder_args) > 1:
+            from .exceptions import ArgumentError
+            raise ArgumentError('activate does not accept more than one argument')
+        elif command != 'activate' and remainder_args:
+            from .exceptions import ArgumentError
+            raise ArgumentError('%s does not accept arguments\nremainder_args: %s'
+                                % (command, remainder_args))
+
+        if command == 'activate':
+            self.env_name_or_prefix = remainder_args and remainder_args[0] or 'root'
+
+        self.command = command
 
     def _yield_commands(self, cmds_dict):
         for key in sorted(cmds_dict.get('unset_vars', ())):
@@ -140,21 +189,22 @@ class Activator(object):
         for script in cmds_dict.get('activate_scripts', ()):
             yield self.run_script_tmpl % script
 
-    def build_activate(self, name_or_prefix):
-        test_path = expand(name_or_prefix)
+    def build_activate(self, env_name_or_prefix):
+        test_path = expand(env_name_or_prefix)
         if isdir(test_path):
             prefix = test_path
             if not isdir(join(prefix, 'conda-meta')):
                 from .exceptions import EnvironmentLocationNotFound
                 raise EnvironmentLocationNotFound(prefix)
-        elif re.search(r'\\|/', name_or_prefix):
-            prefix = name_or_prefix
+        elif re.search(r'\\|/', env_name_or_prefix):
+            prefix = env_name_or_prefix
             if not isdir(join(prefix, 'conda-meta')):
                 from .exceptions import EnvironmentLocationNotFound
                 raise EnvironmentLocationNotFound(prefix)
         else:
             from .base.context import locate_prefix_by_name
-            prefix = locate_prefix_by_name(self.context, name_or_prefix)
+            prefix = locate_prefix_by_name(self.context, env_name_or_prefix)
+        prefix = normpath(prefix)
 
         # query environment
         old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))
@@ -163,14 +213,12 @@ class Activator(object):
 
         if old_conda_prefix == prefix:
             return self.build_reactivate()
-        elif os.getenv('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
+        if os.getenv('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
             # in this case, user is attempting to activate the previous environment,
             #  i.e. step back down
             return self.build_deactivate()
 
-        activate_scripts = glob(join(
-            prefix, 'etc', 'conda', 'activate.d', '*' + self.script_extension
-        ))
+        activate_scripts = self._get_activate_scripts(prefix)
         conda_default_env = self._default_env(prefix)
         conda_prompt_modifier = self._prompt_modifier(conda_default_env)
 
@@ -178,7 +226,7 @@ class Activator(object):
         if old_conda_shlvl == 0:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
             set_vars = {
-                'CONDA_PYTHON_EXE': sys.executable,
+                'CONDA_PYTHON_EXE': self.path_conversion(sys.executable),
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
                 'CONDA_SHLVL': old_conda_shlvl + 1,
@@ -194,9 +242,7 @@ class Activator(object):
                 'CONDA_DEFAULT_ENV': conda_default_env,
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
-            deactivate_scripts = glob(join(
-                old_conda_prefix, 'etc', 'conda', 'deactivate.d', '*' + self.script_extension
-            ))
+            deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
         else:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
             set_vars = {
@@ -265,9 +311,15 @@ class Activator(object):
 
     def build_reactivate(self):
         conda_prefix = os.environ['CONDA_PREFIX']
+        conda_shlvl = int(os.environ.get('CONDA_SHLVL', 1))
+        conda_default_env = os.environ.get('CONDA_DEFAULT_ENV', self._default_env(conda_prefix))
+        # environment variables are set only to aid transition from conda 4.3 to conda 4.4
         return {
             'unset_vars': (),
-            'set_vars': {},
+            'set_vars': {
+                'CONDA_SHLVL': conda_shlvl,
+                'CONDA_PROMPT_MODIFIER': self._prompt_modifier(conda_default_env),
+            },
             'deactivate_scripts': self._get_deactivate_scripts(conda_prefix),
             'activate_scripts': self._get_activate_scripts(conda_prefix),
         }
@@ -287,16 +339,17 @@ class Activator(object):
             yield join(prefix, 'Library', 'usr', 'bin')
             yield join(prefix, 'Library', 'bin')
             yield join(prefix, 'Scripts')
+            yield join(prefix, 'bin')
         else:
             yield join(prefix, 'bin')
 
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
         if starting_path_dirs is None:
             starting_path_dirs = self._get_starting_path_list()
-        return self.path_conversion(*tuple(concatv(
+        return self.path_conversion(concatv(
             self._get_path_dirs(prefix),
             starting_path_dirs,
-        )))
+        ))
 
     def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
@@ -327,7 +380,7 @@ class Activator(object):
                 del path_list[idx]
             if new_prefix is not None:
                 path_list.insert(idx, join(new_prefix, 'bin'))
-        return self.path_conversion(*path_list)
+        return self.path_conversion(path_list)
 
     def _default_env(self, prefix):
         if prefix == self.context.root_prefix:
@@ -338,14 +391,14 @@ class Activator(object):
         return "(%s) " % conda_default_env if self.context.changeps1 else ""
 
     def _get_activate_scripts(self, prefix):
-        return glob(join(
+        return self.path_conversion(glob(join(
             prefix, 'etc', 'conda', 'activate.d', '*' + self.script_extension
-        ))
+        )))
 
     def _get_deactivate_scripts(self, prefix):
-        return glob(join(
+        return self.path_conversion(glob(join(
             prefix, 'etc', 'conda', 'deactivate.d', '*' + self.script_extension
-        ))
+        )))
 
 
 def expand(path):
@@ -361,15 +414,18 @@ def ensure_binary(value):
         return value
 
 
-def native_path_to_unix(*paths):  # pragma: unix no cover
+def native_path_to_unix(paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
-        return path_identity(*paths)
+        return path_identity(paths)
     from subprocess import PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
     p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    joined = ("%s" % os.pathsep).join(paths)
+
+    single_path = isinstance(paths, string_types)
+    joined = paths if single_path else ("%s" % os.pathsep).join(paths)
+
     if hasattr(joined, 'encode'):
         joined = joined.encode('utf-8')
     stdout, stderr = p.communicate(input=joined)
@@ -381,53 +437,48 @@ def native_path_to_unix(*paths):  # pragma: unix no cover
         raise CalledProcessError(rc, command, message)
     if hasattr(stdout, 'decode'):
         stdout = stdout.decode('utf-8')
-    final = stdout.strip().split(':')
-    return final[0] if len(final) == 1 else tuple(final)
+    stdout = stdout.strip()
+    final = stdout and stdout.split(':') or ()
+    return final[0] if single_path else tuple(final)
 
 
-def path_identity(*paths):
-    return paths[0] if len(paths) == 1 else paths
+def path_identity(paths):
+    return paths if isinstance(paths, string_types) else tuple(paths)
 
 
 on_win = bool(sys.platform == "win32")
 PY2 = sys.version_info[0] == 2
 if PY2:  # pragma: py3 no cover
     string_types = basestring,  # NOQA
+    text_type = unicode  # NOQA
 
     def iteritems(d, **kw):
         return d.iteritems(**kw)
 else:  # pragma: py2 no cover
     string_types = str,
+    text_type = str
 
     def iteritems(d, **kw):
         return iter(d.items(**kw))
 
 
-def main():
-    command = sys.argv[1]
-    shell = sys.argv[2]
-    activator = Activator(shell)
-    remainder_args = sys.argv[3:] if len(sys.argv) >= 4 else ()
-    # if '-h' in remainder_args or '--help' in remainder_args:
-    #     pass
-    if command == 'shell.activate':
-        if len(remainder_args) > 1:
-            from .exceptions import ArgumentError
-            raise ArgumentError("activate only accepts a single argument")
-        print(activator.activate(remainder_args and remainder_args[0] or "root"))
-    elif command == 'shell.deactivate':
-        if remainder_args:
-            from .exceptions import ArgumentError
-            raise ArgumentError("deactivate does not accept arguments")
-        print(activator.deactivate())
-    elif command == 'shell.reactivate':
-        if remainder_args:
-            from .exceptions import ArgumentError
-            raise ArgumentError("reactivate does not accept arguments")
-        print(activator.reactivate())
-    else:
-        raise NotImplementedError()
-    return 0
+def main(argv=None):
+    argv = argv or sys.argv
+    assert len(argv) >= 3
+    assert argv[1].startswith('shell.')
+    shell = argv[1].replace('shell.', '', 1)
+    activator_args = argv[2:]
+    activator = Activator(shell, activator_args)
+    try:
+        sys.stdout.write(activator.execute())
+        return 0
+    except Exception as e:
+        from . import CondaError
+        if isinstance(e, CondaError):
+            sys.stderr.write(text_type(e))
+            return e.return_code
+        else:
+            raise
 
 
 if __name__ == '__main__':

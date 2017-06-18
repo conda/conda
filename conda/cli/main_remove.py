@@ -106,7 +106,7 @@ def execute(args, parser):
                          names_in_specs, specs_from_args, stdout_json)
     from ..base.constants import ROOT_NO_RM
     from ..base.context import context
-    from ..common.compat import iteritems, iterkeys
+    from ..common.compat import iteritems, iterkeys, text_type
     from ..common.path import is_private_env_path
     from ..console import json_progress_bars
     from ..core.index import get_index
@@ -180,7 +180,7 @@ def execute(args, parser):
             actions = get_blank_actions(pfx)
             actions['UNLINK'].extend(dists_for_unlinking)
             actions['LINK'].extend(dists_for_linking)
-            actions['SPECS'].extend(s.spec for s in specs_to_remove)
+            actions['SPECS'].extend(text_type(s) for s in specs_to_remove)
             actions['ACTION'] = 'REMOVE'
             action_groups.append((actions, r.index))
         action_groups = tuple(action_groups)

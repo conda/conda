@@ -6,7 +6,7 @@ import sys
 from .._vendor.auxlib.ish import dals
 
 
-def main():
+def main():  # pragma: no cover
     from ..base.constants import CONDA_HOMEPAGE_URL
     message = dals("""
     ERROR: The install method you used for conda--probably either `pip install conda`

@@ -125,3 +125,6 @@ def trace(self, message, *args, **kwargs):
 
 logging.addLevelName(TRACE, "TRACE")
 logging.Logger.trace = trace
+
+# suppress DeprecationWarning for warn method
+logging.Logger.warn = logging.Logger.warning

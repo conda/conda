@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from difflib import get_close_matches
-import logging
+from logging import getLogger
 import os
 from os.path import abspath, basename, exists, isdir, join
 
@@ -29,7 +29,8 @@ from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
 from ..plan import revert_actions
 
-log = logging.getLogger(__name__)
+log = getLogger(__name__)
+stderr = getLogger('stderr')
 
 
 def check_prefix(prefix, json=False):
@@ -44,6 +45,11 @@ def check_prefix(prefix, json=False):
 
     if error:
         raise CondaValueError(error, json)
+
+    if ' ' in prefix:
+        stderr.warn("WARNING: A space was detected in your requested environment path\n"
+                    "'%s'\n"
+                    "Spaces in paths can sometimes be problematic." % prefix)
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
@@ -80,8 +86,8 @@ def print_activate(arg):  # pragma: no cover
         # To activate this environment, use:
         # > activate %s
         #
-        # To deactivate this environment, use:
-        # > deactivate %s
+        # To deactivate an active environment, use:
+        # > deactivate
         #
         # * for power-users using bash, you must source
         #
@@ -94,8 +100,8 @@ def print_activate(arg):  # pragma: no cover
             # To activate this environment, use:
             # > conda activate %s
             #
-            # To deactivate this environment, use:
-            # > conda deactivate %s
+            # To deactivate an active environment, use:
+            # > conda deactivate
             #
             """)
         else:
@@ -104,12 +110,12 @@ def print_activate(arg):  # pragma: no cover
             # To activate this environment, use:
             # > source activate %s
             #
-            # To deactivate this environment, use:
-            # > source deactivate %s
+            # To deactivate an active environment, use:
+            # > source deactivate
             #
             """)
 
-    return message % (arg, arg)
+    return message % arg
 
 
 def get_revision(arg, json=False):
@@ -174,6 +180,15 @@ def install(args, parser, command='install'):
         'use_local': args.use_local
     }
 
+    num_cp = sum(s.endswith('.tar.bz2') for s in args_packages)
+    if num_cp:
+        if num_cp == len(args_packages):
+            explicit(args_packages, prefix, verbose=not context.quiet)
+            return
+        else:
+            raise CondaValueError("cannot mix specifications with conda package"
+                                  " filenames")
+
     specs = []
     if args.file:
         for fpath in args.file:
@@ -193,15 +208,6 @@ def install(args, parser, command='install'):
     elif isinstall and not (args.file or args_packages):
         raise CondaValueError("too few arguments, "
                               "must supply command line package specs or --file")
-
-    num_cp = sum(s.endswith('.tar.bz2') for s in args_packages)
-    if num_cp:
-        if num_cp == len(args_packages):
-            explicit(args_packages, prefix, verbose=not context.quiet)
-            return
-        else:
-            raise CondaValueError("cannot mix specifications with conda package"
-                                  " filenames")
 
     if newenv and args.clone:
         package_diff = set(args_packages) - set(default_packages)
@@ -249,7 +255,7 @@ def install(args, parser, command='install'):
                 unlink_link_transaction = get_install_transaction(
                     prefix, index, specs, force=args.force, only_names=only_names,
                     pinned=context.respect_pinned, always_copy=context.always_copy,
-                    minimal_hint=args.alt_hint, update_deps=context.update_dependencies,
+                    update_deps=context.update_dependencies,
                     channel_priority_map=_channel_priority_map, is_update=isupdate)
                 progressive_fetch_extract = unlink_link_transaction.get_pfe()
     except NoPackagesFoundError as e:
@@ -277,8 +283,8 @@ def install(args, parser, command='install'):
             packages = {index[fn]['name'] for fn in index}
 
             nfound = 0
-            for pkg in sorted(e.pkgs):
-                pkg = pkg.split()[0]
+            for pkg in sorted(e.pkgs, key=lambda x: x.name):
+                pkg = pkg.name
                 if pkg in packages:
                     continue
                 close = get_close_matches(pkg, packages, cutoff=0.7)

@@ -4,9 +4,9 @@ from .. import env
 from ..exceptions import EnvironmentFileNotDownloaded
 try:
     from binstar_client import errors
-    from binstar_client.utils import get_binstar
+    from binstar_client.utils import get_server_api
 except ImportError:
-    get_binstar = None
+    get_server_api = None
 
 ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
@@ -31,8 +31,8 @@ class BinstarSpec(object):
     def __init__(self, name=None, **kwargs):
         self.name = name
         self.quiet = False
-        if get_binstar is not None:
-            self.binstar = get_binstar()
+        if get_server_api is not None:
+            self.binstar = get_server_api()
         else:
             self.binstar = None
 

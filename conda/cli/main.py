@@ -37,12 +37,29 @@ Additional help for each command can be accessed by using:
 from __future__ import absolute_import, division, print_function, unicode_literals
 import sys
 
+PARSER = None
+
 
 def generate_parser():
+    global PARSER
+    if PARSER is not None:
+        return PARSER
+
     from argparse import SUPPRESS
 
     from .. import __version__
     from .conda_argparse import ArgumentParser
+    from .main_clean import configure_parser as configure_parser_clean
+    from .main_config import configure_parser as configure_parser_config
+    from .main_create import configure_parser as configure_parser_create
+    from .main_help import configure_parser as configure_parser_help
+    from .main_info import configure_parser as configure_parser_info
+    from .main_install import configure_parser as configure_parser_install
+    from .main_list import configure_parser as configure_parser_list
+    from .main_package import configure_parser as configure_parser_package
+    from .main_remove import configure_parser as configure_parser_remove
+    from .main_search import configure_parser as configure_parser_search
+    from .main_update import configure_parser as configure_parser_update
 
     p = ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
@@ -72,60 +89,48 @@ def generate_parser():
     # http://stackoverflow.com/a/18283730/1599393
     sub_parsers.required = True
 
-    return p, sub_parsers
+    configure_parser_clean(sub_parsers)
+    configure_parser_config(sub_parsers)
+    configure_parser_create(sub_parsers)
+    configure_parser_help(sub_parsers)
+    configure_parser_info(sub_parsers)
+    configure_parser_install(sub_parsers)
+    configure_parser_list(sub_parsers)
+    configure_parser_package(sub_parsers)
+    configure_parser_remove(sub_parsers)
+    configure_parser_remove(sub_parsers, name='uninstall')
+    configure_parser_search(sub_parsers)
+    configure_parser_update(sub_parsers)
+    configure_parser_update(sub_parsers, name='upgrade')
+
+    PARSER = p
+    return p
 
 
-def init_loggers(context):
+def init_loggers(context=None):
     from logging import CRITICAL, DEBUG, getLogger
-    from ..gateways.logging import set_all_logger_level, set_verbosity
-    if not context.json:
+    from ..gateways.logging import initialize_logging, set_all_logger_level, set_verbosity
+    initialize_logging()
+    if context and context.json:
         # Silence logging info to avoid interfering with JSON output
         for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
             getLogger(logger).setLevel(CRITICAL + 1)
 
-    if context.debug:
+    if context and context.debug:
         set_all_logger_level(DEBUG)
-    elif context.verbosity:
+    elif context and context.verbosity:
         set_verbosity(context.verbosity)
 
 
 def _main(*args):
-    import importlib
-
-    try:
-        from cytoolz.itertoolz import concatv
-    except ImportError:  # pragma: no cover
-        from .._vendor.toolz.itertoolz import concatv
-
     from ..base.constants import SEARCH_PATH
     from ..base.context import context
 
     if len(args) == 1:
         args = args + ('-h',)
 
-    p, sub_parsers = generate_parser()
-
-    main_modules = ["info", "help", "list", "search", "create", "install", "update",
-                    "remove", "config", "clean", "package"]
-    modules = ["conda.cli.main_"+suffix for suffix in main_modules]
-    for module in modules:
-        imported = importlib.import_module(module)
-        imported.configure_parser(sub_parsers)
-        if "update" in module:
-            imported.configure_parser(sub_parsers, name='upgrade')
-        if "remove" in module:
-            imported.configure_parser(sub_parsers, name='uninstall')
-
-    from .find_commands import find_commands
-
-    # when using sys.argv, first argument is generally conda or __main__.py.  Ignore it.
-    if (any(sname in args[0] for sname in ('conda', 'conda.exe', '__main__.py', 'conda-script.py'))
-        and (args[1] in concatv(sub_parsers.choices, find_commands())
-             or args[1].startswith('-'))):
-        # Ignoring first argument (%s), as it is not a subcommand
-        args = args[1:]
-
-    args = p.parse_args(args)
+    p = generate_parser()
+    args = p.parse_args(args[1:])
 
     context.__init__(SEARCH_PATH, 'conda', args)
     init_loggers(context)
@@ -168,13 +173,12 @@ def main(*args):
                 import conda.cli.activate as activate
                 activate.main()
                 return
-            if argv1 in ('activate', 'deactivate'):
+            elif argv1 in ('activate', 'deactivate'):
                 from ..exceptions import CommandNotFoundError
                 raise CommandNotFoundError(argv1)
         except Exception as e:
             from ..exceptions import handle_exception
-            from ..gateways import initialize_logging
-            initialize_logging()
+            init_loggers()
             return handle_exception(e)
 
     from ..exceptions import conda_exception_handler

@@ -2,11 +2,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from contextlib import contextmanager
 from functools import partial
-from os.path import basename
+from os import listdir
+from os.path import basename, isdir, isfile, join
 import re
 import sys
 
-from ..base.constants import CONDA_TARBALL_EXTENSION, ROOT_ENV_NAME
+from ..base.constants import PREFIX_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
 from ..common.compat import itervalues
 from ..models.match_spec import MatchSpec
@@ -87,22 +88,13 @@ def ensure_name_or_prefix(args, command):
 
 def arg2spec(arg, json=False, update=False):
     try:
-        # spec_from_line can return None, especially for the case of a .tar.bz2 extension and
-        #   a space in the path
-        _arg = spec_from_line(arg)
-        if _arg is None:
-            if arg.endswith(CONDA_TARBALL_EXTENSION):
-                _arg = arg
-            else:
-                from ..exceptions import CondaValueError
-                raise CondaValueError("Cannot construct MatchSpec from: %r" % None)
-        spec = MatchSpec(_arg, normalize=True)
+        spec = MatchSpec(arg)
     except:
         from ..exceptions import CondaValueError
         raise CondaValueError('invalid package specification: %s' % arg)
 
     name = spec.name
-    if not spec.is_simple() and update:
+    if not spec._is_simple() and update:
         from ..exceptions import CondaValueError
         raise CondaValueError("""version specifications not allowed with 'update'; use
     conda update  %s%s  or
@@ -145,7 +137,7 @@ def spec_from_line(line):
 
 
 def specs_from_url(url, json=False):
-    from ..fetch import TmpDownload
+    from conda.gateways.connection.download import TmpDownload
 
     explicit = False
     with TmpDownload(url, verbose=False) as path:
@@ -219,8 +211,21 @@ def stdout_json_success(success=True, **kwargs):
     stdout_json(result)
 
 
+def list_prefixes():
+    # Lists all the prefixes that conda knows about.
+    for envs_dir in context.envs_dirs:
+        if not isdir(envs_dir):
+            continue
+        for dn in sorted(listdir(envs_dir)):
+            prefix = join(envs_dir, dn)
+            if isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE)):
+                prefix = join(envs_dir, dn)
+                yield prefix
+
+    yield context.root_prefix
+
+
 def handle_envs_list(acc, output=True):
-    from .. import misc
 
     if output:
         print("# conda environments:")
@@ -234,7 +239,7 @@ def handle_envs_list(acc, output=True):
         if output:
             print(fmt % (name, default, prefix))
 
-    for prefix in misc.list_prefixes():
+    for prefix in list_prefixes():
         disp_env(prefix)
         if prefix != context.root_prefix:
             acc.append(prefix)

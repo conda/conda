@@ -1,26 +1,28 @@
 """
 Helpers for the tests
 """
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
-import subprocess
-import sys
-import os
-import re
 import json
+import os
+from os.path import dirname, join
+import re
 from shlex import split
-
-from os.path import join
+import sys
 from tempfile import gettempdir
 from uuid import uuid4
 
+from conda import cli
+from conda.base.context import context, reset_context
+from conda.common.io import argv, captured, captured as common_io_captured
+from conda.core.index import _supplement_index_with_features
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import lexists
-
-from conda.base.context import reset_context
-from conda.common.io import captured as common_io_captured, argv
 from conda.gateways.logging import initialize_logging
-from conda import cli
+from conda.models.channel import Channel
+from conda.models.dist import Dist
+from conda.models.index_record import IndexRecord
+from conda.resolve import Resolve
 
 try:
     from unittest import mock
@@ -32,7 +34,7 @@ except ImportError:
 
 from contextlib import contextmanager
 
-from conda.common.compat import StringIO, iteritems
+from conda.common.compat import iteritems
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
 def strip_expected(stderr):
@@ -116,3 +118,45 @@ def tempdir():
     finally:
         if lexists(prefix):
             rm_rf(prefix)
+
+
+def supplement_index_with_repodata(index, repodata, channel, priority):
+    repodata_info = repodata['info']
+    arch = repodata_info.get('arch')
+    platform = repodata_info.get('platform')
+    subdir = repodata_info.get('subdir')
+    if not subdir:
+        subdir = "%s-%s" % (repodata_info['platform'], repodata_info['arch'])
+    auth = channel.auth
+    for fn, info in iteritems(repodata['packages']):
+        rec = IndexRecord.from_objects(info,
+                                       fn=fn,
+                                       arch=arch,
+                                       platform=platform,
+                                       channel=channel,
+                                       subdir=subdir,
+                                       # schannel=schannel,
+                                       priority=priority,
+                                       # url=join_url(channel_url, fn),
+                                       auth=auth)
+        dist = Dist(rec)
+        index[dist] = rec
+
+
+with open(join(dirname(__file__), 'index.json')) as fi:
+    packages = json.load(fi)
+    repodata = {
+        "info": {
+            "subdir": context.subdir,
+            "arch": context.arch_name,
+            "platform": context.platform,
+        },
+        "packages": packages,
+    }
+
+index = {}
+channel = Channel('defaults')
+supplement_index_with_repodata(index, repodata, channel, 1)
+_supplement_index_with_features(index, ('mkl',))
+r = Resolve(index)
+index = r.index

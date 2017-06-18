@@ -54,6 +54,7 @@ test:
   imports:
     - conda
   commands:
+    # TODO: need to move to a run_tests file
     - conda --version
     - conda info
     # - py.test -m "not integration and not installed" $SRC_DIR/tests $SRC_DIR/conda

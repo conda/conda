@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 import unittest
 
 from conda.exceptions import InvalidVersionSpecError
-from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval
+from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval, treeify
 
 
 class TestVersionSpec(unittest.TestCase):
@@ -163,7 +163,7 @@ class TestVersionSpec(unittest.TestCase):
         self.assertRaises(InvalidVersionSpecError, ver_eval, '3.0.0', '!!2.4.5')
         self.assertRaises(InvalidVersionSpecError, ver_eval, '3.0.0', '!')
 
-    def test_version_spec(self):
+    def test_version_spec_1(self):
         v1 = VersionSpec('1.7.1')
         v2 = VersionSpec('1.7.1*')
         v3 = VersionSpec('1.7.1')
@@ -177,20 +177,42 @@ class TestVersionSpec(unittest.TestCase):
         self.assertFalse(v1 == 1.0)
         self.assertEqual(hash(v1), hash(v3))
         self.assertNotEqual(hash(v1), hash(v2))
+
+    def test_version_spec_2(self):
         v1 = VersionSpec('( (1.5|((1.6|1.7), 1.8), 1.9 |2.0))|2.1')
-        self.assertEqual(v1.spec, '1.5|(1.6|1.7),1.8,1.9|2.0|2.1')
+        self.assertEqual(v1.spec, '1.5|1.6|1.7,1.8,1.9|2.0|2.1')
         self.assertRaises(InvalidVersionSpecError, VersionSpec, '(1.5')
         self.assertRaises(InvalidVersionSpecError, VersionSpec, '1.5)')
         self.assertRaises(InvalidVersionSpecError, VersionSpec, '1.5||1.6')
         self.assertRaises(InvalidVersionSpecError, VersionSpec, '^1.5')
 
+    def test_version_spec_3(self):
+        v1 = VersionSpec('1.7.1*')
+        v2 = VersionSpec('1.7.1.*')
+        self.assertFalse(v1.is_exact())
+        self.assertFalse(v2.is_exact())
+        self.assertTrue(v1 == v2)
+        self.assertFalse(v1 != v2)
+        self.assertEqual(hash(v1), hash(v2))
+
+    def test_version_spec_4(self):
+        v1 = VersionSpec('1.7.1*,1.8.1*')
+        v2 = VersionSpec('1.7.1.*,1.8.1.*')
+        v3 = VersionSpec('1.7.1*,1.8.1.*')
+        assert v1.is_exact() is False
+        assert v2.is_exact() is False
+        assert v1 == v2 == v3
+        assert not v1 != v2
+        assert hash(v1) == hash(v2) == hash(v3)
+
     def test_match(self):
         for vspec, res in [
-            ('1.7*', True),   ('1.7.1', True),    ('1.7.0', False),
-            ('1.7', False),   ('1.5*', False),    ('>=1.5', True),
+            ('1.7.*', True),   ('1.7.1', True),    ('1.7.0', False),
+            ('1.7', False),   ('1.5.*', False),    ('>=1.5', True),
             ('!=1.5', True),  ('!=1.7.1', False), ('==1.7.1', True),
             ('==1.7', False), ('==1.7.2', False), ('==1.7.1.0', True),
-            ('1.7*|1.8*', True), ('1.8*|1.9*', False),
+            ('1.7.*|1.8.*', True),
+            # ('1.8/*|1.9.*', False),  what was this supposed to be?
             ('>1.7,<1.8', True), ('>1.7.1,<1.8', False),
             ('^1.7.1$', True), ('^1\.7\.1$', True), ('^1\.7\.[0-9]+$', True),
             ('^1\.8.*$', False), ('^1\.[5-8]\.1$', True), ('^[^1].*$', False),
@@ -198,13 +220,13 @@ class TestVersionSpec(unittest.TestCase):
             ('^.*$', True), ('1.7.*|^0.*$', True), ('1.6.*|^0.*$', False),
             ('1.6.*|^0.*$|1.7.1', True), ('^0.*$|1.7.1', True),
             ('1.6.*|^.*\.7\.1$|0.7.1', True), ('*', True), ('1.*.1', True),
-            ('1.5*|>1.7,<1.8', True), ('1.5*|>1.7,<1.7.1', False)
+            ('1.5.*|>1.7,<1.8', True), ('1.5.*|>1.7,<1.7.1', False),
         ]:
             m = VersionSpec(vspec)
             assert VersionSpec(m) is m
             assert str(m) == vspec
             assert repr(m) == "VersionSpec('%s')" % vspec
-            assert  m.match('1.7.1') == res, vspec
+            assert m.match('1.7.1') == res, vspec
 
     def test_local_identifier(self):
         """The separator for the local identifier should be either `.` or `+`"""
@@ -218,5 +240,3 @@ class TestVersionSpec(unittest.TestCase):
         for version in versions:
             m = VersionSpec(version)
             self.assertTrue(m.match(version))
-
-

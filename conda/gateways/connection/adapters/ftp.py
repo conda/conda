@@ -32,6 +32,18 @@ from ....exceptions import AuthenticationError
 log = getLogger(__name__)
 
 
+# After: https://stackoverflow.com/a/44073062/3257826
+#   And: https://stackoverflow.com/a/35368154/3257826
+_old_makepasv = ftplib.FTP.makepasv
+def _new_makepasv(self):
+    host, port = _old_makepasv(self)
+    host = self.sock.getpeername()[0]
+    return host, port
+
+
+ftplib.FTP.makepasv = _new_makepasv
+
+
 class FTPAdapter(BaseAdapter):
     """A Requests Transport Adapter that handles FTP urls."""
     def __init__(self):

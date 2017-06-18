@@ -11,11 +11,10 @@ from .. import CondaError
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
-from .._vendor.auxlib.path import expand
 from ..base.constants import ENVS_DIR_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import text_type, with_metaclass
-from ..common.path import ensure_pad, right_pad_os_sep
+from ..common.path import ensure_pad, expand, right_pad_os_sep
 from ..exceptions import CondaValueError, EnvironmentNameNotFound, NotWritableError
 from ..gateways.disk.create import create_envs_directory
 from ..gateways.disk.test import file_path_is_writable

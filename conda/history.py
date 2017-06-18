@@ -12,7 +12,7 @@ import time
 import warnings
 
 from .base.constants import DEFAULTS_CHANNEL_NAME
-from .common.compat import ensure_text_type, itervalues, open
+from .common.compat import ensure_text_type, itervalues, open, text_type
 from .core.linked_data import linked
 from .exceptions import CondaFileIOError, CondaHistoryError
 from .gateways.disk.update import touch
@@ -85,15 +85,7 @@ class History(object):
         self.update()
 
     def init_log_file(self):
-        if isfile(self.path):
-            return
-        else:
-            touch(self.path, True)
-            # dists = linked(self.prefix)
-            # if dists:
-            #     self.write_dists(dists)
-            # else:
-            #     touch(self.path, True)
+        touch(self.path, True)
 
     def file_is_empty(self):
         return os.stat(self.path).st_size == 0
@@ -282,14 +274,6 @@ class History(object):
             result.append(event)
         return result
 
-    def write_dists(self, dists):
-        if not isdir(self.meta_dir):
-            os.makedirs(self.meta_dir)
-        with open(self.path, 'w') as fo:
-            if dists:
-                for dist in sorted(dists):
-                    fo.write('%s\n' % dist)
-
     def write_changes(self, last_state, current_state):
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
@@ -301,10 +285,10 @@ class History(object):
                 fo.write('+%s\n' % fn)
 
     def write_specs(self, action, specs):
-        specs = [s.spec if isinstance(s, MatchSpec) else s for s in specs or () if s]
+        specs = [s if isinstance(s, MatchSpec) else s for s in specs or () if s]
         axn = action and action.lower() or 'unknown'
         with open(self.path, 'a') as fo:
-            fo.write("# %s specs: %s\n" % (axn, json.dumps(specs)))
+            fo.write("# %s specs: %s\n" % (axn, [text_type(s) for s in specs]))
 
 
 if __name__ == '__main__':

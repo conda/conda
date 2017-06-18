@@ -6,7 +6,7 @@ from logging import getLogger
 import re
 
 from .channel import Channel
-from .index_record import IndexRecord
+from .index_record import IndexRecord, PackageRef
 from .package_info import PackageInfo
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
@@ -31,7 +31,7 @@ class DistType(EntityType):
             elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
                 return value.dist
             elif isinstance(value, IndexRecord):
-                return Dist.from_string(value.fn, channel_override=value.schannel)
+                return Dist.from_string(value.fn, channel_override=value.channel.canonical_name)
             elif isinstance(value, PackageInfo):
                 return Dist.from_string(value.repodata_record.fn,
                                         channel_override=value.channel.canonical_name)
@@ -68,6 +68,16 @@ class Dist(Entity):
                                    build_number=build_number,
                                    base_url=base_url,
                                    platform=platform)
+
+    def to_package_ref(self):
+        return PackageRef(
+            channel=self.channel,
+            subdir=self.platform,
+            name=self.name,
+            version=self.version,
+            build=self.build_string,
+            build_number=self.build_number,
+        )
 
     @property
     def full_name(self):
@@ -190,7 +200,7 @@ class Dist(Entity):
             channel = text_type(Channel(base_url))
         else:
             url_no_tarball = url.rsplit('/', 1)[0]
-            platform = has_platform(url_no_tarball)
+            platform = has_platform(url_no_tarball, context.known_subdirs)
             base_url = url_no_tarball.rsplit('/', 1)[0] if platform else url_no_tarball
             channel = Channel(base_url).canonical_name if platform else UNKNOWN_CHANNEL
 

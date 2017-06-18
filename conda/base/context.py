@@ -3,24 +3,24 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
+from os.path import (abspath, basename, expanduser, isdir, isfile, join, normpath,
                      split as path_split)
 from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
+                        PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
-from .._vendor.auxlib.path import expand
 from .._vendor.boltons.setutils import IndexedSet
 from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
+from ..common.path import expand
 from ..common.platform import linux_get_libc_version
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
@@ -49,6 +49,9 @@ _arch_names = {
     64: 'x86_64',
 }
 
+user_rc_path = abspath(expanduser('~/.condarc'))
+sys_rc_path = join(sys.prefix, '.condarc')
+
 
 def channel_alias_validation(value):
     if value and not has_scheme(value):
@@ -67,7 +70,7 @@ def default_python_validation(value):
             value = float(value)
             if 2.0 <= value < 4.0:
                 return True
-        except ValueError:
+        except ValueError:  # pragma: no cover
             pass
     return "default_python value '%s' not of the form '[23].[0-9]'" % value
 
@@ -255,6 +258,10 @@ class Context(Configuration):
             return _arch_names[self.bits]
 
     @property
+    def conda_private(self):
+        return conda_in_private_env()
+
+    @property
     def platform(self):
         return _platform_map.get(sys.platform, 'unknown')
 
@@ -273,6 +280,10 @@ class Context(Configuration):
     @property
     def subdirs(self):
         return self._subdirs if self._subdirs else (self.subdir, 'noarch')
+
+    @memoizedproperty
+    def known_subdirs(self):
+        return frozenset(concatv(PLATFORM_DIRECTORIES, self.subdirs))
 
     @property
     def bits(self):
@@ -335,10 +346,6 @@ class Context(Configuration):
             return user_data_dir(APP_NAME, APP_NAME)
         else:
             return expand(join('~', '.conda'))
-
-    @property
-    def private_envs_json_path(self):
-        return join(self.root_prefix, "conda-meta", "private_envs")
 
     @property
     def default_prefix(self):
@@ -454,10 +461,6 @@ class Context(Configuration):
             if argparse_channels and argparse_channels == self._channels:
                 return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
         return self._channels
-
-    @property
-    def conda_private(self):
-        return conda_in_private_env()
 
     def get_descriptions(self):
         return get_help_dict()
@@ -728,11 +731,6 @@ def get_prefix(ctx, args, search=True):
     return get_prefix(ctx, args, search)
 
 
-def envs_dir_has_writable_pkg_cache(envs_dir):
-    from ..core.package_cache import PackageCache
-    return PackageCache(join(dirname(envs_dir), 'pkgs')).is_writable
-
-
 def locate_prefix_by_name(ctx, name):
     from ..core.envs_manager import EnvsDirectory
     return EnvsDirectory.locate_prefix_by_name(name, ctx.envs_dirs)
@@ -756,7 +754,8 @@ def _get_user_agent(context_platform):
 
     libc_family, libc_ver = linux_get_libc_version()
     if context_platform == 'linux':
-        distinfo = platform.linux_distribution()
+        from .._vendor.distro import linux_distribution
+        distinfo = linux_distribution(full_distribution_name=False)
         dist, ver = distinfo[0], distinfo[1]
     elif context_platform == 'osx':
         dist = 'OSX'
@@ -778,7 +777,7 @@ def _get_user_agent(context_platform):
 
 try:
     context = Context(SEARCH_PATH, APP_NAME, None)
-except LoadError as e:
+except LoadError as e:  # pragma: no cover
     print(e, file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit
     sys.exit(1)

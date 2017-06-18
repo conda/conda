@@ -11,16 +11,14 @@ import re
 import shutil
 import sys
 
-from ._vendor.auxlib.path import expand
-from .base.constants import PREFIX_MAGIC_FILE
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, on_win, open
-from .common.path import url_to_path, win_path_ok
+from .common.path import expand, url_to_path, win_path_ok
 from .common.url import is_url, join_url, path_to_url, unquote
 from .core.index import _supplement_index_with_cache, get_index
 from .core.linked_data import linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
-from .exceptions import FileNotFoundError, PackageNotFoundError, ParseError
+from .exceptions import PathNotFoundError, PackageNotFoundError, ParseError
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink
 from .instructions import LINK, UNLINK
@@ -74,10 +72,14 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
             path = win_path_ok(url_to_path(url))
             if dirname(path) in context.pkgs_dirs:
                 if not exists(path):
-                    raise FileNotFoundError(path)
+                    raise PathNotFoundError(path)
                 pc_entry = PackageCache.tarball_file_in_cache(path)
-                dist = pc_entry.dist
-                url = dist.to_url() or pc_entry.get_urls_txt_value()
+                dist = Dist(pc_entry)
+                url = dist.to_url()
+                if not url:
+                    pc = PackageCache(dirname(pc_entry.extracted_package_dir))
+                    url = pc._urls_data.get_url(pc_entry.extracted_package_dir)
+                    dist = Dist(url)
                 md5sum = md5sum or pc_entry.md5sum
         dist = dist or Dist(url)
         fetch_recs[dist] = IndexRecord(name=dist.name, version=dist.version, build=dist.build,
@@ -167,22 +169,6 @@ def untracked(prefix, exclude_self_build=False):
             if not (path.endswith('~') or
                     (sys.platform == 'darwin' and path.endswith('.DS_Store')) or
                     (path.endswith('.pyc') and path[:-1] in conda_files))}
-
-
-def which_prefix(path):
-    """
-    given the path (to a (presumably) conda installed file) return the
-    environment prefix in which the file in located
-    """
-    prefix = abspath(path)
-    while True:
-        if isdir(join(prefix, 'conda-meta')):
-            # we found the it, so let's return it
-            return prefix
-        if prefix == dirname(prefix):
-            # we cannot chop off any more directories, so we didn't find it
-            return None
-        prefix = dirname(prefix)
 
 
 def touch_nonadmin(prefix):
@@ -317,25 +303,3 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     actions = explicit(urls, prefix2, verbose=not quiet, index=index,
                        force_extract=False, index_args=index_args)
     return actions, untracked_files
-
-
-def make_icon_url(info):
-    if info.get('channel') and info.get('icon'):
-        base_url = dirname(info['channel'])
-        icon_fn = info['icon']
-        return '%s/icons/%s' % (base_url, icon_fn)
-    return ''
-
-
-def list_prefixes():
-    # Lists all the prefixes that conda knows about.
-    for envs_dir in context.envs_dirs:
-        if not isdir(envs_dir):
-            continue
-        for dn in sorted(os.listdir(envs_dir)):
-            prefix = join(envs_dir, dn)
-            if isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE)):
-                prefix = join(envs_dir, dn)
-                yield prefix
-
-    yield context.root_prefix

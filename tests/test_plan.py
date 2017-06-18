@@ -1,8 +1,7 @@
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
-import json
 import os
-from os.path import dirname, join
+from os.path import join
 import random
 import sys
 import unittest
@@ -12,7 +11,6 @@ import pytest
 from conda import CondaError
 from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
-from conda.common.compat import iteritems
 from conda.common.io import env_var
 from conda.core.package_cache import ProgressiveFetchExtract
 from conda.core.solve import get_pinned_specs
@@ -24,21 +22,31 @@ from conda.models.index_record import IndexRecord
 from conda.models.match_spec import MatchSpec
 from conda.plan import display_actions
 import conda.plan as plan
-from conda.resolve import Resolve
 from conda.utils import on_win
 from .decorators import skip_if_no_mock
 from .gateways.disk.test_permissions import tempdir
-from .helpers import captured, mock, tempdir
+from .helpers import captured, index, mock, r, tempdir
 
 try:
     from unittest.mock import patch
 except ImportError:
     from mock import patch
 
-with open(join(dirname(__file__), 'index.json')) as fi:
-    index = {Dist(k): IndexRecord(**v) for k, v in iteritems(json.load(fi))}
-    r = Resolve(index)
 
+def DPkg(s, **kwargs):
+    d = Dist(s)
+    _kwargs = dict(
+        fn=d.to_filename(),
+        name=d.name,
+        version=d.version,
+        build=d.build_string,
+        build_number=int(d.build_string.rsplit('_', 1)[-1]),
+        channel=d.channel,
+        subdir=context.subdir,
+        md5="012345789",
+    )
+    _kwargs.update(kwargs)
+    return IndexRecord(**_kwargs)
 
 def solve(specs):
     return [Dist.from_string(fn) for fn in r.solve(specs)]
@@ -81,61 +89,61 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         specs = [s.split(' (')[0] for s in specs]
         self.assertEqual(specs, new_specs)
 
-    def test_1(self):
-        self.linked = solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
-        for specs, added in [
-            (['python 3*'], []),
-            (['python'], ['python 2.7*']),
-            (['scipy'], ['python 2.7*']),
-            ]:
-            self.check(specs, added)
-
-    def test_2(self):
-        self.linked = solve(['anaconda 1.5.0', 'python 2.6*', 'numpy 1.6*'])
-        for specs, added in [
-            (['python'], ['python 2.6*']),
-            (['numpy'], ['python 2.6*']),
-            (['pandas'], ['python 2.6*']),
-            # however, this would then be unsatisfiable
-            (['python 3*', 'numpy'], []),
-            ]:
-            self.check(specs, added)
-
-    def test_3(self):
-        self.linked = solve(['anaconda 1.5.0', 'python 3.3*'])
-        for specs, added in [
-            (['python'], ['python 3.3*']),
-            (['numpy'], ['python 3.3*']),
-            (['scipy'], ['python 3.3*']),
-            ]:
-            self.check(specs, added)
-
-    def test_4(self):
-        self.linked = []
-        for dp in ('2.7', '3.5'):
-            with env_var('CONDA_DEFAULT_PYTHON', dp, reset_context):
-                ps = ['python 2.7*'] if context.default_python == '2.7' else []
-                for specs, added in [
-                    (['python'], ps),
-                    (['numpy'], ps),
-                    (['scipy'], ps),
-                    (['anaconda'], ps),
-                    (['anaconda 1.5.0 np17py27_0'], []),
-                    (['sympy 0.7.2 py27_0'], []),
-                    (['scipy 0.12.0 np16py27_0'], []),
-                    (['anaconda', 'python 3*'], []),
-                    ]:
-                    self.check(specs, added)
+    # def test_1(self):
+    #     self.linked = solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
+    #     for specs, added in [
+    #         (['python 3*'], []),
+    #         (['python'], ['python 2.7*']),
+    #         (['scipy'], ['python 2.7*']),
+    #         ]:
+    #         self.check(specs, added)
+    #
+    # def test_2(self):
+    #     self.linked = solve(['anaconda 1.5.0', 'python 2.6*', 'numpy 1.6*'])
+    #     for specs, added in [
+    #         (['python'], ['python 2.6*']),
+    #         (['numpy'], ['python 2.6*']),
+    #         (['pandas'], ['python 2.6*']),
+    #         # however, this would then be unsatisfiable
+    #         (['python 3*', 'numpy'], []),
+    #         ]:
+    #         self.check(specs, added)
+    #
+    # def test_3(self):
+    #     self.linked = solve(['anaconda 1.5.0', 'python 3.3*'])
+    #     for specs, added in [
+    #         (['python'], ['python 3.3*']),
+    #         (['numpy'], ['python 3.3*']),
+    #         (['scipy'], ['python 3.3*']),
+    #         ]:
+    #         self.check(specs, added)
+    #
+    # def test_4(self):
+    #     self.linked = []
+    #     for dp in ('2.7', '3.5'):
+    #         with env_var('CONDA_DEFAULT_PYTHON', dp, reset_context):
+    #             ps = ['python 2.7*'] if context.default_python == '2.7' else []
+    #             for specs, added in [
+    #                 (['python'], ps),
+    #                 (['numpy'], ps),
+    #                 (['scipy'], ps),
+    #                 (['anaconda'], ps),
+    #                 (['anaconda 1.5.0 np17py27_0'], []),
+    #                 (['sympy 0.7.2 py27_0'], []),
+    #                 (['scipy 0.12.0 np16py27_0'], []),
+    #                 (['anaconda', 'python 3*'], []),
+    #                 ]:
+    #                 self.check(specs, added)
 
 
 def test_display_actions_0():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
-    actions = defaultdict(list, {"FETCH": [Dist('sympy-0.7.2-py27_0'), Dist("numpy-1.7.1-py27_0")]})
+    actions = defaultdict(list, {"FETCH": [Dist('defaults::sympy-0.7.2-py27_0'), Dist("defaults::numpy-1.7.1-py27_0")]})
     # The older test index doesn't have the size metadata
-    d = Dist.from_string('sympy-0.7.2-py27_0.tar.bz2')
+    d = Dist.from_string('defaults::sympy-0.7.2-py27_0.tar.bz2')
     index[d] = IndexRecord.from_objects(index[d], size=4374752)
-    d = Dist.from_string("numpy-1.7.1-py27_0.tar.bz2")
+    d = Dist.from_string("defaults::numpy-1.7.1-py27_0.tar.bz2")
     index[d] = IndexRecord.from_objects(index[d], size=5994338)
 
     with captured() as c:
@@ -155,7 +163,7 @@ The following packages will be downloaded:
 
     actions = defaultdict(list, {'PREFIX':
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
-    ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0 1', 'sqlite-3.7.13-0 1', 'tk-8.5.13-0 1', 'zlib-1.2.7-0 1']})
+    ['/Users/aaronmeurer/anaconda'], 'LINK': ['defaults::python-3.3.2-0', 'defaults::readline-6.2-0 1', 'defaults::sqlite-3.7.13-0 1', 'defaults::tk-8.5.13-0 1', 'defaults::zlib-1.2.7-0 1']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -191,8 +199,8 @@ The following packages will be REMOVED:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
-    ['cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0'], 'UNLINK':
+    ['defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -216,9 +224,9 @@ The following packages will be DOWNGRADED:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
-        'dateutil-1.5-py33_0', 'numpy-1.7.1-py33_0'], 'UNLINK':
-        ['cython-0.19-py33_0', 'dateutil-2.1-py33_1', 'pip-1.3.1-py33_1']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
+        'defaults::dateutil-1.5-py33_0', 'defaults::numpy-1.7.1-py33_0'], 'UNLINK':
+        ['defaults::cython-0.19-py33_0', 'defaults::dateutil-2.1-py33_1', 'defaults::pip-1.3.1-py33_1']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -242,9 +250,9 @@ The following packages will be DOWNGRADED:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
-        'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
-            'dateutil-1.5-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
+        'defaults::dateutil-2.1-py33_1'], 'UNLINK':  ['defaults::cython-0.19-py33_0',
+            'defaults::dateutil-1.5-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -278,9 +286,9 @@ def test_display_actions_show_channel_urls():
         "numpy-1.7.1-py27_0"]})
     # The older test index doesn't have the size metadata
     d = Dist('sympy-0.7.2-py27_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, size=4374752)
+    index[d] = DPkg(d, size=4374752)
     d = Dist('numpy-1.7.1-py27_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, size=5994338)
+    index[d] = DPkg(d, size=5994338)
 
     with captured() as c:
         display_actions(actions, index)
@@ -299,7 +307,7 @@ The following packages will be downloaded:
 
     actions = defaultdict(list, {'PREFIX':
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
-    ['/Users/aaronmeurer/anaconda'], 'LINK': ['python-3.3.2-0', 'readline-6.2-0', 'sqlite-3.7.13-0', 'tk-8.5.13-0', 'zlib-1.2.7-0']})
+    ['/Users/aaronmeurer/anaconda'], 'LINK': ['defaults::python-3.3.2-0', 'defaults::readline-6.2-0', 'defaults::sqlite-3.7.13-0', 'defaults::tk-8.5.13-0', 'defaults::zlib-1.2.7-0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -308,11 +316,11 @@ The following packages will be downloaded:
 
 The following NEW packages will be INSTALLED:
 
-    python:   3.3.2-0  <unknown>
-    readline: 6.2-0    <unknown>
-    sqlite:   3.7.13-0 <unknown>
-    tk:       8.5.13-0 <unknown>
-    zlib:     1.2.7-0  <unknown>
+    python:   3.3.2-0  defaults
+    readline: 6.2-0    defaults
+    sqlite:   3.7.13-0 defaults
+    tk:       8.5.13-0 defaults
+    zlib:     1.2.7-0  defaults
 
 """
 
@@ -326,16 +334,16 @@ The following NEW packages will be INSTALLED:
 
 The following packages will be REMOVED:
 
-    python:   3.3.2-0  <unknown>
-    readline: 6.2-0    <unknown>
-    sqlite:   3.7.13-0 <unknown>
-    tk:       8.5.13-0 <unknown>
-    zlib:     1.2.7-0  <unknown>
+    python:   3.3.2-0  defaults
+    readline: 6.2-0    defaults
+    sqlite:   3.7.13-0 defaults
+    tk:       8.5.13-0 defaults
+    zlib:     1.2.7-0  defaults
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0'], 'UNLINK':
-    ['cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0'], 'UNLINK':
+    ['defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -343,7 +351,7 @@ The following packages will be REMOVED:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    cython: 0.19-py33_0 <unknown> --> 0.19.1-py33_0 <unknown>
+    cython: 0.19-py33_0 defaults --> 0.19.1-py33_0 defaults
 
 """
 
@@ -355,13 +363,13 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following packages will be DOWNGRADED:
 
-    cython: 0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
+    cython: 0.19.1-py33_0 defaults --> 0.19-py33_0 defaults
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
-        'dateutil-1.5-py33_0', 'numpy-1.7.1-py33_0'], 'UNLINK':
-        ['cython-0.19-py33_0', 'dateutil-2.1-py33_1', 'pip-1.3.1-py33_1']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
+        'defaults::dateutil-1.5-py33_0', 'defaults::numpy-1.7.1-py33_0'], 'UNLINK':
+        ['defaults::cython-0.19-py33_0', 'defaults::dateutil-2.1-py33_1', 'defaults::pip-1.3.1-py33_1']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -369,25 +377,25 @@ The following packages will be DOWNGRADED:
     assert c.stdout == """
 The following NEW packages will be INSTALLED:
 
-    numpy:    1.7.1-py33_0 <unknown>
+    numpy:    1.7.1-py33_0 defaults
 
 The following packages will be REMOVED:
 
-    pip:      1.3.1-py33_1 <unknown>
+    pip:      1.3.1-py33_1 defaults
 
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0  <unknown> --> 0.19.1-py33_0 <unknown>
+    cython:   0.19-py33_0  defaults --> 0.19.1-py33_0 defaults
 
 The following packages will be DOWNGRADED:
 
-    dateutil: 2.1-py33_1   <unknown> --> 1.5-py33_0    <unknown>
+    dateutil: 2.1-py33_1   defaults --> 1.5-py33_0    defaults
 
 """
 
-    actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0',
-        'dateutil-2.1-py33_1'], 'UNLINK':  ['cython-0.19-py33_0',
-            'dateutil-1.5-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
+        'defaults::dateutil-2.1-py33_1'], 'UNLINK':  ['defaults::cython-0.19-py33_0',
+            'defaults::dateutil-1.5-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -395,8 +403,8 @@ The following packages will be DOWNGRADED:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0 <unknown> --> 0.19.1-py33_0 <unknown>
-    dateutil: 1.5-py33_0  <unknown> --> 2.1-py33_1    <unknown>
+    cython:   0.19-py33_0 defaults --> 0.19.1-py33_0 defaults
+    dateutil: 1.5-py33_0  defaults --> 2.1-py33_1    defaults
 
 """
 
@@ -408,17 +416,17 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following packages will be DOWNGRADED:
 
-    cython:   0.19.1-py33_0 <unknown> --> 0.19-py33_0 <unknown>
-    dateutil: 2.1-py33_1    <unknown> --> 1.5-py33_0  <unknown>
+    cython:   0.19.1-py33_0 defaults --> 0.19-py33_0 defaults
+    dateutil: 2.1-py33_1    defaults --> 1.5-py33_0  defaults
 
 """
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-    d = Dist('cython-0.19.1-py33_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, channel='my_channel')
-    d = Dist('dateutil-1.5-py33_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(d, channel='my_channel')
+    d = Dist('defaults::cython-0.19.1-py33_0.tar.bz2')
+    index[d] = DPkg(d, channel='my_channel')
+    d = Dist('defaults::dateutil-1.5-py33_0.tar.bz2')
+    index[d] = DPkg(d, channel='my_channel')
 
     with captured() as c:
         display_actions(actions, index)
@@ -426,8 +434,8 @@ The following packages will be DOWNGRADED:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0 <unknown>  --> 0.19.1-py33_0 my_channel
-    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    <unknown> \n\
+    cython:   0.19-py33_0 defaults   --> 0.19.1-py33_0 my_channel
+    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    defaults  \n\
 
 """
 
@@ -439,8 +447,8 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following packages will be DOWNGRADED:
 
-    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 <unknown> \n\
-    dateutil: 2.1-py33_1    <unknown>  --> 1.5-py33_0  my_channel
+    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 defaults  \n\
+    dateutil: 2.1-py33_1    defaults   --> 1.5-py33_0  my_channel
 
 """
 
@@ -664,7 +672,7 @@ def test_display_actions_features():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -677,7 +685,7 @@ The following NEW packages will be INSTALLED:
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -690,7 +698,7 @@ The following packages will be REMOVED:
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -702,7 +710,7 @@ The following packages will be DOWNGRADED:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -714,7 +722,7 @@ The following packages will be UPDATED:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -727,7 +735,7 @@ The following packages will be UPDATED:
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -741,7 +749,7 @@ The following packages will be UPDATED:
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
     reset_context(())
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -749,12 +757,12 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following NEW packages will be INSTALLED:
 
-    cython: 0.19-py33_0   <unknown>
-    numpy:  1.7.1-py33_p0 <unknown> [mkl]
+    cython: 0.19-py33_0   defaults
+    numpy:  1.7.1-py33_p0 defaults [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0', 'cython-0.19-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -762,12 +770,12 @@ The following NEW packages will be INSTALLED:
     assert c.stdout == """
 The following packages will be REMOVED:
 
-    cython: 0.19-py33_0   <unknown>
-    numpy:  1.7.1-py33_p0 <unknown> [mkl]
+    cython: 0.19-py33_0   defaults
+    numpy:  1.7.1-py33_p0 defaults [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -775,11 +783,11 @@ The following packages will be REMOVED:
     assert c.stdout == """
 The following packages will be DOWNGRADED:
 
-    numpy: 1.7.1-py33_p0 <unknown> [mkl] --> 1.7.0-py33_p0 <unknown> [mkl]
+    numpy: 1.7.1-py33_p0 defaults [mkl] --> 1.7.0-py33_p0 defaults [mkl]
 
 """
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -787,11 +795,11 @@ The following packages will be DOWNGRADED:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    numpy: 1.7.0-py33_p0 <unknown> [mkl] --> 1.7.1-py33_p0 <unknown> [mkl]
+    numpy: 1.7.0-py33_p0 defaults [mkl] --> 1.7.1-py33_p0 defaults [mkl]
 
 """
 
-    actions = defaultdict(list, {'LINK': ['numpy-1.7.1-py33_p0'], 'UNLINK': ['numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -800,11 +808,11 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    numpy: 1.7.1-py33_0 <unknown> --> 1.7.1-py33_p0 <unknown> [mkl]
+    numpy: 1.7.1-py33_0 defaults --> 1.7.1-py33_p0 defaults [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['numpy-1.7.1-py33_p0'], 'LINK': ['numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
@@ -812,7 +820,7 @@ The following packages will be UPDATED:
     assert c.stdout == """
 The following packages will be UPDATED:
 
-    numpy: 1.7.1-py33_p0 <unknown> [mkl] --> 1.7.1-py33_0 <unknown>
+    numpy: 1.7.1-py33_p0 defaults [mkl] --> 1.7.1-py33_0 defaults
 
 """
 
@@ -855,9 +863,9 @@ class PlanFromActionsTests(unittest.TestCase):
 
     def test_plan_link_menuinst(self):
         menuinst = Dist('menuinst-1.4.2-py27_0')
-        menuinst_record = IndexRecord.from_objects(menuinst)
+        menuinst_record = DPkg(menuinst)
         ipython = Dist('ipython-5.1.0-py27_1')
-        ipython_record = IndexRecord.from_objects(ipython)
+        ipython_record = DPkg(ipython)
         actions = defaultdict(list)
         actions.update({
             'PREFIX': 'aprefix',
@@ -1089,34 +1097,35 @@ class TestGetActionsForDist(unittest.TestCase):
             ("ranenv", "test", "defaults", "1.2.0")]
         self.res = generate_mocked_resolve(self.pkgs)
 
-    @patch("conda.core.linked_data.load_meta", return_value=True)
-    def test_ensure_linked_actions_all_linked(self, load_meta):
-        dists = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
-        prefix = "some/prefix"
-
-        link_actions = plan.ensure_linked_actions(dists, prefix)
-
-        expected_output = defaultdict(list)
-        expected_output["PREFIX"] = prefix
-        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
-                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
-                                       'SYMLINK_CONDA')
-        self.assertEquals(link_actions, expected_output)
-
-    @patch("conda.core.linked_data.load_meta", return_value=False)
-    def test_ensure_linked_actions_no_linked(self, load_meta):
-        dists = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
-        prefix = "some/prefix"
-
-        link_actions = plan.ensure_linked_actions(dists, prefix)
-
-        expected_output = defaultdict(list)
-        expected_output["PREFIX"] = prefix
-        expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
-                                       'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
-                                       'SYMLINK_CONDA')
-        expected_output["LINK"] = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
-        self.assertEquals(link_actions, expected_output)
+    # TODO: ensure_linked_actions is going away; only used in plan._remove_actions
+    # @patch("conda.core.linked_data.is_linked", return_value=True)
+    # def test_ensure_linked_actions_all_linked(self, load_meta):
+    #     dists = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
+    #     prefix = "some/prefix"
+    #
+    #     link_actions = plan.ensure_linked_actions(dists, prefix)
+    #
+    #     expected_output = defaultdict(list)
+    #     expected_output["PREFIX"] = prefix
+    #     expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+    #                                    'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+    #                                    'SYMLINK_CONDA')
+    #     self.assertEquals(link_actions, expected_output)
+    #
+    # @patch("conda.core.linked_data.is_linked", return_value=False)
+    # def test_ensure_linked_actions_no_linked(self, load_meta):
+    #     dists = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
+    #     prefix = "some/prefix"
+    #
+    #     link_actions = plan.ensure_linked_actions(dists, prefix)
+    #
+    #     expected_output = defaultdict(list)
+    #     expected_output["PREFIX"] = prefix
+    #     expected_output["op_order"] = ('CHECK_FETCH', 'RM_FETCHED', 'FETCH', 'CHECK_EXTRACT',
+    #                                    'RM_EXTRACTED', 'EXTRACT', 'UNLINK', 'LINK',
+    #                                    'SYMLINK_CONDA')
+    #     expected_output["LINK"] = [Dist("test-88"), Dist("test-spec-42"), Dist("test-spec2-8.0.0.0.1-9")]
+    #     self.assertEquals(link_actions, expected_output)
 
     # def test_get_actions_for_dist(self):
     #     install = [Dist("test-1.2.0-py36_7")]
@@ -1312,7 +1321,7 @@ def test_pinned_specs():
             run_command(Commands.CONFIG, "--env --add pinned_packages requests=2.13")
             with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_str_2), reset_context):
                 pinned_specs = get_pinned_specs(td)
-                expected = specs_2 + (MatchSpec("requests 2.13", optional=True),) + specs_1
+                expected = specs_2 + (MatchSpec("requests 2.13.*", optional=True),) + specs_1
                 assert pinned_specs == expected
                 assert pinned_specs != specs_str_1 + ("requests 2.13",) + specs_str_2
 

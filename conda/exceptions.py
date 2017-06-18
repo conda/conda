@@ -185,10 +185,10 @@ class CommandNotFoundError(CondaError):
         super(CommandNotFoundError, self).__init__(message, command=command)
 
 
-class FileNotFoundError(CondaError, OSError):
+class PathNotFoundError(CondaError, OSError):
     def __init__(self, path):
         message = "%(path)s"
-        super(FileNotFoundError, self).__init__(message, path=path)
+        super(PathNotFoundError, self).__init__(message, path=path)
 
 
 class DirectoryNotFoundError(CondaError):
@@ -393,7 +393,7 @@ class NoPackagesFoundError(CondaError):
         from .resolve import dashlist
         from .base.context import context
 
-        deps = set(q[-1].spec for q in bad_deps)
+        deps = set(q[-1] for q in bad_deps)
         if all(len(q) > 1 for q in bad_deps):
             what = "Dependencies" if len(bad_deps) > 1 else "Dependency"
         elif all(len(q) == 1 for q in bad_deps):

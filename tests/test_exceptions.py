@@ -1,16 +1,16 @@
 import json
 from unittest import TestCase
 
-from conda.common.compat import on_win
-
 from conda import text_type
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import reset_context, context
+from conda.base.context import context, reset_context
+from conda.common.compat import on_win
 from conda.common.io import captured, env_var
-from conda.exceptions import CommandNotFoundError, FileNotFoundError, CondaHTTPError, CondaKeyError, \
-    CondaRevisionError, DirectoryNotFoundError, MD5MismatchError, PackageNotFoundError, TooFewArgumentsError, \
-    TooManyArgumentsError, conda_exception_handler, BasicClobberError, KnownPackageClobberError, \
-    UnknownPackageClobberError, SharedLinkPathClobberError, BinaryPrefixReplacementError, BinaryPrefixReplacementError
+from conda.exceptions import BasicClobberError, BinaryPrefixReplacementError, CommandNotFoundError, \
+    CondaHTTPError, CondaKeyError, CondaRevisionError, DirectoryNotFoundError, \
+    KnownPackageClobberError, MD5MismatchError, PackageNotFoundError, PathNotFoundError, \
+    SharedLinkPathClobberError, TooFewArgumentsError, TooManyArgumentsError, \
+    UnknownPackageClobberError, conda_exception_handler
 
 
 def _raise_helper(exception):
@@ -137,15 +137,15 @@ class ExceptionTests(TestCase):
 
     def test_CondaFileNotFoundError(self):
         filename = "Groot"
-        exc = FileNotFoundError(filename)
+        exc = PathNotFoundError(filename)
         with env_var("CONDA_JSON", "yes", reset_context):
             with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
         assert not c.stderr
-        assert json_obj['exception_type'] == "<class 'conda.exceptions.FileNotFoundError'>"
-        assert json_obj['exception_name'] == 'FileNotFoundError'
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.PathNotFoundError'>"
+        assert json_obj['exception_name'] == 'PathNotFoundError'
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
 
@@ -154,7 +154,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "FileNotFoundError: Groot"
+        assert c.stderr.strip() == "PathNotFoundError: Groot"
 
     def test_DirectoryNotFoundError(self):
         directory = "Groot"

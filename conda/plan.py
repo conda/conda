@@ -11,19 +11,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath, basename
+from os.path import abspath
 import sys
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
 from .common.compat import on_win
-from .common.path import is_private_env_path
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
 from .core.solve import get_install_transaction_single, get_pinned_specs, get_resolve_object
 from .exceptions import (ArgumentError, CondaIndexError,
-                         InstallError, RemoveError)
+                         RemoveError)
 from .history import History
 from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
@@ -114,7 +113,7 @@ def display_actions(actions, index, show_channel_urls=None):
         packages[pkg][1] = rec['version'] + '-' + rec['build']
         records[pkg][1] = rec
         linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
-        features[pkg][1] = rec.get('features', '')
+        features[pkg][1] = ','.join(rec.get('features', ()))
     for arg in actions.get(UNLINK, []):
         dist = Dist(arg)
         rec = index[dist]
@@ -122,7 +121,7 @@ def display_actions(actions, index, show_channel_urls=None):
         channels[pkg][0] = channel_str(rec)
         packages[pkg][0] = rec['version'] + '-' + rec['build']
         records[pkg][0] = rec
-        features[pkg][0] = rec.get('features', '')
+        features[pkg][0] = ','.join(rec.get('features', ()))
 
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
@@ -386,64 +385,65 @@ def get_blank_actions(prefix):
 
 
 def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
-    # TODO: This should use the pinning mechanism. But don't change the API because cas uses it
-    if r.explicit(specs) or is_private_env_path(prefix):
-        return
-    log.debug('H0 specs=%r' % specs)
-    names_linked = {r.package_name(d): d for d in linked if d in r.index}
-    mspecs = list(map(MatchSpec, specs))
-
-    for name, def_ver in [('python', context.default_python or None),
-                          # Default version required, but only used for Python
-                          ('lua', None)]:
-        if any(s.name == name and not s.is_simple() for s in mspecs):
-            # if any of the specifications mention the Python/Numpy version,
-            # we don't need to add the default spec
-            log.debug('H1 %s' % name)
-            continue
-
-        depends_on = {s for s in mspecs if r.depends_on(s, name)}
-        any_depends_on = bool(depends_on)
-        log.debug('H2 %s %s' % (name, any_depends_on))
-
-        if not any_depends_on:
-            # if nothing depends on Python/Numpy AND the Python/Numpy is not
-            # specified, we don't need to add the default spec
-            log.debug('H2A %s' % name)
-            continue
-
-        if any(s.exact_field('build') for s in depends_on):
-            # If something depends on Python/Numpy, but the spec is very
-            # explicit, we also don't need to add the default spec
-            log.debug('H2B %s' % name)
-            continue
-
-        if name in names_linked:
-            # if Python/Numpy is already linked, we add that instead of the default
-            log.debug('H3 %s' % name)
-            dist = Dist(names_linked[name])
-            info = r.index[dist]
-            ver = '.'.join(info['version'].split('.', 2)[:2])
-            spec = '%s %s* (target=%s)' % (info['name'], ver, dist)
-            specs.append(spec)
-            continue
-
-        if name == 'python' and def_ver and def_ver.startswith('3.'):
-            # Don't include Python 3 in the specs if this is the Python 3
-            # version of conda.
-            continue
-
-        if def_ver is not None:
-            specs.append('%s %s*' % (name, def_ver))
-    log.debug('HF specs=%r' % specs)
+    return
+    # # TODO: This should use the pinning mechanism. But don't change the API because cas uses it
+    # if r.explicit(specs) or is_private_env_path(prefix):
+    #     return
+    # log.debug('H0 specs=%r' % specs)
+    # # names_linked = {r.package_name(d): d for d in linked if d in r.index}
+    # mspecs = list(map(MatchSpec, specs))
+    #
+    # for name, def_ver in [('python', context.default_python or None),
+    #                       # Default version required, but only used for Python
+    #                       ('lua', None)]:
+    #     if any(s.name == name and not s.is_simple() for s in mspecs):
+    #         # if any of the specifications mention the Python/Numpy version,
+    #         # we don't need to add the default spec
+    #         log.debug('H1 %s' % name)
+    #         continue
+    #
+    #     depends_on = {s for s in mspecs if r.depends_on(s, name)}
+    #     any_depends_on = bool(depends_on)
+    #     log.debug('H2 %s %s' % (name, any_depends_on))
+    #
+    #     if not any_depends_on:
+    #         # if nothing depends on Python/Numpy AND the Python/Numpy is not
+    #         # specified, we don't need to add the default spec
+    #         log.debug('H2A %s' % name)
+    #         continue
+    #
+    #     if any(s.exact_field('build') for s in depends_on):
+    #         # If something depends on Python/Numpy, but the spec is very
+    #         # explicit, we also don't need to add the default spec
+    #         log.debug('H2B %s' % name)
+    #         continue
+    #
+    #     # if name in names_linked:
+    #     #     # if Python/Numpy is already linked, we add that instead of the default
+    #     #     log.debug('H3 %s' % name)
+    #     #     dist = Dist(names_linked[name])
+    #     #     info = r.index[dist]
+    #     #     ver = '.'.join(info['version'].split('.', 2)[:2])
+    #     #     spec = '%s %s* (target=%s)' % (info['name'], ver, dist)
+    #     #     specs.append(spec)
+    #     #     continue
+    #
+    #     if name == 'python' and def_ver and def_ver.startswith('3.'):
+    #         # Don't include Python 3 in the specs if this is the Python 3
+    #         # version of conda.
+    #         continue
+    #
+    #     if def_ver is not None:
+    #         specs.append('%s %s*' % (name, def_ver))
+    # log.debug('HF specs=%r' % specs)
 
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, minimal_hint=False, update_deps=True, prune=False,
+                    pinned=True, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):  # pragma: no cover
     # this is for conda-build
     txn = get_install_transaction_single(prefix, index, specs, force, only_names, always_copy,
-                                         pinned, minimal_hint, update_deps, prune,
+                                         pinned, update_deps, prune,
                                          channel_priority_map, is_update)
     prefix_setup = txn.prefix_setups[prefix]
     actions = get_blank_actions(prefix)
@@ -452,61 +452,61 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     return actions
 
 
-def augment_specs(prefix, specs, pinned=True):
-    """
-    Include additional specs for conda and (optionally) pinned packages.
-
-    Parameters
-    ----------
-    prefix : str
-        Environment prefix.
-    specs : list of MatchSpec
-        List of package specifications to augment.
-    pinned : bool, optional
-        Optionally include pinned specs for the current environment.
-
-    Returns
-    -------
-    augmented_specs : list of MatchSpec
-       List of augmented package specifications.
-    """
-    specs = list(specs)
-
-    # Get conda-meta/pinned
-    if pinned:
-        pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s", pinned_specs)
-        specs.extend(pinned_specs)
-
-    # Support aggressive auto-update conda
-    #   Only add a conda spec if conda and conda-env are not in the specs.
-    #   Also skip this step if we're offline.
-    root_only_specs_str = ('conda', 'conda-env')
-    conda_in_specs_str = any(spec for spec in specs if spec.name in root_only_specs_str)
-
-    if abspath(prefix) == context.root_prefix:
-        if context.auto_update_conda and not context.offline and not conda_in_specs_str:
-            specs.append(MatchSpec('conda'))
-            specs.append(MatchSpec('conda-env'))
-    elif basename(prefix).startswith('_'):
-        # Anything (including conda) can be installed into environments
-        # starting with '_', mainly to allow conda-build to build conda
-        pass
-    elif conda_in_specs_str:
-        raise InstallError("Error: 'conda' can only be installed into the "
-                           "root environment")
-
-    # Support track_features config parameter
-    if context.track_features:
-        specs.extend(x + '@' for x in context.track_features)
-
-    return tuple(specs)
+# def augment_specs(prefix, specs, pinned=True):
+#     """
+#     Include additional specs for conda and (optionally) pinned packages.
+#
+#     Parameters
+#     ----------
+#     prefix : str
+#         Environment prefix.
+#     specs : list of MatchSpec
+#         List of package specifications to augment.
+#     pinned : bool, optional
+#         Optionally include pinned specs for the current environment.
+#
+#     Returns
+#     -------
+#     augmented_specs : list of MatchSpec
+#        List of augmented package specifications.
+#     """
+#     specs = list(specs)
+#
+#     # Get conda-meta/pinned
+#     if pinned:
+#         pinned_specs = get_pinned_specs(prefix)
+#         log.debug("Pinned specs=%s", pinned_specs)
+#         specs.extend(pinned_specs)
+#
+#     # Support aggressive auto-update conda
+#     #   Only add a conda spec if conda and conda-env are not in the specs.
+#     #   Also skip this step if we're offline.
+#     root_only_specs_str = ('conda', 'conda-env')
+#     conda_in_specs_str = any(spec for spec in specs if spec.name in root_only_specs_str)
+#
+#     if abspath(prefix) == context.root_prefix:
+#         if context.auto_update_conda and not context.offline and not conda_in_specs_str:
+#             specs.append(MatchSpec('conda'))
+#             specs.append(MatchSpec('conda-env'))
+#     elif basename(prefix).startswith('_'):
+#         # Anything (including conda) can be installed into environments
+#         # starting with '_', mainly to allow conda-build to build conda
+#         pass
+#     elif conda_in_specs_str:
+#         raise InstallError("Error: 'conda' can only be installed into the "
+#                            "root environment")
+#
+#     # Support track_features config parameter
+#     if context.track_features:
+#         specs.extend(x + '@' for x in context.track_features)
+#
+#     return tuple(specs)
 
 
 def _remove_actions(prefix, specs, index, force=False, pinned=True):
     r = Resolve(index)
     linked = linked_data(prefix)
-    linked_dists = [d for d in linked.keys()]
+    linked_dists = [d for d in linked]
 
     if force:
         mss = list(map(MatchSpec, specs))
@@ -516,7 +516,7 @@ def _remove_actions(prefix, specs, index, force=False, pinned=True):
     else:
         add_defaults_to_specs(r, linked_dists, specs, update=True)
         nlinked = {r.package_name(dist): dist
-                   for dist in (Dist(fn) for fn in r.remove(specs, r.installed))}
+                   for dist in (Dist(fn) for fn in r.remove(specs, set(linked_dists)))}
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
