@@ -5,14 +5,14 @@ from copy import deepcopy
 import json
 from logging import getLogger
 from os import getcwd, listdir
-from os.path import basename, dirname, isdir, isfile, join, normpath
+from os.path import basename, dirname, isdir, isfile, join, normpath, split as path_split
 
 from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import ENVS_DIR_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import with_metaclass
-from ..common.path import ensure_pad, expand, right_pad_os_sep
+from ..common.path import ensure_pad, expand, right_pad_os_sep, paths_equal
 from ..exceptions import CondaValueError, EnvironmentNameNotFound, NotWritableError
 from ..gateways.disk.create import create_envs_directory
 from ..gateways.disk.test import file_path_is_writable
@@ -163,6 +163,16 @@ class EnvsDirectory(object):
         if not self.is_writable:
             raise NotWritableError(self.catalog_file)
         return True
+
+    @classmethod
+    def env_name(cls, prefix):
+        if not prefix:
+            return None
+        maybe_envs_dir, maybe_name = path_split(prefix)
+        for envs_dir in context.envs_dirs:
+            if paths_equal(envs_dir, maybe_envs_dir):
+                return maybe_name
+        return prefix
 
     @classmethod
     def first_writable(cls, envs_dirs=None):

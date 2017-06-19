@@ -365,6 +365,14 @@ class Context(Configuration):
         return join(self.envs_dirs[0], _default_env)
 
     @property
+    def active_prefix(self):
+        return os.getenv('CONDA_PREFIX')
+
+    @property
+    def shlvl(self):
+        return int(os.getenv('CONDA_SHLVL', -1))
+
+    @property
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
         return MatchSpec('openssl', optional=True),
