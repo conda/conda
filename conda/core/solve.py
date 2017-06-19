@@ -451,14 +451,15 @@ class Solver(object):
                 # name in the solution
                 assert not any(d.name == spec.name for d in solution)
 
-        # Ensure conda or its dependencies aren't being uninstalled in conda's own environment.
-        if paths_equal(self.prefix, context.conda_prefix) and not context.force:
-            conda_spec = MatchSpec("conda")
-            conda_dist = next((conda_spec.match(d) for d in solution), None)
-            assert conda_dist
-            conda_deps_specs = self._r.ms_depends(conda_dist)
-            for spec in conda_deps_specs:
-                assert any(spec.match(d) for d in solution)
+        # Let this be handled as part of txn.verify()
+        # # Ensure conda or its dependencies aren't being uninstalled in conda's own environment.
+        # if paths_equal(self.prefix, context.conda_prefix) and not context.force:
+        #     conda_spec = MatchSpec("conda")
+        #     conda_dist = next((conda_spec.match(d) for d in solution), None)
+        #     assert conda_dist
+        #     conda_deps_specs = self._r.ms_depends(conda_dist)
+        #     for spec in conda_deps_specs:
+        #         assert any(spec.match(d) for d in solution)
 
 
 def get_pinned_specs(prefix):
