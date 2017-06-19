@@ -230,7 +230,6 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        print c.stderr
         assert c.stderr.strip() == """
         PackageNotFoundError: 
             Package(s) is missing from the environment:

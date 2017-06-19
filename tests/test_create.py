@@ -1200,7 +1200,6 @@ class IntegrationTests(TestCase):
                 run_command(Commands.REMOVE, prefix, 'numpi')
 
             exc_string = '%r' % exc.value
-            print(exc_string)
             assert exc_string.strip() == """
             PackageNotFoundError:
             Package(s) is missing from the environment:
