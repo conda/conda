@@ -1200,15 +1200,13 @@ class IntegrationTests(TestCase):
                 run_command(Commands.REMOVE, prefix, 'numpi')
 
             exc_string = '%r' % exc.value
-            assert exc_string.strip("\n") == """PackageNotFoundError:
-            Package(s) is missing from the environment: numpi""".strip("\n")
+            print(exc_string)
+            assert exc_string.strip() == """
+            PackageNotFoundError:
+            Package(s) is missing from the environment:
+            numpi """.strip()
             assert_package_is_installed(prefix, 'numpy')
 
-            with pytest.raises(PackageNotFoundError) as exc:
-                run_command(Commands.INSTALL, prefix, 'numpi pando')
-            new_exc_string = '%r' %exc.value
-            print(new_exc_string)
-            assert exc_string == "hello world"
 
     def test_conda_list_json(self):
         def pkg_info(s):

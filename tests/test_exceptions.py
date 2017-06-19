@@ -230,11 +230,12 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr == dals("""
-        PackageNotFoundError: Packages missing in current channels:
-        Potato
-
-        """).strip()
+        print c.stderr
+        assert c.stderr.strip() == """
+        PackageNotFoundError: 
+            Package(s) is missing from the environment:
+            Potato
+        """.strip()
 
     def test_CondaRevisionError(self):
         message = "Potato"
