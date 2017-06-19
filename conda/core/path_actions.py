@@ -359,7 +359,6 @@ class LinkPathAction(CreateInPrefixPathAction):
                        reported_sha256,
                        source_sha256,
                        )))
-
             try:
                 reported_size_in_bytes = source_path_data.size_in_bytes
             except AttributeError:
@@ -387,6 +386,8 @@ class LinkPathAction(CreateInPrefixPathAction):
                 sha256_in_prefix=source_sha256,
                 path_type=source_path_type or PathType.hardlink,
             )
+        elif source_path_data.path_type == PathType.windows_python_entry_point_exe:
+            self.prefix_path_data = source_path_data
         else:
             raise NotImplementedError()
 
