@@ -513,6 +513,9 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, APP_NAME, argparse_args)
     from ..models.channel import Channel
     Channel._reset_state()
+    # need to import here to avoid circular dependency
+    from ..core.repodata import RepoData
+    RepoData.clear()
     return context
 
 
