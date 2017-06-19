@@ -11,7 +11,7 @@ from .common import (Completer, Packages, add_parser_channels, add_parser_insecu
                      add_parser_use_index_cache, add_parser_use_local, arg2spec, disp_features,
                      ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
 from ..base.context import context
-from ..resolve import ResolvePackageNotFound
+from ..resolve import ResolvePackageNotFound, dashlist
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -124,8 +124,9 @@ def execute(args, parser):
     try:
         execute_search(args, parser)
     except ResolvePackageNotFound as e:
-        pkg = e.bad_deps
-
+        pkg = []
+        pkg.append(e.bad_deps)
+        pkg = dashlist(pkg)
         index_args = {
             'channel_urls': context.channels,
             'prepend': not args.override_channels,

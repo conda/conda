@@ -614,10 +614,9 @@ class IntegrationTests(TestCase):
             assert 'r' not in context.channels
 
             # assert conda search cannot find rpy2
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-
-            assert bool(json_obj) is False
+            assert json_obj['exception_name'] == 'PackageNotFoundError'
 
             # add r channel
             run_command(Commands.CONFIG, prefix, "--add channels r")
@@ -869,9 +868,10 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win(self):
         with make_temp_env() as prefix:
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json")
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-            assert len(json_obj.keys()) == 0
+            assert json_obj['exception_name'] == 'PackageNotFoundError'
+            assert not len(json_obj.keys()) == 0
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_filter(self):
@@ -946,9 +946,9 @@ class IntegrationTests(TestCase):
             assert yml_obj['channels'] == [channel_url]
 
             stdout, stderr = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
-                                         "linux-64", "--json")
+                                         "linux-64", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout)
-            assert len(json_obj) == 0
+            assert json_obj['exception_name'] == 'PackageNotFoundError'
 
         finally:
             rmtree(prefix, ignore_errors=True)
