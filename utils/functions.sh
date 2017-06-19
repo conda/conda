@@ -280,6 +280,7 @@ install_conda_build() {
         anaconda-client numpy \
         filelock jinja2 conda-verify contextlib2 pkginfo
     conda config --remove channels conda-forge
+    conda install -y -q filelock
     if ! [ -n "$ON_WIN" ]; then
         $prefix/$BIN_DIR/conda install -y -q patchelf
     fi
