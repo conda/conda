@@ -275,12 +275,11 @@ install_conda_build() {
 
     # install conda-build dependencies (runtime and test)
     conda config --append channels conda-forge
-    $prefix/$BIN_DIR/conda install -y -q \
+    $prefix/$BIN_DIR/conda install -y \
         perl pytest-xdist pytest-catchlog pytest-mock \
         anaconda-client numpy \
         filelock jinja2 conda-verify contextlib2 pkginfo
     conda config --remove channels conda-forge
-    $prefix/$BIN_DIR/pip install install -U filelock
     if ! [ -n "$ON_WIN" ]; then
         $prefix/$BIN_DIR/conda install -y -q patchelf
     fi
