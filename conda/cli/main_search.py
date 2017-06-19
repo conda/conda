@@ -11,7 +11,7 @@ from .common import (Completer, Packages, add_parser_channels, add_parser_insecu
                      add_parser_use_index_cache, add_parser_use_local, arg2spec, disp_features,
                      ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
 from ..base.context import context
-from ..common.compat import text_type
+from ..resolve import ResolvePackageNotFound
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -116,15 +116,33 @@ package.""",
     add_parser_insecure(p)
     p.set_defaults(func=execute)
 
+
 def execute(args, parser):
     from ..exceptions import PackageNotFoundError
-    from ..resolve import ResolvePackageNotFound
+    from ..core.index import get_channel_priority_map
+    from ..resolve import dashlist
 
     try:
         execute_search(args, parser)
     except ResolvePackageNotFound as e:
-        error_message = text_type(e)
-        raise PackageNotFoundError(error_message)
+        pkg = e.bad_deps
+
+        index_args = {
+        'channel_urls': context.channels,
+        'prepend': not args.override_channels,
+        'use_local': args.use_local
+        }
+
+        channel_priority_map = get_channel_priority_map(
+            channel_urls=index_args['channel_urls'],
+            prepend=index_args['prepend'],
+            platform=None,
+            use_local=index_args['use_local'],
+        )
+
+        channels_urls = tuple(channel_priority_map)
+
+        raise PackageNotFoundError(pkg, channels_urls)
 
 
 def execute_search(args, parser):
@@ -178,7 +196,6 @@ def execute_search(args, parser):
                       unknown=args.unknown)
 
     r = Resolve(index)
-
     if args.canonical:
         json = []
     else:
@@ -199,6 +216,9 @@ def execute_search(args, parser):
             res = r.get_dists_for_spec(name)
         if res:
             names.append((name, res))
+
+    if not names:
+        raise ResolvePackageNotFound(args.regex)
 
     for name, pkgs in names:
         disp_name = name

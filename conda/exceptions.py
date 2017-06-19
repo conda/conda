@@ -389,7 +389,7 @@ class PackageNotFoundError(CondaError):
             msg = """Packages missing in current channels:
             %(pkg)s
 
-            We have searched for the packages in the following channels:
+We have searched for the packages in the following channels:
             %(channels)s
             """
 
