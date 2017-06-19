@@ -47,9 +47,10 @@ def disable_ssl_verify_warning():
     warnings.simplefilter('ignore', InsecureRequestWarning)
 
 
-def download(url, target_full_path, md5sum):
-    content_length = None
-
+def download(url, target_full_path, md5sum, progress_update_callback=None):
+    # TODO: For most downloads, we should know the size of the artifact from what's reported
+    #       in repodata.  We should validate that here also, in addition to the 'Content-Length'
+    #       header.
     if exists(target_full_path):
         maybe_raise(BasicClobberError(target_full_path, url, context), context)
 
@@ -65,9 +66,6 @@ def download(url, target_full_path, md5sum):
             resp.raise_for_status()
 
             content_length = int(resp.headers.get('Content-Length', 0))
-
-            if content_length:
-                getLogger('fetch.start').info((basename(target_full_path)[:14], content_length))
 
             digest_builder = hashlib.new('md5')
             try:
@@ -87,7 +85,8 @@ def download(url, target_full_path, md5sum):
                         digest_builder.update(chunk)
 
                         if content_length and 0 <= streamed_bytes <= content_length:
-                            getLogger('fetch.update').info(streamed_bytes)
+                            if progress_update_callback:
+                                progress_update_callback(streamed_bytes / content_length)
 
                 if content_length and streamed_bytes != content_length:
                     # TODO: needs to be a more-specific error type
@@ -138,9 +137,6 @@ def download(url, target_full_path, md5sum):
                              getattr(e.response, 'elapsed', None),
                              e.response,
                              caused_by=e)
-    finally:
-        if content_length:
-            getLogger('fetch.stop').info(None)
 
 
 class TmpDownload(object):
@@ -157,9 +153,6 @@ class TmpDownload(object):
             self.tmp_dir = None
             return self.url
         else:
-            if self.verbose:
-                from ...console import setup_handlers
-                setup_handlers()
             self.tmp_dir = tempfile.mkdtemp()
             dst = join(self.tmp_dir, basename(self.url))
             download(self.url, dst, None)

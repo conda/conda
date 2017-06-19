@@ -5,15 +5,15 @@ from functools import reduce
 from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, join
-from traceback import format_exc
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, text_type, with_metaclass
+from ..common.compat import iteritems, itervalues, odict, text_type, with_metaclass
 from ..common.constants import NULL
+from ..common.io import ProgressBar
 from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
@@ -412,6 +412,7 @@ class ProgressiveFetchExtract(object):
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_package_basename=pcrec_from_read_only_cache.fn,
                 md5sum=md5,
+                expected_size_in_bytes=pcrec_from_read_only_cache.size,
             )
             trgt_extracted_dirname = pcrec_from_read_only_cache.fn[:-len(CONDA_TARBALL_EXTENSION)]
             extract_axn = ExtractPackageAction(
@@ -427,11 +428,16 @@ class ProgressiveFetchExtract(object):
         #   we'll have to download one; fetch and extract
         url = pref_or_spec.get('url')
         assert url
+        try:
+            expected_size_in_bytes = pref_or_spec.size
+        except AttributeError:
+            expected_size_in_bytes = None
         cache_axn = CacheUrlAction(
             url=url,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_package_basename=pref_or_spec.fn,
             md5sum=md5,
+            expected_size_in_bytes=expected_size_in_bytes,
         )
         extract_axn = ExtractPackageAction(
             source_full_path=cache_axn.target_full_path,
@@ -456,8 +462,7 @@ class ProgressiveFetchExtract(object):
         log.debug("instantiating ProgressiveFetchExtract with\n"
                   "  %s\n", '\n  '.join(pkg_rec.dist_str() for pkg_rec in link_prefs))
 
-        self.cache_actions = ()
-        self.extract_actions = ()
+        self.paired_actions = odict()  # Map[pref, Tuple(CacheUrlAction, ExtractPackageAction)]
 
         self._prepared = False
 
@@ -465,55 +470,90 @@ class ProgressiveFetchExtract(object):
         if self._prepared:
             return
 
-        paired_actions = tuple(self.make_actions_for_record(pkg_record)
-                               for pkg_record in self.link_precs)
-        if len(paired_actions) > 0:
-            cache_actions, extract_actions = zip(*paired_actions)
-            self.cache_actions = tuple(ca for ca in cache_actions if ca)
-            self.extract_actions = tuple(ea for ea in extract_actions if ea)
-        else:
-            self.cache_actions = self.extract_actions = ()
-
-        log.debug("prepared package cache actions:\n"
-                  "  cache_actions:\n"
-                  "    %s\n"
-                  "  extract_actions:\n"
-                  "    %s\n",
-                  '\n    '.join(text_type(ca) for ca in self.cache_actions),
-                  '\n    '.join(text_type(ea) for ea in self.extract_actions))
-
+        self.paired_actions.update((prec, self.make_actions_for_record(prec))
+                                   for prec in self.link_precs)
         self._prepared = True
+
+    @property
+    def cache_actions(self):
+        return tuple(axns[0] for axns in itervalues(self.paired_actions) if axns[0])
+
+    @property
+    def extract_actions(self):
+        return tuple(axns[1] for axns in itervalues(self.paired_actions) if axns[1])
 
     def execute(self):
         if not self._prepared:
             self.prepare()
 
         assert not context.dry_run
+
+        if not self.cache_actions or not self.extract_actions:
+            return
+
+        if not context.verbosity and not context.quiet and not context.json:
+            # TODO: use logger
+            print("\nDownloading and Extracting Packages")
+        else:
+            log.debug("prepared package cache actions:\n"
+                      "  cache_actions:\n"
+                      "    %s\n"
+                      "  extract_actions:\n"
+                      "    %s\n",
+                      '\n    '.join(text_type(ca) for ca in self.cache_actions),
+                      '\n    '.join(text_type(ea) for ea in self.extract_actions))
+
+        exceptions = []
         with signal_handler(conda_signal_handler):
-            for action in concatv(self.cache_actions, self.extract_actions):
-                self._execute_action(action)
+            for prec_or_spec, prec_actions in iteritems(self.paired_actions):
+                exc = self._execute_actions(prec_or_spec, prec_actions)
+                if exc:
+                    exceptions.append(exc)
+
+        if exceptions:
+            raise CondaMultiError(exceptions)
 
     @staticmethod
-    def _execute_action(action):
-        if not action.verified:
-            action.verify()
+    def _execute_actions(prec_or_spec, actions):
+        cache_axn, extract_axn = actions
+        if cache_axn is None and extract_axn is None:
+            return
 
-        max_tries = 3
-        exceptions = []
-        for q in range(max_tries):
-            try:
-                action.execute()
-            except Exception as e:
-                log.debug("Error in action %s", action)
-                log.debug(format_exc())
-                action.reverse()
-                exceptions.append(CondaError(repr(e)))
-            else:
-                action.cleanup()
-                return
+        desc = "%s %s" % (prec_or_spec.name, prec_or_spec.version)
+        progress_bar = ProgressBar(desc, not context.verbosity and not context.quiet, context.json)
 
-        # TODO: this exception stuff here needs work
-        raise CondaMultiError(exceptions)
+        download_total = 0.75  # fraction of progress for download; the rest goes to extract
+        try:
+            if cache_axn:
+                cache_axn.verify()
+
+                if not cache_axn.url.startswith('file:/'):
+                    def progress_update_cache_axn(pct_completed):
+                        progress_bar.update_to(pct_completed * download_total)
+                else:
+                    download_total = 0
+                    progress_update_cache_axn = None
+
+                cache_axn.execute(progress_update_cache_axn)
+
+            if extract_axn:
+                extract_axn.verify()
+
+                def progress_update_extract_axn(pct_completed):
+                    progress_bar.update_to((1 - download_total) * pct_completed + download_total)
+
+                extract_axn.execute(progress_update_extract_axn)
+
+        except Exception as e:
+            extract_axn.reverse()
+            cache_axn.reverse()
+            return e
+        else:
+            cache_axn.cleanup()
+            extract_axn.cleanup()
+            progress_bar.finish()
+        finally:
+            progress_bar.close()
 
     def __hash__(self):
         return hash(self.link_precs)

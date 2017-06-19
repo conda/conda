@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from contextlib import contextmanager
 from functools import partial
 from os import listdir
 from os.path import basename, isdir, isfile, join
@@ -180,16 +179,6 @@ def stdout_json(d):
     from .._vendor.auxlib.entity import EntityEncoder
     json.dump(d, sys.stdout, indent=2, sort_keys=True, cls=EntityEncoder)
     sys.stdout.write('\n')
-
-
-@contextmanager
-def json_progress_bars(json=False):
-    if json:
-        from ..console import json_progress_bars
-        with json_progress_bars():
-            yield
-    else:
-        yield
 
 
 def stdout_json_success(success=True, **kwargs):

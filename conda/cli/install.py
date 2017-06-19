@@ -15,7 +15,7 @@ from . import common
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import on_win, text_type
+from ..common.compat import text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
@@ -63,11 +63,10 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         print("Source:      %s" % src_prefix)
         print("Destination: %s" % dst_prefix)
 
-    with common.json_progress_bars(json=json and not quiet):
-        actions, untracked_files = clone_env(src_prefix, dst_prefix,
-                                             verbose=not json,
-                                             quiet=quiet,
-                                             index_args=index_args)
+    actions, untracked_files = clone_env(src_prefix, dst_prefix,
+                                         verbose=not json,
+                                         quiet=quiet,
+                                         index_args=index_args)
 
     if json:
         common.stdout_json_success(
@@ -78,43 +77,19 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         )
 
 
-def print_activate(arg):  # pragma: no cover
-    if on_win:
+def print_activate(env_name_or_prefix):  # pragma: no cover
+    if not context.quiet and not context.json:
         message = dals("""
-        #
-        # To activate this environment, use:
-        # > activate %s
-        #
-        # To deactivate an active environment, use:
-        # > deactivate
-        #
-        # * for power-users using bash, you must source
-        #
-        """)
-    else:
-        shell = os.path.split(os.environ.get('SHELL', ''))[-1]
-        if 'fish' == shell:
-            message = dals("""
-            #
-            # To activate this environment, use:
-            # > conda activate %s
-            #
-            # To deactivate an active environment, use:
-            # > conda deactivate
-            #
-            """)
-        else:
-            message = dals("""
-            #
-            # To activate this environment, use:
-            # > source activate %s
-            #
-            # To deactivate an active environment, use:
-            # > source deactivate
-            #
-            """)
 
-    return message % arg
+        To activate this environment, use
+
+            $ conda activate %s
+
+        To deactivate an active environment, use
+
+            $ conda deactivate
+        """) % env_name_or_prefix
+        print(message)  # TODO: use logger
 
 
 def get_revision(arg, json=False):
@@ -217,8 +192,7 @@ def install(args, parser, command='install'):
         clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
         append_env(prefix)
         touch_nonadmin(prefix)
-        if not context.json and not context.quiet:
-            print(print_activate(args.name if args.name else prefix))
+        print_activate(args.name if args.name else prefix)
         return
 
     if not isdir(prefix) and not newenv:
@@ -240,13 +214,12 @@ def install(args, parser, command='install'):
             unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
             progressive_fetch_extract = unlink_link_transaction.get_pfe()
         else:
-            with common.json_progress_bars(json=context.json and not context.quiet):
-                solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
-                index, _ = solver._prepare()
-                unlink_link_transaction = solver.solve_for_transaction(
-                    force_reinstall=context.force,
-                )
-                progressive_fetch_extract = unlink_link_transaction.get_pfe()
+            solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
+            index, _ = solver._prepare()
+            unlink_link_transaction = solver.solve_for_transaction(
+                force_reinstall=context.force,
+            )
+            progressive_fetch_extract = unlink_link_transaction.get_pfe()
     except NoPackagesFoundError as e:
         error_message = [e.args[0]]
 
@@ -334,20 +307,18 @@ def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args,
                                    dry_run=True)
         raise DryRunExit()
 
-    with common.json_progress_bars(json=context.json and not context.quiet):
-        try:
-            progressive_fetch_extract.execute()
-            unlink_link_transaction.execute()
-            # execute_actions(actions, index, verbose=not context.quiet)
+    try:
+        progressive_fetch_extract.execute()
+        unlink_link_transaction.execute()
+        # execute_actions(actions, index, verbose=not context.quiet)
 
-        except SystemExit as e:
-            raise CondaSystemExit('Exiting', e)
+    except SystemExit as e:
+        raise CondaSystemExit('Exiting', e)
 
     if newenv:
         append_env(prefix)
         touch_nonadmin(prefix)
-        if not context.json:
-            print(print_activate(args.name if args.name else prefix))
+        print_activate(args.name if args.name else prefix)
 
     if context.json:
         actions = unlink_link_transaction.make_legacy_action_groups(progressive_fetch_extract)[0]

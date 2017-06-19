@@ -23,6 +23,7 @@ from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win
+from ..common.io import spinner
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
@@ -167,11 +168,13 @@ class UnlinkLinkTransaction(object):
 
         self.transaction_context = {}
 
-        for stp in itervalues(self.prefix_setups):
-            grps = self._prepare(self.transaction_context, stp.target_prefix,
-                                 stp.unlink_precs, stp.link_precs,
-                                 stp.remove_specs, stp.update_specs)
-            self.prefix_action_groups[stp.target_prefix] = PrefixActionGroup(*grps)
+        with spinner("Preparing transaction", not context.verbosity and not context.quiet,
+                     context.json):
+            for stp in itervalues(self.prefix_setups):
+                grps = self._prepare(self.transaction_context, stp.target_prefix,
+                                     stp.unlink_precs, stp.link_precs,
+                                     stp.remove_specs, stp.update_specs)
+                self.prefix_action_groups[stp.target_prefix] = PrefixActionGroup(*grps)
 
         self._prepared = True
 
@@ -185,16 +188,16 @@ class UnlinkLinkTransaction(object):
             self._verified = True
             return
 
-        exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
-
-        if exceptions:
-            try:
-                maybe_raise(CondaMultiError(exceptions), context)
-            except:
-                rm_rf(self.transaction_context['temp_dir'])
-                raise
-        else:
-            log.info(exceptions)
+        with spinner("Verifying transaction", not context.verbosity and not context.quiet,
+                     context.json):
+            exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
+            if exceptions:
+                try:
+                    maybe_raise(CondaMultiError(exceptions), context)
+                except:
+                    rm_rf(self.transaction_context['temp_dir'])
+                    raise
+                log.info(exceptions)
 
         self._verified = True
 
@@ -442,24 +445,37 @@ class UnlinkLinkTransaction(object):
         with signal_handler(conda_signal_handler):
             pkg_idx = 0
             try:
-                for pkg_idx, axngroup in enumerate(all_action_groups):
-                    cls._execute_actions(pkg_idx, axngroup)
-            except Exception as execute_multi_exc:
+                with spinner("Executing transaction", not context.verbosity and not context.quiet,
+                             context.json):
+                    for pkg_idx, axngroup in enumerate(all_action_groups):
+                        cls._execute_actions(pkg_idx, axngroup)
+            except CondaMultiError as e:
+                action, is_unlink = None, axngroup.type == 'unlink'
+                prec = axngroup.pkg_data
+
+                log.error("An error occurred while %s package '%s'.\n"
+                          "%r\n"
+                          "Attempting to roll back.\n",
+                          'uninstalling' if is_unlink else 'installing',
+                          prec.dist_str(), e.errors[0])
+
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
                 if context.rollback_enabled:
-                    failed_pkg_idx = pkg_idx
-                    reverse_actions = reversed(tuple(enumerate(
-                        take(failed_pkg_idx, all_action_groups)
-                    )))
-                    for pkg_idx, axngroup in reverse_actions:
-                        excs = cls._reverse_actions(pkg_idx, axngroup)
-                        rollback_excs.extend(excs)
+                    with spinner("Rolling back transaction",
+                                 not context.verbosity and not context.quiet, context.json):
+                        failed_pkg_idx = pkg_idx
+                        reverse_actions = reversed(tuple(enumerate(
+                            take(failed_pkg_idx, all_action_groups)
+                        )))
+                        for pkg_idx, axngroup in reverse_actions:
+                            excs = cls._reverse_actions(pkg_idx, axngroup)
+                            rollback_excs.extend(excs)
 
                 raise CondaMultiError(tuple(concatv(
-                    (execute_multi_exc.errors
-                     if isinstance(execute_multi_exc, CondaMultiError)
-                     else (execute_multi_exc,)),
+                    (e.errors
+                     if isinstance(e, CondaMultiError)
+                     else (e,)),
                     rollback_excs,
                 )))
             else:
@@ -503,10 +519,10 @@ class UnlinkLinkTransaction(object):
             log.debug(format_exc())
             reverse_excs = ()
             if context.rollback_enabled:
-                log.error("An error occurred while %s package '%s'.\n"
-                          "%r\n"
-                          "Attempting to roll back.\n",
-                          'uninstalling' if is_unlink else 'installing', prec.dist_str(), e)
+                # log.error("An error occurred while %s package '%s'.\n"
+                #           "%r\n"
+                #           "Attempting to roll back.\n",
+                #           'uninstalling' if is_unlink else 'installing', prec.dist_str(), e)
                 reverse_excs = UnlinkLinkTransaction._reverse_actions(
                     pkg_idx, axngroup, reverse_from_idx=axn_idx
                 )

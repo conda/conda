@@ -8,17 +8,14 @@ from .base.context import context
 from .common.compat import isiterable, iteritems, iterkeys, itervalues, string_types, text_type
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
-from .console import setup_handlers
 from .exceptions import NoPackagesFoundError, UnsatisfiableError
 from .models.dist import Dist
 from .models.match_spec import MatchSpec
 from .models.version import normalized_version
 
 log = logging.getLogger(__name__)
-dotlog = logging.getLogger('dotupdate')
 stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
-setup_handlers()
 
 
 # used in conda build
@@ -784,7 +781,6 @@ class Resolve(object):
                 constraints = r2.generate_spec_constraints(C, specs)
                 return C.sat(constraints, add_if)
 
-            dotlog.debug('Checking satisfiability')
             r2 = Resolve(reduced_index, True, True)
             C = r2.gen_clauses()
             solution = mysat(specs, True)

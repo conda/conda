@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import bz2
 from contextlib import closing
-from functools import wraps
 from genericpath import getmtime, isfile
 import hashlib
 import json
@@ -48,7 +47,6 @@ except ImportError:  # pragma: no cover
 __all__ = ('collect_all_repodata',)
 
 log = getLogger(__name__)
-dotlog = getLogger('dotupdate')
 stderrlog = getLogger('stderrlog')
 
 REPODATA_PICKLE_VERSION = 3
@@ -94,20 +92,6 @@ def get_cache_control_max_age(cache_control_value):
 
 class Response304ContentUnchanged(Exception):
     pass
-
-
-# We need a decorator so that the dot gets printed *after* the repodata is fetched
-class dotlog_on_return(object):
-    def __init__(self, msg):
-        self.msg = msg
-
-    def __call__(self, f):
-        @wraps(f)
-        def func(*args, **kwargs):
-            res = f(*args, **kwargs)
-            dotlog.debug("%s args %s kwargs %s" % (self.msg, args, kwargs))
-            return res
-        return func
 
 
 def fetch_repodata_remote_request(session, url, etag, mod_stamp):
@@ -443,7 +427,6 @@ def process_repodata(repodata, channel_url, schannel, priority):
     repodata['packages'] = packages
 
 
-@dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, schannel, priority,
                    cache_dir=None, use_cache=False, session=None):
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))

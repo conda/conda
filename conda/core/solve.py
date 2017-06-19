@@ -15,6 +15,7 @@ from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
 from ..common.constants import NULL
+from ..common.io import spinner
 from ..common.path import paths_equal
 from ..exceptions import PackageNotFoundError
 from ..history import History
@@ -396,19 +397,21 @@ class Solver(object):
             UnlinkLinkTransaction:
 
         """
-        if self.prefix == context.root_prefix and context.enable_private_envs:
-            # This path has the ability to generate a multi-prefix transaction. The basic logic
-            # is in the commented out get_install_transaction() function below. Exercised at
-            # the integration level in the PrivateEnvIntegrationTests in test_create.py.
-            raise NotImplementedError()
-        else:
-            unlink_precs, link_precs = self.solve_for_diff(deps_modifier, prune, ignore_pinned,
-                                                           force_remove, force_reinstall)
-            stp = PrefixSetup(self.prefix, unlink_precs, link_precs,
-                              self.specs_to_remove, self.specs_to_add)
-            # TODO: Only explicitly requested remove and update specs are being included in
-            #   History right now. Do we need to include other categories from the solve?
-            return UnlinkLinkTransaction(stp)
+        with spinner("Solving environment", not context.verbosity and not context.quiet,
+                     context.json):
+            if self.prefix == context.root_prefix and context.enable_private_envs:
+                # This path has the ability to generate a multi-prefix transaction. The basic logic
+                # is in the commented out get_install_transaction() function below. Exercised at
+                # the integration level in the PrivateEnvIntegrationTests in test_create.py.
+                raise NotImplementedError()
+            else:
+                unlink_precs, link_precs = self.solve_for_diff(deps_modifier, prune, ignore_pinned,
+                                                               force_remove, force_reinstall)
+                stp = PrefixSetup(self.prefix, unlink_precs, link_precs,
+                                  self.specs_to_remove, self.specs_to_add)
+                # TODO: Only explicitly requested remove and update specs are being included in
+                #   History right now. Do we need to include other categories from the solve?
+                return UnlinkLinkTransaction(stp)
 
     def _prepare(self):
         # All of this _prepare() method is hidden away down here. Someday we may want to further
@@ -422,17 +425,21 @@ class Solver(object):
                          for priority, c in enumerate(self.channels)
                          for subdir_url in c.urls(True, self.subdirs))
 
-        channel_priority_map = build_channel_priority_map()
-        index = fetch_index(channel_priority_map, context.use_index_cache)
+        with spinner("Loading channels", not context.verbosity and not context.quiet,
+                     context.json):
+            channel_priority_map = build_channel_priority_map()
+            index = fetch_index(channel_priority_map, context.use_index_cache)
 
-        known_channels = tuple(c.canonical_name for c in self.channels)
+            known_channels = tuple(c.canonical_name for c in self.channels)
 
-        _supplement_index_with_prefix(index, self.prefix, known_channels)
-        _supplement_index_with_cache(index, known_channels)
-        _supplement_index_with_features(index)
+            _supplement_index_with_prefix(index, self.prefix, known_channels)
+            _supplement_index_with_cache(index, known_channels)
+            _supplement_index_with_features(index)
 
-        self._index = index
-        self._r = Resolve(index)
+            self._index = index
+            self._r = Resolve(index)
+
+        self._prepared = True
         return self._index, self._r
 
     def _check_solution(self, solution, pinned_specs):

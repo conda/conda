@@ -59,8 +59,6 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 def fetch_index(channel_urls, use_cache=False, index=None):
     # type: (prioritize_channels(), bool, bool, Dict[Dist, IndexRecord]) -> Dict[Dist, IndexRecord]
     log.debug('channel_urls=' + repr(channel_urls))
-    if not context.json:
-        stdoutlog.info("Fetching package metadata ...")
 
     use_cache = use_cache or context.use_index_cache
 

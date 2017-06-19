@@ -91,7 +91,7 @@ class Context(Configuration):
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
-    concurrent = PrimitiveParameter(False)
+    concurrent = PrimitiveParameter(False)  # TODO: to change this to True, need to fix SingleThreadCondaSession  # NOQA
     create_default_packages = SequenceParameter(string_types)
     default_python = PrimitiveParameter('%d.%d' % sys.version_info[:2],
                                         element_type=string_types + (NoneType,))
@@ -170,7 +170,7 @@ class Context(Configuration):
     shortcuts = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
     update_dependencies = PrimitiveParameter(False, aliases=('update_deps',))
-    verbosity = PrimitiveParameter(0, aliases=('verbose',), element_type=int)
+    _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
 
     # conda_build
     bld_path = PrimitiveParameter('')
@@ -527,6 +527,10 @@ class Context(Configuration):
     @property
     def user_agent(self):
         return _get_user_agent(self.platform)
+
+    @property
+    def verbosity(self):
+        return 2 if self.debug else self._verbosity
 
 
 def conda_in_private_env():

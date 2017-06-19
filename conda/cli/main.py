@@ -108,17 +108,15 @@ def generate_parser():
 
 
 def init_loggers(context=None):
-    from logging import CRITICAL, DEBUG, getLogger
-    from ..gateways.logging import initialize_logging, set_all_logger_level, set_verbosity
+    from logging import CRITICAL, getLogger
+    from ..gateways.logging import initialize_logging, set_verbosity
     initialize_logging()
     if context and context.json:
         # Silence logging info to avoid interfering with JSON output
-        for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
+        for logger in ('print', 'stdoutlog', 'stderrlog'):
             getLogger(logger).setLevel(CRITICAL + 1)
 
-    if context and context.debug:
-        set_all_logger_level(DEBUG)
-    elif context and context.verbosity:
+    if context and context.verbosity:
         set_verbosity(context.verbosity)
 
 

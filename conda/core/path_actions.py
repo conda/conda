@@ -1146,18 +1146,20 @@ class UnregisterEnvironmentLocationAction(EnvsDirectoryPathAction):
 
 class CacheUrlAction(PathAction):
 
-    def __init__(self, url, target_pkgs_dir, target_package_basename, md5sum=None):
+    def __init__(self, url, target_pkgs_dir, target_package_basename,
+                 md5sum=None, expected_size_in_bytes=None):
         self.url = url
         self.target_pkgs_dir = target_pkgs_dir
         self.target_package_basename = target_package_basename
         self.md5sum = md5sum
+        self.expected_size_in_bytes = expected_size_in_bytes
         self.hold_path = self.target_full_path + '.c~'
 
     def verify(self):
         assert '::' not in self.url
         self._verified = True
 
-    def execute(self):
+    def execute(self, progress_update_callback=None):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the PackageCache class to CacheUrlAction __init__
         from .package_cache import PackageCache
@@ -1222,7 +1224,8 @@ class CacheUrlAction(PathAction):
                     target_package_cache._urls_data.add_url(self.url)
 
         else:
-            download(self.url, self.target_full_path, self.md5sum)
+            download(self.url, self.target_full_path, self.md5sum,
+                     progress_update_callback=progress_update_callback)
             target_package_cache._urls_data.add_url(self.url)
 
     def reverse(self):
@@ -1255,7 +1258,7 @@ class ExtractPackageAction(PathAction):
     def verify(self):
         self._verified = True
 
-    def execute(self):
+    def execute(self, progress_update_callback=None):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
         from .package_cache import PackageCache
@@ -1276,7 +1279,9 @@ class ExtractPackageAction(PathAction):
                     rm_rf(self.target_full_path)
                 else:
                     raise
-        extract_tarball(self.source_full_path, self.target_full_path)
+
+        extract_tarball(self.source_full_path, self.target_full_path,
+                        progress_update_callback=progress_update_callback)
 
         index_json_record = read_index_json(self.target_full_path)
 
