@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from logging import getLogger
 
 from .match_spec import MatchSpec
+from .._vendor.boltons.setutils import IndexedSet
 from ..common.url import quote as url_quote
+
+try:
+    from cytoolz.functoolz import excepts
+except ImportError:
+    from .._vendor.toolz.functoolz import excepts  # NOQA
+
 
 log = getLogger(__name__)
 
@@ -37,16 +44,68 @@ class PrefixDag(object):
 
     def remove_spec(self, spec):
         removed = []
-        for node in iter(self.nodes):
-            if spec.match(node.record):
-                removed.extend(self.remove_node_and_children(node))
+        self.nodes = self.get_nodes_ordered_from_roots()
+
+        while True:
+            # This while True pattern is needed because when we remove nodes, we break the view
+            # of the graph as given by the self.nodes iterator.  Thus, if we do a removal, we
+            # need to break the current for loop and re-enter with a new self.nodes view. The
+            # removal is complete when we iterate through all nodes without a removal. Doing
+            # a single sort of the nodes at the top of this method should minimize the number
+            # of iterations we have to make through the for loop.
+            for node in self.nodes:
+                if spec.match(node.record):
+                    removed.extend(self.remove_node_and_children(node))
+                    break
+            else:
+                break
+
         # if spec is a track_features spec, then we also need to remove packages that match
         # those features
         for feature in spec.get_raw_value('track_features') or ():
-            for node in iter(self.nodes):
-                if MatchSpec(features=feature).match(node.record):
-                    removed.extend(self.remove_node_and_children(node))
+            feature_spec = MatchSpec(features=feature)
+            while True:
+                for node in self.nodes:
+                    if feature_spec.match(node.record):
+                        removed.extend(self.remove_node_and_children(node))
+                        break
+                else:
+                    break
+
         return removed
+
+    def get_nodes_ordered_from_roots(self):
+        """
+        Returns:
+            A deterministically sorted breadth-first ordering of nodes, starting from root nodes.
+            Orphan nodes are prepended to the breadth-first ordering.
+        """
+        name_key = lambda node: node.record.name
+        ordered = IndexedSet(sorted((node for node in self.nodes if node.is_orphan), key=name_key))
+        queue = deque(sorted((node for node in self.nodes if node.is_root), key=name_key))
+        while queue:
+            node = queue.popleft()
+            ordered.add(node)
+            queue.extend(sorted(node.required_children, key=name_key))
+            queue.extend(sorted(node.optional_children, key=name_key))
+        return list(ordered)
+
+    def get_nodes_ordered_from_leaves(self):
+        """
+        Returns:
+            A deterministically sorted breadth-first ordering of nodes, starting from leaf nodes.
+            Orphan nodes are prepended to the breadth-first ordering.
+        """
+        name_key = lambda node: node.record.name
+        ordered = IndexedSet(sorted((node for node in self.nodes if node.is_orphan), key=name_key))
+        queue = deque(sorted((node for node in self.nodes if node.is_leaf), key=name_key))
+        while queue:
+            node = queue.popleft()
+            ordered.add(node)
+            queue.extend(sorted(node.required_parents, key=name_key))
+            queue.extend(sorted(node.optional_parents, key=name_key))
+        return list(ordered)
+
 
     def remove_node_and_children(self, node):
         for child in node.required_children:
@@ -63,7 +122,7 @@ class PrefixDag(object):
             builder.append('  label="%s";' % title)
         builder.append('  size="10.5,8";')
         builder.append('  rankdir=BT;')
-        for node in self.nodes:
+        for node in self.get_nodes_ordered_from_roots():
             label = "%s %s" % (node.record.name, node.record.version)
             if node.specs:
                 # TODO: combine?
@@ -130,6 +189,20 @@ class PrefixDag(object):
             num_nodes_pre = num_nodes_post
             remove_leaves_one_pass()
             num_nodes_post = len(self.nodes)
+
+    # def remove(self, node):
+    #     for parent in node.required_parents:
+    #         excepts(ValueError, parent.required_children.remove, node)
+    #     for parent in node.optional_parents:
+    #         excepts(ValueError, parent.optional_children.remove, node)
+    #     for child in node.required_children:
+    #         excepts(ValueError, child.required_parents.remove, node)
+    #     for child in node.optional_children:
+    #         excepts(ValueError, child.optional_parents.remove, node)
+    #     for spec in node.specs:
+    #         excepts(ValueError, self.spec_matches[spec].remove, node)
+    #     self.nodes.remove(node)
+    #     return node.record
 
     def remove(self, node):
         for parent in node.required_parents:

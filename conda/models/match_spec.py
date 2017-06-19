@@ -22,6 +22,7 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat  # NOQA
 
+
 class MatchSpecType(type):
 
     def __call__(cls, spec_arg=None, **kwargs):

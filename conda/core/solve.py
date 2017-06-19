@@ -136,9 +136,9 @@ class Solver(object):
         if prune or deps_modifier == DepsModifier.UPDATE_ALL:
             # start with empty specs map for UPDATE_ALL because we're optimizing the update
             # only for specs the user has requested; it's ok to remove dependencies
-            specs_map = {}
+            specs_map = odict()
         else:
-            specs_map = {d.name: MatchSpec(d.name) for d in solution}
+            specs_map = odict((d.name, MatchSpec(d.name)) for d in solution)
 
         # add in historically-requested specs
         specs_from_history_map = History(self.prefix).get_requested_specs_map()
@@ -237,7 +237,7 @@ class Solver(object):
         if context.auto_update_conda and paths_equal(self.prefix, context.conda_prefix):
             conda_update_specs = MatchSpec("conda")
 
-        final_environment_specs = set(concatv(
+        final_environment_specs = IndexedSet(concatv(
             itervalues(specs_map),
             track_features_specs,
             pinned_specs,
@@ -451,15 +451,16 @@ class Solver(object):
                 # name in the solution
                 assert not any(d.name == spec.name for d in solution)
 
-        # Let this be handled as part of txn.verify()
-        # # Ensure conda or its dependencies aren't being uninstalled in conda's own environment.
-        # if paths_equal(self.prefix, context.conda_prefix) and not context.force:
-        #     conda_spec = MatchSpec("conda")
-        #     conda_dist = next((conda_spec.match(d) for d in solution), None)
-        #     assert conda_dist
-        #     conda_deps_specs = self._r.ms_depends(conda_dist)
-        #     for spec in conda_deps_specs:
-        #         assert any(spec.match(d) for d in solution)
+                # Let this be handled as part of txn.verify()
+                # # Ensure conda or its dependencies aren't being uninstalled in conda's
+                # # own environment.
+                # if paths_equal(self.prefix, context.conda_prefix) and not context.force:
+                #     conda_spec = MatchSpec("conda")
+                #     conda_dist = next((conda_spec.match(d) for d in solution), None)
+                #     assert conda_dist
+                #     conda_deps_specs = self._r.ms_depends(conda_dist)
+                #     for spec in conda_deps_specs:
+                #         assert any(spec.match(d) for d in solution)
 
 
 def get_pinned_specs(prefix):

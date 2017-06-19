@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from os.path import basename
 
 from conda._vendor.boltons.setutils import IndexedSet
-from conda.cli import common
 from conda.core.solve import Solver
 from conda.models.channel import Channel, prioritize_channels
 
