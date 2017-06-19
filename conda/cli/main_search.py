@@ -120,7 +120,6 @@ package.""",
 def execute(args, parser):
     from ..exceptions import PackageNotFoundError
     from ..core.index import get_channel_priority_map
-    from ..resolve import dashlist
 
     try:
         execute_search(args, parser)
@@ -128,9 +127,9 @@ def execute(args, parser):
         pkg = e.bad_deps
 
         index_args = {
-        'channel_urls': context.channels,
-        'prepend': not args.override_channels,
-        'use_local': args.use_local
+            'channel_urls': context.channels,
+            'prepend': not args.override_channels,
+            'use_local': args.use_local,
         }
 
         channel_priority_map = get_channel_priority_map(

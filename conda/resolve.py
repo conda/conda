@@ -8,7 +8,7 @@ from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, CONDA_T
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
 from .console import setup_handlers
-from .exceptions import CondaValueError, UnsatisfiableError, PackageNotFoundError
+from .exceptions import CondaValueError, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
 from .models.index_record import IndexRecord
