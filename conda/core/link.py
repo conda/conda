@@ -58,25 +58,34 @@ def determine_link_type(extracted_package_dir, target_prefix):
     return LinkType.copy
 
 
-def make_unlink_actions(transaction_context, target_prefix, package_cache_record):
+def make_unlink_actions(transaction_context, target_prefix, prefix_record):
     # no side effects in this function!
-    unlink_path_actions = tuple(UnlinkPathAction(transaction_context, package_cache_record,
+    unlink_path_actions = tuple(UnlinkPathAction(transaction_context, prefix_record,
                                                  target_prefix, trgt)
-                                for trgt in package_cache_record.files)
+                                for trgt in prefix_record.files)
 
     remove_menu_actions = RemoveMenuAction.create_actions(transaction_context,
-                                                          package_cache_record,
+                                                          prefix_record,
                                                           target_prefix)
 
-    meta_short_path = '%s/%s' % ('conda-meta',
-                                 basename(package_cache_record.extracted_package_dir) + '.json')
+    try:
+        extracted_package_dir = basename(prefix_record.extracted_package_dir)
+    except AttributeError:
+        try:
+            extracted_package_dir = basename(prefix_record.link.source)
+        except AttributeError:
+            # for backward compatibility only
+            extracted_package_dir = '%s-%s-%s' % (prefix_record.name, prefix_record.veresion,
+                                                  prefix_record.build)
+
+    meta_short_path = '%s/%s' % ('conda-meta', extracted_package_dir + '.json')
     remove_conda_meta_actions = (RemoveLinkedPackageRecordAction(transaction_context,
-                                                                 package_cache_record,
+                                                                 prefix_record,
                                                                  target_prefix, meta_short_path),)
 
     _all_d = get_all_directories(axn.target_short_path for axn in unlink_path_actions)
     all_directories = sorted(explode_directories(_all_d, already_split=True), reverse=True)
-    directory_remove_actions = tuple(UnlinkPathAction(transaction_context, package_cache_record,
+    directory_remove_actions = tuple(UnlinkPathAction(transaction_context, prefix_record,
                                                       target_prefix, d, LinkType.directory)
                                      for d in all_directories)
 
@@ -228,10 +237,10 @@ class UnlinkLinkTransaction(object):
 
         # gather information from disk and caches
         prefix_data = PrefixData(target_prefix)
-        pcrecs_to_unlink = (prefix_data.get(prec.name) for prec in unlink_precs)
+        prefix_recs_to_unlink = (prefix_data.get(prec.name) for prec in unlink_precs)
         # NOTE: load_meta can return None
         # TODO: figure out if this filter shouldn't be an assert not None
-        pcrecs_to_unlink = tuple(lpd for lpd in pcrecs_to_unlink if lpd)
+        prefix_recs_to_unlink = tuple(lpd for lpd in prefix_recs_to_unlink if lpd)
         pkg_cache_recs_to_link = tuple(PackageCache.get_entry_to_link(prec)
                                        for prec in link_precs)
         assert all(pkg_cache_recs_to_link)
@@ -244,7 +253,7 @@ class UnlinkLinkTransaction(object):
         # make all the path actions
         # no side effects allowed when instantiating these action objects
         python_version = cls.get_python_version(target_prefix,
-                                                pcrecs_to_unlink,
+                                                prefix_recs_to_unlink,
                                                 packages_info_to_link)
         transaction_context['target_python_version'] = python_version
         sp = get_python_site_packages_short_path(python_version)
@@ -254,10 +263,10 @@ class UnlinkLinkTransaction(object):
 
         unlink_action_groups = tuple(ActionGroup(
             'unlink',
-            pcrec,
-            make_unlink_actions(transaction_context, target_prefix, pcrec),
+            prefix_rec,
+            make_unlink_actions(transaction_context, target_prefix, prefix_rec),
             target_prefix,
-        ) for pcrec in pcrecs_to_unlink)
+        ) for prefix_rec in prefix_recs_to_unlink)
 
         if unlink_action_groups:
             axns = UnregisterEnvironmentLocationAction(transaction_context, target_prefix),
