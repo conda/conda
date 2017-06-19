@@ -171,21 +171,28 @@ _prog_handler = ProgressHandler()
 
 @memoized  # to avoid setting up handlers more than once
 def setup_verbose_handlers():
+    from .base.context import context
+
     fetch_prog_logger = logging.getLogger('fetch')
-    fetch_prog_logger.setLevel(logging.INFO)
-    fetch_prog_logger.addHandler(_fetch_prog_handler)
+    fetch_prog_logger.propagate = False
 
     prog_logger = logging.getLogger('progress')
-    prog_logger.setLevel(logging.INFO)
-    prog_logger.addHandler(_prog_handler)
+    prog_logger.propagate = False
 
     print_logger = logging.getLogger('print')
-    print_logger.setLevel(logging.INFO)
-    print_logger.addHandler(PrintHandler())
-
-    fetch_prog_logger.propagate = False
-    prog_logger.propagate = False
     print_logger.propagate = False
+
+    if not context.quiet and not context.verbosity:
+        fetch_prog_logger.setLevel(logging.INFO)
+        fetch_prog_logger.addHandler(_fetch_prog_handler)
+
+        prog_logger.setLevel(logging.INFO)
+        prog_logger.addHandler(_prog_handler)
+
+        print_logger.setLevel(logging.INFO)
+        print_logger.addHandler(PrintHandler())
+
+    setup_handlers()
 
 
 @contextlib.contextmanager
@@ -219,12 +226,15 @@ def json_progress_bars():
     fetch_prog_logger.addHandler(_fetch_prog_handler)
     prog_logger.addHandler(_prog_handler)
 
+
 @memoized
 def setup_handlers():
     dotlogger = logging.getLogger('dotupdate')
     dotlogger.setLevel(logging.DEBUG)
     dotlogger.addHandler(DotHandler())
     dotlogger.propagate = False
+    if context.quiet:
+        dotlogger.setLevel(logging.CRITICAL)
 
     stdoutlogger = logging.getLogger('stdoutlog')
     stdoutlogger.setLevel(logging.DEBUG)

@@ -81,6 +81,9 @@ def generate_parser():
 
 
 def init_loggers(context=None):
+    from ..console import setup_verbose_handlers
+    setup_verbose_handlers()
+
     from ..gateways.logging import initialize_logging, set_all_logger_level, set_verbosity
     initialize_logging()
     if context and context.json:

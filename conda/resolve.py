@@ -7,7 +7,6 @@ import re
 from .base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
-from .console import setup_handlers
 from .exceptions import CondaValueError, ResolvePackageNotFound, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
@@ -19,7 +18,6 @@ log = logging.getLogger(__name__)
 dotlog = logging.getLogger('dotupdate')
 stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
-setup_handlers()
 
 # used in conda build
 Unsatisfiable = UnsatisfiableError
@@ -841,7 +839,8 @@ class Resolve(object):
     def solve(self, specs, returnall=False):
         # type: (List[str], bool) -> List[Dist]
         try:
-            stdoutlog.info("Solving package specifications: ")
+            if not context.json and not context.quiet:
+                stdoutlog.info("Solving package specifications: ")
             log.debug("Solving for %s", specs)
 
             # Find the compliant packages
@@ -953,7 +952,9 @@ class Resolve(object):
 
             def stripfeat(sol):
                 return sol.split('[')[0]
-            stdoutlog.info('\n')
+
+            if not context.quiet:
+                stdoutlog.info('\n')
 
             if returnall:
                 return [sorted(Dist(stripfeat(dname)) for dname in psol) for psol in psolutions]

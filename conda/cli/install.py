@@ -82,6 +82,9 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
 
 
 def print_activate(arg):
+    if context.quiet:
+        return ''
+
     if on_win:
         message = dals("""
         #
