@@ -1200,9 +1200,7 @@ class IntegrationTests(TestCase):
                 run_command(Commands.REMOVE, prefix, 'numpi')
 
             exc_string = '%r' % exc.value
-            assert exc_string.strip() == """
-            PackageNotFoundError:
-            Package(s) is missing from the environment:
+            assert exc_string.strip() == """PackageNotFoundError: Package(s) is missing from the environment:
             numpi """.strip()
             assert_package_is_installed(prefix, 'numpy')
 

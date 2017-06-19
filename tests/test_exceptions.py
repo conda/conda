@@ -231,8 +231,7 @@ class ExceptionTests(TestCase):
 
         assert not c.stdout
         assert c.stderr.strip() == """
-        PackageNotFoundError: 
-            Package(s) is missing from the environment:
+        PackageNotFoundError: Package(s) is missing from the environment:
             Potato
         """.strip()
 

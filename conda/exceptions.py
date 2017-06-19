@@ -381,8 +381,7 @@ class PackageNotFoundError(CondaError):
         channels = dashlist(channel_urls)
 
         if not channel_urls:
-            msg = """
-            Package(s) is missing from the environment:
+            msg = """Package(s) is missing from the environment:
             %(pkg)s
             """
 
@@ -390,7 +389,7 @@ class PackageNotFoundError(CondaError):
             msg = """Packages missing in current channels:
             %(pkg)s
 
-We have searched for the packages in the following channels:
+            We have searched for the packages in the following channels:
             %(channels)s
             """
 
