@@ -407,12 +407,16 @@ class ProgressiveFetchExtract(object):
             # we found a tarball, but it's in a read-only package cache
             # we need to link the tarball into the first writable package cache,
             #   and then extract
+            try:
+                expected_size_in_bytes = pref_or_spec.size
+            except AttributeError:
+                expected_size_in_bytes = None
             cache_axn = CacheUrlAction(
                 url=path_to_url(pcrec_from_read_only_cache.package_tarball_full_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_package_basename=pcrec_from_read_only_cache.fn,
                 md5sum=md5,
-                expected_size_in_bytes=pcrec_from_read_only_cache.size,
+                expected_size_in_bytes=expected_size_in_bytes,
             )
             trgt_extracted_dirname = pcrec_from_read_only_cache.fn[:-len(CONDA_TARBALL_EXTENSION)]
             extract_axn = ExtractPackageAction(
