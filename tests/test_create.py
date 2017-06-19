@@ -1200,11 +1200,8 @@ class IntegrationTests(TestCase):
                 run_command(Commands.REMOVE, prefix, 'numpi')
 
             exc_string = '%r' % exc.value
-            assert exc_string.strip() == """
-            PackageNotFoundError: Packages missing in current channels:
-        No packages named 'numpi' found to remove from environment.
-            """.strip()
-
+            assert exc_string.strip("\n") == """PackageNotFoundError:
+            Package(s) is missing from the environment: numpi""".strip("\n")
             assert_package_is_installed(prefix, 'numpy')
 
             with pytest.raises(PackageNotFoundError) as exc:

@@ -380,15 +380,19 @@ class PackageNotFoundError(CondaError):
         from .resolve import dashlist
         channels = dashlist(channel_urls)
 
-        msg = dals("""Packages missing in current channels:
-        %(pkg)s
+        if not channel_urls:
+            msg = """
+            Package(s) is missing from the environment:
+            %(pkg)s
+            """
 
-        """)
-        if channel_urls:
-            msg += dals("""
-            We have searched for the packages in the following channels:
+        else:
+            msg = """Packages missing in current channels:
+            %(pkg)s
+
+We have searched for the packages in the following channels:
             %(channels)s
-            """)
+            """
 
         super(PackageNotFoundError, self).__init__(msg, pkg=bad_pkg, channels=channels)
 

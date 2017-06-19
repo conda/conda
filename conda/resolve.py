@@ -24,9 +24,8 @@ setup_handlers()
 
 class ResolvePackageNotFound(Exception):
     def __init__(self, bad_deps):
-        deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
-        super(ResolvePackageNotFound, self).__init__(bad_deps)
-        self.pkgs = deps
+        super(ResolvePackageNotFound, self).__init__()
+        self.bad_deps = bad_deps
 
 
 # used in conda build
@@ -307,8 +306,7 @@ class Resolve(object):
             filter = self.default_filter(feats)
             bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
-            pkg = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
-            raise PackageNotFoundError(pkg)
+            raise ResolvePackageNotFound(bad_deps)
         return spec2, feats
 
     def find_conflicts(self, specs):

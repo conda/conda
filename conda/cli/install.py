@@ -257,9 +257,8 @@ def install(args, parser, command='install'):
                     channel_priority_map=_channel_priority_map, is_update=isupdate)
 
     except ResolvePackageNotFound as e:
-        pkg = e.args[0]
+        pkg = e.bad_deps
         pkg = dashlist(' -> '.join(map(str, q)) for q in pkg)
-
         channel_priority_map = get_channel_priority_map(
             channel_urls=index_args['channel_urls'],
             prepend=index_args['prepend'],
