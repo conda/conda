@@ -168,6 +168,8 @@ class EnvsDirectory(object):
     def env_name(cls, prefix):
         if not prefix:
             return None
+        if paths_equal(prefix, context.root_prefix):
+            return 'base'
         maybe_envs_dir, maybe_name = path_split(prefix)
         for envs_dir in context.envs_dirs:
             if paths_equal(envs_dir, maybe_envs_dir):
@@ -199,7 +201,7 @@ class EnvsDirectory(object):
     @classmethod
     def locate_prefix_by_name(cls, name, envs_dirs=None):
         """Find the location of a prefix given a conda env name."""
-        if name == ROOT_ENV_NAME:
+        if name in (ROOT_ENV_NAME, 'root'):
             return context.root_prefix
 
         for envs_dir in concatv(envs_dirs or context.envs_dirs, (getcwd(),)):
@@ -232,7 +234,7 @@ class EnvsDirectory(object):
     # ############################
 
     def to_prefix(self, env_name):
-        if env_name in (None, ROOT_ENV_NAME):
+        if env_name in (None, ROOT_ENV_NAME, 'root'):
             return self.root_dir
         else:
             return join(self.envs_dir, env_name)
@@ -240,6 +242,8 @@ class EnvsDirectory(object):
     def get_registered_env_by_name(self, env_name, default=None):
         if env_name is None:
             return default
+        if env_name == 'root':
+            env_name = ROOT_ENV_NAME
         env_entry = next((renv for renv in self._registered_envs if renv.get('name') == env_name),
                          default)
         return env_entry
@@ -404,7 +408,7 @@ def get_prefix(ctx, args, search=True):
         if '/' in args.name:
             raise CondaValueError("'/' not allowed in environment name: %s" %
                                   args.name, getattr(args, 'json', False))
-        if args.name == ROOT_ENV_NAME:
+        if args.name in (ROOT_ENV_NAME, 'root'):
             return ctx.root_dir
         if search:
             return EnvsDirectory.locate_prefix_by_name(args.name)

@@ -283,7 +283,7 @@ def get_main_info_str(info_dict):
 
     if info_dict['active_prefix_name']:
         builder.append(format_param('active environment', info_dict['active_prefix_name']))
-        builder.append(format_param('active environment location', info_dict['active_prefix']))
+        builder.append(format_param('active env location', info_dict['active_prefix']))
     else:
         builder.append(format_param('active environment', info_dict['active_prefix']))
 
@@ -296,7 +296,8 @@ def get_main_info_str(info_dict):
         format_param('conda version', info_dict['conda_version']),
         format_param('conda-build version', info_dict['conda_build_version']),
         format_param('python version', info_dict['python_version']),
-        format_param('base environment', '%s  (%s)' % (info_dict['root_prefix'], info_dict['_rtwro'])),
+        format_param('base environment', '%s  (%s)' % (info_dict['root_prefix'],
+                                                       info_dict['_rtwro'])),
         format_param('channel URLs', info_dict['_channels']),
         format_param('package cache', info_dict['_pkgs_dirs']),
         format_param('envs directories', info_dict['_envs_dirs']),

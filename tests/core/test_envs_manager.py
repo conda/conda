@@ -10,6 +10,7 @@ from uuid import uuid4
 import pytest
 
 from conda import CondaError
+from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context, reset_context
 from conda.common.io import env_var
 from conda.common.path import ensure_pad
@@ -92,7 +93,7 @@ class EnvsManagerUnitTests(TestCase):
         ed.register_env(root_location)  # should be completely idempotent
 
         assert ed.get_registered_env_by_location(root_location) == {
-            'name': 'root',
+            'name': ROOT_ENV_NAME,
             'location': root_location,
         } == ed.get_registered_env_by_name('root')
 

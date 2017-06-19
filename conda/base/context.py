@@ -353,7 +353,7 @@ class Context(Configuration):
     @property
     def default_prefix(self):
         _default_env = os.getenv('CONDA_DEFAULT_ENV')
-        if _default_env in (None, ROOT_ENV_NAME):
+        if _default_env in (None, ROOT_ENV_NAME, 'root'):
             return self.root_prefix
         elif os.sep in _default_env:
             return abspath(_default_env)
