@@ -41,26 +41,65 @@ def is_diff(content):
     return any(s.startswith(('-', '+')) for s in content)
 
 
+def parse_content_line(s):
+    """
+    If a line representing a package addition/removal has more than one word, it is assumed
+    that words 2, 3, and 4 represent name, version, and build, respectively. Otherwise the
+    parser will split apart the dist name according to current convention.
+    """
+    if s.startswith(('-', '+')):
+        pm = s[0]
+        s = s[1:]
+    else:
+        pm = None
+    parts = s.split()
+    dist = Dist(parts[0])
+    channel, dist_name = dist.pair
+    if channel == DEFAULTS_CHANNEL_NAME:
+        channel = None
+    if len(parts) == 1:
+        dparts = dist_name.rsplit('-', 2)
+        assert len(dparts) == 3
+        name, version, build = dparts
+        xtra = channel
+    else:
+        assert len(parts) == 4
+        name, version, build = parts[1:]
+        xtra = channel + '::' + dist_name if channel else dist_name
+    name = name.lower()
+    return pm, name, version, build, xtra
+
+
 def pretty_diff(diff):
     added = {}
     removed = {}
-    for s in diff:
-        fn = s[1:]
-        dist = Dist(fn)
-        name, version, _, channel = dist.quad
-        if channel != DEFAULTS_CHANNEL_NAME:
-            version += ' (%s)' % channel
-        if s.startswith('-'):
-            removed[name.lower()] = version
-        elif s.startswith('+'):
-            added[name.lower()] = version
+    for parts in map(parse_content_line, diff):
+        pm = parts[0]
+        name = parts[1]
+        if pm == '-':
+            removed[name] = parts
+        elif pm == '+':
+            added[name] = parts
     changed = set(added) & set(removed)
     for name in sorted(changed):
-        yield ' %s  {%s -> %s}' % (name, removed[name], added[name])
-    for name in sorted(set(removed) - changed):
-        yield '-%s-%s' % (name, removed[name])
-    for name in sorted(set(added) - changed):
-        yield '+%s-%s' % (name, added[name])
+        old = removed[name]
+        new = added[name]
+        if old[1:] == new[1:]:
+            continue
+        fmt0 = ' {1} '
+        if old[2] != new[2]:
+            fmt1 = '{2}'
+        else:
+            fmt1 = '{2}_{3}'
+        fmt2 = fmt1 + ' ({4})' if new[4] else fmt1
+        fmt1 = fmt1 + ' ({4})' if old[4] else fmt1
+        yield '%s{%s -> %s}' % (fmt0.format(*old), fmt1.format(*old), fmt2.format(*new))
+    for pset in (removed, added):
+        for name in sorted(set(pset) - changed):
+            tmp = pset[name]
+            fmt0 = '{0}{1} {2} {3}'
+            fmt0 = fmt0 + ' {4}' if tmp[4] else fmt0
+            yield fmt0.format(*tmp)
 
 
 def pretty_content(content):
