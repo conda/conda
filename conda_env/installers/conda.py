@@ -33,7 +33,6 @@ def install(prefix, specs, args, env, prune=False):
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
     unlink_link_transaction = solver.solve_for_transaction(prune=prune)
 
-    with common.json_progress_bars(json=args.json and not args.quiet):
-        pfe = unlink_link_transaction.get_pfe()
-        pfe.execute()
-        unlink_link_transaction.execute()
+    pfe = unlink_link_transaction.get_pfe()
+    pfe.execute()
+    unlink_link_transaction.execute()

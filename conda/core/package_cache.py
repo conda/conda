@@ -545,12 +545,16 @@ class ProgressiveFetchExtract(object):
                 extract_axn.execute(progress_update_extract_axn)
 
         except Exception as e:
-            extract_axn.reverse()
-            cache_axn.reverse()
+            if extract_axn:
+                extract_axn.reverse()
+            if cache_axn:
+                cache_axn.reverse()
             return e
         else:
-            cache_axn.cleanup()
-            extract_axn.cleanup()
+            if cache_axn:
+                cache_axn.cleanup()
+            if extract_axn:
+                extract_axn.cleanup()
             progress_bar.finish()
         finally:
             progress_bar.close()
