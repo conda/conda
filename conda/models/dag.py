@@ -13,7 +13,6 @@ try:
 except ImportError:
     from .._vendor.toolz.functoolz import excepts  # NOQA
 
-
 log = getLogger(__name__)
 
 
@@ -106,7 +105,6 @@ class PrefixDag(object):
             queue.extend(sorted(node.optional_parents, key=name_key))
         return list(ordered)
 
-
     def remove_node_and_children(self, node):
         for child in node.required_children:
             for record in self.remove_node_and_children(child):
@@ -189,20 +187,6 @@ class PrefixDag(object):
             num_nodes_pre = num_nodes_post
             remove_leaves_one_pass()
             num_nodes_post = len(self.nodes)
-
-    # def remove(self, node):
-    #     for parent in node.required_parents:
-    #         excepts(ValueError, parent.required_children.remove, node)
-    #     for parent in node.optional_parents:
-    #         excepts(ValueError, parent.optional_children.remove, node)
-    #     for child in node.required_children:
-    #         excepts(ValueError, child.required_parents.remove, node)
-    #     for child in node.optional_children:
-    #         excepts(ValueError, child.optional_parents.remove, node)
-    #     for spec in node.specs:
-    #         excepts(ValueError, self.spec_matches[spec].remove, node)
-    #     self.nodes.remove(node)
-    #     return node.record
 
     def remove(self, node):
         for parent in node.required_parents:
