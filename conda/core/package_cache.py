@@ -179,12 +179,6 @@ class PackageCache(object):
             return pc_entry
         raise CondaError("No package '%s' found in cache directories." % Dist(package_ref))
 
-    # @classmethod
-    # def get_matching_entries(cls, package_ref):
-    #     return tuple(concat(
-    #         cls(pkgs_dir).query(package_ref) for pkgs_dir in context.pkgs_dirs
-    #     ))
-
     @classmethod
     def tarball_file_in_cache(cls, tarball_path, md5sum=None, exclude_caches=()):
         tarball_full_path, md5sum = cls._clean_tarball_path_and_get_md5sum(tarball_path, md5sum)
@@ -204,7 +198,7 @@ class PackageCache(object):
         tarball_basename = basename(tarball_full_path)
         pc_entry = first((pc_entry for pc_entry in itervalues(self)),
                          key=lambda pce: pce.tarball_basename == tarball_basename
-                                         and pce.tarball_matches_md5(md5sum))  # NOQA
+                                         and pce.md5 == md5sum)  # NOQA
         return pc_entry
 
     @property
