@@ -369,19 +369,26 @@ class UnlinkLinkTransaction(object):
                         key=lambda prefix_rec: path in prefix_rec.files
                     )
                     if colliding_prefix_rec:
-                        yield KnownPackageClobberError(path, axn.prefix_record.dist_str(),
-                                                       colliding_prefix_rec.dist_str(),
-                                                       context)
+                        yield KnownPackageClobberError(
+                            path,
+                            axn.package_info.repodata_record.dist_str(),
+                            colliding_prefix_rec.dist_str(),
+                            context,
+                        )
                     else:
-                        yield UnknownPackageClobberError(path,
-                                                         axn.prefix_record.dist_str(),
-                                                         context)
+                        yield UnknownPackageClobberError(
+                            path,
+                            axn.package_info.repodata_record.dist_str(),
+                            context,
+                        )
 
         # Verification 2. there's only a single instance of each path
         for path, axns in iteritems(link_paths_dict):
             if len(axns) > 1:
                 yield SharedLinkPathClobberError(
-                    path, tuple(axn.prefix_record.dist_str() for axn in axns), context
+                    path,
+                    tuple(axn.package_info.repodata_record.dist_str() for axn in axns),
+                    context,
                 )
 
     @staticmethod
