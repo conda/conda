@@ -317,8 +317,16 @@ class Activator(object):
         }
 
     def build_reactivate(self):
-        conda_prefix = os.environ['CONDA_PREFIX']
-        conda_shlvl = int(os.environ.get('CONDA_SHLVL', 1))
+        conda_prefix = os.environ.get('CONDA_PREFIX')
+        conda_shlvl = int(os.environ.get('CONDA_SHLVL', -1))
+        if not conda_prefix or conda_shlvl < 1:
+            # no active environment, so cannot reactivate; do nothing
+            return {
+                'unset_vars': (),
+                'set_vars': {},
+                'deactivate_scripts': (),
+                'activate_scripts': (),
+            }
         conda_default_env = os.environ.get('CONDA_DEFAULT_ENV', self._default_env(conda_prefix))
         # environment variables are set only to aid transition from conda 4.3 to conda 4.4
         return {
