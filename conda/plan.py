@@ -446,9 +446,12 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                     pinned=True, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):  # pragma: no cover
     # this is for conda-build
-    channel_names = IndexedSet(Channel(url).canonical_name for url in channel_priority_map)
-    channels = IndexedSet(Channel(cn) for cn in channel_names)
-    subdirs = IndexedSet(basename(url) for url in channel_priority_map)
+    if channel_priority_map:
+        channel_names = IndexedSet(Channel(url).canonical_name for url in channel_priority_map)
+        channels = IndexedSet(Channel(cn) for cn in channel_names)
+        subdirs = IndexedSet(basename(url) for url in channel_priority_map)
+    else:
+        channels = subdirs = None
 
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
     txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)

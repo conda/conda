@@ -85,8 +85,10 @@ class PrefixDag(object):
         while queue:
             node = queue.popleft()
             ordered.add(node)
-            queue.extend(sorted(node.required_children, key=name_key))
-            queue.extend(sorted(node.optional_children, key=name_key))
+            queue.extend(node for node in sorted(node.required_children, key=name_key)
+                         if node not in ordered)
+            queue.extend(node for node in sorted(node.optional_children, key=name_key)
+                         if node not in ordered)
         return list(ordered)
 
     def get_nodes_ordered_from_leaves(self):
@@ -101,8 +103,10 @@ class PrefixDag(object):
         while queue:
             node = queue.popleft()
             ordered.add(node)
-            queue.extend(sorted(node.required_parents, key=name_key))
-            queue.extend(sorted(node.optional_parents, key=name_key))
+            queue.extend(node for node in sorted(node.required_parents, key=name_key)
+                         if node not in ordered)
+            queue.extend(node for node in sorted(node.optional_parents, key=name_key)
+                         if node not in ordered)
         return list(ordered)
 
     def remove_node_and_children(self, node):
