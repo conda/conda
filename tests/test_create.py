@@ -898,7 +898,7 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--platform",
                                          "linux-64", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-            assert len(json_obj.keys()) == 0
+            assert not len(json_obj.keys()) == 0
 
     def test_bad_anaconda_token_infinite_loop(self):
         # First, confirm we get a 401 UNAUTHORIZED response from anaconda.org
