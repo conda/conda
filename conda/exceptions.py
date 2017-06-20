@@ -29,7 +29,7 @@ class ResolvePackageNotFound(Exception):
     def __init__(self, bad_deps):
         super(ResolvePackageNotFound, self).__init__()
         self.bad_deps = bad_deps
-NoPackagesFound = ResolvePackageNotFound  # NOQA
+NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
 
 class LockError(CondaError):
