@@ -23,6 +23,12 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
+# TODO: for conda-build compatibility only
+# remove in conda 4.4
+from .resolve import ResolvePackageNotFound
+NoPackagesFound = ResolvePackageNotFound
+
+
 class LockError(CondaError):
     def __init__(self, message):
         msg = "%s" % message
