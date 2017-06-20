@@ -457,8 +457,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
     prefix_setup = txn.prefix_setups[prefix]
     actions = get_blank_actions(prefix)
-    actions['UNLINK'].extend(prefix_setup.unlink_dists)
-    actions['LINK'].extend(prefix_setup.link_dists)
+    actions['UNLINK'].extend(prefix_setup.unlink_precs)
+    actions['LINK'].extend(prefix_setup.link_precs)
     return actions
 
 
