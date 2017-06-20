@@ -804,6 +804,9 @@ def handle_exception(e):
         else:
             print_conda_exception(e)
         return return_code if return_code else 1
+    elif isinstance(e, KeyboardInterrupt):
+        print_conda_exception(CondaError("KeyboardInterrupt"))
+        return 1
     else:
         print_unexpected_error_message(e)
         return return_code if return_code else 1
@@ -814,5 +817,5 @@ def conda_exception_handler(func, *args, **kwargs):
         return_value = func(*args, **kwargs)
         if isinstance(return_value, int):
             return return_value
-    except Exception as e:
+    except (Exception, KeyboardInterrupt) as e:
         return handle_exception(e)
