@@ -4,6 +4,7 @@ import logging
 import re
 from itertools import chain
 
+from conda.exceptions import ResolvePackageNotFound
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, CONDA_TARBALL_EXTENSION
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
@@ -20,13 +21,6 @@ dotlog = logging.getLogger('dotupdate')
 stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
 setup_handlers()
-
-
-class ResolvePackageNotFound(Exception):
-    def __init__(self, bad_deps):
-        super(ResolvePackageNotFound, self).__init__()
-        self.bad_deps = bad_deps
-
 
 # used in conda build
 Unsatisfiable = UnsatisfiableError

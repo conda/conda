@@ -11,7 +11,8 @@ from .common import (Completer, Packages, add_parser_channels, add_parser_insecu
                      add_parser_use_index_cache, add_parser_use_local, arg2spec, disp_features,
                      ensure_override_channels_requires_channel, ensure_use_local, stdout_json)
 from ..base.context import context
-from ..resolve import ResolvePackageNotFound, dashlist
+from ..resolve import dashlist
+from ..exceptions import ResolvePackageNotFound
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts

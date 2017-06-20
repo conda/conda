@@ -25,8 +25,11 @@ log = logging.getLogger(__name__)
 
 # TODO: for conda-build compatibility only
 # remove in conda 4.4
-from .resolve import ResolvePackageNotFound
-NoPackagesFound = ResolvePackageNotFound
+class ResolvePackageNotFound(Exception):
+    def __init__(self, bad_deps):
+        super(ResolvePackageNotFound, self).__init__()
+        self.bad_deps = bad_deps
+NoPackagesFound = ResolvePackageNotFound  # NOQA
 
 
 class LockError(CondaError):
