@@ -5,7 +5,9 @@ from functools import reduce
 from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, join
+from tarfile import ReadError
 
+from conda.gateways.disk.delete import rm_rf
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
@@ -85,7 +87,8 @@ class PackageCache(object):
             elif (isdir(full_path) and isfile(join(full_path, 'info', 'index.json'))
                   or isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION)):
                 package_cache_record = self._make_single_record(base_name)
-                _package_cache_records[package_cache_record] = package_cache_record
+                if package_cache_record:
+                    _package_cache_records[package_cache_record] = package_cache_record
 
     def get(self, package_ref, default=NULL):
         assert isinstance(package_ref, PackageRef)
@@ -267,11 +270,18 @@ class PackageCache(object):
             try:
                 index_json_record = read_index_json(extracted_package_dir)
             except (IOError, OSError):
-                if self.is_writable:
-                    extract_tarball(package_tarball_full_path, extracted_package_dir)
-                    index_json_record = read_index_json(extracted_package_dir)
-                else:
-                    index_json_record = read_index_json_from_tarball(package_tarball_full_path)
+                try:
+                    if self.is_writable:
+                        extract_tarball(package_tarball_full_path, extracted_package_dir)
+                        index_json_record = read_index_json(extracted_package_dir)
+                    else:
+                        index_json_record = read_index_json_from_tarball(package_tarball_full_path)
+                except (EOFError, ReadError):
+                    # EOFError: Compressed file ended before the end-of-stream marker was reached
+                    # tarfile.ReadError: file could not be opened successfully
+                    rm_rf(package_tarball_full_path)
+                    return None
+
             if isfile(package_tarball_full_path):
                 md5 = compute_md5sum(package_tarball_full_path)
             else:
