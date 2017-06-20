@@ -6,7 +6,7 @@ from conda._vendor.auxlib.collection import AttrDict
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
-from conda.common.io import captured, env_var, replace_log_streams
+from conda.common.io import captured, env_var
 from conda.exceptions import BasicClobberError, BinaryPrefixReplacementError, CommandNotFoundError, \
     CondaHTTPError, CondaKeyError, CondaRevisionError, DirectoryNotFoundError, \
     KnownPackageClobberError, MD5MismatchError, PackageNotFoundError, PathNotFoundError, \
@@ -30,7 +30,7 @@ class ExceptionTests(TestCase):
         offending_arguments = "groot"
         exc = TooManyArgumentsError(expected, received, offending_arguments)
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -44,7 +44,7 @@ class ExceptionTests(TestCase):
         assert json_obj['offending_arguments'] == "groot"
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -55,7 +55,7 @@ class ExceptionTests(TestCase):
         received = 2
         exc = TooFewArgumentsError(expected, received)
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -68,7 +68,7 @@ class ExceptionTests(TestCase):
         assert json_obj['received'] == 2
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -79,7 +79,7 @@ class ExceptionTests(TestCase):
         target_path = "some/path/to/wright.st"
         exc = BasicClobberError(source_path, target_path, context)
         with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -95,7 +95,7 @@ class ExceptionTests(TestCase):
         colliding_linked_dist = "Liquid"
         exc = KnownPackageClobberError(target_path, colliding_dist_being_linked, colliding_linked_dist, context)
         with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -112,7 +112,7 @@ class ExceptionTests(TestCase):
         colliding_dist_being_linked = "Groot"
         exc = UnknownPackageClobberError(target_path, colliding_dist_being_linked, context)
         with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -129,7 +129,7 @@ class ExceptionTests(TestCase):
         incompatible_package_dists = "Groot"
         exc = SharedLinkPathClobberError(target_path, incompatible_package_dists, context)
         with env_var("CONDA_PATH_CONFLICT", "prevent", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -144,7 +144,7 @@ class ExceptionTests(TestCase):
         filename = "Groot"
         exc = PathNotFoundError(filename)
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -155,7 +155,7 @@ class ExceptionTests(TestCase):
         assert json_obj['error'] == repr(exc)
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -165,7 +165,7 @@ class ExceptionTests(TestCase):
         directory = "Groot"
         exc = DirectoryNotFoundError(directory)
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -177,7 +177,7 @@ class ExceptionTests(TestCase):
         assert json_obj['path'] == "Groot"
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -190,7 +190,7 @@ class ExceptionTests(TestCase):
         actual_md5sum = "deadbeef"
         exc = MD5MismatchError(url, target_full_path, expected_md5sum, actual_md5sum)
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -205,7 +205,7 @@ class ExceptionTests(TestCase):
         assert json_obj['actual_md5sum'] == actual_md5sum
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -221,7 +221,7 @@ class ExceptionTests(TestCase):
         package = "Groot"
         exc = PackageNotFoundError(package)
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -232,7 +232,7 @@ class ExceptionTests(TestCase):
         assert json_obj['error'] == repr(exc)
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -242,7 +242,7 @@ class ExceptionTests(TestCase):
         message = "Groot"
         exc = CondaRevisionError(message)
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -253,7 +253,7 @@ class ExceptionTests(TestCase):
         assert json_obj['error'] == repr(exc)
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -264,7 +264,7 @@ class ExceptionTests(TestCase):
         message = "Groot is not a key."
         exc = CondaKeyError(key, message)
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -276,7 +276,7 @@ class ExceptionTests(TestCase):
         assert json_obj['key'] == "Groot"
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -291,7 +291,7 @@ class ExceptionTests(TestCase):
         exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time)
 
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
             json_obj = json.loads(c.stdout)
@@ -306,7 +306,7 @@ class ExceptionTests(TestCase):
             assert json_obj['elapsed_time'] == elapsed_time
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -322,7 +322,7 @@ class ExceptionTests(TestCase):
         exc = CommandNotFoundError(cmd)
 
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -332,7 +332,7 @@ class ExceptionTests(TestCase):
         assert json_obj['error'] == repr(exc)
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -343,7 +343,7 @@ class ExceptionTests(TestCase):
         exc = CommandNotFoundError(cmd)
 
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -353,7 +353,7 @@ class ExceptionTests(TestCase):
         assert json_obj['error'] == repr(exc)
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -365,7 +365,7 @@ class ExceptionTests(TestCase):
         exc = CommandNotFoundError(cmd)
 
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -375,7 +375,7 @@ class ExceptionTests(TestCase):
         assert json_obj['error'] == repr(exc)
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
@@ -492,7 +492,7 @@ class ExceptionTests(TestCase):
         exc = BinaryPrefixReplacementError(path, placeholder, new_prefix,
                                            original_data_length, new_data_length)
         with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
@@ -508,7 +508,7 @@ class ExceptionTests(TestCase):
         assert json_obj['placeholder'] == placeholder
 
         with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c, replace_log_streams():
+            with captured() as c:
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout

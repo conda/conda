@@ -94,6 +94,19 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
     """
     # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
     # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
+    # """
+    # Context manager to capture the printed output of the code in the with block
+    #
+    # Bind the context manager to a variable using `as` and the result will be
+    # in the stdout property.
+    #
+    # >>> from conda.common.io import captured
+    # >>> with captured() as c:
+    # ...     print('hello world!')
+    # ...
+    # >>> c.stdout
+    # 'hello world!\n'
+    # """
     class CapturedText(object):
         pass
     saved_stdout, saved_stderr = sys.stdout, sys.stderr
@@ -131,22 +144,6 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
 
 
 @contextmanager
-def replace_log_streams():
-    # replace the logger stream handlers with stdout and stderr handlers
-    stdout_logger, stderr_logger = getLogger('stdout'), getLogger('stderr')
-    saved_stdout_strm = stdout_logger.handlers[0].stream
-    saved_stderr_strm = stderr_logger.handlers[0].stream
-    stdout_logger.handlers[0].stream = sys.stdout
-    stderr_logger.handlers[0].stream = sys.stderr
-    try:
-        yield
-    finally:
-        # replace the original streams
-        stdout_logger.handlers[0].stream = saved_stdout_strm
-        stderr_logger.handlers[0].stream = saved_stderr_strm
-
-
-@contextmanager
 def argv(args_list):
     saved_args = sys.argv
     sys.argv = args_list
@@ -168,16 +165,18 @@ def _logger_lock():
 @contextmanager
 def disable_logger(logger_name):
     logr = getLogger(logger_name)
-    _hndlrs, _lvl, _dsbld, _prpgt = logr.handlers, logr.level, logr.disabled, logr.propagate
+    _lvl, _dsbld, _prpgt = logr.level, logr.disabled, logr.propagate
+    null_handler = NullHandler()
     with _logger_lock():
-        logr.addHandler(NullHandler())
+        logr.addHandler(null_handler)
         logr.setLevel(CRITICAL + 1)
         logr.disabled, logr.propagate = True, False
     try:
         yield
     finally:
         with _logger_lock():
-            logr.handlers, logr.level, logr.disabled = _hndlrs, _lvl, _dsbld
+            logr.removeHandler(null_handler)  # restore list logr.handlers
+            logr.level, logr.disabled = _lvl, _dsbld
             logr.propagate = _prpgt
 
 

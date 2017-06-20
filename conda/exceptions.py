@@ -583,8 +583,8 @@ class InvalidVersionSpecError(CondaError):
 def print_conda_exception(exception):
     from .base.context import context
 
-    stdoutlogger = getLogger('stdout')
-    stderrlogger = getLogger('stderr')
+    stdoutlogger = getLogger('conda.stdout')
+    stderrlogger = getLogger('conda.stderr')
     if context.json:
         import json
         stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
