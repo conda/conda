@@ -3,12 +3,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from unittest import TestCase
 
-from conda.common.compat import on_win
 import pytest
 
 from conda import text_type
 from conda.base.context import context
 from conda.cli.common import arg2spec, spec_from_line
+from conda.common.compat import on_win
 from conda.exceptions import CondaValueError
 from conda.models.channel import Channel
 from conda.models.dist import Dist
@@ -187,9 +187,9 @@ class MatchSpecTests(TestCase):
         assert m("conda-forge/linux-64::numpy") == "conda-forge/linux-64::numpy"
         assert m("numpy[channel=conda-forge,subdir=noarch]") == "conda-forge/noarch::numpy"
 
-        assert m("numpy[subdir=win-32]") == '*/win-32::numpy'
-        assert m("*/win-32::numpy") == '*/win-32::numpy'
-        assert m("*/win-32::numpy[subdir=\"osx-64\"]") == '*/osx-64::numpy'
+        assert m("numpy[subdir=win-32]") == 'numpy[subdir=win-32]'
+        assert m("*/win-32::numpy") == 'numpy[subdir=win-32]'
+        assert m("*/win-32::numpy[subdir=\"osx-64\"]") == 'numpy[subdir=osx-64]'
 
         # TODO: should the result in these example pull out subdir?
         assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "defaults/linux-32::numpy"
@@ -240,7 +240,6 @@ class MatchSpecTests(TestCase):
         url = "file:///var/folders/cp/7r2s_s593j7_cpdtxxsmct880000gp/T/edfc ñçêáôß/flask-0.10.1-py35_2.tar.bz2"
         assert m(url) == "*[url='%s']" % url
         # url = '*[url="file:///var/folders/cp/7r2s_s593j7_cpdtxxsmct880000gp/T/edfc ñçêáôß/flask-0.10.1-py35_2.tar.bz2"]'
-
 
     def test_exact_values(self):
         assert MatchSpec("*").get_exact_value('name') is None
@@ -571,3 +570,23 @@ class SpecStrParsingTests(TestCase):
         with pytest.raises(CondaValueError):
             _parse_spec_str('!xyz 1.3')
 
+    def test_parse_channel_subdir(self):
+        assert _parse_spec_str("conda-forge::foo>=1.0") == {
+            "channel": "conda-forge",
+            "name": "foo",
+            "version": ">=1.0",
+        }
+
+        assert _parse_spec_str("conda-forge/linux-32::foo>=1.0") == {
+            "channel": "conda-forge",
+            "subdir": "linux-32",
+            "name": "foo",
+            "version": ">=1.0",
+        }
+
+        assert _parse_spec_str("*/linux-32::foo>=1.0") == {
+            "channel": "*",
+            "subdir": "linux-32",
+            "name": "foo",
+            "version": ">=1.0",
+        }
