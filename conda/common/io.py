@@ -254,12 +254,13 @@ def timeout(timeout_secs, func, *args, **kwargs):
 
 
 class Spinner(object):
-    spinner_cycle = cycle("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
-    # spinner_cycle = cycle('/-\\|')
+    # spinner_cycle = cycle("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
+    spinner_cycle = cycle('/-\\|')
 
     def __init__(self):
         self._stop_running = Event()
         self._spinner_thread = Thread(target=self._start_spinning)
+        self._indicator_length = len(next(self.spinner_cycle)) + 1
 
     def start(self):
         self._spinner_thread.start()
@@ -272,8 +273,8 @@ class Spinner(object):
         while not self._stop_running.is_set():
             sys.stdout.write(next(self.spinner_cycle) + ' ')
             sys.stdout.flush()
-            sleep(0.1)
-            sys.stdout.write('\b\b')
+            sleep(0.15)
+            sys.stdout.write('\b' * self._indicator_length)
 
 
 @contextmanager
@@ -314,9 +315,9 @@ def spinner(message=None, enabled=True, json=False):
                     pass
                 else:
                     if exception_raised:
-                        sys.stdout.write("X\n")
+                        sys.stdout.write("failed\n")
                     else:
-                        sys.stdout.write("✔\n")
+                        sys.stdout.write("done\n")
 
 
 class ProgressBar(object):
@@ -361,3 +362,8 @@ class ProgressBar(object):
         elif self.enabled:
             self.pbar.close()
         self.enabled = False
+
+
+if __name__ == "__main__":
+    with spinner("status"):
+        sleep(6)
