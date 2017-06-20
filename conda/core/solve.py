@@ -225,7 +225,8 @@ class Solver(object):
                 if spec.name in specs_map:
                     old_spec = specs_map[spec.name]
                     specs_map[spec.name] = MatchSpec(old_spec, target=None)
-            if context.auto_update_conda and paths_equal(self.prefix, context.root_prefix):
+            if (context.auto_update_conda and paths_equal(self.prefix, context.root_prefix)
+                    and any(dist.name == "conda" for dist in solution)):
                 specs_map["conda"] = MatchSpec("conda")
 
         # add in explicitly requested specs from specs_to_add
@@ -243,7 +244,6 @@ class Solver(object):
             itervalues(specs_map),
             track_features_specs,
             pinned_specs,
-            conda_update_specs,
         ))
 
         # We've previously checked `solution` for consistency (which at that point was the
