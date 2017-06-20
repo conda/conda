@@ -25,9 +25,9 @@ log = logging.getLogger(__name__)
 
 # TODO: for conda-build compatibility only
 # remove in conda 4.4
-class ResolvePackageNotFound(Exception):
+class ResolvePackageNotFound(CondaError):  # change back to Exception in conda 4.4
     def __init__(self, bad_deps):
-        super(ResolvePackageNotFound, self).__init__()
+        super(ResolvePackageNotFound, self).__init__("ResolvePackageNotFound")
         self.bad_deps = bad_deps
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
