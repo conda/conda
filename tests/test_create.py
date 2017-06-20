@@ -311,6 +311,34 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask')
             assert_package_is_installed(prefix, 'python-3')
 
+    def test_skip_safety_checks_basic(self):
+        with make_temp_env() as prefix:
+            with open(join(prefix, 'condarc'), 'a') as fh:
+                fh.write("skip_safety_checks: true\n")
+            reload_config(prefix)
+            assert context.skip_safety_checks is True
+
+            run_command(Commands.INSTALL, prefix, 'python=3.5')
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'python-3')
+
+            run_command(Commands.INSTALL, prefix, 'flask=0.10')
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python-3')
+
+            run_command(Commands.INSTALL, prefix, '--force', 'flask=0.10')
+            assert_package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'python-3')
+
+            run_command(Commands.UPDATE, prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0.10.1')
+            assert_package_is_installed(prefix, 'flask')
+            assert_package_is_installed(prefix, 'python-3')
+
+            run_command(Commands.REMOVE, prefix, 'flask')
+            assert not package_is_installed(prefix, 'flask-0.')
+            assert_package_is_installed(prefix, 'python-3')
+
     @pytest.mark.xfail(strict=True)
     def test_non_root_conda(self):
         with make_temp_env("python=3.5") as prefix:
@@ -1325,8 +1353,8 @@ class IntegrationTests(TestCase):
         run_command(Commands.REMOVE, prefix, "--all")
 
     def test_transactional_rollback_simple(self):
-        from conda.core.path_actions import CreateLinkedPackageRecordAction
-        with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
+        from conda.core.path_actions import CreatePrefixRecordAction
+        with patch.object(CreatePrefixRecordAction, 'execute') as mock_method:
             with make_temp_env() as prefix:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(CondaMultiError):
@@ -1341,8 +1369,8 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, 'flask=0.10.1')
             assert_package_is_installed(prefix, 'flask-0.10.1')
 
-            from conda.core.path_actions import CreateLinkedPackageRecordAction
-            with patch.object(CreateLinkedPackageRecordAction, 'execute') as mock_method:
+            from conda.core.path_actions import CreatePrefixRecordAction
+            with patch.object(CreatePrefixRecordAction, 'execute') as mock_method:
                 mock_method.side_effect = KeyError('Bang bang!!')
                 with pytest.raises(CondaMultiError):
                     run_command(Commands.INSTALL, prefix, 'flask=0.11.1')

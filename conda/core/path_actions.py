@@ -420,6 +420,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
                                                       LinkType.copy, source_path_data)
         self.prefix_placeholder = prefix_placeholder
         self.file_mode = file_mode
+        self.intermediate_path = None
 
     def verify(self):
         validation_error = super(PrefixReplaceLinkAction, self).verify()
@@ -458,8 +459,9 @@ class PrefixReplaceLinkAction(LinkPathAction):
         self._verified = True
 
     def execute(self):
-        log.trace("linking %s => %s", self.intermediate_path, self.target_full_path)
-        create_link(self.intermediate_path, self.target_full_path, LinkType.hardlink)
+        source_path = self.intermediate_path or self.source_full_path
+        log.trace("linking %s => %s", source_path, self.target_full_path)
+        create_link(source_path, self.target_full_path, LinkType.hardlink)
         self._execute_successful = True
 
 
@@ -796,7 +798,7 @@ class CreateApplicationEntryPointWindowsExeAction(LinkPathAction):
 #         return LeasedPathType.application_softlink
 
 
-class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
+class CreatePrefixRecordAction(CreateInPrefixPathAction):
     # this is the action that creates a packages json file in the conda-meta/ directory
 
     @classmethod
@@ -810,15 +812,14 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
                  requested_link_type, requested_spec, all_link_path_actions):
-        super(CreateLinkedPackageRecordAction, self).__init__(transaction_context, package_info,
-                                                              None, None, target_prefix,
-                                                              target_short_path)
+        super(CreatePrefixRecordAction, self).__init__(transaction_context, package_info,
+                                                       None, None, target_prefix,
+                                                       target_short_path)
         self.requested_link_type = requested_link_type
         self.requested_spec = requested_spec
         self.all_link_path_actions = all_link_path_actions
 
-    def verify(self):
-
+    def execute(self):
         link = Link(
             source=self.package_info.extracted_package_dir,
             type=self.requested_link_type,
@@ -848,7 +849,6 @@ class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
             package_tarball_full_path=package_tarball_full_path,
         )
 
-    def execute(self):
         log.trace("creating linked package record %s", self.target_full_path)
         PrefixData(self.target_prefix).insert(self.prefix_record)
 

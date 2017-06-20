@@ -374,6 +374,7 @@ conda_build_test() {
     . $prefix/etc/profile.d/conda.sh
     conda activate root
     conda info
+    echo "skip_safety_checks: true" >> ~/.condarc
 
     pushd conda-build
 

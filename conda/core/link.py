@@ -13,7 +13,7 @@ import warnings
 
 from .linked_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
 from .package_cache import PackageCache
-from .path_actions import (CompilePycAction, CreateLinkedPackageRecordAction, CreateNonadminAction,
+from .path_actions import (CompilePycAction, CreatePrefixRecordAction, CreateNonadminAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
                            RemoveMenuAction, UnlinkPathAction, UnregisterEnvironmentLocationAction,
@@ -353,7 +353,7 @@ class UnlinkLinkTransaction(object):
         create_lpr_actions = (axn
                               for grp in link_action_groups
                               for axn in grp.actions
-                              if isinstance(axn, CreateLinkedPackageRecordAction))
+                              if isinstance(axn, CreatePrefixRecordAction))
 
         # Verification 1. each path either doesn't already exist in the prefix, or will be unlinked
         link_paths_dict = defaultdict(list)
@@ -639,7 +639,7 @@ class UnlinkLinkTransaction(object):
         #     application_softlink_actions,
         # ))
 
-        meta_create_actions = CreateLinkedPackageRecordAction.create_actions(
+        meta_create_actions = CreatePrefixRecordAction.create_actions(
             *required_quad,
             requested_spec=requested_spec,
             all_link_path_actions=all_link_path_actions
