@@ -170,10 +170,9 @@ class PackageCache(object):
         # if ProgressiveFetchExtract did its job correctly, what we're looking for
         #   should be the matching dist_name in the first writable package cache
         # we'll search all caches for a match, but search writable caches first
-        grouped_caches = groupby(lambda x: x.is_writable,
-                                 (cls(pd) for pd in context.pkgs_dirs))
-        caches = concatv(grouped_caches.get(True, ()), grouped_caches.get(False, ()))
-        pc_entry = next((cache._scan_for_dist_no_channel(Dist(package_ref))
+        caches = concatv(cls.writable_caches(), cls.read_only_caches())
+        dist_str = package_ref.dist_str().rsplit(':', 1)[-1]
+        pc_entry = next((cache._scan_for_dist_no_channel(dist_str)
                          for cache in caches if cache), None)
         if pc_entry is not None:
             return pc_entry
@@ -233,10 +232,9 @@ class PackageCache(object):
 
         return tarball_full_path, md5sum
 
-    def _scan_for_dist_no_channel(self, dist):
-        # type: (Dist) -> PackageCacheRecord
-        return next((pc_entry for this_dist, pc_entry in iteritems(self)
-                     if this_dist.dist_name == dist.dist_name),
+    def _scan_for_dist_no_channel(self, dist_str):
+        return next((pcrec for pcrec in self._package_cache_records
+                     if pcrec.dist_str().rsplit(':', 1)[-1] == dist_str),
                     None)
 
     def itervalues(self):

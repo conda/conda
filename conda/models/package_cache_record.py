@@ -19,13 +19,13 @@ class Md5Field(StringField):
         super(Md5Field, self).__init__(required=False, nullable=True)
 
     def __get__(self, instance, instance_type):
-        val = super(Md5Field, self).__get__(instance, instance_type)
-        if val is None:
+        try:
+            return super(Md5Field, self).__get__(instance, instance_type)
+        except AttributeError as e:
             try:
                 return instance._calculate_md5sum()
             except PathNotFoundError:
-                return None
-        return val
+                raise e
 
 
 class PackageCacheRecord(PackageRecord):
