@@ -9,7 +9,7 @@ from os.path import join
 import pytest
 
 from conda.base.context import context, reset_context, Context
-from conda.common.io import env_var
+from conda.common.io import env_var, env_vars
 from conda.core.linked_data import PrefixData
 from conda.core.solve import DepsModifier, Solver
 from conda.exceptions import UnsatisfiableError
@@ -27,16 +27,18 @@ try:
 except ImportError:
     from mock import Mock, patch
 
+TEST_PREFIX = '/a/test/c/prefix'
+
+
 @contextmanager
 def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    prefix = '/a/test/c/prefix'
     PrefixData._cache_ = {}
-    pd = PrefixData(prefix)
+    pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     index, r = get_index_r_1()
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
+        solver = Solver(TEST_PREFIX, (Channel('defaults'),), context.subdirs,
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         solver._index = index
         solver._r = r
@@ -46,14 +48,13 @@ def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_s
 
 @contextmanager
 def get_solver_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    prefix = '/a/test/c/prefix'
     PrefixData._cache_ = {}
-    pd = PrefixData(prefix)
+    pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     index, r = get_index_r_2()
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
+        solver = Solver(TEST_PREFIX, (Channel('defaults'),), context.subdirs,
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         solver._index = index
         solver._r = r
@@ -63,14 +64,13 @@ def get_solver_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
 
 @contextmanager
 def get_solver_3(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    prefix = '/a/test/c/prefix'
     PrefixData._cache_ = {}
-    pd = PrefixData(prefix)
+    pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
     index, r = get_index_r_3()
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
-        solver = Solver(prefix, (Channel('defaults'),), context.subdirs,
+        solver = Solver(TEST_PREFIX, (Channel('defaults'),), context.subdirs,
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         solver._index = index
         solver._r = r
@@ -734,6 +734,90 @@ def test_install_uninstall_features():
             # 'defaults::scipy-0.12.0-np16py27_p0', scipy is out here because it wasn't a requested spec
         )
         assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+
+
+def test_auto_update_conda():
+    specs = MatchSpec("conda=1.3"),
+    with get_solver(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # PrefixDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_1])
+        order = (
+            'defaults::openssl-1.0.1c-0',
+            'defaults::readline-6.2-0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::yaml-0.1.4-0',
+            'defaults::zlib-1.2.7-0',
+            'defaults::python-2.7.5-0',
+            'defaults::pyyaml-3.10-py27_0',
+            'defaults::conda-1.3.5-py27_0',
+        )
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+
+    with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, reset_context):
+        specs_to_add = MatchSpec("pytz"),
+        with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+            final_state_2 = solver.solve_final_state()
+            # PrefixDag(final_state_2, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_2])
+            order = (
+                'defaults::openssl-1.0.1c-0',
+                'defaults::readline-6.2-0',
+                'defaults::sqlite-3.7.13-0',
+                'defaults::system-5.8-1',
+                'defaults::tk-8.5.13-0',
+                'defaults::yaml-0.1.4-0',
+                'defaults::zlib-1.2.7-0',
+                'defaults::python-2.7.5-0',
+                'defaults::pytz-2013b-py27_0',
+                'defaults::pyyaml-3.10-py27_0',
+                'defaults::conda-1.3.5-py27_0',
+            )
+            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+
+    with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes", "CONDA_ROOT_PREFIX": TEST_PREFIX}, reset_context):
+        specs_to_add = MatchSpec("pytz"),
+        with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+            final_state_2 = solver.solve_final_state()
+            # PrefixDag(final_state_2, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_2])
+            order = (
+                'defaults::openssl-1.0.1c-0',
+                'defaults::readline-6.2-0',
+                'defaults::sqlite-3.7.13-0',
+                'defaults::system-5.8-1',
+                'defaults::tk-8.5.13-0',
+                'defaults::yaml-0.1.4-0',
+                'defaults::zlib-1.2.7-0',
+                'defaults::python-2.7.5-0',
+                'defaults::pytz-2013b-py27_0',
+                'defaults::pyyaml-3.10-py27_0',
+                'defaults::conda-1.5.2-py27_0',
+            )
+            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+
+    with env_vars({"CONDA_AUTO_UPDATE_CONDA": "no", "CONDA_ROOT_PREFIX": TEST_PREFIX}, reset_context):
+        specs_to_add = MatchSpec("pytz"),
+        with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+            final_state_2 = solver.solve_final_state()
+            # PrefixDag(final_state_2, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_2])
+            order = (
+                'defaults::openssl-1.0.1c-0',
+                'defaults::readline-6.2-0',
+                'defaults::sqlite-3.7.13-0',
+                'defaults::system-5.8-1',
+                'defaults::tk-8.5.13-0',
+                'defaults::yaml-0.1.4-0',
+                'defaults::zlib-1.2.7-0',
+                'defaults::python-2.7.5-0',
+                'defaults::pytz-2013b-py27_0',
+                'defaults::pyyaml-3.10-py27_0',
+                'defaults::conda-1.3.5-py27_0',
+            )
+            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
 
 def test_update_deps_1():

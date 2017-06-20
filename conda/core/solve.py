@@ -225,6 +225,8 @@ class Solver(object):
                 if spec.name in specs_map:
                     old_spec = specs_map[spec.name]
                     specs_map[spec.name] = MatchSpec(old_spec, target=None)
+            if context.auto_update_conda and paths_equal(self.prefix, context.root_prefix):
+                specs_map["conda"] = MatchSpec("conda")
 
         # add in explicitly requested specs from specs_to_add
         # this overrides any name-matching spec already in the spec map
@@ -236,8 +238,6 @@ class Solver(object):
             track_features_specs = tuple(MatchSpec(x + '@') for x in context.track_features)
         if not ignore_pinned:
             pinned_specs = get_pinned_specs(self.prefix)
-        if context.auto_update_conda and paths_equal(self.prefix, context.conda_prefix):
-            conda_update_specs = MatchSpec("conda")
 
         final_environment_specs = IndexedSet(concatv(
             itervalues(specs_map),
