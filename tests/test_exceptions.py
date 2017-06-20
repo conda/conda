@@ -1,17 +1,22 @@
 import json
 from unittest import TestCase
 
-from conda.common.compat import on_win
-
 from conda import text_type
+from conda._vendor.auxlib.collection import AttrDict
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import reset_context, context
+from conda.base.context import context, reset_context
+from conda.common.compat import on_win
 from conda.common.io import captured, env_var, replace_log_streams
-from conda.exceptions import CommandNotFoundError, PathNotFoundError, CondaHTTPError, CondaKeyError, \
-    CondaRevisionError, DirectoryNotFoundError, MD5MismatchError, PackageNotFoundError, TooFewArgumentsError, \
-    TooManyArgumentsError, conda_exception_handler, BasicClobberError, KnownPackageClobberError, \
-    UnknownPackageClobberError, SharedLinkPathClobberError, BinaryPrefixReplacementError, BinaryPrefixReplacementError
+from conda.exceptions import BasicClobberError, BinaryPrefixReplacementError, CommandNotFoundError, \
+    CondaHTTPError, CondaKeyError, CondaRevisionError, DirectoryNotFoundError, \
+    KnownPackageClobberError, MD5MismatchError, PackageNotFoundError, PathNotFoundError, \
+    SharedLinkPathClobberError, TooFewArgumentsError, TooManyArgumentsError, \
+    UnknownPackageClobberError, conda_exception_handler, print_unexpected_error_message
 
+try:
+    from unittest.mock import Mock, patch
+except ImportError:
+    from mock import Mock, patch
 
 def _raise_helper(exception):
     raise exception
@@ -381,6 +386,102 @@ class ExceptionTests(TestCase):
             message = ("CommandNotFoundError: 'activate is not a conda command.\n"
                        "Did you mean 'source activate'?")
         assert c.stderr.strip() == message
+
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
+    def test_print_unexpected_error_message_upload_1(self, post_mock):
+        try:
+            assert 0
+        except AssertionError:
+            pass
+        with env_var('CONDA_REPORT_ERRORS', 'true', reset_context):
+            e = AssertionError()
+            with captured() as c:
+                print_unexpected_error_message(e)
+
+            assert post_mock.call_count == 2
+            assert c.stdout == ''
+            assert "conda is private" in c.stderr
+
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(headers=AttrDict(Location='somewhere.again'), status_code=301,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
+    def test_print_unexpected_error_message_upload_2(self, post_mock):
+        try:
+            assert 0
+        except AssertionError:
+            pass
+        with env_var('CONDA_JSON', 'true', reset_context):
+            with env_var('CONDA_YES', 'yes', reset_context):
+                e = AssertionError()
+                with captured() as c:
+                    print_unexpected_error_message(e)
+
+                assert post_mock.call_count == 3
+                assert len(json.loads(c.stdout)['conda_info']['channels']) >= 2
+                assert not c.stderr
+
+    @patch('requests.post', side_effect=(
+            AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
+                     raise_for_status=lambda: None),
+            AttrDict(raise_for_status=lambda: None),
+    ))
+    @patch('conda.exceptions.input', return_value='y')
+    @patch('conda.exceptions.os.isatty', return_value=True)
+    def test_print_unexpected_error_message_upload_3(self, isatty_mock, input_mock, post_mock):
+        try:
+            assert 0
+        except AssertionError:
+            pass
+        e = AssertionError()
+        with captured() as c:
+            print_unexpected_error_message(e)
+
+        assert input_mock.call_count == 1
+        assert post_mock.call_count == 2
+        assert c.stdout == ''
+        assert "conda is private" in c.stderr
+
+    @patch('requests.post', return_value=None)
+    @patch('conda.exceptions.input', return_value='n')
+    def test_print_unexpected_error_message_opt_out_1(self, input_mock, post_mock):
+        try:
+            assert 0
+        except AssertionError:
+            pass
+        with env_var('CONDA_REPORT_ERRORS', 'false', reset_context):
+            e = AssertionError()
+            with captured() as c:
+                print_unexpected_error_message(e)
+
+            assert input_mock.call_count == 0
+            assert post_mock.call_count == 0
+            assert c.stdout == ''
+            assert "conda is private" in c.stderr
+
+    @patch('requests.post', return_value=None)
+    @patch('conda.exceptions.input', return_value='n')
+    @patch('conda.exceptions.os.isatty', return_value=True)
+    def test_print_unexpected_error_message_opt_out_2(self, isatty_mock, input_mock, post_mock):
+        try:
+            assert 0
+        except AssertionError:
+            pass
+        e = AssertionError()
+        with captured() as c:
+            print_unexpected_error_message(e)
+
+        assert input_mock.call_count == 1
+        assert post_mock.call_count == 0
+        assert c.stdout == ''
+        assert "conda is private" in c.stderr
 
     def test_BinaryPrefixReplacementError(self):
         new_data_length = 1104

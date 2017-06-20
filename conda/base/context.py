@@ -9,7 +9,8 @@ from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
+                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME,
+                        SEARCH_PATH)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -147,15 +148,15 @@ class Context(Configuration):
     migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
     _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
 
-    # command line
     default_python = PrimitiveParameter(default_python_default(),
                                         validation=default_python_validation)
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
-    always_yes = PrimitiveParameter(False, aliases=('yes',))
+    always_yes = PrimitiveParameter(None, aliases=('yes',), element_type=(bool, NoneType))
     channel_priority = PrimitiveParameter(True)
     debug = PrimitiveParameter(False)
     dry_run = PrimitiveParameter(False)
+    error_upload_url = PrimitiveParameter(ERROR_UPLOAD_URL)
     force = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
     no_dependencies = PrimitiveParameter(False, aliases=('no_deps',))
@@ -163,6 +164,7 @@ class Context(Configuration):
     only_dependencies = PrimitiveParameter(False, aliases=('only_deps',))
     quiet = PrimitiveParameter(False)
     prune = PrimitiveParameter(False)
+    report_errors = PrimitiveParameter(None, element_type=(bool, NoneType))
     respect_pinned = PrimitiveParameter(True)
     shortcuts = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
@@ -460,7 +462,7 @@ class Context(Configuration):
             argparse_channels = tuple(self._argparse_args['channel'] or ())
             if argparse_channels and argparse_channels == self._channels:
                 return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
-        return self._channels
+        return self._channels or ()
 
     def get_descriptions(self):
         return get_help_dict()
@@ -475,6 +477,7 @@ class Context(Configuration):
             'default_python',
             'dry_run',
             'enable_private_envs',
+            'error_upload_url',  # should remain undocumented
             'force_32bit',
             'max_shlvl',
             'migrated_custom_channels',
@@ -694,6 +697,11 @@ def get_help_dict():
             Once conda has connected to a remote resource and sent an HTTP request, the
             read timeout is the number of seconds conda will wait for the server to send
             a response.
+            """),
+        'report_errors': dals("""
+            Opt in, or opt out, of automatic error reporting to core maintainers. Error
+            reports are anonymous, with only the error stack trace and information given
+            by `conda info` being sent.
             """),
         'rollback_enabled': dals("""
             Should any error occur during an unlink/link transaction, revert any disk
