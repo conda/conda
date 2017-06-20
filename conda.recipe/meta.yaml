@@ -22,17 +22,6 @@ build:
   entry_points:
     - conda = conda.cli:main
     - conda-env = conda_env.cli.main:main
-  preferred_env: _conda_
-  preferred_env_executable_paths:
-    - bin/conda                 [unix]
-    - Scripts/conda.exe         [win]
-  preferred_env_softlink_paths:
-    - bin/activate              [unix]
-    - bin/deactivate            [unix]
-    - Scripts/activate          [win]
-    - Scripts/activate.bat      [win]
-    - Scripts/deactivate        [win]
-    - Scripts/deactivate.bat    [win]
 
 requirements:
   build:
@@ -41,10 +30,11 @@ requirements:
     - python
     - conda-env >=2.6
     - enum34               [py<34]
+    - futures              [py<34]
     - menuinst             [win]
     - pycosat >=0.6.1
     - pyopenssl >=16.2.0
-    - requests >=2.12.4
+    - requests >=2.12.4,<=2.14.2
     - ruamel_yaml >=0.11.14
 
 test:
