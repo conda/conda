@@ -77,6 +77,8 @@ class Solver(object):
         self.specs_to_remove = frozenset(MatchSpec(s) for s in specs_to_remove)
 
         assert all(s in context.known_subdirs for s in self.subdirs)
+        self._index = None
+        self._r = None
         self._prepared = False
 
     def solve_final_state(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
@@ -428,16 +430,16 @@ class Solver(object):
         with spinner("Loading channels", not context.verbosity and not context.quiet,
                      context.json):
             channel_priority_map = build_channel_priority_map()
-            index = fetch_index(channel_priority_map, context.use_index_cache)
+            if self._index is None:
+                self._index = fetch_index(channel_priority_map, context.use_index_cache)
 
             known_channels = tuple(c.canonical_name for c in self.channels)
 
-            _supplement_index_with_prefix(index, self.prefix, known_channels)
-            _supplement_index_with_cache(index, known_channels)
-            _supplement_index_with_features(index)
+            _supplement_index_with_prefix(self._index, self.prefix, known_channels)
+            _supplement_index_with_cache(self._index, known_channels)
+            _supplement_index_with_features(self._index)
 
-            self._index = index
-            self._r = Resolve(index)
+            self._r = Resolve(self._index)
 
         self._prepared = True
         return self._index, self._r

@@ -444,7 +444,8 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
 
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, update_deps=True, prune=False,
-                    channel_priority_map=None, is_update=False):  # pragma: no cover
+                    channel_priority_map=None, is_update=False,
+                    minimal_hint=False):  # pragma: no cover
     # this is for conda-build
     if channel_priority_map:
         channel_names = IndexedSet(Channel(url).canonical_name for url in channel_priority_map)
@@ -454,6 +455,8 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         channels = subdirs = None
 
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
+    if index:
+        solver._index = index
     txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
     prefix_setup = txn.prefix_setups[prefix]
     actions = get_blank_actions(prefix)
