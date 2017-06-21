@@ -345,25 +345,25 @@ class LinkPathAction(CreateInPrefixPathAction):
                 reported_sha256 = source_path_data.sha256
             except AttributeError:
                 reported_sha256 = None
-            source_sha256 = compute_sha256sum(self.source_full_path)
-            if reported_sha256 and reported_sha256 != source_sha256:
-                return CondaVerificationError(dals("""
-                The package for %s located at %s
-                appears to be corrupted. The path '%s'
-                has a sha256 mismatch.
-                  reported sha256: %s
-                  actual sha256: %s
-                """ % (self.package_info.index_json_record.name,
-                       self.package_info.extracted_package_dir,
-                       self.source_short_path,
-                       reported_sha256,
-                       source_sha256,
-                       )))
+            # source_sha256 = compute_sha256sum(self.source_full_path)
+            # if reported_sha256 and reported_sha256 != source_sha256:
+            #     return CondaVerificationError(dals("""
+            #     The package for %s located at %s
+            #     appears to be corrupted. The path '%s'
+            #     has a sha256 mismatch.
+            #       reported sha256: %s
+            #       actual sha256: %s
+            #     """ % (self.package_info.index_json_record.name,
+            #            self.package_info.extracted_package_dir,
+            #            self.source_short_path,
+            #            reported_sha256,
+            #            source_sha256,
+            #            )))
+
             try:
                 reported_size_in_bytes = source_path_data.size_in_bytes
             except AttributeError:
                 reported_size_in_bytes = None
-
             if reported_size_in_bytes:
                 source_size_in_bytes = getsize(self.source_full_path)
                 if reported_size_in_bytes != source_size_in_bytes:
@@ -382,8 +382,8 @@ class LinkPathAction(CreateInPrefixPathAction):
 
             self.prefix_path_data = PathDataV1.from_objects(
                 source_path_data,
-                sha256=source_sha256,
-                sha256_in_prefix=source_sha256,
+                sha256=reported_sha256,
+                sha256_in_prefix=reported_sha256,
                 path_type=source_path_type or PathType.hardlink,
             )
         elif source_path_data.path_type == PathType.windows_python_entry_point_exe:
@@ -537,14 +537,11 @@ class CompilePycAction(CreateInPrefixPathAction):
         super(CompilePycAction, self).__init__(transaction_context, package_info,
                                                target_prefix, source_short_path,
                                                target_prefix, target_short_path)
-        self._execute_successful = False
-
-    def verify(self):
-        super(CompilePycAction, self).verify()
         self.prefix_path_data = PathDataV1(
             _path=self.target_short_path,
             path_type=PathType.pyc_file,
         )
+        self._execute_successful = False
 
     def execute(self):
         # compile_pyc is sometimes expected to fail, for example a python 3.6 file
@@ -600,10 +597,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                                                            target_prefix, target_short_path)
         self.module = module
         self.func = func
-        self._execute_successful = False
 
-    def verify(self):
-        super(CreatePythonEntryPointAction, self).verify()
         if on_win:
             path_type = PathType.windows_python_entry_point_script
         else:
@@ -612,6 +606,8 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
             _path=self.target_short_path,
             path_type=path_type,
         )
+
+        self._execute_successful = False
 
     def execute(self):
         log.trace("creating python entry point %s", self.target_full_path)
@@ -855,7 +851,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
     def reverse(self):
         log.trace("reversing linked package record creation %s", self.target_full_path)
         # TODO: be careful about failure here, and being too strict
-        PrefixData(self.target_prefix).remove(self.prefix_record.name)
+        PrefixData(self.target_prefix).remove(self.package_info.index_json_record.name)
 
 
 class UpdateHistoryAction(CreateInPrefixPathAction):
