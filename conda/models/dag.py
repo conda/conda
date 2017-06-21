@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict, deque
 from logging import getLogger
+from weakref import WeakSet
 
 from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
@@ -38,7 +39,7 @@ class PrefixDag(object):
     def add_spec(self, spec):
         for node in self.nodes:
             if spec.match(node.record):
-                node.specs.append(spec)
+                node.specs.add(spec)
                 self.spec_matches[spec].append(node)
 
     def remove_spec(self, spec):
@@ -110,7 +111,7 @@ class PrefixDag(object):
         return list(ordered)
 
     def remove_node_and_children(self, node):
-        for child in node.required_children:
+        for child in tuple(node.required_children):
             for record in self.remove_node_and_children(child):
                 yield record
         yield self.remove(node)
@@ -181,7 +182,7 @@ class PrefixDag(object):
 
         def remove_leaves_one_pass():
             for leaf in self.leaves:
-                if not leaf.specs or leaf.specs[0].optional:
+                if not leaf.specs or any(spec.optional for spec in leaf.specs):
                     self.remove(leaf)
 
         num_nodes_pre = len(self.nodes)
@@ -220,29 +221,29 @@ class Node(object):
         self._constrains = tuple(MatchSpec(s).name for s in record.constrains)
         self._depends = tuple(MatchSpec(s).name for s in record.depends)
 
-        self.optional_parents = []
-        self.optional_children = []
-        self.required_parents = []
-        self.required_children = []
-        self.specs = []
+        self.optional_parents = WeakSet()
+        self.optional_children = WeakSet()
+        self.required_parents = WeakSet()
+        self.required_children = WeakSet()
+        self.specs = WeakSet()
 
         for old_node in dag.nodes:
             if self.constrained_by(old_node):
-                self.optional_parents.append(old_node)
-                old_node.optional_children.append(self)
+                self.optional_parents.add(old_node)
+                old_node.optional_children.add(self)
             elif self.depends_on(old_node):
-                self.required_parents.append(old_node)
-                old_node.required_children.append(self)
+                self.required_parents.add(old_node)
+                old_node.required_children.add(self)
             elif old_node.constrained_by(self):
-                old_node.optional_parents.append(self)
-                self.optional_children.append(old_node)
+                old_node.optional_parents.add(self)
+                self.optional_children.add(old_node)
             elif old_node.depends_on(self):
-                old_node.required_parents.append(self)
-                self.required_children.append(old_node)
+                old_node.required_parents.add(self)
+                self.required_children.add(old_node)
 
         for spec in dag.spec_matches:
             if spec.match(record):
-                self.specs.append(spec)
+                self.specs.add(spec)
                 dag.spec_matches[spec].append(self)
 
         dag.nodes.append(self)

@@ -91,7 +91,7 @@ class Context(Configuration):
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
-    concurrent = PrimitiveParameter(False)
+    concurrent = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     default_python = PrimitiveParameter('%d.%d' % sys.version_info[:2],
                                         element_type=string_types + (NoneType,))
