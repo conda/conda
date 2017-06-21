@@ -26,6 +26,8 @@ build:
 requirements:
   build:
     - python
+    - m2-base              [win]
+    - m2-filesystem        [win]
   run:
     - python
     - conda-env >=2.6
