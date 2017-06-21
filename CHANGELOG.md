@@ -1,3 +1,11 @@
+## 4.3.23 (unreleased)
+
+### Bug Fixes
+* fix #5525 too many Nones in CondaHttpError (#5526)
+* fix #5508 assertion failure after test file not cleaned up (#5533)
+* fix #5523 catch OSError when home directory doesn't exist (#5549)
+
+
 ## 4.3.22 (2017-06-12)
 
 ### Improvements
