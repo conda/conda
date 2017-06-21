@@ -94,6 +94,8 @@ def hardlink_supported(source_file, dest_dir):
     test_file = join(dest_dir, '.tmp.' + basename(source_file))
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
+    if lexists(test_file):
+        rm_rf(test_file)
     assert not lexists(test_file), test_file
     try:
         create_link(source_file, test_file, LinkType.hardlink, force=True)

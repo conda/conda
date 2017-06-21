@@ -161,7 +161,7 @@ def append_env(prefix):
             os.mkdir(dir_path)
         with open(join(dir_path, 'environments.txt'), 'a') as f:
             f.write('%s\n' % prefix)
-    except IOError:
+    except (IOError, OSError):
         pass
 
 
