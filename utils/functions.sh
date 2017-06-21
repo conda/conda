@@ -94,7 +94,6 @@ install_conda_full() {
        $site_packages/conda*
 
     $PYTHON_EXE --version
-    $prefix/$BIN_DIR/pip --version
 
     $PYTHON_EXE conda.recipe/setup.py install --single-version-externally-managed --record record.txt
 
