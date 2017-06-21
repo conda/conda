@@ -6,6 +6,8 @@
 * resolve #5160 conda xontrib plugin (#5157)
 * resolve #1543 add support and tests for --no-deps and --only-deps (#5265)
 * resolve #988 allow channel name to be part of the package name spec (#5365)
+* resolve #5530 add ability for users to choose to post unexpected errors to core maintainers (#5531)
+* Solver, UI, History, and Other (#5546)
 
 ### Deprecations/Breaking Changes
 * remove support for with_features_depends (#5191)
@@ -35,6 +37,8 @@
 * resolve #5081 make pinned packages optional dependencies (#5414)
 * resolve #5430 eliminate current deprecation warnings (#5422)
 * resolve #5470 make stdout/stderr capture in python_api customizable (#5471)
+* logging simplifications/improvements (#5547)
+* update license information (#5568)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -58,7 +62,7 @@
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
-* new MatchSpec implementation (#4158)
+* new MatchSpec implementation (#4158, #5517)
 * update conda.recipe for 4.4 (#5086)
 * resolve #5118 organization and cleanup for 4.4 release (#5115)
 * remove unused disk space check instructions (#5167)
@@ -70,6 +74,8 @@
 * remove pycrypto as requirement on windows (#5326)
 * import cleanup, dead code removal, coverage improvements, and other
   housekeeping (#5472, #5474, #5480)
+* rename CondaFileNotFoundError to PathNotFoundError (#5521)
+* work toward repodata API (#5267)
 
 
 ## 4.3.22 (2017-06-12)
