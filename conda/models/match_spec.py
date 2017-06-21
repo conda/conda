@@ -21,6 +21,7 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat  # NOQA
 
+
 class MatchSpecType(type):
 
     def __call__(cls, spec_arg=None, **kwargs):
@@ -68,30 +69,74 @@ class MatchSpecType(type):
 @with_metaclass(MatchSpecType)
 class MatchSpec(object):
     """
-    The easiest way to build `MatchSpec` objects that match to arbitrary fields is to
-    use a keyword syntax.  For instance,
+    :class:`MatchSpec` is, fundamentally, a query language for conda packages.  Any of the fields
+    that comprise a :class:`PackageRecord` can be used to compose a :class:`MatchSpec`.
 
-        MatchSpec(name='foo', build='py2*', channel='conda-forge')
+    :class:`MatchSpec` can be composed with keyword arguments, where keys are any of the
+    attributes of :class:`PackageRecord`.  Values for keyword arguments are the exact values the
+    attribute should match against.  Many fields can also be matched against non-exact values--by
+    including wildcard `*` and `>`/`<` ranges--where supported.  Any non-specified field is
+    the equivalent of a full wildcard match.
 
-    matches any package named `foo` built with a Python 2 build string in the
-    `conda-forge` channel.  Available keywords to be matched against are fields of
-    the `IndexRecord` model object.
+    :class:`MatchSpec` can also be composed using a single positional argument, with optional
+    keyword arguments.  Keyword arguments also override any conflicting information provided in
+    the positional argument.  The positional argument can be either an existing :class:`MatchSpec`
+    instance or a string.  Conda has historically had several string representations for equivalent
+    :class:`MatchSpec`s.  This :class:`MatchSpec` should accept any existing valid spec string, and
+    correctly compose a :class:`MatchSpec` instance.
 
-    Strings are interpreted using the following conventions:
+    A series of rules are now followed for creating the canonical string representation of a
+    :class:`MatchSpec` instance.  The canonical string representation can generically be
+    represented by
+
+        (channel(/subdir):(namespace):)name(version(build))[key1=value1,key2=value2]
+
+    where `()` indicate optional fields.  The rules for constructing a canonical string
+    representation are:
+
+    1. `name` (i.e. "package name") is required, but its value can be '*'.  Its position is always
+       outside the key-value brackets.
+    2. If `version` is an exact version, it goes outside the key-value brackets and is prepended
+       by `==`. If `version` is a "fuzzy" value (e.g. `1.11.*`), it goes outside the key-value
+       brackets with the `.*` left off and is prepended by `=`.  Otherwise `version` is included
+       inside key-value brackets.
+    3. If `version` is an exact version, and `build` is an exact value, `build` goes outside
+       key-value brackets prepended by a `=`.  Otherwise, `build` goes inside key-value brackets.
+       `build_string` is an alias for `build`.
+    4. The `namespace` position is being held for a future conda feature.
+    5. If `channel` is included and is an exact value, a `::` separator is ued between `channel`
+       and `name`.  `channel` can either be a canonical channel name or a channel url.  In the
+       canonical string representation, the canonical channel name will always be used.
+    6. If `channel` is an exact value and `subdir` is an exact value, `subdir` is appended to
+       `channel` with a `/` separator.  Otherwise, `subdir` is included in the key-value brackets.
+    7. Key-value brackets can be delimited by comma, space, or comma+space.  Value can optionally
+       be wrapped in single or double quotes, but must be wrapped if `value` contains a comma,
+       space, or equal sign.  The canonical format uses comma delimiters and single quotes.
+    8. When constructing a :class:`MatchSpec` instance from a string, any key-value pair given
+       inside the key-value brackets overrides any matching parameter given outside the brackets.
+
+    When :class:`MatchSpec` attribute values are simple strings, the are interpreted using the
+    following conventions:
+
       - If the string begins with `^` and ends with `$`, it is converted to a regex.
       - If the string contains an asterisk (`*`), it is transformed from a glob to a regex.
       - Otherwise, an exact match to the string is sought.
 
-    The `.match()` method accepts an `IndexRecord` or dictionary, and matches can pull
-    from any field in that record.
 
-    Great pain has been taken to preserve back-compatibility with the standard
-    `name version build` syntax. But strictly speaking it is not necessary. Now, the
-    following are all equivalent:
-      - `MatchSpec('foo 1.0 py27_0', optional=True)`
-      - `MatchSpec("* [name='foo',version='1.0',build='py27_0']", optional=True)`
-      - `MatchSpec("foo[version='1.0',optional,build='py27_0']")`
-      - `MatchSpec(name='foo', optional=True, version='1.0', build='py27_0')`
+    Examples:
+
+        >>> str(MatchSpec(name='foo', build='py2*', channel='conda-forge'))
+        'conda-forge::foo[build=py2*]'
+        >>> str(MatchSpec('foo 1.0 py27_0'))
+        'foo==1.0=py27_0'
+        >>> str(MatchSpec('foo=1.0=py27_0'))
+        'foo==1.0=py27_0'
+        >>> str(MatchSpec('conda-forge::foo[version=1.0.*]'))
+        'conda-forge::foo=1.0'
+        >>> str(MatchSpec('conda-forge/linux-64::foo>=1.0'))
+        "conda-forge/linux-64::foo[version='>=1.0']"
+        >>> str(MatchSpec('*/linux-64::foo>=1.0'))
+        "foo[subdir=linux-64,version='>=1.0']"
 
     """
 
@@ -119,14 +164,8 @@ class MatchSpec(object):
         v = self._match_components.get(field_name)
         return v and v.raw_value
 
-    def _is_simple(self):
-        return len(self._match_components) == 1 and self.get_exact_value('name') is not None
-
-    def _is_single(self):
-        return len(self._match_components) == 1
-
     def match(self, rec):
-        """
+        """f
         Accepts an `IndexRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
@@ -135,6 +174,12 @@ class MatchSpec(object):
             if not (v.match(val) if hasattr(v, 'match') else v == val):
                 return False
         return True
+
+    def _is_simple(self):
+        return len(self._match_components) == 1 and self.get_exact_value('name') is not None
+
+    def _is_single(self):
+        return len(self._match_components) == 1
 
     def _to_filename_do_not_use(self):
         # WARNING: this is potentially unreliable and use should probably be limited
@@ -160,43 +205,64 @@ class MatchSpec(object):
 
     def __str__(self):
         builder = []
+        brackets = []
 
         channel_matcher = self._match_components.get('channel')
-        if channel_matcher:
+        if channel_matcher and channel_matcher.exact_value:
             builder.append(text_type(channel_matcher))
+        elif channel_matcher and not channel_matcher.matches_all:
+            brackets.append("channel=%s" % text_type(channel_matcher))
 
         subdir_matcher = self._match_components.get('subdir')
         if subdir_matcher:
-            builder.append(('/%s' if builder else '*/%s') % subdir_matcher)
+            if channel_matcher and channel_matcher.exact_value:
+                builder.append('/%s' % subdir_matcher)
+            else:
+                brackets.append("subdir=%s" % subdir_matcher)
 
         name_matcher = self._match_components.get('name', '*')
         builder.append(('::%s' if builder else '%s') % name_matcher)
 
-        xtra = []
-
+        version_exact = False
         version = self._match_components.get('version')
         if version:
             version = text_type(version)
             if any(s in version for s in '><$^|,'):
-                xtra.append("version='%s'" % version)
+                brackets.append("version='%s'" % version)
             elif version.endswith('.*'):
                 builder.append('=' + version[:-2])
             elif version.endswith('*'):
                 builder.append('=' + version[:-1])
+            elif version.startswith('=='):
+                builder.append(version)
+                version_exact = True
             else:
                 builder.append('==' + version)
+                version_exact = True
 
-        _skip = ('channel', 'subdir', 'name', 'version')
+        build = self._match_components.get('build')
+        if build:
+            build = text_type(build)
+            if any(s in build for s in '><$^|,'):
+                brackets.append("build='%s'" % build)
+            elif '*' in build:
+                brackets.append("build=%s" % build)
+            elif version_exact:
+                builder.append('=' + build)
+            else:
+                brackets.append("build=%s" % build)
+
+        _skip = ('channel', 'subdir', 'name', 'version', 'build')
         for key in self.FIELD_NAMES:
             if key not in _skip and key in self._match_components:
                 value = text_type(self._match_components[key])
                 if any(s in value for s in ', ='):
-                    xtra.append("%s='%s'" % (key, self._match_components[key]))
+                    brackets.append("%s='%s'" % (key, self._match_components[key]))
                 else:
-                    xtra.append("%s=%s" % (key, self._match_components[key]))
+                    brackets.append("%s=%s" % (key, self._match_components[key]))
 
-        if xtra:
-            builder.append('[%s]' % ','.join(xtra))
+        if brackets:
+            builder.append('[%s]' % ','.join(brackets))
 
         return ''.join(builder)
 
@@ -287,7 +353,6 @@ class MatchSpec(object):
 
 def _parse_version_plus_build(v_plus_b):
     """This should reliably pull the build string out of a version + build string combo.
-
     Examples:
         >>> _parse_version_plus_build("=1.2.3 0")
         ('=1.2.3', '0')
@@ -305,7 +370,6 @@ def _parse_version_plus_build(v_plus_b):
         ('*', 'openblas_0')
         >>> _parse_version_plus_build("* *")
         ('*', '*')
-
     """
     parts = re.search(r'((?:.+?)[^><!,|]?)(?:(?<![=!|,<>])(?:[ =])([^-=,|<>]+?))?$', v_plus_b)
     if parts:
@@ -324,7 +388,6 @@ def _parse_legacy_dist(dist_str):
         ('_license', '1.1', 'py27_1')
         >>> _parse_legacy_dist("_license-1.1-py27_1")
         ('_license', '1.1', 'py27_1')
-
     """
     if dist_str.endswith(CONDA_TARBALL_EXTENSION):
         dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
@@ -414,8 +477,12 @@ def _parse_spec_str(spec_str):
     else:
         raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
 
-    # Step 6. sort out version + build
+    # Step 6. otherwise sort out version + build
     spec_str = spec_str and spec_str.strip()
+    # This was an attempt to make MatchSpec('numpy-1.11.0-py27_0') work like we'd want. It's
+    # not possible though because plenty of packages have names with more than one '-'.
+    # if spec_str is None and name.count('-') >= 2:
+    #     name, version, build = _parse_legacy_dist(name)
     if spec_str:
         if '[' in spec_str:
             raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
@@ -524,35 +591,6 @@ class SplitStrMatch(MatchInterface):
         return self._raw_value
 
 
-class ChannelMatch(MatchInterface):
-    __slots__ = '_raw_value',
-
-    def __init__(self, value):
-        super(ChannelMatch, self).__init__(Channel(value))
-
-    def match(self, other):
-        try:
-            return self._raw_value.canonical_name == other._raw_value.canonical_name
-        except AttributeError:
-            return self._raw_value.canonical_name == Channel(other).canonical_name
-
-    def __str__(self):
-        return "%s" % self._raw_value.canonical_name
-
-    def __repr__(self):
-        return "'%s'" % self._raw_value.canonical_name
-
-    def __eq__(self, other):
-        return self.match(other)
-
-    def __hash__(self):
-        return hash(self._raw_value)
-
-    @property
-    def exact_value(self):
-        return self._raw_value
-
-
 class StrMatch(MatchInterface):
     __slots__ = '_raw_value', '_re_match'
 
@@ -591,6 +629,46 @@ class StrMatch(MatchInterface):
     @property
     def exact_value(self):
         return self._raw_value if self._re_match is None else None
+
+    @property
+    def matches_all(self):
+        return self._raw_value == '*'
+
+
+class ChannelMatch(StrMatch):
+
+    def __init__(self, value):
+        self._re_match = None
+
+        if isinstance(value, string_types):
+            if value.startswith('^') and value.endswith('$'):
+                self._re_match = re.compile(value).match
+            elif '*' in value:
+                self._re_match = re.compile(r'^(?:%s)$' % value.replace('*', r'.*')).match
+            else:
+                value = Channel(value)
+
+        super(StrMatch, self).__init__(value)
+
+    def match(self, other):
+        try:
+            _other_val = Channel(other._raw_value)
+        except AttributeError:
+            _other_val = Channel(other)
+
+        if self._re_match:
+            return self._re_match(_other_val.canonical_name)
+        else:
+            return self._raw_value.canonical_name == _other_val.canonical_name
+
+    def __str__(self):
+        try:
+            return "%s" % self._raw_value.canonical_name
+        except AttributeError:
+            return "%s" % self._raw_value
+
+    def __repr__(self):
+        return "'%s'" % self.__str__()
 
 
 class LowerStrMatch(StrMatch):

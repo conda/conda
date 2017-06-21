@@ -7,12 +7,10 @@ import pytest
 from conda import text_type
 from conda.base.context import context
 from conda.cli.common import arg2spec, spec_from_line
-from conda.common.path import expand
-from conda.common.url import path_to_url
 from conda.exceptions import CondaValueError
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord, RepodataRecord
+from conda.models.index_record import IndexRecord
 from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
 from conda.models.version import VersionSpec
 
@@ -187,9 +185,9 @@ class MatchSpecTests(TestCase):
         assert m("conda-forge/linux-64::numpy") == "conda-forge/linux-64::numpy"
         assert m("numpy[channel=conda-forge,subdir=noarch]") == "conda-forge/noarch::numpy"
 
-        assert m("numpy[subdir=win-32]") == '*/win-32::numpy'
-        assert m("*/win-32::numpy") == '*/win-32::numpy'
-        assert m("*/win-32::numpy[subdir=\"osx-64\"]") == '*/osx-64::numpy'
+        assert m("numpy[subdir=win-32]") == 'numpy[subdir=win-32]'
+        assert m("*/win-32::numpy") == 'numpy[subdir=win-32]'
+        assert m("*/win-32::numpy[subdir=\"osx-64\"]") == 'numpy[subdir=osx-64]'
 
         # TODO: should the result in these example pull out subdir?
         assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "defaults/linux-32::numpy"
@@ -198,13 +196,25 @@ class MatchSpecTests(TestCase):
         assert m("numpy[build=py3*_2, track_features=mkl]") == "numpy[build=py3*_2,track_features=mkl]"
         assert m("numpy[build=py3*_2, track_features='mkl debug']") == "numpy[build=py3*_2,track_features='debug mkl']"
         assert m("numpy[track_features='mkl,debug', build=py3*_2]") == "numpy[build=py3*_2,track_features='debug mkl']"
+        assert m("numpy[track_features='mkl,debug' build=py3*_2]") == "numpy[build=py3*_2,track_features='debug mkl']"
+
+        assert m("numpy=1.10=py38_0") == "numpy==1.10=py38_0"
+        assert m("numpy==1.10=py38_0") == "numpy==1.10=py38_0"
+        assert m("numpy[version=1.10 build=py38_0]") == "numpy==1.10=py38_0"
+
+        # # a full, exact spec looks like 'defaults/linux-64::numpy==1.8=py26_0'
+        # # can we take an old dist str and reliably parse it with MatchSpec?
+        # assert m("numpy-1.10-py38_0") == "numpy==1.10=py38_0"
+        # assert m("numpy-1.10-py38_0[channel=defaults]") == "defaults::numpy==1.10=py38_0"
+        # assert m("*/win-32::numpy-1.10-py38_0[channel=defaults]") == "defaults/win-32::numpy==1.10=py38_0"
 
     def test_tarball_match_specs(self):
         def m(string):
             return text_type(MatchSpec(string))
 
         url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
-        assert m(url) == "conda-canary/linux-64::conda==4.3.21.post699+1dab973[build=py36h4a561cd_0]"
+        assert m(url) == "conda-canary/linux-64::conda==4.3.21.post699+1dab973=py36h4a561cd_0"
+        assert m("conda-canary/linux-64::conda==4.3.21.post699+1dab973=py36h4a561cd_0") == "conda-canary/linux-64::conda==4.3.21.post699+1dab973=py36h4a561cd_0"
 
     def test_exact_values(self):
         assert MatchSpec("*").get_exact_value('name') is None
@@ -277,17 +287,17 @@ class MatchSpecTests(TestCase):
         assert p.match(Dist(channel='defaults', dist_name='python-3.5.1-0', name='python',
                             version='3.5.1', build_string='0', build_number=0, base_url=None,
                             platform=None))
-        assert p.match(RepodataRecord(name='python', version='3.5.1', build='0', build_number=0,
-                                      depends=('openssl 1.0.2*', 'readline 6.2*', 'sqlite',
+        assert p.match(IndexRecord(name='python', version='3.5.1', build='0', build_number=0,
+                                     depends=('openssl 1.0.2*', 'readline 6.2*', 'sqlite',
                                                'tk 8.5*', 'xz 5.0.5', 'zlib 1.2*', 'pip'),
-                                      channel=Channel(scheme='https', auth=None,
+                                     channel=Channel(scheme='https', auth=None,
                                                       location='repo.continuum.io', token=None,
                                                       name='pkgs/free', platform='osx-64',
                                                       package_filename=None),
-                                      subdir='osx-64', fn='python-3.5.1-0.tar.bz2',
-                                      md5='a813bc0a32691ab3331ac9f37125164c', size=14678857,
-                                      priority=0,
-                                      url='https://repo.continuum.io/pkgs/free/osx-64/python-3.5.1-0.tar.bz2'))
+                                     subdir='osx-64', fn='python-3.5.1-0.tar.bz2',
+                                     md5='a813bc0a32691ab3331ac9f37125164c', size=14678857,
+                                     priority=0,
+                                     url='https://repo.continuum.io/pkgs/free/osx-64/python-3.5.1-0.tar.bz2'))
 
 
     def test_index_record(self):
@@ -334,7 +344,7 @@ class TestArg2Spec(TestCase):
         assert arg2spec('ipython=0.13.2') == 'ipython=0.13.2'
         assert arg2spec('ipython=0.13.0') == 'ipython=0.13.0'
         assert arg2spec('ipython==0.13.0') == 'ipython==0.13.0'
-        assert arg2spec('foo=1.3.0=3') == 'foo==1.3.0[build=3]'
+        assert arg2spec('foo=1.3.0=3') == 'foo==1.3.0=3'
 
     def test_pip_style(self):
         assert arg2spec('foo>=1.3') == "foo[version='>=1.3']"
@@ -404,6 +414,26 @@ class SpecStrParsingTests(TestCase):
             "build": "py36h4a561cd_0",
             "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
         }
+
+    # def test_parse_spec_str_legacy_dist_format(self):
+    #     assert _parse_spec_str("numpy-1.8-py26_0") == {
+    #         "name": "numpy",
+    #         "version": "1.8",
+    #         "build": "py26_0",
+    #     }
+    #     assert _parse_spec_str("numpy-1.8-py26_0[channel=defaults]") == {
+    #         "channel": "defaults",
+    #         "name": "numpy",
+    #         "version": "1.8",
+    #         "build": "py26_0",
+    #     }
+    #     assert _parse_spec_str("*/win-32::numpy-1.8-py26_0[channel=defaults]") == {
+    #         "channel": "defaults",
+    #         "subdir": "win-32",
+    #         "name": "numpy",
+    #         "version": "1.8",
+    #         "build": "py26_0",
+    #     }
 
     def test_parse_spec_str_no_brackets(self):
         assert _parse_spec_str("numpy") == {
@@ -516,3 +546,23 @@ class SpecStrParsingTests(TestCase):
         with pytest.raises(CondaValueError):
             _parse_spec_str('!xyz 1.3')
 
+    def test_parse_channel_subdir(self):
+        assert _parse_spec_str("conda-forge::foo>=1.0") == {
+            "channel": "conda-forge",
+            "name": "foo",
+            "version": ">=1.0",
+        }
+
+        assert _parse_spec_str("conda-forge/linux-32::foo>=1.0") == {
+            "channel": "conda-forge",
+            "subdir": "linux-32",
+            "name": "foo",
+            "version": ">=1.0",
+        }
+
+        assert _parse_spec_str("*/linux-32::foo>=1.0") == {
+            "channel": "*",
+            "subdir": "linux-32",
+            "name": "foo",
+            "version": ">=1.0",
+        }
