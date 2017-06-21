@@ -214,6 +214,9 @@ def get_info_dict(system=False):
         if isfile(user_netrc):
             netrc_file = user_netrc
 
+    from ..core.envs_manager import EnvsDirectory
+    active_prefix_name = EnvsDirectory.env_name(context.active_prefix)
+
     info_dict = dict(
         platform=context.subdir,
         conda_version=conda_version,
@@ -226,6 +229,9 @@ def get_info_dict(system=False):
         pkgs_dirs=context.pkgs_dirs,
         envs_dirs=context.envs_dirs,
         default_prefix=context.default_prefix,
+        active_prefix=context.active_prefix,
+        active_prefix_name=active_prefix_name,
+        conda_shlvl=context.shlvl,
         channels=channels,
         user_rc_path=user_rc_path,
         rc_path=user_rc_path,
@@ -267,40 +273,49 @@ def get_info_dict(system=False):
 
 
 def get_main_info_str(info_dict):
-    from .._vendor.auxlib.ish import dals
-
     for key in 'pkgs_dirs', 'envs_dirs', 'channels', 'config_files':
         info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
     info_dict['_rtwro'] = ('writable' if info_dict['root_writable'] else 'read only')
 
-    builder = []
-    builder.append(dals("""
-    Current conda install:
+    format_param = lambda nm, val: "%23s : %s" % (nm, val)
 
-                   platform : %(platform)s
-              conda version : %(conda_version)s
-           conda is private : %(conda_private)s
-          conda-env version : %(conda_env_version)s
-        conda-build version : %(conda_build_version)s
-             python version : %(python_version)s
-           requests version : %(requests_version)s
-           root environment : %(root_prefix)s  (%(_rtwro)s)
-        default environment : %(default_prefix)s
-           envs directories : %(_envs_dirs)s
-              package cache : %(_pkgs_dirs)s
-               channel URLs : %(_channels)s
-           user config file : %(user_rc_path)s
-     populated config files : %(_config_files)s
-                 netrc file : %(netrc_file)s
-               offline mode : %(offline)s
-                 user-agent : %(user_agent)s\
-    """) % info_dict)
+    builder = ['']
+
+    if info_dict['active_prefix_name']:
+        builder.append(format_param('active environment', info_dict['active_prefix_name']))
+        builder.append(format_param('active env location', info_dict['active_prefix']))
+    else:
+        builder.append(format_param('active environment', info_dict['active_prefix']))
+
+    if info_dict['conda_shlvl'] >= 0:
+        builder.append(format_param('shell level', info_dict['conda_shlvl']))
+
+    builder.extend((
+        format_param('user config file', info_dict['user_rc_path']),
+        format_param('populated config files', info_dict['_config_files']),
+        format_param('conda version', info_dict['conda_version']),
+        format_param('conda-build version', info_dict['conda_build_version']),
+        format_param('python version', info_dict['python_version']),
+        format_param('base environment', '%s  (%s)' % (info_dict['root_prefix'],
+                                                       info_dict['_rtwro'])),
+        format_param('channel URLs', info_dict['_channels']),
+        format_param('package cache', info_dict['_pkgs_dirs']),
+        format_param('envs directories', info_dict['_envs_dirs']),
+        format_param('platform', info_dict['platform']),
+        format_param('user-agent', info_dict['user_agent']),
+    ))
 
     if on_win:
-        builder.append("          administrator : %(is_windows_admin)s" % info_dict)
+        builder.append(format_param("administrator", info_dict['is_windows_admin']))
     else:
-        builder.append("                UID:GID : %(UID)s:%(GID)s" % info_dict)
+        builder.append(format_param("UID:GID", '%s:%s' % (info_dict['UID'], info_dict['GID'])))
 
+    builder.extend((
+        format_param('netrc file', info_dict['netrc_file']),
+        format_param('offline mode', info_dict['offline']),
+    ))
+
+    builder.append('')
     return '\n'.join(builder)
 
 

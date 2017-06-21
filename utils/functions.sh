@@ -275,7 +275,7 @@ install_conda_build() {
 
     # install conda-build dependencies (runtime and test)
     conda config --append channels conda-forge
-    $prefix/$BIN_DIR/conda install -y -q \
+    $prefix/$BIN_DIR/conda install -y \
         perl pytest-xdist pytest-catchlog pytest-mock \
         anaconda-client numpy \
         filelock jinja2 conda-verify contextlib2 pkginfo
@@ -293,7 +293,7 @@ install_conda_build() {
         git checkout $cb_branch
         popd
     else
-        git clone -b $cb_branch --single-branch --depth 500 https://github.com/conda/conda-build.git
+        git clone -b $cb_branch --depth 750 https://github.com/conda/conda-build.git
     fi
     local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
     rm -rf $site_packages/conda_build
@@ -329,7 +329,7 @@ conda_unit_test() {
 
 
 conda_integration_test() {
-    $PYTEST_EXE $ADD_COV -m "integration and not installed"
+    $PYTEST_EXE $ADD_COV -m "integration and not installed" -v
 }
 
 
@@ -374,6 +374,7 @@ conda_build_test() {
     . $prefix/etc/profile.d/conda.sh
     conda activate root
     conda info
+    # echo "skip_safety_checks: true" >> ~/.condarc
 
     pushd conda-build
 

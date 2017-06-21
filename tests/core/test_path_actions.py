@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os.path import basename, dirname, isdir, isfile, join, lexists
+from os.path import basename, dirname, isdir, isfile, join, lexists, getsize
 from shlex import split as shlex_split
 from subprocess import check_output
 import sys
@@ -27,9 +27,10 @@ from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import islink, stat_nlink
 from conda.gateways.disk.permissions import is_executable
-from conda.gateways.disk.read import compute_md5sum
+from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
 from conda.gateways.disk.update import touch
-from conda.models.enums import LinkType, NoarchType
+from conda.models.enums import LinkType, NoarchType, PathType
+from conda.models.index_record import PathDataV1
 
 try:
     from unittest.mock import Mock, patch
@@ -234,8 +235,20 @@ class PathActionsTests(TestCase):
     def test_simple_LinkPathAction_hardlink(self):
         source_full_path = make_test_file(self.pkgs_dir)
         target_short_path = source_short_path = basename(source_full_path)
+
+        correct_sha256 = compute_sha256sum(source_full_path)
+        correct_size_in_bytes = getsize(source_full_path)
+        path_type = PathType.hardlink
+
+        source_path_data = PathDataV1(
+            _path = source_short_path,
+            path_type=path_type,
+            sha256=correct_sha256,
+            size_in_bytes=correct_size_in_bytes,
+        )
+
         axn = LinkPathAction({}, None, self.pkgs_dir, source_short_path, self.prefix,
-                             target_short_path, LinkType.hardlink)
+                             target_short_path, LinkType.hardlink, source_path_data)
 
         assert axn.target_full_path == join(self.prefix, target_short_path)
         axn.verify()
@@ -250,8 +263,20 @@ class PathActionsTests(TestCase):
     def test_simple_LinkPathAction_softlink(self):
         source_full_path = make_test_file(self.pkgs_dir)
         target_short_path = source_short_path = basename(source_full_path)
+
+        correct_sha256 = compute_sha256sum(source_full_path)
+        correct_size_in_bytes = getsize(source_full_path)
+        path_type = PathType.hardlink
+
+        source_path_data = PathDataV1(
+            _path = source_short_path,
+            path_type=path_type,
+            sha256=correct_sha256,
+            size_in_bytes=correct_size_in_bytes,
+        )
+
         axn = LinkPathAction({}, None, self.pkgs_dir, source_short_path, self.prefix,
-                             target_short_path, LinkType.softlink)
+                             target_short_path, LinkType.softlink, source_path_data)
 
         assert axn.target_full_path == join(self.prefix, target_short_path)
         axn.verify()
@@ -267,7 +292,7 @@ class PathActionsTests(TestCase):
     def test_simple_LinkPathAction_directory(self):
         target_short_path = join('a', 'nested', 'directory')
         axn = LinkPathAction({}, None, None, None, self.prefix,
-                             target_short_path, LinkType.directory)
+                             target_short_path, LinkType.directory, None)
         axn.verify()
         axn.execute()
 
@@ -281,8 +306,20 @@ class PathActionsTests(TestCase):
     def test_simple_LinkPathAction_copy(self):
         source_full_path = make_test_file(self.pkgs_dir)
         target_short_path = source_short_path = basename(source_full_path)
+
+        correct_sha256 = compute_sha256sum(source_full_path)
+        correct_size_in_bytes = getsize(source_full_path)
+        path_type = PathType.hardlink
+
+        source_path_data = PathDataV1(
+            _path = source_short_path,
+            path_type=path_type,
+            sha256=correct_sha256,
+            size_in_bytes=correct_size_in_bytes,
+        )
+
         axn = LinkPathAction({}, None, self.pkgs_dir, source_short_path, self.prefix,
-                             target_short_path, LinkType.copy)
+                             target_short_path, LinkType.copy, source_path_data)
 
         assert axn.target_full_path == join(self.prefix, target_short_path)
         axn.verify()
@@ -294,188 +331,188 @@ class PathActionsTests(TestCase):
         axn.reverse()
         assert not lexists(axn.target_full_path)
 
-    @pytest.mark.skipif(on_win, reason="unix-only test")
-    def test_CreateApplicationSoftlinkAction_basic_symlink_unix(self):
-        from conda.core.path_actions import CreateApplicationSoftlinkAction
+    # @pytest.mark.skipif(on_win, reason="unix-only test")
+    # def test_CreateApplicationSoftlinkAction_basic_symlink_unix(self):
+    #     from conda.core.path_actions import CreateApplicationSoftlinkAction
+    #
+    #     source_prefix = join(self.prefix, 'envs', '_yellow_')
+    #     test_file = make_test_file(join(source_prefix, 'bin'), suffix='', contents='echo yellow')
+    #     test_file = test_file[len(source_prefix) + 1:]
+    #
+    #     assert check_output(
+    #         shlex_split("sh -c '. \"%s\"'" % join(source_prefix, test_file))).strip() == b"yellow"
+    #
+    #     package_info = AttrDict(
+    #         index_json_record=AttrDict(name="yellow_package"),
+    #         repodata_record=AttrDict(preferred_env="yellow"),
+    #         package_metadata=AttrDict(
+    #             preferred_env=AttrDict(
+    #                 softlink_paths=[
+    #                     test_file,
+    #                 ]
+    #             )
+    #         ),
+    #     )
+    #     target_full_path = join(self.prefix, test_file)
+    #     mkdir_p(join(dirname(target_full_path)))
+    #
+    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+    #         axns = CreateApplicationSoftlinkAction.create_actions({}, package_info, source_prefix,
+    #                                                               None)
+    #         assert len(axns) == 1
+    #         axn = axns[0]
+    #
+    #         assert axn.target_full_path == target_full_path
+    #         axn.verify()
+    #         axn.execute()
+    #         assert islink(axn.target_full_path)
+    #         assert check_output(shlex_split("sh -c '. \"%s\"'" % axn.target_full_path)).strip() == b"yellow"
+    #         axn.reverse()
+    #         assert not lexists(axn.target_full_path)
 
-        source_prefix = join(self.prefix, 'envs', '_yellow_')
-        test_file = make_test_file(join(source_prefix, 'bin'), suffix='', contents='echo yellow')
-        test_file = test_file[len(source_prefix) + 1:]
+    # @pytest.mark.skipif(not on_win, reason="windows-only test")
+    # def test_CreateApplicationSoftlinkAction_basic_symlink_windows_not_supported(self):
+    #
+    #     source_prefix = join(self.prefix, 'envs', '_green_')
+    #     mkdir_p(join(source_prefix, 'conda-meta'))
+    #     touch(join(source_prefix, 'conda-meta', 'history'))
+    #
+    #     test_file_1 = make_test_file(join(source_prefix, 'Scripts'), suffix='',
+    #                                  contents='echo red')
+    #     test_file_1 = test_file_1[len(source_prefix) + 1:]
+    #     assert check_output(shlex_split("sh -c '. \"%s\"'" % join(source_prefix, test_file_1))).strip() == b"red"
+    #
+    #     test_file_2 = make_test_file(join(source_prefix, 'Scripts'), suffix='.bat',
+    #                                  contents='@echo off\necho blue')
+    #     test_file_2 = test_file_2[len(source_prefix) + 1:]
+    #     assert check_output(shlex_split("cmd /C \"%s\"" % join(source_prefix, test_file_2))).strip() == b"blue"
+    #
+    #     package_info = AttrDict(
+    #         index_json_record=AttrDict(name="green_package"),
+    #         repodata_record=AttrDict(preferred_env="green"),
+    #         package_metadata=AttrDict(
+    #             preferred_env=AttrDict(
+    #                 softlink_paths=[
+    #                     test_file_1,
+    #                     test_file_2,
+    #                 ]
+    #             )
+    #         ),
+    #     )
+    #     target_full_path_1 = join(self.prefix, test_file_1)
+    #     target_full_path_2 = join(self.prefix, test_file_2)
+    #     mkdir_p(join(dirname(target_full_path_1)))
+    #
+    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+    #         softlink_supported_test_file = join(source_prefix, PREFIX_MAGIC_FILE)
+    #         from conda.gateways.disk.test import softlink_supported
+    #         softlink_actually_supported = softlink_supported(softlink_supported_test_file,
+    #                                                          context.root_prefix)
+    #
+    #         import conda.core.path_actions
+    #         with patch.object(conda.core.path_actions, "softlink_supported") as softlink_supported_mock:
+    #             softlink_supported_mock.return_value = False
+    #
+    #             from conda.core.path_actions import CreateApplicationSoftlinkAction
+    #             axns = CreateApplicationSoftlinkAction.create_actions({}, package_info,
+    #                                                                   source_prefix, None)
+    #             assert len(axns) == 2
+    #
+    #             axn = axns[0]
+    #             assert axn.target_full_path == target_full_path_1
+    #             assert axn.softlink_method == "softlink_or_fail_ok"
+    #             axn.verify()
+    #             axn.execute()
+    #             if softlink_actually_supported:
+    #                 assert islink(axn.target_full_path)
+    #                 assert check_output(shlex_split("sh -c '. \"%s\"'" % axn.target_full_path)).strip() == b"red"
+    #             else:
+    #                 assert not lexists(axn.target_full_path)
+    #             axn.reverse()
+    #             assert not lexists(axn.target_full_path)
+    #
+    #             axn = axns[1]
+    #             assert axn.target_full_path == target_full_path_2
+    #             assert axn.softlink_method == "fake_exe_softlink"
+    #             axn.verify()
+    #             axn.execute()
+    #             assert isfile(axn.target_full_path)
+    #             assert check_output(shlex_split("cmd /C \"%s\"" % axn.target_full_path)).strip() == b"blue"
+    #             axn.reverse()
+    #             assert not lexists(axn.target_full_path)
 
-        assert check_output(
-            shlex_split("sh -c '. \"%s\"'" % join(source_prefix, test_file))).strip() == b"yellow"
-
-        package_info = AttrDict(
-            index_json_record=AttrDict(name="yellow_package"),
-            repodata_record=AttrDict(preferred_env="yellow"),
-            package_metadata=AttrDict(
-                preferred_env=AttrDict(
-                    softlink_paths=[
-                        test_file,
-                    ]
-                )
-            ),
-        )
-        target_full_path = join(self.prefix, test_file)
-        mkdir_p(join(dirname(target_full_path)))
-
-        with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
-            axns = CreateApplicationSoftlinkAction.create_actions({}, package_info, source_prefix,
-                                                                  None)
-            assert len(axns) == 1
-            axn = axns[0]
-
-            assert axn.target_full_path == target_full_path
-            axn.verify()
-            axn.execute()
-            assert islink(axn.target_full_path)
-            assert check_output(shlex_split("sh -c '. \"%s\"'" % axn.target_full_path)).strip() == b"yellow"
-            axn.reverse()
-            assert not lexists(axn.target_full_path)
-
-    @pytest.mark.skipif(not on_win, reason="windows-only test")
-    def test_CreateApplicationSoftlinkAction_basic_symlink_windows_not_supported(self):
-
-        source_prefix = join(self.prefix, 'envs', '_green_')
-        mkdir_p(join(source_prefix, 'conda-meta'))
-        touch(join(source_prefix, 'conda-meta', 'history'))
-
-        test_file_1 = make_test_file(join(source_prefix, 'Scripts'), suffix='',
-                                     contents='echo red')
-        test_file_1 = test_file_1[len(source_prefix) + 1:]
-        assert check_output(shlex_split("sh -c '. \"%s\"'" % join(source_prefix, test_file_1))).strip() == b"red"
-
-        test_file_2 = make_test_file(join(source_prefix, 'Scripts'), suffix='.bat',
-                                     contents='@echo off\necho blue')
-        test_file_2 = test_file_2[len(source_prefix) + 1:]
-        assert check_output(shlex_split("cmd /C \"%s\"" % join(source_prefix, test_file_2))).strip() == b"blue"
-
-        package_info = AttrDict(
-            index_json_record=AttrDict(name="green_package"),
-            repodata_record=AttrDict(preferred_env="green"),
-            package_metadata=AttrDict(
-                preferred_env=AttrDict(
-                    softlink_paths=[
-                        test_file_1,
-                        test_file_2,
-                    ]
-                )
-            ),
-        )
-        target_full_path_1 = join(self.prefix, test_file_1)
-        target_full_path_2 = join(self.prefix, test_file_2)
-        mkdir_p(join(dirname(target_full_path_1)))
-
-        with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
-            softlink_supported_test_file = join(source_prefix, PREFIX_MAGIC_FILE)
-            from conda.gateways.disk.test import softlink_supported
-            softlink_actually_supported = softlink_supported(softlink_supported_test_file,
-                                                             context.root_prefix)
-
-            import conda.core.path_actions
-            with patch.object(conda.core.path_actions, "softlink_supported") as softlink_supported_mock:
-                softlink_supported_mock.return_value = False
-
-                from conda.core.path_actions import CreateApplicationSoftlinkAction
-                axns = CreateApplicationSoftlinkAction.create_actions({}, package_info,
-                                                                      source_prefix, None)
-                assert len(axns) == 2
-
-                axn = axns[0]
-                assert axn.target_full_path == target_full_path_1
-                assert axn.softlink_method == "softlink_or_fail_ok"
-                axn.verify()
-                axn.execute()
-                if softlink_actually_supported:
-                    assert islink(axn.target_full_path)
-                    assert check_output(shlex_split("sh -c '. \"%s\"'" % axn.target_full_path)).strip() == b"red"
-                else:
-                    assert not lexists(axn.target_full_path)
-                axn.reverse()
-                assert not lexists(axn.target_full_path)
-
-                axn = axns[1]
-                assert axn.target_full_path == target_full_path_2
-                assert axn.softlink_method == "fake_exe_softlink"
-                axn.verify()
-                axn.execute()
-                assert isfile(axn.target_full_path)
-                assert check_output(shlex_split("cmd /C \"%s\"" % axn.target_full_path)).strip() == b"blue"
-                axn.reverse()
-                assert not lexists(axn.target_full_path)
-
-    @pytest.mark.skipif(not on_win, reason="windows-only test")
-    def test_CreateApplicationSoftlinkAction_basic_symlink_windows_supported(self):
-        source_prefix = join(self.prefix, 'envs', '_green_')
-        mkdir_p(join(source_prefix, 'conda-meta'))
-        touch(join(source_prefix, 'conda-meta', 'history'))
-
-        test_file_1 = make_test_file(join(source_prefix, 'Scripts'), suffix='',
-                                     contents='echo red')
-        test_file_1 = test_file_1[len(source_prefix) + 1:]
-        assert check_output(shlex_split(
-            "sh -c '. \"%s\"'" % join(source_prefix, test_file_1))).strip() == b"red"
-
-        test_file_2 = make_test_file(join(source_prefix, 'Scripts'), suffix='.bat',
-                                     contents='@echo off\necho blue')
-        test_file_2 = test_file_2[len(source_prefix) + 1:]
-        assert check_output(shlex_split("cmd /C \"%s\"" % join(source_prefix, test_file_2))).strip() == b"blue"
-
-        package_info = AttrDict(
-            index_json_record=AttrDict(name="green_package"),
-            repodata_record=AttrDict(preferred_env="green"),
-            package_metadata=AttrDict(
-                preferred_env=AttrDict(
-                    softlink_paths=[
-                        test_file_1,
-                        test_file_2,
-                    ]
-                )
-            ),
-        )
-        target_full_path_1 = join(self.prefix, test_file_1)
-        target_full_path_2 = join(self.prefix, test_file_2)
-        mkdir_p(join(dirname(target_full_path_1)))
-
-        with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
-            softlink_supported_test_file = join(source_prefix, PREFIX_MAGIC_FILE)
-            from conda.gateways.disk.test import softlink_supported
-            softlink_actually_supported = softlink_supported(softlink_supported_test_file,
-                                                             context.root_prefix)
-
-            import conda.core.path_actions
-            with patch.object(conda.core.path_actions, "softlink_supported") as softlink_supported_mock:
-                softlink_supported_mock.return_value = True
-
-                CreateApplicationSoftlinkAction = conda.core.path_actions.CreateApplicationSoftlinkAction
-                axns = CreateApplicationSoftlinkAction.create_actions({}, package_info,
-                                                                      source_prefix, None)
-                assert len(axns) == 2
-
-                axn = axns[0]
-                assert axn.target_full_path == target_full_path_1
-                assert axn.softlink_method == "softlink"
-                axn.verify()
-                if softlink_actually_supported:
-                    axn.execute()
-                    assert islink(axn.target_full_path)
-                    assert check_output(shlex_split("sh -c '. \"%s\"'" % axn.target_full_path)).strip() == b"red"
-                else:
-                    with pytest.raises(AssertionError):
-                        axn.execute()
-                axn.reverse()
-                assert not lexists(axn.target_full_path)
-
-                axn = axns[1]
-                assert axn.target_full_path == target_full_path_2
-                assert axn.softlink_method == "softlink"
-                axn.verify()
-                if softlink_actually_supported:
-                    axn.execute()
-                    assert isfile(axn.target_full_path)
-                    assert check_output(shlex_split("cmd /C \"%s\"" % axn.target_full_path)).strip() == b"blue"
-                else:
-                    with pytest.raises(AssertionError):
-                        axn.execute()
-                axn.reverse()
-                assert not lexists(axn.target_full_path)
+    # @pytest.mark.skipif(not on_win, reason="windows-only test")
+    # def test_CreateApplicationSoftlinkAction_basic_symlink_windows_supported(self):
+    #     source_prefix = join(self.prefix, 'envs', '_green_')
+    #     mkdir_p(join(source_prefix, 'conda-meta'))
+    #     touch(join(source_prefix, 'conda-meta', 'history'))
+    #
+    #     test_file_1 = make_test_file(join(source_prefix, 'Scripts'), suffix='',
+    #                                  contents='echo red')
+    #     test_file_1 = test_file_1[len(source_prefix) + 1:]
+    #     assert check_output(shlex_split(
+    #         "sh -c '. \"%s\"'" % join(source_prefix, test_file_1))).strip() == b"red"
+    #
+    #     test_file_2 = make_test_file(join(source_prefix, 'Scripts'), suffix='.bat',
+    #                                  contents='@echo off\necho blue')
+    #     test_file_2 = test_file_2[len(source_prefix) + 1:]
+    #     assert check_output(shlex_split("cmd /C \"%s\"" % join(source_prefix, test_file_2))).strip() == b"blue"
+    #
+    #     package_info = AttrDict(
+    #         index_json_record=AttrDict(name="green_package"),
+    #         repodata_record=AttrDict(preferred_env="green"),
+    #         package_metadata=AttrDict(
+    #             preferred_env=AttrDict(
+    #                 softlink_paths=[
+    #                     test_file_1,
+    #                     test_file_2,
+    #                 ]
+    #             )
+    #         ),
+    #     )
+    #     target_full_path_1 = join(self.prefix, test_file_1)
+    #     target_full_path_2 = join(self.prefix, test_file_2)
+    #     mkdir_p(join(dirname(target_full_path_1)))
+    #
+    #     with env_var("CONDA_ROOT_PREFIX", self.prefix, reset_context):
+    #         softlink_supported_test_file = join(source_prefix, PREFIX_MAGIC_FILE)
+    #         from conda.gateways.disk.test import softlink_supported
+    #         softlink_actually_supported = softlink_supported(softlink_supported_test_file,
+    #                                                          context.root_prefix)
+    #
+    #         import conda.core.path_actions
+    #         with patch.object(conda.core.path_actions, "softlink_supported") as softlink_supported_mock:
+    #             softlink_supported_mock.return_value = True
+    #
+    #             CreateApplicationSoftlinkAction = conda.core.path_actions.CreateApplicationSoftlinkAction
+    #             axns = CreateApplicationSoftlinkAction.create_actions({}, package_info,
+    #                                                                   source_prefix, None)
+    #             assert len(axns) == 2
+    #
+    #             axn = axns[0]
+    #             assert axn.target_full_path == target_full_path_1
+    #             assert axn.softlink_method == "softlink"
+    #             axn.verify()
+    #             if softlink_actually_supported:
+    #                 axn.execute()
+    #                 assert islink(axn.target_full_path)
+    #                 assert check_output(shlex_split("sh -c '. \"%s\"'" % axn.target_full_path)).strip() == b"red"
+    #             else:
+    #                 with pytest.raises(AssertionError):
+    #                     axn.execute()
+    #             axn.reverse()
+    #             assert not lexists(axn.target_full_path)
+    #
+    #             axn = axns[1]
+    #             assert axn.target_full_path == target_full_path_2
+    #             assert axn.softlink_method == "softlink"
+    #             axn.verify()
+    #             if softlink_actually_supported:
+    #                 axn.execute()
+    #                 assert isfile(axn.target_full_path)
+    #                 assert check_output(shlex_split("cmd /C \"%s\"" % axn.target_full_path)).strip() == b"blue"
+    #             else:
+    #                 with pytest.raises(AssertionError):
+    #                     axn.execute()
+    #             axn.reverse()
+    #             assert not lexists(axn.target_full_path)

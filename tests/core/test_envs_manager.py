@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
+
 from logging import getLogger
+from os.path import isdir, join, lexists
 from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-from os.path import join, isdir, lexists
-
-from conda import CondaError
-
-from conda.base.context import reset_context, context
-
-from conda.common.io import env_var
 import pytest
 
+from conda import CondaError
+from conda.base.constants import ROOT_ENV_NAME
+from conda.base.context import context, reset_context
+from conda.common.io import env_var
 from conda.common.path import ensure_pad
 from conda.core.envs_manager import EnvsDirectory
 from conda.gateways.disk import mkdir_p
@@ -94,7 +93,7 @@ class EnvsManagerUnitTests(TestCase):
         ed.register_env(root_location)  # should be completely idempotent
 
         assert ed.get_registered_env_by_location(root_location) == {
-            'name': 'root',
+            'name': ROOT_ENV_NAME,
             'location': root_location,
         } == ed.get_registered_env_by_name('root')
 
@@ -106,75 +105,75 @@ class EnvsManagerUnitTests(TestCase):
         assert ed.get_registered_env_by_location(root_location) is None
         assert ed.get_registered_env_by_name('root') is None
 
-    def test_leased_paths(self):
-        with env_var('CONDA_ROOT_PREFIX', self.prefix, reset_context):
-            alamos_env = EnvsDirectory.preferred_env_to_prefix('alamos')
-            lpe_1 = LeasedPathEntry(
-                _path='bin/alamos',
-                target_path=join(alamos_env, 'bin', 'alamos'),
-                target_prefix=alamos_env,
-                leased_path=join(context.root_prefix, 'bin', 'alamos'),
-                package_name='alamos',
-                leased_path_type=LeasedPathType.application_entry_point,
-            )
+    # def test_leased_paths(self):
+    #     with env_var('CONDA_ROOT_PREFIX', self.prefix, reset_context):
+    #         alamos_env = EnvsDirectory.preferred_env_to_prefix('alamos')
+    #         lpe_1 = LeasedPathEntry(
+    #             _path='bin/alamos',
+    #             target_path=join(alamos_env, 'bin', 'alamos'),
+    #             target_prefix=alamos_env,
+    #             leased_path=join(context.root_prefix, 'bin', 'alamos'),
+    #             package_name='alamos',
+    #             leased_path_type=LeasedPathType.application_entry_point,
+    #         )
+    #
+    #         ed = EnvsDirectory(join(context.root_prefix, 'envs'))
+    #         ed.add_leased_path(lpe_1)
+    #
+    #         with pytest.raises(CondaError):
+    #             ed.add_leased_path(lpe_1)
+    #
+    #         lpe_2 = LeasedPathEntry(
+    #             _path='bin/itsamalbec',
+    #             target_path=join(alamos_env, 'bin', 'itsamalbec'),
+    #             target_prefix=alamos_env,
+    #             leased_path=join(context.root_prefix, 'bin', 'itsamalbec'),
+    #             package_name='alamos',
+    #             leased_path_type=LeasedPathType.application_entry_point,
+    #         )
+    #         ed.add_leased_path(lpe_2)
+    #
+    #         assert len(ed.get_leased_path_entries_for_package('alamos')) == 2
+    #
+    #         assert ed.get_leased_path_entry('bin/itsamalbec') == lpe_2
+    #
+    #         ed.remove_leased_paths_for_package('alamos')
+    #
+    #         assert len(ed.get_leased_path_entries_for_package('alamos')) == 0
+    #         assert ed.get_leased_path_entry('bin/itsamalbec') is None
 
-            ed = EnvsDirectory(join(context.root_prefix, 'envs'))
-            ed.add_leased_path(lpe_1)
-
-            with pytest.raises(CondaError):
-                ed.add_leased_path(lpe_1)
-
-            lpe_2 = LeasedPathEntry(
-                _path='bin/itsamalbec',
-                target_path=join(alamos_env, 'bin', 'itsamalbec'),
-                target_prefix=alamos_env,
-                leased_path=join(context.root_prefix, 'bin', 'itsamalbec'),
-                package_name='alamos',
-                leased_path_type=LeasedPathType.application_entry_point,
-            )
-            ed.add_leased_path(lpe_2)
-
-            assert len(ed.get_leased_path_entries_for_package('alamos')) == 2
-
-            assert ed.get_leased_path_entry('bin/itsamalbec') == lpe_2
-
-            ed.remove_leased_paths_for_package('alamos')
-
-            assert len(ed.get_leased_path_entries_for_package('alamos')) == 0
-            assert ed.get_leased_path_entry('bin/itsamalbec') is None
-
-    def test_preferred_env_packages_too_simple(self):
-        with env_var('CONDA_ROOT_PREFIX', self.prefix, reset_context):
-            envs_dir = join(self.prefix, 'envs')
-            ed = EnvsDirectory(envs_dir)
-            assert ed.is_writable
-
-            preferred_env_name = "monster"
-            package_name = "monster-zero-ultra"
-            env_root = join(self.prefix, 'envs', ensure_pad(preferred_env_name))
-            conda_meta_path = join(env_root, 'conda-meta', "%s-1.2.3-4.json" % package_name)
-            requested_spec = "monster-zero-ultra 1.2.*"
-            ed.add_preferred_env_package(preferred_env_name, package_name, conda_meta_path,
-                                         requested_spec)
-
-            assert ed.get_registered_preferred_env(package_name) == ensure_pad(preferred_env_name)
-            assert len(ed.get_registered_packages()) == 1
-
-            assert ed.get_registered_packages_keyed_on_env_name() == {
-                ensure_pad(preferred_env_name): [{
-                    'package_name': package_name,
-                    'conda_meta_path': conda_meta_path,
-                    'preferred_env_name': ensure_pad(preferred_env_name),
-                    'requested_spec': requested_spec,
-                }],
-            }
-
-            assert ed.get_private_env_prefix(package_name) == env_root
-
-            assert ed.get_preferred_env_package_entry(package_name) == {
-                    'package_name': package_name,
-                    'conda_meta_path': conda_meta_path,
-                    'preferred_env_name': ensure_pad(preferred_env_name),
-                    'requested_spec': requested_spec,
-                }
+    # def test_preferred_env_packages_too_simple(self):
+    #     with env_var('CONDA_ROOT_PREFIX', self.prefix, reset_context):
+    #         envs_dir = join(self.prefix, 'envs')
+    #         ed = EnvsDirectory(envs_dir)
+    #         assert ed.is_writable
+    #
+    #         preferred_env_name = "monster"
+    #         package_name = "monster-zero-ultra"
+    #         env_root = join(self.prefix, 'envs', ensure_pad(preferred_env_name))
+    #         conda_meta_path = join(env_root, 'conda-meta', "%s-1.2.3-4.json" % package_name)
+    #         requested_spec = "monster-zero-ultra 1.2.*"
+    #         ed.add_preferred_env_package(preferred_env_name, package_name, conda_meta_path,
+    #                                      requested_spec)
+    #
+    #         assert ed.get_registered_preferred_env(package_name) == ensure_pad(preferred_env_name)
+    #         assert len(ed.get_registered_packages()) == 1
+    #
+    #         assert ed.get_registered_packages_keyed_on_env_name() == {
+    #             ensure_pad(preferred_env_name): [{
+    #                 'package_name': package_name,
+    #                 'conda_meta_path': conda_meta_path,
+    #                 'preferred_env_name': ensure_pad(preferred_env_name),
+    #                 'requested_spec': requested_spec,
+    #             }],
+    #         }
+    #
+    #         assert ed.get_private_env_prefix(package_name) == env_root
+    #
+    #         assert ed.get_preferred_env_package_entry(package_name) == {
+    #                 'package_name': package_name,
+    #                 'conda_meta_path': conda_meta_path,
+    #                 'preferred_env_name': ensure_pad(preferred_env_name),
+    #                 'requested_spec': requested_spec,
+    #             }
 

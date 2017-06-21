@@ -25,7 +25,9 @@ import conda.plan as plan
 from conda.utils import on_win
 from .decorators import skip_if_no_mock
 from .gateways.disk.test_permissions import tempdir
-from .helpers import captured, index, mock, r, tempdir
+from .helpers import captured, mock, tempdir, get_index_r_1
+
+index, r, = get_index_r_1()
 
 try:
     from unittest.mock import patch
@@ -858,50 +860,6 @@ class TestDeprecatedExecutePlan(unittest.TestCase):
         self.assertEqual(INSTRUCTION_CMD.arg, 'arg')
 
 
-class PlanFromActionsTests(unittest.TestCase):
-    py_ver = ''.join(str(x) for x in sys.version_info[:2])
-
-    def test_plan_link_menuinst(self):
-        menuinst = Dist('menuinst-1.4.2-py27_0')
-        menuinst_record = DPkg(menuinst)
-        ipython = Dist('ipython-5.1.0-py27_1')
-        ipython_record = DPkg(ipython)
-        actions = defaultdict(list)
-        actions.update({
-            'PREFIX': 'aprefix',
-            'LINK': [ipython, menuinst],
-        })
-
-        conda_plan = plan.plan_from_actions(actions, {
-            menuinst: menuinst_record,
-            ipython: ipython_record,
-        })
-
-        expected_plan = [
-            ('PREFIX', 'aprefix'),
-            ('PRINT', 'Linking packages ...'),
-            # ('PROGRESS', '2'),
-            ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract(index, (ipython, menuinst))),
-            ('UNLINKLINKTRANSACTION', ((), (ipython), menuinst)),
-        ]
-
-        if on_win:
-            # menuinst should be linked first
-            expected_plan = [
-                ('PREFIX', 'aprefix'),
-                ('PRINT', 'Linking packages ...'),
-                # ('PROGRESS', '1'),
-                ('PROGRESSIVEFETCHEXTRACT', ProgressiveFetchExtract(index, (menuinst, ipython))),
-                ('UNLINKLINKTRANSACTION', ((), (menuinst, ipython))),
-            ]
-
-            # last_two = expected_plan[-2:]
-            # expected_plan[-2:] = last_two[::-1]
-        assert expected_plan[0] == conda_plan[0]
-        assert expected_plan[1] == conda_plan[1]
-        # assert expected_plan[2] == conda_plan[2]  fails, but probably isn't relevant anymore
-
-
 def generate_mocked_resolve(pkgs, install=None):
     mock_package = namedtuple("IndexRecord",
                               ["preferred_env", "name", "schannel", "version", "fn"])
@@ -1292,7 +1250,7 @@ def test_pinned_specs():
     # Test pinned specs environment variable
     specs_str_1 = ("numpy 1.11", "python >3")
     specs_1 = tuple(MatchSpec(spec_str, optional=True) for spec_str in specs_str_1)
-    with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_str_1), reset_context):
+    with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_1), reset_context):
         pinned_specs = get_pinned_specs("/none")
         assert pinned_specs == specs_1
         assert pinned_specs != specs_str_1
@@ -1319,7 +1277,7 @@ def test_pinned_specs():
 
         with env_var('CONDA_PREFIX', td, reset_context):
             run_command(Commands.CONFIG, "--env --add pinned_packages requests=2.13")
-            with env_var('CONDA_PINNED_PACKAGES', '/'.join(specs_str_2), reset_context):
+            with env_var('CONDA_PINNED_PACKAGES', '&'.join(specs_str_2), reset_context):
                 pinned_specs = get_pinned_specs(td)
                 expected = specs_2 + (MatchSpec("requests 2.13.*", optional=True),) + specs_1
                 assert pinned_specs == expected

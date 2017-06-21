@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from contextlib import contextmanager
 from functools import partial
 from os import listdir
 from os.path import basename, isdir, isfile, join
@@ -31,9 +30,9 @@ def ensure_override_channels_requires_channel(args, dashc=True):
                                   'or --use-local')
 
 
-def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
+def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
-    if args.dry_run:
+    if context.dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
 
@@ -61,14 +60,14 @@ def confirm(args, message="Proceed", choices=('yes', 'no'), default='yes'):
             return choices[user_choice]
 
 
-def confirm_yn(args, message="Proceed", default='yes'):
-    if args.dry_run:
+def confirm_yn(message="Proceed", default='yes'):
+    if context.dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
     if context.always_yes:
         return True
     try:
-        choice = confirm(args, message=message, choices=('yes', 'no'),
+        choice = confirm(message=message, choices=('yes', 'no'),
                          default=default)
     except KeyboardInterrupt as e:  # pragma: no cover
         from ..exceptions import CondaSystemExit
@@ -180,16 +179,6 @@ def stdout_json(d):
     from .._vendor.auxlib.entity import EntityEncoder
     json.dump(d, sys.stdout, indent=2, sort_keys=True, cls=EntityEncoder)
     sys.stdout.write('\n')
-
-
-@contextmanager
-def json_progress_bars(json=False):
-    if json:
-        from ..console import json_progress_bars
-        with json_progress_bars():
-            yield
-    else:
-        yield
 
 
 def stdout_json_success(success=True, **kwargs):

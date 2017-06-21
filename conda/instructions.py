@@ -119,10 +119,6 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):
     if _commands is None:
         _commands = commands
 
-    if verbose:
-        from .console import setup_verbose_handlers
-        setup_verbose_handlers()
-
     log.debug("executing plan %s", plan)
 
     state = {'i': None, 'prefix': context.root_prefix, 'index': index}

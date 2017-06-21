@@ -265,6 +265,13 @@ class Activator(object):
     def build_deactivate(self):
         # query environment
         old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))
+        if old_conda_shlvl <= 0:
+            return {
+                'unset_vars': (),
+                'set_vars': {},
+                'deactivate_scripts': (),
+                'activate_scripts': (),
+            }
         old_conda_prefix = os.environ['CONDA_PREFIX']
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
@@ -310,8 +317,16 @@ class Activator(object):
         }
 
     def build_reactivate(self):
-        conda_prefix = os.environ['CONDA_PREFIX']
-        conda_shlvl = int(os.environ.get('CONDA_SHLVL', 1))
+        conda_prefix = os.environ.get('CONDA_PREFIX')
+        conda_shlvl = int(os.environ.get('CONDA_SHLVL', -1))
+        if not conda_prefix or conda_shlvl < 1:
+            # no active environment, so cannot reactivate; do nothing
+            return {
+                'unset_vars': (),
+                'set_vars': {},
+                'deactivate_scripts': (),
+                'activate_scripts': (),
+            }
         conda_default_env = os.environ.get('CONDA_DEFAULT_ENV', self._default_env(conda_prefix))
         # environment variables are set only to aid transition from conda 4.3 to conda 4.4
         return {
@@ -384,7 +399,7 @@ class Activator(object):
 
     def _default_env(self, prefix):
         if prefix == self.context.root_prefix:
-            return 'root'
+            return 'base'
         return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
 
     def _prompt_modifier(self, conda_default_env):

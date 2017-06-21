@@ -85,6 +85,9 @@ class PrefixData(object):
             else:
                 raise
 
+    def iter_records(self):
+        return itervalues(self._prefix_records)
+
     @property
     def _prefix_records(self):
         return self.__prefix_records or self.load() or self.__prefix_records

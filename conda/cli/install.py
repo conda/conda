@@ -15,18 +15,17 @@ from . import common
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import on_win, text_type
+from ..common.compat import text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_index
 from ..core.linked_data import linked as install_linked
-from ..core.solve import get_install_transaction, get_pinned_specs
+from ..core.solve import Solver, get_pinned_specs
 from ..exceptions import (CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotFoundError, DryRunExit,
                           EnvironmentLocationNotFound, NoPackagesFoundError, PackageNotFoundError,
                           PackageNotInstalledError, TooManyArgumentsError,
                           UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
-from ..models.channel import prioritize_channels
 from ..plan import revert_actions
 
 log = getLogger(__name__)
@@ -64,11 +63,10 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         print("Source:      %s" % src_prefix)
         print("Destination: %s" % dst_prefix)
 
-    with common.json_progress_bars(json=json and not quiet):
-        actions, untracked_files = clone_env(src_prefix, dst_prefix,
-                                             verbose=not json,
-                                             quiet=quiet,
-                                             index_args=index_args)
+    actions, untracked_files = clone_env(src_prefix, dst_prefix,
+                                         verbose=not json,
+                                         quiet=quiet,
+                                         index_args=index_args)
 
     if json:
         common.stdout_json_success(
@@ -79,43 +77,19 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         )
 
 
-def print_activate(arg):  # pragma: no cover
-    if on_win:
+def print_activate(env_name_or_prefix):  # pragma: no cover
+    if not context.quiet and not context.json:
         message = dals("""
-        #
-        # To activate this environment, use:
-        # > activate %s
-        #
-        # To deactivate an active environment, use:
-        # > deactivate
-        #
-        # * for power-users using bash, you must source
-        #
-        """)
-    else:
-        shell = os.path.split(os.environ.get('SHELL', ''))[-1]
-        if 'fish' == shell:
-            message = dals("""
-            #
-            # To activate this environment, use:
-            # > conda activate %s
-            #
-            # To deactivate an active environment, use:
-            # > conda deactivate
-            #
-            """)
-        else:
-            message = dals("""
-            #
-            # To activate this environment, use:
-            # > source activate %s
-            #
-            # To deactivate an active environment, use:
-            # > source deactivate
-            #
-            """)
 
-    return message % arg
+        To activate this environment, use
+
+            $ conda activate %s
+
+        To deactivate an active environment, use
+
+            $ conda deactivate
+        """) % env_name_or_prefix
+        print(message)  # TODO: use logger
 
 
 def get_revision(arg, json=False):
@@ -218,23 +192,8 @@ def install(args, parser, command='install'):
         clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
         append_env(prefix)
         touch_nonadmin(prefix)
-        if not context.json and not context.quiet:
-            print(print_activate(args.name if args.name else prefix))
+        print_activate(args.name if args.name else prefix)
         return
-
-    index = get_index(channel_urls=index_args['channel_urls'],
-                      prepend=index_args['prepend'], platform=None,
-                      use_local=index_args['use_local'], use_cache=index_args['use_cache'],
-                      unknown=index_args['unknown'], prefix=prefix)
-    ospecs = list(specs)
-
-    if args.force:
-        args.no_deps = True
-
-    if args.no_deps:
-        only_names = set(s.split()[0] for s in ospecs)
-    else:
-        only_names = None
 
     if not isdir(prefix) and not newenv:
         if args.mkdir:
@@ -245,19 +204,22 @@ def install(args, parser, command='install'):
         else:
             raise EnvironmentLocationNotFound(prefix)
 
+    index = {}
     try:
         if isinstall and args.revision:
+            index = get_index(channel_urls=index_args['channel_urls'],
+                              prepend=index_args['prepend'], platform=None,
+                              use_local=index_args['use_local'], use_cache=index_args['use_cache'],
+                              unknown=index_args['unknown'], prefix=prefix)
             unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
             progressive_fetch_extract = unlink_link_transaction.get_pfe()
         else:
-            with common.json_progress_bars(json=context.json and not context.quiet):
-                _channel_priority_map = prioritize_channels(index_args['channel_urls'])
-                unlink_link_transaction = get_install_transaction(
-                    prefix, index, specs, force=args.force, only_names=only_names,
-                    pinned=context.respect_pinned, always_copy=context.always_copy,
-                    update_deps=context.update_dependencies,
-                    channel_priority_map=_channel_priority_map, is_update=isupdate)
-                progressive_fetch_extract = unlink_link_transaction.get_pfe()
+            solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
+            index, _ = solver._prepare()
+            unlink_link_transaction = solver.solve_for_transaction(
+                force_reinstall=context.force,
+            )
+            progressive_fetch_extract = unlink_link_transaction.get_pfe()
     except NoPackagesFoundError as e:
         error_message = [e.args[0]]
 
@@ -320,36 +282,43 @@ def install(args, parser, command='install'):
             raise CondaImportError(text_type(e))
         raise
 
-    if unlink_link_transaction.nothing_to_do and not newenv:
-        if context.json:
-            common.stdout_json_success(message='All requested packages already installed.')
-        else:
-            print('\n# All requested packages already installed.\n')
-        return
+    handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args, newenv)
+
+
+def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args, newenv,
+               remove_op=False):
+    if unlink_link_transaction.nothing_to_do:
+        if remove_op:
+            error_message = "No packages found to remove from environment."
+            raise PackageNotFoundError(error_message)
+        elif not newenv:
+            if context.json:
+                common.stdout_json_success(message='All requested packages already installed.')
+            else:
+                print('\n# All requested packages already installed.\n')
+            return
 
     if not context.json:
         unlink_link_transaction.display_actions(progressive_fetch_extract)
-        common.confirm_yn(args)
+        common.confirm_yn()
 
-    elif args.dry_run:
+    elif context.dry_run:
         common.stdout_json_success(unlink_link_transaction=unlink_link_transaction, prefix=prefix,
                                    dry_run=True)
         raise DryRunExit()
 
-    with common.json_progress_bars(json=context.json and not context.quiet):
-        try:
-            progressive_fetch_extract.execute()
-            unlink_link_transaction.execute()
-            # execute_actions(actions, index, verbose=not context.quiet)
+    try:
+        progressive_fetch_extract.execute()
+        unlink_link_transaction.execute()
+        # execute_actions(actions, index, verbose=not context.quiet)
 
-        except SystemExit as e:
-            raise CondaSystemExit('Exiting', e)
+    except SystemExit as e:
+        raise CondaSystemExit('Exiting', e)
 
     if newenv:
         append_env(prefix)
         touch_nonadmin(prefix)
-        if not context.json:
-            print(print_activate(args.name if args.name else prefix))
+        print_activate(args.name if args.name else prefix)
 
     if context.json:
         actions = unlink_link_transaction.make_legacy_action_groups(progressive_fetch_extract)[0]

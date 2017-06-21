@@ -7,6 +7,33 @@ from collections import Mapping, Set
 from .compat import isiterable, iteritems, odict, text_type
 
 
+class _Null(object):
+    """
+    Examples:
+        >>> len(_Null())
+        0
+        >>> bool(_Null())
+        False
+        >>> _Null().__nonzero__()
+        False
+    """
+    def __nonzero__(self):
+        return self.__bool__()
+
+    def __bool__(self):
+        return False
+
+    def __len__(self):
+        return 0
+
+
+# Use this NULL object when needing to distinguish a value from None
+# For example, when parsing json, you may need to determine if a json key was given and set
+#   to null, or the key didn't exist at all.  There could be a bit of potential confusion here,
+#   because in python null == None, while here I'm defining NULL to mean 'not defined'.
+NULL = _Null()
+
+
 def make_immutable(value):
     # this function is recursive, and if nested data structures fold back on themselves,
     #   there will likely be recursion errors

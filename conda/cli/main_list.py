@@ -135,7 +135,7 @@ def list_packages(prefix, installed, regex=None, format='human',
         try:
             # Returns None if no meta-file found (e.g. pip install)
             info = is_linked(prefix, dist)
-            features = set(info.get('features', ()))
+            features = set(info.get('features') or ())
             disp = '%(name)-25s %(version)-15s %(build)15s' % info
             disp += '  %s' % disp_features(features)
             schannel = info.get('schannel')

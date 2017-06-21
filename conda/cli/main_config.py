@@ -19,6 +19,7 @@ from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, iteritems, string_types, text_type
 from ..common.constants import NULL
+from ..common.io import timeout
 
 descr = """
 Modify configuration values in .condarc.  This is modeled after the git
@@ -409,13 +410,15 @@ def execute_config(args, parser):
                         print("--add", key, repr(item))
 
     if args.stdin:
-        content = sys.stdin.read()
+        content = timeout(5, sys.stdin.read)
+        if not content:
+            return
         try:
             parsed = yaml_load(content)
+            rc_config.update(parsed)
         except Exception:  # pragma: no cover
             from ..exceptions import ParseError
             raise ParseError("invalid yaml content:\n%s" % content)
-        rc_config.update(parsed)
 
     # prepend, append, add
     for arg, prepend in zip((args.prepend, args.append), (True, False)):

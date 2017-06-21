@@ -2,16 +2,21 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from contextlib import contextmanager
+from itertools import cycle
 import logging
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
+import signal
 import sys
+from threading import Event, Thread
+from time import sleep
 
 from enum import Enum
 
-from .compat import StringIO, iteritems
+from .compat import StringIO, iteritems, on_win
 from .constants import NULL
 from .._vendor.auxlib.logz import NullHandler
+from .._vendor.tqdm import tqdm
 
 log = getLogger(__name__)
 
@@ -89,6 +94,19 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
     """
     # NOTE: This function is not thread-safe.  Using within multi-threading may cause spurious
     # behavior of not returning sys.stdout and sys.stderr back to their 'proper' state
+    # """
+    # Context manager to capture the printed output of the code in the with block
+    #
+    # Bind the context manager to a variable using `as` and the result will be
+    # in the stdout property.
+    #
+    # >>> from conda.common.io import captured
+    # >>> with captured() as c:
+    # ...     print('hello world!')
+    # ...
+    # >>> c.stdout
+    # 'hello world!\n'
+    # """
     class CapturedText(object):
         pass
     saved_stdout, saved_stderr = sys.stdout, sys.stderr
@@ -126,22 +144,6 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
 
 
 @contextmanager
-def replace_log_streams():
-    # replace the logger stream handlers with stdout and stderr handlers
-    stdout_logger, stderr_logger = getLogger('stdout'), getLogger('stderr')
-    saved_stdout_strm = stdout_logger.handlers[0].stream
-    saved_stderr_strm = stderr_logger.handlers[0].stream
-    stdout_logger.handlers[0].stream = sys.stdout
-    stderr_logger.handlers[0].stream = sys.stderr
-    try:
-        yield
-    finally:
-        # replace the original streams
-        stdout_logger.handlers[0].stream = saved_stdout_strm
-        stderr_logger.handlers[0].stream = saved_stderr_strm
-
-
-@contextmanager
 def argv(args_list):
     saved_args = sys.argv
     sys.argv = args_list
@@ -163,16 +165,18 @@ def _logger_lock():
 @contextmanager
 def disable_logger(logger_name):
     logr = getLogger(logger_name)
-    _hndlrs, _lvl, _dsbld, _prpgt = logr.handlers, logr.level, logr.disabled, logr.propagate
+    _lvl, _dsbld, _prpgt = logr.level, logr.disabled, logr.propagate
+    null_handler = NullHandler()
     with _logger_lock():
-        logr.addHandler(NullHandler())
+        logr.addHandler(null_handler)
         logr.setLevel(CRITICAL + 1)
         logr.disabled, logr.propagate = True, False
     try:
         yield
     finally:
         with _logger_lock():
-            logr.handlers, logr.level, logr.disabled = _hndlrs, _lvl, _dsbld
+            logr.removeHandler(null_handler)  # restore list logr.handlers
+            logr.level, logr.disabled = _lvl, _dsbld
             logr.propagate = _prpgt
 
 
@@ -216,3 +220,155 @@ def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatt
         logr.addHandler(new_stderr_handler)
         logr.setLevel(level)
         logr.propagate = propagate
+
+
+def timeout(timeout_secs, func, *args, **kwargs):
+    """Enforce a maximum time for a callable to complete.
+    Not yet implemented on Windows.
+    """
+    default_return = kwargs.pop('default_return', None)
+    if on_win:
+        # Why does Windows have to be so difficult all the time? Kind of gets old.
+        # Guess we'll bypass Windows timeouts for now.
+        try:
+            return func(*args, **kwargs)
+        except KeyboardInterrupt:  # pragma: no cover
+            return default_return
+    else:
+        class TimeoutException(Exception):
+            pass
+
+        def interrupt(signum, frame):
+            raise TimeoutException()
+
+        signal.signal(signal.SIGALRM, interrupt)
+        signal.alarm(timeout_secs)
+
+        try:
+            ret = func(*args, **kwargs)
+            signal.alarm(0)
+            return ret
+        except (TimeoutException,  KeyboardInterrupt):  # pragma: no cover
+            return default_return
+
+
+class Spinner(object):
+    # spinner_cycle = cycle("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
+    spinner_cycle = cycle('/-\\|')
+
+    def __init__(self):
+        self._stop_running = Event()
+        self._spinner_thread = Thread(target=self._start_spinning)
+        self._indicator_length = len(next(self.spinner_cycle)) + 1
+        self.fh = sys.stdout
+        self.show_spin = hasattr(self.fh, "isatty") and self.fh.isatty()
+
+    def start(self):
+        if self.show_spin:
+            self._spinner_thread.start()
+        else:
+            self.fh.write("...working... ")
+
+    def stop(self):
+        if self.show_spin:
+            self._stop_running.set()
+            self._spinner_thread.join()
+
+    def _start_spinning(self):
+        while not self._stop_running.is_set():
+            self.fh.write(next(self.spinner_cycle) + ' ')
+            self.fh.flush()
+            sleep(0.10)
+            self.fh.write('\b' * self._indicator_length)
+
+
+@contextmanager
+def spinner(message=None, enabled=True, json=False):
+    """
+    Args:
+        message (str, optional):
+            An optional message to prefix the spinner with.
+            If given, ': ' are automatically added.
+        enabled (bool):
+            If False, usage is a no-op.
+        json (bool):
+           If True, will not output non-json to stdout.
+
+    """
+    if not enabled:
+        yield
+    else:
+        sp = Spinner()
+        exception_raised = False
+        try:
+            if message:
+                if json:
+                    pass
+                else:
+                    sys.stdout.write("%s: " % message)
+            if not json:
+                sp.start()
+            yield
+        except:
+            exception_raised = True
+            raise
+        finally:
+            if not json:
+                sp.stop()
+            if message:
+                if json:
+                    pass
+                else:
+                    if exception_raised:
+                        sys.stdout.write("failed\n")
+                    else:
+                        sys.stdout.write("done\n")
+
+
+class ProgressBar(object):
+
+    def __init__(self, description, enabled=True, json=False):
+        """
+        Args:
+            description (str):
+                The name of the progress bar, shown on left side of output.
+            enabled (bool):
+                If False, usage is a no-op.
+            json (bool):
+                If true, outputs json progress to stdout rather than a progress bar.
+                Currently, the json format assumes this is only used for "fetch", which
+                maintains backward compatibility with conda 4.3 and earlier behavior.
+        """
+        self.description = description
+        self.enabled = enabled
+        self.json = json
+
+        if json:
+            pass
+        elif enabled:
+            bar_format = "{desc}{bar} | {percentage:3.0f}% "
+            self.pbar = tqdm(desc=description, bar_format=bar_format, total=1)
+
+    def update_to(self, fraction):
+        if self.json:
+            sys.stdout.write('{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
+                             % (self.description, fraction))
+        elif self.enabled:
+            self.pbar.update(fraction - self.pbar.n)
+
+    def finish(self):
+        self.update_to(1)
+
+    def close(self):
+        if self.json:
+            sys.stdout.write('{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
+                             % self.description)
+            sys.stdout.flush()
+        elif self.enabled:
+            self.pbar.close()
+        self.enabled = False
+
+
+if __name__ == "__main__":
+    with spinner("status"):
+        sleep(6)

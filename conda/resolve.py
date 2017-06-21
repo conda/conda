@@ -8,17 +8,14 @@ from .base.context import context
 from .common.compat import isiterable, iteritems, iterkeys, itervalues, string_types, text_type
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
-from .console import setup_handlers
 from .exceptions import NoPackagesFoundError, UnsatisfiableError
 from .models.dist import Dist
 from .models.match_spec import MatchSpec
 from .models.version import normalized_version
 
 log = logging.getLogger(__name__)
-dotlog = logging.getLogger('dotupdate')
 stdoutlog = logging.getLogger('stdoutlog')
 stderrlog = logging.getLogger('stderrlog')
-setup_handlers()
 
 
 # used in conda build
@@ -40,7 +37,7 @@ class Resolve(object):
 
         for dist, info in iteritems(index):
             groups.setdefault(info['name'], []).append(dist)
-            for feat in info.get('track_features', '').split():
+            for feat in info.get('track_features') or ():
                 trackers.setdefault(feat, []).append(dist)
 
         self.groups = groups  # Dict[package_name, List[Dist]]
@@ -395,14 +392,14 @@ class Resolve(object):
                 (valid, ver, -cpri, bld, bs, ts))
 
     def features(self, dist):
-        _features = self.index[dist].get('features', ())
+        _features = self.index[dist].get('features') or ()
         if isinstance(_features, string_types):
             _features = _features.split()
         assert isiterable(_features)
         return set(_features)
 
     def track_features(self, dist):
-        return set(self.index[dist].get('track_features', '').split())
+        return set(self.index[dist].get('track_features') or ())
 
     def package_quad(self, dist):
         rec = self.index.get(dist, None)
@@ -415,9 +412,6 @@ class Resolve(object):
 
     def package_name(self, dist):
         return self.package_quad(dist)[0]
-
-    def is_superceded(self, dist):
-        return dist in self.index or self.index.get('superceded', '')
 
     def get_pkgs(self, ms, emptyok=False):
         # legacy method for conda-build
@@ -617,6 +611,42 @@ class Resolve(object):
         log.debug('explicit(%r) finished', specs)
         return res
 
+    def environment_is_consistent(self, installed):
+        log.debug('Checking if the current environment is consistent')
+        if not installed:
+            return None, []
+        dists = {}  # Dict[Dist, Record]
+        specs = []
+        for dist in installed:
+            dist = Dist(dist)
+            rec = self.index[dist]
+            dists[dist] = rec
+            specs.append(MatchSpec(' '.join(self.package_quad(dist)[:3])))
+        r2 = Resolve(dists, True, True)
+        C = r2.gen_clauses()
+        constraints = r2.generate_spec_constraints(C, specs)
+        solution = C.sat(constraints)
+        return bool(solution)
+
+    def get_conflicting_specs(self, specs):
+        if not specs:
+            return ()
+        reduced_index = self.get_reduced_index(specs)
+
+        # Check if satisfiable
+        def mysat(specs, add_if=False):
+            constraints = r2.generate_spec_constraints(C, specs)
+            return C.sat(constraints, add_if)
+
+        r2 = Resolve(reduced_index, True, True)
+        C = r2.gen_clauses()
+        solution = mysat(specs, True)
+        if solution:
+            return ()
+        else:
+            specs = minimal_unsatisfiable_subset(specs, sat=mysat)
+            return specs
+
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')
         if not installed:
@@ -735,7 +765,8 @@ class Resolve(object):
     def solve(self, specs, returnall=False, _remove=False):
         # type: (List[str], bool) -> List[Dist]
         try:
-            stdoutlog.info("Solving package specifications: ")
+            if not context.json:
+                stdoutlog.info("Solving package specifications: ")
             log.debug("Solving for %s", specs)
 
             # Find the compliant packages
@@ -750,7 +781,6 @@ class Resolve(object):
                 constraints = r2.generate_spec_constraints(C, specs)
                 return C.sat(constraints, add_if)
 
-            dotlog.debug('Checking satisfiability')
             r2 = Resolve(reduced_index, True, True)
             C = r2.gen_clauses()
             solution = mysat(specs, True)
@@ -845,16 +875,18 @@ class Resolve(object):
                 psols2 = list(map(set, psolutions))
                 common = set.intersection(*psols2)
                 diffs = [sorted(set(sol) - common) for sol in psols2]
-                stdoutlog.info(
-                    '\nWarning: %s possible package resolutions '
-                    '(only showing differing packages):%s%s' %
-                    ('>10' if nsol > 10 else nsol,
-                     dashlist(', '.join(diff) for diff in diffs),
-                     '\n  ... and others' if nsol > 10 else ''))
+                if not context.json:
+                    stdoutlog.info(
+                        '\nWarning: %s possible package resolutions '
+                        '(only showing differing packages):%s%s' %
+                        ('>10' if nsol > 10 else nsol,
+                         dashlist(', '.join(diff) for diff in diffs),
+                         '\n  ... and others' if nsol > 10 else ''))
 
             def stripfeat(sol):
                 return sol.split('[')[0]
-            stdoutlog.info('\n')
+            if not context.json:
+                stdoutlog.info('\n')
 
             if returnall:
                 return [sorted(Dist(stripfeat(dname)) for dname in psol) for psol in psolutions]
@@ -862,5 +894,6 @@ class Resolve(object):
                 return sorted(Dist(stripfeat(dname)) for dname in psolutions[0])
 
         except:
-            stdoutlog.info('\n')
+            if not context.json:
+                stdoutlog.info('\n')
             raise

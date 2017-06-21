@@ -9,7 +9,8 @@ from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
+                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME,
+                        SEARCH_PATH)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -90,7 +91,7 @@ class Context(Configuration):
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
-    concurrent = PrimitiveParameter(False)
+    concurrent = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     default_python = PrimitiveParameter('%d.%d' % sys.version_info[:2],
                                         element_type=string_types + (NoneType,))
@@ -99,11 +100,12 @@ class Context(Configuration):
     force_32bit = PrimitiveParameter(False)
     max_shlvl = PrimitiveParameter(2)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
-    pinned_packages = SequenceParameter(string_types, string_delimiter='/')  # TODO: consider a different string delimiter  # NOQA
+    pinned_packages = SequenceParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
     skip_safety_checks = PrimitiveParameter(False)
+    use_index_cache = PrimitiveParameter(False)
 
     _root_prefix = PrimitiveParameter("", aliases=('root_dir', 'root_prefix'))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
@@ -147,15 +149,15 @@ class Context(Configuration):
     migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
     _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
 
-    # command line
     default_python = PrimitiveParameter(default_python_default(),
                                         validation=default_python_validation)
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
-    always_yes = PrimitiveParameter(False, aliases=('yes',))
+    always_yes = PrimitiveParameter(None, aliases=('yes',), element_type=(bool, NoneType))
     channel_priority = PrimitiveParameter(True)
     debug = PrimitiveParameter(False)
     dry_run = PrimitiveParameter(False)
+    error_upload_url = PrimitiveParameter(ERROR_UPLOAD_URL)
     force = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
     no_dependencies = PrimitiveParameter(False, aliases=('no_deps',))
@@ -163,11 +165,12 @@ class Context(Configuration):
     only_dependencies = PrimitiveParameter(False, aliases=('only_deps',))
     quiet = PrimitiveParameter(False)
     prune = PrimitiveParameter(False)
-    respect_pinned = PrimitiveParameter(True)
+    ignore_pinned = PrimitiveParameter(False)
+    report_errors = PrimitiveParameter(None, element_type=(bool, NoneType))
     shortcuts = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
-    update_dependencies = PrimitiveParameter(True, aliases=('update_deps',))
-    verbosity = PrimitiveParameter(0, aliases=('verbose',), element_type=int)
+    update_dependencies = PrimitiveParameter(False, aliases=('update_deps',))
+    _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
 
     # conda_build
     bld_path = PrimitiveParameter('')
@@ -350,7 +353,7 @@ class Context(Configuration):
     @property
     def default_prefix(self):
         _default_env = os.getenv('CONDA_DEFAULT_ENV')
-        if _default_env in (None, ROOT_ENV_NAME):
+        if _default_env in (None, ROOT_ENV_NAME, 'root'):
             return self.root_prefix
         elif os.sep in _default_env:
             return abspath(_default_env)
@@ -360,6 +363,35 @@ class Context(Configuration):
                 if isdir(default_prefix):
                     return default_prefix
         return join(self.envs_dirs[0], _default_env)
+
+    @property
+    def active_prefix(self):
+        return os.getenv('CONDA_PREFIX')
+
+    @property
+    def shlvl(self):
+        return int(os.getenv('CONDA_SHLVL', -1))
+
+    @property
+    def aggressive_update_packages(self):
+        from ..models.match_spec import MatchSpec
+        return MatchSpec('openssl', optional=True),
+
+    @property
+    def deps_modifier(self):
+        from ..core.solve import DepsModifier
+        if self.update_dependencies and self.only_dependencies:
+            return DepsModifier.UPDATE_DEPS_ONLY_DEPS
+        elif self.update_dependencies:
+            return DepsModifier.UPDATE_DEPS
+        elif self.only_dependencies:
+            return DepsModifier.ONLY_DEPS
+        elif self.no_dependencies:
+            return DepsModifier.NO_DEPS
+        elif self._argparse_args and 'all' in self._argparse_args and self._argparse_args.all:
+            return DepsModifier.UPDATE_ALL
+        else:
+            return None
 
     @property
     def prefix(self):
@@ -460,7 +492,7 @@ class Context(Configuration):
             argparse_channels = tuple(self._argparse_args['channel'] or ())
             if argparse_channels and argparse_channels == self._channels:
                 return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
-        return self._channels
+        return self._channels or ()
 
     def get_descriptions(self):
         return get_help_dict()
@@ -475,13 +507,14 @@ class Context(Configuration):
             'default_python',
             'dry_run',
             'enable_private_envs',
+            'error_upload_url',  # should remain undocumented
             'force_32bit',
+            'ignore_pinned',
             'max_shlvl',
             'migrated_custom_channels',
             'no_dependencies',
             'only_dependencies',
             'prune',
-            'respect_pinned',
             'root_prefix',
             'skip_safety_checks',
             'subdir',
@@ -489,6 +522,7 @@ class Context(Configuration):
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
 # I don't think this documentation is correct any longer. # NOQA
             'update_dependencies',
+            'use_index_cache',
         )
         return tuple(p for p in super(Context, self).list_parameters()
                      if p not in UNLISTED_PARAMETERS)
@@ -502,6 +536,10 @@ class Context(Configuration):
     def user_agent(self):
         return _get_user_agent(self.platform)
 
+    @property
+    def verbosity(self):
+        return 2 if self.debug else self._verbosity
+
 
 def conda_in_private_env():
     # conda is located in its own private environment named '_conda_'
@@ -513,6 +551,9 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, APP_NAME, argparse_args)
     from ..models.channel import Channel
     Channel._reset_state()
+    # need to import here to avoid circular dependency
+    from ..core.repodata import RepoData
+    RepoData.clear()
     return context
 
 
@@ -691,6 +732,11 @@ def get_help_dict():
             Once conda has connected to a remote resource and sent an HTTP request, the
             read timeout is the number of seconds conda will wait for the server to send
             a response.
+            """),
+        'report_errors': dals("""
+            Opt in, or opt out, of automatic error reporting to core maintainers. Error
+            reports are anonymous, with only the error stack trace and information given
+            by `conda info` being sent.
             """),
         'rollback_enabled': dals("""
             Should any error occur during an unlink/link transaction, revert any disk
