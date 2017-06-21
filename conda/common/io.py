@@ -260,20 +260,26 @@ class Spinner(object):
         self._stop_running = Event()
         self._spinner_thread = Thread(target=self._start_spinning)
         self._indicator_length = len(next(self.spinner_cycle)) + 1
+        self.fh = sys.stdout
+        self.show_spin = hasattr(self.fh, "isatty") and self.fh.isatty()
 
     def start(self):
-        self._spinner_thread.start()
+        if self.show_spin:
+            self._spinner_thread.start()
+        else:
+            self.fh.write("...working... ")
 
     def stop(self):
-        self._stop_running.set()
-        self._spinner_thread.join()
-
+        if self.show_spin:
+            self._stop_running.set()
+            self._spinner_thread.join()
+            
     def _start_spinning(self):
         while not self._stop_running.is_set():
-            sys.stdout.write(next(self.spinner_cycle) + ' ')
-            sys.stdout.flush()
-            sleep(0.15)
-            sys.stdout.write('\b' * self._indicator_length)
+            self.fh.write(next(self.spinner_cycle) + ' ')
+            self.fh.flush()
+            sleep(0.10)
+            self.fh.write('\b' * self._indicator_length)
 
 
 @contextmanager
