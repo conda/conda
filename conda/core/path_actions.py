@@ -345,20 +345,20 @@ class LinkPathAction(CreateInPrefixPathAction):
                 reported_sha256 = source_path_data.sha256
             except AttributeError:
                 reported_sha256 = None
-            # source_sha256 = compute_sha256sum(self.source_full_path)
-            # if reported_sha256 and reported_sha256 != source_sha256:
-            #     return CondaVerificationError(dals("""
-            #     The package for %s located at %s
-            #     appears to be corrupted. The path '%s'
-            #     has a sha256 mismatch.
-            #       reported sha256: %s
-            #       actual sha256: %s
-            #     """ % (self.package_info.index_json_record.name,
-            #            self.package_info.extracted_package_dir,
-            #            self.source_short_path,
-            #            reported_sha256,
-            #            source_sha256,
-            #            )))
+            source_sha256 = compute_sha256sum(self.source_full_path)
+            if reported_sha256 and reported_sha256 != source_sha256:
+                return CondaVerificationError(dals("""
+                The package for %s located at %s
+                appears to be corrupted. The path '%s'
+                has a sha256 mismatch.
+                  reported sha256: %s
+                  actual sha256: %s
+                """ % (self.package_info.index_json_record.name,
+                       self.package_info.extracted_package_dir,
+                       self.source_short_path,
+                       reported_sha256,
+                       source_sha256,
+                       )))
 
             try:
                 reported_size_in_bytes = source_path_data.size_in_bytes
