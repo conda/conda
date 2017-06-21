@@ -4,7 +4,7 @@ import logging
 import re
 from itertools import chain
 
-from conda.exceptions import ResolvePackageNotFound
+from .exceptions import ResolvePackageNotFound
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, CONDA_TARBALL_EXTENSION
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
