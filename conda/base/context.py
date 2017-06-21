@@ -91,7 +91,7 @@ class Context(Configuration):
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
-    concurrent = PrimitiveParameter(False)
+    concurrent = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     default_python = PrimitiveParameter('%d.%d' % sys.version_info[:2],
                                         element_type=string_types + (NoneType,))
@@ -100,11 +100,12 @@ class Context(Configuration):
     force_32bit = PrimitiveParameter(False)
     max_shlvl = PrimitiveParameter(2)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
-    pinned_packages = SequenceParameter(string_types, string_delimiter='/')  # TODO: consider a different string delimiter  # NOQA
+    pinned_packages = SequenceParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
     skip_safety_checks = PrimitiveParameter(False)
+    use_index_cache = PrimitiveParameter(False)
 
     _root_prefix = PrimitiveParameter("", aliases=('root_dir', 'root_prefix'))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
@@ -164,12 +165,12 @@ class Context(Configuration):
     only_dependencies = PrimitiveParameter(False, aliases=('only_deps',))
     quiet = PrimitiveParameter(False)
     prune = PrimitiveParameter(False)
+    ignore_pinned = PrimitiveParameter(False)
     report_errors = PrimitiveParameter(None, element_type=(bool, NoneType))
-    respect_pinned = PrimitiveParameter(True)
     shortcuts = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
-    update_dependencies = PrimitiveParameter(True, aliases=('update_deps',))
-    verbosity = PrimitiveParameter(0, aliases=('verbose',), element_type=int)
+    update_dependencies = PrimitiveParameter(False, aliases=('update_deps',))
+    _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
 
     # conda_build
     bld_path = PrimitiveParameter('')
@@ -352,7 +353,7 @@ class Context(Configuration):
     @property
     def default_prefix(self):
         _default_env = os.getenv('CONDA_DEFAULT_ENV')
-        if _default_env in (None, ROOT_ENV_NAME):
+        if _default_env in (None, ROOT_ENV_NAME, 'root'):
             return self.root_prefix
         elif os.sep in _default_env:
             return abspath(_default_env)
@@ -362,6 +363,35 @@ class Context(Configuration):
                 if isdir(default_prefix):
                     return default_prefix
         return join(self.envs_dirs[0], _default_env)
+
+    @property
+    def active_prefix(self):
+        return os.getenv('CONDA_PREFIX')
+
+    @property
+    def shlvl(self):
+        return int(os.getenv('CONDA_SHLVL', -1))
+
+    @property
+    def aggressive_update_packages(self):
+        from ..models.match_spec import MatchSpec
+        return MatchSpec('openssl', optional=True),
+
+    @property
+    def deps_modifier(self):
+        from ..core.solve import DepsModifier
+        if self.update_dependencies and self.only_dependencies:
+            return DepsModifier.UPDATE_DEPS_ONLY_DEPS
+        elif self.update_dependencies:
+            return DepsModifier.UPDATE_DEPS
+        elif self.only_dependencies:
+            return DepsModifier.ONLY_DEPS
+        elif self.no_dependencies:
+            return DepsModifier.NO_DEPS
+        elif self._argparse_args and 'all' in self._argparse_args and self._argparse_args.all:
+            return DepsModifier.UPDATE_ALL
+        else:
+            return None
 
     @property
     def prefix(self):
@@ -479,12 +509,12 @@ class Context(Configuration):
             'enable_private_envs',
             'error_upload_url',  # should remain undocumented
             'force_32bit',
+            'ignore_pinned',
             'max_shlvl',
             'migrated_custom_channels',
             'no_dependencies',
             'only_dependencies',
             'prune',
-            'respect_pinned',
             'root_prefix',
             'skip_safety_checks',
             'subdir',
@@ -492,6 +522,7 @@ class Context(Configuration):
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
 # I don't think this documentation is correct any longer. # NOQA
             'update_dependencies',
+            'use_index_cache',
         )
         return tuple(p for p in super(Context, self).list_parameters()
                      if p not in UNLISTED_PARAMETERS)
@@ -504,6 +535,10 @@ class Context(Configuration):
     @property
     def user_agent(self):
         return _get_user_agent(self.platform)
+
+    @property
+    def verbosity(self):
+        return 2 if self.debug else self._verbosity
 
 
 def conda_in_private_env():

@@ -15,6 +15,10 @@ CondaError = CondaError
 from . import compat, plan  # NOQA
 compat, plan = compat, plan
 
+from .plan import display_actions, execute_actions, execute_plan, install_actions  # NOQA
+display_actions, execute_actions = display_actions, execute_actions
+execute_plan, install_actions = execute_plan, install_actions
+
 from .cli.common import specs_from_args, spec_from_line, specs_from_url  # NOQA
 from .cli.conda_argparse import add_parser_prefix, add_parser_channels  # NOQA
 add_parser_channels, add_parser_prefix = add_parser_channels, add_parser_prefix

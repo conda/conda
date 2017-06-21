@@ -158,11 +158,19 @@ def ensure_text_type(value):
         return value
     except UnicodeDecodeError:  # pragma: no cover
         try:
-            from requests.packages.chardet import detect
-        except ImportError:  # pragma: no cover
-            from pip._vendor.requests.packages.chardet import detect
+            from chardet import detect
+        except ImportError:
+            try:
+                from requests.packages.chardet import detect
+            except ImportError:  # pragma: no cover
+                from pip._vendor.requests.packages.chardet import detect
         encoding = detect(value).get('encoding') or 'utf-8'
         return value.decode(encoding)
+    except UnicodeEncodeError:  # pragma: no cover
+        # it's already text_type, so ignore?
+        # not sure, surfaced with tests/models/test_match_spec.py test_tarball_match_specs
+        # using py27
+        return value
 
 
 def ensure_unicode(value):

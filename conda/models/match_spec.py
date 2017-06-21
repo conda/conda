@@ -3,11 +3,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import Mapping
+from os.path import basename
 import re
 
 from .channel import Channel, MultiChannel
 from .dist import Dist
-from .index_record import IndexRecord
+from .index_record import IndexRecord, PackageRef
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -29,10 +30,11 @@ class MatchSpecType(type):
             if isinstance(spec_arg, MatchSpec) and not kwargs:
                 return spec_arg
             elif isinstance(spec_arg, MatchSpec):
-                kwargs.setdefault('optional', spec_arg.optional)
-                kwargs.setdefault('target', spec_arg.target)
-                kwargs.update(spec_arg._match_components)
-                return super(MatchSpecType, cls).__call__(**kwargs)
+                new_kwargs = dict(spec_arg._match_components)
+                new_kwargs.setdefault('optional', spec_arg.optional)
+                new_kwargs.setdefault('target', spec_arg.target)
+                new_kwargs.update(**kwargs)
+                return super(MatchSpecType, cls).__call__(**new_kwargs)
             elif isinstance(spec_arg, string_types):
                 parsed = _parse_spec_str(spec_arg)
                 parsed.update(kwargs)
@@ -40,20 +42,28 @@ class MatchSpecType(type):
             elif isinstance(spec_arg, Mapping):
                 parsed = dict(spec_arg, **kwargs)
                 return super(MatchSpecType, cls).__call__(**parsed)
-            elif isinstance(spec_arg, Dist):
-                # TODO: remove this branch
+            elif isinstance(spec_arg, PackageRef):
                 parsed = {
-                    'fn': spec_arg.to_filename(),
                     'channel': spec_arg.channel,
+                    'subdir': spec_arg.subdir,
+                    'name': spec_arg.name,
+                    'version': spec_arg.version,
+                    'build': spec_arg.build,
                 }
+                parsed.update(kwargs)
                 return super(MatchSpecType, cls).__call__(**parsed)
-            elif isinstance(spec_arg, IndexRecord):
-                # TODO: remove this branch
+            elif isinstance(spec_arg, Dist):
+                # TODO: remove this branch when we get rid of Dist
                 parsed = {
                     'name': spec_arg.name,
-                    'fn': spec_arg.fn,
-                    'channel': spec_arg.channel,
+                    'version': spec_arg.version,
+                    'build': spec_arg.build,
                 }
+                if spec_arg.channel:
+                    parsed['channel'] = spec_arg.channel
+                if spec_arg.subdir:
+                    parsed['subdir'] = spec_arg.subdir
+                parsed.update(kwargs)
                 return super(MatchSpecType, cls).__call__(**parsed)
             elif hasattr(spec_arg, 'dump'):
                 parsed = spec_arg.dump()
@@ -138,6 +148,15 @@ class MatchSpec(object):
         >>> str(MatchSpec('*/linux-64::foo>=1.0'))
         "foo[subdir=linux-64,version='>=1.0']"
 
+    To fully-specify a package with a full, exact spec, the fields
+      - channel
+      - subdir
+      - name
+      - version
+      - build
+    must be given as exact values.  In the future, the namespace field will be added to this list.
+    Alternatively, an exact spec is given by '*[md5=12345678901234567890123456789012]'.
+
     """
 
     FIELD_NAMES = (
@@ -148,6 +167,7 @@ class MatchSpec(object):
         'build',
         'build_number',
         'track_features',
+        'url',
         'md5',
     )
 
@@ -163,6 +183,13 @@ class MatchSpec(object):
     def get_raw_value(self, field_name):
         v = self._match_components.get(field_name)
         return v and v.raw_value
+
+    def get(self, field_name, default=None):
+        v = self.get_raw_value(field_name)
+        return default if v is None else v
+
+    def dist_str(self):
+        return self.__str__()
 
     def match(self, rec):
         """f
@@ -255,6 +282,9 @@ class MatchSpec(object):
         _skip = ('channel', 'subdir', 'name', 'version', 'build')
         for key in self.FIELD_NAMES:
             if key not in _skip and key in self._match_components:
+                if key == 'url' and channel_matcher:
+                    # skip url in canonical str if channel already included
+                    continue
                 value = text_type(self._match_components[key])
                 if any(s in value for s in ', ='):
                     brackets.append("%s='%s'" % (key, self._match_components[key]))
@@ -292,7 +322,7 @@ class MatchSpec(object):
             return False
 
     def __hash__(self):
-        return hash(self._match_components)
+        return hash((self._match_components, self.optional, self.target))
 
     def __contains__(self, field):
         return field in self._match_components
@@ -349,6 +379,14 @@ class MatchSpec(object):
         # in the old MatchSpec object, version was a VersionSpec, not a str
         # so we'll keep that API here
         return self._match_components.get('version')
+
+    @property
+    def fn(self):
+        val = self.get_raw_value('fn') or self.get_raw_value('url')
+        if val:
+            val = basename(val)
+        assert val
+        return val
 
 
 def _parse_version_plus_build(v_plus_b):
@@ -417,18 +455,24 @@ def _parse_spec_str(spec_str):
             spec_str = unquote(path_to_url(expand(spec_str)))
 
         channel = Channel(spec_str)
-        if not channel.subdir:
+        if channel.subdir:
+            name, version, build = _parse_legacy_dist(channel.package_filename)
+            result = {
+                'channel': channel.canonical_name,
+                'subdir': channel.subdir,
+                'name': name,
+                'version': version,
+                'build': build,
+                'fn': channel.package_filename,
+                'url': spec_str,
+            }
+        else:
             # url is not a channel
-            raise CondaValueError("Invalid MatchSpec Channel: %s" % spec_str)
-        name, version, build = _parse_legacy_dist(channel.package_filename)
-        result = {
-            'channel': channel.canonical_name,
-            'subdir': channel.subdir,
-            'name': name,
-            'version': version,
-            'build': build,
-            'fn': channel.package_filename,
-        }
+            return {
+                'name': '*',
+                'fn': basename(spec_str),
+                'url': spec_str,
+            }
         return result
 
     # Step 3. strip off brackets portion

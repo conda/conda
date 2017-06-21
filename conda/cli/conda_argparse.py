@@ -229,8 +229,8 @@ def add_parser_offline(p):
 def add_parser_no_pin(p):
     p.add_argument(
         "--no-pin",
-        action="store_false",
-        dest='respect_pinned',
+        action="store_true",
+        dest='ignore_pinned',
         default=NULL,
         help="Ignore pinned file.",
     )

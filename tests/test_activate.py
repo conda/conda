@@ -15,6 +15,7 @@ from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import Activator, main as activate_main, native_path_to_unix
+from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, on_win, string_types
 from conda.common.io import captured, env_var, env_vars
@@ -56,10 +57,10 @@ class ActivatorUnitTests(TestCase):
     def test_PS1(self):
         with env_var("CONDA_CHANGEPS1", "yes", reset_context):
             activator = Activator('posix')
-            assert activator._prompt_modifier('root') == '(root) '
+            assert activator._prompt_modifier(ROOT_ENV_NAME) == '(%s) ' % ROOT_ENV_NAME
 
             instructions = activator.build_activate("root")
-            assert instructions['set_vars']['CONDA_PROMPT_MODIFIER'] == '(root) '
+            assert instructions['set_vars']['CONDA_PROMPT_MODIFIER'] == '(%s) ' % ROOT_ENV_NAME
 
     def test_PS1_no_changeps1(self):
         with env_var("CONDA_CHANGEPS1", "no", reset_context):
@@ -129,7 +130,7 @@ class ActivatorUnitTests(TestCase):
 
     def test_default_env(self):
         activator = Activator('posix')
-        assert 'root' == activator._default_env(context.root_prefix)
+        assert ROOT_ENV_NAME == activator._default_env(context.root_prefix)
 
         with tempdir() as td:
             assert td == activator._default_env(td)

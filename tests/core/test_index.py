@@ -8,6 +8,7 @@ import pytest
 
 from conda.common.compat import iteritems
 from conda.core.index import get_index
+from tests.core.test_repodata import platform_in_record
 
 try:
     from unittest.mock import patch
@@ -15,10 +16,6 @@ except ImportError:
     from mock import patch
 
 log = getLogger(__name__)
-
-
-def platform_in_record(platform, record):
-    return ("/%s/" % platform in record.url) or ("/noarch/" in record.url)
 
 
 @pytest.mark.integration

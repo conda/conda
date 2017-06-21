@@ -24,7 +24,7 @@ class ConfirmTests(TestCase):
         })
         from conda.cli.common import confirm_yn
         with captured() as c:
-            choice = confirm_yn(args)
+            choice = confirm_yn()
         assert choice is True
         assert "Invalid choice" in c.stdout
 
@@ -38,23 +38,18 @@ class ConfirmTests(TestCase):
             confirm_yn(args)
 
     def test_dry_run_exit(self):
-        args = AttrDict({
-            'dry_run': True,
-        })
+        with env_var('CONDA_DRY_RUN', 'true', reset_context):
+            from conda.cli.common import confirm_yn
+            with pytest.raises(DryRunExit):
+                confirm_yn()
 
-        from conda.cli.common import confirm_yn
-        with pytest.raises(DryRunExit):
-            confirm_yn(args)
-
-        from conda.cli.common import confirm
-        with pytest.raises(DryRunExit):
-            confirm(args)
+            from conda.cli.common import confirm
+            with pytest.raises(DryRunExit):
+                confirm()
 
     def test_always_yes(self):
         with env_var('CONDA_ALWAYS_YES', 'true', reset_context):
-            args = AttrDict({
-                'dry_run': False,
-            })
-            from conda.cli.common import confirm_yn
-            choice = confirm_yn(args)
-            assert choice is True
+            with env_var('CONDA_DRY_RUN', 'false', reset_context):
+                from conda.cli.common import confirm_yn
+                choice = confirm_yn()
+                assert choice is True

@@ -1,10 +1,10 @@
+from unittest import TestCase
+
 from conda.base.context import context
 from conda.models.channel import Channel
-from conda.models.package_info import PackageInfo, PathData, PathType, Noarch, PathsData, \
-    PackageMetadata
 from conda.models.enums import FileMode, PathType
-from conda.models.index_record import IndexRecord
-from unittest import TestCase
+from conda.models.index_record import IndexRecord, PathData, PathsData
+from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
 
 
 class DefaultPackageInfo(TestCase):

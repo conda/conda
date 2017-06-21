@@ -77,7 +77,7 @@ DEFAULT_CHANNELS_WIN = ('https://repo.continuum.io/pkgs/free',
 # use the bool(sys.platform == "win32") definition here so we don't import .compat.on_win
 DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if bool(sys.platform == "win32") else DEFAULT_CHANNELS_UNIX
 
-ROOT_ENV_NAME = 'root'
+ROOT_ENV_NAME = 'base'
 
 ROOT_NO_RM = (
     'python',

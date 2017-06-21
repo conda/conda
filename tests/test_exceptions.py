@@ -404,7 +404,7 @@ class ExceptionTests(TestCase):
 
             assert post_mock.call_count == 2
             assert c.stdout == ''
-            assert "conda is private" in c.stderr
+            assert "conda version" in c.stderr
 
     @patch('requests.post', side_effect=(
             AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
@@ -447,7 +447,7 @@ class ExceptionTests(TestCase):
         assert input_mock.call_count == 1
         assert post_mock.call_count == 2
         assert c.stdout == ''
-        assert "conda is private" in c.stderr
+        assert "conda version" in c.stderr
 
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='n')
@@ -464,7 +464,7 @@ class ExceptionTests(TestCase):
             assert input_mock.call_count == 0
             assert post_mock.call_count == 0
             assert c.stdout == ''
-            assert "conda is private" in c.stderr
+            assert "conda version" in c.stderr
 
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='n')
@@ -481,7 +481,7 @@ class ExceptionTests(TestCase):
         assert input_mock.call_count == 1
         assert post_mock.call_count == 0
         assert c.stdout == ''
-        assert "conda is private" in c.stderr
+        assert "conda version" in c.stderr
 
     def test_BinaryPrefixReplacementError(self):
         new_data_length = 1104

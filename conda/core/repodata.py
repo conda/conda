@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import bz2
 from contextlib import closing
-from functools import wraps
 from genericpath import getmtime, isfile
 import hashlib
 import json
@@ -21,7 +20,7 @@ from .. import CondaError, iteritems
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import CONDA_HOMEPAGE_URL
+from ..base.constants import CONDA_HOMEPAGE_URL, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode,
                              text_type, with_metaclass)
@@ -38,22 +37,21 @@ from ..models.dist import Dist
 from ..models.index_record import IndexRecord, Priority
 
 try:
-    from cytoolz.itertoolz import take
+    from cytoolz.itertoolz import concat, take
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import take
+    from .._vendor.toolz.itertoolz import concat, take  # NOQA
 
 try:
     import cPickle as pickle
 except ImportError:  # pragma: no cover
-    import pickle
+    import pickle  # NOQA
 
-__all__ = ('RepoData', 'collect_all_repodata',)
+__all__ = ('RepoData',)
 
 log = getLogger(__name__)
-dotlog = getLogger('dotupdate')
 stderrlog = getLogger('stderrlog')
 
-REPODATA_PICKLE_VERSION = 2
+REPODATA_PICKLE_VERSION = 3
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
 
@@ -152,24 +150,6 @@ class RepoData(object):
         return self._data
 
 
-def collect_all_repodata(use_cache, tasks):
-    repodatas = executor = None
-    if context.concurrent:
-        try:
-            import concurrent.futures
-            executor = concurrent.futures.ThreadPoolExecutor(10)
-            repodatas = _collect_repodatas_concurrent(executor, use_cache, tasks)
-        except (ImportError, RuntimeError) as e:
-            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-            # RuntimeError is thrown if number of threads are limited by OS
-            log.debug(repr(e))
-    if executor:
-        executor.shutdown(wait=True)
-    if repodatas is None:
-        repodatas = _collect_repodatas_serial(use_cache, tasks)
-    return repodatas
-
-
 def read_mod_and_etag(path):
     with open(path, 'rb') as f:
         try:
@@ -191,20 +171,6 @@ def get_cache_control_max_age(cache_control_value):
 
 class Response304ContentUnchanged(Exception):
     pass
-
-
-# We need a decorator so that the dot gets printed *after* the repodata is fetched
-class dotlog_on_return(object):
-    def __init__(self, msg):
-        self.msg = msg
-
-    def __call__(self, f):
-        @wraps(f)
-        def func(*args, **kwargs):
-            res = f(*args, **kwargs)
-            dotlog.debug("%s args %s kwargs %s" % (self.msg, args, kwargs))
-            return res
-        return func
 
 
 def fetch_repodata_remote_request(session, url, etag, mod_stamp):
@@ -481,6 +447,22 @@ def read_local_repodata(cache_path, channel_url, schannel, priority, etag, mod_s
             return local_repodata
 
 
+def make_feature_record(feature_name):
+    # necessary for the SAT solver to do the right thing with features
+    pkg_name = feature_name + '@'
+    return IndexRecord(
+        name=pkg_name,
+        version='0',
+        build='0',
+        channel=UNKNOWN_CHANNEL,
+        subdir=context.subdir,
+        md5="0123456789",
+        track_features=feature_name,
+        build_number=0,
+        fn=pkg_name,
+    )
+
+
 def process_repodata(repodata, channel_url, schannel, priority):
     opackages = repodata.setdefault('packages', {})
     if not opackages:
@@ -503,6 +485,7 @@ def process_repodata(repodata, channel_url, schannel, priority):
         'subdir': subdir,
     }
     packages = {}
+    feature_names = set()
     for fn, info in iteritems(opackages):
         info['fn'] = fn
         info['url'] = join_url(channel_url, fn)
@@ -511,10 +494,18 @@ def process_repodata(repodata, channel_url, schannel, priority):
         info.update(meta_in_common)
         rec = IndexRecord(**info)
         packages[Dist(rec)] = rec
+        if rec.features:
+            feature_names.update(rec.features)
+        if rec.track_features:
+            feature_names.update(rec.track_features)
+
+    for feature_name in feature_names:
+        rec = make_feature_record(feature_name)
+        packages[Dist(rec)] = rec
+
     repodata['packages'] = packages
 
 
-@dotlog_on_return("fetching repodata:")
 def fetch_repodata(url, schannel, priority,
                    cache_dir=None, use_cache=False, session=None):
     cache_path = join(cache_dir or create_cache_dir(), cache_fn_url(url))
@@ -573,22 +564,40 @@ def fetch_repodata(url, schannel, priority,
     return repodata
 
 
-def _collect_repodatas_serial(use_cache, tasks):
-    # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
+def _collect_repodatas_concurrent_as_index(executor, use_cache, tasks):
+    futures = (executor.submit(fetch_repodata, url, schan, pri,
+                               use_cache=use_cache,
+                               session=CondaSession())
+               for url, schan, pri in tasks)
+    results = (future.result() for future in futures)
+    index = dict(concat(iteritems(result.get('packages', {})) for result in results if result))
+    return index
+
+
+def _collect_repodatas_serial_as_index(use_cache, tasks):
     session = CondaSession()
-    repodatas = [(url, fetch_repodata(url, schan, pri, use_cache=use_cache, session=session))
-                 for url, schan, pri in tasks]
-    return repodatas
+    results = (fetch_repodata(url, schan, pri, use_cache=use_cache, session=session)
+               for url, schan, pri in tasks)
+    index = dict(concat(iteritems(result.get('packages', {})) for result in results if result))
+    return index
 
 
-def _collect_repodatas_concurrent(executor, use_cache, tasks):
-    futures = tuple(executor.submit(fetch_repodata, url, schan, pri,
-                                    use_cache=use_cache,
-                                    session=CondaSession())
-                    for url, schan, pri in tasks)
-
-    repodatas = [(t[0], f.result()) for t, f in zip(tasks, futures)]
-    return repodatas
+def collect_all_repodata_as_index(use_cache, tasks):
+    index = executor = None
+    if context.concurrent:
+        try:
+            from concurrent.futures import ThreadPoolExecutor
+            executor = ThreadPoolExecutor(5)
+            index = _collect_repodatas_concurrent_as_index(executor, use_cache, tasks)
+        except (ImportError, RuntimeError) as e:
+            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
+            # RuntimeError is thrown if number of threads are limited by OS
+            log.debug(repr(e))
+    if executor:
+        executor.shutdown(wait=True)
+    if index is None:
+        index = _collect_repodatas_serial_as_index(use_cache, tasks)
+    return index
 
 
 def cache_fn_url(url):

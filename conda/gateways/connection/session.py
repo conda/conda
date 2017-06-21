@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
+from threading import Lock, local
 
 from . import (AuthBase, BaseAdapter, HTTPAdapter, Session, _basic_auth_str,
                extract_cookies_to_jar, get_auth_from_url, get_netrc_auth)
@@ -12,7 +13,7 @@ from ..anaconda_client import read_binstar_tokens
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
-from ...common.compat import iteritems
+from ...common.compat import iteritems, with_metaclass
 from ...common.url import (add_username_and_password, get_proxy_username_and_pass,
                            split_anaconda_token, urlparse)
 from ...exceptions import ProxyError
@@ -34,10 +35,29 @@ class EnforceUnusedAdapter(BaseAdapter):
         raise NotImplementedError()
 
 
+class CondaSessionType(type):
+    """
+    Takes advice from https://github.com/requests/requests/issues/1871#issuecomment-33327847
+    and creates one Session instance per thread.
+    """
+
+    def __new__(mcs, name, bases, dct):
+        dct['_thread_local'] = local()
+        return super(CondaSessionType, mcs).__new__(mcs, name, bases, dct)
+
+    def __call__(cls):
+        try:
+            return cls._thread_local.session
+        except AttributeError:
+            session = cls._thread_local.session = super(CondaSessionType, cls).__call__()
+            return session
+
+
+@with_metaclass(CondaSessionType)
 class CondaSession(Session):
 
-    def __init__(self, *args, **kwargs):
-        super(CondaSession, self).__init__(*args, **kwargs)
+    def __init__(self):
+        super(CondaSession, self).__init__()
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?
 
@@ -70,6 +90,27 @@ class CondaSession(Session):
             self.cert = (context.client_ssl_cert, context.client_ssl_cert_key)
         elif context.client_ssl_cert:
             self.cert = context.client_ssl_cert
+
+
+class SingleThreadCondaSession(CondaSession):
+    # according to http://stackoverflow.com/questions/18188044/is-the-session-object-from-pythons-requests-library-thread-safe  # NOQA
+    # request's Session isn't thread-safe for us
+
+    _session = None
+    _mutex = Lock()
+
+    def __init__(self):
+        super(SingleThreadCondaSession, self).__init__()
+
+    def __enter__(self):
+        session = SingleThreadCondaSession._session
+        if session is None:
+            session = SingleThreadCondaSession._session = self
+        SingleThreadCondaSession._mutex.acquire()
+        return session
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        SingleThreadCondaSession._mutex.release()
 
 
 class CondaHttpAuth(AuthBase):

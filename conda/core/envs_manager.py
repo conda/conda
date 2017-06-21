@@ -5,25 +5,23 @@ from copy import deepcopy
 import json
 from logging import getLogger
 from os import getcwd, listdir
-from os.path import basename, dirname, isdir, isfile, join, normpath
+from os.path import basename, dirname, isdir, isfile, join, normpath, split as path_split
 
 from .. import CondaError
-from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.entity import EntityEncoder
-from .._vendor.auxlib.ish import dals
 from ..base.constants import ENVS_DIR_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import text_type, with_metaclass
-from ..common.path import ensure_pad, expand, right_pad_os_sep
+from ..common.compat import with_metaclass
+from ..common.path import ensure_pad, expand, right_pad_os_sep, paths_equal
 from ..exceptions import CondaValueError, EnvironmentNameNotFound, NotWritableError
 from ..gateways.disk.create import create_envs_directory
 from ..gateways.disk.test import file_path_is_writable
 from ..models.leased_path_entry import LeasedPathEntry
 
 try:
-    from cytoolz.itertoolz import concatv, groupby
+    from cytoolz.itertoolz import concatv
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concatv, groupby
+    from .._vendor.toolz.itertoolz import concatv
 
 log = getLogger(__name__)
 
@@ -114,10 +112,10 @@ class EnvsDirectory(object):
         _data = {}
         if self._registered_envs:
             _data['registered_envs'] = self._registered_envs
-        if self._leased_paths:
-            _data['leased_paths'] = self._leased_paths
-        if self._preferred_env_packages:
-            _data['preferred_env_packages'] = self._preferred_env_packages
+        # if self._leased_paths:
+        #     _data['leased_paths'] = self._leased_paths
+        # if self._preferred_env_packages:
+        #     _data['preferred_env_packages'] = self._preferred_env_packages
 
         if _data:
             if not self.is_writable:
@@ -137,15 +135,15 @@ class EnvsDirectory(object):
         # mutable structure for use within this class
         return self._envs_dir_data.setdefault('registered_envs', [])
 
-    @property
-    def _leased_paths(self):
-        # mutable structure for use within this class
-        return self._envs_dir_data.setdefault('leased_paths', [])
-
-    @property
-    def _preferred_env_packages(self):
-        # mutable structure for use within this class
-        return self._envs_dir_data.setdefault('preferred_env_packages', [])
+    # @property
+    # def _leased_paths(self):
+    #     # mutable structure for use within this class
+    #     return self._envs_dir_data.setdefault('leased_paths', [])
+    #
+    # @property
+    # def _preferred_env_packages(self):
+    #     # mutable structure for use within this class
+    #     return self._envs_dir_data.setdefault('preferred_env_packages', [])
 
     @property
     def is_writable(self):
@@ -165,6 +163,18 @@ class EnvsDirectory(object):
         if not self.is_writable:
             raise NotWritableError(self.catalog_file)
         return True
+
+    @classmethod
+    def env_name(cls, prefix):
+        if not prefix:
+            return None
+        if paths_equal(prefix, context.root_prefix):
+            return 'base'
+        maybe_envs_dir, maybe_name = path_split(prefix)
+        for envs_dir in context.envs_dirs:
+            if paths_equal(envs_dir, maybe_envs_dir):
+                return maybe_name
+        return prefix
 
     @classmethod
     def first_writable(cls, envs_dirs=None):
@@ -191,7 +201,7 @@ class EnvsDirectory(object):
     @classmethod
     def locate_prefix_by_name(cls, name, envs_dirs=None):
         """Find the location of a prefix given a conda env name."""
-        if name == ROOT_ENV_NAME:
+        if name in (ROOT_ENV_NAME, 'root'):
             return context.root_prefix
 
         for envs_dir in concatv(envs_dirs or context.envs_dirs, (getcwd(),)):
@@ -224,7 +234,7 @@ class EnvsDirectory(object):
     # ############################
 
     def to_prefix(self, env_name):
-        if env_name in (None, ROOT_ENV_NAME):
+        if env_name in (None, ROOT_ENV_NAME, 'root'):
             return self.root_dir
         else:
             return join(self.envs_dir, env_name)
@@ -232,6 +242,8 @@ class EnvsDirectory(object):
     def get_registered_env_by_name(self, env_name, default=None):
         if env_name is None:
             return default
+        if env_name == 'root':
+            env_name = ROOT_ENV_NAME
         env_entry = next((renv for renv in self._registered_envs if renv.get('name') == env_name),
                          default)
         return env_entry
@@ -287,98 +299,98 @@ class EnvsDirectory(object):
         if idx is not None:
             self._registered_envs.pop(idx)
 
-    # ############################
-    # leased paths
-    # ############################
-
-    def get_leased_path_entry(self, target_short_path, default=None):
-        current_lp = next((lp for lp in self._leased_paths
-                           if lp._path == target_short_path),
-                          default)
-        return current_lp
-
-    def assert_path_not_leased(self, target_short_path):
-        current_lp = self.get_leased_path_entry(target_short_path)
-        if current_lp:
-            message = dals("""
-            A path in '%(root_prefix)s'
-            is already in use by another environment.
-              path: %(target_short_path)s
-              current prefix: %(current_prefix)s
-            """)
-            current_prefix = current_lp.target_prefix
-            raise CondaError(message,
-                             root_prefix=self.root_dir,
-                             target_short_path=target_short_path,
-                             current_prefix=current_prefix)
-
-    def add_leased_path(self, leased_path_entry):
-        self.assert_path_not_leased(leased_path_entry._path)
-        self._leased_paths.append(leased_path_entry)
-
-    def remove_leased_paths_for_package(self, package_name):
-        q = 0
-        while q < len(self._leased_paths):
-            leased_path_entry = self._leased_paths[q]
-            if leased_path_entry.package_name == package_name:
-                self._leased_paths.pop(q)
-            else:
-                q += 1
-
-    # def remove_leased_path(self, target_short_path):
-    #     lp_idx = next((q for q, lp in enumerate(self._leased_paths)
-    #                    if lp._path == target_short_path),
+    # # ############################
+    # # leased paths
+    # # ############################
+    #
+    # def get_leased_path_entry(self, target_short_path, default=None):
+    #     current_lp = next((lp for lp in self._leased_paths
+    #                        if lp._path == target_short_path),
+    #                       default)
+    #     return current_lp
+    #
+    # def assert_path_not_leased(self, target_short_path):
+    #     current_lp = self.get_leased_path_entry(target_short_path)
+    #     if current_lp:
+    #         message = dals("""
+    #         A path in '%(root_prefix)s'
+    #         is already in use by another environment.
+    #           path: %(target_short_path)s
+    #           current prefix: %(current_prefix)s
+    #         """)
+    #         current_prefix = current_lp.target_prefix
+    #         raise CondaError(message,
+    #                          root_prefix=self.root_dir,
+    #                          target_short_path=target_short_path,
+    #                          current_prefix=current_prefix)
+    #
+    # def add_leased_path(self, leased_path_entry):
+    #     self.assert_path_not_leased(leased_path_entry._path)
+    #     self._leased_paths.append(leased_path_entry)
+    #
+    # def remove_leased_paths_for_package(self, package_name):
+    #     q = 0
+    #     while q < len(self._leased_paths):
+    #         leased_path_entry = self._leased_paths[q]
+    #         if leased_path_entry.package_name == package_name:
+    #             self._leased_paths.pop(q)
+    #         else:
+    #             q += 1
+    #
+    # # def remove_leased_path(self, target_short_path):
+    # #     lp_idx = next((q for q, lp in enumerate(self._leased_paths)
+    # #                    if lp._path == target_short_path),
+    # #                   None)
+    # #     if lp_idx is not None:
+    # #         self._leased_paths.pop(lp_idx)
+    #
+    # def get_leased_path_entries_for_package(self, package_name):
+    #     return tuple(lpe for lpe in self._leased_paths if lpe.package_name == package_name)
+    #
+    # # ############################
+    # # preferred env packages
+    # # ############################
+    #
+    # def add_preferred_env_package(self, preferred_env_name, package_name, conda_meta_path,
+    #                               requested_spec):
+    #     # assert package of same name not already installed in root env
+    #     # assert there's not already a similar entry
+    #     preferred_env_packages_entry = {
+    #         'package_name': package_name,
+    #         'conda_meta_path': conda_meta_path,
+    #         'preferred_env_name': ensure_pad(preferred_env_name),
+    #         'requested_spec': text_type(requested_spec),
+    #     }
+    #     self._preferred_env_packages.append(preferred_env_packages_entry)
+    #
+    # def remove_preferred_env_package(self, package_name):
+    #     lp_idx = next((q for q, lp in enumerate(self._preferred_env_packages)
+    #                    if lp['package_name'] == package_name),
     #                   None)
-    #     if lp_idx is not None:
-    #         self._leased_paths.pop(lp_idx)
-
-    def get_leased_path_entries_for_package(self, package_name):
-        return tuple(lpe for lpe in self._leased_paths if lpe.package_name == package_name)
-
-    # ############################
-    # preferred env packages
-    # ############################
-
-    def add_preferred_env_package(self, preferred_env_name, package_name, conda_meta_path,
-                                  requested_spec):
-        # assert package of same name not already installed in root env
-        # assert there's not already a similar entry
-        preferred_env_packages_entry = {
-            'package_name': package_name,
-            'conda_meta_path': conda_meta_path,
-            'preferred_env_name': ensure_pad(preferred_env_name),
-            'requested_spec': text_type(requested_spec),
-        }
-        self._preferred_env_packages.append(preferred_env_packages_entry)
-
-    def remove_preferred_env_package(self, package_name):
-        lp_idx = next((q for q, lp in enumerate(self._preferred_env_packages)
-                       if lp['package_name'] == package_name),
-                      None)
-        self._preferred_env_packages.pop(lp_idx) if lp_idx is not None else None
-        self.remove_leased_paths_for_package(package_name)
-
-    def get_registered_preferred_env(self, package_name):
-        pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
-        return pep and pep['preferred_env_name']
-
-    def get_registered_packages(self):
-        # returns Map[package_name, env_name]
-        return {pep['package_name']: pep for pep in self._preferred_env_packages}
-
-    def get_registered_packages_keyed_on_env_name(self):
-        get_env_name = lambda x: x['preferred_env_name']
-        return groupby(get_env_name, self._preferred_env_packages)
-
-    def get_private_env_prefix(self, spec_str):
-        package_name = spec_str.split()[0]
-        pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
-        return join(self.envs_dir, pep['preferred_env_name']) if pep else None
-
-    def get_preferred_env_package_entry(self, spec_str):
-        package_name = spec_str.split()[0]
-        pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
-        return pep or None
+    #     self._preferred_env_packages.pop(lp_idx) if lp_idx is not None else None
+    #     self.remove_leased_paths_for_package(package_name)
+    #
+    # def get_registered_preferred_env(self, package_name):
+    #     pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
+    #     return pep and pep['preferred_env_name']
+    #
+    # def get_registered_packages(self):
+    #     # returns Map[package_name, env_name]
+    #     return {pep['package_name']: pep for pep in self._preferred_env_packages}
+    #
+    # def get_registered_packages_keyed_on_env_name(self):
+    #     get_env_name = lambda x: x['preferred_env_name']
+    #     return groupby(get_env_name, self._preferred_env_packages)
+    #
+    # def get_private_env_prefix(self, spec_str):
+    #     package_name = spec_str.split()[0]
+    #     pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
+    #     return join(self.envs_dir, pep['preferred_env_name']) if pep else None
+    #
+    # def get_preferred_env_package_entry(self, spec_str):
+    #     package_name = spec_str.split()[0]
+    #     pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
+    #     return pep or None
 
 
 def get_prefix(ctx, args, search=True):
@@ -396,7 +408,7 @@ def get_prefix(ctx, args, search=True):
         if '/' in args.name:
             raise CondaValueError("'/' not allowed in environment name: %s" %
                                   args.name, getattr(args, 'json', False))
-        if args.name == ROOT_ENV_NAME:
+        if args.name in (ROOT_ENV_NAME, 'root'):
             return ctx.root_dir
         if search:
             return EnvsDirectory.locate_prefix_by_name(args.name)

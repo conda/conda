@@ -78,7 +78,7 @@ def find_tarballs():
     pkgs_dirs = defaultdict(list)
     totalsize = 0
     part_ext = CONDA_TARBALL_EXTENSION + '.part'
-    for package_cache in PackageCache.all_writable(context.pkgs_dirs):
+    for package_cache in PackageCache.writable_caches(context.pkgs_dirs):
         pkgs_dir = package_cache.pkgs_dir
         if not isdir(pkgs_dir):
             continue
@@ -122,7 +122,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
         print()
 
     if not context.json or not context.always_yes:
-        confirm_yn(args)
+        confirm_yn()
     if context.json and args.dry_run:
         return
 
@@ -224,7 +224,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
         print()
 
     if not context.json or not context.always_yes:
-        confirm_yn(args)
+        confirm_yn()
     if context.json and args.dry_run:
         return
 
@@ -238,7 +238,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
 def rm_index_cache():
     from ..gateways.disk.delete import rm_rf
     from ..core.package_cache import PackageCache
-    for package_cache in PackageCache.all_writable():
+    for package_cache in PackageCache.writable_caches():
         rm_rf(join(package_cache.pkgs_dir, 'cache'))
 
 
@@ -290,7 +290,7 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
         print("%-40s %10s" % ("Total:", human_bytes(total_size)))
 
     if not context.json or not context.always_yes:
-        confirm_yn(args)
+        confirm_yn()
     if context.json and args.dry_run:
         return
 

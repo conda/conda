@@ -23,8 +23,8 @@ from ...common.compat import ensure_text_type
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
-from ...models.index_record import IndexJsonRecord, IndexRecord
-from ...models.package_info import PackageInfo, PackageMetadata, PathData, PathDataV1, PathsData
+from ...models.index_record import IndexJsonRecord, IndexRecord, PathData, PathDataV1, PathsData
+from ...models.package_info import PackageInfo, PackageMetadata
 
 log = getLogger(__name__)
 
@@ -56,15 +56,23 @@ def yield_lines(path):
             raise
 
 
-def compute_md5sum(file_full_path):
-    if not isfile(file_full_path):
-        raise PathNotFoundError(file_full_path)
+def _digest_path(algo, path):
+    if not isfile(path):
+        raise PathNotFoundError(path)
 
-    hash_md5 = hashlib.md5()
-    with open(file_full_path, "rb") as fh:
+    hasher = hashlib.new(algo)
+    with open(path, "rb") as fh:
         for chunk in iter(partial(fh.read, 8192), b''):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def compute_md5sum(file_full_path):
+    return _digest_path('md5', file_full_path)
+
+
+def compute_sha256sum(file_full_path):
+    return _digest_path('sha256', file_full_path)
 
 
 def find_first_existing(*globs):
@@ -180,9 +188,10 @@ def read_paths_json(extracted_package_directory):
                     path_info["path_type"] = PathType.hardlink
                 yield PathData(**path_info)
 
+        paths = tuple(read_files_file())
         paths_data = PathsData(
             paths_version=0,
-            paths=read_files_file(),
+            paths=paths,
         )
     return paths_data
 

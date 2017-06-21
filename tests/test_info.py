@@ -19,13 +19,13 @@ except ImportError:
 def test_info():
     conda_info_out, conda_info_err, rc = run_command(Commands.INFO)
     assert_equals(conda_info_err, '')
-    for name in ['platform', 'conda version', 'root environment',
-                 'default environment', 'envs directories', 'package cache',
+    for name in ['platform', 'conda version',
+                 'envs directories', 'package cache',
                  'channel URLs', 'config file', 'offline mode']:
         assert_in(name, conda_info_out)
 
     conda_info_e_out, conda_info_e_err, rc = run_command(Commands.INFO, '-e')
-    assert_in('root', conda_info_e_out)
+    assert_in('base', conda_info_e_out)
     assert_equals(conda_info_e_err, '')
 
     conda_info_s_out, conda_info_s_err, rc = run_command(Commands.INFO, '-s')

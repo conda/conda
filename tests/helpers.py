@@ -3,6 +3,7 @@ Helpers for the tests
 """
 from __future__ import absolute_import, division, print_function
 
+from contextlib import contextmanager
 import json
 import os
 from os.path import dirname, join
@@ -13,9 +14,12 @@ from tempfile import gettempdir
 from uuid import uuid4
 
 from conda import cli
+from conda._vendor.auxlib.collection import frozendict
+from conda._vendor.toolz.functoolz import memoize
 from conda.base.context import context, reset_context
+from conda.common.compat import iteritems, itervalues
 from conda.common.io import argv, captured, captured as common_io_captured
-from conda.core.index import _supplement_index_with_features
+from conda.core.repodata import make_feature_record
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import lexists
 from conda.gateways.logging import initialize_logging
@@ -26,15 +30,13 @@ from conda.resolve import Resolve
 
 try:
     from unittest import mock
+    from unittest.mock import patch
 except ImportError:
-    try:
-        import mock
-    except ImportError:
-        mock = None
+    import mock
+    from mock import patch
 
-from contextlib import contextmanager
 
-from conda.common.compat import iteritems
+
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
 def strip_expected(stderr):
@@ -143,20 +145,85 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
         index[dist] = rec
 
 
-with open(join(dirname(__file__), 'index.json')) as fi:
-    packages = json.load(fi)
-    repodata = {
-        "info": {
-            "subdir": context.subdir,
-            "arch": context.arch_name,
-            "platform": context.platform,
-        },
-        "packages": packages,
-    }
+def add_feature_records(index):
+    feature_names = set()
+    for record in itervalues(index):
+        if record.features:
+            feature_names.update(record.features)
+        if record.track_features:
+            feature_names.update(record.track_features)
 
-index = {}
-channel = Channel('defaults')
-supplement_index_with_repodata(index, repodata, channel, 1)
-_supplement_index_with_features(index, ('mkl',))
-r = Resolve(index)
-index = r.index
+    for feature_name in feature_names:
+        rec = make_feature_record(feature_name)
+        index[Dist(rec)] = rec
+
+
+@memoize
+def get_index_r_1():
+    with open(join(dirname(__file__), 'index.json')) as fi:
+        packages = json.load(fi)
+        repodata = {
+            "info": {
+                "subdir": context.subdir,
+                "arch": context.arch_name,
+                "platform": context.platform,
+            },
+            "packages": packages,
+        }
+
+    index = {}
+    channel = Channel('defaults')
+    supplement_index_with_repodata(index, repodata, channel, 1)
+    add_feature_records(index)
+    index = frozendict(index)
+    r = Resolve(index)
+    index = r.index
+    return index, r
+
+
+@memoize
+def get_index_r_2():
+    with open(join(dirname(__file__), 'index2.json')) as fi:
+        packages = json.load(fi)
+        repodata = {
+            "info": {
+                "subdir": context.subdir,
+                "arch": context.arch_name,
+                "platform": context.platform,
+            },
+            "packages": packages,
+        }
+
+    index = {}
+    channel = Channel('defaults')
+    supplement_index_with_repodata(index, repodata, channel, 1)
+    add_feature_records(index)
+    index = frozendict(index)
+    r = Resolve(index)
+    index = r.index
+    return index, r
+
+
+@memoize
+def get_index_r_3():
+    with open(join(dirname(__file__), 'index3.json')) as fi:
+        packages = json.load(fi)
+        repodata = {
+            "info": {
+                "subdir": context.subdir,
+                "arch": context.arch_name,
+                "platform": context.platform,
+            },
+            "packages": packages,
+        }
+
+    index = {}
+    channel = Channel('defaults')
+    supplement_index_with_repodata(index, repodata, channel, 1)
+    add_feature_records(index)
+    index = frozendict(index)
+    r = Resolve(index)
+    index = r.index
+    return index, r
+
+

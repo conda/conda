@@ -1,4 +1,5 @@
-from __future__ import absolute_import, print_function
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from unittest import TestCase
 
@@ -7,10 +8,11 @@ import pytest
 from conda import text_type
 from conda.base.context import context
 from conda.cli.common import arg2spec, spec_from_line
+from conda.common.compat import on_win
 from conda.exceptions import CondaValueError
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord
+from conda.models.index_record import IndexRecord, PackageRecord, PackageRef
 from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
 from conda.models.version import VersionSpec
 
@@ -112,7 +114,7 @@ class MatchSpecTests(TestCase):
         assert a != d
         assert hash(a) == hash(b)
         assert hash(a) == hash(c)
-        assert hash(a) == hash(d)
+        assert hash(a) != hash(d)
         c = MatchSpec('python')
         d = MatchSpec('python 2.7.4')
         e = MatchSpec('python', version='2.7.4')
@@ -216,6 +218,29 @@ class MatchSpecTests(TestCase):
         assert m(url) == "conda-canary/linux-64::conda==4.3.21.post699+1dab973=py36h4a561cd_0"
         assert m("conda-canary/linux-64::conda==4.3.21.post699+1dab973=py36h4a561cd_0") == "conda-canary/linux-64::conda==4.3.21.post699+1dab973=py36h4a561cd_0"
 
+        url = "https://conda.anaconda.org/conda-canary/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
+        assert m(url) == "*[url=%s]" % url
+
+        pref1 = PackageRef(
+            channel=Channel(None),
+            name="conda",
+            version="4.3.21.post699+1dab973",
+            build="py36h4a561cd_0",
+            build_number=0,
+            fn="conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
+            url=url,
+        )
+        pref2 = PackageRef.from_objects(pref1, md5="1234")
+        assert MatchSpec(url=url).match(pref1)
+        assert MatchSpec(m(url)).match(pref1)
+        assert not MatchSpec(url=url, md5="1234").match(pref1)
+        assert MatchSpec(url=url, md5="1234").match(pref2)
+        assert MatchSpec(url=url, md5="1234").get('md5') == "1234"
+
+        url = "file:///var/folders/cp/7r2s_s593j7_cpdtxxsmct880000gp/T/edfc ñçêáôß/flask-0.10.1-py35_2.tar.bz2"
+        assert m(url) == "*[url='%s']" % url
+        # url = '*[url="file:///var/folders/cp/7r2s_s593j7_cpdtxxsmct880000gp/T/edfc ñçêáôß/flask-0.10.1-py35_2.tar.bz2"]'
+
     def test_exact_values(self):
         assert MatchSpec("*").get_exact_value('name') is None
         assert MatchSpec("numpy").get_exact_value('name') == 'numpy'
@@ -255,8 +280,9 @@ class MatchSpecTests(TestCase):
         with pytest.raises(ValueError):
             MatchSpec('blas[invalid="1"]')
 
-        with pytest.raises(CondaValueError):
-            MatchSpec("/some/file/on/disk/package-1.2.3-2.tar.bz2")
+        if not on_win:
+            # skipping on Windows for now.  don't feel like dealing with the windows url path crud
+            assert text_type(MatchSpec("/some/file/on/disk/package-1.2.3-2.tar.bz2")) == '*[url=file:///some/file/on/disk/package-1.2.3-2.tar.bz2]'
 
     def test_dist(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
@@ -269,8 +295,8 @@ class MatchSpecTests(TestCase):
         assert hash(a) == hash(b)
         assert a is b
 
-        assert a == c
-        assert hash(a) == hash(c)
+        assert a != c
+        assert hash(a) != hash(c)
 
         assert a != d
         assert hash(a) != hash(d)
@@ -287,7 +313,7 @@ class MatchSpecTests(TestCase):
         assert p.match(Dist(channel='defaults', dist_name='python-3.5.1-0', name='python',
                             version='3.5.1', build_string='0', build_number=0, base_url=None,
                             platform=None))
-        assert p.match(IndexRecord(name='python', version='3.5.1', build='0', build_number=0,
+        assert p.match(PackageRecord(name='python', version='3.5.1', build='0', build_number=0,
                                      depends=('openssl 1.0.2*', 'readline 6.2*', 'sqlite',
                                                'tk 8.5*', 'xz 5.0.5', 'zlib 1.2*', 'pip'),
                                      channel=Channel(scheme='https', auth=None,
@@ -399,11 +425,8 @@ class SpecStrParsingTests(TestCase):
             "version": "1.1",
             "build": "py27_1",
             "fn": "_license-1.1-py27_1.tar.bz2",
+            "url": url,
         }
-
-        url = "some/not-a-subdir/_license-1.1-py27_1.tar.bz2"
-        with pytest.raises(CondaValueError):
-            _parse_spec_str(url)
 
         url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
         assert _parse_spec_str(url) == {
@@ -413,6 +436,7 @@ class SpecStrParsingTests(TestCase):
             "version": "4.3.21.post699+1dab973",
             "build": "py36h4a561cd_0",
             "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
+            "url": url,
         }
 
     # def test_parse_spec_str_legacy_dist_format(self):

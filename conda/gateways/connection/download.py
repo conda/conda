@@ -5,7 +5,6 @@ import hashlib
 from logging import DEBUG, getLogger
 from os.path import basename, exists, join
 import tempfile
-from threading import Lock
 import warnings
 
 from . import ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema, SSLError
@@ -22,34 +21,14 @@ from ...exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPErr
 log = getLogger(__name__)
 
 
-class SingleThreadCondaSession(CondaSession):
-    # according to http://stackoverflow.com/questions/18188044/is-the-session-object-from-pythons-requests-library-thread-safe  # NOQA
-    # request's Session isn't thread-safe for us
-
-    _session = None
-    _mutex = Lock()
-
-    def __init__(self):
-        super(SingleThreadCondaSession, self).__init__()
-
-    def __enter__(self):
-        session = SingleThreadCondaSession._session
-        if session is None:
-            session = SingleThreadCondaSession._session = self
-        SingleThreadCondaSession._mutex.acquire()
-        return session
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        SingleThreadCondaSession._mutex.release()
-
-
 def disable_ssl_verify_warning():
     warnings.simplefilter('ignore', InsecureRequestWarning)
 
 
-def download(url, target_full_path, md5sum):
-    content_length = None
-
+def download(url, target_full_path, md5sum, progress_update_callback=None):
+    # TODO: For most downloads, we should know the size of the artifact from what's reported
+    #       in repodata.  We should validate that here also, in addition to the 'Content-Length'
+    #       header.
     if exists(target_full_path):
         maybe_raise(BasicClobberError(target_full_path, url, context), context)
 
@@ -58,55 +37,53 @@ def download(url, target_full_path, md5sum):
 
     try:
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        with SingleThreadCondaSession() as session:
-            resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
-            if log.isEnabledFor(DEBUG):
-                log.debug(stringify(resp))
-            resp.raise_for_status()
+        session = CondaSession()
+        resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
+        if log.isEnabledFor(DEBUG):
+            log.debug(stringify(resp))
+        resp.raise_for_status()
 
-            content_length = int(resp.headers.get('Content-Length', 0))
+        content_length = int(resp.headers.get('Content-Length', 0))
 
-            if content_length:
-                getLogger('fetch.start').info((basename(target_full_path)[:14], content_length))
+        digest_builder = hashlib.new('md5')
+        try:
+            with open(target_full_path, 'wb') as fh:
+                streamed_bytes = 0
+                for chunk in resp.iter_content(2 ** 14):
+                    # chunk could be the decompressed form of the real data
+                    # but we want the exact number of bytes read till now
+                    streamed_bytes = resp.raw.tell()
+                    try:
+                        fh.write(chunk)
+                    except IOError as e:
+                        message = "Failed to write to %(target_path)s\n  errno: %(errno)d"
+                        # TODO: make this CondaIOError
+                        raise CondaError(message, target_path=target_full_path, errno=e.errno)
 
-            digest_builder = hashlib.new('md5')
-            try:
-                with open(target_full_path, 'wb') as fh:
-                    streamed_bytes = 0
-                    for chunk in resp.iter_content(2 ** 14):
-                        # chunk could be the decompressed form of the real data
-                        # but we want the exact number of bytes read till now
-                        streamed_bytes = resp.raw.tell()
-                        try:
-                            fh.write(chunk)
-                        except IOError as e:
-                            message = "Failed to write to %(target_path)s\n  errno: %(errno)d"
-                            # TODO: make this CondaIOError
-                            raise CondaError(message, target_path=target_full_path, errno=e.errno)
+                    digest_builder.update(chunk)
 
-                        digest_builder.update(chunk)
+                    if content_length and 0 <= streamed_bytes <= content_length:
+                        if progress_update_callback:
+                            progress_update_callback(streamed_bytes / content_length)
 
-                        if content_length and 0 <= streamed_bytes <= content_length:
-                            getLogger('fetch.update').info(streamed_bytes)
+            if content_length and streamed_bytes != content_length:
+                # TODO: needs to be a more-specific error type
+                message = dals("""
+                Downloaded bytes did not match Content-Length
+                  url: %(url)s
+                  target_path: %(target_path)s
+                  Content-Length: %(content_length)d
+                  downloaded bytes: %(downloaded_bytes)d
+                """)
+                raise CondaError(message, url=url, target_path=target_full_path,
+                                 content_length=content_length,
+                                 downloaded_bytes=streamed_bytes)
 
-                if content_length and streamed_bytes != content_length:
-                    # TODO: needs to be a more-specific error type
-                    message = dals("""
-                    Downloaded bytes did not match Content-Length
-                      url: %(url)s
-                      target_path: %(target_path)s
-                      Content-Length: %(content_length)d
-                      downloaded bytes: %(downloaded_bytes)d
-                    """)
-                    raise CondaError(message, url=url, target_path=target_full_path,
-                                     content_length=content_length,
-                                     downloaded_bytes=streamed_bytes)
-
-            except (IOError, OSError) as e:
-                if e.errno == 104:
-                    # Connection reset by peer
-                    log.debug("%s, trying again" % e)
-                raise
+        except (IOError, OSError) as e:
+            if e.errno == 104:
+                # Connection reset by peer
+                log.debug("%s, trying again" % e)
+            raise
 
         actual_md5sum = digest_builder.hexdigest()
         if md5sum and actual_md5sum != md5sum:
@@ -138,9 +115,6 @@ def download(url, target_full_path, md5sum):
                              getattr(e.response, 'elapsed', None),
                              e.response,
                              caused_by=e)
-    finally:
-        if content_length:
-            getLogger('fetch.stop').info(None)
 
 
 class TmpDownload(object):
@@ -157,9 +131,6 @@ class TmpDownload(object):
             self.tmp_dir = None
             return self.url
         else:
-            if self.verbose:
-                from ...console import setup_handlers
-                setup_handlers()
             self.tmp_dir = tempfile.mkdtemp()
             dst = join(self.tmp_dir, basename(self.url))
             download(self.url, dst, None)

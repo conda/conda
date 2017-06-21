@@ -11,6 +11,7 @@ import tempfile
 import pytest
 
 from conda import CONDA_PACKAGE_ROOT
+from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.cli.activate import _get_prefix_paths, binpath_from_arg
 from conda.compat import TemporaryDirectory, chain
@@ -559,7 +560,7 @@ def test_CONDA_DEFAULT_ENV(shell):
         {printdefaultenv}
         """).format(envs=envs, **shell_vars)
         stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout.rstrip(), 'root', stderr)
+        assert_equals(stdout.rstrip(), ROOT_ENV_NAME, stderr)
 
         commands = (shell_vars['command_setup'] + """
         {source} "{syspath}{binpath}activate" root {nul}

@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import namedtuple
 from itertools import chain
 from logging import getLogger
 
 from .linked_data import linked_data
 from .package_cache import PackageCache
+from .repodata import collect_all_repodata_as_index, make_feature_record
 from ..base.constants import MAX_CHANNEL_PRIORITY
 from ..base.context import context
 from ..common.compat import iteritems, itervalues
 from ..gateways.disk.read import read_index_json
-from ..models.channel import Channel, prioritize_channels
+from ..models.channel import prioritize_channels
 from ..models.dist import Dist
-from ..models.index_record import EMPTY_LINK, IndexRecord, RepodataRecord
-from .repodata import RepoData
+from ..models.index_record import EMPTY_LINK, IndexRecord, PackageRecord
 
 try:
     from cytoolz.itertoolz import take
@@ -58,25 +59,14 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 def fetch_index(channel_urls, use_cache=False, index=None):
     # type: (prioritize_channels(), bool, bool, Dict[Dist, IndexRecord]) -> Dict[Dist, IndexRecord]
     log.debug('channel_urls=' + repr(channel_urls))
-    if not context.json:
-        stdoutlog.info("Fetching package metadata ...")
 
-    RepoData.clear()  # make sure we start with a clean slateq
-    for url, cdata in iteritems(channel_urls):
-        RepoData.enable(url, *cdata)
-    RepoData.load_all(use_cache)
-    # type: List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
-    #   this is sorta a lie; actually more primitve types
+    use_cache = use_cache or context.use_index_cache
 
-    if index is None:
-        index = {}
-    for url in reversed(RepoData):
-        repo = RepoData[url]
-        if repo.index:
-            index.update(repo.index.get('packages', {}))
+    # channel_urls reversed to build up index in correct order
+    CollectTask = namedtuple('CollectTask', ('url', 'schannel', 'priority'))
+    tasks = (CollectTask(url, *channel_urls[url]) for url in reversed(channel_urls))
+    index = collect_all_repodata_as_index(use_cache, tasks)
 
-    if not context.json:
-        stdoutlog.info('\n')
     return index
 
 
@@ -88,7 +78,7 @@ def _supplement_index_with_prefix(index, prefix, channels):
     for dist, info in iteritems(linked_data(prefix)):
         if dist in index:
             # The downloaded repodata takes priority, so we do not overwrite.
-            # We do, however, copy the link information so that the solver
+            # We do, however, copy the link information so that the solver (i.e. resolve)
             # knows this package is installed.
             old_record = index[dist]
             link = info.get('link') or EMPTY_LINK
@@ -121,7 +111,7 @@ def _supplement_index_with_cache(index, channels):
         index_json_record = read_index_json(pkg_dir)
         # See the discussion above about priority assignments.
         priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-        repodata_record = RepodataRecord.from_objects(
+        repodata_record = PackageRecord.from_objects(
             index_json_record,
             fn=dist.to_filename(),
             schannel=dist.channel,
@@ -132,19 +122,8 @@ def _supplement_index_with_cache(index, channels):
 
 
 def _supplement_index_with_features(index, features=()):
-    defaults = Channel('defaults')
     for feat in chain(context.track_features, features):
-        fname = feat + '@'
-        rec = IndexRecord(
-            name=fname,
-            version='0',
-            build='0',
-            channel=defaults,
-            subdir=context.subdir,
-            md5="0123456789",
-            track_features=feat,
-            build_number=0,
-            fn=fname)
+        rec = make_feature_record(feat)
         index[Dist(rec)] = rec
 
 

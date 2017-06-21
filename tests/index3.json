@@ -1,0 +1,2207 @@
+{
+  "needs-spiffy-test-app-1.0-py_0.tar.bz2": {
+    "arch": null,
+    "binstar": {
+      "channel": "main",
+      "owner_id": "58596cc93d1b550ffad38672",
+      "package_id": "58ca2ae89bfd275b460b3f36"
+    },
+    "build": "py_0",
+    "build_number": 0,
+    "depends": [
+      "python",
+      "spiffy-test-app >=2"
+    ],
+    "has_prefix": false,
+    "machine": null,
+    "md5": "870e35324a2a43fde680eb6d244186af",
+    "name": "needs-spiffy-test-app",
+    "noarch": "python",
+    "operatingsystem": null,
+    "platform": null,
+    "requires": [],
+    "size": 5429,
+    "subdir": "noarch",
+    "target-triplet": "None-any-None",
+    "version": "1.0"
+  },
+  "openssl-1.0.1c-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2012-10-03",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "e4d18e1ec56889c731c0992485e51d02",
+    "name": "openssl",
+    "size": 2218152,
+    "version": "1.0.1c"
+  },
+  "openssl-1.0.1g-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-04-08",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "d921018f39c861b78b38b1ae9b2634f5",
+    "name": "openssl",
+    "size": 2209349,
+    "version": "1.0.1g"
+  },
+  "openssl-1.0.1h-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-06-09",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "9474f91263e44ed3d4058c3d42c1d335",
+    "name": "openssl",
+    "size": 2209603,
+    "version": "1.0.1h"
+  },
+  "openssl-1.0.1h-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2014-09-15",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "d3d4d0c0dc1bc1a3aa3d139eb960a397",
+    "name": "openssl",
+    "size": 2574474,
+    "version": "1.0.1h"
+  },
+  "openssl-1.0.1j-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-12-12",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "1aab7631aaf4742feceec120e5274bf7",
+    "name": "openssl",
+    "size": 2579402,
+    "version": "1.0.1j"
+  },
+  "openssl-1.0.1j-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2014-12-15",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "be17fa85588e8b113f06a40dcaa3341d",
+    "name": "openssl",
+    "size": 2744192,
+    "version": "1.0.1j"
+  },
+  "openssl-1.0.1j-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2014-12-15",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "8fff6ec53dc75aee4106d8e50074cec1",
+    "name": "openssl",
+    "size": 2745477,
+    "version": "1.0.1j"
+  },
+  "openssl-1.0.1j-3.tar.bz2": {
+    "build": "3",
+    "build_number": 3,
+    "date": "2014-12-15",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "e2ae72b96cd4350d8ef5b642e635e2a6",
+    "name": "openssl",
+    "size": 2745195,
+    "version": "1.0.1j"
+  },
+  "openssl-1.0.1j-4.tar.bz2": {
+    "build": "4",
+    "build_number": 4,
+    "date": "2014-12-17",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "bd67cc44e34c5bc0d9468e90f50b3f7b",
+    "name": "openssl",
+    "size": 2746228,
+    "version": "1.0.1j"
+  },
+  "openssl-1.0.1j-5.tar.bz2": {
+    "build": "5",
+    "build_number": 5,
+    "date": "2015-01-08",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "957107b951f611301ac11c5b0ea7b4a3",
+    "name": "openssl",
+    "size": 2745788,
+    "version": "1.0.1j"
+  },
+  "openssl-1.0.1k-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2015-01-10",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "aa671fc4dffa78b940a159fb3b454b5a",
+    "name": "openssl",
+    "size": 2751975,
+    "version": "1.0.1k"
+  },
+  "openssl-1.0.1k-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2015-03-11",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "0216d3b6bd5ece689476167806d37c51",
+    "name": "openssl",
+    "size": 2752020,
+    "version": "1.0.1k"
+  },
+  "openssl-1.0.2d-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2015-10-19",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "64ed901cc841b5d1790a04cdbc408cc0",
+    "name": "openssl",
+    "size": 3318611,
+    "version": "1.0.2d"
+  },
+  "openssl-1.0.2e-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-01-12",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "8a39304d7ccf5a4284243c2526714e68",
+    "name": "openssl",
+    "size": 3319839,
+    "version": "1.0.2e"
+  },
+  "openssl-1.0.2f-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-01-29",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "6ab3f6f12bcb45916eeb79f27c76a0e1",
+    "name": "openssl",
+    "size": 3318392,
+    "version": "1.0.2f"
+  },
+  "openssl-1.0.2g-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-03-01",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "d692484d115db242af6a8b75dd796fb2",
+    "name": "openssl",
+    "size": 3319259,
+    "version": "1.0.2g"
+  },
+  "openssl-1.0.2h-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-05-03",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "d11d9267ad0442f589425147404723ea",
+    "name": "openssl",
+    "size": 3321016,
+    "version": "1.0.2h"
+  },
+  "openssl-1.0.2h-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2016-05-31",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "9bb96ac0c1ea136355bc65382b656fcd",
+    "name": "openssl",
+    "size": 3321599,
+    "version": "1.0.2h"
+  },
+  "openssl-1.0.2i-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-09-22",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "8a25c5d8af34d51a4acf1e8233f486c1",
+    "name": "openssl",
+    "size": 3325126,
+    "version": "1.0.2i"
+  },
+  "openssl-1.0.2j-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-09-27",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "1c4e45f6fd4bb96e50921dbc06107fe3",
+    "name": "openssl",
+    "size": 3326020,
+    "version": "1.0.2j"
+  },
+  "openssl-1.0.2k-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2017-01-26",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "e2a279291ffc456028dffb1f240a7b3e",
+    "name": "openssl",
+    "size": 3327937,
+    "version": "1.0.2k"
+  },
+  "openssl-1.0.2k-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2017-03-03",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "81d3b1c0dddd721c3f7cb33f9389eb7f",
+    "name": "openssl",
+    "size": 3328438,
+    "version": "1.0.2k"
+  },
+  "openssl-1.0.2k-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2017-05-12",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "cfe0ac5567e23e1001b9fe28c7af47e9",
+    "name": "openssl",
+    "size": 3340041,
+    "version": "1.0.2k"
+  },
+  "openssl-1.0.2l-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2017-05-25",
+    "depends": [],
+    "license": "Apache-style",
+    "license_family": "Apache",
+    "md5": "4b777ebd155103c6ca3c8abff32a95b6",
+    "name": "openssl",
+    "size": 3340883,
+    "version": "1.0.2l"
+  },
+  "python-1.0.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-03-26",
+    "depends": [],
+    "license": "PSF",
+    "md5": "bb61c8316c66153e9661cd35f58c126f",
+    "name": "python",
+    "size": 379996,
+    "space_anchor": true,
+    "version": "1.0.1"
+  },
+  "python-2.6.8-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2012-11-08",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "d50f51e92e26fa19d524ec8b2ee5e167",
+    "name": "python",
+    "size": 11168746,
+    "space_anchor": true,
+    "version": "2.6.8"
+  },
+  "python-2.6.8-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2012-11-12",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "07a7c31ce6e42268c49a1a99f2a67986",
+    "name": "python",
+    "size": 11169444,
+    "space_anchor": true,
+    "version": "2.6.8"
+  },
+  "python-2.6.8-3.tar.bz2": {
+    "build": "3",
+    "build_number": 3,
+    "date": "2012-11-20",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "ae8c59d0ee29b1e2c550c1585998b465",
+    "name": "python",
+    "size": 11166674,
+    "space_anchor": true,
+    "version": "2.6.8"
+  },
+  "python-2.6.8-4.tar.bz2": {
+    "build": "4",
+    "build_number": 4,
+    "date": "2012-12-20",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "eedf2a76f4b792a6ef9d6d22502758e6",
+    "name": "python",
+    "size": 11163393,
+    "space_anchor": true,
+    "version": "2.6.8"
+  },
+  "python-2.6.8-5.tar.bz2": {
+    "build": "5",
+    "build_number": 5,
+    "date": "2013-01-22",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "e961b68ac471550c861eab1492134610",
+    "name": "python",
+    "size": 11906652,
+    "space_anchor": true,
+    "version": "2.6.8"
+  },
+  "python-2.6.8-6.tar.bz2": {
+    "build": "6",
+    "build_number": 6,
+    "date": "2013-02-25",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "0e1dfb84bdb3ec6143eba6c109c88450",
+    "name": "python",
+    "size": 11878469,
+    "space_anchor": true,
+    "version": "2.6.8"
+  },
+  "python-2.6.8-7.tar.bz2": {
+    "build": "7",
+    "build_number": 7,
+    "date": "2013-06-28",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "fce6e512772b4fc4ba2cad629ad5ab80",
+    "name": "python",
+    "size": 11874444,
+    "space_anchor": true,
+    "version": "2.6.8"
+  },
+  "python-2.6.9-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2013-10-30",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "6d7892177aa7bbf5d083ad48701639fe",
+    "name": "python",
+    "size": 11883429,
+    "space_anchor": true,
+    "version": "2.6.9"
+  },
+  "python-2.6.9-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2014-08-21",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "7ca867c87c449e73ef1a9bb90877b3e5",
+    "name": "python",
+    "size": 12320003,
+    "space_anchor": true,
+    "version": "2.6.9"
+  },
+  "python-2.7.10-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2015-05-28",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "ee8c8e999477b88a7429f206feb232a0",
+    "name": "python",
+    "size": 14111473,
+    "space_anchor": true,
+    "version": "2.7.10"
+  },
+  "python-2.7.10-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2015-09-15",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "80e55adab511de2b9abd7c3ac9a55f62",
+    "name": "python",
+    "size": 12534916,
+    "space_anchor": true,
+    "version": "2.7.10"
+  },
+  "python-2.7.10-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2015-10-19",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2*",
+      "sqlite",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "8d608e1447e391d310ccab8cba0d3b3f",
+    "name": "python",
+    "size": 13547088,
+    "space_anchor": true,
+    "version": "2.7.10"
+  },
+  "python-2.7.10-d0.tar.bz2": {
+    "build": "d0",
+    "build_number": 0,
+    "date": "2015-05-29",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "features": "debug",
+    "license": "PSF",
+    "md5": "636d53f0d9f97000ca12dec8632d731b",
+    "name": "python",
+    "size": 12233667,
+    "space_anchor": true,
+    "version": "2.7.10"
+  },
+  "python-2.7.11-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2015-12-06",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2*",
+      "sqlite",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "db12659b99cdfb45297f2897f725d2e9",
+    "name": "python",
+    "size": 13689650,
+    "space_anchor": true,
+    "version": "2.7.11"
+  },
+  "python-2.7.11-5.tar.bz2": {
+    "build": "5",
+    "build_number": 5,
+    "date": "2016-06-15",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "fc72429d2d23f462c7b0fb06036900d8",
+    "name": "python",
+    "size": 12590212,
+    "space_anchor": true,
+    "version": "2.7.11"
+  },
+  "python-2.7.11-d0.tar.bz2": {
+    "build": "d0",
+    "build_number": 0,
+    "date": "2016-04-01",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2*",
+      "sqlite",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "features": "debug",
+    "license": "PSF",
+    "md5": "4dadf2e9935521782ccab872e924b59a",
+    "name": "python",
+    "size": 11806311,
+    "space_anchor": true,
+    "version": "2.7.11"
+  },
+  "python-2.7.12-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-06-29",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "4162beb40c3fe75a142b29f505f15a4c",
+    "name": "python",
+    "size": 12640989,
+    "space_anchor": true,
+    "version": "2.7.12"
+  },
+  "python-2.7.12-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2016-07-02",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "bb956a5d1012b116dc3d89c9cf876bc5",
+    "name": "python",
+    "size": 12639950,
+    "space_anchor": true,
+    "version": "2.7.12"
+  },
+  "python-2.7.13-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-12-20",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "75517b0f5176e9cf704befa1cac3be23",
+    "name": "python",
+    "size": 12039052,
+    "space_anchor": true,
+    "version": "2.7.13"
+  },
+  "python-2.7.3-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2012-11-08",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "47fc63e21b11502e94d9e5b2131859a7",
+    "name": "python",
+    "size": 11715084,
+    "space_anchor": true,
+    "version": "2.7.3"
+  },
+  "python-2.7.3-3.tar.bz2": {
+    "build": "3",
+    "build_number": 3,
+    "date": "2012-11-12",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "f601c76768041f3bae6cfb05cd68933e",
+    "name": "python",
+    "size": 11713312,
+    "space_anchor": true,
+    "version": "2.7.3"
+  },
+  "python-2.7.3-4.tar.bz2": {
+    "build": "4",
+    "build_number": 4,
+    "date": "2012-11-20",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "c0bc6e5d053ae87d85fef5cd4a59fda6",
+    "name": "python",
+    "size": 11712739,
+    "space_anchor": true,
+    "version": "2.7.3"
+  },
+  "python-2.7.3-5.tar.bz2": {
+    "build": "5",
+    "build_number": 5,
+    "date": "2012-12-20",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "93ac346bfc203a920f10cd3ababae3a7",
+    "name": "python",
+    "size": 11709837,
+    "space_anchor": true,
+    "version": "2.7.3"
+  },
+  "python-2.7.3-6.tar.bz2": {
+    "build": "6",
+    "build_number": 6,
+    "date": "2013-01-22",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "2c55a450a009fd503cbd90280169c938",
+    "name": "python",
+    "size": 12493208,
+    "space_anchor": true,
+    "version": "2.7.3"
+  },
+  "python-2.7.3-7.tar.bz2": {
+    "build": "7",
+    "build_number": 7,
+    "date": "2013-02-25",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "a0e872f3ed38688b259ab7524b6a381d",
+    "name": "python",
+    "size": 12471212,
+    "space_anchor": true,
+    "version": "2.7.3"
+  },
+  "python-2.7.4-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2013-04-21",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "ef0cf7b9222a201a12618f8ad7f1f0ce",
+    "name": "python",
+    "size": 12578407,
+    "space_anchor": true,
+    "version": "2.7.4"
+  },
+  "python-2.7.5-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2013-05-17",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "449bb3b003c79019e993d3942afebbda",
+    "name": "python",
+    "size": 12612534,
+    "space_anchor": true,
+    "version": "2.7.5"
+  },
+  "python-2.7.5-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2013-05-31",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "3e4d1788323d00106d6167ef527e18d1",
+    "name": "python",
+    "size": 12612113,
+    "space_anchor": true,
+    "version": "2.7.5"
+  },
+  "python-2.7.5-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2013-06-28",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "c129ee1b19b2042ea6406324615a8bed",
+    "name": "python",
+    "size": 12858925,
+    "space_anchor": true,
+    "version": "2.7.5"
+  },
+  "python-2.7.5-3.tar.bz2": {
+    "build": "3",
+    "build_number": 3,
+    "date": "2013-11-04",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "7c14664a9984217f624142c0f2dc5be0",
+    "name": "python",
+    "size": 12859830,
+    "space_anchor": true,
+    "version": "2.7.5"
+  },
+  "python-2.7.6-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2013-11-11",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "c60ba9719d9aa083d085b4980667dbf1",
+    "name": "python",
+    "size": 12836166,
+    "space_anchor": true,
+    "version": "2.7.6"
+  },
+  "python-2.7.6-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2014-01-17",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "6f17f349771d2bab651733e8a359c7e9",
+    "name": "python",
+    "size": 12839727,
+    "space_anchor": true,
+    "version": "2.7.6"
+  },
+  "python-2.7.6-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2014-05-27",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "aa6baa4d86985f2e1d5f9145a9f3f890",
+    "name": "python",
+    "size": 12838490,
+    "space_anchor": true,
+    "version": "2.7.6"
+  },
+  "python-2.7.7-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-06-02",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "72ae99f36bcac5c8a57e15ba6cc88939",
+    "name": "python",
+    "size": 12944099,
+    "space_anchor": true,
+    "version": "2.7.7"
+  },
+  "python-2.7.7-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2014-06-19",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "142f331f823442eec60dc74d4e8fd5fb",
+    "name": "python",
+    "size": 12944346,
+    "space_anchor": true,
+    "version": "2.7.7"
+  },
+  "python-2.7.8-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-07-02",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "7ae8b794db47ba15757f7424f540a414",
+    "name": "python",
+    "size": 12983787,
+    "space_anchor": true,
+    "version": "2.7.8"
+  },
+  "python-2.7.8-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2014-08-21",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "56d07e61edeb875a81d95734a3dcbf9b",
+    "name": "python",
+    "size": 13459348,
+    "space_anchor": true,
+    "version": "2.7.8"
+  },
+  "python-2.7.9-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-12-12",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "1aa74815a334f42fa4fc9f1517ef5f65",
+    "name": "python",
+    "size": 15089251,
+    "space_anchor": true,
+    "version": "2.7.9"
+  },
+  "python-2.7.9-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2014-12-15",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "4698d6403745f4f985088cf6d4ee39aa",
+    "name": "python",
+    "size": 15089447,
+    "space_anchor": true,
+    "version": "2.7.9"
+  },
+  "python-2.7.9-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2015-03-09",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "dcf2306cc8da71ac96ee104f8a6a0af4",
+    "name": "python",
+    "size": 15091879,
+    "space_anchor": true,
+    "version": "2.7.9"
+  },
+  "python-2.7.9-3.tar.bz2": {
+    "build": "3",
+    "build_number": 3,
+    "date": "2015-04-14",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "4a352b92c6a764341e6afa596b6cbdd2",
+    "name": "python",
+    "size": 15092151,
+    "space_anchor": true,
+    "version": "2.7.9"
+  },
+  "python-2.7.9-d1.tar.bz2": {
+    "build": "d1",
+    "build_number": 1,
+    "date": "2015-02-03",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "features": "debug",
+    "license": "PSF",
+    "md5": "a314125a445b331b82f3a7f34af8fc30",
+    "name": "python",
+    "size": 13211801,
+    "space_anchor": true,
+    "version": "2.7.9"
+  },
+  "python-2.7.9-d2.tar.bz2": {
+    "build": "d2",
+    "build_number": 2,
+    "date": "2015-03-09",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "features": "debug",
+    "license": "PSF",
+    "md5": "9143b352dba2a01f8e0f84d1a6007c15",
+    "name": "python",
+    "size": 13215307,
+    "space_anchor": true,
+    "version": "2.7.9"
+  },
+  "python-3.3.0-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2012-12-03",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "caef2d84fc63a680840e7998227cfbce",
+    "name": "python",
+    "size": 20645031,
+    "space_anchor": true,
+    "version": "3.3.0"
+  },
+  "python-3.3.0-3.tar.bz2": {
+    "build": "3",
+    "build_number": 3,
+    "date": "2013-02-20",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "cff6d32e7b1535a562659723cf09f1bc",
+    "name": "python",
+    "size": 21328709,
+    "space_anchor": true,
+    "version": "3.3.0"
+  },
+  "python-3.3.0-4.tar.bz2": {
+    "build": "4",
+    "build_number": 4,
+    "date": "2013-02-25",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "de42c1fd988c3eee772b6377340c6511",
+    "name": "python",
+    "size": 21323870,
+    "space_anchor": true,
+    "version": "3.3.0"
+  },
+  "python-3.3.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2013-04-06",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "ef771584312f05c56b3755078570e5f9",
+    "name": "python",
+    "size": 21155571,
+    "space_anchor": true,
+    "version": "3.3.1"
+  },
+  "python-3.3.2-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2013-05-17",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "2274f4bb6825b7300211cc08d3aecf0c",
+    "name": "python",
+    "size": 21142146,
+    "space_anchor": true,
+    "version": "3.3.2"
+  },
+  "python-3.3.2-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2013-08-05",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "221d694722cfd3612378527a7edcf748",
+    "name": "python",
+    "size": 21132726,
+    "space_anchor": true,
+    "version": "3.3.2"
+  },
+  "python-3.3.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2013-11-25",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "c80eba2834055e4382940de0e415fb94",
+    "name": "python",
+    "size": 21401622,
+    "space_anchor": true,
+    "version": "3.3.3"
+  },
+  "python-3.3.4-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-02-10",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "3e4f0a1f68504be9dd031685122eab9b",
+    "name": "python",
+    "size": 21580117,
+    "space_anchor": true,
+    "version": "3.3.4"
+  },
+  "python-3.3.5-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-03-10",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "60f9cd6792079ea6ed653b41ea0bf111",
+    "name": "python",
+    "size": 21593569,
+    "space_anchor": true,
+    "version": "3.3.5"
+  },
+  "python-3.3.5-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2014-08-21",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "e7dfffde2a75b84c741fe345fc95262a",
+    "name": "python",
+    "size": 22712801,
+    "space_anchor": true,
+    "version": "3.3.5"
+  },
+  "python-3.3.5-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2014-08-31",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "3e33f26a928d564cdecdb395b416b0d3",
+    "name": "python",
+    "size": 22736834,
+    "space_anchor": true,
+    "version": "3.3.5"
+  },
+  "python-3.3.5-3.tar.bz2": {
+    "build": "3",
+    "build_number": 3,
+    "date": "2014-09-02",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "492aaf1bd55f60c982a3a3332e2882bf",
+    "name": "python",
+    "size": 22733930,
+    "space_anchor": true,
+    "version": "3.3.5"
+  },
+  "python-3.3.5-4.tar.bz2": {
+    "build": "4",
+    "build_number": 4,
+    "date": "2015-06-04",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "86d0324122abe7e87a4bcad92d45a4ea",
+    "name": "python",
+    "size": 20612017,
+    "space_anchor": true,
+    "version": "3.3.5"
+  },
+  "python-3.4.0-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-03-17",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "4947d03b1ae8b1793c35c203c2331379",
+    "name": "python",
+    "size": 24635110,
+    "space_anchor": true,
+    "version": "3.4.0"
+  },
+  "python-3.4.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-05-19",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "d65af653ca80279cb5a297d145585dff",
+    "name": "python",
+    "size": 24654628,
+    "space_anchor": true,
+    "version": "3.4.1"
+  },
+  "python-3.4.1-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2014-08-21",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "e550698df728430b77a83b68a452ce20",
+    "name": "python",
+    "size": 25787101,
+    "space_anchor": true,
+    "version": "3.4.1"
+  },
+  "python-3.4.1-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2014-08-31",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "77e3f00c79c9c40f619ff4ad11cdc2f5",
+    "name": "python",
+    "size": 25816193,
+    "space_anchor": true,
+    "version": "3.4.1"
+  },
+  "python-3.4.1-3.tar.bz2": {
+    "build": "3",
+    "build_number": 3,
+    "date": "2014-09-02",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "d9011bafda3514ee83528b99d388d005",
+    "name": "python",
+    "size": 25817670,
+    "space_anchor": true,
+    "version": "3.4.1"
+  },
+  "python-3.4.1-4.tar.bz2": {
+    "build": "4",
+    "build_number": 4,
+    "date": "2014-09-10",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "732b70d32003d9bd9a845585826e44ca",
+    "name": "python",
+    "size": 25814310,
+    "space_anchor": true,
+    "version": "3.4.1"
+  },
+  "python-3.4.2-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-10-21",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "d0132838e2f2b579a921632921b26262",
+    "name": "python",
+    "size": 25943559,
+    "space_anchor": true,
+    "version": "3.4.2"
+  },
+  "python-3.4.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2015-03-06",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "3db8ca67e53ab81bb21276aded73b1a2",
+    "name": "python",
+    "size": 26230450,
+    "space_anchor": true,
+    "version": "3.4.3"
+  },
+  "python-3.4.3-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2015-06-04",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "system 5.8",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "7e64e790e8cf3b84ee7edc22935a1d2d",
+    "name": "python",
+    "size": 24199773,
+    "space_anchor": true,
+    "version": "3.4.3"
+  },
+  "python-3.4.3-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2015-10-19",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2*",
+      "sqlite",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "d9bb0b51155a73ed189335d49ff89ade",
+    "name": "python",
+    "size": 16682155,
+    "space_anchor": true,
+    "version": "3.4.3"
+  },
+  "python-3.4.4-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-01-11",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2*",
+      "sqlite",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "d5e5f9be4eedfca39e196dda5437ba1c",
+    "name": "python",
+    "size": 16752989,
+    "space_anchor": true,
+    "version": "3.4.4"
+  },
+  "python-3.4.4-5.tar.bz2": {
+    "build": "5",
+    "build_number": 5,
+    "date": "2016-06-15",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "xz 5.2.*",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "a30a2b7ad795b19a13861bd36af49bee",
+    "name": "python",
+    "size": 15994165,
+    "space_anchor": true,
+    "version": "3.4.4"
+  },
+  "python-3.4.5-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-07-02",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "xz 5.2.*",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "167def33bcbdd430df8e75f81acda7e6",
+    "name": "python",
+    "size": 15962339,
+    "space_anchor": true,
+    "version": "3.4.5"
+  },
+  "python-3.5.0-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2015-09-13",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "db09005f86922883140c70db9e9940a8",
+    "name": "python",
+    "size": 17449990,
+    "space_anchor": true,
+    "version": "3.5.0"
+  },
+  "python-3.5.0-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2015-10-19",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2*",
+      "sqlite",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "b9aefb55f6122cf16fb30da2eb449b46",
+    "name": "python",
+    "size": 18957203,
+    "space_anchor": true,
+    "version": "3.5.0"
+  },
+  "python-3.5.0rc4-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2015-09-10",
+    "depends": [
+      "openssl 1.0.1*",
+      "readline 6.2*",
+      "sqlite",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "6ff22dddc5cd49ac9723e9197063c95c",
+    "name": "python",
+    "size": 26459208,
+    "space_anchor": true,
+    "version": "3.5.0rc4"
+  },
+  "python-3.5.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2015-12-07",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2*",
+      "sqlite",
+      "tk 8.5*",
+      "xz 5.0.5",
+      "zlib 1.2*"
+    ],
+    "license": "PSF",
+    "md5": "2cea7b6f46bb5234bea1b4e46ee7cb02",
+    "name": "python",
+    "size": 18968833,
+    "space_anchor": true,
+    "version": "3.5.1"
+  },
+  "python-3.5.1-5.tar.bz2": {
+    "build": "5",
+    "build_number": 5,
+    "date": "2016-06-15",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "xz 5.2.*",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "55f79150d3e4705ccc54261a126fe29e",
+    "name": "python",
+    "size": 17547725,
+    "space_anchor": true,
+    "version": "3.5.1"
+  },
+  "python-3.5.2-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-07-02",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "xz 5.2.*",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "9437f356cea67a652dc1155e677b4e7e",
+    "name": "python",
+    "size": 18005809,
+    "space_anchor": true,
+    "version": "3.5.2"
+  },
+  "python-3.5.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2017-02-22",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "xz 5.2.*",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "973ac6ad62f09a920640c1ca04f49973",
+    "name": "python",
+    "size": 16642267,
+    "space_anchor": true,
+    "version": "3.5.3"
+  },
+  "python-3.5.3-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2017-03-06",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "xz 5.2.*",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "b6541dfa79fd28a735e5c56a0df8d3c7",
+    "name": "python",
+    "size": 16646105,
+    "space_anchor": true,
+    "version": "3.5.3"
+  },
+  "python-3.6.0-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-12-23",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "xz 5.2.*",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "a285595cc413d6784843a2dafc6642c6",
+    "name": "python",
+    "size": 17104611,
+    "space_anchor": true,
+    "version": "3.6.0"
+  },
+  "python-3.6.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2017-03-22",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "xz 5.2.*",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "ad6541546c880ea0aa414dbf4a1fcf2e",
+    "name": "python",
+    "size": 17208521,
+    "space_anchor": true,
+    "version": "3.6.1"
+  },
+  "python-3.6.1-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2017-05-11",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "xz 5.2.*",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "1fc5e7275890638afd3936ae06c7803a",
+    "name": "python",
+    "size": 17208658,
+    "space_anchor": true,
+    "version": "3.6.1"
+  },
+  "readline-6.2-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2012-10-03",
+    "depends": [],
+    "license": "GPL3",
+    "license_family": "GPL3",
+    "md5": "1af69df00a3384a3f01cd14589b2bfdd",
+    "name": "readline",
+    "size": 590927,
+    "version": "6.2"
+  },
+  "readline-6.2-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2014-01-03",
+    "depends": [],
+    "license": "GPL3",
+    "license_family": "GPL3",
+    "md5": "d050607fb2934282470d06872e0e6cce",
+    "name": "readline",
+    "size": 620292,
+    "version": "6.2"
+  },
+  "spiffy-test-app-1.0-py27h7c48563_0.tar.bz2": {
+    "arch": "x86_64",
+    "binstar": {
+      "channel": "main",
+      "owner_id": "58596cc93d1b550ffad38672",
+      "package_id": "58a77840f9e4b211570d691f"
+    },
+    "build": "py27h7c48563_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8"
+    ],
+    "has_prefix": true,
+    "machine": "x86_64",
+    "md5": "328fac69949453affb23a0136e16fea5",
+    "name": "spiffy-test-app",
+    "operatingsystem": "linux",
+    "platform": "linux",
+    "requires": [],
+    "size": 3980,
+    "subdir": "linux-64",
+    "target-triplet": "x86_64-any-linux",
+    "version": "1.0"
+  },
+  "spiffy-test-app-2.0-py27hf99fac9_0.tar.bz2": {
+    "arch": "x86_64",
+    "binstar": {
+      "channel": "main",
+      "owner_id": "58596cc93d1b550ffad38672",
+      "package_id": "58a77840f9e4b211570d691f"
+    },
+    "build": "py27hf99fac9_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8"
+    ],
+    "has_prefix": true,
+    "machine": "x86_64",
+    "md5": "87b36a243c2ababf7e9062e3e26e56d1",
+    "name": "spiffy-test-app",
+    "operatingsystem": "linux",
+    "platform": "linux",
+    "preferred_env": "spiffy-test-app",
+    "requires": [],
+    "size": 4150,
+    "subdir": "linux-64",
+    "target-triplet": "x86_64-any-linux",
+    "version": "2.0"
+  },
+  "sqlite-3.13.0-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-05-25",
+    "depends": [],
+    "license": "Public-Domain",
+    "license_family": "Public-Domain",
+    "md5": "ceb2d63b0dc2ec8a2e1da9378f07ab98",
+    "name": "sqlite",
+    "size": 4167817,
+    "version": "3.13.0"
+  },
+  "sqlite-3.7.13-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2012-10-03",
+    "depends": [],
+    "license": "Public-Domain",
+    "license_family": "Public-Domain",
+    "md5": "4a3c1c63dcd3aba2b38100d7c031e21a",
+    "name": "sqlite",
+    "size": 1951856,
+    "version": "3.7.13"
+  },
+  "sqlite-3.8.4.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-03-17",
+    "depends": [],
+    "license": "Public-Domain",
+    "license_family": "Public-Domain",
+    "md5": "6ee2d2fa576b985128911d10f8028a6e",
+    "name": "sqlite",
+    "size": 2105174,
+    "version": "3.8.4.1"
+  },
+  "sqlite-3.8.4.1-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2015-03-23",
+    "depends": [],
+    "license": "Public-Domain",
+    "license_family": "Public-Domain",
+    "md5": "987665edcc4d5d8086cf9b9cbc614919",
+    "name": "sqlite",
+    "size": 2621615,
+    "version": "3.8.4.1"
+  },
+  "sqlite-3.9.2-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-01-11",
+    "depends": [],
+    "license": "Public-Domain",
+    "license_family": "Public-Domain",
+    "md5": "921ea12655f77e6d505a6f9b34d86e4f",
+    "name": "sqlite",
+    "size": 4088115,
+    "version": "3.9.2"
+  },
+  "system-5.8-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2012-10-03",
+    "depends": [],
+    "license_family": "GPL2",
+    "md5": "0f3d2943f4f0b03094dc4899cfe9beeb",
+    "name": "system",
+    "size": 509528,
+    "version": "5.8"
+  },
+  "system-5.8-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2013-04-18",
+    "depends": [],
+    "license_family": "GPL2",
+    "md5": "6763ec66cfc5ed5610cad6fbc04914b3",
+    "name": "system",
+    "size": 514473,
+    "version": "5.8"
+  },
+  "system-5.8-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2015-03-04",
+    "depends": [],
+    "license_family": "GPL2",
+    "md5": "2d34ef0cfab944d5d3e160e64195d82a",
+    "name": "system",
+    "size": 174210,
+    "version": "5.8"
+  },
+  "tk-8.5.13-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2013-01-14",
+    "depends": [],
+    "license": "BSD-like",
+    "license_family": "BSD",
+    "md5": "7e8950ee636fad0cfbf75673f756a7a0",
+    "name": "tk",
+    "size": 1890123,
+    "version": "8.5.13"
+  },
+  "tk-8.5.15-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-04-25",
+    "depends": [],
+    "license": "BSD-like",
+    "license_family": "BSD",
+    "md5": "84584b8d7e7070ed52ee20cbf4197915",
+    "name": "tk",
+    "size": 1926853,
+    "version": "8.5.15"
+  },
+  "tk-8.5.18-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2015-03-16",
+    "depends": [],
+    "license": "BSD-like",
+    "license_family": "BSD",
+    "md5": "902f0fd689a01a835c9e69aefbe58fdd",
+    "name": "tk",
+    "size": 1960193,
+    "version": "8.5.18"
+  },
+  "uses-spiffy-test-app-1.0-pyh7836eba_0.tar.bz2": {
+    "arch": null,
+    "binstar": {
+      "channel": "main",
+      "owner_id": "58596cc93d1b550ffad38672",
+      "package_id": "58a77928fcf1cf1171cd721c"
+    },
+    "build": "pyh7836eba_0",
+    "build_number": 0,
+    "depends": [
+      "python",
+      "spiffy-test-app"
+    ],
+    "has_prefix": false,
+    "machine": null,
+    "md5": "5ac009cee58cd467de139399ceb6ae43",
+    "name": "uses-spiffy-test-app",
+    "noarch": "python",
+    "operatingsystem": null,
+    "platform": null,
+    "requires": [],
+    "size": 3888,
+    "subdir": "noarch",
+    "target-triplet": "None-any-None",
+    "version": "1.0"
+  },
+  "uses-spiffy-test-app-2.0-pyh18698f2_0.tar.bz2": {
+    "arch": null,
+    "binstar": {
+      "channel": "main",
+      "owner_id": "58596cc93d1b550ffad38672",
+      "package_id": "58a77928fcf1cf1171cd721c"
+    },
+    "build": "pyh18698f2_0",
+    "build_number": 0,
+    "depends": [
+      "python",
+      "spiffy-test-app"
+    ],
+    "has_prefix": false,
+    "machine": null,
+    "md5": "31ce415d43c222c530dde754b25f0e0b",
+    "name": "uses-spiffy-test-app",
+    "noarch": "python",
+    "operatingsystem": null,
+    "platform": null,
+    "preferred_env": "_spiffy-test-app_",
+    "requires": [],
+    "size": 3928,
+    "subdir": "noarch",
+    "target-triplet": "None-any-None",
+    "version": "2.0"
+  },
+  "xz-5.0.5-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2014-08-31",
+    "depends": [],
+    "license": "Public-Domain, GPL",
+    "license_family": "GPL2",
+    "md5": "ad8d2d640ec1415b8a5724a7edc7005d",
+    "name": "xz",
+    "size": 516555,
+    "version": "5.0.5"
+  },
+  "xz-5.0.5-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2016-02-13",
+    "depends": [],
+    "license": "Public-Domain, GPL",
+    "license_family": "GPL2",
+    "md5": "a029c67ad64a612d6081d4f3fe1a0797",
+    "name": "xz",
+    "size": 585979,
+    "version": "5.0.5"
+  },
+  "xz-5.2.2-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2016-04-01",
+    "depends": [],
+    "license": "Public-Domain, GPL",
+    "license_family": "GPL2",
+    "md5": "e695dd33979086349147a4f354f5c2bd",
+    "name": "xz",
+    "size": 659118,
+    "version": "5.2.2"
+  },
+  "xz-5.2.2-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2016-12-28",
+    "depends": [],
+    "license": "Public-Domain, GPL",
+    "license_family": "GPL2",
+    "md5": "6352a951a56d7e96a49cbcb3abdda7ed",
+    "name": "xz",
+    "size": 685547,
+    "version": "5.2.2"
+  },
+  "zlib-1.2.7-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2012-10-03",
+    "depends": [],
+    "license": "zlib",
+    "license_family": "Other",
+    "md5": "5de941e21f7eb62ec1ffc250a4f26161",
+    "name": "zlib",
+    "size": 97353,
+    "version": "1.2.7"
+  },
+  "zlib-1.2.7-1.tar.bz2": {
+    "build": "1",
+    "build_number": 1,
+    "date": "2015-01-05",
+    "depends": [],
+    "license": "zlib",
+    "license_family": "Other",
+    "md5": "b521917e997ffa8da6a13e53d0a87f06",
+    "name": "zlib",
+    "size": 101876,
+    "version": "1.2.7"
+  },
+  "zlib-1.2.7-2.tar.bz2": {
+    "build": "2",
+    "build_number": 2,
+    "date": "2015-01-05",
+    "depends": [],
+    "license": "zlib",
+    "license_family": "Other",
+    "md5": "c1a5020d9930d4a30a595d82c078c0bf",
+    "name": "zlib",
+    "size": 101887,
+    "version": "1.2.7"
+  },
+  "zlib-1.2.8-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2015-01-05",
+    "depends": [],
+    "license": "zlib",
+    "license_family": "Other",
+    "md5": "42f5acc5a5ec3340b72092fcc129157b",
+    "name": "zlib",
+    "size": 102434,
+    "version": "1.2.8"
+  },
+  "zlib-1.2.8-3.tar.bz2": {
+    "build": "3",
+    "build_number": 3,
+    "date": "2016-05-25",
+    "depends": [],
+    "license": "zlib",
+    "license_family": "Other",
+    "md5": "60d5ea874984e4c750f187a26c827382",
+    "name": "zlib",
+    "size": 103236,
+    "version": "1.2.8"
+  }
+}
