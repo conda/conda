@@ -37,14 +37,14 @@ from ..models.dist import Dist
 from ..models.index_record import IndexRecord, Priority
 
 try:
-    from cytoolz.itertoolz import take
+    from cytoolz.itertoolz import concat, take
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import take
+    from .._vendor.toolz.itertoolz import concat, take  # NOQA
 
 try:
     import cPickle as pickle
 except ImportError:  # pragma: no cover
-    import pickle
+    import pickle  # NOQA
 
 __all__ = ('RepoData', 'collect_all_repodata',)
 
@@ -148,24 +148,6 @@ class RepoData(object):
     def index(self):
         # WARNING: This method will soon be deprecated.
         return self._data
-
-
-def collect_all_repodata(use_cache, tasks):
-    repodatas = executor = None
-    if context.concurrent:
-        try:
-            import concurrent.futures
-            executor = concurrent.futures.ThreadPoolExecutor(10)
-            repodatas = _collect_repodatas_concurrent(executor, use_cache, tasks)
-        except (ImportError, RuntimeError) as e:
-            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-            # RuntimeError is thrown if number of threads are limited by OS
-            log.debug(repr(e))
-    if executor:
-        executor.shutdown(wait=True)
-    if repodatas is None:
-        repodatas = _collect_repodatas_serial(use_cache, tasks)
-    return repodatas
 
 
 def read_mod_and_etag(path):
@@ -582,22 +564,40 @@ def fetch_repodata(url, schannel, priority,
     return repodata
 
 
-def _collect_repodatas_serial(use_cache, tasks):
-    # type: (bool, List[str]) -> List[Sequence[str, Option[Dict[Dist, IndexRecord]]]]
-    session = CondaSession()
-    repodatas = [(url, fetch_repodata(url, schan, pri, use_cache=use_cache, session=session))
-                 for url, schan, pri in tasks]
-    return repodatas
-
-
-def _collect_repodatas_concurrent(executor, use_cache, tasks):
-    futures = tuple(executor.submit(fetch_repodata, url, schan, pri,
+def _collect_repodatas_concurrent_as_index(executor, use_cache, tasks):
+    futures = (executor.submit(fetch_repodata, url, schan, pri,
                                     use_cache=use_cache,
                                     session=CondaSession())
                     for url, schan, pri in tasks)
+    results = (future.result() for future in futures)
+    index = dict(concat(iteritems(result.get('packages', {})) for result in results if result))
+    return index
 
-    repodatas = [(t[0], f.result()) for t, f in zip(tasks, futures)]
-    return repodatas
+
+def _collect_repodatas_serial_as_index(use_cache, tasks):
+    session = CondaSession()
+    results = (fetch_repodata(url, schan, pri, use_cache=use_cache, session=session)
+               for url, schan, pri in tasks)
+    index = dict(concat(iteritems(result.get('packages', {})) for result in results if result))
+    return index
+
+
+def collect_all_repodata_as_index(use_cache, tasks):
+    index = executor = None
+    if context.concurrent:
+        try:
+            from concurrent.futures import ThreadPoolExecutor
+            executor = ThreadPoolExecutor(5)
+            index = _collect_repodatas_concurrent_as_index(executor, use_cache, tasks)
+        except (ImportError, RuntimeError) as e:
+            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
+            # RuntimeError is thrown if number of threads are limited by OS
+            log.debug(repr(e))
+    if executor:
+        executor.shutdown(wait=True)
+    if index is None:
+        index = _collect_repodatas_serial_as_index(use_cache, tasks)
+    return index
 
 
 def cache_fn_url(url):
