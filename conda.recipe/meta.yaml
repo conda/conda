@@ -28,6 +28,7 @@ requirements:
     - python
     - m2-base              [win]
     - m2-filesystem        [win]
+    - m2-git               [win]
   run:
     - python
     - conda-env >=2.6
