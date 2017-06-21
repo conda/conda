@@ -46,7 +46,7 @@ try:
 except ImportError:  # pragma: no cover
     import pickle  # NOQA
 
-__all__ = ('RepoData', 'collect_all_repodata',)
+__all__ = ('RepoData',)
 
 log = getLogger(__name__)
 stderrlog = getLogger('stderrlog')
@@ -566,9 +566,9 @@ def fetch_repodata(url, schannel, priority,
 
 def _collect_repodatas_concurrent_as_index(executor, use_cache, tasks):
     futures = (executor.submit(fetch_repodata, url, schan, pri,
-                                    use_cache=use_cache,
-                                    session=CondaSession())
-                    for url, schan, pri in tasks)
+                               use_cache=use_cache,
+                               session=CondaSession())
+               for url, schan, pri in tasks)
     results = (future.result() for future in futures)
     index = dict(concat(iteritems(result.get('packages', {})) for result in results if result))
     return index

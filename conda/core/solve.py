@@ -234,7 +234,7 @@ class Solver(object):
         specs_map.update((s.name, s) for s in specs_to_add)
 
         # collect additional specs to add to the solution
-        track_features_specs = pinned_specs = conda_update_specs = ()
+        track_features_specs = pinned_specs = ()
         if context.track_features:
             track_features_specs = tuple(MatchSpec(x + '@') for x in context.track_features)
         if not ignore_pinned:
