@@ -273,7 +273,7 @@ class Spinner(object):
         if self.show_spin:
             self._stop_running.set()
             self._spinner_thread.join()
-            
+
     def _start_spinning(self):
         while not self._stop_running.is_set():
             self.fh.write(next(self.spinner_cycle) + ' ')

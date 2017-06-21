@@ -110,8 +110,22 @@ class PrefixDag(object):
                          if node not in ordered)
         return list(ordered)
 
+    def order_nodes_leaves_last(self, nodes):
+        name_key = lambda node: node.record.name
+        ordered = IndexedSet(sorted((node for node in nodes if node.is_orphan), key=name_key))
+        queue = deque(sorted((node for node in nodes if node.is_leaf), key=name_key))
+        while queue:
+            node = queue.popleft()
+            ordered.add(node)
+            queue.extend(node for node in sorted(node.required_children, key=name_key)
+                         if node not in ordered)
+            queue.extend(node for node in sorted(node.optional_children, key=name_key)
+                         if node not in ordered)
+        return list(ordered)
+
     def remove_node_and_children(self, node):
-        for child in tuple(node.required_children):
+        nodes = self.order_nodes_leaves_last(node.all_descendants())
+        for child in nodes:
             for record in self.remove_node_and_children(child):
                 yield record
         yield self.remove(node)
