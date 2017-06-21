@@ -95,7 +95,7 @@ install_conda_full() {
 
     $PYTHON_EXE --version
 
-    $PYTHON_EXE conda.recipe/setup.py install --single-version-externally-managed --record record.txt
+    $PYTHON_EXE conda.recipe/setup.py install # --single-version-externally-managed --record record.txt
 
     install_conda_shell_scripts $prefix
 
