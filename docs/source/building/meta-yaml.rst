@@ -527,12 +527,12 @@ undefined.
 Pin downstream
 ~~~~~~~~~~~~~~
 
-It is often of use to require a particular runtime library to be present at
+It is often useful to require a particular runtime library to be present at
 runtime when a particular library or package is used at build time. For example,
 if you use a C++ compiler to build a package with dynamic linkage, then it is
 likely that you also need to include the C++ runtime package corresponding to
 that compiler as a runtime requirement. Generally, these imposed pinnings should
-be added to the tool (compiler) or library (jpeg, bzip2, etc.) used at build
+be added to the tool (compiler) or library (jpeg, bzip2, and so on) used at build
 time, rather than to the package using those tools or libraries.
 
 .. code-block:: yaml
@@ -542,7 +542,7 @@ time, rather than to the package using those tools or libraries.
       - libstdc++
 
 You can express version constraints directly, or use any of the jinja2 helper
-functions listed at :ref:`extra_jinja2`
+functions listed at :ref:`extra_jinja2`.
 
 For example, you may use :ref:`pinning_expressions` to obtain flexible version
 pinning relative to versions present at build time:
@@ -555,7 +555,7 @@ pinning relative to versions present at build time:
 
 
 With this example, if g++ were version 5.3.0, this pinning expression would
-evaluate to ``>=5.3.0,<6``
+evaluate to ``>=5.3.0,<6``.
 
 Note that ``run_exports`` can be specified both in the build section, and on
 a per-output basis for split packages.
@@ -812,7 +812,7 @@ requirement:
      - name: libgcc
 
 
-Note: variant expressions are very powerful here. You can express the version
+Note: Variant expressions are very powerful here. You can express the version
 requirement in the run_exports entry as a jinja function to insert values
 based on the actual version of libgcc produced by the recipe. Read more about
 them at :ref:`referencing_subpackages`.
