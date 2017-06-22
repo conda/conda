@@ -158,7 +158,7 @@ Multiple sources
 ~~~~~~~~~~~~~~~~
 
 Some software is most easily built by aggregating several pieces. For this,
-conda-build 3.0 has added support for specifying aribtrarily many sources. The
+conda-build 3.0 has added support for specifying arbitrarily many sources. The
 syntax for this is a list of source dictionaries. Each member of this list
 follows the same rules as the single source for earlier conda-build versions
 (listed above). All features for each member are supported.
@@ -170,7 +170,7 @@ follows the same rules as the single source for earlier conda-build versions
     - url: https://package1.com/b.tar.bz2
     - git_url: https://github.com/conda/conda-build
 
-Note the dashes: these denote list items in YAML syntax. Each of these are
+Note the dashes: these denote list items in YAML syntax. Each of these
 entries are extracted/cloned into one folder. This example won't actually work,
 because git will not clone into a non-empty folder. Let's specify some folders:
 
