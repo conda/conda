@@ -686,16 +686,18 @@ def _execute_upload(context, error_report):
         # That is, when following a 301 or 302, it turns a POST into a GET.
         # And no way to disable.  WTF
         import requests
-        q = 0
+        redirect_counter = 0
         url = context.error_upload_url
-        response = requests.post(url, headers=headers, timeout=_timeout, data=data)
+        response = requests.post(url, headers=headers, timeout=_timeout, data=data,
+                                 allow_redirects=False)
         response.raise_for_status()
         while response.status_code in (301, 302) and response.headers.get('Location'):
             url = response.headers['Location']
-            response = requests.post(url, headers=headers, timeout=_timeout, data=data)
+            response = requests.post(url, headers=headers, timeout=_timeout, data=data,
+                                     allow_redirects=False)
             response.raise_for_status()
-            q += 1
-            if q > 15:
+            redirect_counter += 1
+            if redirect_counter > 15:
                 raise CondaError("Redirect limit exceeded")
         log.debug("upload response status: %s", response and response.status_code)
     except Exception as e:  # pragma: no cover
