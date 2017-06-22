@@ -29,7 +29,7 @@ from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.enums import FileMode, LinkType
 
 log = getLogger(__name__)
-stdoutlog = getLogger('conda.stdout.raw')
+stdoutlog = getLogger('conda.stdout')
 
 mkdir_p = mkdir_p  # in __init__.py to help with circular imports
 
@@ -172,8 +172,7 @@ def make_menu(prefix, file_path, remove=False):
         import menuinst
         menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
     except:
-        stdoutlog.error("menuinst Exception:")
-        stdoutlog.error(traceback.format_exc())
+        stdoutlog.error("menuinst Exception", exc_info=True)
 
 
 def create_hard_link_or_copy(src, dst):
