@@ -9,7 +9,7 @@ from ...disk.delete import rm_rf
 from ....common.url import url_to_s3_info
 
 log = getLogger(__name__)
-stderrlog = getLogger('stderrlog')
+stderrlog = getLogger('conda.stderr.raw')
 
 
 class S3Adapter(BaseAdapter):

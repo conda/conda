@@ -29,7 +29,7 @@ from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.enums import FileMode, LinkType
 
 log = getLogger(__name__)
-stdoutlog = getLogger('stdoutlog')
+stdoutlog = getLogger('conda.stdout.raw')
 
 mkdir_p = mkdir_p  # in __init__.py to help with circular imports
 
