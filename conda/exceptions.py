@@ -587,14 +587,14 @@ class InvalidVersionSpecError(CondaError):
 def print_conda_exception(exception):
     from .base.context import context
 
-    stdoutlogger = getLogger('conda.stdout')
-    stderrlogger = getLogger('conda.stderr')
+    stdoutlog = getLogger('conda.stdout')
+    stderrlog = getLogger('conda.stderr')
     if context.json:
         import json
-        stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
+        stdoutlog.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
                                      cls=EntityEncoder))
     else:
-        stderrlogger.info("\n%r", exception)
+        stderrlog.info("\n%r", exception)
 
 
 def _calculate_ask_do_upload(context):
