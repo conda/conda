@@ -29,7 +29,7 @@ from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..plan import revert_actions
 
 log = getLogger(__name__)
-stderr = getLogger('stderr')
+stderrlog = getLogger('conda.stderr')
 
 
 def check_prefix(prefix, json=False):
@@ -46,9 +46,9 @@ def check_prefix(prefix, json=False):
         raise CondaValueError(error, json)
 
     if ' ' in prefix:
-        stderr.warn("WARNING: A space was detected in your requested environment path\n"
-                    "'%s'\n"
-                    "Spaces in paths can sometimes be problematic." % prefix)
+        stderrlog.warn("WARNING: A space was detected in your requested environment path\n"
+                       "'%s'\n"
+                       "Spaces in paths can sometimes be problematic." % prefix)
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
