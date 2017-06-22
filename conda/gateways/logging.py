@@ -74,41 +74,25 @@ def initialize_std_loggers():
     # Set up special loggers 'conda.stdout'/'conda.stderr' which output directly to the
     # corresponding sys streams, filter token urls and don't propagate.
     formatter = Formatter("%(message)s\n")
-
-    stdout = getLogger('conda.stdout')
-    stdout.setLevel(INFO)
-    stdouthandler = StdStreamHandler('stdout')
-    stdouthandler.setLevel(INFO)
-    stdouthandler.setFormatter(formatter)
-    stdout.addHandler(stdouthandler)
-    stdout.addFilter(TokenURLFilter())
-    stdout.propagate = False
-
-    stderr = getLogger('conda.stderr')
-    stderr.setLevel(INFO)
-    stderrhandler = StdStreamHandler('stderr')
-    stderrhandler.setLevel(INFO)
-    stderrhandler.setFormatter(formatter)
-    stderr.addHandler(stderrhandler)
-    stderr.addFilter(TokenURLFilter())
-    stderr.propagate = False
-
     raw_formatter = RawFormatter()
-    stdout_raw = getLogger('conda.stdout.raw')
-    stdout_raw.setLevel(DEBUG)
-    stdout_raw_handler = StdStreamHandler('stdout', terminator='')
-    stdout_raw_handler.setLevel(DEBUG)
-    stdout_raw_handler.setFormatter(raw_formatter)
-    stdout_raw.addHandler(stdout_raw_handler)
-    stdout_raw.propagate = False
 
-    stderr_raw = getLogger('conda.stderr.raw')
-    stderr_raw.setLevel(DEBUG)
-    stderr_raw_handler = StdStreamHandler('stderr', terminator='')
-    stderr_raw_handler.setLevel(DEBUG)
-    stderr_raw_handler.setFormatter(raw_formatter)
-    stderr_raw.addHandler(stderr_raw_handler)
-    stderr_raw.propagate = False
+    for stream in 'stdout', 'stderr'):
+        logger = getLogger('conda.%s' % stream)
+        logger.setLevel(INFO)
+        handler = StdStreamHandler(stream)
+        handler.setLevel(INFO)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        logger.addFilter(TokenURLFilter())
+        logger.propagate = False
+
+        raw_logger = getLogger('conda.%s.raw' % stream)
+        raw_logger.setLevel(DEBUG)
+        raw_handler = StdStreamHandler(stream, terminator='')
+        raw_handler.setLevel(DEBUG)
+        raw_handler.setFormatter(raw_formatter)
+        raw_logger.addHandler(raw_handler)
+        raw_logger.propagate = False
 
 
 def initialize_root_logger(level=ERROR):
