@@ -69,8 +69,7 @@ def initialize_logging():
 def initialize_std_loggers():
     # Set up special loggers 'conda.stdout'/'conda.stderr' which output directly to the
     # corresponding sys streams, filter token urls and don't propagate.
-    formatter = Formatter("%(message)s\n")
-    raw_formatter = Formatter('%(message)s')
+    formatter = Formatter("%(message)s")
 
     for stream in 'stdout', 'stderr'):
         logger = getLogger('conda.%s' % stream)
@@ -86,15 +85,14 @@ def initialize_std_loggers():
         raw_logger.setLevel(DEBUG)
         raw_handler = StdStreamHandler(stream, terminator='')
         raw_handler.setLevel(DEBUG)
-        raw_handler.setFormatter(raw_formatter)
+        raw_handler.setFormatter(formatter)
         raw_logger.addHandler(raw_handler)
         raw_logger.propagate = False
 
     verbose_logger = getLogger('conda.stdout.verbose')
     verbose_logger.setLevel(INFO)
     verbose_handler = StdStreamHandler('stdout')
-    verbose_formatter = Formatter('%(message)s')
-    verbose_handler.setFormatter(verbose_formatter)
+    verbose_handler.setFormatter(formatter)
     verbose_logger.addHandler(verbose_handler)
 
 

@@ -591,10 +591,11 @@ def print_conda_exception(exception):
     stderrlog = getLogger('conda.stderr')
     if context.json:
         import json
-        stdoutlog.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
-                                     cls=EntityEncoder))
+        map_dump = exception.dump_map()
+        json_exception = json.dumps(map_dump, indent=2, sort_keys=True, cls=EntityEncoder) 
+        stdoutlog.info("%s\n" % json_exception)
     else:
-        stderrlog.info("\n%r", exception)
+        stderrlog.info("\n%r\n", exception)
 
 
 def _calculate_ask_do_upload(context):
