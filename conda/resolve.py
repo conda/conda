@@ -15,7 +15,6 @@ from .models.version import normalized_version
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('stdoutlog')
-stderrlog = logging.getLogger('stderrlog')
 
 
 # used in conda build

@@ -36,7 +36,6 @@ except ImportError:  # pragma: no cover
 
 
 log = getLogger(__name__)
-stderrlog = getLogger('stderrlog')
 
 
 class PackageCacheType(type):
