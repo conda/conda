@@ -95,6 +95,13 @@ def initialize_std_loggers():
         raw_logger.addHandler(raw_handler)
         raw_logger.propagate = False
 
+    verbose_logger = getLogger('conda.stdout.verbose')
+    verbose_logger.setLevel(INFO)
+    verbose_handler = StdStreamHandler('stdout')
+    verbose_formatter = Formatter('%(message)s')
+    verbose_handler.setFormatter(verbose_formatter)
+    verbose_logger.addHandler(verbose_handler)
+
 
 def initialize_root_logger(level=ERROR):
     attach_stderr_handler(level)

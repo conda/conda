@@ -50,7 +50,7 @@ def PREFIX_CMD(state, prefix):
 def PRINT_CMD(state, arg):
     if arg.startswith(('Unlinking packages', 'Linking packages')):
         return
-    getLogger('print').info(arg)
+    getLogger('conda.stdout.verbose').info(arg)
 
 
 def FETCH_CMD(state, package_cache_entry):
