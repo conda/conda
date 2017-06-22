@@ -10,9 +10,8 @@ from ..cli.main import generate_parser
 from ..common.io import CaptureTarget, argv, captured
 from ..common.path import win_path_double_escape
 from ..exceptions import conda_exception_handler
-from ..gateways import initialize_std_loggers
+from ..gateways.logging import initialize_std_loggers
 
-initialize_std_loggers()
 log = getLogger(__name__)
 
 
