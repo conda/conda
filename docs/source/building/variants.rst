@@ -1,35 +1,34 @@
 Build Variants
 ==============
 
-
-The nature of binary compatibility (or lack thereof) means that unfortunately,
-we need to build binary packages (and any package containing binaries) with
-potentially several variants to support different usage environments. For
+The nature of binary compatibility (and incompatibility) means that we
+sometimes need to build binary packages (and any package containing binaries)
+with several variants to support different usage environments. For
 example, using Numpy's C API means that a package must be used with the same
 version of Numpy at runtime that was used at build time.
 
-There has been limited support for this for a long time: Python in both build
-and run requirements resulted in a package that had python pinned to the version
-of Python used at build time (with a corresponding addition to the filename like
-py27). Similar support existed for numpy with the addition of an ``x.x`` pin in
-the recipe after `Conda-build PR
-573 <https://github.com/conda/conda-build/pull/573>`_ was merged. However, there
-has not been general support until conda-build version 3.0, though there have
-been many proposals (`Conda-build issue
+There has been limited support for this for a long time. Including Python in
+both build and run requirements resulted in a package with Python pinned to the
+version of Python used at build time, and a corresponding addition to the
+filename such as "py27". Similar support existed for numpy with the addition of
+an ``x.x`` pin in the recipe after `Conda-build PR
+573 <https://github.com/conda/conda-build/pull/573>`_ was merged. Before
+conda-build version 3.0 there were also many longstanding proposals for general
+support (`Conda-build issue
 1142 <https://github.com/conda/conda-build/issues/1142>`_).
 
 As of conda-build 3.0, a new configuration scheme has been added, dubbed
 "variants." Conceptually, this decouples pinning values from recipes, replacing
 them with Jinja2 template variables. It adds support for the notion of
-"compatible" pinnings, though that concept is currently still under heavy
-development, to be integrated with ABI compatibility databases, such as `ABI
-Laboratory <https://abi-laboratory.pro/>`_.
+"compatible" pinnings to be integrated with ABI compatibility databases, such as
+`ABI Laboratory <https://abi-laboratory.pro/>`_. Note that the concept of
+"compatible" pinnings is currently still under heavy development.
 
-Variant input is ultimately a dictionary. They're mostly very flat. Keys are
-made directly available in Jinja2 templates. As a result, keys in the dictionary
-(and in files read into dictionaries) must be valid jinja2 variable names (no ``-``
-characters allowed). This example builds python 2.7 and 3.5 packages in one
-build command:
+Variant input is ultimately a dictionary. These dictionaries are mostly very
+flat. Keys are made directly available in Jinja2 templates. As a result, keys
+in the dictionary (and in files read into dictionaries) must be valid jinja2
+variable names (no ``-`` characters allowed). This example builds python 2.7
+and 3.5 packages in one build command:
 
 conda_build_config.yaml like:
 
@@ -63,135 +62,137 @@ conda_build_config.yaml, we just call the ``conda build .`` command.
 General pinning examples
 ------------------------
 
-There are a few characteristic use cases for pinning.  Please consider this a map for the content below.
+There are a few characteristic use cases for pinning.  Please consider this a
+map for the content below.
 
-1. Shared library providing a binary interface. All uses of this library use the
-   binary interface.  It is convenient to apply the same pin to all of your builds.
-   Example: boost
+1. Shared library providing a binary interface. All uses of this library use
+   the binary interface. It is convenient to apply the same pin to all of your
+   builds. Example: boost
 
+   conda_build_config.yaml in your HOME folder:
 
-conda_build_config.yaml in your HOME folder:
+   .. code-block:: yaml
 
-.. code-block:: yaml
+      boost:
+        - 1.61
+        - 1.63
+      pin_run_as_build:
+        boost: x.x
 
-  boost:
-    - 1.61
-    - 1.63
-  pin_run_as_build:
-    boost: x.x
+   meta.yaml:
 
+   .. code-block:: yaml
 
-meta.yaml:
+      package:
+          name: compiled-code
+          version: 1.0
 
-.. code-block:: yaml
+      requirements:
+          build:
+              - boost  {{ boost }}
+          run:
+              - boost
 
-   package:
-       name: compiled-code
-       version: 1.0
+   This example demonstrates several features:
 
-   requirements:
-       build:
-           - boost  {{ boost }}
-       run:
-           - boost
-
-This example demonstrates several features:
-  * user-wide configuration with a specifically named config file
-    (conda_build_config.yaml in your home folder). More options below in
-    `Creating conda-build variant config files`_.
-  * building against multiple versions of a single library (set versions
-    installed at build time)
-  * pinning runtime requirements to the version used at build time. More
-    information below at `Pinning at the variant level`_.
-  * specify granularity of pinning. ``x.x`` pins major and minor version. More
-    information at `Pinning expressions`_.
+   * user-wide configuration with a specifically named config file
+     (conda_build_config.yaml in your home folder). More options below in
+     `Creating conda-build variant config files`_.
+   * building against multiple versions of a single library (set versions
+     installed at build time)
+   * pinning runtime requirements to the version used at build time. More
+     information below at `Pinning at the variant level`_.
+   * specify granularity of pinning. ``x.x`` pins major and minor version. More
+     information at `Pinning expressions`_.
 
 
 2. Python package with externally accessible binary component. Not all uses of
-   this library use the binary interface (some only use pure python). Example:
+   this library use the binary interface (some only use pure Python). Example:
    numpy
 
-conda_build_config.yaml in your recipe folder (alongside meta.yaml:
+   conda_build_config.yaml in your recipe folder (alongside meta.yaml):
 
-.. code-block:: yaml
+   .. code-block:: yaml
 
-  numpy:
-    - 1.11
-    - 1.12
+      numpy:
+        - 1.11
+        - 1.12
 
 
-meta.yaml:
+   meta.yaml:
 
-.. code-block:: yaml
+   .. code-block:: yaml
 
-   package:
-       name: numpy_using_pythonAPI_thing
-       version: 1.0
+      package:
+          name: numpy_using_pythonAPI_thing
+          version: 1.0
 
-   requirements:
-       build:
-           - python
-           - numpy
-       run:
-           - python
-           - numpy
+      requirements:
+          build:
+              - python
+              - numpy
+          run:
+              - python
+              - numpy
 
-This example demonstrates a particular feature: reduction of builds when pins
-are unnecessary. Since the example recipe above only requires the Python API to
-numpy, we will only build the package once and the version of numpy will not be pinned
-at runtime to match the compile-time version.  There's more information at `Avoiding unnecessary builds`_.
+   This example demonstrates a particular feature: reduction of builds when pins
+   are unnecessary. Since the example recipe above only requires the Python API
+   to numpy, we will only build the package once and the version of numpy will
+   not be pinned at runtime to match the compile-time version.  There's more
+   information at `Avoiding unnecessary builds`_.
 
-For a different package that makes use of the numpy C API, we will need to
-actually pin numpy in this recipe (and only in this recipe, so that other
-recipes don't unnecessarily build lots of variants).  To pin numpy, you can
-use the variant key directly in meta.yaml:
+   For a different package that makes use of the numpy C API, we will need to
+   actually pin numpy in this recipe (and only in this recipe, so that other
+   recipes don't unnecessarily build lots of variants).  To pin numpy, you can
+   use the variant key directly in meta.yaml:
 
-.. code-block:: yaml
+   .. code-block:: yaml
 
-   package:
-       name: numpy_using_cAPI_thing
-       version: 1.0
+      package:
+          name: numpy_using_cAPI_thing
+          version: 1.0
 
-   requirements:
-       build:
-           - numpy  {{ numpy }}
-       run:
-           - numpy  {{ numpy }}
+      requirements:
+          build:
+              - numpy  {{ numpy }}
+          run:
+              - numpy  {{ numpy }}
 
-For legacy compatibility, python is pinned implicitly without specifying {{ python }}
-in your recipe. This is generally intractable to extend to all package
-names, so in general, try to get in the habit of always using the jinja2
-variable substitution for pinning using versions from your
-conda_build_config.yaml file.
+   For legacy compatibility, python is pinned implicitly without specifying
+   ``{{ python }}`` in your recipe. This is generally intractable to extend to
+   all package names, so in general, try to get in the habit of always using
+   the jinja2 variable substitution for pinning using versions from your
+   conda_build_config.yaml file.
 
-There are also more flexible ways to pin, using the `Pinning expressions`_. See
-`Pinning at the recipe level`_ for examples.
+   There are also more flexible ways to pin, using the `Pinning expressions`_.
+   See `Pinning at the recipe level`_ for examples.
 
 
 3. One recipe splits into multiple packages, and package dependencies need to be
    dynamically pinned among one another. Example:
    GCC/libgcc/libstdc++/gfortran/etc.
 
-The dynamic pinning is the tricky part.  Conda-build provides new ways to refer to other subpackages within a single recipe.
+   The dynamic pinning is the tricky part. Conda-build provides new ways to
+   refer to other subpackages within a single recipe.
 
-.. code-block:: yaml
+   .. code-block:: yaml
 
-   package:
-       name: dynamic_supackage
-       version: 1.0
+      package:
+          name: dynamic_supackage
+          version: 1.0
 
-   requirements:
-       run:
-           - {{ pin_subpackage('my_awesome_subpackage') }}
+      requirements:
+          run:
+              - {{ pin_subpackage('my_awesome_subpackage') }}
 
-   outputs:
-     - name: my_awesome_subpackage
-       version: 2.0
+      outputs:
+        - name: my_awesome_subpackage
+          version: 2.0
 
-by referring to subpackages this way, you don't need to worry about what the end
-version of my_awesome_subpackage will be. Update it independently and just let
-conda build figure it out and keep things consistent. There's more information
-below in the `Referencing subpackages`_ section below.
+   By referring to subpackages this way, you don't need to worry about what the
+   end version of my_awesome_subpackage will be. Update it independently and
+   just let conda build figure it out and keep things consistent. There's more
+   information below in the `Referencing subpackages`_ section.
 
 
 Transition guide
@@ -267,8 +268,7 @@ First, the meta.yaml file:
              - {{ pin_subpackage('libxgboost', exact=True)
              - r-base  {{ r_base }}
 
-
-next, the conda_build_config.yaml file, specifying our build matrix:
+Next, the conda_build_config.yaml file, specifying our build matrix:
 
 .. code-block:: yaml
 
@@ -280,7 +280,6 @@ next, the conda_build_config.yaml file, specifying our build matrix:
         - 3.3.2
         - 3.4.0
 
-
 With this updated method, you get a complete build matrix: 6 builds total. One
 libxgboost library, 3 python versions, and 2 R versions. Additionally, the
 python and R packages will have exact pins to the libxgboost package that was
@@ -289,7 +288,6 @@ built by this recipe.
 
 Creating conda-build variant config files
 -----------------------------------------
-
 
 Variant input files are yaml files.  Search order for these files is the following:
 
@@ -303,23 +301,23 @@ Variant input files are yaml files.  Search order for these files is the followi
    multiple times for multiple files. The ``conda build`` and ``conda render``
    commands accept these arguments.
 
-Files found later in this search order clobber the values from earlier files.
+Values in files found later in this search order will overwrite and replace the
+values from earlier files.
 
 
 Using variants with the conda-build API
 ---------------------------------------
 
-
 Ultimately, a variant is just a dictionary. This dictionary is provided directly
-to Jinja2 - you can use any declared key from your variant configuration in your
-Jinja2 templates. There are two ways that you can feed this information into the
-API:
+to Jinja2, and you can use any declared key from your variant configuration in
+your Jinja2 templates. There are two ways that you can feed this information
+into the API:
 
-1. pass the ``variants`` keyword argument to API functions. Currently, the
+1. Pass the ``variants`` keyword argument to API functions. Currently, the
    ``build``, ``render``, ``get_output_file_path``, and ``check`` functions
-   accept this argument. ``variants`` should be a dictionary with values being
-   lists of versions to iterate over. These are aggregated as detailed in the
-   Aggregation of multiple variants section below.
+   accept this argument. ``variants`` should be a dictionary where each value
+   is a list of versions to iterate over. These are aggregated as detailed in
+   the `Aggregation of multiple variants`_ section below.
 
 2. Set the ``variant`` member of a Config object. This is just a dictionary. The
    values for fields should be strings or lists of strings, except "extended
@@ -376,9 +374,8 @@ You could supply a variant to build this recipe like this (conda_build_config.ya
         - openmpi  # version spec here is totally valid, and will apply in the recipe
         - mpich  # version spec here is totally valid, and will apply in the recipe
 
-
-Selectors are not currently valid in conda_build_config.yaml, but we plan on
-adding them soon.
+Selectors are not currently valid in conda_build_config.yaml, but we plan to
+add them soon.
 
 
 About reproducibility
@@ -415,8 +412,8 @@ There are some special keys that behave differently and can be more nested:
   compatibility`_. This is a generalization of the ``numpy x.x`` spec, so that
   you can pin your packages dynamically based on the versions used at build
   time.
-* ``extend_keys``: specifies keys that should be aggregated, rather than
-  clobbered, by later variants. These are detailed below in the `Extended keys`_
+* ``extend_keys``: specifies keys that should be aggregated, and not replaced,
+  by later variants. These are detailed below in the `Extended keys`_
   section.
 * ``ignore_version``: list of package names whose versions should be excluded
   from meta.yaml's requirements/build when computing hash. Described further in
@@ -429,9 +426,9 @@ Coupling keys
 Sometimes particular versions need to be tied to other versions. For example, on
 Windows, we generally follow the upstream Python.org association of Visual
 Studio compiler version with Python version. Python 2.7 is always compiled with
-Visual Studio 2008 (a.k.a. MSVC 9). We don't want a conda_build_config.yaml like
-the following to create a matrix of python/MSVC versions:
-
+Visual Studio 2008 (also known as MSVC 9). We don't want a
+conda_build_config.yaml like the following to create a matrix of python/MSVC
+versions:
 
 .. code-block:: yaml
 
@@ -442,10 +439,8 @@ the following to create a matrix of python/MSVC versions:
      - 9
      - 14
 
-
 Instead, we want 2.7 to be associated with 9, and 3.5 to be associated with 14.
 The ``zip_keys`` key in conda_build_config.yaml is the way to achieve this:
-
 
 .. code-block:: yaml
 
@@ -459,9 +454,7 @@ The ``zip_keys`` key in conda_build_config.yaml is the way to achieve this:
      - python
      - vc
 
-
 You can also have nested lists to achieve multiple groups of ``zip_keys``:
-
 
 .. code-block:: yaml
 
@@ -473,29 +466,26 @@ You can also have nested lists to achieve multiple groups of ``zip_keys``:
        - numpy
        - blas
 
-
 The rules for ``zip_keys`` are:
 
-  1. Every list in a group must be the same length. This is because without
-     similar length, there is no way to associate earlier elements from the
-     shorter list with later elements in the longer list. For example, this is
-     invalid, and will raise an error:
+1. Every list in a group must be the same length. This is because without
+   equal length, there is no way to associate earlier elements from the
+   shorter list with later elements in the longer list. For example, this is
+   invalid, and will raise an error:
 
-.. code-block:: yaml
+   .. code-block:: yaml
 
-   python:
-     - 2.7
-     - 3.5
-   vc:
-     - 9
-   zip_keys:
-     - python
-     - vc
+      python:
+        - 2.7
+        - 3.5
+      vc:
+        - 9
+      zip_keys:
+        - python
+        - vc
 
-
-  2. ``zip_keys`` must be either a list of strings, or a list of lists of
-     strings. You can't mix them.  For example, this is an error:
-
+2. ``zip_keys`` must be either a list of strings, or a list of lists of
+   strings. You can't mix them.  For example, this is an error:
 
 .. code-block:: yaml
 
@@ -506,12 +496,11 @@ The rules for ``zip_keys`` are:
      - numpy
      - blas
 
-
-Rule #1 presents an interesting use case: how does one combine CLI flags
+Rule #1 raises an interesting use case: How does one combine CLI flags
 like --python with ``zip_keys``? Such a CLI flag will change the variant so that
 it has only a single entry, but it will not change the ``vc`` entry in the
 variant configuration. We'll end up with mismatched list lengths, and an error.
-Sad day. To overcome this, you should instead write a very simple YAML file with
+To overcome this, you should instead write a very simple YAML file with
 all involved keys. Let's call it ``python27.yaml``, to reflect its intent:
 
 .. code-block:: yaml
@@ -521,18 +510,14 @@ all involved keys. Let's call it ``python27.yaml``, to reflect its intent:
    vc:
      - 9
 
-
-and provide this file as a command-line argument:
-
+Provide this file as a command-line argument:
 
 .. code-block:: shell
 
     conda build recipe -m python27.yaml
 
-
 You can also specify variants in JSON notation from the CLI as detailed in the
- :ref:`CLI_vars` section. For example:
-
+:ref:`CLI_vars` section. For example:
 
 .. code-block:: shell
 
@@ -542,17 +527,15 @@ You can also specify variants in JSON notation from the CLI as detailed in the
 Avoiding unnecessary builds
 ---------------------------
 
-
-To avoid building variants of packages where pinning does not necessitate having
-different builds, you can use the ``ignore_version`` key in your
-variant. The way this works is that all variants are evaluated, but if any
-hashes are the same, then they are considered duplicates, and are deduplicated.
-By omitting some packages from the build dependencies, we can avoid creating
-unnecessarily specific hashes, and allow this deduplication.
+To avoid building variants of packages where pinning does not require having
+different builds, you can use the ``ignore_version`` key in your variant. Then
+all variants are evaluated, but if any hashes are the same, then they are
+considered duplicates, and are deduplicated. By omitting some packages from the
+build dependencies, we can avoid creating unnecessarily specific hashes, and
+allow this deduplication.
 
 For example, let's consider a package that uses numpy in both run and build
 requirements, and a variant that includes two numpy versions:
-
 
 .. code-block:: python
 
@@ -567,7 +550,6 @@ meta.yaml:
            - numpy {{ numpy }}
        run:
            - numpy
-
 
 Here, the variant says that we'll have two builds - one for each numpy version.
 However, since this recipe does not pin numpy's run requirement (because it
@@ -587,10 +569,9 @@ meta.yaml:
        run:
            - numpy
 
-
 ``ignore_version`` is an empty list by default. The actual build performed is
-probably done with the last 'numpy' list element in the variant, but that's more
-of an implementation detail that you should not depend on. The order is
+probably done with the last 'numpy' list element in the variant, but that's
+an implementation detail that you should not depend on. The order is
 considered unspecified behavior, because the output should be independent of the
 input versions. If the output is not independent of input versions, don't use
 this key!
@@ -610,7 +591,7 @@ CONDA_* variables and command line arguments to conda-build
 -----------------------------------------------------------
 
 To ensure consistency with existing users of conda-build, environment variables
-such as CONDA_PY behave as they always have, and they clobber all variants set
+such as CONDA_PY behave as they always have, and they overwrite all variants set
 in files or passed to the API.
 
 The full list of respected environment variables are:
@@ -634,7 +615,6 @@ In addition to these traditional options, there's one new flag to specify
 variants: ``--variants``. This flag accepts a string of JSON-formatted text. For
 example:
 
-
 .. code-block:: shell
 
     conda build recipe --variants "{python: [2.7, 3.5], vc: [9, 14]}"
@@ -644,7 +624,7 @@ Aggregation of multiple variants
 --------------------------------
 
 The matrix of all variants is first consolidated from several dicts of lists
-into a single dict of lists, and then transformed in a list of dicts (via the
+into a single dict of lists, and then transformed in a list of dicts (using the
 Cartesian product of lists), where each value is a single string from the list
 of potential values.
 
@@ -656,7 +636,6 @@ For example, general input for ``variants`` could be something like:
     # values can be strings or lists.  Strings are converted to one-element lists internally.
     b = {'python': ['3.4', '3.5'], 'numpy': '1.11'}
 
-
 Here, let's say ``b`` is found after ``a``, and thus has priority over ``a``. Merging these
 two variants yields:
 
@@ -664,8 +643,7 @@ two variants yields:
 
     merged = {'python': ['3.4', '3.5'], 'numpy': ['1.11']}
 
-
-``b``'s values for ``python`` have clobbered ``a``'s. From here, we compute the
+``b``'s values for ``python`` have overwritten ``a``'s. From here, we compute the
 Cartesian product of all input variables. The end result is a collection of
 dicts, each with a string for each value. Output would be something like:
 
@@ -673,9 +651,8 @@ dicts, each with a string for each value. Output would be something like:
 
     variants = [{'python': '3.4', 'numpy': '1.11'}, {'python': '3.5', 'numpy': '1.11'}]
 
-
-and conda-build would loop over these variants where appropriate (building,
-outputting package output names, etc.)
+conda-build would loop over these variants where appropriate, such as when
+building, outputting package output names, and so on.
 
 If ``numpy`` had had two values instead of one, we'd end up with *four* output
 variants: 2 variants for ``python``, *times* two variants for ``numpy``:
@@ -689,7 +666,6 @@ variants: 2 variants for ``python``, *times* two variants for ``numpy``:
 Bootstrapping pins based on an existing environment
 ---------------------------------------------------
 
-
 To establish your initial variant, you may point at an existing conda
 environment. Conda-build will examine the contents of that environment and pin
 to the exact requirements that make up that environment.
@@ -698,14 +674,13 @@ to the exact requirements that make up that environment.
 
    conda build --bootstrap name_of_env
 
-
-You may specify either environment name (and depend on conda's environment
-lookup) or filesystem path to the environment.
+You may specify either environment name or filesystem path to the environment.
+Note that specifying environment name does mean depending on conda's
+environment lookup.
 
 
 Extended keys
 -------------
-
 
 These are not looped over to establish the build matrix. Rather, they are
 aggregated from all input variants, and each derived variant shares the whole
@@ -724,7 +699,6 @@ HOME/conda_build_config.yaml:
      - dog
    extend_keys:
      - some_trait
-
 
 recipe/conda_build_config.yaml:
 
@@ -746,7 +720,6 @@ should raise an error:
    some_trait:
      - dog
 
-
 recipe/conda_build_config.yaml:
 
 .. code-block:: yaml
@@ -756,9 +729,8 @@ recipe/conda_build_config.yaml:
    extend_keys:
      - some_trait
 
-
 When our two proper yaml config files are combined, ordinarily the recipe-local
-variant would clobber the user-wide variant, yielding ``{'some_trait':
+variant would overwrite the user-wide variant, yielding ``{'some_trait':
 'pony'}``. However, with the extend_keys entry, we end up with what we've always
 wanted: a dog *and* pony show: ``{'some_trait': ['dog', 'pony'])}``
 
@@ -776,7 +748,6 @@ Customizing compatibility
 Pinning expressions
 ~~~~~~~~~~~~~~~~~~~
 
-
 Pinning expressions are the syntax used to specify how many parts of the version
 to pin. They are by convention strings containing ``x`` characters separated by
 ``.``. The number of version parts to pin is simply the number of things that
@@ -786,14 +757,13 @@ are separated by ``.``. For example, ``"x.x"`` pins major and minor version.
 Wherever pinning expressions are accepted, you can customize both lower and
 upper bounds.
 
-
 .. code-block:: python
 
     # produces pins like >=1.11.2,<1.12
     variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': {'max_pin': 'x.x'}}}]
 
-Note that the final pin may be more specific than your initial spec. here, the
-spec is 1.11, but the produced pin could be 1.11.2 - the exact version of numpy
+Note that the final pin may be more specific than your initial spec. Here, the
+spec is 1.11, but the produced pin could be 1.11.2, the exact version of numpy
 that was used at build time.
 
 .. code-block:: python
@@ -809,11 +779,11 @@ Some packages, such as boost, *always* need to be pinned at runtime to the
 version that was present at build time. For these cases where the need for
 pinning is consistent, pinning at the variant level is a good option.
 Conda-build will automatically pin run requirements to the versions present in
-the build environment when the follow conditions are met:
+the build environment when the following conditions are met:
 
 1. The dependency is listed in the requirements/build section. It can be pinned,
    but does not need to be.
-2. The dependency is listed by name (no pinning) in the requirements/run section
+2. The dependency is listed by name (no pinning) in the requirements/run section.
 3. The ``pin_run_as_build`` key in the variant has a value that is a dictionary,
    containing a key that matches the dependency name listed in the run
    requirements. The value should be a dictionary with up to 4 keys:
@@ -842,20 +812,18 @@ meta.yaml:
        run:
            - boost
 
-
 The result here is that the runtime boost dependency will be pinned to
-``>=(current boost 1.63.x version),<1.64``
+``>=(current boost 1.63.x version),<1.64``.
 
 More details on the ``pin_run_as_build`` function is below in the
 :ref:`extra_jinja2` section.
 
-
 Note that there are some packages that you should not use ``pin_run_as_build``
 for. Packages that don't *always* need to be pinned should be pinned on a
-per-recipe basis (described in the next section).  Numpy is an interesting
+per-recipe basis (described in the next section). Numpy is an interesting
 example here. It actually would not make a good case for pinning at the variant
 level. Because you only need this kind of pinning for recipes that use Numpy's C
-API, it would actually be better to not pin numpy with ``pin_run_as_build``.
+API, it would actually be better not to pin numpy with ``pin_run_as_build``.
 Pinning it is over-constraining your requirements unnecessarily when you are not
 using Numpy's C API. Instead, we should customize it for each recipe that uses
 numpy.  See also the `Avoiding unnecessary builds`_ section above.
@@ -863,7 +831,6 @@ numpy.  See also the `Avoiding unnecessary builds`_ section above.
 
 Pinning at the recipe level
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 Pinning at the recipe level overrides pinning at the variant level, because run
 dependencies that have pinning values in meta.yaml (even as jinja variables) are
@@ -916,7 +883,7 @@ meta.yaml:
 This would yield a pinning of ``>=1.11,<1.12``
 
 
-You can also pass the minimum or maximum version directly. These arguments supercede the
+You can also pass the minimum or maximum version directly. These arguments supersede the
 ``min_pin`` and ``max_pin`` arguments and are thus mutually exclusive.
 
 
@@ -937,14 +904,15 @@ meta.yaml:
 
 This would yield a pinning of ``>=1.10,<3.0``
 
+
 Appending to recipes
 --------------------
-
 
 As of conda-build 3.0, you can add a file named ``recipe_append.yaml`` in the
 same folder as your ``meta.yaml`` file. This file is considered to follow the
 same rules as meta.yaml, except that selectors and Jinja2 templates are not
-(currently) evaluated. That will likely be added in future development.
+evaluated. Evaluation of selectors and Jinja2 templates will likely be added
+in future development.
 
 Any contents in ``recipe_append.yaml`` will add to the contents of meta.yaml.
 List values will be extended, and string values will be concatenated. The
@@ -957,11 +925,11 @@ divergence.
 Partially clobbering recipes
 ----------------------------
 
-
 As of conda-build 3.0, you can add a file named ``recipe_clobber.yaml`` in the
 same folder as your ``meta.yaml`` file. This file is considered to follow the
 same rules as meta.yaml, except that selectors and Jinja2 templates are not
-(currently) evaluated. That will likely be added in future development.
+evaluated. Evaluation of selectors and Jinja2 templates will likely be added
+in future development.
 
 Any contents in ``recipe_clobber.yaml`` will replace the contents of meta.yaml.
 This can be useful, for example, for replacing the source URL without copying
@@ -971,15 +939,15 @@ the rest of the recipe into a fork.
 Differentiating packages built with different variants
 ------------------------------------------------------
 
-
 With only a few things supported, we could just add things to the filename, such
-as py27 for python, or np111 for numpy. In the general case, which variants are
-meant to support, this is no longer an option. Instead, part of the recipe is
-hashed using the sha1 algorithm, and that hash is a unique identifier. The
-information that went into the hash is stored with the package, in a file at
-``info/hash_input.json``. Currently, only the first 7 characters of the hash are
-stored. Output package names will keep the pyXY and npXYY for now, but have
-added the 7-character hash. Your package names will look like:
+as py27 for python, or np111 for numpy. Variants are meant to support the
+general case, and in the general case this is no longer an option. Instead,
+part of the recipe is hashed using the sha1 algorithm, and that hash is a
+unique identifier. The information that went into the hash is stored with the
+package, in a file at ``info/hash_input.json``. Currently, only the first 7
+characters of the hash are stored. Output package names will keep the pyXY and
+npXYY for now, but have added the 7-character hash. Your package names will
+look like:
 
 ``my-package-1.0-py27h3142afe_0.tar.bz2``
 
@@ -989,7 +957,7 @@ subspace, please file an issue on the `conda-build issue tracker
 <https://github.com/conda/conda-build/issues>`_.
 
 The information that goes into this hash is currently defined in conda-build's
-metadata.py module; the _get_hash_contents member function. This function
+metadata.py module, in the _get_hash_contents member function. This function
 captures the following information:
 
 * ``source`` section
@@ -1000,7 +968,7 @@ captures the following information:
 * any other recipe files in the folder with meta.yaml, such as bld.bat,
   build.sh, etc. Every file other than meta.yaml is part of the hash.
 
-All "falsey" values (e.g. empty list values) are removed.
+All "falsey" values such as empty list values are removed.
 
 There is a CLI tool that just pretty-prints this json file for easy viewing:
 
@@ -1030,7 +998,6 @@ This produces output such as:
 Extra Jinja2 functions
 ----------------------
 
-
 Two especially common operations when dealing with these API and ABI
 incompatibilities are ways of specifying such compatibility, and of explicitly
 expressing the compiler to be used. Three new Jinja2 functions are available when
@@ -1043,7 +1010,7 @@ evaluating ``meta.yaml`` templates:
   for run and/or test requirements. Defaults to a semver-based assumption:
   ``package_name >=(current version),<(next major version)``. Pass ``min_pin``
   or ``max_pin`` a `Pinning expressions`_ . This will be enhanced as time goes
-  on with information from `ABI Laboratory <https://abi-laboratory.pro/>`_
+  on with information from `ABI Laboratory <https://abi-laboratory.pro/>`_.
 
 * ``pin_subpackage('package_name', min_pin='x.x.x.x.x.x', max_pin='x',
   exact=False)``: To be used as pin in run and/or test requirements. Takes
@@ -1078,8 +1045,8 @@ example, building gcc outputs not only gcc, but also gfortran, g++, and runtime
 libraries for gcc, gfotran and g++. Each of those should be their own package to
 make things as clean as possible. Unfortunately, if there are separate recipes
 to repack the different pieces from a larger whole package, it can be hard to
-keep them in sync. That's where variants come in. Variants, or more
-specifically, the ``pin_subpackage(name)`` function give you a way to refer to
+keep them in sync. That's where variants come in. Variants, and more
+specifically the ``pin_subpackage(name)`` function, give you a way to refer to
 the subpackage with control over how tightly the subpackage version relationship
 should be in relation to other subpackages or the parent package.
 
@@ -1122,21 +1089,20 @@ Here, the parent package will have the following different runtime dependencies:
 Compiler packages
 -----------------
 
-
 On Mac and Linux, we can and do ship gcc packages.  These will become even more
 powerful with variants, since you can specify versions of your compiler much
-more explicitly, and build against different versions (or with different flags,
-set in the compiler package's activate.d scripts) if you'd like. On Windows,
-rather than providing the actual compilers in packages, we still use the
-compilers that are installed on the system. The analogous compiler packages on
-Windows run any compiler activation scripts and set compiler flags instead of
-actually installing anything.
+more explicitly, and build against different versions, or with different flags
+set in the compiler package's activate.d scripts. On Windows, rather than
+providing the actual compilers in packages, we still use the compilers that
+are installed on the system. The analogous compiler packages on Windows run
+any compiler activation scripts and set compiler flags instead of actually
+installing anything.
 
 Over time, conda-build will require that all packages explicitly list their
 compiler requirements this way. This is to both simplify conda-build and improve
 the tracking of metadata associated with compilers - localize it to compiler
 packages, even if those packages are doing nothing more than activating an
-already-installed compiler (such as Visual Studio.)
+already-installed compiler, such as Visual Studio.
 
 Note also the ``run_exports`` key in meta.yaml. This is useful for compiler
 recipes to impose runtime constraints based on the versions of subpackages
@@ -1144,13 +1110,12 @@ created by the compiler recipe. For more information, see the :ref:`run_exports`
 section of the meta.yaml docs. Compiler packages provided by Continuum use the
 run_exports key extensively. For example, recipes that include the
 ``gcc_linux-cos5-x86_64`` package as a build time dependency (either directly,
-or via a ``{{ compilers('c') }}`` jinja2 function) will automatically have a
+or through a ``{{ compilers('c') }}`` jinja2 function) will automatically have a
 compatible libgcc runtime dependency added.
 
 
 Cross-compiling
 ---------------
-
 
 The compiler jinja2 function is written to support cross-compilers. This depends
 on setting at least two variant keys: ``(language)_compiler`` and
@@ -1187,7 +1152,6 @@ toolchains.
 Self-consistent package ecosystems
 ----------------------------------
 
-
 The compiler function is also how you could support a non-standard Visual Studio
 version, such as using VS 2015 to compile Python 2.7 and packages for Python
 2.7. To accomplish this, you need to add the ``{{ compiler('<language>') }}`` to
@@ -1199,13 +1163,13 @@ package (only one version can be installed at a time), and it installs the
 correct runtime package. When the compiler package imposes such a runtime
 dependency, then the resultant ecosystem is self-consistent.
 
-Given these guidelines, a system of recipes using a variant like:
+Given these guidelines, consider a system of recipes using a variant like this:
 
 .. code-block:: python
 
    variants = {'cxx_compiler': ['vs2015']}
 
-with a compiler meta.yaml like:
+The recipes include a compiler meta.yaml like this:
 
 .. code-block:: yaml
 
@@ -1216,8 +1180,7 @@ with a compiler meta.yaml like:
        run_exports:
            - vc 14
 
-
-and some compiler-using meta.yaml contents like:
+They also include some compiler-using meta.yaml contents like this:
 
 .. code-block:: yaml
 
@@ -1232,6 +1195,6 @@ and some compiler-using meta.yaml contents like:
            - {{ compiler('cxx') }}
 
 
-will create a system of packages that are all built with the VS 2015 compiler,
-and which have the vc package matched at version 14, rather than whatever
-default is associated with the python version.
+These recipes will create a system of packages that are all built with the
+VS 2015 compiler, and which have the vc package matched at version 14, rather
+than whatever default is associated with the python version.
