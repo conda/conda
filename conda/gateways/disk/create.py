@@ -11,7 +11,6 @@ from os.path import basename, isdir, isfile, join, lexists
 from shutil import copy as shutil_copy, copystat
 import sys
 import tarfile
-import traceback
 
 from .delete import rm_rf
 from .link import islink, link, readlink, symlink
@@ -149,8 +148,7 @@ def make_menu(prefix, file_path, remove=False):
         import menuinst
         menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
     except:
-        stdoutlog.error("menuinst Exception:")
-        stdoutlog.error(traceback.format_exc())
+        stdoutlog.error("menuinst Exception", exc_info=True)
 
 
 def mkdir_p(path):
