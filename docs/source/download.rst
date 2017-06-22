@@ -56,7 +56,7 @@ What version of Python should I choose?
 What about cryptographic hash verification?
 -------------------------------------------
 
-MD5 checksums are available for `Miniconda <http://repo.continuum.io/miniconda/>`_ and both MD5 and SHA-256 checksums are available for `Anaconda <https://docs.continuum.io/anaconda/hashes/index>`_.
+MD5 checksums are available for `Miniconda <http://repo.continuum.io/miniconda/>`_ and both MD5 and SHA-256 checksums are available for `Anaconda <https://docs.continuum.io/anaconda/install/hashes/>`_.
 
 Download the package and before installing verify it as follows:
 
