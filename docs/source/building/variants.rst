@@ -792,6 +792,9 @@ upper bounds.
     # produces pins like >=1.11.2,<1.12
     variants = [{'numpy': '1.11', 'pin_run_as_build': {'numpy': {'max_pin': 'x.x'}}}]
 
+Note that the final pin may be more specific than your initial spec. here, the
+spec is 1.11, but the produced pin could be 1.11.2 - the exact version of numpy
+that was used at build time.
 
 .. code-block:: python
 
@@ -816,7 +819,7 @@ the build environment when the follow conditions are met:
    requirements. The value should be a dictionary with up to 4 keys:
    ``min_pin``, ``max_pin``, ``lower_bound``, ``upper_bound``. The first two are
    pinning expressions. The latter two are version numbers, overriding detection
-   of current version. (defaulting to None).
+   of current version.
 
 An example variant/recipe is shown here:
 
@@ -842,6 +845,10 @@ meta.yaml:
 
 The result here is that the runtime boost dependency will be pinned to
 ``>=(current boost 1.63.x version),<1.64``
+
+More details on the ``pin_run_as_build`` function is below in the
+:ref:`extra_jinja2` section.
+
 
 Note that there are some packages that you should not use ``pin_run_as_build``
 for. Packages that don't *always* need to be pinned should be pinned on a
