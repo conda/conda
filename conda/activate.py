@@ -37,7 +37,9 @@ class Activator(object):
     # information to the __init__ method of this class.
 
     def __init__(self, shell, arguments=None):
+        from .base.constants import ROOT_ENV_NAME
         from .base.context import context
+        self._root_env_name = ROOT_ENV_NAME
         self.context = context
         self.shell = shell
         self._raw_arguments = arguments
@@ -172,7 +174,7 @@ class Activator(object):
                                 % (command, remainder_args))
 
         if command == 'activate':
-            self.env_name_or_prefix = remainder_args and remainder_args[0] or 'root'
+            self.env_name_or_prefix = remainder_args and remainder_args[0] or self._root_env_name
 
         self.command = command
 
@@ -399,11 +401,14 @@ class Activator(object):
 
     def _default_env(self, prefix):
         if prefix == self.context.root_prefix:
-            return 'base'
+            return self._root_env_name
         return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
 
     def _prompt_modifier(self, conda_default_env):
-        return "(%s) " % conda_default_env if self.context.changeps1 else ""
+        if conda_default_env == self._root_env_name or not self.context.changeps1:
+            return ""
+        else:
+            return "(%s) " % conda_default_env
 
     def _get_activate_scripts(self, prefix):
         return self.path_conversion(glob(join(
