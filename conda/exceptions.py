@@ -11,7 +11,7 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from .base.constants import PathConflict
-from .common.compat import ensure_text_type, iteritems, iterkeys, on_win, string_types
+from .common.compat import ensure_text_type, isiterable, iteritems, iterkeys, on_win, string_types
 from .common.signals import get_signal_name
 from .common.url import maybe_unquote
 
@@ -27,8 +27,9 @@ log = logging.getLogger(__name__)
 # remove in conda 4.4
 class ResolvePackageNotFound(CondaError):  # change back to Exception in conda 4.4
     def __init__(self, bad_deps):
+        # bad_deps is a list of lists
         self.bad_deps = bad_deps
-        message = '\n' + '\n'.join('  - %s' % dep for dep in bad_deps)
+        message = '\n' + '\n'.join(('  - %s' % dep) for deps in bad_deps for dep in deps if dep)
         super(ResolvePackageNotFound, self).__init__(message)
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
