@@ -27,8 +27,9 @@ log = logging.getLogger(__name__)
 # remove in conda 4.4
 class ResolvePackageNotFound(CondaError):  # change back to Exception in conda 4.4
     def __init__(self, bad_deps):
-        super(ResolvePackageNotFound, self).__init__("ResolvePackageNotFound")
         self.bad_deps = bad_deps
+        message = '\n' + '\n'.join('  - %s' % dep for dep in bad_deps)
+        super(ResolvePackageNotFound, self).__init__(message)
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
 
