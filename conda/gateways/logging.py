@@ -42,14 +42,15 @@ class StdStreamHandler(StreamHandler):
         Args:
             sys_stream: stream name, either "stdout" or "stderr" (attribute of module sys)
         """
-        assert hasattr(sys, sys_stream)
-        self._sys_stream = sys_stream
-        super(StreamHandler, self).__init__()  # skip StreamHandler.__init__ which sets self.stream
+        super(StdStreamHandler, self).__init__(getattr(sys, sys_stream))
+        self.sys_stream = sys_stream
+        del self.stream
 
-    @property
-    def stream(self):
-        # always get current stdout/stderr, removes the need to replace self.stream when needed
-        return getattr(sys, self._sys_stream)
+    def __getattr__(self, attr):
+        # always get current sys.stdout/sys.stderr, unless self.stream has been set explicitly
+        if attr == 'stream':
+            return getattr(sys, self.sys_stream)
+        return super(StdStreamHandler, self).__getattribute__(attr)
 
 
 class RawFormatter(Formatter):
