@@ -6,7 +6,7 @@ import json
 from logging import getLogger
 import os
 import sys
-from traceback import format_exc
+from traceback import format_exc, format_exception, format_exception_only
 
 from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
@@ -712,15 +712,21 @@ def _execute_upload(context, error_report):
         log.debug("%r" % e)
 
 
-def print_unexpected_error_message(e):
+def _format_exc():
+    etype, value, traceback = sys.exc_info()
     try:
-        traceback = format_exc()
+        formatted_exception = format_exception(etype, value, traceback)
     except AttributeError:  # pragma: no cover
         if sys.version_info[:2] == (3, 4):
             # AttributeError: 'NoneType' object has no attribute '__context__'
-            traceback = ''
+            formatted_exception = format_exception_only(etype, value)
         else:
             raise
+    return ''.join(formatted_exception)
+
+
+def print_unexpected_error_message(e):
+    traceback = _format_exc()
 
     from .base.context import context
 
@@ -803,7 +809,7 @@ def handle_exception(e):
         from .base.context import context
         if context.debug or context.verbosity > 0:
             sys.stderr.write('%r\n' % e)
-            sys.stderr.write(format_exc())
+            sys.stderr.write(_format_exc())
             sys.stderr.write('\n')
         else:
             print_conda_exception(e)
