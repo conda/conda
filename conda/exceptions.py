@@ -592,7 +592,7 @@ def print_conda_exception(exception):
     if context.json:
         import json
         map_dump = exception.dump_map()
-        json_exception = json.dumps(map_dump, indent=2, sort_keys=True, cls=EntityEncoder) 
+        json_exception = json.dumps(map_dump, indent=2, sort_keys=True, cls=EntityEncoder)
         stdoutlog.info("%s\n" % json_exception)
     else:
         stderrlog.info("\n%r\n", exception)

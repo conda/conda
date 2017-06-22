@@ -10,7 +10,6 @@ from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copy as shutil_copy, copystat
 import sys
 import tarfile
-import traceback
 
 from . import mkdir_p
 from .delete import rm_rf

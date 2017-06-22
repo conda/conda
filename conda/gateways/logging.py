@@ -71,7 +71,7 @@ def initialize_std_loggers():
     # corresponding sys streams, filter token urls and don't propagate.
     formatter = Formatter("%(message)s")
 
-    for stream in 'stdout', 'stderr'):
+    for stream in ('stdout', 'stderr'):
         logger = getLogger('conda.%s' % stream)
         logger.setLevel(INFO)
         handler = StdStreamHandler(stream)
