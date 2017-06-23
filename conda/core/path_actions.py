@@ -459,6 +459,8 @@ class PrefixReplaceLinkAction(LinkPathAction):
         self._verified = True
 
     def execute(self):
+        if not self._verified:
+            self.verify()
         source_path = self.intermediate_path or self.source_full_path
         log.trace("linking %s => %s", source_path, self.target_full_path)
         create_link(source_path, self.target_full_path, LinkType.hardlink)
