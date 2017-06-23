@@ -143,8 +143,12 @@ class Solver(object):
             specs_map = odict((d.name, MatchSpec(d.name)) for d in solution)
 
         # add in historically-requested specs
+        # Conda hasn't always been good about recording when specs have been removed from
+        # environments.  If the package isn't installed in the current environment, then we
+        # shouldn't try to force it here.
         specs_from_history_map = History(self.prefix).get_requested_specs_map()
-        specs_map.update(specs_from_history_map)
+        specs_map.update((name, spec) for name, spec in iteritems(specs_from_history_map)
+                         if any(spec.match(dist) for dist in solution))
 
         if specs_to_remove:
             # Rather than invoking SAT for removal, we can use the DAG and simple tree traversal
