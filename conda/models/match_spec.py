@@ -477,28 +477,41 @@ def _parse_spec_str(spec_str):
 
     # Step 3. strip off brackets portion
     brackets = {}
-    m1 = re.match(r'^(.*)(?:\[(.*)\])$', spec_str)
-    if m1:
-        spec_str, brackets_str = m1.groups()
+    m3 = re.match(r'^(.*)(?:\[(.*)\])$', spec_str)
+    if m3:
+        spec_str, brackets_str = m3.groups()
         brackets_str = brackets_str.strip("[]\n\r\t ")
 
-        m5 = re.finditer(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', brackets_str)
-        for match in m5:
+        m3b = re.finditer(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', brackets_str)
+        for match in m3b:
             key, _, value, _ = match.groups()
             if not key or not value:
                 raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
             brackets[key] = value
 
-    # Step 4. strip off '::' channel and namespace
-    m2 = spec_str.rsplit(':', 2)
-    m2_len = len(m2)
-    if m2_len == 3:
-        channel_str, namespace, spec_str = m2
-    elif m2_len == 2:
-        namespace, spec_str = m2
+    # Step 4. strip off parens portion
+    m4 = re.match(r'^(.*)(?:\((.*)\))$', spec_str)
+    parens = {}
+    if m4:
+        spec_str, parens_str = m4.groups()
+        parens_str = parens_str.strip("[]\n\r\t ")
+        m4b = re.finditer(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', parens_str)
+        for match in m4b:
+            key, _, value, _ = match.groups()
+            parens[key] = value
+        if 'optional' in parens_str:
+            parens['optional'] = True
+
+    # Step 5. strip off '::' channel and namespace
+    m5 = spec_str.rsplit(':', 2)
+    m5_len = len(m5)
+    if m5_len == 3:
+        channel_str, namespace, spec_str = m5
+    elif m5_len == 2:
+        namespace, spec_str = m5
         channel_str = None
-    elif m2_len:
-        spec_str = m2[0]
+    elif m5_len:
+        spec_str = m5[0]
         channel_str, namespace = None, None
     else:
         raise NotImplementedError()
@@ -512,7 +525,7 @@ def _parse_spec_str(spec_str):
     if 'subdir' in brackets:
         subdir = brackets.pop('subdir')
 
-    # Step 5. strip off package name from remaining version + build
+    # Step 6. strip off package name from remaining version + build
     m3 = re.match(r'([^ =<>!]+)?([><!= ].+)?', spec_str)
     if m3:
         name, spec_str = m3.groups()
@@ -521,7 +534,7 @@ def _parse_spec_str(spec_str):
     else:
         raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
 
-    # Step 6. otherwise sort out version + build
+    # Step 7. otherwise sort out version + build
     spec_str = spec_str and spec_str.strip()
     # This was an attempt to make MatchSpec('numpy-1.11.0-py27_0') work like we'd want. It's
     # not possible though because plenty of packages have names with more than one '-'.
@@ -547,7 +560,7 @@ def _parse_spec_str(spec_str):
     else:
         version, build = None, None
 
-    # Step 7. now compile components together
+    # Step 8. now compile components together
     components = {}
     components['name'] = name if name else '*'
 

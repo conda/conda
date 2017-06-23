@@ -163,6 +163,7 @@ class History(object):
                         specs = literal_eval(specs)
                     elif '[' not in specs:
                         specs = specs.split(',')
+                    specs = tuple(spec for spec in specs if not spec.endswith('@'))
                     if specs and action in ('update', 'install', 'create'):
                         item['update_specs'] = item['specs'] = specs
                     elif specs and action in ('remove', 'uninstall'):
@@ -175,20 +176,20 @@ class History(object):
             item['link_dists'] = dists.get('+', ())
         return res
 
-    def get_requested_specs(self):
-        spec_map = {}
-        for request in self.get_user_requests():
-            axn = request.get('action', '')
-            if axn.startswith('install'):
-                link_dists = tuple(Dist(d[1:]) for d in request.get('link_dists', ()))
-                specs = tuple(MatchSpec(s) for s in request['specs'] if s)
-                match = lambda spec: next((d for d in link_dists if spec.match(d)), None)
-                dists = tuple(match(s) for s in specs)
-                spec_map.update({s.name: (s, d) for (s, d) in zip(specs, dists)})
-            elif axn.startswith('remove'):
-                for name in (MatchSpec(s).name for s in request['specs']):
-                    spec_map.pop(name, None)
-        return set(itervalues(spec_map))
+    # def get_requested_specs(self):
+    #     spec_map = {}
+    #     for request in self.get_user_requests():
+    #         axn = request.get('action', '')
+    #         if axn.startswith('install'):
+    #             link_dists = tuple(Dist(d[1:]) for d in request.get('link_dists', ()))
+    #             specs = tuple(MatchSpec(s) for s in request['specs'] if s)
+    #             match = lambda spec: next((d for d in link_dists if spec.match(d)), None)
+    #             dists = tuple(match(s) for s in specs)
+    #             spec_map.update({s.name: (s, d) for (s, d) in zip(specs, dists)})
+    #         elif axn.startswith('remove'):
+    #             for name in (MatchSpec(s).name for s in request['specs']):
+    #                 spec_map.pop(name, None)
+    #     return set(itervalues(spec_map))
 
     def get_requested_specs_map(self):
         spec_map = {}
