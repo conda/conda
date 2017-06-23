@@ -103,6 +103,7 @@ def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
+    raise CondaValueError("stuff")
     context.validate_configuration()
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')

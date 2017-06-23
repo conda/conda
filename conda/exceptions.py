@@ -584,198 +584,6 @@ class InvalidVersionSpecError(CondaError):
         super(InvalidVersionSpecError, self).__init__(message, invalid_spec=invalid_spec)
 
 
-def print_conda_exception(exception):
-    from .base.context import context
-
-    stdoutlogger = getLogger('conda.stdout')
-    stderrlogger = getLogger('conda.stderr')
-    if context.json:
-        import json
-        stdoutlogger.info(json.dumps(exception.dump_map(), indent=2, sort_keys=True,
-                                     cls=EntityEncoder))
-    else:
-        stderrlogger.info("\n%r", exception)
-
-
-def _calculate_ask_do_upload(context):
-    try:
-        isatty = os.isatty(0) or on_win
-    except Exception as e:
-        log.debug('%r', e)
-        # given how the rest of this function is constructed, better to assume True here
-        isatty = True
-
-    if context.report_errors is False:
-        ask_for_upload = False
-        do_upload = False
-    elif context.report_errors is True or context.always_yes:
-        ask_for_upload = False
-        do_upload = True
-    elif context.json or context.quiet:
-        ask_for_upload = False
-        do_upload = not context.offline and context.always_yes
-    elif not isatty:
-        ask_for_upload = False
-        do_upload = not context.offline and context.always_yes
-    else:
-        ask_for_upload = True
-        do_upload = False
-
-    return ask_for_upload, do_upload
-
-
-def _print_exception_message_and_prompt(context, error_report):
-    ask_for_upload, do_upload = _calculate_ask_do_upload(context)
-
-    stdin = None
-    if context.json:
-        from .cli.common import stdout_json
-        stdout_json(error_report)
-    else:
-        message_builder = []
-        if not ask_for_upload:
-            message_builder.append(
-                "An unexpected error has occurred. Conda has prepared the following report."
-            )
-        message_builder.append('')
-        message_builder.append('`$ %s`' % error_report['command'])
-        message_builder.append('')
-        message_builder.extend('    ' + line for line in error_report['traceback'].splitlines())
-        message_builder.append('')
-        if error_report['conda_info']:
-            from .cli.main_info import get_main_info_str
-            try:
-                message_builder.append(get_main_info_str(error_report['conda_info']))
-            except Exception as e:
-                message_builder.append('conda info could not be constructed.')
-                message_builder.append('%r' % e)
-        message_builder.append('')
-
-        if ask_for_upload:
-            message_builder.append(
-                "An unexpected error has occurred. Conda has prepared the above report."
-            )
-            message_builder.append(
-                "Would you like conda to send this report to the core maintainers?"
-            )
-            message_builder.append(
-                "[y/N]: "
-            )
-        sys.stderr.write('\n'.join(message_builder))
-        if ask_for_upload:
-            try:
-                stdin = timeout(40, input)
-                do_upload = stdin and boolify(stdin)
-
-            except Exception as e:  # pragma: no cover
-                log.debug('%r', e)
-                do_upload = False
-
-    return do_upload, ask_for_upload, stdin
-
-
-def _execute_upload(context, error_report):
-    headers = {
-        'User-Agent': context.user_agent,
-    }
-    _timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-    data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'
-    response = None
-    try:
-        # requests does not follow HTTP standards for redirects of non-GET methods
-        # That is, when following a 301 or 302, it turns a POST into a GET.
-        # And no way to disable.  WTF
-        import requests
-        redirect_counter = 0
-        url = context.error_upload_url
-        response = requests.post(url, headers=headers, timeout=_timeout, data=data,
-                                 allow_redirects=False)
-        response.raise_for_status()
-        while response.status_code in (301, 302) and response.headers.get('Location'):
-            url = response.headers['Location']
-            response = requests.post(url, headers=headers, timeout=_timeout, data=data,
-                                     allow_redirects=False)
-            response.raise_for_status()
-            redirect_counter += 1
-            if redirect_counter > 15:
-                raise CondaError("Redirect limit exceeded")
-        log.debug("upload response status: %s", response and response.status_code)
-    except Exception as e:  # pragma: no cover
-        log.info('%r', e)
-    try:
-        if response and response.ok:
-            sys.stderr.write("Upload successful.\n")
-        else:
-            sys.stderr.write("Upload did not complete.")
-            if response and response.status_code:
-                sys.stderr.write(" HTTP %s" % response.status_code)
-            sys.stderr.write("\n")
-    except Exception as e:
-        log.debug("%r" % e)
-
-
-def print_unexpected_error_message(e):
-    try:
-        traceback = format_exc()
-    except AttributeError:  # pragma: no cover
-        if sys.version_info[:2] == (3, 4):
-            # AttributeError: 'NoneType' object has no attribute '__context__'
-            traceback = ''
-        else:
-            raise
-
-    from .base.context import context
-
-    command = ' '.join(ensure_text_type(s) for s in sys.argv)
-    info_dict = {}
-    if ' info' not in command:
-        try:
-            from .cli.main_info import get_info_dict
-            info_dict = get_info_dict()
-        except Exception as info_e:
-            info_traceback = format_exc()
-            info_dict = {
-                'error': repr(info_e),
-                'error_type': info_e.__class__.__name__,
-                'traceback': info_traceback,
-            }
-
-    error_report = {
-        'error': repr(e),
-        'error_type': e.__class__.__name__,
-        'command': command,
-        'traceback': traceback,
-        'conda_info': info_dict,
-    }
-
-    do_upload, ask_for_upload, stdin = _print_exception_message_and_prompt(context, error_report)
-
-    if do_upload:
-        _execute_upload(context, error_report)
-
-        if stdin:
-            sys.stderr.write(
-                "\n"
-                "Thank you for helping to improve conda.\n"
-                "Opt-in to always sending reports (and not see this message again)\n"
-                "by running\n"
-                "\n"
-                "    $ conda config --set report_errors true\n"
-                "\n"
-            )
-    elif ask_for_upload and stdin is None:
-        # means timeout was reached for `input`
-        sys.stderr.write('\nTimeout reached. No report sent.\n')
-    elif ask_for_upload:
-        sys.stderr.write(
-            "\n"
-            "No report sent. To permanently opt-out, use\n"
-            "\n"
-            "    $ conda config --set report_errors false\n"
-            "\n"
-        )
-
-
 def maybe_raise(error, context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)
@@ -797,31 +605,245 @@ def maybe_raise(error, context):
         raise error
 
 
-def handle_exception(e):
-    return_code = getattr(e, 'return_code', None)
-    if return_code == 0:
-        return 0
-    elif isinstance(e, CondaError):
-        from .base.context import context
-        if context.debug or context.verbosity > 0:
-            sys.stderr.write('%r\n' % e)
-            sys.stderr.write(format_exc())
-            sys.stderr.write('\n')
-        else:
-            print_conda_exception(e)
-        return return_code if return_code else 1
-    elif isinstance(e, KeyboardInterrupt):
-        print_conda_exception(CondaError("KeyboardInterrupt"))
-        return 1
+def print_conda_exception(exc_val, exc_tb=None):
+    from .base.context import context
+    if context.debug or context.verbosity > 0:
+        sys.stderr.write('%r\n' % exc_val)
+        if exc_tb:
+            sys.stderr.write(exc_tb)
+        sys.stderr.write('\n')
+    elif context.json:
+        import json
+        stdoutlogger = getLogger('conda.stdout')
+        stdoutlogger.info(json.dumps(exc_val.dump_map(), indent=2, sort_keys=True,
+                                     cls=EntityEncoder))
     else:
-        print_unexpected_error_message(e)
-        return return_code if return_code else 1
+        stderrlogger = getLogger('conda.stderr')
+        stderrlogger.info("\n%r", exc_val)
+
+
+class ExceptionHandler(object):
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self.handle_exception(exc_type, exc_val, exc_tb)
+
+    def __call__(self, func, *args, **kwargs):
+        with self:
+            return func(*args, **kwargs)
+
+    @property
+    def out_stream(self):
+        from .base.context import context
+        return sys.stdout if context.json else sys.stderr
+
+    @property
+    def http_timeout(self):
+        from .base.context import context
+        return context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+
+    @property
+    def user_agent(self):
+        from .base.context import context
+        return context.user_agent
+
+    @property
+    def error_upload_url(self):
+        from .base.context import context
+        return context.error_upload_url
+
+    def handle_exception(self, exc_type, exc_val, exc_tb):
+        return_code = getattr(exc_val, 'return_code', None)
+        if return_code == 0:
+            return 0
+        elif isinstance(exc_val, CondaError):
+            return self.handle_application_exception(exc_type, exc_val, exc_tb)
+        elif isinstance(exc_val, KeyboardInterrupt):
+            self._print_conda_exception(KeyboardInterrupt, CondaError("KeyboardInterrupt"),
+                                        format_exc())
+            return 1
+        else:
+            return self.handle_unexpected_exception(exc_type, exc_val, exc_tb)
+
+    def handle_application_exception(self, exc_type, exc_val, exc_tb):
+        self._print_conda_exception(exc_type, exc_val, exc_tb)
+        rc = getattr(exc_val, 'return_code', None)
+        return rc if rc is not None else 1
+
+    def _print_conda_exception(self, exc_type, exc_val, exc_tb):
+        print_conda_exception(exc_val, exc_tb)
+
+    def handle_unexpected_exception(self, exc_type, exc_val, exc_tb):
+        error_report = self.get_error_report(exc_type, exc_val, exc_tb)
+        self.print_error_report(error_report)
+        ask_for_upload, do_upload = self._calculate_ask_do_upload()
+        do_upload, ask_response = self.ask_for_upload() if ask_for_upload else do_upload, None
+        if do_upload:
+            self._execute_upload(error_report)
+        self.print_upload_confirm(do_upload, ask_for_upload, ask_response)
+        rc = getattr(exc_val, 'return_code', None)
+        return rc if rc is not None else 1
+
+    def get_error_report(self, exc_type, exc_val, exc_tb):
+        command = ' '.join(ensure_text_type(s) for s in sys.argv)
+        info_dict = {}
+        if ' info' not in command:
+            try:
+                from .cli.main_info import get_info_dict
+                info_dict = get_info_dict()
+            except Exception as info_e:
+                info_traceback = format_exc()
+                info_dict = {
+                    'error': repr(info_e),
+                    'error_type': info_e.__class__.__name__,
+                    'traceback': info_traceback,
+                }
+
+        error_report = {
+            'error': repr(exc_val),
+            'error_type': exc_type,
+            'command': command,
+            'traceback': exc_tb,
+            'conda_info': info_dict,
+        }
+        return error_report
+
+    def print_error_report(self, error_report):
+        from .base.context import context
+        if context.json:
+            from .cli.common import stdout_json
+            stdout_json(error_report)
+        else:
+            message_builder = []
+            message_builder.append('')
+            message_builder.append('`$ %s`' % error_report['command'])
+            message_builder.append('')
+            message_builder.extend('    ' + line for line in error_report['traceback'].splitlines())
+            message_builder.append('')
+            if error_report['conda_info']:
+                from .cli.main_info import get_main_info_str
+                try:
+                    message_builder.append(get_main_info_str(error_report['conda_info']))
+                except Exception as e:
+                    message_builder.append('conda info could not be constructed.')
+                    message_builder.append('%r' % e)
+            message_builder.append('')
+            message_builder.append(
+                "An unexpected error has occurred. Conda has prepared the above report."
+            )
+
+            self.out_stream.write('\n'.join(message_builder))
+
+    def _calculate_ask_do_upload(self):
+        from .base.context import context
+
+        try:
+            isatty = os.isatty(0) or on_win
+        except Exception as e:
+            log.debug('%r', e)
+            # given how the rest of this function is constructed, better to assume True here
+            isatty = True
+
+        if context.report_errors is False:
+            ask_for_upload = False
+            do_upload = False
+        elif context.report_errors is True or context.always_yes:
+            ask_for_upload = False
+            do_upload = True
+        elif context.json or context.quiet:
+            ask_for_upload = False
+            do_upload = not context.offline and context.always_yes
+        elif not isatty:
+            ask_for_upload = False
+            do_upload = not context.offline and context.always_yes
+        else:
+            ask_for_upload = True
+            do_upload = False
+
+        return ask_for_upload, do_upload
+
+    def ask_for_upload(self):
+        message_builder = []
+        message_builder.append(
+            "Would you like conda to send this report to the core maintainers?"
+        )
+        message_builder.append(
+            "[y/N]: "
+        )
+        self.out_stream.write('\n'.join(message_builder))
+        ask_response = None
+        try:
+            ask_response = timeout(40, input)
+            do_upload = ask_response and boolify(ask_response)
+        except Exception as e:  # pragma: no cover
+            log.debug('%r', e)
+            do_upload = False
+        return do_upload, ask_response
+
+    def _execute_upload(self, error_report):
+        headers = {
+            'User-Agent': self.user_agent,
+        }
+        _timeout = self.http_timeout
+        data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + '\n'
+        response = None
+        try:
+            # requests does not follow HTTP standards for redirects of non-GET methods
+            # That is, when following a 301 or 302, it turns a POST into a GET.
+            # And no way to disable.  WTF
+            import requests
+            redirect_counter = 0
+            url = self.error_upload_url
+            response = requests.post(url, headers=headers, timeout=_timeout, data=data,
+                                     allow_redirects=False)
+            response.raise_for_status()
+            while response.status_code in (301, 302) and response.headers.get('Location'):
+                url = response.headers['Location']
+                response = requests.post(url, headers=headers, timeout=_timeout, data=data,
+                                         allow_redirects=False)
+                response.raise_for_status()
+                redirect_counter += 1
+                if redirect_counter > 15:
+                    raise CondaError("Redirect limit exceeded")
+            log.debug("upload response status: %s", response and response.status_code)
+        except Exception as e:  # pragma: no cover
+            log.info('%r', e)
+        try:
+            if response and response.ok:
+                self.out_stream.write("Upload successful.\n")
+            else:
+                self.out_stream.write("Upload did not complete.")
+                if response and response.status_code:
+                    self.out_stream.write(" HTTP %s" % response.status_code)
+                    self.out_stream.write("\n")
+        except Exception as e:
+            log.debug("%r" % e)
+
+    def print_upload_confirm(self, do_upload, ask_for_upload, ask_response):
+        if ask_response and do_upload:
+            self.out_stream.write(
+                "\n"
+                "Thank you for helping to improve conda.\n"
+                "Opt-in to always sending reports (and not see this message again)\n"
+                "by running\n"
+                "\n"
+                "    $ conda config --set report_errors true\n"
+                "\n"
+            )
+        elif ask_for_upload:
+            self.out_stream.write(
+                "\n"
+                "No report sent. To permanently opt-out, use\n"
+                "\n"
+                "    $ conda config --set report_errors false\n"
+                "\n"
+            )
+        elif ask_response is None and ask_for_upload:
+            # means timeout was reached for `input`
+            self.out_stream.write('\nTimeout reached. No report sent.\n')
 
 
 def conda_exception_handler(func, *args, **kwargs):
-    try:
-        return_value = func(*args, **kwargs)
-        if isinstance(return_value, int):
-            return return_value
-    except (Exception, KeyboardInterrupt) as e:
-        return handle_exception(e)
+    exception_handler = ExceptionHandler()
+    return_value = exception_handler(func, *args, **kwargs)
+    if isinstance(return_value, int):
+        return return_value
