@@ -37,6 +37,9 @@ class TokenURLFilter(Filter):
 
 class StdStreamHandler(StreamHandler):
     """Log StreamHandler that always writes to the current sys stream."""
+
+    terminator = '\n'
+
     def __init__(self, sys_stream):
         """
         Args:
@@ -51,6 +54,20 @@ class StdStreamHandler(StreamHandler):
         if attr == 'stream':
             return getattr(sys, self.sys_stream)
         return super(StdStreamHandler, self).__getattribute__(attr)
+
+    def emit(self, record):
+        # in contrast to the Python 2.7 StreamHandler, this has no special Unicode handling;
+        # however, this backports the Python >3.2 terminator attribute.
+        try:
+            msg = self.format(record)
+            stream = self.stream
+            stream.write(msg)
+            stream.write(self.terminator)
+            self.flush()
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)
 
 
 # Don't use initialize_logging/initialize_root_logger/set_conda_log_level in
@@ -83,7 +100,8 @@ def initialize_std_loggers():
 
         raw_logger = getLogger('conda.%s.raw' % stream)
         raw_logger.setLevel(DEBUG)
-        raw_handler = StdStreamHandler(stream, terminator='')
+        raw_handler = StdStreamHandler(stream)
+        raw_handler.terminator = ''
         raw_handler.setLevel(DEBUG)
         raw_handler.setFormatter(formatter)
         raw_logger.addHandler(raw_handler)
