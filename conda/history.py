@@ -12,8 +12,8 @@ import time
 import warnings
 
 from .base.constants import DEFAULTS_CHANNEL_NAME
-from .common.compat import ensure_text_type, itervalues, open, text_type
-from .core.linked_data import linked
+from .common.compat import ensure_text_type, iteritems, open, text_type
+from .core.linked_data import PrefixData, linked
 from .exceptions import CondaFileIOError, CondaHistoryError
 from .gateways.disk.update import touch
 from .models.dist import Dist
@@ -176,22 +176,8 @@ class History(object):
             item['link_dists'] = dists.get('+', ())
         return res
 
-    # def get_requested_specs(self):
-    #     spec_map = {}
-    #     for request in self.get_user_requests():
-    #         axn = request.get('action', '')
-    #         if axn.startswith('install'):
-    #             link_dists = tuple(Dist(d[1:]) for d in request.get('link_dists', ()))
-    #             specs = tuple(MatchSpec(s) for s in request['specs'] if s)
-    #             match = lambda spec: next((d for d in link_dists if spec.match(d)), None)
-    #             dists = tuple(match(s) for s in specs)
-    #             spec_map.update({s.name: (s, d) for (s, d) in zip(specs, dists)})
-    #         elif axn.startswith('remove'):
-    #             for name in (MatchSpec(s).name for s in request['specs']):
-    #                 spec_map.pop(name, None)
-    #     return set(itervalues(spec_map))
-
     def get_requested_specs_map(self):
+        # keys are package names and values are specs
         spec_map = {}
         for request in self.get_user_requests():
             remove_specs = (MatchSpec(spec) for spec in request.get('remove_specs', ()))
@@ -199,7 +185,13 @@ class History(object):
                 spec_map.pop(spec.name, None)
             update_specs = (MatchSpec(spec) for spec in request.get('update_specs', ()))
             spec_map.update(((s.name, s) for s in update_specs))
-        return spec_map
+
+        # Conda hasn't always been good about recording when specs have been removed from
+        # environments.  If the package isn't installed in the current environment, then we
+        # shouldn't try to force it here.
+        linked_dists = tuple(Dist(d) for d in PrefixData(self.prefix).iter_records())
+        return dict((name, spec) for name, spec in iteritems(spec_map)
+                    if any(spec.match(dist) for dist in linked_dists))
 
     def construct_states(self):
         """

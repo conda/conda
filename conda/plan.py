@@ -18,7 +18,7 @@ from conda.core.index import _supplement_index_with_prefix
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
-from .common.compat import on_win
+from .common.compat import on_win, itervalues
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
@@ -584,8 +584,7 @@ def revert_actions(prefix, revision=-1, index=None):
     # change
     h = History(prefix)
     h.update()
-    user_requested_specs_and_dists = h.get_requested_specs()
-    user_requested_specs = tuple(x[0] for x in user_requested_specs_and_dists)
+    user_requested_specs = itervalues(h.get_requested_specs_map())
     try:
         state = h.get_state(revision)
     except IndexError:
