@@ -587,7 +587,7 @@ def collect_all_repodata_as_index(use_cache, tasks):
     if context.concurrent:
         try:
             from concurrent.futures import ThreadPoolExecutor
-            executor = ThreadPoolExecutor(5)
+            executor = ThreadPoolExecutor(10)
             index = _collect_repodatas_concurrent_as_index(executor, use_cache, tasks)
         except (ImportError, RuntimeError) as e:
             # concurrent.futures is only available in Python >= 3.2 or if futures is installed
