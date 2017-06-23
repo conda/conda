@@ -6,28 +6,28 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from difflib import get_close_matches
 import errno
-from logging import getLogger
 import os
-from os.path import abspath, basename, exists, isdir, join
 import re
+from logging import getLogger
+from os.path import abspath, basename, exists, isdir, join
 
 from . import common
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import on_win, text_type
-from ..core.index import get_index
+from ..core.index import get_index, get_channel_priority_map
 from ..core.linked_data import linked as install_linked
 from ..exceptions import (CondaEnvironmentNotFoundError, CondaIOError, CondaImportError,
                           CondaOSError, CondaSystemExit, CondaValueError, DirectoryNotFoundError,
-                          DryRunExit, NoPackagesFoundError, PackageNotFoundError,
-                          PackageNotInstalledError, TooManyArgumentsError, UnsatisfiableError)
+                          DryRunExit, PackageNotFoundError, PackageNotInstalledError,
+                          TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..models.channel import prioritize_channels
-from ..plan import (display_actions, execute_actions, get_pinned_specs, install_actions_list,
+from ..plan import (display_actions, execute_actions, install_actions_list,
                     is_root_prefix, nothing_to_do, revert_actions)
+from ..resolve import ResolvePackageNotFound, dashlist
 
 log = getLogger(__name__)
 stderr = getLogger('stderr')
@@ -255,61 +255,20 @@ def install(args, parser, command='install'):
                     pinned=args.pinned, always_copy=context.always_copy,
                     minimal_hint=args.alt_hint, update_deps=context.update_dependencies,
                     channel_priority_map=_channel_priority_map, is_update=isupdate)
-    except NoPackagesFoundError as e:
-        error_message = [e.args[0]]
 
-        if isupdate and args.all:
-            # Packages not found here just means they were installed but
-            # cannot be found any more. Just skip them.
-            if not context.json:
-                print("Warning: %s, skipping" % error_message)
-            else:
-                # Not sure what to do here
-                pass
-            args._skip = getattr(args, '_skip', ['anaconda'])
-            for pkg in e.pkgs:
-                p = pkg.split()[0]
-                if p in args._skip:
-                    # Avoid infinite recursion. This can happen if a spec
-                    # comes from elsewhere, like --file
-                    raise
-                args._skip.append(p)
+    except ResolvePackageNotFound as e:
+        pkg = e.bad_deps
+        pkg = dashlist(' -> '.join(map(str, q)) for q in pkg)
+        channel_priority_map = get_channel_priority_map(
+            channel_urls=index_args['channel_urls'],
+            prepend=index_args['prepend'],
+            platform=None,
+            use_local=index_args['use_local'],
+        )
 
-            return install(args, parser, command=command)
-        else:
-            packages = {index[fn]['name'] for fn in index}
+        channels_urls = tuple(channel_priority_map)
 
-            nfound = 0
-            for pkg in sorted(e.pkgs):
-                pkg = pkg.split()[0]
-                if pkg in packages:
-                    continue
-                close = get_close_matches(pkg, packages, cutoff=0.7)
-                if not close:
-                    continue
-                if nfound == 0:
-                    error_message.append("\n\nClose matches found; did you mean one of these?\n")
-                error_message.append("\n    %s: %s" % (pkg, ', '.join(close)))
-                nfound += 1
-            # error_message.append('\n\nYou can search for packages on anaconda.org with')
-            # error_message.append('\n\n    anaconda search -t conda %s' % pkg)
-            if len(e.pkgs) > 1:
-                # Note this currently only happens with dependencies not found
-                error_message.append('\n\n(and similarly for the other packages)')
-
-            # if not find_executable('anaconda', include_others=False):
-            #     error_message.append('\n\nYou may need to install the anaconda-client')
-            #     error_message.append(' command line client with')
-            #     error_message.append('\n\n    conda install anaconda-client')
-
-            pinned_specs = get_pinned_specs(prefix)
-            if pinned_specs:
-                path = join(prefix, 'conda-meta', 'pinned')
-                error_message.append("\n\nNote that you have pinned specs in %s:" % path)
-                error_message.append("\n\n    %r" % (pinned_specs,))
-
-            error_message = ''.join(error_message)
-            raise PackageNotFoundError(error_message)
+        raise PackageNotFoundError(pkg, channels_urls)
 
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error

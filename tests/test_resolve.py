@@ -1,23 +1,18 @@
 from __future__ import absolute_import, print_function
 
 import json
-import os
 import unittest
 
 from conda.common.io import env_var
 
-from conda.base.constants import MAX_CHANNEL_PRIORITY
 from conda.base.context import reset_context
 from conda.common.compat import iteritems, text_type
-from conda.exceptions import NoPackagesFoundError, UnsatisfiableError
+from conda.exceptions import UnsatisfiableError
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
-from conda.resolve import MatchSpec, Resolve
 from os.path import dirname, join
 
-import pytest
-
-from conda.resolve import MatchSpec, Resolve, NoPackagesFound, Unsatisfiable
+from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
 from tests.helpers import raises
 
 with open(join(dirname(__file__), 'index.json')) as fi:
@@ -496,9 +491,9 @@ def test_unsat():
 
 def test_nonexistent():
     assert not r.find_matches(MatchSpec('notarealpackage 2.0*'))
-    assert raises(NoPackagesFoundError, lambda: r.install(['notarealpackage 2.0*']))
+    assert raises(ResolvePackageNotFound, lambda: r.install(['notarealpackage 2.0*']))
     # This exact version of NumPy does not exist
-    assert raises(NoPackagesFoundError, lambda: r.install(['numpy 1.5']))
+    assert raises(ResolvePackageNotFound, lambda: r.install(['numpy 1.5']))
 
 
 def test_nonexistent_deps():
@@ -573,8 +568,8 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]]
-    assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0']))
-    assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
+    assert raises(ResolvePackageNotFound, lambda: r.install(['mypackage 1.0']))
+    assert raises(ResolvePackageNotFound, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
 
     assert r.install(['anotherpackage 1.0']) == [Dist(dname) for dname in [
         'anotherpackage-1.0-py33_0.tar.bz2',
@@ -674,7 +669,7 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]]
-    assert raises(NoPackagesFoundError, lambda: r.install(['mypackage 1.1']))
+    assert raises(ResolvePackageNotFound, lambda: r.install(['mypackage 1.1']))
 
     assert r.install(['anotherpackage 1.0']) == [Dist(dname) for dname in [
         'anotherpackage-1.0-py33_0.tar.bz2',

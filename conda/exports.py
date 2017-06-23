@@ -55,9 +55,10 @@ is_linked, linked, linked_data = is_linked, linked, linked_data
 from .misc import untracked, walk_prefix  # NOQA
 untracked, walk_prefix = untracked, walk_prefix
 
-from .resolve import MatchSpec, NoPackagesFound, Resolve, Unsatisfiable, normalized_version  # NOQA
-MatchSpec, NoPackagesFound, Resolve = MatchSpec, NoPackagesFound, Resolve
+from .resolve import MatchSpec, ResolvePackageNotFound, Resolve, Unsatisfiable, normalized_version  # NOQA
+MatchSpec, Resolve = MatchSpec, Resolve
 Unsatisfiable, normalized_version = Unsatisfiable, normalized_version
+NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
 from .signature import KEYS, KEYS_DIR, hash_file, verify  # NOQA
 KEYS, KEYS_DIR = KEYS, KEYS_DIR

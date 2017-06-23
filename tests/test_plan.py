@@ -10,7 +10,7 @@ from conda.cli import common
 from conda.cli.python_api import run_command, Commands
 from conda.core import linked_data
 from conda.core.package_cache import ProgressiveFetchExtract
-from conda.exceptions import NoPackagesFoundError, InstallError
+from conda.exceptions import PackageNotFoundError, InstallError
 from conda.models.channel import prioritize_channels
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
@@ -915,7 +915,7 @@ def generate_mocked_resolve(pkgs, install=None):
         # Here, spec should be a MatchSpec
         res = groups[spec.name]
         if not res and not emptyok:
-            raise NoPackagesFoundError([(spec,)])
+            raise PackageNotFoundError([(spec,)])
         return res
 
     def get_explicit(spec):
@@ -975,7 +975,7 @@ class TestDetermineAllEnvs(unittest.TestCase):
 
     def test_determine_all_envs_no_package(self):
         specs = [MatchSpec("no-exist")]
-        with pytest.raises(NoPackagesFoundError) as err:
+        with pytest.raises(PackageNotFoundError) as err:
             plan.determine_all_envs(self.res, specs)
             assert "no-exist package not found" in str(err)
 

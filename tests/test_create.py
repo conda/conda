@@ -614,10 +614,9 @@ class IntegrationTests(TestCase):
             assert 'r' not in context.channels
 
             # assert conda search cannot find rpy2
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-
-            assert bool(json_obj) is False
+            assert json_obj['exception_name'] == 'PackageNotFoundError'
 
             # add r channel
             run_command(Commands.CONFIG, prefix, "--add channels r")
@@ -869,15 +868,16 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win(self):
         with make_temp_env() as prefix:
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json")
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-            assert len(json_obj.keys()) == 0
+            assert json_obj['exception_name'] == 'PackageNotFoundError'
+            assert not len(json_obj.keys()) == 0
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_filter(self):
         with make_temp_env() as prefix:
             stdout, stderr = run_command(
-                Commands.SEARCH, prefix, "gawk", "--platform", "win-64", "--json")
+                Commands.SEARCH, prefix, "gawk", "--platform", "win-64", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert "gawk" in json_obj.keys()
             assert "m2-gawk" in json_obj.keys()
@@ -886,7 +886,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
     def test_search_gawk_on_win(self):
         with make_temp_env() as prefix:
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json")
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert "gawk" in json_obj.keys()
             assert "m2-gawk" in json_obj.keys()
@@ -896,11 +896,10 @@ class IntegrationTests(TestCase):
     def test_search_gawk_on_win_filter(self):
         with make_temp_env() as prefix:
             stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--platform",
-                                         "linux-64", "--json")
+                                         "linux-64", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-            assert len(json_obj.keys()) == 0
+            assert not len(json_obj.keys()) == 0
 
-    @pytest.mark.timeout(30)
     def test_bad_anaconda_token_infinite_loop(self):
         # First, confirm we get a 401 UNAUTHORIZED response from anaconda.org
         response = requests.get("https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/"
@@ -947,9 +946,9 @@ class IntegrationTests(TestCase):
             assert yml_obj['channels'] == [channel_url]
 
             stdout, stderr = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
-                                         "linux-64", "--json")
+                                         "linux-64", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout)
-            assert len(json_obj) == 0
+            assert json_obj['exception_name'] == 'PackageNotFoundError'
 
         finally:
             rmtree(prefix, ignore_errors=True)
@@ -1201,9 +1200,10 @@ class IntegrationTests(TestCase):
                 run_command(Commands.REMOVE, prefix, 'numpi')
 
             exc_string = '%r' % exc.value
-            assert exc_string == "PackageNotFoundError: No packages named 'numpi' found to remove from environment."
-
+            assert exc_string.strip() == """PackageNotFoundError: Package(s) is missing from the environment:
+            numpi """.strip()
             assert_package_is_installed(prefix, 'numpy')
+
 
     def test_conda_list_json(self):
         def pkg_info(s):
