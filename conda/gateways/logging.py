@@ -101,14 +101,14 @@ def initialize_std_loggers():
         logger.addFilter(TokenURLFilter())
         logger.propagate = False
 
-        raw_logger = getLogger('conda.%s.raw' % stream)
-        raw_logger.setLevel(DEBUG)
-        raw_handler = StdStreamHandler(stream)
-        raw_handler.terminator = ''
-        raw_handler.setLevel(DEBUG)
-        raw_handler.setFormatter(formatter)
-        raw_logger.addHandler(raw_handler)
-        raw_logger.propagate = False
+        stdlog_logger = getLogger('conda.%slog' % stream)
+        stdlog_logger.setLevel(DEBUG)
+        stdlog_handler = StdStreamHandler(stream)
+        stdlog_handler.terminator = ''
+        stdlog_handler.setLevel(DEBUG)
+        stdlog_handler.setFormatter(formatter)
+        stdlog_logger.addHandler(stdlog_handler)
+        stdlog_logger.propagate = False
 
     verbose_logger = getLogger('conda.stdout.verbose')
     verbose_logger.setLevel(INFO)

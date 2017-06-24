@@ -14,7 +14,7 @@ from .models.match_spec import MatchSpec
 from .models.version import normalized_version
 
 log = logging.getLogger(__name__)
-stdoutlog = logging.getLogger('conda.stdout.raw')
+stdoutlog = logging.getLogger('conda.stdoutlog')
 
 
 # used in conda build
