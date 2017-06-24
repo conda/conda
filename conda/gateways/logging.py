@@ -57,12 +57,15 @@ class StdStreamHandler(StreamHandler):
 
     def emit(self, record):
         # in contrast to the Python 2.7 StreamHandler, this has no special Unicode handling;
-        # however, this backports the Python >3.2 terminator attribute.
+        # however, this backports the Python >=3.2 terminator attribute and additionally makes it
+        # further customizable by giving record an identically named attribute, e.g., via
+        # logger.log(..., extra={"terminator": ""}) or LoggerAdapter(logger, {"terminator": ""}).
         try:
             msg = self.format(record)
+            terminator = getattr(record, "terminator", self.terminator)
             stream = self.stream
             stream.write(msg)
-            stream.write(self.terminator)
+            stream.write(terminator)
             self.flush()
         except (KeyboardInterrupt, SystemExit):
             raise
