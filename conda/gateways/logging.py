@@ -37,31 +37,51 @@ class TokenURLFilter(Filter):
 
 class StdStreamHandler(StreamHandler):
     """Log StreamHandler that always writes to the current sys stream."""
+
+    terminator = '\n'
+
     def __init__(self, sys_stream):
         """
         Args:
             sys_stream: stream name, either "stdout" or "stderr" (attribute of module sys)
         """
-        assert hasattr(sys, sys_stream)
-        self._sys_stream = sys_stream
-        super(StreamHandler, self).__init__()  # skip StreamHandler.__init__ which sets self.stream
+        super(StdStreamHandler, self).__init__(getattr(sys, sys_stream))
+        self.sys_stream = sys_stream
+        del self.stream
 
-    @property
-    def stream(self):
-        # always get current stdout/stderr, removes the need to replace self.stream when needed
-        return getattr(sys, self._sys_stream)
+    def __getattr__(self, attr):
+        # always get current sys.stdout/sys.stderr, unless self.stream has been set explicitly
+        if attr == 'stream':
+            return getattr(sys, self.sys_stream)
+        return super(StdStreamHandler, self).__getattribute__(attr)
+
+    def emit(self, record):
+        # in contrast to the Python 2.7 StreamHandler, this has no special Unicode handling;
+        # however, this backports the Python >=3.2 terminator attribute and additionally makes it
+        # further customizable by giving record an identically named attribute, e.g., via
+        # logger.log(..., extra={"terminator": ""}) or LoggerAdapter(logger, {"terminator": ""}).
+        try:
+            msg = self.format(record)
+            terminator = getattr(record, "terminator", self.terminator)
+            stream = self.stream
+            stream.write(msg)
+            stream.write(terminator)
+            self.flush()
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)
 
 
-# Don't use initialize_logging/initialize_root_logger/initialize_conda_logger in
+# Don't use initialize_logging/initialize_root_logger/set_conda_log_level in
 # cli.python_api! There we want the user to have control over their logging,
 # e.g., using their own levels, handlers, formatters and propagation settings.
 
 @memoize
 def initialize_logging():
-    # root and 'conda' logger both get their own separate sys.stderr stream handlers.
-    # root gets level ERROR; 'conda' gets level WARN and does not propagate to root.
+    # root gets level ERROR; 'conda' gets level WARN and propagates to root.
     initialize_root_logger()
-    initialize_conda_logger()
+    set_conda_log_level()
     initialize_std_loggers()
 
 
@@ -69,40 +89,50 @@ def initialize_logging():
 def initialize_std_loggers():
     # Set up special loggers 'conda.stdout'/'conda.stderr' which output directly to the
     # corresponding sys streams, filter token urls and don't propagate.
-    formatter = Formatter("%(message)s\n")
+    formatter = Formatter("%(message)s")
 
-    stdout = getLogger('conda.stdout')
-    stdout.setLevel(INFO)
-    stdouthandler = StdStreamHandler('stdout')
-    stdouthandler.setLevel(INFO)
-    stdouthandler.setFormatter(formatter)
-    stdout.addHandler(stdouthandler)
-    stdout.addFilter(TokenURLFilter())
-    stdout.propagate = False
+    for stream in ('stdout', 'stderr'):
+        logger = getLogger('conda.%s' % stream)
+        logger.setLevel(INFO)
+        handler = StdStreamHandler(stream)
+        handler.setLevel(INFO)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        logger.addFilter(TokenURLFilter())
+        logger.propagate = False
 
-    stderr = getLogger('conda.stderr')
-    stderr.setLevel(INFO)
-    stderrhandler = StdStreamHandler('stderr')
-    stderrhandler.setLevel(INFO)
-    stderrhandler.setFormatter(formatter)
-    stderr.addHandler(stderrhandler)
-    stderr.addFilter(TokenURLFilter())
-    stderr.propagate = False
+        stdlog_logger = getLogger('conda.%slog' % stream)
+        stdlog_logger.setLevel(DEBUG)
+        stdlog_handler = StdStreamHandler(stream)
+        stdlog_handler.terminator = ''
+        stdlog_handler.setLevel(DEBUG)
+        stdlog_handler.setFormatter(formatter)
+        stdlog_logger.addHandler(stdlog_handler)
+        stdlog_logger.propagate = False
+
+    verbose_logger = getLogger('conda.stdout.verbose')
+    verbose_logger.setLevel(INFO)
+    verbose_handler = StdStreamHandler('stdout')
+    verbose_handler.setLevel(INFO)
+    verbose_handler.setFormatter(formatter)
+    verbose_logger.addHandler(verbose_handler)
+    verbose_logger.propagate = False
 
 
 def initialize_root_logger(level=ERROR):
     attach_stderr_handler(level)
 
 
-def initialize_conda_logger(level=WARN):
-    attach_stderr_handler(level, 'conda')
+def set_conda_log_level(level=WARN):
+    conda_logger = getLogger('conda')
+    conda_logger.setLevel(level)
+    conda_logger.propagate = True  # let root logger's handler format/output message
 
 
 def set_all_logger_level(level=DEBUG):
     formatter = Formatter("%(message)s\n") if level >= INFO else None
-    # root and 'conda' loggers use separate handlers but behave the same wrt level and formatting
     attach_stderr_handler(level, formatter=formatter)
-    attach_stderr_handler(level, 'conda', formatter=formatter)
+    set_conda_log_level(level)  # only set level and use root's handler/formatter
     # 'requests' loggers get their own handlers so that they always output messages in long format
     # regardless of the level.
     attach_stderr_handler(level, 'requests')

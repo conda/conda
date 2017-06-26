@@ -37,8 +37,8 @@ If you are sure that conda is not running, remove it and try again.
 You can also use: $ conda clean --lock
 """
 
-stdoutlog = logging.getLogger('stdoutlog')
 log = logging.getLogger(__name__)
+stdoutlog = logging.getLogger('conda.stdoutlog')
 
 def touch(file_name, times=None):
     """ Touch function like touch in Unix shell

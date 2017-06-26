@@ -22,7 +22,6 @@ except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import take  # NOQA
 
 log = getLogger(__name__)
-stdoutlog = getLogger('stdoutlog')
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
