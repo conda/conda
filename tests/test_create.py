@@ -20,6 +20,7 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
+from conda._vendor.auxlib.ish import dals
 import pytest
 import requests
 
@@ -38,7 +39,7 @@ from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
     linked as install_linked, linked_data
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
-from conda.exceptions import CondaHTTPError, DryRunExit, PackageNotFoundError, RemoveError, \
+from conda.exceptions import CondaHTTPError, DryRunExit, PackagesNotFoundError, RemoveError, \
     conda_exception_handler
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
@@ -767,7 +768,7 @@ class IntegrationTests(TestCase):
             # assert conda search cannot find rpy2
             stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-            assert json_obj['exception_name'] == 'PackageNotFoundError'
+            assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
             # add r channel
             run_command(Commands.CONFIG, prefix, "--add channels r")
@@ -1018,7 +1019,7 @@ class IntegrationTests(TestCase):
 
     def test_packages_not_found(self):
         with make_temp_env() as prefix:
-            with pytest.raises(PackageNotFoundError) as exc:
+            with pytest.raises(PackagesNotFoundError) as exc:
                 run_command(Commands.INSTALL, prefix, "not-a-real-package")
             assert "not-a-real-package" in text_type(exc.value)
 
@@ -1027,11 +1028,11 @@ class IntegrationTests(TestCase):
             assert "not-a-real-package" in stderr
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
-    def test_search_gawk_not_win(self):
+    def test_search_gawk_not_win_1(self):
         with make_temp_env() as prefix:
             stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-            assert json_obj['exception_name'] == 'PackageNotFoundError'
+            assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
@@ -1109,7 +1110,7 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
                                          "linux-64", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout)
-            assert json_obj['exception_name'] == 'PackageNotFoundError'
+            assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
         finally:
             rmtree(prefix, ignore_errors=True)
@@ -1214,7 +1215,7 @@ class IntegrationTests(TestCase):
                 mock_method.side_effect = side_effect
 
                 # Fails because flask dependencies are not retrievable.
-                with pytest.raises(PackageNotFoundError):
+                with pytest.raises(PackagesNotFoundError):
                     run_command(Commands.INSTALL, prefix, "-c", channel,
                                 "flask", "--json", "--offline")
 
@@ -1400,12 +1401,14 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'numpy')
 
-            with pytest.raises(PackageNotFoundError) as exc:
+            with pytest.raises(PackagesNotFoundError) as exc:
                 run_command(Commands.REMOVE, prefix, 'numpi')
 
             exc_string = '%r' % exc.value
-            assert exc_string.strip() == """PackageNotFoundError: Package(s) is missing from the environment:
-            numpi """.strip()
+            assert exc_string.strip() == dals("""
+            PackagesNotFoundError: The following packages are missing from the target environment:
+              - numpi
+            """).strip()
             assert_package_is_installed(prefix, 'numpy')
 
     def test_conda_list_json(self):
@@ -1516,7 +1519,7 @@ class PrivateEnvIntegrationTests(TestCase):
         assert not package_is_installed(self.prefix, "spiffy-test-app")
         assert not package_is_installed(self.prefix, "uses-spiffy-test-app")
 
-        with pytest.raises(PackageNotFoundError):
+        with pytest.raises(PackagesNotFoundError):
             run_command(Commands.REMOVE, self.prefix, "spiffy-test-app")
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
         assert isfile(self.exe_file(self.preferred_env_prefix, 'spiffy-test-app'))

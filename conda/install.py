@@ -38,7 +38,6 @@ from .core.package_cache import rm_fetched  # NOQA
 rm_fetched = rm_fetched
 
 log = logging.getLogger(__name__)
-stdoutlog = logging.getLogger('stdoutlog')
 
 # backwards compatibility for conda-build
 prefix_placeholder = PREFIX_PLACEHOLDER

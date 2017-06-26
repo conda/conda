@@ -14,16 +14,15 @@ from .models.match_spec import MatchSpec
 from .models.version import normalized_version
 
 log = logging.getLogger(__name__)
-stdoutlog = logging.getLogger('stdoutlog')
-stderrlog = logging.getLogger('stderrlog')
+stdoutlog = logging.getLogger('conda.stdoutlog')
 
 # used in conda build
 Unsatisfiable = UnsatisfiableError
 ResolvePackageNotFound = ResolvePackageNotFound
 
 
-def dashlist(iter):
-    return ''.join('\n  - ' + str(x) for x in iter)
+def dashlist(iterable):
+    return ''.join('\n  - ' + str(x) for x in iterable)
 
 
 class Resolve(object):
@@ -763,136 +762,126 @@ class Resolve(object):
 
     def solve(self, specs, returnall=False, _remove=False):
         # type: (List[str], bool) -> List[Dist]
-        try:
-            if not context.json:
-                stdoutlog.info("Solving package specifications: ")
-            log.debug("Solving for %s", specs)
+        log.debug("Solving for %s", specs)
 
-            # Find the compliant packages
-            len0 = len(specs)
-            specs = list(map(MatchSpec, specs))
-            reduced_index = self.get_reduced_index(specs)
-            if not reduced_index:
-                return False if reduced_index is None else ([[]] if returnall else [])
+        # Find the compliant packages
+        len0 = len(specs)
+        specs = list(map(MatchSpec, specs))
+        reduced_index = self.get_reduced_index(specs)
+        if not reduced_index:
+            return False if reduced_index is None else ([[]] if returnall else [])
 
-            # Check if satisfiable
-            def mysat(specs, add_if=False):
-                constraints = r2.generate_spec_constraints(C, specs)
-                return C.sat(constraints, add_if)
+        # Check if satisfiable
+        def mysat(specs, add_if=False):
+            constraints = r2.generate_spec_constraints(C, specs)
+            return C.sat(constraints, add_if)
 
-            r2 = Resolve(reduced_index, True, True)
-            C = r2.gen_clauses()
-            solution = mysat(specs, True)
-            if not solution:
-                specs = minimal_unsatisfiable_subset(specs, sat=mysat)
-                self.find_conflicts(specs)
+        r2 = Resolve(reduced_index, True, True)
+        C = r2.gen_clauses()
+        solution = mysat(specs, True)
+        if not solution:
+            specs = minimal_unsatisfiable_subset(specs, sat=mysat)
+            self.find_conflicts(specs)
 
-            speco = []  # optional packages
-            specr = []  # requested packages
-            speca = []  # all other packages
-            specm = set(r2.groups)  # missing from specs
-            for k, s in enumerate(specs):
-                if s.name in specm:
-                    specm.remove(s.name)
-                if not s.optional:
-                    (speca if s.target or k >= len0 else specr).append(s)
-                elif any(r2.find_matches(s)):
-                    s = MatchSpec(s.name, optional=True, target=s.target)
-                    speco.append(s)
-                    speca.append(s)
-            speca.extend(MatchSpec(s) for s in specm)
+        speco = []  # optional packages
+        specr = []  # requested packages
+        speca = []  # all other packages
+        specm = set(r2.groups)  # missing from specs
+        for k, s in enumerate(specs):
+            if s.name in specm:
+                specm.remove(s.name)
+            if not s.optional:
+                (speca if s.target or k >= len0 else specr).append(s)
+            elif any(r2.find_matches(s)):
+                s = MatchSpec(s.name, optional=True, target=s.target)
+                speco.append(s)
+                speca.append(s)
+        speca.extend(MatchSpec(s) for s in specm)
 
-            # Removed packages: minimize count
-            if _remove:
-                eq_optional_c = r2.generate_removal_count(C, speco)
-                solution, obj7 = C.minimize(eq_optional_c, solution)
-                log.debug('Package removal metric: %d', obj7)
+        # Removed packages: minimize count
+        if _remove:
+            eq_optional_c = r2.generate_removal_count(C, speco)
+            solution, obj7 = C.minimize(eq_optional_c, solution)
+            log.debug('Package removal metric: %d', obj7)
 
-            # Requested packages: maximize versions
-            eq_req_v, eq_req_b = r2.generate_version_metrics(C, specr)
-            solution, obj3 = C.minimize(eq_req_v, solution)
-            log.debug('Initial package version metric: %d', obj3)
+        # Requested packages: maximize versions
+        eq_req_v, eq_req_b = r2.generate_version_metrics(C, specr)
+        solution, obj3 = C.minimize(eq_req_v, solution)
+        log.debug('Initial package version metric: %d', obj3)
 
-            # Track features: minimize feature count
-            eq_feature_count = r2.generate_feature_count(C)
-            solution, obj1 = C.minimize(eq_feature_count, solution)
-            log.debug('Track feature count: %d', obj1)
+        # Track features: minimize feature count
+        eq_feature_count = r2.generate_feature_count(C)
+        solution, obj1 = C.minimize(eq_feature_count, solution)
+        log.debug('Track feature count: %d', obj1)
 
-            # Featured packages: maximize featured package count
-            eq_feature_metric, ftotal = r2.generate_feature_metric(C)
-            solution, obj2 = C.minimize(eq_feature_metric, solution)
-            obj2 = ftotal - obj2
-            log.debug('Package feature count: %d', obj2)
+        # Featured packages: maximize featured package count
+        eq_feature_metric, ftotal = r2.generate_feature_metric(C)
+        solution, obj2 = C.minimize(eq_feature_metric, solution)
+        obj2 = ftotal - obj2
+        log.debug('Package feature count: %d', obj2)
 
-            # Requested packages: maximize builds
-            solution, obj4 = C.minimize(eq_req_b, solution)
-            log.debug('Initial package build metric: %d', obj4)
+        # Requested packages: maximize builds
+        solution, obj4 = C.minimize(eq_req_b, solution)
+        log.debug('Initial package build metric: %d', obj4)
 
-            # Optional installations: minimize count
-            if not _remove:
-                eq_optional_install = r2.generate_install_count(C, speco)
-                solution, obj49 = C.minimize(eq_optional_install, solution)
-                log.debug('Optional package install metric: %d', obj49)
+        # Optional installations: minimize count
+        if not _remove:
+            eq_optional_install = r2.generate_install_count(C, speco)
+            solution, obj49 = C.minimize(eq_optional_install, solution)
+            log.debug('Optional package install metric: %d', obj49)
 
-            # Dependencies: minimize the number of packages that need upgrading
-            eq_u = r2.generate_update_count(C, speca)
-            solution, obj50 = C.minimize(eq_u, solution)
-            log.debug('Dependency update count: %d', obj50)
+        # Dependencies: minimize the number of packages that need upgrading
+        eq_u = r2.generate_update_count(C, speca)
+        solution, obj50 = C.minimize(eq_u, solution)
+        log.debug('Dependency update count: %d', obj50)
 
-            # Remaining packages: maximize versions, then builds
-            eq_v, eq_b = r2.generate_version_metrics(C, speca)
-            solution, obj5 = C.minimize(eq_v, solution)
-            solution, obj6 = C.minimize(eq_b, solution)
-            log.debug('Additional package version/build metrics: %d/%d', obj5, obj6)
+        # Remaining packages: maximize versions, then builds
+        eq_v, eq_b = r2.generate_version_metrics(C, speca)
+        solution, obj5 = C.minimize(eq_v, solution)
+        solution, obj6 = C.minimize(eq_b, solution)
+        log.debug('Additional package version/build metrics: %d/%d', obj5, obj6)
 
-            # Prune unnecessary packages
-            eq_c = r2.generate_package_count(C, specm)
-            solution, obj7 = C.minimize(eq_c, solution, trymax=True)
-            log.debug('Weak dependency count: %d', obj7)
+        # Prune unnecessary packages
+        eq_c = r2.generate_package_count(C, specm)
+        solution, obj7 = C.minimize(eq_c, solution, trymax=True)
+        log.debug('Weak dependency count: %d', obj7)
 
-            def clean(sol):
-                return [q for q in (C.from_index(s) for s in sol)
-                        if q and q[0] != '!' and '@' not in q]
-            log.debug('Looking for alternate solutions')
-            nsol = 1
-            psolutions = []
+        def clean(sol):
+            return [q for q in (C.from_index(s) for s in sol)
+                    if q and q[0] != '!' and '@' not in q]
+        log.debug('Looking for alternate solutions')
+        nsol = 1
+        psolutions = []
+        psolution = clean(solution)
+        psolutions.append(psolution)
+        while True:
+            nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
+            solution = C.sat((nclause,), True)
+            if solution is None:
+                break
+            nsol += 1
+            if nsol > 10:
+                log.debug('Too many solutions; terminating')
+                break
             psolution = clean(solution)
             psolutions.append(psolution)
-            while True:
-                nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
-                solution = C.sat((nclause,), True)
-                if solution is None:
-                    break
-                nsol += 1
-                if nsol > 10:
-                    log.debug('Too many solutions; terminating')
-                    break
-                psolution = clean(solution)
-                psolutions.append(psolution)
 
-            if nsol > 1:
-                psols2 = list(map(set, psolutions))
-                common = set.intersection(*psols2)
-                diffs = [sorted(set(sol) - common) for sol in psols2]
-                if not context.json:
-                    stdoutlog.info(
-                        '\nWarning: %s possible package resolutions '
-                        '(only showing differing packages):%s%s' %
-                        ('>10' if nsol > 10 else nsol,
-                         dashlist(', '.join(diff) for diff in diffs),
-                         '\n  ... and others' if nsol > 10 else ''))
-
-            def stripfeat(sol):
-                return sol.split('[')[0]
+        if nsol > 1:
+            psols2 = list(map(set, psolutions))
+            common = set.intersection(*psols2)
+            diffs = [sorted(set(sol) - common) for sol in psols2]
             if not context.json:
-                stdoutlog.info('\n')
+                stdoutlog.info(
+                    '\nWarning: %s possible package resolutions '
+                    '(only showing differing packages):%s%s' %
+                    ('>10' if nsol > 10 else nsol,
+                     dashlist(', '.join(diff) for diff in diffs),
+                     '\n  ... and others' if nsol > 10 else ''))
 
-            if returnall:
-                return [sorted(Dist(stripfeat(dname)) for dname in psol) for psol in psolutions]
-            else:
-                return sorted(Dist(stripfeat(dname)) for dname in psolutions[0])
+        def stripfeat(sol):
+            return sol.split('[')[0]
 
-        except:
-            if not context.json:
-                stdoutlog.info('\n')
-            raise
+        if returnall:
+            return [sorted(Dist(stripfeat(dname)) for dname in psol) for psol in psolutions]
+        else:
+            return sorted(Dist(stripfeat(dname)) for dname in psolutions[0])
