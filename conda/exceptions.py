@@ -609,12 +609,12 @@ def print_conda_exception(exc_val, exc_tb=None):
         sys.stderr.write('\n')
     elif context.json:
         import json
-        stdoutlogger = getLogger('conda.stdout')
-        stdoutlogger.info(json.dumps(exc_val.dump_map(), indent=2, sort_keys=True,
-                                     cls=EntityEncoder))
+        stdoutlog = getLogger('conda.stdout')
+        exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
+        stdoutlog.info("%s\n" % exc_json)
     else:
-        stderrlogger = getLogger('conda.stderr')
-        stderrlogger.info("\n%r", exc_val)
+        stderrlog = getLogger('conda.stderr')
+        stderrlog.info("\n%r\n", exc_val)
 
 
 def _format_exc(exc_val=None, exc_tb=None):
