@@ -18,7 +18,7 @@ from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import PrefixData, linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
-from .exceptions import PackageNotFoundError, ParseError
+from .exceptions import PackagesNotFoundError, ParseError
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink
 from .models.dist import Dist
@@ -222,8 +222,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
             else:
                 notfound.append(fn)
     if notfound:
-        what = "Package%s " % ('' if len(notfound) == 1 else 's')
-        raise PackageNotFoundError(what)
+        raise PackagesNotFoundError(notfound)
 
     # Assemble the URL and channel list
     urls = {}
