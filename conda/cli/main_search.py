@@ -9,11 +9,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from os.path import dirname
 
 from conda import iteritems
+<<<<<<< HEAD
 from conda.base import context
 from conda.common.io import spinner
 from conda.core.index import get_channel_priority_map
 from conda.resolve import dashlist
 from ..exceptions import PackageNotFoundError, ResolvePackageNotFound
+=======
+from ..common.io import spinner
+from ..exceptions import PackageNotFoundError
+>>>>>>> Who knows WTF?!
 
 from ..compat import itervalues
 from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
@@ -139,12 +144,10 @@ def execute(args, parser):
 
         raise PackageNotFoundError(pkg, channels_urls)
 
-
-
 def execute_search(args, parser):
     import re
-    from .common import (arg2spec, disp_features, ensure_override_channels_requires_channel,
-                         ensure_use_local, stdout_json)
+    from .common import (arg2spec, ensure_override_channels_requires_channel,
+                         ensure_use_local)
     from ..core.index import get_index
     from ..models.match_spec import MatchSpec
     from ..base.context import context
@@ -155,8 +158,6 @@ def execute_search(args, parser):
         if args.spec:
             parser.error("--reverse-dependency does not work with --spec")
 
-    pat = None
-    ms = None
     if args.regex:
         if args.spec:
             ms = MatchSpec(arg2spec(args.regex))
@@ -173,15 +174,12 @@ def execute_search(args, parser):
                                            "regex error: %(regex_error)s",
                                            regex=regex, regex_error=repr(e))
 
-    prefix = context.prefix_w_legacy_search
 
-    # XXX: Make this work with more than one platform
     platform = args.platform or ''
     if platform and platform != context.subdir:
         args.unknown = False
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args, dashc=False)
-
 
     with spinner("Loading channels", not context.verbosity and not context.quiet,
              context.json):
