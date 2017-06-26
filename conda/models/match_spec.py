@@ -477,11 +477,11 @@ def _parse_spec_str(spec_str):
 
     # Step 3. strip off brackets portion
     brackets = {}
-    m3 = re.match(r'^(.*)(?:\[(.*)\])$', spec_str)
+    m3 = re.match(r'.*(?:(\[.*\]))', spec_str)
     if m3:
-        spec_str, brackets_str = m3.groups()
-        brackets_str = brackets_str.strip("[]\n\r\t ")
-
+        brackets_str = m3.groups()[0]
+        spec_str = spec_str.replace(brackets_str, '')
+        brackets_str = brackets_str[1:-1]
         m3b = re.finditer(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', brackets_str)
         for match in m3b:
             key, _, value, _ = match.groups()
@@ -490,11 +490,12 @@ def _parse_spec_str(spec_str):
             brackets[key] = value
 
     # Step 4. strip off parens portion
-    m4 = re.match(r'^(.*)(?:\((.*)\))$', spec_str)
+    m4 = re.match(r'.*(?:(\(.*\)))', spec_str)
     parens = {}
     if m4:
-        spec_str, parens_str = m4.groups()
-        parens_str = parens_str.strip("[]\n\r\t ")
+        parens_str = m4.groups()[0]
+        spec_str = spec_str.replace(parens_str, '')
+        parens_str = parens_str[1:-1]
         m4b = re.finditer(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', parens_str)
         for match in m4b:
             key, _, value, _ = match.groups()
