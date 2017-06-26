@@ -187,6 +187,7 @@ def execute_search(args, parser):
         stdout_json(matches)
 
     else:
+
         builder = []
         builder.append('%-25s  %-15s %15s  %-15s' % (
                 "Name",
