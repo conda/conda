@@ -768,7 +768,7 @@ class IntegrationTests(TestCase):
             # assert conda search cannot find rpy2
             stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-            assert json_obj['exception_name'] == 'PackageNotFoundError'
+            assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
             # add r channel
             run_command(Commands.CONFIG, prefix, "--add channels r")
@@ -1028,11 +1028,11 @@ class IntegrationTests(TestCase):
             assert "not-a-real-package" in stderr
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
-    def test_search_gawk_not_win(self):
+    def test_search_gawk_not_win_1(self):
         with make_temp_env() as prefix:
             stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-            assert json_obj['exception_name'] == 'PackageNotFoundError'
+            assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
@@ -1110,7 +1110,7 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
                                          "linux-64", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout)
-            assert json_obj['exception_name'] == 'PackageNotFoundError'
+            assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
         finally:
             rmtree(prefix, ignore_errors=True)
