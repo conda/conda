@@ -6,7 +6,7 @@ import json
 from logging import getLogger
 import os
 import sys
-from traceback import format_exc
+from traceback import format_exception_only, format_exception
 
 from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
@@ -608,9 +608,7 @@ def maybe_raise(error, context):
 def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
     if context.debug or context.verbosity > 0:
-        sys.stderr.write('%r\n' % exc_val)
-        if exc_tb:
-            sys.stderr.write(exc_tb)
+        sys.stderr.write(_format_exc(exc_val, exc_tb))
         sys.stderr.write('\n')
     elif context.json:
         import json
@@ -622,14 +620,26 @@ def print_conda_exception(exc_val, exc_tb=None):
         stderrlogger.info("\n%r", exc_val)
 
 
+def _format_exc(exc_val=None, exc_tb=None):
+    if exc_val is None:
+        exc_type, exc_val, exc_tb = sys.exc_info()
+    else:
+        exc_type = type(exc_val)
+    if exc_tb:
+        formatted_exception = format_exception(exc_type, exc_val, exc_tb)
+    else:
+        formatted_exception = format_exception_only(exc_type, exc_val)
+    return ''.join(formatted_exception)
+
+
 class ExceptionHandler(object):
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        return self.handle_exception(exc_type, exc_val, exc_tb)
-
     def __call__(self, func, *args, **kwargs):
-        with self:
+        try:
             return func(*args, **kwargs)
+        except:
+            _, exc_val, exc_tb = sys.exc_info()
+            return self.handle_exception(exc_val, exc_tb)
 
     @property
     def out_stream(self):
@@ -651,47 +661,48 @@ class ExceptionHandler(object):
         from .base.context import context
         return context.error_upload_url
 
-    def handle_exception(self, exc_type, exc_val, exc_tb):
+    def handle_exception(self, exc_val, exc_tb):
         return_code = getattr(exc_val, 'return_code', None)
         if return_code == 0:
             return 0
         elif isinstance(exc_val, CondaError):
-            return self.handle_application_exception(exc_type, exc_val, exc_tb)
+            return self.handle_application_exception(exc_val, exc_tb)
         elif isinstance(exc_val, KeyboardInterrupt):
-            self._print_conda_exception(KeyboardInterrupt, CondaError("KeyboardInterrupt"),
-                                        format_exc())
+            self._print_conda_exception(KeyboardInterrupt(), _format_exc())
             return 1
         else:
-            return self.handle_unexpected_exception(exc_type, exc_val, exc_tb)
+            return self.handle_unexpected_exception(exc_val, exc_tb)
 
-    def handle_application_exception(self, exc_type, exc_val, exc_tb):
-        self._print_conda_exception(exc_type, exc_val, exc_tb)
+    def handle_application_exception(self, exc_val, exc_tb):
+        self._print_conda_exception(exc_val, exc_tb)
         rc = getattr(exc_val, 'return_code', None)
         return rc if rc is not None else 1
 
-    def _print_conda_exception(self, exc_type, exc_val, exc_tb):
+    def _print_conda_exception(self, exc_val, exc_tb):
         print_conda_exception(exc_val, exc_tb)
 
-    def handle_unexpected_exception(self, exc_type, exc_val, exc_tb):
-        error_report = self.get_error_report(exc_type, exc_val, exc_tb)
+    def handle_unexpected_exception(self, exc_val, exc_tb):
+        error_report = self.get_error_report(exc_val, exc_tb)
         self.print_error_report(error_report)
         ask_for_upload, do_upload = self._calculate_ask_do_upload()
-        do_upload, ask_response = self.ask_for_upload() if ask_for_upload else do_upload, None
+        do_upload, ask_response = self.ask_for_upload() if ask_for_upload else (do_upload, None)
         if do_upload:
             self._execute_upload(error_report)
         self.print_upload_confirm(do_upload, ask_for_upload, ask_response)
         rc = getattr(exc_val, 'return_code', None)
         return rc if rc is not None else 1
 
-    def get_error_report(self, exc_type, exc_val, exc_tb):
+    def get_error_report(self, exc_val, exc_tb):
         command = ' '.join(ensure_text_type(s) for s in sys.argv)
         info_dict = {}
         if ' info' not in command:
+            # get info_dict, but if we get an exception here too, record it without trampling
+            # the original exception
             try:
                 from .cli.main_info import get_info_dict
                 info_dict = get_info_dict()
             except Exception as info_e:
-                info_traceback = format_exc()
+                info_traceback = _format_exc()
                 info_dict = {
                     'error': repr(info_e),
                     'error_type': info_e.__class__.__name__,
@@ -700,9 +711,9 @@ class ExceptionHandler(object):
 
         error_report = {
             'error': repr(exc_val),
-            'error_type': exc_type,
+            'error_type': exc_val.__class__.__name__,
             'command': command,
-            'traceback': exc_tb,
+            'traceback': _format_exc(exc_val, exc_tb),
             'conda_info': info_dict,
         }
         return error_report
