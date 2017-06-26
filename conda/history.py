@@ -189,9 +189,9 @@ class History(object):
         # Conda hasn't always been good about recording when specs have been removed from
         # environments.  If the package isn't installed in the current environment, then we
         # shouldn't try to force it here.
-        linked_dists = tuple(Dist(d) for d in PrefixData(self.prefix).iter_records())
+        prefix_recs = tuple(PrefixData(self.prefix).iter_records())
         return dict((name, spec) for name, spec in iteritems(spec_map)
-                    if any(spec.match(dist) for dist in linked_dists))
+                    if any(spec.match(dist) for dist in prefix_recs))
 
     def construct_states(self):
         """
