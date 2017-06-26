@@ -6,20 +6,15 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from os.path import dirname
-
 from conda import iteritems
-<<<<<<< HEAD
 from conda.base import context
 from conda.common.io import spinner
 from conda.core.index import get_channel_priority_map
 from conda.resolve import dashlist
 from ..exceptions import PackageNotFoundError, ResolvePackageNotFound
-=======
 from ..common.io import spinner
 from ..exceptions import PackageNotFoundError
->>>>>>> Who knows WTF?!
-
+from argparse import SUPPRESS
 from ..compat import itervalues
 from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
                              add_parser_known, add_parser_offline, add_parser_prefix,
@@ -80,7 +75,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-o', "--outdated",
         action="store_true",
-        help="Only display installed but outdated packages.",
+        help=SUPPRESS,
     )
     p.add_argument(
         '--platform',
