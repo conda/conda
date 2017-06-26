@@ -15,10 +15,15 @@ from ..exceptions import PackageNotFoundError, ResolvePackageNotFound
 from ..common.io import spinner
 from ..exceptions import PackageNotFoundError
 from argparse import SUPPRESS
-from ..compat import itervalues
+
+from conda import iteritems
 from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
                              add_parser_known, add_parser_offline, add_parser_prefix,
                              add_parser_use_index_cache, add_parser_use_local)
+from ..cli.common import stdout_json
+from ..common.io import spinner
+from ..compat import itervalues
+from ..exceptions import PackageNotFoundError
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -190,13 +195,36 @@ def execute_search(args, parser):
     if not matches:
         raise ResolvePackageNotFound(args.regex)
 
-    for record in itervalues(matches):
-        print('%-25s  %-15s %15s  %-15s' % (
-            record.name,
-            record.version,
-            record.build,
-            record.schannel,
-        ))
+    if context.json:
+        json = {}
+        for record in itervalues(matches):
+
+            data = {}
+            data.update(record.dump())
+            data.update({
+                'fn': record.name,
+                'version': record.version,
+                'build': record.build,
+                'build_number': record.build_number,
+                'channel': record.schannel,
+                'full_channel': record.channel,
+                'license': record.get('license'),
+                'size': record.get('size'),
+                'depends': record.get('depends'),
+                'type': record.get('type')
+            })
+
+            json[args.regex].append(data)
+        stdout_json(json)
+
+    else:
+        for record in itervalues(matches):
+            print('%-25s  %-15s %15s  %-15s' % (
+                record.name,
+                record.version,
+                record.build,
+                record.schannel,
+            ))
 
     # r = Resolve(index)
 
