@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from ..base.context import context
-from conda.core.index import get_channel_priority_map
-from conda.resolve import dashlist
-from ..exceptions import PackageNotFoundError, ResolvePackageNotFound
+import sys
 from argparse import SUPPRESS
 
-from conda import iteritems
+from conda.core.index import get_channel_priority_map
+from conda.resolve import dashlist
 from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
                              add_parser_known, add_parser_offline, add_parser_prefix,
                              add_parser_use_index_cache, add_parser_use_local)
+from ..base.context import context
 from ..cli.common import stdout_json
-import json
 from ..common.io import spinner
 from ..compat import itervalues
-import sys
+from ..exceptions import PackageNotFoundError, ResolvePackageNotFound
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
