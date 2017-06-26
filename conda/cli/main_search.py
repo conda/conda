@@ -1,9 +1,4 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from ..base.context import context
@@ -17,8 +12,10 @@ from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parse
                              add_parser_known, add_parser_offline, add_parser_prefix,
                              add_parser_use_index_cache, add_parser_use_local)
 from ..cli.common import stdout_json
+import json
 from ..common.io import spinner
 from ..compat import itervalues
+import sys
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -172,7 +169,6 @@ def execute_search(args, parser):
                                            "regex error: %(regex_error)s",
                                            regex=regex, regex_error=repr(e))
 
-
     platform = args.platform or ''
     if platform and platform != context.subdir:
         args.unknown = False
@@ -188,139 +184,23 @@ def execute_search(args, parser):
                           unknown=args.unknown)
 
     spec = MatchSpec(args.regex)
-    matches = {dist: record for dist, record in iteritems(index) if spec.match(record)}
+    matches = {record for record in itervalues(index) if spec.match(record)}
+    matches = sorted(matches, key=lambda rec: (rec.name, rec.version, rec.build))
 
     if not matches:
         raise ResolvePackageNotFound(args.regex)
 
     if context.json:
-        json = {}
-        for record in itervalues(matches):
-
-            data = {}
-            data.update(record.dump())
-            data.update({
-                'fn': record.name,
-                'version': record.version,
-                'build': record.build,
-                'build_number': record.build_number,
-                'channel': record.schannel,
-                'full_channel': record.channel,
-                'license': record.get('license'),
-                'size': record.get('size'),
-                'depends': record.get('depends'),
-                'type': record.get('type')
-            })
-
-            json[args.regex].append(data)
-        stdout_json(json)
+        stdout_json(matches)
 
     else:
-        for record in itervalues(matches):
-            print('%-25s  %-15s %15s  %-15s' % (
+        builder = []
+        for record in matches:
+            builder.append('%-25s  %-15s %15s  %-15s' % (
                 record.name,
                 record.version,
                 record.build,
                 record.schannel,
             ))
-
-    # r = Resolve(index)
-
-    # if args.canonical:
-    #     json = []
-    # else:
-    #     json = {}
-
-    # names = []
-    # for name in sorted(r.groups):
-    #     if '@' in name:
-    #         continue
-    #     res = []
-    #     if args.reverse_dependency:
-    #         res = [dist for dist in r.get_dists_for_spec(name)
-    #                if any(pat.search(dep.name) for dep in r.ms_depends(dist))]
-    #     elif ms is not None:
-    #         if ms.name == name:
-    #             res = r.get_dists_for_spec(ms)
-    #     elif pat is None or pat.search(name):
-    #         res = r.get_dists_for_spec(name)
-    #     if res:
-    #         names.append((name, res))
-    #
-    # for name, pkgs in names:
-    #     disp_name = name
-    #
-    #     if args.names_only and not args.outdated:
-    #         print(name)
-    #         continue
-    #
-    #     if not args.canonical:
-    #         json[name] = []
-    #
-    #     if args.outdated:
-    #         vers_inst = [dist.quad[1] for dist in linked if dist.quad[0] == name]
-    #         if not vers_inst:
-    #             continue
-    #         assert len(vers_inst) == 1, name
-    #         if not pkgs:
-    #             continue
-    #         latest = pkgs[-1]
-    #         if latest.version == vers_inst[0]:
-    #             continue
-    #         if args.names_only:
-    #             print(name)
-    #             continue
-    #
-    #     for dist in pkgs:
-    #         index_record = r.index[dist]
-    #         if args.canonical:
-    #             if not context.json:
-    #                 print(dist.dist_name)
-    #             else:
-    #                 json.append(dist.dist_name)
-    #             continue
-    #         if platform and platform != context.subdir:
-    #             inst = ' '
-    #         elif dist in linked:
-    #             inst = '*'
-    #         elif dist in extracted:
-    #             inst = '.'
-    #         else:
-    #             inst = ' '
-    #
-    #         features = r.features(dist)
-    #
-    #         if not context.json:
-    #             print('%-25s %s  %-15s %15s  %-15s %s' % (
-    #                 disp_name, inst,
-    #                 index_record.version,
-    #                 index_record.build,
-    #                 index_record.schannel,
-    #                 disp_features(features),
-    #             ))
-    #             disp_name = ''
-    #         else:
-    #             data = {}
-    #             data.update(index_record.dump())
-    #             data.update({
-    #                 'fn': index_record.fn,
-    #                 'installed': inst == '*',
-    #                 'extracted': inst in '*.',
-    #                 'version': index_record.version,
-    #                 'build': index_record.build,
-    #                 'build_number': index_record.build_number,
-    #                 'channel': index_record.schannel,
-    #                 'full_channel': index_record.channel,
-    #                 'features': list(features),
-    #                 'license': index_record.get('license'),
-    #                 'size': index_record.get('size'),
-    #                 'depends': index_record.get('depends'),
-    #                 'type': index_record.get('type')
-    #             })
-    #
-    #             if data['type'] == 'app':
-    #                 data['icon'] = make_icon_url(index_record.info)
-    #             json[name].append(data)
-    #
-    # if context.json:
-    #     stdout_json(json)
+        sys.stdout.write('\n'.join(builder))
+        sys.stdout.write('\n')
