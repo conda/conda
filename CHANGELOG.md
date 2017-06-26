@@ -1,5 +1,8 @@
 ## 4.3.23 (unreleased)
 
+### Improvements
+* resolve #5391 PackageNotFound and NoPackagesFoundError clean up (#5506)
+
 ### Bug Fixes
 * fix #5525 too many Nones in CondaHttpError (#5526)
 * fix #5508 assertion failure after test file not cleaned up (#5533)
