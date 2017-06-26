@@ -17,7 +17,7 @@ from ..common.compat import iteritems, itervalues, odict, string_types, text_typ
 from ..common.constants import NULL
 from ..common.io import spinner
 from ..common.path import paths_equal
-from ..exceptions import PackageNotFoundError
+from ..exceptions import PackagesNotFoundError
 from ..history import History
 from ..models.channel import Channel
 from ..models.dag import PrefixDag
@@ -174,7 +174,7 @@ class Solver(object):
             solution = tuple(Dist(rec) for rec in dag.records)
 
             if not removed_records and not prune:
-                raise PackageNotFoundError("No packages found to remove from environment.")
+                raise PackagesNotFoundError(tuple(spec.name for spec in specs_to_remove))
 
         # We handle as best as possible environments in inconsistent states. To do this,
         # we remove now from consideration the set of packages causing inconsistencies,

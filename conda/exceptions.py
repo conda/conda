@@ -31,8 +31,8 @@ log = getLogger(__name__)
 class ResolvePackageNotFound(CondaError):  # change back to Exception in conda 4.4
     def __init__(self, bad_deps):
         # bad_deps is a list of lists
-        self.bad_deps = bad_deps
-        message = '\n' + '\n'.join(('  - %s' % dep) for deps in bad_deps for dep in deps if dep)
+        self.bad_deps = tuple(dep for deps in bad_deps for dep in deps if dep)
+        message = '\n' + '\n'.join(('  - %s' % dep) for dep in self.bad_deps)
         super(ResolvePackageNotFound, self).__init__(message)
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
@@ -390,25 +390,35 @@ class AuthenticationError(CondaError):
     pass
 
 
-class PackageNotFoundError(CondaError):
+class PackagesNotFoundError(CondaError):
 
-    def __init__(self, bad_pkg, channel_urls=()):
-        from .resolve import dashlist
-        channels = dashlist(channel_urls)
+    def __init__(self, packages, channel_urls=()):
+        format_list = lambda iterable: '  - ' + '\n  - '.join(text_type(x) for x in iterable)
 
-        if not channel_urls:
-            msg = """Package(s) is missing from the environment:
-            %(pkg)s
-            """
+        if channel_urls:
+            message = dals("""
+            The following packages are not available from current channels:
+            
+            %(packages_formatted)s
+
+            Current channels:
+            
+            %(channels_formatted)s
+            """)
+            packages_formatted = format_list(packages)
+            channels_formatted = format_list(channel_urls)
         else:
-            msg = """Packages missing in current channels:
-            %(pkg)s
+            message = dals("""
+            The following packages are missing from the target environment:
+            %(packages_formatted)s
+            """)
+            packages_formatted = format_list(packages)
+            channels_formatted = ()
 
-We have searched for the packages in the following channels:
-            %(channels)s
-            """
-
-        super(PackageNotFoundError, self).__init__(msg, pkg=bad_pkg, channels=channels)
+        super(PackagesNotFoundError, self).__init__(
+            message, packages=packages, packages_formatted=packages_formatted,
+            channel_urls=channel_urls, channels_formatted=channels_formatted
+        )
 
 
 class UnsatisfiableError(CondaError):

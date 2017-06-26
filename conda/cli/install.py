@@ -21,11 +21,11 @@ from ..core.linked_data import linked as install_linked
 from ..core.solve import Solver
 from ..exceptions import (CondaImportError, CondaOSError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
-                          PackageNotFoundError, PackageNotInstalledError, TooManyArgumentsError,
+                          PackageNotInstalledError, PackagesNotFoundError, TooManyArgumentsError,
                           UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..plan import (revert_actions)
-from ..resolve import ResolvePackageNotFound, dashlist
+from ..resolve import ResolvePackageNotFound
 
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderr')
@@ -221,18 +221,14 @@ def install(args, parser, command='install'):
             progressive_fetch_extract = unlink_link_transaction.get_pfe()
 
     except ResolvePackageNotFound as e:
-        pkg = e.bad_deps
-        pkg = dashlist(' -> '.join(map(str, q)) for q in pkg)
         channel_priority_map = get_channel_priority_map(
             channel_urls=index_args['channel_urls'],
             prepend=index_args['prepend'],
             platform=None,
             use_local=index_args['use_local'],
         )
-
         channels_urls = tuple(channel_priority_map)
-
-        raise PackageNotFoundError(pkg, channels_urls)
+        raise PackagesNotFoundError(e.bad_deps, channels_urls)
 
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error
@@ -247,8 +243,8 @@ def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args,
                remove_op=False):
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
-            error_message = "No packages found to remove from environment."
-            raise PackageNotFoundError(error_message)
+            # No packages found to remove from environment
+            raise PackagesNotFoundError(args.package_names)
         elif not newenv:
             if context.json:
                 common.stdout_json_success(message='All requested packages already installed.')
