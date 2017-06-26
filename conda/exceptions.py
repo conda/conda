@@ -398,9 +398,11 @@ class PackagesNotFoundError(CondaError):
         if channel_urls:
             message = dals("""
             The following packages are not available from current channels:
+            
             %(packages_formatted)s
 
             Current channels:
+            
             %(channels_formatted)s
             """)
             packages_formatted = format_list(packages)
