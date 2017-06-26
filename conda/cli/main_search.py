@@ -6,14 +6,10 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda import iteritems
-from conda.base import context
-from conda.common.io import spinner
+from ..base.context import context
 from conda.core.index import get_channel_priority_map
 from conda.resolve import dashlist
 from ..exceptions import PackageNotFoundError, ResolvePackageNotFound
-from ..common.io import spinner
-from ..exceptions import PackageNotFoundError
 from argparse import SUPPRESS
 
 from conda import iteritems
@@ -23,7 +19,6 @@ from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parse
 from ..cli.common import stdout_json
 from ..common.io import spinner
 from ..compat import itervalues
-from ..exceptions import PackageNotFoundError
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -128,9 +123,11 @@ def execute(args, parser):
         pkg.append(e.bad_deps)
         pkg = dashlist(pkg)
         index_args = {
-            'channel_urls': context.channels,
-            'prepend': not args.override_channels,
-            'use_local': args.use_local,
+        'use_cache': args.use_index_cache,
+        'channel_urls': context.channels,
+        'unknown': args.unknown,
+        'prepend': not args.override_channels,
+        'use_local': args.use_local
         }
 
         channel_priority_map = get_channel_priority_map(
@@ -143,6 +140,7 @@ def execute(args, parser):
         channels_urls = tuple(channel_priority_map)
 
         raise PackageNotFoundError(pkg, channels_urls)
+
 
 def execute_search(args, parser):
     import re
