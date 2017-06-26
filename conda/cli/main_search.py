@@ -8,6 +8,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from os.path import dirname
 
+from conda import iteritems
+from conda.base import context
+from conda.common.io import spinner
+from conda.core.index import get_channel_priority_map
+from conda.resolve import dashlist
+from ..exceptions import PackageNotFoundError, ResolvePackageNotFound
+
+from ..compat import itervalues
 from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
                              add_parser_known, add_parser_offline, add_parser_prefix,
                              add_parser_use_index_cache, add_parser_use_local)
@@ -107,10 +115,6 @@ package.""",
 
 
 def execute(args, parser):
-    from ..base.context import context
-    from ..core.index import get_channel_priority_map
-    from ..exceptions import PackageNotFoundError, ResolvePackageNotFound
-    from ..resolve import dashlist
 
     try:
         execute_search(args, parser)
@@ -136,24 +140,13 @@ def execute(args, parser):
         raise PackageNotFoundError(pkg, channels_urls)
 
 
-def make_icon_url(info):  # pragma: no cover
-    # TODO: deprecated
-    if info.get('channel') and info.get('icon'):
-        base_url = dirname(info['channel'])
-        icon_fn = info['icon']
-        return '%s/icons/%s' % (base_url, icon_fn)
-    return ''
-
 
 def execute_search(args, parser):
     import re
     from .common import (arg2spec, disp_features, ensure_override_channels_requires_channel,
                          ensure_use_local, stdout_json)
-    from ..resolve import Resolve, ResolvePackageNotFound
     from ..core.index import get_index
     from ..models.match_spec import MatchSpec
-    from ..core.linked_data import linked as linked_data
-    from ..core.package_cache import PackageCache
     from ..base.context import context
 
     if args.reverse_dependency:
@@ -182,119 +175,133 @@ def execute_search(args, parser):
 
     prefix = context.prefix_w_legacy_search
 
-    linked = linked_data(prefix)
-    extracted = set(pc_entry.name for pc_entry in PackageCache.get_all_extracted_entries())
-
     # XXX: Make this work with more than one platform
     platform = args.platform or ''
     if platform and platform != context.subdir:
         args.unknown = False
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args, dashc=False)
-    index = get_index(channel_urls=context.channels, prepend=not args.override_channels,
-                      platform=args.platform, use_local=args.use_local,
-                      use_cache=args.use_index_cache, prefix=None,
-                      unknown=args.unknown)
 
-    r = Resolve(index)
-    if args.canonical:
-        json = []
-    else:
-        json = {}
 
-    names = []
-    for name in sorted(r.groups):
-        if '@' in name:
-            continue
-        res = []
-        if args.reverse_dependency:
-            res = [dist for dist in r.get_dists_for_spec(name)
-                   if any(pat.search(dep.name) for dep in r.ms_depends(dist))]
-        elif ms is not None:
-            if ms.name == name:
-                res = r.get_dists_for_spec(ms)
-        elif pat is None or pat.search(name):
-            res = r.get_dists_for_spec(name)
-        if res:
-            names.append((name, res))
+    with spinner("Loading channels", not context.verbosity and not context.quiet,
+             context.json):
 
-    if not names:
+        index = get_index(channel_urls=context.channels, prepend=not args.override_channels,
+                          platform=args.platform, use_local=args.use_local,
+                          use_cache=args.use_index_cache, prefix=None,
+                          unknown=args.unknown)
+
+    spec = MatchSpec(args.regex)
+    matches = {dist: record for dist, record in iteritems(index) if spec.match(record)}
+
+    if not matches:
         raise ResolvePackageNotFound(args.regex)
 
-    for name, pkgs in names:
-        disp_name = name
+    for record in itervalues(matches):
+        print('%-25s  %-15s %15s  %-15s' % (
+            record.name,
+            record.version,
+            record.build,
+            record.schannel,
+        ))
 
-        if args.names_only and not args.outdated:
-            print(name)
-            continue
+    # r = Resolve(index)
 
-        if not args.canonical:
-            json[name] = []
+    # if args.canonical:
+    #     json = []
+    # else:
+    #     json = {}
 
-        if args.outdated:
-            vers_inst = [dist.quad[1] for dist in linked if dist.quad[0] == name]
-            if not vers_inst:
-                continue
-            assert len(vers_inst) == 1, name
-            if not pkgs:
-                continue
-            latest = pkgs[-1]
-            if latest.version == vers_inst[0]:
-                continue
-            if args.names_only:
-                print(name)
-                continue
-
-        for dist in pkgs:
-            index_record = r.index[dist]
-            if args.canonical:
-                if not context.json:
-                    print(dist.dist_name)
-                else:
-                    json.append(dist.dist_name)
-                continue
-            if platform and platform != context.subdir:
-                inst = ' '
-            elif dist in linked:
-                inst = '*'
-            elif dist in extracted:
-                inst = '.'
-            else:
-                inst = ' '
-
-            features = r.features(dist)
-
-            if not context.json:
-                print('%-25s %s  %-15s %15s  %-15s %s' % (
-                    disp_name, inst,
-                    index_record.version,
-                    index_record.build,
-                    index_record.schannel,
-                    disp_features(features),
-                ))
-                disp_name = ''
-            else:
-                data = {}
-                data.update(index_record.dump())
-                data.update({
-                    'fn': index_record.fn,
-                    'installed': inst == '*',
-                    'extracted': inst in '*.',
-                    'version': index_record.version,
-                    'build': index_record.build,
-                    'build_number': index_record.build_number,
-                    'channel': index_record.schannel,
-                    'full_channel': index_record.channel,
-                    'features': list(features),
-                    'license': index_record.get('license'),
-                    'size': index_record.get('size'),
-                    'depends': index_record.get('depends'),
-                    'type': index_record.get('type')
-                })
-
-                if data['type'] == 'app':
-                    data['icon'] = make_icon_url(index_record.info)
-                json[name].append(data)
-
-    if context.json:
-        stdout_json(json)
+    # names = []
+    # for name in sorted(r.groups):
+    #     if '@' in name:
+    #         continue
+    #     res = []
+    #     if args.reverse_dependency:
+    #         res = [dist for dist in r.get_dists_for_spec(name)
+    #                if any(pat.search(dep.name) for dep in r.ms_depends(dist))]
+    #     elif ms is not None:
+    #         if ms.name == name:
+    #             res = r.get_dists_for_spec(ms)
+    #     elif pat is None or pat.search(name):
+    #         res = r.get_dists_for_spec(name)
+    #     if res:
+    #         names.append((name, res))
+    #
+    # for name, pkgs in names:
+    #     disp_name = name
+    #
+    #     if args.names_only and not args.outdated:
+    #         print(name)
+    #         continue
+    #
+    #     if not args.canonical:
+    #         json[name] = []
+    #
+    #     if args.outdated:
+    #         vers_inst = [dist.quad[1] for dist in linked if dist.quad[0] == name]
+    #         if not vers_inst:
+    #             continue
+    #         assert len(vers_inst) == 1, name
+    #         if not pkgs:
+    #             continue
+    #         latest = pkgs[-1]
+    #         if latest.version == vers_inst[0]:
+    #             continue
+    #         if args.names_only:
+    #             print(name)
+    #             continue
+    #
+    #     for dist in pkgs:
+    #         index_record = r.index[dist]
+    #         if args.canonical:
+    #             if not context.json:
+    #                 print(dist.dist_name)
+    #             else:
+    #                 json.append(dist.dist_name)
+    #             continue
+    #         if platform and platform != context.subdir:
+    #             inst = ' '
+    #         elif dist in linked:
+    #             inst = '*'
+    #         elif dist in extracted:
+    #             inst = '.'
+    #         else:
+    #             inst = ' '
+    #
+    #         features = r.features(dist)
+    #
+    #         if not context.json:
+    #             print('%-25s %s  %-15s %15s  %-15s %s' % (
+    #                 disp_name, inst,
+    #                 index_record.version,
+    #                 index_record.build,
+    #                 index_record.schannel,
+    #                 disp_features(features),
+    #             ))
+    #             disp_name = ''
+    #         else:
+    #             data = {}
+    #             data.update(index_record.dump())
+    #             data.update({
+    #                 'fn': index_record.fn,
+    #                 'installed': inst == '*',
+    #                 'extracted': inst in '*.',
+    #                 'version': index_record.version,
+    #                 'build': index_record.build,
+    #                 'build_number': index_record.build_number,
+    #                 'channel': index_record.schannel,
+    #                 'full_channel': index_record.channel,
+    #                 'features': list(features),
+    #                 'license': index_record.get('license'),
+    #                 'size': index_record.get('size'),
+    #                 'depends': index_record.get('depends'),
+    #                 'type': index_record.get('type')
+    #             })
+    #
+    #             if data['type'] == 'app':
+    #                 data['icon'] = make_icon_url(index_record.info)
+    #             json[name].append(data)
+    #
+    # if context.json:
+    #     stdout_json(json)
