@@ -61,9 +61,10 @@ is_linked, linked, linked_data = is_linked, linked, linked_data
 from .misc import untracked, walk_prefix  # NOQA
 untracked, walk_prefix = untracked, walk_prefix
 
-from .resolve import MatchSpec, NoPackagesFound, Resolve, Unsatisfiable, normalized_version  # NOQA
-MatchSpec, NoPackagesFound, Resolve = MatchSpec, NoPackagesFound, Resolve
+from .resolve import MatchSpec, ResolvePackageNotFound, Resolve, Unsatisfiable, normalized_version  # NOQA
+MatchSpec, Resolve = MatchSpec, Resolve
 Unsatisfiable, normalized_version = Unsatisfiable, normalized_version
+NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
 from .utils import hashsum_file, human_bytes, unix_path_to_win, url_path  # NOQA
 from .common.path import win_path_to_unix  # NOQA
