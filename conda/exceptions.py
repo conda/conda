@@ -26,6 +26,17 @@ except ImportError:  # pragma: no cover
 log = getLogger(__name__)
 
 
+# TODO: for conda-build compatibility only
+# remove in conda 4.4
+class ResolvePackageNotFound(CondaError):  # change back to Exception in conda 4.4
+    def __init__(self, bad_deps):
+        # bad_deps is a list of lists
+        self.bad_deps = bad_deps
+        message = '\n' + '\n'.join(('  - %s' % dep) for deps in bad_deps for dep in deps if dep)
+        super(ResolvePackageNotFound, self).__init__(message)
+NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
+
+
 class LockError(CondaError):
     def __init__(self, message):
         msg = "%s" % message
@@ -328,12 +339,7 @@ class MD5MismatchError(CondaError):
                                                actual_md5sum=actual_md5sum)
 
 
-class PackageNotFoundError(CondaError):
-    def __init__(self, message, **kwargs):
-        super(PackageNotFoundError, self).__init__(message, **kwargs)
-
-
-class PackageNotInstalledError(PackageNotFoundError):
+class PackageNotInstalledError(CondaError):
 
     def __init__(self, prefix, package_name):
         message = dals("""
@@ -384,33 +390,25 @@ class AuthenticationError(CondaError):
     pass
 
 
-class NoPackagesFoundError(CondaError):
-    """An exception to report that requested packages are missing.
+class PackageNotFoundError(CondaError):
 
-    Args:
-        bad_deps: a list of tuples of MatchSpecs, assumed to be dependency
-        chains, from top level to bottom.
-
-    Returns:
-        Raises an exception with a formatted message detailing the
-        missing packages and/or dependencies.
-    """
-
-    def __init__(self, bad_deps):
+    def __init__(self, bad_pkg, channel_urls=()):
         from .resolve import dashlist
-        from .base.context import context
+        channels = dashlist(channel_urls)
 
-        deps = set(q[-1] for q in bad_deps)
-        if all(len(q) > 1 for q in bad_deps):
-            what = "Dependencies" if len(bad_deps) > 1 else "Dependency"
-        elif all(len(q) == 1 for q in bad_deps):
-            what = "Packages" if len(bad_deps) > 1 else "Package"
+        if not channel_urls:
+            msg = """Package(s) is missing from the environment:
+            %(pkg)s
+            """
         else:
-            what = "Packages/dependencies"
-        bad_deps = dashlist(' -> '.join(map(str, q)) for q in bad_deps)
-        msg = '%s missing in current %s channels: %s' % (what, context.subdir, bad_deps)
-        super(NoPackagesFoundError, self).__init__(msg)
-        self.pkgs = deps
+            msg = """Packages missing in current channels:
+            %(pkg)s
+
+We have searched for the packages in the following channels:
+            %(channels)s
+            """
+
+        super(PackageNotFoundError, self).__init__(msg, pkg=bad_pkg, channels=channels)
 
 
 class UnsatisfiableError(CondaError):
@@ -447,7 +445,6 @@ class UnsatisfiableError(CondaError):
                         found = True
                 if not found:
                     chains[key] = [{val} for val in vals]
-            bad_deps = []
             for key, csets in iteritems(chains):
                 deps = []
                 for name, cset in zip(key, csets):
@@ -686,16 +683,18 @@ def _execute_upload(context, error_report):
         # That is, when following a 301 or 302, it turns a POST into a GET.
         # And no way to disable.  WTF
         import requests
-        q = 0
+        redirect_counter = 0
         url = context.error_upload_url
-        response = requests.post(url, headers=headers, timeout=_timeout, data=data)
+        response = requests.post(url, headers=headers, timeout=_timeout, data=data,
+                                 allow_redirects=False)
         response.raise_for_status()
         while response.status_code in (301, 302) and response.headers.get('Location'):
             url = response.headers['Location']
-            response = requests.post(url, headers=headers, timeout=_timeout, data=data)
+            response = requests.post(url, headers=headers, timeout=_timeout, data=data,
+                                     allow_redirects=False)
             response.raise_for_status()
-            q += 1
-            if q > 15:
+            redirect_counter += 1
+            if redirect_counter > 15:
                 raise CondaError("Redirect limit exceeded")
         log.debug("upload response status: %s", response and response.status_code)
     except Exception as e:  # pragma: no cover

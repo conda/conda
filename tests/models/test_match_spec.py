@@ -590,3 +590,12 @@ class SpecStrParsingTests(TestCase):
             "name": "foo",
             "version": ">=1.0",
         }
+
+    def test_parse_parens(self):
+        assert _parse_spec_str("conda-forge::foo[build=3](target=blarg,optional)") == {
+            "channel": "conda-forge",
+            "name": "foo",
+            "build": "3",
+            # "target": "blarg",  # suppressing these for now
+            # "optional": True,
+        }
