@@ -195,6 +195,12 @@ def execute_search(args, parser):
 
     else:
         builder = []
+        builder.append('%-25s  %-15s %15s  %-15s' % (
+                "Name",
+                "Version",
+                "Build",
+                "Channel",
+        ))
         for record in matches:
             builder.append('%-25s  %-15s %15s  %-15s' % (
                 record.name,
