@@ -702,13 +702,15 @@ class ExceptionHandler(object):
                 info_traceback = _format_exc()
                 info_dict = {
                     'error': repr(info_e),
-                    'error_type': info_e.__class__.__name__,
+                    'exception_name': info_e.__class__.__name__,
+                    'exception_type': text_type(exc_val.__class__),
                     'traceback': info_traceback,
                 }
 
         error_report = {
             'error': repr(exc_val),
-            'error_type': exc_val.__class__.__name__,
+            'exception_name': exc_val.__class__.__name__,
+            'exception_type': text_type(exc_val.__class__),
             'command': command,
             'traceback': _format_exc(exc_val, exc_tb),
             'conda_info': info_dict,
