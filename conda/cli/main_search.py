@@ -107,14 +107,33 @@ package.""",
 
 
 def execute(args, parser):
-    from ..common.compat import text_type
-    from ..exceptions import NoPackagesFoundError, PackageNotFoundError
+    from ..base.context import context
+    from ..core.index import get_channel_priority_map
+    from ..exceptions import PackageNotFoundError, ResolvePackageNotFound
+    from ..resolve import dashlist
 
     try:
         execute_search(args, parser)
-    except NoPackagesFoundError as e:
-        error_message = text_type(e)
-        raise PackageNotFoundError(error_message)
+    except ResolvePackageNotFound as e:
+        pkg = []
+        pkg.append(e.bad_deps)
+        pkg = dashlist(pkg)
+        index_args = {
+            'channel_urls': context.channels,
+            'prepend': not args.override_channels,
+            'use_local': args.use_local,
+        }
+
+        channel_priority_map = get_channel_priority_map(
+            channel_urls=index_args['channel_urls'],
+            prepend=index_args['prepend'],
+            platform=None,
+            use_local=index_args['use_local'],
+        )
+
+        channels_urls = tuple(channel_priority_map)
+
+        raise PackageNotFoundError(pkg, channels_urls)
 
 
 def make_icon_url(info):  # pragma: no cover
@@ -130,7 +149,7 @@ def execute_search(args, parser):
     import re
     from .common import (arg2spec, disp_features, ensure_override_channels_requires_channel,
                          ensure_use_local, stdout_json)
-    from ..resolve import Resolve
+    from ..resolve import Resolve, ResolvePackageNotFound
     from ..core.index import get_index
     from ..models.match_spec import MatchSpec
     from ..core.linked_data import linked as linked_data
@@ -178,7 +197,6 @@ def execute_search(args, parser):
                       unknown=args.unknown)
 
     r = Resolve(index)
-
     if args.canonical:
         json = []
     else:
@@ -199,6 +217,9 @@ def execute_search(args, parser):
             res = r.get_dists_for_spec(name)
         if res:
             names.append((name, res))
+
+    if not names:
+        raise ResolvePackageNotFound(args.regex)
 
     for name, pkgs in names:
         disp_name = name

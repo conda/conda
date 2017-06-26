@@ -3,7 +3,6 @@ from contextlib import contextmanager
 import os
 from os.path import join
 import random
-import sys
 import unittest
 
 import pytest
@@ -12,9 +11,8 @@ from conda import CondaError
 from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
 from conda.common.io import env_var
-from conda.core.package_cache import ProgressiveFetchExtract
 from conda.core.solve import get_pinned_specs
-from conda.exceptions import NoPackagesFoundError
+from conda.exceptions import PackageNotFoundError
 from conda.gateways.disk.create import mkdir_p
 import conda.instructions as inst
 from conda.models.dist import Dist
@@ -22,10 +20,9 @@ from conda.models.index_record import IndexRecord
 from conda.models.match_spec import MatchSpec
 from conda.plan import display_actions
 import conda.plan as plan
-from conda.utils import on_win
 from .decorators import skip_if_no_mock
 from .gateways.disk.test_permissions import tempdir
-from .helpers import captured, mock, tempdir, get_index_r_1
+from .helpers import captured, get_index_r_1, mock, tempdir
 
 index, r, = get_index_r_1()
 
@@ -879,7 +876,7 @@ def generate_mocked_resolve(pkgs, install=None):
         # Here, spec should be a MatchSpec
         res = groups[spec.name]
         if not res and not emptyok:
-            raise NoPackagesFoundError([(spec,)])
+            raise PackageNotFoundError([(spec,)])
         return res
 
     def get_explicit(spec):

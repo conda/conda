@@ -195,15 +195,6 @@ def test_prune_1():
         assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
 
-def test_prune_2():
-    specs_to_remove = MatchSpec("python=2"),
-    history_specs = MatchSpec("sqlite=3"),
-    with get_solver(specs_to_remove=specs_to_remove, history_specs=history_specs) as solver:
-        final_state = solver.solve_final_state(prune=True)
-        print(final_state)
-        assert len(final_state) == 1
-
-
 def test_force_remove_1():
     specs = MatchSpec("numpy[build=*py27*]"),
     with get_solver(specs) as solver:

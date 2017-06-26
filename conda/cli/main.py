@@ -113,7 +113,7 @@ def init_loggers(context=None):
     initialize_logging()
     if context and context.json:
         # Silence logging info to avoid interfering with JSON output
-        for logger in ('print', 'stdoutlog', 'stderrlog'):
+        for logger in ('conda.stdout.verbose', 'conda.stdoutlog', 'conda.stderrlog'):
             getLogger(logger).setLevel(CRITICAL + 1)
 
     if context and context.verbosity:

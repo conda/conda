@@ -49,7 +49,7 @@ except ImportError:  # pragma: no cover
 __all__ = ('RepoData',)
 
 log = getLogger(__name__)
-stderrlog = getLogger('stderrlog')
+stderrlog = getLogger('conda.stderrlog')
 
 REPODATA_PICKLE_VERSION = 3
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
@@ -386,8 +386,7 @@ def write_pickled_repodata(cache_path, repodata):
         with open(get_pickle_path(cache_path), 'wb') as f:
             pickle.dump(repodata, f)
     except Exception as e:
-        import traceback
-        log.debug("Failed to dump pickled repodata.\n%s", traceback.format_exc())
+        log.debug("Failed to dump pickled repodata.", exc_info=True)
 
 
 def read_pickled_repodata(cache_path, channel_url, schannel, priority, etag, mod_stamp):
@@ -401,8 +400,7 @@ def read_pickled_repodata(cache_path, channel_url, schannel, priority, etag, mod
         with open(pickle_path, 'rb') as f:
             repodata = pickle.load(f)
     except Exception as e:
-        import traceback
-        log.debug("Failed to load pickled repodata.\n%s", traceback.format_exc())
+        log.debug("Failed to load pickled repodata.", exc_info=True)
         rm_rf(pickle_path)
         return None
 
@@ -587,7 +585,7 @@ def collect_all_repodata_as_index(use_cache, tasks):
     if context.concurrent:
         try:
             from concurrent.futures import ThreadPoolExecutor
-            executor = ThreadPoolExecutor(5)
+            executor = ThreadPoolExecutor(10)
             index = _collect_repodatas_concurrent_as_index(executor, use_cache, tasks)
         except (ImportError, RuntimeError) as e:
             # concurrent.futures is only available in Python >= 3.2 or if futures is installed

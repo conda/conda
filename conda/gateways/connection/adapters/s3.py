@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from logging import getLogger
+from logging import getLogger, LoggerAdapter
 from tempfile import mkstemp
 
 from .. import BaseAdapter, CaseInsensitiveDict, Response
@@ -9,7 +9,7 @@ from ...disk.delete import rm_rf
 from ....common.url import url_to_s3_info
 
 log = getLogger(__name__)
-stderrlog = getLogger('stderrlog')
+stderrlog = LoggerAdapter(getLogger('conda.stderrlog'), extra=dict(terminator="\n"))
 
 
 class S3Adapter(BaseAdapter):
@@ -30,7 +30,7 @@ class S3Adapter(BaseAdapter):
             stderrlog.info('\nError: boto is required for S3 channels. '
                            'Please install it with `conda install boto`\n'
                            'Make sure to run `source deactivate` if you '
-                           'are in a conda environment.\n')
+                           'are in a conda environment.')
             resp.status_code = 404
             return resp
 

@@ -22,7 +22,6 @@ except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import take  # NOQA
 
 log = getLogger(__name__)
-stdoutlog = getLogger('stdoutlog')
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
@@ -34,15 +33,10 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     If platform=None, then the current platform is used.
     If prefix is supplied, then the packages installed in that prefix are added.
     """
-    if use_local:
-        channel_urls = ['local'] + list(channel_urls)
-    if prepend:
-        channel_urls += context.channels
     if context.offline and unknown is None:
         unknown = True
 
-    subdirs = (platform, 'noarch') if platform is not None else context.subdirs
-    channel_priority_map = prioritize_channels(channel_urls, subdirs=subdirs)
+    channel_priority_map = get_channel_priority_map(channel_urls, prepend, platform, use_local)
     index = fetch_index(channel_priority_map, use_cache=use_cache)
 
     if prefix or unknown:
@@ -125,6 +119,17 @@ def _supplement_index_with_features(index, features=()):
     for feat in chain(context.track_features, features):
         rec = make_feature_record(feat)
         index[Dist(rec)] = rec
+
+
+def get_channel_priority_map(channel_urls=(), prepend=True, platform=None, use_local=False):
+    if use_local:
+        channel_urls = ['local'] + list(channel_urls)
+    if prepend:
+        channel_urls += context.channels
+
+    subdirs = (platform, 'noarch') if platform is not None else context.subdirs
+    channel_priority_map = prioritize_channels(channel_urls, subdirs=subdirs)
+    return channel_priority_map
 
 
 def dist_str_in_index(index, dist_str):
