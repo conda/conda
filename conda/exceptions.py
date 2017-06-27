@@ -675,8 +675,10 @@ class ExceptionHandler(object):
         elif isinstance(exc_val, CondaError):
             return self.handle_application_exception(exc_val, exc_tb)
         elif isinstance(exc_val, KeyboardInterrupt):
-            self._print_conda_exception(KeyboardInterrupt(), _format_exc())
+            self._print_conda_exception(CondaError("KeyboardInterrupt"), _format_exc())
             return 1
+        elif isinstance(exc_val, SystemExit):
+            return exc_val.code
         else:
             return self.handle_unexpected_exception(exc_val, exc_tb)
 
