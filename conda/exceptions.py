@@ -398,11 +398,11 @@ class PackagesNotFoundError(CondaError):
         if channel_urls:
             message = dals("""
             The following packages are not available from current channels:
-            
+
             %(packages_formatted)s
 
             Current channels:
-            
+
             %(channels_formatted)s
             """)
             packages_formatted = format_list(packages)
@@ -737,7 +737,8 @@ class ExceptionHandler(object):
             message_builder.append('')
             message_builder.append('`$ %s`' % error_report['command'])
             message_builder.append('')
-            message_builder.extend('    ' + line for line in error_report['traceback'].splitlines())
+            message_builder.extend('    ' + line
+                                   for line in error_report['traceback'].splitlines())
             message_builder.append('')
             if error_report['conda_info']:
                 from .cli.main_info import get_main_info_str
