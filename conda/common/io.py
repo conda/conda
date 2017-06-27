@@ -256,18 +256,19 @@ class Spinner(object):
     # spinner_cycle = cycle("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
     spinner_cycle = cycle('/-\\|')
 
-    def __init__(self):
+    def __init__(self, enable_spin=True):
         self._stop_running = Event()
         self._spinner_thread = Thread(target=self._start_spinning)
         self._indicator_length = len(next(self.spinner_cycle)) + 1
         self.fh = sys.stdout
-        self.show_spin = hasattr(self.fh, "isatty") and self.fh.isatty()
+        self.show_spin = enable_spin and hasattr(self.fh, "isatty") and self.fh.isatty()
 
     def start(self):
         if self.show_spin:
             self._spinner_thread.start()
         else:
             self.fh.write("...working... ")
+            self.fh.flush()
 
     def stop(self):
         if self.show_spin:
@@ -295,34 +296,31 @@ def spinner(message=None, enabled=True, json=False):
            If True, will not output non-json to stdout.
 
     """
-    if not enabled:
+    sp = Spinner(enabled)
+    exception_raised = False
+    try:
+        if message:
+            if json:
+                pass
+            else:
+                sys.stdout.write("%s: " % message)
+        if not json:
+            sp.start()
         yield
-    else:
-        sp = Spinner()
-        exception_raised = False
-        try:
-            if message:
-                if json:
-                    pass
+    except:
+        exception_raised = True
+        raise
+    finally:
+        if not json:
+            sp.stop()
+        if message:
+            if json:
+                pass
+            else:
+                if exception_raised:
+                    sys.stdout.write("failed\n")
                 else:
-                    sys.stdout.write("%s: " % message)
-            if not json:
-                sp.start()
-            yield
-        except:
-            exception_raised = True
-            raise
-        finally:
-            if not json:
-                sp.stop()
-            if message:
-                if json:
-                    pass
-                else:
-                    if exception_raised:
-                        sys.stdout.write("failed\n")
-                    else:
-                        sys.stdout.write("done\n")
+                    sys.stdout.write("done\n")
 
 
 class ProgressBar(object):

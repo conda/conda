@@ -9,9 +9,9 @@ from conda.common.compat import on_win
 from conda.common.io import captured, env_var
 from conda.exceptions import BasicClobberError, BinaryPrefixReplacementError, CommandNotFoundError, \
     CondaHTTPError, CondaKeyError, CondaRevisionError, DirectoryNotFoundError, \
-    KnownPackageClobberError, MD5MismatchError, PackageNotFoundError, PathNotFoundError, \
+    KnownPackageClobberError, MD5MismatchError, PackagesNotFoundError, PathNotFoundError, \
     SharedLinkPathClobberError, TooFewArgumentsError, TooManyArgumentsError, \
-    UnknownPackageClobberError, conda_exception_handler, print_unexpected_error_message
+    UnknownPackageClobberError, conda_exception_handler, ExceptionHandler
 
 try:
     from unittest.mock import Mock, patch
@@ -221,12 +221,12 @@ class ExceptionTests(TestCase):
         package = "Potato"
         with env_var("CONDA_JSON", "yes", reset_context):
             with captured() as c:
-                exc = PackageNotFoundError(package)
+                exc = PackagesNotFoundError((package,))
                 conda_exception_handler(_raise_helper, exc)
 
         json_obj = json.loads(c.stdout)
         assert not c.stderr
-        assert json_obj['exception_type'] == "<class 'conda.exceptions.PackageNotFoundError'>"
+        assert json_obj['exception_type'] == "<class 'conda.exceptions.PackagesNotFoundError'>"
         assert json_obj['message'] == text_type(exc)
         assert json_obj['error'] == repr(exc)
 
@@ -235,10 +235,10 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == """
-        PackageNotFoundError: Package(s) is missing from the environment:
-            Potato
-        """.strip()
+        assert c.stderr.strip() == dals("""
+        PackagesNotFoundError: The following packages are missing from the target environment:
+          - Potato
+        """).strip()
 
     def test_CondaRevisionError(self):
         message = "Potato"
@@ -395,14 +395,9 @@ class ExceptionTests(TestCase):
             AttrDict(raise_for_status=lambda: None),
     ))
     def test_print_unexpected_error_message_upload_1(self, post_mock):
-        try:
-            assert 0
-        except AssertionError:
-            pass
         with env_var('CONDA_REPORT_ERRORS', 'true', reset_context):
-            e = AssertionError()
             with captured() as c:
-                print_unexpected_error_message(e)
+                ExceptionHandler()(_raise_helper, AssertionError())
 
             assert post_mock.call_count == 2
             assert c.stdout == ''
@@ -416,15 +411,10 @@ class ExceptionTests(TestCase):
             AttrDict(raise_for_status=lambda: None),
     ))
     def test_print_unexpected_error_message_upload_2(self, post_mock):
-        try:
-            assert 0
-        except AssertionError:
-            pass
         with env_var('CONDA_JSON', 'true', reset_context):
             with env_var('CONDA_YES', 'yes', reset_context):
-                e = AssertionError()
                 with captured() as c:
-                    print_unexpected_error_message(e)
+                    ExceptionHandler()(_raise_helper, AssertionError())
 
                 assert post_mock.call_count == 3
                 assert len(json.loads(c.stdout)['conda_info']['channels']) >= 2
@@ -438,13 +428,8 @@ class ExceptionTests(TestCase):
     @patch('conda.exceptions.input', return_value='y')
     @patch('conda.exceptions.os.isatty', return_value=True)
     def test_print_unexpected_error_message_upload_3(self, isatty_mock, input_mock, post_mock):
-        try:
-            assert 0
-        except AssertionError:
-            pass
-        e = AssertionError()
         with captured() as c:
-            print_unexpected_error_message(e)
+            ExceptionHandler()(_raise_helper, AssertionError())
 
         assert input_mock.call_count == 1
         assert post_mock.call_count == 2
@@ -454,14 +439,10 @@ class ExceptionTests(TestCase):
     @patch('requests.post', return_value=None)
     @patch('conda.exceptions.input', return_value='n')
     def test_print_unexpected_error_message_opt_out_1(self, input_mock, post_mock):
-        try:
-            assert 0
-        except AssertionError:
-            pass
         with env_var('CONDA_REPORT_ERRORS', 'false', reset_context):
             e = AssertionError()
             with captured() as c:
-                print_unexpected_error_message(e)
+                ExceptionHandler()(_raise_helper, AssertionError())
 
             assert input_mock.call_count == 0
             assert post_mock.call_count == 0
@@ -472,13 +453,8 @@ class ExceptionTests(TestCase):
     @patch('conda.exceptions.input', return_value='n')
     @patch('conda.exceptions.os.isatty', return_value=True)
     def test_print_unexpected_error_message_opt_out_2(self, isatty_mock, input_mock, post_mock):
-        try:
-            assert 0
-        except AssertionError:
-            pass
-        e = AssertionError()
         with captured() as c:
-            print_unexpected_error_message(e)
+            ExceptionHandler()(_raise_helper, AssertionError())
 
         assert input_mock.call_count == 1
         assert post_mock.call_count == 0

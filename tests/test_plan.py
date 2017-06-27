@@ -12,7 +12,7 @@ from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
 from conda.common.io import env_var
 from conda.core.solve import get_pinned_specs
-from conda.exceptions import PackageNotFoundError
+from conda.exceptions import PackagesNotFoundError
 from conda.gateways.disk.create import mkdir_p
 import conda.instructions as inst
 from conda.models.dist import Dist
@@ -876,7 +876,7 @@ def generate_mocked_resolve(pkgs, install=None):
         # Here, spec should be a MatchSpec
         res = groups[spec.name]
         if not res and not emptyok:
-            raise PackageNotFoundError([(spec,)])
+            raise PackagesNotFoundError((spec,))
         return res
 
     def get_explicit(spec):
