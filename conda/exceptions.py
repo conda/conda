@@ -28,7 +28,7 @@ log = getLogger(__name__)
 
 # TODO: for conda-build compatibility only
 # remove in conda 4.4
-class ResolvePackageNotFound(CondaError):
+class ResolvePackageNotFound(Exception):
     def __init__(self, bad_deps):
         # bad_deps is a list of lists
         self.bad_deps = tuple(dep for deps in bad_deps for dep in deps if dep)
