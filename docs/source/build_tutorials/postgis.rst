@@ -114,16 +114,16 @@ Open a text editor and write the following to a file called meta.yaml inside the
 
 .. code-block:: yaml
 
-    package:
-      name: postgis
-      version: "2.2.2"
+   package:
+     name: postgis
+     version: "2.2.2"
 
-    source:
-      git_rev: 2.2.2
-      git_url: https://github.com/postgis/postgis.git
+   source:
+     git_rev: 2.2.2
+     git_url: https://github.com/postgis/postgis.git
 
-    build:
-      number: 0
+   build:
+     number: 0
 
    requirements:
      build:
@@ -141,9 +141,9 @@ Open a text editor and write the following to a file called meta.yaml inside the
        - libxml2
        - postgresql >=9.1
 
-    about:
-      home: http://postgis.net
-      license: GPL2
+   about:
+     home: http://postgis.net
+     license: GPL2
 
 
 NOTE: Conda-build will build the package in an isolated environment, which is created from the
