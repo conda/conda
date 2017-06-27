@@ -6,7 +6,7 @@
 * resolve #5160 conda xontrib plugin (#5157)
 * resolve #1543 add support and tests for --no-deps and --only-deps (#5265)
 * resolve #988 allow channel name to be part of the package name spec (#5365)
-* resolve #5530 add ability for users to choose to post unexpected errors to core maintainers (#5531, #5571)
+* resolve #5530 add ability for users to choose to post unexpected errors to core maintainers (#5531, #5571, ##5585)
 * Solver, UI, History, and Other (#5546, #5583)
 
 ### Deprecations/Breaking Changes
@@ -37,7 +37,7 @@
 * resolve #5081 make pinned packages optional dependencies (#5414)
 * resolve #5430 eliminate current deprecation warnings (#5422)
 * resolve #5470 make stdout/stderr capture in python_api customizable (#5471)
-* logging simplifications/improvements (#5547)
+* logging simplifications/improvements (#5547, #5578)
 * update license information (#5568)
 * enable threadpool use for repodata collection by default (#5546, #5587)
 
@@ -77,6 +77,7 @@
   housekeeping (#5472, #5474, #5480)
 * rename CondaFileNotFoundError to PathNotFoundError (#5521)
 * work toward repodata API (#5267)
+* rename PackageNotFoundError to PackagesNotFoundError and fix message formatting (#5602)
 
 
 ## 4.3.23 (unreleased)
