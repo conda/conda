@@ -304,6 +304,7 @@ def spinner(message=None, enabled=True, json=False):
                 pass
             else:
                 sys.stdout.write("%s: " % message)
+                sys.stdout.flush()
         if not json:
             sp.start()
         yield
@@ -321,6 +322,7 @@ def spinner(message=None, enabled=True, json=False):
                     sys.stdout.write("failed\n")
                 else:
                     sys.stdout.write("done\n")
+                sys.stdout.flush()
 
 
 class ProgressBar(object):

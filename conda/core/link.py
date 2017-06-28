@@ -466,14 +466,14 @@ class UnlinkLinkTransaction(object):
                     for pkg_idx, axngroup in enumerate(all_action_groups):
                         cls._execute_actions(pkg_idx, axngroup)
             except CondaMultiError as e:
-                action, is_unlink = None, axngroup.type == 'unlink'
+                action, is_unlink = (None, axngroup.type == 'unlink')
                 prec = axngroup.pkg_data
 
                 log.error("An error occurred while %s package '%s'.\n"
                           "%r\n"
                           "Attempting to roll back.\n",
                           'uninstalling' if is_unlink else 'installing',
-                          prec.dist_str(), e.errors[0])
+                          prec and prec.dist_str(), e.errors[0])
 
                 # reverse all executed packages except the one that failed
                 rollback_excs = []

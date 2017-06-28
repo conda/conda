@@ -274,7 +274,6 @@ class EnvsDirectory(object):
         # env location might already exist
         current_entry = self.get_registered_env_by_location(location)
         if current_entry:
-            assert current_entry.get('name') is None
             return
 
         # finally, add a new entry
