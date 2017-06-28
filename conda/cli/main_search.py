@@ -53,17 +53,17 @@ def configure_parser(sub_parsers):
     p.add_argument(
         "--canonical",
         action="store_true",
-        help="Output canonical names of packages only.",
+        help=SUPPRESS,
     )
     p.add_argument(
         '-f', "--full-name",
         action="store_true",
-        help="Only search for full name, ie. ^<regex>$.",
+        help=SUPPRESS,
     )
     p.add_argument(
         "--names-only",
         action="store_true",
-        help="Output only package names.",
+        help=SUPPRESS,
     )
     add_parser_known(p)
     add_parser_use_index_cache(p)
@@ -83,8 +83,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         "--spec",
         action="store_true",
-        help="""Treat the regex argument as a package specification instead
-        (package_name[=version[=build]]).""",
+        help=SUPPRESS,
     )
     p.add_argument(
         "--reverse-dependency",
@@ -187,13 +186,12 @@ def execute_search(args, parser):
 
     else:
 
-        builder = []
-        builder.append('%-25s  %-15s %15s  %-15s' % (
-                "Name",
-                "Version",
-                "Build",
-                "Channel",
-        ))
+        builder = ['%-25s  %-15s %15s  %-15s' % (
+            "Name",
+            "Version",
+            "Build",
+            "Channel",
+        )]
         for record in matches:
             builder.append('%-25s  %-15s %15s  %-15s' % (
                 record.name,
