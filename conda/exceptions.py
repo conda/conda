@@ -393,6 +393,7 @@ class AuthenticationError(CondaError):
 class PackagesNotFoundError(CondaError):
 
     def __init__(self, packages, channel_urls=()):
+
         format_list = lambda iterable: '  - ' + '\n  - '.join(text_type(x) for x in iterable)
 
         if channel_urls:
@@ -405,7 +406,10 @@ class PackagesNotFoundError(CondaError):
             
             %(channels_formatted)s
             """)
-            packages_formatted = format_list(packages)
+            if type(packages) is not tuple:
+                packages_formatted = "  - " + packages
+            else:
+                packages_formatted = format_list(packages)
             channels_formatted = format_list(channel_urls)
         else:
             message = dals("""

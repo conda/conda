@@ -5,7 +5,6 @@ import sys
 from argparse import SUPPRESS
 
 from conda.core.index import get_channel_priority_map
-from conda.resolve import dashlist
 from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
                              add_parser_known, add_parser_offline, add_parser_prefix,
                              add_parser_use_index_cache, add_parser_use_local)
@@ -111,17 +110,7 @@ package.""",
 def execute(args, parser):
     try:
         execute_search(args, parser)
-    except ResolvePackageNotFound as e:
-        pkg = []
-        pkg.append(e.bad_deps)
-        pkg = dashlist(pkg)
-        index_args = {
-        'use_cache': args.use_index_cache,
-        'channel_urls': context.channels,
-        'unknown': args.unknown,
-        'prepend': not args.override_channels,
-        'use_local': args.use_local
-        }
+    except ResolvePackageNotFound:
         channel_priority_map = get_channel_priority_map(
             channel_urls=context.channels,
             prepend=not args.override_channels,
@@ -129,7 +118,7 @@ def execute(args, parser):
             use_local=args.use_local,
         )
         channels_urls = tuple(channel_priority_map)
-        raise PackagesNotFoundError(e.bad_deps, channels_urls)
+        raise PackagesNotFoundError(args.regex, channels_urls)
 
 
 def execute_search(args, parser):
