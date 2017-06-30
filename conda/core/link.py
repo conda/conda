@@ -75,7 +75,7 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
             extracted_package_dir = basename(prefix_record.link.source)
         except AttributeError:
             # for backward compatibility only
-            extracted_package_dir = '%s-%s-%s' % (prefix_record.name, prefix_record.veresion,
+            extracted_package_dir = '%s-%s-%s' % (prefix_record.name, prefix_record.version,
                                                   prefix_record.build)
 
     meta_short_path = '%s/%s' % ('conda-meta', extracted_package_dir + '.json')

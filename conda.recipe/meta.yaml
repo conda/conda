@@ -46,8 +46,10 @@ test:
   commands:
     # TODO: need to move to a run_tests file
     - . $PREFIX/etc/profile.d/conda.sh                          [unix]
-    - conda --version
-    - conda info
+    - conda --version                                           [unix]
+    - conda info                                                [unix]
+    - "%PREFIX%/Scripts/conda --version"                        # [win]
+    - "%PREFIX%/Scripts/conda info"                             # [win]
     # - py.test -m "not integration and not installed" $SRC_DIR/tests $SRC_DIR/conda
 
 about:
