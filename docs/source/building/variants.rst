@@ -374,8 +374,20 @@ You could supply a variant to build this recipe like this (conda_build_config.ya
         - openmpi  # version spec here is totally valid, and will apply in the recipe
         - mpich  # version spec here is totally valid, and will apply in the recipe
 
-Selectors are not currently valid in conda_build_config.yaml, but we plan to
-add them soon.
+Selectors are valid in conda_build_config.yaml, so you can have one
+conda_build_config.yaml for multiple platforms:
+
+.. code-block:: yaml
+
+    mpi:
+        - openmpi  # [osx]
+        - mpich    # [linux]
+        - msmpi    # [win]
+
+
+Jinja is not allowed in conda_build_config.yaml, though. It is the source of
+information to feed into other jinja templates, and the buck has to stop
+somewhere.
 
 
 About reproducibility
