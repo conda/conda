@@ -122,8 +122,7 @@ def execute(args, parser):
 
 
 def execute_search(args, parser):
-    import re
-    from .common import (arg2spec, ensure_override_channels_requires_channel,
+    from .common import (ensure_override_channels_requires_channel,
                          ensure_use_local)
     from ..core.index import get_index
     from ..models.match_spec import MatchSpec
@@ -134,22 +133,6 @@ def execute_search(args, parser):
             parser.error("--reverse-dependency requires at least one package name")
         if args.spec:
             parser.error("--reverse-dependency does not work with --spec")
-
-    if args.regex:
-        if args.spec:
-            ms = MatchSpec(arg2spec(args.regex))
-        else:
-            regex = args.regex
-            if args.full_name:
-                regex = r'^%s$' % regex
-            try:
-                pat = re.compile(regex, re.I)
-            except re.error as e:
-                from ..exceptions import CommandArgumentError
-                raise CommandArgumentError("Failed to compile regex pattern for "
-                                           "search: %(regex)s\n"
-                                           "regex error: %(regex_error)s",
-                                           regex=regex, regex_error=repr(e))
 
     platform = args.platform or ''
     if platform and platform != context.subdir:
