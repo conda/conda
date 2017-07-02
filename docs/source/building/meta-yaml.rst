@@ -193,6 +193,12 @@ Here, the two URL tarballs will go into one folder, but the git repo will be che
 Build section
 -------------
 
+Each field that expect a path can also handle a glob pattern. The matching is
+performed from the top of the build environment, so to match files inside
+your project you can use a pattern similar to the following one:
+"\*\*/myproject/\*\*/\*.txt". This pattern will match any .txt file found in
+your project. The quotes are mandatory for patterns starting with a \*.
+
 Build number and string
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -282,8 +288,8 @@ these cases conda-build can skip attempting to compile these files.
 
   build:
     skip_compile_pyc:
-      - templates/*.py          # These should not (and cannot) be compiled
-      - share/plugins/gdb/*.py  # The python embedded into gdb is unknown
+      - "**/templates/*.py"          # These should not (and cannot) be compiled
+      - "**/share/plugins/gdb/*.py"  # The python embedded into gdb is unknown
 
 No link
 ~~~~~~~
