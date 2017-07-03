@@ -791,10 +791,25 @@ because it creates ambiguous runtime conditions.
 Subpackage requirements
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Subpackages support runtime and test requirements. Build requirements are not
-supported, because subpackages are created after the build phase is complete. If
-you need a tool to accomplish subpackaging, put it in the top-level package
-requirements/build section.
+Subpackages support requirements in the same way that top-level recipes do.
+Build requirements are specific to the packaging phase for a given subpackage.
+No requirements are inherited from the top level recipe. Any requirements you
+need for packaging or for the subpackage at runtime must be explicitly
+specified.
+
+.. code-block:: none
+
+   outputs:
+     - name: subpackage-name
+       requirements:
+         build:
+           - some-dep
+         run:
+           - some-dep
+
+
+If you do not specify a build or run section in requirements, any listed
+dependencies are implicitly added to *both* build and run requirements
 
 .. code-block:: none
 
@@ -802,6 +817,7 @@ requirements/build section.
      - name: subpackage-name
        requirements:
          - some-dep
+
 
 You can also impose runtime dependencies whenever a given (sub)package is
 installed as a build dependency. For example, if we had an overarching
@@ -817,6 +833,7 @@ requirement:
          - libgcc 2.*
      - name: libgcc
 
+See the :ref:`run_exports` section for additional information.
 
 Note: Variant expressions are very powerful here. You can express the version
 requirement in the run_exports entry as a jinja function to insert values
@@ -824,6 +841,7 @@ based on the actual version of libgcc produced by the recipe. Read more about
 them at :ref:`referencing_subpackages`.
 
 .. _implicit_metapackages:
+
 
 Implicit metapackages
 ~~~~~~~~~~~~~~~~~~~~~
