@@ -81,10 +81,15 @@ def configure_parser(sub_parsers):
         default=None,
     )
     p.add_argument(
-        "--spec",
-        action="store_true",
-        help=SUPPRESS,
+        'spec',
+        default='*',
+        nargs='?',
     )
+    # p.add_argument(
+    #     "--spec",
+    #     action="store_true",
+    #     help=SUPPRESS,
+    # )
     p.add_argument(
         "--reverse-dependency",
         action="store_true",
@@ -92,14 +97,14 @@ def configure_parser(sub_parsers):
 flag is recommended. Use 'conda info package' to see the dependencies of a
 package.""",
     )
-    p.add_argument(
-        'regex',
-        metavar='regex',
-        action="store",
-        nargs="?",
-        help="""Package specification or Python regular expression to search for (default: display
-        all packages).""",
-    )
+    # p.add_argument(
+    #     'regex',
+    #     metavar='regex',
+    #     action="store",
+    #     nargs="?",
+    #     help="""Package specification or Python regular expression to search for (default: display
+    #     all packages).""",
+    # )
     add_parser_offline(p)
     add_parser_channels(p)
     add_parser_json(p)
@@ -109,32 +114,12 @@ package.""",
 
 
 def execute(args, parser):
-    try:
-        execute_search(args, parser)
-    except ResolvePackageNotFound:
-        channel_priority_map = get_channel_priority_map(
-            channel_urls=context.channels,
-            prepend=not args.override_channels,
-            platform=None,
-            use_local=args.use_local,
-        )
-        channels_urls = tuple(channel_priority_map)
-        raise PackagesNotFoundError(args.regex, channels_urls)
-
-
-def execute_search(args, parser):
     from .common import (ensure_override_channels_requires_channel,
                          ensure_use_local)
     from ..core.index import get_index
     from ..models.match_spec import MatchSpec
     from ..models.version import VersionOrder
     from ..base.context import context
-
-    if args.reverse_dependency:
-        if not args.regex:
-            parser.error("--reverse-dependency requires at least one package name")
-        if args.spec:
-            parser.error("--reverse-dependency does not work with --spec")
 
     platform = args.platform or ''
     if platform and platform != context.subdir:
@@ -148,12 +133,20 @@ def execute_search(args, parser):
                           use_cache=args.use_index_cache, prefix=None,
                           unknown=args.unknown)
 
-    spec = MatchSpec(args.regex)
+    spec = MatchSpec(args.spec)
     matches = {record for record in itervalues(index) if spec.match(record)}
     matches = sorted(matches, key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
     if not matches:
-        raise ResolvePackageNotFound(args.regex)
+        channel_priority_map = get_channel_priority_map(
+            channel_urls=context.channels,
+            prepend=not args.override_channels,
+            platform=None,
+            use_local=args.use_local,
+        )
+        channels_urls = tuple(channel_priority_map)
+        from ..models.match_spec import MatchSpec
+        raise PackagesNotFoundError((MatchSpec(args.spec),), channels_urls)
 
     if context.json:
         json_obj = defaultdict(list)

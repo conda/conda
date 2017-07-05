@@ -406,10 +406,7 @@ class PackagesNotFoundError(CondaError):
 
             %(channels_formatted)s
             """)
-            if type(packages) is not tuple:
-                packages_formatted = "  - " + packages
-            else:
-                packages_formatted = format_list(packages)
+            packages_formatted = format_list(packages)
             channels_formatted = format_list(channel_urls)
         else:
             message = dals("""
