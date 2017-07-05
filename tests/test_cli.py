@@ -189,7 +189,7 @@ class TestJson(unittest.TestCase):
         # assert json.loads(stdout.strip())['exception_name'] == 'CommandArgumentError'
         # assert len(json.loads(stdout.strip())['anaconda']) >= 1
         assert stderr == ''
-        assert rc == 0
+        assert rc == None
 
         # res = capture_json_with_argv('conda search --canonical --json')
         # # self.assertIsInstance(res, list)

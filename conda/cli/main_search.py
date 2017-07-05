@@ -9,11 +9,10 @@ from conda.core.index import get_channel_priority_map
 from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
                              add_parser_known, add_parser_offline, add_parser_prefix,
                              add_parser_use_index_cache, add_parser_use_local)
-from ..base.context import context
 from ..cli.common import stdout_json
 from ..common.io import spinner
 from ..compat import itervalues
-from ..exceptions import ResolvePackageNotFound, PackagesNotFoundError
+from ..exceptions import PackagesNotFoundError
 
 descr = """Search for packages and display their information. The input is a
 Python regular expression.  To perform a search with a search string that starts
@@ -97,14 +96,6 @@ def configure_parser(sub_parsers):
 flag is recommended. Use 'conda info package' to see the dependencies of a
 package.""",
     )
-    # p.add_argument(
-    #     'regex',
-    #     metavar='regex',
-    #     action="store",
-    #     nargs="?",
-    #     help="""Package specification or Python regular expression to search for (default: display
-    #     all packages).""",
-    # )
     add_parser_offline(p)
     add_parser_channels(p)
     add_parser_json(p)
