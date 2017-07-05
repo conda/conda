@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import sys
 from argparse import SUPPRESS
+from collections import defaultdict
 
 from conda.core.index import get_channel_priority_map
 from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
@@ -126,6 +127,7 @@ def execute_search(args, parser):
                          ensure_use_local)
     from ..core.index import get_index
     from ..models.match_spec import MatchSpec
+    from ..models.version import VersionOrder
     from ..base.context import context
 
     if args.reverse_dependency:
@@ -148,13 +150,16 @@ def execute_search(args, parser):
 
     spec = MatchSpec(args.regex)
     matches = {record for record in itervalues(index) if spec.match(record)}
-    matches = sorted(matches, key=lambda rec: (rec.name, rec.version, rec.build))
+    matches = sorted(matches, key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
     if not matches:
         raise ResolvePackageNotFound(args.regex)
 
     if context.json:
-        stdout_json(matches)
+        json_obj = defaultdict(list)
+        for match in matches:
+            json_obj[match.name].append(match)
+        stdout_json(json_obj)
 
     else:
 

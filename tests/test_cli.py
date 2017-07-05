@@ -181,8 +181,7 @@ class TestJson(unittest.TestCase):
         self.assertIsInstance(res, dict)
         self.assertIsInstance(res['conda'], list)
         self.assertIsInstance(res['conda'][0], dict)
-        keys = ('build', 'channel', 'extracted', 'features', 'fn',
-                'installed', 'version')
+        keys = ('build', 'channel', 'fn', 'version')
         for key in keys:
             self.assertIn(key, res['conda'][0])
 
