@@ -26,6 +26,9 @@ build:
 requirements:
   build:
     - python
+    - m2-base              [win]
+    - m2-filesystem        [win]
+    - m2-git               [win]
   run:
     - python
     - conda-env >=2.6
@@ -45,8 +48,11 @@ test:
     - conda
   commands:
     # TODO: need to move to a run_tests file
-    - conda --version
-    - conda info
+    - . $PREFIX/etc/profile.d/conda.sh                          [unix]
+    - conda --version                                           [unix]
+    - conda info                                                [unix]
+    - "%PREFIX%/Scripts/conda --version"                        # [win]
+    - "%PREFIX%/Scripts/conda info"                             # [win]
     # - py.test -m "not integration and not installed" $SRC_DIR/tests $SRC_DIR/conda
 
 about:

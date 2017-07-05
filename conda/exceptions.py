@@ -399,11 +399,11 @@ class PackagesNotFoundError(CondaError):
         if channel_urls:
             message = dals("""
             The following packages are not available from current channels:
-            
+
             %(packages_formatted)s
 
             Current channels:
-            
+
             %(channels_formatted)s
             """)
             if type(packages) is not tuple:
@@ -679,8 +679,10 @@ class ExceptionHandler(object):
         elif isinstance(exc_val, CondaError):
             return self.handle_application_exception(exc_val, exc_tb)
         elif isinstance(exc_val, KeyboardInterrupt):
-            self._print_conda_exception(KeyboardInterrupt(), _format_exc())
+            self._print_conda_exception(CondaError("KeyboardInterrupt"), _format_exc())
             return 1
+        elif isinstance(exc_val, SystemExit):
+            return exc_val.code
         else:
             return self.handle_unexpected_exception(exc_val, exc_tb)
 
@@ -741,7 +743,8 @@ class ExceptionHandler(object):
             message_builder.append('')
             message_builder.append('`$ %s`' % error_report['command'])
             message_builder.append('')
-            message_builder.extend('    ' + line for line in error_report['traceback'].splitlines())
+            message_builder.extend('    ' + line
+                                   for line in error_report['traceback'].splitlines())
             message_builder.append('')
             if error_report['conda_info']:
                 from .cli.main_info import get_main_info_str

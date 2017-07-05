@@ -75,7 +75,7 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
             extracted_package_dir = basename(prefix_record.link.source)
         except AttributeError:
             # for backward compatibility only
-            extracted_package_dir = '%s-%s-%s' % (prefix_record.name, prefix_record.veresion,
+            extracted_package_dir = '%s-%s-%s' % (prefix_record.name, prefix_record.version,
                                                   prefix_record.build)
 
     meta_short_path = '%s/%s' % ('conda-meta', extracted_package_dir + '.json')
@@ -466,14 +466,14 @@ class UnlinkLinkTransaction(object):
                     for pkg_idx, axngroup in enumerate(all_action_groups):
                         cls._execute_actions(pkg_idx, axngroup)
             except CondaMultiError as e:
-                action, is_unlink = None, axngroup.type == 'unlink'
+                action, is_unlink = (None, axngroup.type == 'unlink')
                 prec = axngroup.pkg_data
 
                 log.error("An error occurred while %s package '%s'.\n"
                           "%r\n"
                           "Attempting to roll back.\n",
                           'uninstalling' if is_unlink else 'installing',
-                          prec.dist_str(), e.errors[0])
+                          prec and prec.dist_str(), e.errors[0])
 
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
