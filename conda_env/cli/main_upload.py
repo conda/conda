@@ -105,6 +105,6 @@ def execute(args, parser):
         msg = "\n".join(["You are not authorized to upload a package into Anaconda.org",
                          "Verify that you are logged in anaconda.org with:",
                          "    anaconda login\n"])
-        raise exceptions.CondaEnvRuntimeError(msg)
+        raise exceptions.CondaEnvException(msg)
 
     print("Done.")
