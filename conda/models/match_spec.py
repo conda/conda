@@ -167,6 +167,7 @@ class MatchSpec(object):
         'build',
         'build_number',
         'track_features',
+        'features',
         'url',
         'md5',
     )
@@ -287,9 +288,9 @@ class MatchSpec(object):
                     continue
                 value = text_type(self._match_components[key])
                 if any(s in value for s in ', ='):
-                    brackets.append("%s='%s'" % (key, self._match_components[key]))
+                    brackets.append("%s='%s'" % (key, value))
                 else:
-                    brackets.append("%s=%s" % (key, self._match_components[key]))
+                    brackets.append("%s=%s" % (key, value))
 
         if brackets:
             builder.append('[%s]' % ','.join(brackets))
@@ -652,6 +653,62 @@ class SplitStrMatch(MatchInterface):
         return self._raw_value
 
 
+class FeatureMatch(MatchInterface):
+    __slots__ = '_raw_value',
+
+    def __init__(self, value):
+        super(FeatureMatch, self).__init__(self._convert(value))
+
+    def _convert(self, value):
+        if not value:
+            return {}
+        elif isinstance(value, Mapping):
+            return value
+
+        def push_individual(result_map, val):
+            if '=' in val:
+                k, v = val.split('=', 1)
+                result_map[k] = v
+            else:
+                if 'mkl' in val:
+                    result_map['blas'] = val
+                else:
+                    result_map[val] = 'true'
+
+        if isinstance(value, string_types):
+            result_map = {}
+            for val in value.replace(' ', ',').split(','):
+                push_individual(result_map, val)
+        else:
+            assert isiterable(value)
+            result_map = {}
+            for val in value:
+                push_individual(result_map, val)
+        return frozendict(result_map)
+
+    def match(self, other):
+        if not isinstance(other, Mapping):
+            other = self._convert(other)
+        return all(v == other.get(k) for k, v in iteritems(self._raw_value))
+
+    def __repr__(self):
+        return "{%s}" % ', '.join("'%s': '%s'" % (k, self._raw_value[k]) for k in sorted(self._raw_value))
+
+    def __str__(self):
+        # this space delimiting makes me nauseous
+        return ' '.join("%s=%s" % (k, self._raw_value[k]) for k in sorted(self._raw_value))
+
+    def __eq__(self, other):
+        return self.match(other)
+
+    def __hash__(self):
+        return hash(self._raw_value)
+
+    @property
+    def exact_value(self):
+        return self._raw_value
+
+
 class StrMatch(MatchInterface):
     __slots__ = '_raw_value', '_re_match'
 
@@ -740,7 +797,7 @@ class LowerStrMatch(StrMatch):
 
 _implementors = {
     'name': LowerStrMatch,
-    'features': SplitStrMatch,
+    'features': FeatureMatch,
     'track_features': SplitStrMatch,
     'version': VersionSpec,
     'build_number': BuildNumberMatch,
