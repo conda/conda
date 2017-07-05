@@ -2,21 +2,19 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import deepcopy
-import json
 from logging import getLogger
 from os import getcwd, listdir
 from os.path import basename, dirname, isdir, isfile, join, normpath, split as path_split
 
 from .. import CondaError
-from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import ENVS_DIR_MAGIC_FILE, ROOT_ENV_NAME
+from ..base.constants import ENVS_DIR_MAGIC_FILE, PREFIX_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import with_metaclass
-from ..common.path import ensure_pad, expand, right_pad_os_sep, paths_equal
+from ..common.path import ensure_pad, expand, paths_equal, right_pad_os_sep
+from ..common.serialize import json_dump, json_load
 from ..exceptions import CondaValueError, EnvironmentNameNotFound, NotWritableError
 from ..gateways.disk.create import create_envs_directory
 from ..gateways.disk.test import file_path_is_writable
-from ..models.leased_path_entry import LeasedPathEntry
 
 try:
     from cytoolz.itertoolz import concatv
@@ -90,6 +88,7 @@ class EnvsDirectory(object):
 
     def _init_dir(self):
         self._envs_dir_data = self._read_raw_data()
+        self._prune_registered_envs()
 
     def _read_raw_data(self):
         # TODO: move this to conda.gateways.disk
@@ -99,10 +98,10 @@ class EnvsDirectory(object):
                 if not catalog_file_content:
                     return {}
                 else:
-                    _envs_dir_data = json.loads(catalog_file_content)
-                    _envs_dir_data['leased_paths'] = [
-                        LeasedPathEntry(**lpe) for lpe in _envs_dir_data.get('leased_paths', ())
-                    ]
+                    _envs_dir_data = json_load(catalog_file_content)
+                    # _envs_dir_data['leased_paths'] = [
+                    #     LeasedPathEntry(**lpe) for lpe in _envs_dir_data.get('leased_paths', ())
+                    # ]
                     return _envs_dir_data
         else:
             return {}
@@ -121,8 +120,7 @@ class EnvsDirectory(object):
             if not self.is_writable:
                 raise RuntimeError()
             with open(self.catalog_file, 'w') as fh:
-                fh.write(json.dumps(_data, indent=2, sort_keys=True,
-                                    separators=(',', ': '), cls=EntityEncoder))
+                fh.write(json_dump(_data))
 
     def _set_state(self, envs_dir_state):
         self._envs_dir_data = envs_dir_state  # TODO: find a better way
@@ -229,6 +227,15 @@ class EnvsDirectory(object):
         else:
             return join(context.root_prefix, 'envs', ensure_pad(preferred_env, '_'))
 
+    @classmethod
+    def prune_all_registered_envs(cls, envs_dirs=None):
+        for x in cls.all(envs_dirs):
+            x._prune_registered_envs()
+
+    @staticmethod
+    def is_conda_environment(prefix):
+        return isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE))
+
     # ############################
     # registered envs
     # ############################
@@ -297,6 +304,21 @@ class EnvsDirectory(object):
                    None)
         if idx is not None:
             self._registered_envs.pop(idx)
+
+    def _prune_registered_envs(self):
+        if not self.is_writable:
+            return
+        registered_env_recs = tuple(self._registered_envs)
+        keep_these = []
+        drop_these = []
+        for rerec in registered_env_recs:
+            if self.is_conda_environment(rerec['location']):
+                keep_these.append(rerec)
+            else:
+                drop_these.append(rerec)
+        if not drop_these:
+            self._envs_dir_data['registered_envs'] = sorted(keep_these, key=lambda x: x['location'])
+            self.write_to_disk()
 
     # # ############################
     # # leased paths
@@ -392,30 +414,39 @@ class EnvsDirectory(object):
     #     return pep or None
 
 
-def get_prefix(ctx, args, search=True):
+def determine_target_prefix(ctx, args=None):
     """Get the prefix to operate in
 
     Args:
         ctx: the context of conda
         args: the argparse args from the command line
-        search: whether search for prefix
 
     Returns: the prefix
     Raises: CondaEnvironmentNotFoundError if the prefix is invalid
     """
-    if getattr(args, 'name', None):
-        if '/' in args.name:
-            raise CondaValueError("'/' not allowed in environment name: %s" %
-                                  args.name, getattr(args, 'json', False))
-        if args.name in (ROOT_ENV_NAME, 'root'):
-            return ctx.root_dir
-        if search:
-            return EnvsDirectory.locate_prefix_by_name(args.name)
-        else:
-            # need first writable envs_dir
-            envs_dir = EnvsDirectory.first_writable().envs_dir
-            return join(envs_dir, args.name)
-    elif getattr(args, 'prefix', None):
-        return expand(args.prefix)
-    else:
+
+    argparse_args = args or ctx._argparse_args
+    try:
+        prefix_name = argparse_args.name
+    except AttributeError:
+        prefix_name = None
+    try:
+        prefix_path = argparse_args.prefix
+    except AttributeError:
+        prefix_path = None
+
+    if prefix_name is None and prefix_path is None:
         return ctx.default_prefix
+    elif prefix_path is not None:
+        return expand(prefix_path)
+    else:
+        if '/' in prefix_name:
+            raise CondaValueError("'/' not allowed in environment name: %s" %
+                                  prefix_name)
+        if prefix_name in (ROOT_ENV_NAME, 'root'):
+            return ctx.root_prefix
+        else:
+            try:
+                return EnvsDirectory.locate_prefix_by_name(prefix_name)
+            except EnvironmentNameNotFound:
+                return join(EnvsDirectory.first_writable().envs_dir, prefix_name)

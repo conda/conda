@@ -168,7 +168,7 @@ def execute_search(args, parser):
                                            "regex error: %(regex_error)s",
                                            regex=regex, regex_error=repr(e))
 
-    prefix = context.prefix_w_legacy_search
+    prefix = context.target_prefix
 
     linked = linked_data(prefix)
     extracted = set(pc_entry.name for pc_entry in PackageCache.get_all_extracted_entries())

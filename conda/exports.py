@@ -79,14 +79,15 @@ from .models.version import VersionOrder  # NOQA
 VersionOrder = VersionOrder
 
 import conda.base.context  # NOQA
-from .base.context import get_prefix as context_get_prefix, non_x86_linux_machines, sys_rc_path  # NOQA
+from .base.context import non_x86_linux_machines, sys_rc_path  # NOQA
 non_x86_linux_machines, sys_rc_path = non_x86_linux_machines, sys_rc_path
 
 from ._vendor.auxlib.entity import EntityEncoder # NOQA
 EntityEncoder = EntityEncoder
 from .base.constants import DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
 DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX = DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
-get_prefix = partial(context_get_prefix, conda.base.context.context)
+from .core.envs_manager import determine_target_prefix as _determine_target_prefix  # NOQA
+get_prefix = partial(_determine_target_prefix, conda.base.context.context)
 get_default_urls = lambda: DEFAULT_CHANNELS
 
 arch_name = conda.base.context.context.arch_name
