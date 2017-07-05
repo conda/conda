@@ -1017,6 +1017,16 @@ class IntegrationTests(TestCase):
         assert "python:" in stdout
         assert join('another', 'place') in stdout
 
+    def test_create_dry_run_json(self):
+        prefix = '/some/place'
+        with pytest.raises(DryRunExit):
+            run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json")
+        stdout, stderr = run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json", use_exception_handler=True)
+
+        loaded = json.loads(stdout)
+        assert "python" in "\n".join(loaded['actions']['LINK'])
+        assert "flask" in "\n".join(loaded['actions']['LINK'])
+
     def test_packages_not_found(self):
         with make_temp_env() as prefix:
             with pytest.raises(PackagesNotFoundError) as exc:
