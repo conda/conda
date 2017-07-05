@@ -38,8 +38,8 @@ class TmpDownload(object):
             return self.url
         else:
             if self.verbose:
-                from .console import setup_handlers
-                setup_handlers()
+                from .console import setup_verbose_handlers
+                setup_verbose_handlers()
             self.tmp_dir = tempfile.mkdtemp()
             dst = join(self.tmp_dir, basename(self.url))
             download(self.url, dst)
