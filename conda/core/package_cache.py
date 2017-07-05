@@ -5,7 +5,6 @@ from functools import reduce
 from logging import getLogger
 from os import listdir
 from os.path import basename, join
-from traceback import format_exc
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
@@ -504,8 +503,7 @@ class ProgressiveFetchExtract(object):
             try:
                 action.execute()
             except Exception as e:
-                log.debug("Error in action %s", action)
-                log.debug(format_exc())
+                log.debug("Error in action %s", action, exc_info=True)
                 action.reverse()
                 exceptions.append(CondaError(repr(e)))
             else:

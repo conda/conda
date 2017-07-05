@@ -7,7 +7,7 @@ import os
 from os.path import dirname, join
 from subprocess import CalledProcessError
 import sys
-from traceback import format_exc
+from traceback import format_exception_only
 import warnings
 
 from .linked_data import (get_python_version_for_prefix, linked_data as get_linked_data,
@@ -188,8 +188,8 @@ class UnlinkLinkTransaction(object):
                     continue
                 error_result = axn.verify()
                 if error_result:
-                    log.debug("Verification error in action %s", axn)
-                    log.debug(format_exc())
+                    formatted = ''.join(format_exception_only(type(error_result), error_result))
+                    log.debug("Verification error in action %s\n%s", axn, formatted)
                     yield error_result
 
     @staticmethod
@@ -327,8 +327,8 @@ class UnlinkLinkTransaction(object):
             run_script(target_prefix, Dist(pkg_data), 'post-unlink' if is_unlink else 'post-link')
         except Exception as e:  # this won't be a multi error
             # reverse this package
-            log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action)
-            log.debug(format_exc())
+            log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action,
+                      exc_info=True)
             reverse_excs = ()
             if context.rollback_enabled:
                 log.error("An error occurred while %s package '%s'.\n"
@@ -368,8 +368,7 @@ class UnlinkLinkTransaction(object):
                 action.reverse()
             except Exception as e:
                 log.debug("action.reverse() error in action #%d for pkg_idx #%d %r", axn_idx,
-                          pkg_idx, action)
-                log.debug(format_exc())
+                          pkg_idx, action, exc_info=True)
                 exceptions.append(e)
         return exceptions
 
@@ -464,9 +463,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
                     or "$PREFIX/bin/python $SOURCE_DIR/link.py" in script_text):
                 is_old_noarch = True
         except Exception as e:
-            import traceback
-            log.debug(e)
-            log.debug(traceback.format_exc())
+            log.debug(e, exc_info=True)
 
         env['SOURCE_DIR'] = prefix
         if not is_old_noarch:
