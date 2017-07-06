@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 import logging
 
+from conda.models.index_record import PackageRef
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import isiterable, iteritems, iterkeys, itervalues, string_types, text_type
@@ -424,19 +425,28 @@ class Resolve(object):
         return sorted(dists, key=self.version_key)
 
     @staticmethod
-    def ms_to_v(ms):
-        ms = MatchSpec(ms)
-        return '@s@' + text_type(ms) + ('?' if ms.optional else '')
+    def to_sat_name(val):
+        # val can be a Dist, PackageRef, or MatchSpec
+        if isinstance(val, Dist):
+            return val.full_name
+        elif isinstance(val, MatchSpec):
+            return '@s@' + text_type(val) + ('?' if val.optional else '')
+        elif isinstance(val, PackageRef):
+            return val.dist_str()
+        else:
+            raise NotImplementedError()
 
-    def push_MatchSpec(self, C, ms):
-        ms = MatchSpec(ms)
-        name = self.ms_to_v(ms)
-        m = C.from_name(name)
+    def push_MatchSpec(self, C, spec):
+        spec = MatchSpec(spec)
+        sat_name = self.to_sat_name(spec)
+        m = C.from_name(sat_name)
         if m is not None:
-            return name
-        simple = ms._is_single()
-        nm = ms.get_exact_value('name')
-        tf = ms.get_exact_value('track_features')
+            # the spec has already been pushed onto the clauses stack
+            return sat_name
+
+        simple = spec._is_single()
+        nm = spec.get_exact_value('name')
+        tf = spec.get_exact_value('track_features')
         if nm:
             tgroup = libs = self.groups.get(nm, [])
         elif tf:
@@ -448,37 +458,39 @@ class Resolve(object):
             tgroup = libs = self.index.keys()
             simple = False
         if not simple:
-            libs = [fkey for fkey in tgroup if self.match(ms, fkey)]
+            libs = [fkey for fkey in tgroup if self.match(spec, fkey)]
         if len(libs) == len(tgroup):
-            if ms.optional:
+            if spec.optional:
                 m = True
             elif not simple:
-                ms2 = MatchSpec(track_features=tf) if tf else nm
+                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
                 m = C.from_name(self.push_MatchSpec(C, ms2))
         if m is None:
             dists = [dist.full_name for dist in libs]
-            if ms.optional:
-                ms2 = MatchSpec(track_features=tf) if tf else nm
-                dists.append('!' + self.ms_to_v(ms2))
+            if spec.optional:
+                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
+                dists.append('!' + self.to_sat_name(ms2))
             m = C.Any(dists)
-        C.name_var(m, name)
-        return name
+        C.name_var(m, sat_name)
+        return sat_name
 
     def gen_clauses(self):
         C = Clauses()
         for name, group in iteritems(self.groups):
-            group = [dist.full_name for dist in group]
+            group = [self.to_sat_name(dist) for dist in group]
             # Create one variable for each package
-            for fkey in group:
-                C.new_var(fkey)
+            for sat_name in group:
+                C.new_var(sat_name)
             # Create one variable for the group
-            m = C.new_var(self.ms_to_v(name))
+            m = C.new_var(self.to_sat_name(MatchSpec(name)))
+
             # Exactly one of the package variables, OR
             # the negation of the group variable, is true
             C.Require(C.ExactlyOne, group + [C.Not(m)])
+
         # If a package is installed, its dependencies must be as well
         for dist in iterkeys(self.index):
-            nkey = C.Not(dist.full_name)
+            nkey = C.Not(self.to_sat_name(dist))
             for ms in self.ms_depends(dist):
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
