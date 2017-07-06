@@ -166,8 +166,9 @@ class MatchSpec(object):
         'version',
         'build',
         'build_number',
-        'track_features',
         'features',
+        'requires_features',
+        'provides_features',
         'url',
         'md5',
     )
@@ -197,11 +198,21 @@ class MatchSpec(object):
         Accepts an `IndexRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
-        for f, v in iteritems(self._match_components):
-            val = getattr(rec, f)
-            if not (v.match(val) if hasattr(v, 'match') else v == val):
-                return False
+        for field_name, v in iteritems(self._match_components):
+            if field_name == 'features':
+                if not (self._match_individual(rec, 'provides_features', v) or self._match_individual(rec, 'requires_features', v)):
+                    return False
+            else:
+                if not self._match_individual(rec, field_name, v):
+                    return False
         return True
+
+    def _match_individual(self, record, field_name, match_component):
+        val = getattr(record, field_name)
+        try:
+            return match_component.match(val)
+        except AttributeError:
+            return match_component == val
 
     def _is_simple(self):
         return len(self._match_components) == 1 and self.get_exact_value('name') is not None
@@ -336,6 +347,8 @@ class MatchSpec(object):
         def _make(field_name, value):
             if field_name not in IndexRecord.__fields__:
                 raise CondaValueError('Cannot match on field %s' % (field_name,))
+            elif field_name == 'track_features':
+                field_name = 'provides_features'
             elif isinstance(value, string_types):
                 value = text_type(value)
 
@@ -348,9 +361,9 @@ class MatchSpec(object):
             else:
                 raise NotImplementedError()
 
-            return matcher
+            return field_name, matcher
 
-        return frozendict((key, _make(key, value)) for key, value in iteritems(kwargs))
+        return frozendict(_make(key, value) for key, value in iteritems(kwargs))
 
     @property
     def name(self):
@@ -643,7 +656,7 @@ class SplitStrMatch(MatchInterface):
         return ' '.join(sorted(self._raw_value))
 
     def __eq__(self, other):
-        return self.match(other)
+        return isinstance(other, self.__class__) and self._raw_value == other._raw_value
 
     def __hash__(self):
         return hash(self._raw_value)
@@ -661,16 +674,16 @@ class FeatureMatch(MatchInterface):
 
     def _convert(self, value):
         if not value:
-            return {}
+            return frozendict()
         elif isinstance(value, Mapping):
-            return value
+            return frozendict(value)
 
         if isinstance(value, string_types):
             result_map = {}
             for val in value.replace(' ', ',').split(','):
                 push_individual_feature(result_map, val)
         else:
-            assert isiterable(value)
+            assert isiterable(value), type(value)
             result_map = {}
             for val in value:
                 push_individual_feature(result_map, val)
@@ -689,7 +702,7 @@ class FeatureMatch(MatchInterface):
         return ' '.join("%s=%s" % (k, self._raw_value[k]) for k in sorted(self._raw_value))
 
     def __eq__(self, other):
-        return self.match(other)
+        return isinstance(other, self.__class__) and self._raw_value == other._raw_value
 
     def __hash__(self):
         return hash(self._raw_value)
@@ -729,7 +742,7 @@ class StrMatch(MatchInterface):
         return "%s('%s')" % (self.__class__.__name__, self._raw_value)
 
     def __eq__(self, other):
-        return self.match(other)
+        return isinstance(other, self.__class__) and self._raw_value == other._raw_value
 
     def __hash__(self):
         return hash(self._raw_value)
@@ -788,7 +801,8 @@ class LowerStrMatch(StrMatch):
 _implementors = {
     'name': LowerStrMatch,
     'features': FeatureMatch,
-    'track_features': SplitStrMatch,
+    'provides_features': FeatureMatch,
+    'requires_features': FeatureMatch,
     'version': VersionSpec,
     'build_number': BuildNumberMatch,
     'channel': ChannelMatch,

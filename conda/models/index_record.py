@@ -113,16 +113,40 @@ class _FeaturesField(ListField):
 class TrackFeaturesField(_FeaturesField):
 
     @staticmethod
-    def _make_provides_features(track_features):
+    def _make_provides_features(track_features, instance):
         result_map = {}
         for feat in track_features:
             push_individual_feature(result_map, feat)
+        if instance.name in ('python', 'numpy'):
+            ver = '.'.join(instance.version.split('.')[:2])
+            push_individual_feature(result_map, "%s=%s" % (instance.name, ver))
         return frozendict(result_map)
 
     def box(self, instance, val):
         val = super(TrackFeaturesField, self).box(instance, val)
         if val and instance and not instance.provides_features:
-            instance.provides_features = self._make_provides_features(val)
+            instance.provides_features = self._make_provides_features(val, instance)
+        return val
+
+
+class ProvidesFeaturesField(MapField):
+
+    @staticmethod
+    def _make_provides_features(track_features, instance):
+        result_map = {}
+        for feat in track_features:
+            push_individual_feature(result_map, feat)
+        if instance.name in ('python', 'numpy'):
+            ver = '.'.join(instance.version.split('.')[:2])
+            push_individual_feature(result_map, "%s=%s" % (instance.name, ver))
+        return frozendict(result_map)
+
+    def unbox(self, instance, instance_type, val):
+        val = super(ProvidesFeaturesField, self).unbox(instance, instance_type, val)
+        if not val and instance:
+            _val = self._make_provides_features(val, instance)
+            if _val:
+                val = instance.requires_features = _val
         return val
 
 
@@ -151,6 +175,36 @@ class LegacyFeaturesField(_FeaturesField):
         val = super(LegacyFeaturesField, self).box(instance, val)
         if val and instance and not instance.requires_features:
             instance.requires_features = self._make_requires_features(val, instance.depends)
+        return val
+
+
+class RequiresFeaturesField(MapField):
+
+    @staticmethod
+    def _make_requires_features(features, depends):
+        result_map = {}
+        for feat in features:
+            push_individual_feature(result_map, feat)
+        for dep in depends:
+            specish = dep.split(' ')
+            spec_name = specish[0]
+            if spec_name in ('python', 'numpy') and len(specish) > 1:
+                version = specish[1]
+                if not any(x in version for x in ',|'):  # make sure version is exact enough
+                    try:
+                        split_vals = version.split('.')
+                        major, minor = int(split_vals[0]), int(split_vals[1].rstrip('*'))
+                        result_map[spec_name] = '%s.%s' % (major, minor)
+                    except (IndexError, ValueError):
+                        continue
+        return frozendict(result_map)
+
+    def unbox(self, instance, instance_type, val):
+        val = super(RequiresFeaturesField, self).unbox(instance, instance_type, val)
+        if not val and instance:
+            _val = self._make_requires_features(instance.features, instance.depends)
+            if _val:
+                val = instance.requires_features = _val
         return val
 
 
@@ -299,9 +353,9 @@ class IndexJsonRecord(BasePackageRef):
 
     # track_features is being depracated and replaced with provides_features
     # NOTE: it's important that track_features comes before provides_features here
-    provides_features = MapField(required=False, default=frozendict(), default_in_dump=False)
+    provides_features = ProvidesFeaturesField(required=False, default=frozendict(), default_in_dump=False, immutable=False)
     track_features = TrackFeaturesField(required=False, default=(), default_in_dump=False)
-    requires_features = MapField(required=False, default=frozendict(), default_in_dump=False)
+    requires_features = RequiresFeaturesField(required=False, default=frozendict(), default_in_dump=False, immutable=False)
     features = LegacyFeaturesField(required=False, default=(), default_in_dump=False)
 
     subdir = SubdirField()

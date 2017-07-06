@@ -111,6 +111,18 @@ class PrefixRecordTests(TestCase):
             provides_features={'blas': 'openblas'},
         )
 
+        base = IndexJsonRecord(
+            name='python',
+            version='1.2.3',
+            build_string='2',
+            build_number=2,
+            subdir="win-32",
+            url="https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
+        )
+        assert base.track_features == ()
+        assert base.provides_features == {'python': '1.2'}
+
+
     def test_requires_features(self):
         rec = IndexJsonRecord(
             name='austin',

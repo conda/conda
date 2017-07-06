@@ -619,9 +619,9 @@ class MapField(Field):
     _type = frozendict
 
     def __init__(self, default=NULL, required=True, validation=None,
-                 in_dump=True, default_in_dump=True, nullable=False):
+                 in_dump=True, default_in_dump=True, nullable=False, immutable=True):
         super(MapField, self).__init__(default, required, validation, in_dump, default_in_dump,
-                                       nullable, True)
+                                       nullable, immutable)
 
     def box(self, instance, val):
         # TODO: really need to make this recursive to make any lists or maps immutable
@@ -636,7 +636,6 @@ class MapField(Field):
         else:
             raise ValidationError(val, msg="Cannot assign a non-iterable value to "
                                            "{0}".format(self.name))
-
 
 
 class ComposableField(Field):
