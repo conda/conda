@@ -8,7 +8,7 @@ import re
 
 from .channel import Channel, MultiChannel
 from .dist import Dist
-from .index_record import IndexRecord, PackageRef
+from .index_record import IndexRecord, PackageRef, push_individual_feature
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -665,25 +665,15 @@ class FeatureMatch(MatchInterface):
         elif isinstance(value, Mapping):
             return value
 
-        def push_individual(result_map, val):
-            if '=' in val:
-                k, v = val.split('=', 1)
-                result_map[k] = v
-            else:
-                if 'mkl' in val:
-                    result_map['blas'] = val
-                else:
-                    result_map[val] = 'true'
-
         if isinstance(value, string_types):
             result_map = {}
             for val in value.replace(' ', ',').split(','):
-                push_individual(result_map, val)
+                push_individual_feature(result_map, val)
         else:
             assert isiterable(value)
             result_map = {}
             for val in value:
-                push_individual(result_map, val)
+                push_individual_feature(result_map, val)
         return frozendict(result_map)
 
     def match(self, other):
