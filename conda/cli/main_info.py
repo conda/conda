@@ -335,7 +335,7 @@ def execute(args, parser):
         try:
             print_package_info(args.packages)
             return
-        except ResolvePackageNotFound as e:
+        except ResolvePackageNotFound as e:  # pragma: no cover
             from ..exceptions import PackagesNotFoundError
             raise PackagesNotFoundError(e.bad_deps)
 
