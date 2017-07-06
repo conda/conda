@@ -807,6 +807,12 @@ def _get_user_agent(context_platform):
     return user_agent
 
 
+# backward compatibility for conda-build
+def get_prefix(args, search=True):
+    from ..core.envs_manager import determine_target_prefix
+    return determine_target_prefix(context, args)
+
+
 try:
     context = Context(SEARCH_PATH, APP_NAME, None)
 except LoadError as e:  # pragma: no cover

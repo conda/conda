@@ -11,11 +11,6 @@ from ..common.compat import itervalues
 from ..models.match_spec import MatchSpec
 
 
-def get_prefix(args, search=True):
-    from ..core.envs_manager import determine_target_prefix
-    return determine_target_prefix(context, args)
-
-
 def ensure_use_local(args):
     if not args.use_local:
         return
