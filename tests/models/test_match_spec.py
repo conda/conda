@@ -85,7 +85,7 @@ class MatchSpecTests(TestCase):
 
     def test_no_name_match_spec(self):
         ms = MatchSpec(track_features="mkl")
-        assert str(ms) == "*[track_features=mkl]"
+        assert str(ms) == "*[provides_features='blas=mkl']"
 
     def test_to_filename(self):
         m1 = MatchSpec(fn='foo-1.7-52.tar.bz2')
@@ -196,10 +196,10 @@ class MatchSpecTests(TestCase):
         assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "defaults/linux-32::numpy"
         assert m("numpy[channel=https://repo.continuum.io/pkgs/free/linux-32]") == "defaults/linux-32::numpy"
 
-        assert m("numpy[build=py3*_2, track_features=mkl]") == "numpy[build=py3*_2,track_features=mkl]"
-        assert m("numpy[build=py3*_2, track_features='mkl debug']") == "numpy[build=py3*_2,track_features='debug mkl']"
-        assert m("numpy[track_features='mkl,debug', build=py3*_2]") == "numpy[build=py3*_2,track_features='debug mkl']"
-        assert m("numpy[track_features='mkl,debug' build=py3*_2]") == "numpy[build=py3*_2,track_features='debug mkl']"
+        assert m("numpy[build=py3*_2, track_features=mkl]") == "numpy[build=py3*_2,provides_features='blas=mkl']"
+        assert m("numpy[build=py3*_2, track_features='mkl debug']") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
+        assert m("numpy[track_features='mkl,debug', build=py3*_2]") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
+        assert m("numpy[track_features='mkl,debug' build=py3*_2]") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
 
         assert m("numpy=1.10=py38_0") == "numpy==1.10=py38_0"
         assert m("numpy==1.10=py38_0") == "numpy==1.10=py38_0"
@@ -359,6 +359,7 @@ class MatchSpecTests(TestCase):
     def test_features_match(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
         a = MatchSpec(features='test')
+        assert text_type(a) == "*[features='test=true']"
         assert not a.match(DPkg(dst))
         assert not a.match(DPkg(dst, features=''))
         assert a.match(DPkg(dst, features='test'))
