@@ -123,15 +123,15 @@ def _make_requires_features(features, depends):
     return frozendict(result_map)
 
 
-class _FeaturesField(ListField):
+class _LegacyFeaturesField(ListField):
 
     def __init__(self, **kwargs):
-        super(_FeaturesField, self).__init__(string_types, **kwargs)
+        super(_LegacyFeaturesField, self).__init__(string_types, **kwargs)
 
     def box(self, instance, instance_type, val):
         if isinstance(val, string_types):
             val = val.replace(' ', ',').split(',')
-        return super(_FeaturesField, self).box(instance, instance_type, val)
+        return super(_LegacyFeaturesField, self).box(instance, instance_type, val)
 
     def dump(self, instance, instance_type, val):
         if isiterable(val):
@@ -140,40 +140,27 @@ class _FeaturesField(ListField):
             return val or ''
 
 
-class TrackFeaturesField(_FeaturesField):
-
-    def box(self, instance, instance_type, val):
-        val = super(TrackFeaturesField, self).box(instance, instance_type, val)
-        if val and instance and not instance.provides_features:
-            _val = _make_provides_features(val, instance)
-            if _val:
-                instance.provides_features = _val
-        return val
-
-
 class ProvidesFeaturesField(MapField):
+
+    def __init__(self, **kwargs):
+        super(ProvidesFeaturesField, self).__init__(immutable=False, **kwargs)
 
     def unbox(self, instance, instance_type, val):
         val = super(ProvidesFeaturesField, self).unbox(instance, instance_type, val)
         if not val and instance:
-            _val = _make_provides_features(val, instance)
+            _val = _make_provides_features(instance.track_features, instance)
             if _val:
-                val = instance.requires_features = _val
+                val = instance.provides_features = _val
         return val
 
-
-class LegacyFeaturesField(_FeaturesField):
-
-    def box(self, instance, instance_type, val):
-        val = super(LegacyFeaturesField, self).box(instance, instance_type, val)
-        if val and instance and not instance.requires_features:
-            _val = _make_requires_features(val, instance.depends)
-            if _val:
-                instance.requires_features = _val
-        return val
+    def dump(self, instance, instance_type, val):
+        return self.unbox(instance, instance_type, val)
 
 
 class RequiresFeaturesField(MapField):
+
+    def __init__(self, **kwargs):
+        super(RequiresFeaturesField, self).__init__(immutable=False, **kwargs)
 
     def unbox(self, instance, instance_type, val):
         val = super(RequiresFeaturesField, self).unbox(instance, instance_type, val)
@@ -182,6 +169,9 @@ class RequiresFeaturesField(MapField):
             if _val:
                 val = instance.requires_features = _val
         return val
+
+    def dump(self, instance, instance_type, val):
+        return self.unbox(instance, instance_type, val)
 
 
 class ChannelField(ComposableField):
@@ -329,12 +319,12 @@ class IndexJsonRecord(BasePackageRef):
 
     # track_features is being depracated and replaced with provides_features
     # NOTE: it's important that track_features comes before provides_features here
+    track_features = _LegacyFeaturesField(required=False, default=(), default_in_dump=False)
     provides_features = ProvidesFeaturesField(required=False, default=frozendict(),
-                                              default_in_dump=False, immutable=False)
-    track_features = TrackFeaturesField(required=False, default=(), default_in_dump=False)
+                                              default_in_dump=False)
+    features = _LegacyFeaturesField(required=False, default=(), default_in_dump=False)
     requires_features = RequiresFeaturesField(required=False, default=frozendict(),
-                                              default_in_dump=False, immutable=False)
-    features = LegacyFeaturesField(required=False, default=(), default_in_dump=False)
+                                              default_in_dump=False)
 
     subdir = SubdirField()
     # package_type = EnumField(NoarchType, required=False)  # previously noarch
@@ -372,50 +362,3 @@ class PackageRecord(IndexJsonRecord, PackageRef):
 
 
 IndexRecord = PackageRecord
-
-# class IndexRecord(DictSafeMixin, Entity):
-#     _lazy_validate = True
-#
-#     arch = StringField(required=False, nullable=True)
-#     build = StringField()
-#     build_number = IntegerField()
-#     constrains = ListField(string_types, required=False, nullable=True)
-#     date = StringField(required=False)
-#     depends = ListField(string_types, required=False, nullable=True)
-#     features = StringField(required=False)
-#     has_prefix = BooleanField(required=False)
-#     license = StringField(required=False)
-#     license_family = StringField(required=False)
-#     md5 = StringField(required=False, nullable=True)
-#     name = StringField()
-#     noarch = NoarchField(NoarchType, required=False, nullable=True)
-#     platform = EnumField(Platform, required=False, nullable=True)
-#     requires = ListField(string_types, required=False)
-#     size = IntegerField(required=False)
-#     subdir = StringField(required=False)
-#     timestamp = IntegerField(required=False)
-#     track_features = StringField(default='', required=False)
-#     version = StringField()
-#
-#     fn = StringField(required=False, nullable=True)
-#     schannel = StringField(required=False, nullable=True)
-#     channel = StringField(required=False, nullable=True)
-#     priority = PriorityField(required=False)
-#     url = StringField(required=False, nullable=True)
-#     auth = StringField(required=False, nullable=True)
-#
-#     files = ListField(string_types, default=(), required=False)
-#     link = ComposableField(Link, required=False)
-#
-#     preferred_env = StringField(default=None, required=False, nullable=True)
-#
-#     # this is only for LinkedPackageRecord
-#     leased_paths = ListField(LeasedPathEntry, required=False)
-#
-#     @property
-#     def combined_depends(self):
-#         from .match_spec import MatchSpec
-#         result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
-#         result.update({ms.name: ms for ms in (MatchSpec(spec, optional=True)
-#                                               for spec in self.constrains or ())})
-#         return tuple(itervalues(result))
