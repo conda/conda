@@ -1,16 +1,17 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import defaultdict
 from itertools import chain
 import logging
 
-from conda.models.index_record import PackageRef
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
-from .common.compat import isiterable, iteritems, iterkeys, itervalues, string_types, text_type
+from .common.compat import iteritems, iterkeys, itervalues, string_types, text_type
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
 from .exceptions import ResolvePackageNotFound, UnsatisfiableError
 from .models.dist import Dist
+from .models.index_record import PackageRef
 from .models.match_spec import MatchSpec
 from .models.version import normalized_version
 
@@ -32,12 +33,12 @@ class Resolve(object):
         self.index = index
 
         groups = {}
-        trackers = {}
+        trackers = defaultdict(list)
 
         for dist, info in iteritems(index):
             groups.setdefault(info['name'], []).append(dist)
-            for feat in info.get('track_features') or ():
-                trackers.setdefault(feat, []).append(dist)
+            for k, v in iteritems(info.get('provides_features') or {}):
+                trackers["%s=%s" % (k, v)].append(dist)
 
         self.groups = groups  # Dict[package_name, List[Dist]]
         self.trackers = trackers  # Dict[track_feature, List[Dist]]
@@ -340,10 +341,9 @@ class Resolve(object):
         if res is None:
             if ms.get_exact_value('name'):
                 res = self.groups.get(ms.name, [])
-            elif ms.get_exact_value('track_features'):
-                res = list(chain.from_iterable(self.trackers[tf]
-                                               for tf in ms.get_exact_value('track_features') or ()
-                                               if tf in self.trackers))
+            elif ms.get_exact_value('provides_features'):
+                kv_features = ("%s=%s" % (k, v) for k, v in iteritems(ms.get_exact_value('provides_features')) or ())
+                res = list(chain.from_iterable(self.trackers[kvf] for kvf in kv_features if kvf in self.trackers))
             else:
                 res = self.index.keys()
             res = [p for p in res if self.match(ms, p)]
@@ -356,10 +356,10 @@ class Resolve(object):
         if deps is None:
             rec = self.index[dist]
             deps = [MatchSpec(d) for d in rec.combined_depends]
-            track_features_specs = tuple(MatchSpec(track_features=feat)
-                                         for feat in self.features(dist))
-            if track_features_specs:
-                deps.extend(track_features_specs)
+            provides_features_specs = tuple(MatchSpec(provides_features={k: v})
+                                         for k, v in iteritems(self.index[dist].requires_features))
+            if provides_features_specs:
+                deps.extend(provides_features_specs)
             self.ms_depends_[dist] = deps
         return deps
 
@@ -390,15 +390,12 @@ class Resolve(object):
         return ((valid, -cpri, ver, bld, ts, bs) if context.channel_priority else
                 (valid, ver, -cpri, bld, ts, bs))
 
-    def features(self, dist):
-        _features = self.index[dist].get('features') or ()
-        if isinstance(_features, string_types):
-            _features = _features.split()
-        assert isiterable(_features)
-        return set(_features)
-
-    def track_features(self, dist):
-        return set(self.index[dist].get('track_features') or ())
+    # def features(self, dist):
+    #     _features = self.index[dist].get('features') or ()
+    #     if isinstance(_features, string_types):
+    #         _features = _features.split()
+    #     assert isiterable(_features)
+    #     return set(_features)
 
     def package_quad(self, dist):
         rec = self.index.get(dist, None)
@@ -446,14 +443,14 @@ class Resolve(object):
 
         simple = spec._is_single()
         nm = spec.get_exact_value('name')
-        tf = spec.get_exact_value('track_features')
+        tf = spec.get_exact_value('provides_features')
+
         if nm:
             tgroup = libs = self.groups.get(nm, [])
         elif tf:
-            tf = next(iter(tf))
-            # TODO: this limits packages to only tracking a single feature
-            #       but that limitation is already baked into the logic anyway
-            tgroup = libs = self.trackers.get(tf, [])
+            assert len(tf) == 1
+            k = next(iter(tf))
+            tgroup = libs = self.trackers.get("%s=%s" % (k, tf[k]), [])
         else:
             tgroup = libs = self.index.keys()
             simple = False
@@ -463,12 +460,12 @@ class Resolve(object):
             if spec.optional:
                 m = True
             elif not simple:
-                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
+                ms2 = MatchSpec(provides_features=tf) if tf else MatchSpec(nm)
                 m = C.from_name(self.push_MatchSpec(C, ms2))
         if m is None:
             dists = [dist.full_name for dist in libs]
             if spec.optional:
-                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
+                ms2 = MatchSpec(provides_features=tf) if tf else MatchSpec(nm)
                 dists.append('!' + self.to_sat_name(ms2))
             m = C.Any(dists)
         C.name_var(m, sat_name)
@@ -500,7 +497,7 @@ class Resolve(object):
         return [(self.push_MatchSpec(C, ms),) for ms in specs]
 
     def generate_feature_count(self, C):
-        return {self.push_MatchSpec(C, MatchSpec(track_features=name)): 1
+        return {self.push_MatchSpec(C, MatchSpec(provides_features=name)): 1
                 for name in iterkeys(self.trackers)}
 
     def generate_update_count(self, C, specs):
@@ -510,7 +507,7 @@ class Resolve(object):
         eq = {}  # a C.minimize() objective: Dict[varname, coeff]
         total = 0
         for name, group in iteritems(self.groups):
-            nf = [len(self.features(dist)) for dist in group]
+            nf = [len(self.index[dist].requires_features) for dist in group]
             maxf = max(nf)
             eq.update({dist.full_name: maxf-fc for dist, fc in zip(group, nf) if fc < maxf})
             total += maxf

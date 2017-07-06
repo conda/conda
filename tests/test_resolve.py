@@ -14,8 +14,6 @@ from .helpers import get_index_r_1
 
 index, r, = get_index_r_1()
 
-f_mkl = set(['mkl'])
-
 
 def add_defaults_if_no_channel(string):
     return 'defaults::' + string if '::' not in string else string
@@ -26,7 +24,8 @@ class TestSolve(unittest.TestCase):
     def assert_have_mkl(self, dists, names):
         for dist in dists:
             if dist.quad[0] in names:
-                self.assertEqual(r.features(dist), f_mkl)
+                record = index[dist]
+                assert record.requires_features['blas'] == 'mkl'
 
     def test_explicit0(self):
         self.assertEqual(r.explicit([]), [])
@@ -79,7 +78,7 @@ class TestSolve(unittest.TestCase):
               'zlib-1.2.7-0.tar.bz2']])
 
     def test_iopro_mkl(self):
-        installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', 'mkl@'], returnall=True)
+        installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(features='mkl')], returnall=True)
         installed = [[dist.to_filename() for dist in psol] for psol in installed]
 
         self.assertEqual(installed,
@@ -96,17 +95,17 @@ class TestSolve(unittest.TestCase):
               'zlib-1.2.7-0.tar.bz2']])
 
     def test_mkl(self):
-        a = r.install(['mkl 11*', 'mkl@'])
+        a = r.install(['mkl 11*', MatchSpec(track_features='mkl')])
         b = r.install(['mkl'])
         assert a == b
 
     def test_accelerate(self):
         self.assertEqual(
             r.install(['accelerate']),
-            r.install(['accelerate', 'mkl@']))
+            r.install(['accelerate', MatchSpec(track_features='mkl')]))
 
     def test_scipy_mkl(self):
-        dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
+        dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
         self.assertTrue(Dist('defaults::scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
 
@@ -132,7 +131,7 @@ def test_pseudo_boolean():
         'zlib-1.2.7-0.tar.bz2',
     ]]]
 
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')], returnall=True) == [[
         Dist(add_defaults_if_no_channel(fn)) for fn in [
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'mkl-rt-11.0-p0.tar.bz2',
@@ -803,7 +802,7 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]]]
 
-    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', 'mkl@'],
+    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(track_features='mkl')],
         returnall=True) == [[Dist(add_defaults_if_no_channel(fname)) for fname in [
             'mkl-rt-11.0-p0.tar.bz2',           # This,
             'numpy-1.6.2-py26_p4.tar.bz2',      # this,
@@ -883,7 +882,7 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]]]
 
-    assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', 'mkl@'],
+    assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(track_features='mkl')],
         returnall=True)[0] == [[Dist(add_defaults_if_no_channel(fname)) for fname in [
             'dateutil-2.1-py27_1.tar.bz2',
             'mkl-rt-11.0-p0.tar.bz2',           # This
