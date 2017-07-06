@@ -380,8 +380,8 @@ class Field(object):
         if default is NULL:
             self._default = NULL
         else:
-            self._default = default if callable(default) else self.box(None, default)
-            self.validate(None, self.box(None, maybecall(default)))
+            self._default = default if callable(default) else self.box(None, None, default)
+            self.validate(None, self.box(None, None, maybecall(default)))
 
         self._order_helper = Field._order_helper
         Field._order_helper += 1
@@ -423,7 +423,7 @@ class Field(object):
             raise AttributeError("The {0} field is immutable.".format(self.name))
         # validate will raise an exception if invalid
         # validate will return False if the value should be removed
-        instance.__dict__[self.name] = self.validate(instance, self.box(instance, val))
+        instance.__dict__[self.name] = self.validate(instance, self.box(instance, instance.__class__, val))
 
     def __delete__(self, instance):
         if self.immutable and instance._initd:
@@ -440,13 +440,13 @@ class Field(object):
         else:
             instance.__dict__.pop(self.name, None)
 
-    def box(self, instance, val):
+    def box(self, instance, instance_type, val):
         return val
 
     def unbox(self, instance, instance_type, val):
         return val
 
-    def dump(self, val):
+    def dump(self, instance, instance_type, val):
         return val
 
     def validate(self, instance, val):
@@ -504,7 +504,7 @@ class Field(object):
 class BooleanField(Field):
     _type = bool
 
-    def box(self, instance, val):
+    def box(self, instance, instance_type, val):
         return None if val is None else bool(val)
 
 BoolField = BooleanField
@@ -523,20 +523,20 @@ class NumberField(Field):
 class StringField(Field):
     _type = string_types
 
-    def box(self, instance, val):
+    def box(self, instance, instance_type, val):
         return text_type(val) if isinstance(val, NumberField._type) else val
 
 
 class DateField(Field):
     _type = datetime
 
-    def box(self, instance, val):
+    def box(self, instance, instance_type, val):
         try:
             return isoparse(val) if isinstance(val, string_types) else val
         except ValueError as e:
             raise ValidationError(val, msg=e)
 
-    def dump(self, val):
+    def dump(self, instance, instance_type, val):
         return None if val is None else val.isoformat()
 
 
@@ -550,7 +550,7 @@ class EnumField(Field):
         super(EnumField, self).__init__(default, required, validation,
                                         in_dump, default_in_dump, nullable, immutable)
 
-    def box(self, instance, val):
+    def box(self, instance, instance_type, val):
         if val is None:
             # let the required/nullable logic handle validation for this case
             return None
@@ -564,7 +564,7 @@ class EnumField(Field):
             except KeyError:
                 raise ValidationError(val, msg=e1)
 
-    def dump(self, val):
+    def dump(self, instance, instance_type, val):
         return None if val in (None, NULL) else val.value
 
 
@@ -577,7 +577,7 @@ class ListField(Field):
         super(ListField, self).__init__(default, required, validation,
                                         in_dump, default_in_dump, nullable, immutable)
 
-    def box(self, instance, val):
+    def box(self, instance, instance_type, val):
         if val is None:
             return None
         elif isinstance(val, string_types):
@@ -596,7 +596,7 @@ class ListField(Field):
     def unbox(self, instance, instance_type, val):
         return self._type() if val is None and not self.nullable else val
 
-    def dump(self, val):
+    def dump(self, instance, instance_type, val):
         if isinstance(self._element_type, type) and issubclass(self._element_type, Entity):
             return self._type(v.dump() for v in val)
         else:
@@ -623,7 +623,7 @@ class MapField(Field):
         super(MapField, self).__init__(default, required, validation, in_dump, default_in_dump,
                                        nullable, immutable)
 
-    def box(self, instance, val):
+    def box(self, instance, instance_type, val):
         # TODO: really need to make this recursive to make any lists or maps immutable
         if val is None:
             return self._type()
@@ -646,7 +646,7 @@ class ComposableField(Field):
         super(ComposableField, self).__init__(default, required, validation,
                                               in_dump, default_in_dump, nullable, immutable)
 
-    def box(self, instance, val):
+    def box(self, instance, instance_type, val):
         if val is None:
             return None
         if isinstance(val, self._type):
@@ -668,7 +668,7 @@ class ComposableField(Field):
             else:
                 return self._type(val)
 
-    def dump(self, val):
+    def dump(self, instance, instance_type, val):
         return None if val is None else val.dump()
 
 
@@ -820,7 +820,7 @@ class Entity(object):
         return self.json(indent=indent, separators=separators, **kwargs)
 
     def dump(self):
-        return odict((field.name, field.dump(value))
+        return odict((field.name, field.dump(self, self.__class__, value))
                      for field, value in ((field, getattr(self, field.name, NULL))
                                           for field in self.__dump_fields())
                      if value is not NULL and not (value is field.default
