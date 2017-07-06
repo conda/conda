@@ -11,33 +11,42 @@ from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parse
                              add_parser_use_index_cache, add_parser_use_local)
 from ..cli.common import stdout_json
 from ..common.io import spinner
-from ..compat import itervalues
+from ..compat import itervalues, text_type
 from ..exceptions import PackagesNotFoundError
 
 descr = """Search for packages and display their information. The input is a
-Python regular expression.  To perform a search with a search string that starts
+MatchSpec, which is a fundamentally query language for conda packages.  To perform a search with a search string that starts
 with a -, separate the search from the options with --, like 'conda search -- -h'.
 
-A * in the results means that package is installed in the current
-environment. A . means that package is not installed but is cached in the pkgs
-directory.
 """
 example = '''
 Examples:
 
-Search for packages with 'scikit' in the name:
+Search for a specific package (but no other packages that have 'scikit-learn'
+in the name):
 
-    conda search scikit
+    conda search scikit-learn
 
-Search for the 'python' package (but no other packages that have 'python' in
-the name):
+Search for packages that has 'scikit' in its name:
 
-   conda search -f python
+   conda search "*scikit*"
+   conda search "scikit*"
 
 Search for packages for 64-bit Linux (by default, packages for your current
 platform are shown):
 
    conda search --platform linux-64
+   conda search numpy --platform linux-64
+
+Search for a specific version of a package:
+
+   conda search numpy=1.12
+
+Search for a package in a specific channel (e.g. conda-forge):
+
+   conda search conda-forge::numpy
+   conda search conda-forge::numpy=1.12
+
 '''
 
 
@@ -80,15 +89,15 @@ def configure_parser(sub_parsers):
         default=None,
     )
     p.add_argument(
-        'spec',
+        'match_spec',
         default='*',
         nargs='?',
     )
-    # p.add_argument(
-    #     "--spec",
-    #     action="store_true",
-    #     help=SUPPRESS,
-    # )
+    p.add_argument(
+        "--spec",
+        action="store_true",
+        help=SUPPRESS,
+    )
     p.add_argument(
         "--reverse-dependency",
         action="store_true",
@@ -118,13 +127,16 @@ def execute(args, parser):
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args, dashc=False)
 
+    spec = MatchSpec(args.match_spec)
     with spinner("Loading channels", not context.verbosity and not context.quiet, context.json):
-        index = get_index(channel_urls=context.channels, prepend=not args.override_channels,
+        spec_channel = spec.get_exact_value('channel')
+        channel_urls = (spec_channel,) if spec_channel else context.channels
+        index = get_index(channel_urls=channel_urls,
+                          prepend=not args.override_channels,
                           platform=args.platform, use_local=args.use_local,
                           use_cache=args.use_index_cache, prefix=None,
                           unknown=args.unknown)
 
-    spec = MatchSpec(args.spec)
     matches = {record for record in itervalues(index) if spec.match(record)}
     matches = sorted(matches, key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
@@ -137,7 +149,7 @@ def execute(args, parser):
         )
         channels_urls = tuple(channel_priority_map)
         from ..models.match_spec import MatchSpec
-        raise PackagesNotFoundError((MatchSpec(args.spec),), channels_urls)
+        raise PackagesNotFoundError((text_type(spec),), channels_urls)
 
     if context.json:
         json_obj = defaultdict(list)
