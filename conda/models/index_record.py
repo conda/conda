@@ -25,8 +25,9 @@ from functools import total_ordering
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
+from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, Field, IntegerField, ListField, StringField)
+                                     EnumField, Field, IntegerField, ListField, MapField, StringField)
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
 
@@ -81,21 +82,76 @@ class Link(DictSafeMixin, Entity):
 EMPTY_LINK = Link(source='')
 
 
-class FeaturesField(ListField):
+def push_individual_feature(result_map, val):
+    if '=' in val:
+        k, v = val.split('=', 1)
+        result_map[k] = v
+    else:
+        if 'mkl' in val:
+            result_map['blas'] = val
+        else:
+            result_map[val] = 'true'
+
+
+class _FeaturesField(ListField):
 
     def __init__(self, **kwargs):
-        super(FeaturesField, self).__init__(string_types, **kwargs)
+        super(_FeaturesField, self).__init__(string_types, **kwargs)
 
     def box(self, instance, val):
         if isinstance(val, string_types):
             val = val.replace(' ', ',').split(',')
-        return super(FeaturesField, self).box(instance, val)
+        return super(_FeaturesField, self).box(instance, val)
 
     def dump(self, val):
         if isiterable(val):
             return ' '.join(val)
         else:
             return val or ''
+
+
+class TrackFeaturesField(_FeaturesField):
+
+    @staticmethod
+    def _make_provides_features(track_features):
+        result_map = {}
+        for feat in track_features:
+            push_individual_feature(result_map, feat)
+        return frozendict(result_map)
+
+    def box(self, instance, val):
+        val = super(TrackFeaturesField, self).box(instance, val)
+        if val and instance and not instance.provides_features:
+            instance.provides_features = self._make_provides_features(val)
+        return val
+
+
+class LegacyFeaturesField(_FeaturesField):
+
+    @staticmethod
+    def _make_requires_features(features, depends):
+        result_map = {}
+        for feat in features:
+            push_individual_feature(result_map, feat)
+        for dep in depends:
+            specish = dep.split(' ')
+            spec_name = specish[0]
+            if spec_name in ('python', 'numpy') and len(specish) > 1:
+                version = specish[1]
+                if not any(x in version for x in ',|'):  # make sure version is exact enough
+                    try:
+                        split_vals = version.split('.')
+                        major, minor = int(split_vals[0]), int(split_vals[1].rstrip('*'))
+                        result_map[spec_name] = '%s.%s' % (major, minor)
+                    except (IndexError, ValueError):
+                        continue
+        return frozendict(result_map)
+
+    def box(self, instance, val):
+        val = super(LegacyFeaturesField, self).box(instance, val)
+        if val and instance and not instance.requires_features:
+            instance.requires_features = self._make_requires_features(val, instance.depends)
+        return val
 
 
 class ChannelField(ComposableField):
@@ -241,8 +297,12 @@ class IndexJsonRecord(BasePackageRef):
     depends = ListField(string_types, default=())
     constrains = ListField(string_types, default=())
 
-    features = FeaturesField(required=False, default=(), default_in_dump=False)
-    track_features = FeaturesField(required=False, default=(), default_in_dump=False)
+    # track_features is being depracated and replaced with provides_features
+    # NOTE: it's important that track_features comes before provides_features here
+    provides_features = MapField(required=False, default=frozendict(), default_in_dump=False)
+    track_features = TrackFeaturesField(required=False, default=(), default_in_dump=False)
+    requires_features = MapField(required=False, default=frozendict(), default_in_dump=False)
+    features = LegacyFeaturesField(required=False, default=(), default_in_dump=False)
 
     subdir = SubdirField()
     # package_type = EnumField(NoarchType, required=False)  # previously noarch
