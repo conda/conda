@@ -57,10 +57,13 @@ class ActivatorUnitTests(TestCase):
     def test_PS1(self):
         with env_var("CONDA_CHANGEPS1", "yes", reset_context):
             activator = Activator('posix')
-            assert activator._prompt_modifier(ROOT_ENV_NAME) == '(%s) ' % ROOT_ENV_NAME
+            assert activator._prompt_modifier(ROOT_ENV_NAME) == ''
 
-            instructions = activator.build_activate("root")
-            assert instructions['set_vars']['CONDA_PROMPT_MODIFIER'] == '(%s) ' % ROOT_ENV_NAME
+            instructions = activator.build_activate(ROOT_ENV_NAME)
+            assert instructions['set_vars']['CONDA_PROMPT_MODIFIER'] == ''
+
+            activator = Activator('posix')
+            assert activator._prompt_modifier('test-env') == '(test-env) '
 
     def test_PS1_no_changeps1(self):
         with env_var("CONDA_CHANGEPS1", "no", reset_context):
