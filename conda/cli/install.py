@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import abspath, basename, exists, isdir, join
+from os.path import abspath, basename, exists, isdir
 
 from . import common
 from .._vendor.auxlib.ish import dals
@@ -17,11 +17,10 @@ from ..base.context import context
 from ..common.compat import text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_channel_priority_map, get_index
-from ..core.linked_data import linked as install_linked
 from ..core.solve import Solver
 from ..exceptions import (CondaImportError, CondaOSError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
-                          PackageNotInstalledError, PackagesNotFoundError, TooManyArgumentsError,
+                          PackagesNotFoundError, TooManyArgumentsError,
                           UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..plan import (revert_actions)

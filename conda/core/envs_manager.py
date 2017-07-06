@@ -317,7 +317,8 @@ class EnvsDirectory(object):
             else:
                 drop_these.append(rerec)
         if not drop_these:
-            self._envs_dir_data['registered_envs'] = sorted(keep_these, key=lambda x: x['location'])
+            self._envs_dir_data['registered_envs'] = sorted(keep_these,
+                                                            key=lambda x: x['location'])
             self.write_to_disk()
 
     # # ############################
