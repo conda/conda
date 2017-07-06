@@ -27,7 +27,8 @@ from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, Field, IntegerField, ListField, MapField, StringField)
+                                     EnumField, Field, IntegerField, ListField, MapField,
+                                     StringField)
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
 
@@ -59,19 +60,19 @@ class PriorityField(Field):
 
 
 class LinkTypeField(EnumField):
-    def box(self, instance, val):
+    def box(self, instance, instance_type, val):
         if isinstance(val, string_types):
             val = val.replace('-', '').replace('_', '').lower()
             if val == 'hard':
                 val = LinkType.hardlink
             elif val == 'soft':
                 val = LinkType.softlink
-        return super(LinkTypeField, self).box(instance, val)
+        return super(LinkTypeField, self).box(instance, instance_type, val)
 
 
 class NoarchField(EnumField):
-    def box(self, instance, val):
-        return super(NoarchField, self).box(instance, NoarchType.coerce(val))
+    def box(self, instance, instance_type, val):
+        return super(NoarchField, self).box(instance, instance_type, NoarchType.coerce(val))
 
 
 class Link(DictSafeMixin, Entity):
@@ -93,17 +94,46 @@ def push_individual_feature(result_map, val):
             result_map[val] = 'true'
 
 
+def _make_provides_features(track_features, instance):
+    result_map = {}
+    for feat in track_features:
+        push_individual_feature(result_map, feat)
+    if instance.name in ('python', 'numpy'):
+        ver = '.'.join(instance.version.split('.')[:2])
+        push_individual_feature(result_map, "%s=%s" % (instance.name, ver))
+    return frozendict(result_map)
+
+
+def _make_requires_features(features, depends):
+    result_map = {}
+    for feat in features:
+        push_individual_feature(result_map, feat)
+    for dep in depends:
+        specish = dep.split(' ')
+        spec_name = specish[0]
+        if spec_name in ('python', 'numpy') and len(specish) > 1:
+            version = specish[1]
+            if not any(x in version for x in ',|'):  # make sure version is exact enough
+                try:
+                    split_vals = version.split('.')
+                    major, minor = int(split_vals[0]), int(split_vals[1].rstrip('*'))
+                    result_map[spec_name] = '%s.%s' % (major, minor)
+                except (IndexError, ValueError):
+                    continue
+    return frozendict(result_map)
+
+
 class _FeaturesField(ListField):
 
     def __init__(self, **kwargs):
         super(_FeaturesField, self).__init__(string_types, **kwargs)
 
-    def box(self, instance, val):
+    def box(self, instance, instance_type, val):
         if isinstance(val, string_types):
             val = val.replace(' ', ',').split(',')
-        return super(_FeaturesField, self).box(instance, val)
+        return super(_FeaturesField, self).box(instance, instance_type, val)
 
-    def dump(self, val):
+    def dump(self, instance, instance_type, val):
         if isiterable(val):
             return ' '.join(val)
         else:
@@ -112,39 +142,21 @@ class _FeaturesField(ListField):
 
 class TrackFeaturesField(_FeaturesField):
 
-    @staticmethod
-    def _make_provides_features(track_features, instance):
-        result_map = {}
-        for feat in track_features:
-            push_individual_feature(result_map, feat)
-        if instance.name in ('python', 'numpy'):
-            ver = '.'.join(instance.version.split('.')[:2])
-            push_individual_feature(result_map, "%s=%s" % (instance.name, ver))
-        return frozendict(result_map)
-
-    def box(self, instance, val):
-        val = super(TrackFeaturesField, self).box(instance, val)
+    def box(self, instance, instance_type, val):
+        val = super(TrackFeaturesField, self).box(instance, instance_type, val)
         if val and instance and not instance.provides_features:
-            instance.provides_features = self._make_provides_features(val, instance)
+            _val = _make_provides_features(val, instance)
+            if _val:
+                instance.provides_features = _val
         return val
 
 
 class ProvidesFeaturesField(MapField):
 
-    @staticmethod
-    def _make_provides_features(track_features, instance):
-        result_map = {}
-        for feat in track_features:
-            push_individual_feature(result_map, feat)
-        if instance.name in ('python', 'numpy'):
-            ver = '.'.join(instance.version.split('.')[:2])
-            push_individual_feature(result_map, "%s=%s" % (instance.name, ver))
-        return frozendict(result_map)
-
     def unbox(self, instance, instance_type, val):
         val = super(ProvidesFeaturesField, self).unbox(instance, instance_type, val)
         if not val and instance:
-            _val = self._make_provides_features(val, instance)
+            _val = _make_provides_features(val, instance)
             if _val:
                 val = instance.requires_features = _val
         return val
@@ -152,57 +164,21 @@ class ProvidesFeaturesField(MapField):
 
 class LegacyFeaturesField(_FeaturesField):
 
-    @staticmethod
-    def _make_requires_features(features, depends):
-        result_map = {}
-        for feat in features:
-            push_individual_feature(result_map, feat)
-        for dep in depends:
-            specish = dep.split(' ')
-            spec_name = specish[0]
-            if spec_name in ('python', 'numpy') and len(specish) > 1:
-                version = specish[1]
-                if not any(x in version for x in ',|'):  # make sure version is exact enough
-                    try:
-                        split_vals = version.split('.')
-                        major, minor = int(split_vals[0]), int(split_vals[1].rstrip('*'))
-                        result_map[spec_name] = '%s.%s' % (major, minor)
-                    except (IndexError, ValueError):
-                        continue
-        return frozendict(result_map)
-
-    def box(self, instance, val):
-        val = super(LegacyFeaturesField, self).box(instance, val)
+    def box(self, instance, instance_type, val):
+        val = super(LegacyFeaturesField, self).box(instance, instance_type, val)
         if val and instance and not instance.requires_features:
-            instance.requires_features = self._make_requires_features(val, instance.depends)
+            _val = _make_requires_features(val, instance.depends)
+            if _val:
+                instance.requires_features = _val
         return val
 
 
 class RequiresFeaturesField(MapField):
 
-    @staticmethod
-    def _make_requires_features(features, depends):
-        result_map = {}
-        for feat in features:
-            push_individual_feature(result_map, feat)
-        for dep in depends:
-            specish = dep.split(' ')
-            spec_name = specish[0]
-            if spec_name in ('python', 'numpy') and len(specish) > 1:
-                version = specish[1]
-                if not any(x in version for x in ',|'):  # make sure version is exact enough
-                    try:
-                        split_vals = version.split('.')
-                        major, minor = int(split_vals[0]), int(split_vals[1].rstrip('*'))
-                        result_map[spec_name] = '%s.%s' % (major, minor)
-                    except (IndexError, ValueError):
-                        continue
-        return frozendict(result_map)
-
     def unbox(self, instance, instance_type, val):
         val = super(RequiresFeaturesField, self).unbox(instance, instance_type, val)
         if not val and instance:
-            _val = self._make_requires_features(instance.features, instance.depends)
+            _val = _make_requires_features(instance.features, instance.depends)
             if _val:
                 val = instance.requires_features = _val
         return val
@@ -214,7 +190,7 @@ class ChannelField(ComposableField):
         self._type = Channel
         super(ComposableField, self).__init__(required=False, aliases=aliases)
 
-    def dump(self, val):
+    def dump(self, instance, instance_type, val):
         return val and text_type(val)
 
     def __get__(self, instance, instance_type):
@@ -353,9 +329,11 @@ class IndexJsonRecord(BasePackageRef):
 
     # track_features is being depracated and replaced with provides_features
     # NOTE: it's important that track_features comes before provides_features here
-    provides_features = ProvidesFeaturesField(required=False, default=frozendict(), default_in_dump=False, immutable=False)
+    provides_features = ProvidesFeaturesField(required=False, default=frozendict(),
+                                              default_in_dump=False, immutable=False)
     track_features = TrackFeaturesField(required=False, default=(), default_in_dump=False)
-    requires_features = RequiresFeaturesField(required=False, default=frozendict(), default_in_dump=False, immutable=False)
+    requires_features = RequiresFeaturesField(required=False, default=frozendict(),
+                                              default_in_dump=False, immutable=False)
     features = LegacyFeaturesField(required=False, default=(), default_in_dump=False)
 
     subdir = SubdirField()

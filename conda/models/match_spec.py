@@ -200,7 +200,8 @@ class MatchSpec(object):
         """
         for field_name, v in iteritems(self._match_components):
             if field_name == 'features':
-                if not (self._match_individual(rec, 'provides_features', v) or self._match_individual(rec, 'requires_features', v)):
+                if not (self._match_individual(rec, 'provides_features', v)
+                        or self._match_individual(rec, 'requires_features', v)):
                     return False
             else:
                 if not self._match_individual(rec, field_name, v):
@@ -695,7 +696,8 @@ class FeatureMatch(MatchInterface):
         return all(v == other.get(k) for k, v in iteritems(self._raw_value))
 
     def __repr__(self):
-        return "{%s}" % ', '.join("'%s': '%s'" % (k, self._raw_value[k]) for k in sorted(self._raw_value))
+        return "{%s}" % ', '.join("'%s': '%s'" % (k, self._raw_value[k])
+                                  for k in sorted(self._raw_value))
 
     def __str__(self):
         # this space delimiting makes me nauseous

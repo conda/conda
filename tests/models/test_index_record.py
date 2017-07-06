@@ -136,7 +136,8 @@ class PrefixRecordTests(TestCase):
         )
 
         assert rec.features == ('debug', 'nomkl')
-        assert rec.requires_features == {'debug': 'true', 'blas': 'nomkl', 'python': '2.7', 'numpy': '1.11'}
+        assert rec.requires_features == {'debug': 'true', 'blas': 'nomkl',
+                                         'python': '2.7', 'numpy': '1.11'}
         assert dict(rec.dump()) == dict(
             name='austin',
             version='1.2.3',
