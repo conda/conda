@@ -14,7 +14,7 @@ import re
 from textwrap import dedent
 from time import time
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 from .. import CondaError, iteritems
 from .._vendor.auxlib.entity import EntityEncoder
@@ -51,7 +51,7 @@ __all__ = ('RepoData',)
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderrlog')
 
-REPODATA_PICKLE_VERSION = 3
+REPODATA_PICKLE_VERSION = 4
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
 
 
@@ -445,9 +445,9 @@ def read_local_repodata(cache_path, channel_url, schannel, priority, etag, mod_s
             return local_repodata
 
 
-def make_feature_record(feature_name):
+def make_feature_record(feature_name, feature_value):
     # necessary for the SAT solver to do the right thing with features
-    pkg_name = feature_name + '@'
+    pkg_name = "%s=%s@" % (feature_name, feature_value)
     return IndexRecord(
         name=pkg_name,
         version='0',
@@ -455,7 +455,9 @@ def make_feature_record(feature_name):
         channel=UNKNOWN_CHANNEL,
         subdir=context.subdir,
         md5="0123456789",
-        track_features=feature_name,
+        provides_features={
+            feature_name: feature_value,
+        },
         build_number=0,
         fn=pkg_name,
     )
@@ -483,7 +485,7 @@ def process_repodata(repodata, channel_url, schannel, priority):
         'subdir': subdir,
     }
     packages = {}
-    feature_names = set()
+    all_features = defaultdict(set)
     for fn, info in iteritems(opackages):
         info['fn'] = fn
         info['url'] = join_url(channel_url, fn)
@@ -492,14 +494,15 @@ def process_repodata(repodata, channel_url, schannel, priority):
         info.update(meta_in_common)
         rec = IndexRecord(**info)
         packages[Dist(rec)] = rec
-        if rec.features:
-            feature_names.update(rec.features)
-        if rec.track_features:
-            feature_names.update(rec.track_features)
+        for k, v in iteritems(rec.requires_features):
+            all_features[k].add(v)
+        for k, v in iteritems(rec.provides_features):
+            all_features[k].add(v)
 
-    for feature_name in feature_names:
-        rec = make_feature_record(feature_name)
-        packages[Dist(rec)] = rec
+    for feature_name, feature_values in iteritems(all_features):
+        for feature_value in feature_values:
+            rec = make_feature_record(feature_name, feature_value)
+            packages[Dist(rec)] = rec
 
     repodata['packages'] = packages
 
