@@ -15,12 +15,13 @@ from ..compat import itervalues, text_type
 from ..exceptions import PackagesNotFoundError
 
 descr = """Search for packages and display their information. The input is a
-MatchSpec, which is a fundamentally query language for conda packages.  To perform a search with a search string that starts
+MatchSpec, which is a fundamentally query language for conda packages.
+To perform a search with a search string that starts
 with a -, separate the search from the options with --, like 'conda search -- -h'.
 
 """
 example = '''
-Examples:
+Examples:git
 
 Search for a specific package (but no other packages that have 'scikit-learn'
 in the name):
