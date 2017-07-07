@@ -8,15 +8,15 @@ If you have conda installed, you can easily install the R programming language a
 
 R-Essentials works very much like Anaconda:
 
-* Installs all of the most popular packages with all of their dependencies with one command: ``conda install -c r r-essentials``
-* Update all of the packages and their dependencies with one command: ``conda update -c r r-essentials``
+* Installs all of the most popular packages with all of their dependencies with one command: ``conda install r-essentials``
+* Update all of the packages and their dependencies with one command: ``conda update r-essentials``
 * Update a single package in R-Essentials (if a new version of  the package is available in the R channel) with the command ``conda update r-XXXX``
 
 How to install "R Essentials"
 =============================
 
 1. `Download and install Anaconda <https://www.continuum.io/downloads>`_
-2. Install the R Essentials package into the current environment: ``conda install -c r r-essentials``
+2. Install the R Essentials package into the current environment: ``conda install r-essentials``
 
 Create and share your own custom R bundle
 =========================================
