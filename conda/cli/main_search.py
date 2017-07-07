@@ -70,6 +70,11 @@ def configure_parser(sub_parsers):
         help=SUPPRESS,
     )
     p.add_argument(
+        '-l', "--list",
+        action="store_true",
+        help="List available packages",
+    )
+    p.add_argument(
         "--names-only",
         action="store_true",
         help=SUPPRESS,
@@ -158,8 +163,7 @@ def execute(args, parser):
             json_obj[match.name].append(match)
         stdout_json(json_obj)
 
-    else:
-
+    if context.list:
         builder = ['%-25s  %-15s %15s  %-15s' % (
             "Name",
             "Version",
@@ -175,3 +179,40 @@ def execute(args, parser):
             ))
         sys.stdout.write('\n'.join(builder))
         sys.stdout.write('\n')
+
+    else:
+        for record in matches:
+            pretty_record(record)
+
+
+def pretty_record(record):
+    from ..utils import human_bytes
+    from collections import OrderedDict
+    from ..resolve import dashlist
+    d = OrderedDict([
+        ('file name', record.fn),
+        ('name', record.name),
+        ('version', record.version),
+        ('build string', record.build),
+        ('build number', record.build_number),
+        ('channel', record.channel),
+        ('size', human_bytes(record.size)),
+        ('arch', record.arch),
+        ('constrains', record.constrains),
+        ('platform', record.platform),
+        ('license', record.license),
+        ('subdir', record.subdir),
+        ('url', record.url),
+    ])
+    print()
+    header = "%s %s %s" % (d['name'], d['version'], d['build string'])
+    print(header)
+    print('-'*len(header))
+    for key in d:
+        print("%-12s: %s" % (key, d[key]))
+    print('dependencies:')
+    dep = dashlist(record.depends)
+    print('    %s' % dep)
+    print('\n')
+
+
