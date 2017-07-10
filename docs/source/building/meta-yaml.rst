@@ -197,7 +197,8 @@ Each field that expect a path can also handle a glob pattern. The matching is
 performed from the top of the build environment, so to match files inside
 your project you can use a pattern similar to the following one:
 "\*\*/myproject/\*\*/\*.txt". This pattern will match any .txt file found in
-your project. The quotes are mandatory for patterns starting with a \*.
+your project. The quotes are mandatory for patterns starting with a \*. 
+Recursive globbing using \*\* is only supported in conda-build >= 3.0.
 
 Build number and string
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -282,14 +283,15 @@ Skip compiling some .py files into .pyc files
 Some packages ship .py files that cannot be compiled, such as those that contain
 templates. Some packages also ship .py files that should not be compiled yet,
 because the Python interpreter that will be used is not known at build-time. In
-these cases conda-build can skip attempting to compile these files.
+these cases conda-build can skip attempting to compile these files. The patterns
+used in this section do not need the \*\* to handle recursive pathes.
 
 .. code-block:: yaml
 
   build:
     skip_compile_pyc:
-      - "**/templates/*.py"          # These should not (and cannot) be compiled
-      - "**/share/plugins/gdb/*.py"  # The python embedded into gdb is unknown
+      - "*/templates/*.py"          # These should not (and cannot) be compiled
+      - "*/share/plugins/gdb/*.py"  # The python embedded into gdb is unknown
 
 No link
 ~~~~~~~
