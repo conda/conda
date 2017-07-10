@@ -808,9 +808,9 @@ def _get_user_agent(context_platform):
 
 
 # backward compatibility for conda-build
-def get_prefix(args, search=True):
+def get_prefix(ctx, args, search=True):
     from ..core.envs_manager import determine_target_prefix
-    return determine_target_prefix(context, args)
+    return determine_target_prefix(ctx or context, args)
 
 
 try:
