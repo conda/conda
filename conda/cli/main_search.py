@@ -220,4 +220,3 @@ def pretty_record(record):
     builder.append('\n')
     sys.stdout.write('\n'.join(builder))
     sys.stdout.write('\n')
-
