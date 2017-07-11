@@ -160,7 +160,7 @@ class Context(Configuration):
     error_upload_url = PrimitiveParameter(ERROR_UPLOAD_URL)
     force = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
-    list = PrimitiveParameter(False)
+    info = PrimitiveParameter(False)
     no_dependencies = PrimitiveParameter(False, aliases=('no_deps',))
     offline = PrimitiveParameter(False)
     only_dependencies = PrimitiveParameter(False, aliases=('only_deps',))
@@ -683,8 +683,8 @@ def get_help_dict():
         'json': dals("""
             Ensure all output written to stdout is structured json.
             """),
-        'list': dals("""
-            List package builds
+        'info': dals("""
+            Provide detail information on each build of a package
             """),
         'local_repodata_ttl': dals("""
             For a value of False or 0, always fetch remote repodata (HTTP 304 responses

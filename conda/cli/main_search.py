@@ -33,6 +33,12 @@ Search for packages that has 'scikit' in its name:
    conda search "*scikit*"
    conda search "scikit*"
 
+Fetch detail  package builds:
+
+  conda search numpy --info
+  conda search numpy=1.12 --info
+  conda search conda-forge::numpy=1.12 --info
+
 Search for packages for 64-bit Linux (by default, packages for your current
 platform are shown):
 
@@ -47,7 +53,7 @@ Search for a package in a specific channel (e.g. conda-forge):
 
    conda search conda-forge::numpy
    conda search conda-forge::numpy=1.12
-
+   conda search conda-forge::numpy=1.12 --platform linux-64
 '''
 
 
@@ -70,9 +76,9 @@ def configure_parser(sub_parsers):
         help=SUPPRESS,
     )
     p.add_argument(
-        '-l', "--list",
+        '-i', "--info",
         action="store_true",
-        help="List available packages",
+        help="Provide detail information of each build of a package",
     )
     p.add_argument(
         "--names-only",
@@ -163,7 +169,11 @@ def execute(args, parser):
             json_obj[match.name].append(match)
         stdout_json(json_obj)
 
-    if context.list:
+    if context.info:
+        for record in matches:
+            pretty_record(record)
+
+    else:
         builder = ['%-25s  %-15s %15s  %-15s' % (
             "Name",
             "Version",
@@ -180,39 +190,34 @@ def execute(args, parser):
         sys.stdout.write('\n'.join(builder))
         sys.stdout.write('\n')
 
-    else:
-        for record in matches:
-            pretty_record(record)
-
 
 def pretty_record(record):
     from ..utils import human_bytes
-    from collections import OrderedDict
     from ..resolve import dashlist
-    d = OrderedDict([
-        ('file name', record.fn),
-        ('name', record.name),
-        ('version', record.version),
-        ('build string', record.build),
-        ('build number', record.build_number),
-        ('channel', record.channel),
-        ('size', human_bytes(record.size)),
-        ('arch', record.arch),
-        ('constrains', record.constrains),
-        ('platform', record.platform),
-        ('license', record.license),
-        ('subdir', record.subdir),
-        ('url', record.url),
-    ])
-    print()
-    header = "%s %s %s" % (d['name'], d['version'], d['build string'])
-    print(header)
-    print('-'*len(header))
-    for key in d:
-        print("%-12s: %s" % (key, d[key]))
-    print('dependencies:')
-    dep = dashlist(record.depends)
-    print('    %s' % dep)
-    print('\n')
 
+    def push_line(display_name, attr_name):
+        value = getattr(record, attr_name, None)
+        if value is not None:
+            builder.append("%-12s: %s" % (display_name, value))
+
+    builder = []
+    builder.append(record.name + " " + record.version + " " + record.build)
+    builder.append('-'*len(builder[0]))
+
+    push_line("file name", "fn")
+    push_line("name", "name")
+    push_line("version", "version")
+    push_line("build string", "build")
+    push_line("build number", "build_number")
+    builder.append("%-12s: %s" % ("size", human_bytes(record.size)))
+    push_line("arch", "arch")
+    push_line("constrains", "constrains")
+    push_line("platform", "platform")
+    push_line("license", "license")
+    push_line("subdir", "subdir")
+    push_line("url", "url")
+    builder.append("%-12s: %s" % ("dependencies", dashlist(record.depends)))
+    builder.append('\n')
+    sys.stdout.write('\n'.join(builder))
+    sys.stdout.write('\n')
 
