@@ -169,7 +169,7 @@ def execute(args, parser):
             json_obj[match.name].append(match)
         stdout_json(json_obj)
 
-    if context.info:
+    elif context.info:
         for record in matches:
             pretty_record(record)
 
