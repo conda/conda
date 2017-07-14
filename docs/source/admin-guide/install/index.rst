@@ -32,11 +32,6 @@ System requirements
 * For Anaconda---300 MB disk space to download Anaconda plus
   another 300 MB to install it.
 
-  [@cio-docs] We assumed the above requirements for Miniconda and
-  Anaconda referred to disk space, so added that info for clarity.
-  Elsewhere in the source content, it said "The full Anaconda
-  package requires 3 GB of available disk space." This doesn't
-  match the above 600 MB (300 + 300). Which is correct?
 
 * Windows, macOS or Linux.
 
@@ -54,20 +49,6 @@ Installing in silent mode
 You can use :ref:`silent installation <silent-mode-glossary>` of
 Miniconda or Anaconda for deployment or testing or building
 services such as Travis CI and AppVeyor.
-
-Start with the latest version of Miniconda or Anaconda.
-Check to be sure your version is up to date by running:
-
-.. code-block:: none
-
-    conda update conda
-
-[@cio-docs: The above instruction says to check the
-conda version before starting a silent installation. The
-silent mode instructions are for installing Anaconda or Miniconda.
-How can the user run a conda command to check the conda version
-when conda isn't installed yet and won't be until *after*
-installing Anaconda or Miniconda?]
 
 Follow the silent-mode instructions for your operating system:
 

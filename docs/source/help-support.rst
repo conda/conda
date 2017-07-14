@@ -2,20 +2,18 @@
 Help and support
 =================
 
-* Get free community support with our `Google group 
+* Get free community support with our `Google group
   <https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda/>`_.
 
-  [@cio-docs: Line is over the length limit.]
-
-* Paid `support <https://www.continuum.io/anaconda-support>`_, 
-  `training <https://www.continuum.io/training>`_ and 
-  `consulting <https://www.continuum.io/quick-start-consulting>`_ 
-  options are available. Our teaching philosophy is that the best 
-  way to learn is with hands-on experience addressing real-world 
-  problems. Courses are available to individuals online, at 
-  numerous sites, or in-house at your place of business. We also 
-  offer consulting services for the analysis, management and 
-  visualization of scientific and business data or optimizing 
+* Paid `support <https://www.continuum.io/anaconda-support>`_,
+  `training <https://www.continuum.io/training>`_ and
+  `consulting <https://www.continuum.io/quick-start-consulting>`_
+  options are available. Our teaching philosophy is that the best
+  way to learn is with hands-on experience addressing real-world
+  problems. Courses are available to individuals online, at
+  numerous sites, or in-house at your place of business. We also
+  offer consulting services for the analysis, management and
+  visualization of scientific and business data or optimizing
   your processing workflows on modern hardware and GPUs.
 
 * Support is included in some purchases.
@@ -24,77 +22,73 @@ Help and support
 Join the conda email group
 ===========================
 
-Join the mailing lists for both `Anaconda 
-<https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda>`_ 
-and `conda 
-<https://groups.google.com/a/continuum.io/forum/#!forum/conda>`_. 
-Ask questions, answer questions, discuss ways to use conda, 
+Join the mailing lists for both `Anaconda
+<https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda>`_
+and `conda
+<https://groups.google.com/a/continuum.io/forum/#!forum/conda>`_.
+Ask questions, answer questions, discuss ways to use conda,
 request new features and submit any other comments you may have.
-
-[@cio-docs: Line is over the length limit.]
 
 
 Contribute recipes to GitHub
 ===============================
 
-Submit new recipes to the GitHub repository at 
-https://github.com/conda/conda-recipes. Building recipes is 
-described in :doc:`user-guide/tasks/build-packages/index`. 
-When you build a new conda recipe for a program not yet listed in 
-the repository, use a GitHub pull request to submit it to the 
-repository, so that others using that program in the future can 
-reuse it. Recipes are welcome for programs that use any license, 
-such as GPL, BSD, MIT or Apache, and all of the recipes in this 
+Submit new recipes to the GitHub repository at
+https://github.com/conda/conda-recipes. Building recipes is
+described in :doc:`user-guide/tasks/build-packages/index`.
+When you build a new conda recipe for a program not yet listed in
+the repository, use a GitHub pull request to submit it to the
+repository, so that others using that program in the future can
+reuse it. Recipes are welcome for programs that use any license,
+such as GPL, BSD, MIT or Apache, and all of the recipes in this
 repository are released into the public domain.
 
 
 Report bugs
 ==============
 
-Issues with conda are tracked on GitHub at 
-https://github.com/conda/conda/issues, and issues with conda 
-build are tracked at https://github.com/conda/conda-build/issues. 
-If you find a bug, search to see if it has already been reported, 
+Issues with conda are tracked on GitHub at
+https://github.com/conda/conda/issues, and issues with conda
+build are tracked at https://github.com/conda/conda-build/issues.
+If you find a bug, search to see if it has already been reported,
 and then report it if no one else has.
 
 
 Send feedback
 =============
 
-Send feedback about the conda documentation to 
+Send feedback about the conda documentation to
 `documentation@continuum.io <mailto:documentation@continuum.io>`_.
 
 
 Presentations and blog posts
 ============================
 
-* `Packaging and Deployment with conda---Travis Oliphant 
+* `Packaging and Deployment with conda---Travis Oliphant
   <https://speakerdeck.com/teoliphant/packaging-and-deployment-with-conda>`_.
 
-* `Python 3 Support in Anaconda---Ilan Schnell 
+* `Python 3 Support in Anaconda---Ilan Schnell
   <https://www.continuum.io/content/python-3-support-anaconda>`_.
 
-* `New Advances in conda---Ilan Schnell 
+* `New Advances in conda---Ilan Schnell
   <https://www.continuum.io/blog/developer/new-advances-conda>`_.
 
-* `Python Packages and Environments with conda---Bryan Van de Ven 
+* `Python Packages and Environments with conda---Bryan Van de Ven
   <https://www.continuum.io/content/python-packages-and-environments-conda>`_.
 
-* `Advanced Features of conda, Part 1---Aaron Meurer 
+* `Advanced Features of conda, Part 1---Aaron Meurer
   <https://www.continuum.io/blog/developer/advanced-features-conda-part-1>`_.
 
-* `Advanced Features of conda, Part 2---Aaron Meurer 
+* `Advanced Features of conda, Part 2---Aaron Meurer
   <https://www.continuum.io/blog/developer/advanced-features-conda-part-2>`_
-
-[@cio-docs: Lines are over the length limit.]
 
 
 Conda announcements list
 ========================
 
-Conda Announcements is a low-traffic email list for news and 
-updates directly from the conda core team. It is not a marketing 
-list. We never sell, give away or distribute your email address 
+Conda Announcements is a low-traffic email list for news and
+updates directly from the conda core team. It is not a marketing
+list. We never sell, give away or distribute your email address
 to third parties.
 
 * No more than 1 email per week, usually less.
@@ -102,11 +96,9 @@ to third parties.
 * No corporate marketing hype.
 * No spam.
 
-For convenience, we use MailChimp to manage subscriptions, 
-including `archived announcements 
+For convenience, we use MailChimp to manage subscriptions,
+including `archived announcements
 <http://us13.campaign-archive1.com/home/?u=28f85eefa68de727efcbd93f9&id=cb4ca49e7d>`_.
-
-[@cio-docs: Line is over the length limit.]
 
 .. raw:: html
 
@@ -145,5 +137,3 @@ including `archived announcements
    </div>
    <script type='text/javascript' src='//s3.amazonaws.com/downloads.mailchimp.com/js/mc-validate.js'></script><script type='text/javascript'>(function($) {window.fnames = new Array(); window.ftypes = new Array();fnames[0]='EMAIL';ftypes[0]='email';fnames[1]='NAME';ftypes[1]='text';fnames[2]='AFFILIATIO';ftypes[2]='text';}(jQuery));var $mcj = jQuery.noConflict(true);</script>
    <!--End mc_embed_signup-->
-
-[@cio-docs: Lines are over the length limit.]

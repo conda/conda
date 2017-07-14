@@ -146,7 +146,6 @@ for their architecture.
 
        PYTHON setup.py install     # Python command to install the script.
 
-   [@cio-docs: Line is over the length limit.]
 
 #. Save your new ``build.sh`` file to the same directory where you
    put the ``meta.yaml`` file.
@@ -182,7 +181,6 @@ on your local computer.
 
       ~/anaconda/conda-bld/linux-64/pyinstrument-0.13.1-py27_0.tar.bz2
 
-   [@cio-docs: Line is over the length limit.]
 
    NOTE: Save this path and file information for the next task.
    The exact path and filename varies depending on your operating
@@ -226,7 +224,6 @@ EXAMPLE: Using the platform specifier ``all``:
 
      conda convert --platform all ~/anaconda/conda-bld/linux-64/pyinstrument-0.13.1-py27_0.tar.bz2 -o outputdir/
 
-[@cio-docs: Line is over the length limit.]
 
 NOTE: Change your path and filename to the path and
 filename you saved in :ref:`build-and-install`.
@@ -258,7 +255,6 @@ With the following:
     md5: e347036acc50720c0903dc2221b2605d
     url: https://pypi.python.org/packages/source/p/pyinstrument/pyinstrument-0.13.1.tar.gz
 
-[@cio-docs: Line is over the length limit.]
 
 NOTE: The ``md5`` is found on the `PyPI Pyinstrument page
 <https://pypi.python.org/pypi/pyinstrument>`_.
@@ -292,7 +288,6 @@ It only takes a minute to do if you have a free Anaconda.org account.
 
       anaconda upload ~/miniconda/conda-bld/linux-64/pyinstrument-0.12-py27_0.tar.bz
 
-   [@cio-docs: Line is over the length limit.]
 
    NOTE: Change your path and filename to the path and
    filename you saved in :ref:`build-and-install`.

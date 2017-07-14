@@ -4,52 +4,57 @@ Conda
 
 .. figure::  ../../img/conda_logo.svg
    :align: center
+   :width: 50%
 
    ..
 
 |
 
-:emphasis:`Package, dependency and environment management for any 
-language---Python, R, Ruby, Lua, Scala, Java, JavaScript, C/ C++, 
+:emphasis:`Package, dependency and environment management for any
+language---Python, R, Ruby, Lua, Scala, Java, JavaScript, C/ C++,
 FORTRAN`
 
-Conda is an open source package management system and environment 
-management system that runs on Windows, macOS and Linux. Conda 
-quickly installs, runs and updates packages and their dependencies 
-and easily creates, saves, loads and switches between environments 
-on your local computer. It was created for Python programs, but it 
-can package and distribute any software.
+Conda is an open source package management system and environment
+management system that runs on Windows, macOS and Linux. Conda
+quickly installs, runs and updates packages and their dependencies.
+Conda easily creates, saves, loads and switches between environments
+on your local computer. It was created for Python programs, but it
+can package and distribute software for any language.
 
-Conda as a package manager helps you find and install packages. 
-If you need a package that requires a different version of 
-Python, you do not need to switch to a different environment 
-manager, because conda is also an environment manager. With just 
-a few commands, you can set up a totally separate environment to 
-run that different version of Python, while continuing to run 
+Conda as a package manager helps you find and install packages.
+If you need a package that requires a different version of
+Python, you do not need to switch to a different environment
+manager, because conda is also an environment manager. With just
+a few commands, you can set up a totally separate environment to
+run that different version of Python, while continuing to run
 your usual version of Python in your normal environment.
 
-In its default configuration, conda uses the hundreds of 
-packages at repo.continuum.io that are built, reviewed and 
-maintained by Continuum Analytics\ |reg|.
+In its default configuration, conda can install and manage the
+thousand packages at repo.continuum.io that are built, reviewed
+and maintained by Continuum Analytics\ |reg|.
 
-Conda can be combined with continuous integration systems such 
-as Travis CI and AppVeyor to provide frequent, automated testing 
+Conda can be combined with continuous integration systems such
+as Travis CI and AppVeyor to provide frequent, automated testing
 of your code.
 
-Pip install conda uses the released version on PyPI. This 
-version allows you to create new conda environments using any 
-Python installation, and a new version of Python is installed 
-into those environments. These environments are still considered 
+Pip install conda (new in conda 4.3) uses the released version on PyPI.
+This version allows you to create new conda environments using any
+Python installation, and a new version of Python is installed
+into those environments. These environments are still considered
 Anaconda installations.
 
-Conda is included in all versions of 
-:ref:`Anaconda\ |reg| <anaconda-glossary>`, 
-:ref:`Miniconda <miniconda-glossary>` and 
-:doc:`/anaconda-repository/index`. Conda is also included in the 
+@electronwill: do you know why we are discussing pip install conda,
+and should that be conda install pip? I added the (new in conda 4.3)
+to try to clarify but it still seems muddy to me.
+
+Conda package and environment manager is included in all versions of
+:ref:`Anaconda\ |reg| <anaconda-glossary>`,
+:ref:`Miniconda <miniconda-glossary>` and
+:doc:`/anaconda-repository/index`. Conda is also included in the
 Continuum `subscriptions <https://www.continuum.io/anaconda-subscriptions>`_
-of Anaconda, which provide on-site enterprise package and 
-environment management for Python, R, Node.js, Java and other 
-application stacks. Conda is also available on PyPI, although 
+of Anaconda, which provide on-site enterprise package and
+environment management for Python, R, Node.js, Java and other
+application stacks. Conda is also available on PyPI, although
 that approach may not be as up to date.
 
 .. toctree::

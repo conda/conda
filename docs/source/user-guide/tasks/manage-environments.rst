@@ -103,10 +103,6 @@ For details, run ``conda create --help``.
 Creating an environment from an environment.yml file
 ====================================================
 
-[@cio-docs: When you get an environment.yml file from someone, do
-you need to put it in a particular directory before you perform
-the following steps?]
-
 #. Create the environment from the ``environment.yml`` file:
 
    .. code::
@@ -117,7 +113,7 @@ the following steps?]
 
    * Windows---``activate myenv``.
 
-   * macOS and Linux---``source activate myenv``.
+   * macOS and Linux---``activate myenv``.
 
    NOTE: Replace ``myenv`` with the name of the environment.
 
@@ -180,7 +176,6 @@ on the same machine or on a different machine.
       https://repo.continuum.io/pkgs/free/osx-64/xz-5.2.2-0.tar.bz2
       https://repo.continuum.io/pkgs/free/osx-64/zlib-1.2.8-3.tar.bz2
 
-   [@cio-docs: Lines are over the length limit.]
 
 #. To create this spec list as a file in the current working
    directory, run::

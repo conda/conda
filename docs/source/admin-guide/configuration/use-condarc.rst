@@ -208,7 +208,7 @@ EXAMPLE:
 Change command prompt (changeps1)
 ---------------------------------
 
-When using ``activate``, change the command prompt from ``PS1`` 
+When using ``activate``, change the command prompt from ``PS1``
 to include the activated environment. The default is ``True``.
 
 EXAMPLE:
@@ -277,8 +277,6 @@ If your password contains special characters, you need escape
 them as described in `Percent-encoding reserved characters
 <https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters>`_ ,
 on Wikipedia.
-
-[@cio-docs: Line is over the length limit.]
 
 Be careful not to use ``http`` when you mean https or
 ``https`` when you mean http.
@@ -369,8 +367,6 @@ EXAMPLE: The command::
 is the same as::
 
   conda install --channel https://conda.anaconda.org/asmeurer <package>
-
-[@cio-docs: Line is over the length limit.]
 
 You can set channel_alias to your own repository.
 
@@ -476,7 +472,6 @@ EXAMPLE:
 
 Add Anaconda.org token to automatically see private packages (add_anaconda_token)
 ---------------------------------------------------------------------------------
-[@cio-docs: Line is over the length limit.]
 
 When the channel alias is Anaconda.org or an Anaconda Server GUI,
 you can set the system configuration so that users automatically
@@ -504,7 +499,6 @@ Conda build configuration
 
 Automatically upload conda build packages to Anaconda.org (anaconda_upload)
 ---------------------------------------------------------------------------
-[@cio-docs: Line is over the length limit.]
 
 Automatically upload packages built with conda build to
 `Anaconda.org <http://anaconda.org>`_. The default is ``False``.

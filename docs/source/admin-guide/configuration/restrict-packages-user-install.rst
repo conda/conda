@@ -106,8 +106,6 @@ User configuration file
                            http://repo.continuum.io/pkgs/pro/osx-64/
             config file : /Users/gergely/.condarc
 
-   [@cio-docs: Lines are over the length limit.]
-
    The ``conda info`` command shows that conda is using the
    user's ``.condarc file``, located at
    ``/Users/gergely/.condarc`` and that the default channels

@@ -48,8 +48,6 @@ prevent the group and other users from having access:
 For more information on ``umask``, see
 `http://en.wikipedia.org/wiki/Umask <http://en.wikipedia.org/wiki/Umask>`_.
 
-[@cio-docs: Line is over the length limit.]
-
 .. _fix-broken-conda:
 
 Already installed error message
@@ -68,12 +66,9 @@ Solution
 
 Install using the -f option.
 
-[@cio-docs] From context, it would appear that the following
-solution should be generalized to cover both Miniconda and
-Anaconda.
 
-Download and install the appropriate Miniconda for your operating
-system from the `Miniconda download page
+Download and install the appropriate Miniconda
+for your operating system from the `Miniconda download page
 <https://conda.io/miniconda.html>`_ using the force option
 ``-f``:
 
@@ -93,8 +88,6 @@ does not install a duplicate in a new folder.
 
 Conda reports that a package is installed, but it appears not to be
 ===================================================================
-
-[@cio-docs: Line is over the length limit.]
 
 Sometimes conda claims that a package is already installed, but
 it does not appear to be, for example, a Python package that
@@ -232,7 +225,7 @@ pkg_resources.DistributionNotFound: conda==3.6.1-6-gb31b0d4-dirty
 Cause
 ------
 
-[@cio-docs] This problem needs a documented cause.
+Unknown.
 
 Solution
 ----------
@@ -353,10 +346,7 @@ The shell then caches the location, which is called hashing in
 shell terminology. When you run command again, the shell does not
 have to search the PATH again.
 
-[@cio-docs] In the following sentence, "which loaded and hashed
-the one" is confusing. Needs SME review.
-
-The problem is that before you installed the program, you ran the
+The problem is that before you installed the program, you ran a
 command which loaded and hashed the one in some other location on
 the PATH, such as ``/usr/bin``. Then you installed the program
 using ``conda install``, but the shell still had the old instance
@@ -383,25 +373,19 @@ following circumstances:
    then run a command from somewhere else.
 
 #. Then you conda install a program, and then try to run the
-   program again without running ``source activate`` or
-   ``source deactivate``.
-
-[@cio-docs] In the following sentence the phrase, "or you can
-run ``source activate``" seems out of place. Needs SME review.
+   program again without running ``activate`` or
+   ``deactivate``.
 
 The command ``type command_name`` always tells you exactly what
 is being run. This is better than ``which command_name``, which
 ignores hashed commands and searches the PATH directly, and
-``hash -r`` in bash or ``rehash`` in zsh, which reset the hash,
-or you can run ``source activate``.
+``hash -r`` in bash or ``rehash`` in zsh, which reset the hash.
 
 
 .. _wrong-python:
 
 Programs fail due to invoking conda Python instead of system Python
 ===================================================================
-
-[@cio-docs: Line is over the length limit.]
 
 Cause
 ------
@@ -459,8 +443,6 @@ message such as this one::
     - wxpython 3* -> python 2.7*
     Use "conda info <package>" to see the dependencies for each package.
 
-[@cio-docs: Line is over the length limit.]
-
 This indicates that the specification to install wxpython 3
 depends on installing Python 2.7, which conflicts with the
 specification to install python 3.
@@ -491,7 +473,6 @@ information about this package and its dependencies::
         python 2.7*
         python.app
 
-[@cio-docs: Line is over the length limit.]
 
 By examining the dependencies of each package, you should be able
 to determine why the installation request produced a conflict and
@@ -534,13 +515,7 @@ Using this environment you should first attempt:
 
    conda install -n py34 cx_freeze
 
-[@cio-docs] In the following sentence, the qualifier "at the
-time this was written, on the platform used" is not helpful.
-All documentation is assumed to be true at the time written,
-and the platform should be identified. Needs SME review.
-
-However, when you do this you get the following error (at the
-time this was written, on the platform used)::
+However, when you do this you get the following error::
 
    Using Anaconda Cloud api site https://api.anaconda.org
    Fetching package metadata .........
@@ -573,7 +548,6 @@ running the following command:
         takluyver/cx_freeze       |    4.3.3 | conda           | linux-64
    Found 4 packages
 
-[@cio-docs: Lines are over the length limit.]
 
 In this example, there are 4 different places that you could try
 to get the package. None of them are officially supported or
@@ -627,7 +601,6 @@ command line:
        xz:         5.0.5-1
        zlib:       1.2.8-0
 
-[@cio-docs: Line is over the length limit.]
 
 Now you have a software environment sandbox created with Python
 3.4 and ``cx_freeze``.

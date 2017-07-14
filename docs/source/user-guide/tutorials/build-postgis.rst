@@ -42,8 +42,6 @@ required along with the minimum required version:
 
 .. _README.postgis: https://github.com/postgis/postgis/blob/2.2.2/README.postgis
 
-[@cio-docs: Comment line is over the length limit.]
-
 .. code-block:: bash
 
     postgresql version 9.1
@@ -162,8 +160,6 @@ The `postgis compilation documentation
 states that several flags must be provided to the ``configure``
 command to indicate the location of the dependent packages.
 
-[@cio-docs: Line is over the length limit.]
-
 During execution of the ``conda-build`` command, the $PREFIX
 environment variable is used to refer to the install path
 of conda packages.  In this case, use $PREFIX to inform the
@@ -246,8 +242,6 @@ following messages:
       # To have conda build upload to anaconda.org automatically, use
       # conda config --set anaconda_upload yes
 
-  [@cio-docs: Line is over the length limit.]
-
 * Linux:
 
   .. code-block:: text
@@ -261,7 +255,6 @@ following messages:
       # To have conda build upload to anaconda.org automatically, use
       # conda config --set anaconda_upload yes
 
-[@cio-docs: Line is over the length limit.]
 
 NOTE: Your path may be different depending on the install
 location of Anaconda.

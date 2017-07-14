@@ -154,8 +154,6 @@ EXAMPLE: On Windows::
   "C:\Users\username\anaconda\envs\_build" text "Scripts/script2.bat"
   "C:/Users/username/anaconda/envs/_build" binary "Scripts/binary"
 
-[@cio-docs: Line is over the length limit.]
-
 EXAMPLE: On macOS or Linux::
 
   bin/script.sh

@@ -2,7 +2,7 @@
 Release notes
 =============
 
-The conda 4.3 release contains the following improvements:
+The latest conda 4.3 release contains the following improvements:
 
 * Unlink and link packages in a single transaction---This
   provides improved error recovery by ensuring that conda is
@@ -67,26 +67,19 @@ The conda 4.3 release contains the following improvements:
   ``prevent``. You can override these defaults with the
   ``--clobber`` command line flag.
 
-  [@cio-docs] In the following paragraph, "The Update Framework"
-  should be capitalized only if it is a proper name, in which
-  case it should also be a link. Needs SME review.
-
 * Conda signed packages were vulnerable, created a false sense
   of security and have been removed. Work has begun to
-  incorporate The Update Framework into conda as a replacement.
+  incorporate
+  `The Update Framework (TUF) <https://theupdateframework.github.io/>`_
+  into conda as a replacement.
 
 * Conda version 4.4 will drop support for older versions of
   conda build.
 
-  [@cio-docs] In the following paragraph, it says: "The check
-  passes if one or both of these files exist but are empty."
-  It is not clear if they have to be empty or if the check passes
-  even if they are empty. Needs SME review.
-
 * To verify that a channel URL is a valid conda channel, conda
   now checks that ``noarch/repodata.json`` or
   ``noarch/repodata.json.bz2`` exist. The check passes if one or
-  both of these files exist but are empty.
+  both of these files exist even if they are empty.
 
 * Conda version 4.3 provides a new trace log level with
   extremely verbose output, which is enabled with the
