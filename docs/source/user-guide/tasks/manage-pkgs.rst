@@ -224,7 +224,7 @@ To update conda itself:
 
 NOTE: Conda updates to the highest version in its series, so
 Python 2.7 updates to the highest available in the 2.x series and
-3.5 updates to the highest available in the 3.x series.
+3.6 updates to the highest available in the 3.x series.
 
 To update the Anaconda metapackage:
 

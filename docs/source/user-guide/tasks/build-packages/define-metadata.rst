@@ -67,8 +67,8 @@ The source may come from a tarball file, git, hg or svn. It may
 be a local path, and it may contain patches.
 
 
-Source from tarball
--------------------
+Source from tarball/zip archive
+-------------------------------
 
 .. code-block:: yaml
 
@@ -78,6 +78,10 @@ Source from tarball
      sha1: f0a2c9a30073449cfb7d171c57552f3109d93894
      sha256: 5a022ff4c1d1de87232b1c70bde50afbb98212fd246be4a867d8737173cf1f8f
 
+
+If an extracted archive contains only one folder at its top level, its contents
+will be moved one level up so that the extracted package contents sit in the
+root of the work folder.
 
 Source from git
 ---------------
@@ -148,14 +152,65 @@ Patches may optionally be applied to the source.
 
 Conda build automatically determines the patch strip level.
 
+Destination path
+~~~~~~~~~~~~~~~~
+
+Within conda-build's work directory, you may specify a particular folder to
+place source into. This feature is new in conda-build 3.0. Conda-build will
+always drop you into the same folder (build folder/work), but it's up to you
+whether you want your source extracted into that folder, or nested deeper. This
+feature is particularly useful when dealing with multiple sources, but can apply
+to recipes with single sources as well.
+
+.. code-block:: yaml
+
+  source:
+    #[source information here]
+    folder: my-destination/folder
+
+
+Source from multiple sources
+———-------------------------
+
+Some software is most easily built by aggregating several pieces. For this,
+conda-build 3.0 has added support for arbitrarily specifying many sources.
+
+The syntax is a list of source dictionaries. Each member of this list
+follows the same rules as the single source for earlier conda-build versions
+(listed above). All features for each member are supported.
+
+Example:
+
+.. code-block:: yaml
+
+  source:
+    - url: https://package1.com/a.tar.bz2
+      folder: stuff
+    - url: https://package1.com/b.tar.bz2
+      folder: stuff
+    - git_url: https://github.com/conda/conda-build
+      folder: conda-build
+
+Here, the two URL tarballs will go into one folder, and the git repo
+is checked out into its own space.
+
+Note: Dashes denote list items in YAML syntax. Each of these
+entries are extracted/cloned into one folder.
 
 .. _meta-build:
 
 Build section
 =============
 
-Specifies build information.
+Each field that expect a path can also handle a glob pattern. The matching is
+performed from the top of the build environment, so to match files inside
+your project, use a pattern similar to the following one:
+"\*\*/myproject/\*\*/\*.txt". This pattern will match any .txt file found in
+your project.
 
+NOTE: The quotation marks ("") are required for patterns that start with a \*.
+
+Recursive globbing using \*\* is supported only in conda-build >= 3.0.
 
 Build number and string
 -----------------------
@@ -246,14 +301,15 @@ as those that contain templates. Some packages also ship ``.py``
 files that should not be compiled yet, because the Python
 interpreter that will be used is not known at build time. In
 these cases, conda build can skip attempting to compile these
-files.
+files. The patterns used in this section do not need the \*\* to
+handle recursive paths.
 
 .. code-block:: yaml
 
    build:
      skip_compile_pyc:
-       - templates/*.py          # These should not (and cannot) be compiled
-       - share/plugins/gdb/*.py  # The python embedded into gdb is unknown
+      - "*/templates/*.py"          # These should not (and cannot) be compiled
+      - "*/share/plugins/gdb/*.py"  # The python embedded into gdb is unknown
 
 
 .. _no-link:
@@ -465,6 +521,29 @@ Architecture independent packages
 Allows you to specify "no architecture" when building a package,
 thus making it compatible with all platforms and architectures.
 Noarch packages can be installed on any platform.
+
+Since conda-build 2.1, and conda 4.3, conda supports different
+languages. Assigning the noarch key as ``generic`` tells
+conda to not try any manipulation of the contents.
+
+.. code-block:: yaml
+
+      build:
+        noarch: generic
+
+``noarch: generic`` is most useful for packages such as static javascript assets
+and source archives. For pure Python packages that can run on any Python
+version, you can use the ``noarch: python`` value instead:
+
+.. code-block:: yaml
+
+     build:
+       noarch: python
+
+The legacy syntax for ``noarch_python`` is still valid, and should be
+used when you need to be certain that your package will be installable where
+conda 4.3 is not yet available. All other forms of noarch packages require
+conda >=4.3 to install.
 
 .. code-block:: yaml
 
@@ -1191,6 +1270,8 @@ variables are booleans.
      - True if the Python version is 3.4.
    * - py35
      - True if the Python version is 3.5.
+     * - py36
+       - True if the Python version is 3.6.
    * - np
      - The NumPy version as an integer such as ``111``. See the
        CONDA_NPY :ref:`environment variable <build-envs>`.

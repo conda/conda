@@ -13,12 +13,12 @@ R Essentials works very much like Anaconda:
 * You can install all of the most popular packages with all of
   their dependencies with a single command::
 
-    conda install -c r r-essentials
+    conda install r-essentials
 
 * You can update all of the packages and their dependencies with
   a single command::
 
-    conda update -c r r-essentials
+    conda update r-essentials
 
 * If a new version of a package is available in the R channel,
   you can update that package in R Essentials with the following
@@ -40,7 +40,7 @@ Installing R Essentials
 
    .. code::
 
-      conda install -c r r-essentials
+      conda install r-essentials
 
 
 Creating and sharing your own custom R bundle

@@ -57,7 +57,7 @@ EXAMPLE:
 
 .. code-block:: yaml
 
-  conda config --add channels r
+  conda config --add channels conda-forge
 
 You can also download a :doc:`sample .condarc file
 <sample-condarc>` to edit in your editor and save to your user
@@ -218,8 +218,8 @@ EXAMPLE:
   changeps1: False
 
 
-Add pip as Python dependency (add_pip_as_python_depedency)
-----------------------------------------------------------
+Add pip as Python dependency (add_pip_as_python_dependency)
+-----------------------------------------------------------
 
 Add pip, wheel and setuptools as dependencies of Python. This
 ensures that pip, wheel and setuptools are always installed any

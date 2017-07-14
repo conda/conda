@@ -37,16 +37,6 @@ Conda can be combined with continuous integration systems such
 as Travis CI and AppVeyor to provide frequent, automated testing
 of your code.
 
-Pip install conda (new in conda 4.3) uses the released version on PyPI.
-This version allows you to create new conda environments using any
-Python installation, and a new version of Python is installed
-into those environments. These environments are still considered
-Anaconda installations.
-
-@electronwill: do you know why we are discussing pip install conda,
-and should that be conda install pip? I added the (new in conda 4.3)
-to try to clarify but it still seems muddy to me.
-
 Conda package and environment manager is included in all versions of
 :ref:`Anaconda\ |reg| <anaconda-glossary>`,
 :ref:`Miniconda <miniconda-glossary>` and

@@ -8,10 +8,10 @@ Installing on Linux
 
    * `Anaconda installer for Linux <http://continuum.io/downloads>`_.
 
-#. In your terminal window, run: 
+#. In your terminal window, run:
 
    * Miniconda:
-     
+
      .. code::
 
         bash Miniconda3-latest-Linux-x86_64.sh
@@ -22,12 +22,12 @@ Installing on Linux
 
         bash Anaconda-latest-Linux-x86_64.sh
 
-#. Follow the prompts on the installer screens. 
+#. Follow the prompts on the installer screens.
 
-   If you are unsure about any setting, accept the defaults. You 
+   If you are unsure about any setting, accept the defaults. You
    can change them later.
 
-#. To make the changes take effect, close and then re-open your 
+#. To make the changes take effect, close and then re-open your
    terminal window.
 
 #. :doc:`Test your installation <test-installation>`.
@@ -38,7 +38,7 @@ Installing on Linux
 Installing in silent mode
 =========================
 
-See the instructions for 
+See the instructions for
 :ref:`installing in silent mode on macOS <install-macos-silent>`.
 
 
@@ -59,13 +59,13 @@ Uninstalling Anaconda or Miniconda
 
      rm -rf ~/miniconda
 
-#. OPTIONAL: Edit ``~/.bash_profile`` to remove the Miniconda 
+#. OPTIONAL: Edit ``~/.bash_profile`` to remove the Miniconda
    directory from your PATH environment variable.
 
-#. OPTIONAL: Remove the following hidden file and folders that 
+#. OPTIONAL: Remove the following hidden file and folders that
    may have been created in the home directory:
 
-   * ``.condarc`` file 
+   * ``.condarc`` file
    * ``.conda`` directory
    * ``.continuum`` directory
 

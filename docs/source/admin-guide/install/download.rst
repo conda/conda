@@ -23,7 +23,7 @@ You can also choose a version with a GUI or a command line
 installer.
 
 TIP: If you are unsure of which option to download, choose the
-most recent version of Anaconda3, which includes Python 3.5, the
+most recent version of Anaconda3, which includes Python 3.6, the
 most recent version of Python. If you are on Windows or macOS,
 choose the version with the GUI installer.
 
@@ -63,7 +63,7 @@ Choosing a version of Anaconda or Miniconda
 
 * Select an older version from the `archive
   <https://repo.continuum.io/archive/>`_ only if you are testing
-  or need an older version for a specific purpose should.
+  or need an older version for a specific purpose.
 
 * To use conda on Windows XP, select Anaconda 2.3.0 and see
   :doc:`../configuration/use-winxp-with-proxy`.
@@ -86,7 +86,7 @@ Choosing a version of Python
 
 * The latest version of Python 2 is 2.7, which is included with
   Anaconda and Miniconda.
-* The newest stable version of Python is 3.5, which is included
+* The newest stable version of Python is 3.6, which is included
   with Anaconda3 and Miniconda3.
 * You can easily set up additional versions of Python such as 3.4
   by downloading any version and creating a new environment with
@@ -96,24 +96,32 @@ Choosing a version of Python
 Cryptographic hash verification
 =================================
 
-MD5 checksums are available for `Miniconda
-<http://repo.continuum.io/miniconda/>`_ and both MD5 and SHA-256
-checksums are available for `Anaconda
-<https://docs.continuum.io/anaconda/hashes/index>`_.
+MD5 checksums are available for
+`Miniconda <http://repo.continuum.io/miniconda/>`_ and both MD5 and SHA-256
+checksums are available for
+`Anaconda <https://docs.continuum.io/anaconda/install/hashes/>`_.
 
 The format for the filenames is as follows:
 
-* macOS: ``md5 filename`` or ``shasum -a 256 filename``.
+* macOS: In iTerm or a terminal window enter ``md5 filename`` or ``shasum -a 256 filename``.
 
-  NOTE: ``filename`` is the actual path and name of the
+  NOTE: Replace ``filename`` with the actual path and name of the
   downloaded package file.
 
-* Linux: ``md5sum filename`` or ``sha256sum filename``
+* Linux: In a terminal window enter ``md5sum filename`` or ``sha256sum filename``
 
-  NOTE: ``filename`` is the actual path and name of the
+  NOTE: Replace ``filename`` with the actual path and name of the
   downloaded package file.
 
-For Windows, use the free `online verifier tool
+For Windows, open a PowerShell console (requires PowerShell V4 or later)
+and verify the file as follows:
+
+``Get-FileHash filename -Algorithm MD5`` or ``Get-FileHash filename -Algorithm SHA256``
+
+NOTE: Replace "filename" with the actual path and name of the downloaded
+package file.
+
+If you don't have PowerShell V4 or later, use the free `online verifier tool
 <https://gallery.technet.microsoft.com/PowerShell-File-Checksum-e57dcd67>`_
 on the Microsoft website.
 

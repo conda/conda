@@ -2,7 +2,7 @@
 Tutorials
 ===========
 
-Before you start the tutorials, you should already have 
+Before you start the tutorials, you should already have
 installed Miniconda_ or Anaconda_.
 
 .. _Miniconda: https://conda.io/docs/install/quick.html
@@ -18,3 +18,4 @@ You also need to :ref:`install conda build <install-conda-build>`.
    build-postgis.rst
    build-windows.rst
    build-apps.rst
+   build-nltk.rst

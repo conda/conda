@@ -128,7 +128,7 @@ To create a few environments and then move between them:
 
    .. code::
 
-      conda create --name bunnies python=3 astroid babel
+      conda create --name bunnies python=3.5 astroid babel
 
    This creates a second new environment in ``/envs`` named
    "bunnies", with Python 3, Astroid and Babel installed.

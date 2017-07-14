@@ -82,6 +82,9 @@ inherited from the shell environment in which you invoke
      - Inherited from your shell environment. May be used to set
        additional arguments to make, such as ``-j2``, which uses
        2 CPU cores to build your recipe.
+   * - PY_VER
+     - Python version building against. Set via ``--python`` argument
+       or via CONDA_PY environment variable.
    * - NPY_VER
      - NumPy version to build against. Set with the ``--numpy``
        argument or with the CONDA_NPY environment variable.
@@ -174,7 +177,7 @@ defined only on macOS.
    * - LDFLAGS
      - Same as CFLAGS.
    * - MACOSX_DEPLOYMENT_TARGET
-     - Same as Anaconda Python. 
+     - Same as Anaconda Python.
    * - OSX_ARCH
      - ``i386`` or ``x86_64``, depending on Python build.
 
@@ -284,7 +287,7 @@ Environment variables that affect the build process
 
    * - CONDA_PY
      - The Python version used to build the package. Should
-       be ``27``, ``34`` or ``35``.
+       be ``27``, ``34``, ``35`` or ``36``.
 
    * - CONDA_NPY
      - The NumPy version used to build the package, such as
@@ -304,7 +307,7 @@ Environment variables to set build features
 The environment variables listed in the following table are
 inherited from the process running conda build. These variables
 control :ref:`features <features>` as defined in the
-``meta-yaml`` file.
+:doc:`meta-yaml` file.
 
 .. list-table::
    :widths: 15 43 42
@@ -326,5 +329,5 @@ Environment variables that affect the test process
 ====================================================
 
 All of the above environment variables are also set during the
-test process, except with the test prefix instead of the build
+test process, using the test prefix instead of the build
 prefix.

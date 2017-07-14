@@ -7,17 +7,17 @@ Managing Python
    :depth: 1
 
 
-Conda treats Python the same as any other package, so it is easy 
+Conda treats Python the same as any other package, so it is easy
 to manage and update multiple installations.
 
-Anaconda supports Python 2.7, 3.4 and 3.5. The default is Python 
+Anaconda supports Python 2.7, 3.4 and 3.5. The default is Python
 2.7 or 3.5, depending on which installer you used:
 
-* For the installers "Anaconda" and "Miniconda," the default is 
-  2.7. 
+* For the installers "Anaconda" and "Miniconda," the default is
+  2.7.
 
-* For the installers "Anaconda3" or "Miniconda3," the default is 
-  3.5. 
+* For the installers "Anaconda3" or "Miniconda3," the default is
+  3.5.
 
 
 Viewing a list of available Python versions
@@ -27,42 +27,42 @@ To list the versions of Python are that available to install:
 
 .. code::
 
-   conda search python 
+   conda search python
 
-This lists all packages whose names contain the text ``python``. 
+This lists all packages whose names contain the text ``python``.
 
-To list only the packages whose full name is exactly ``python``, 
+To list only the packages whose full name is exactly ``python``,
 add the ``--full-name`` option:
 
 .. code::
 
-   conda search --full-name python 
+   conda search --full-name python
 
 
 Installing a different version of Python
 =========================================
 
-To install a different version of Python without overwriting the 
-current version, create a new environment and install the second 
+To install a different version of Python without overwriting the
+current version, create a new environment and install the second
 Python version into it:
 
 #. Create the new environment:
 
-   * For Python 3.5: 
+   * For Python 3.5:
 
      .. code-block:: bash
 
         conda create -n py35 python=3.5 anaconda
 
-     NOTE: Replace ``py35`` with the name of the environment you 
-     want to create. ``anaconda`` is the metapackage that 
-     includes all of the Python packages comprising the Anaconda 
-     distribution. ``python=3.5`` is the package and version you 
-     want to install in this new environment. This could be any 
-     package, such as ``numpy=1.7``, or :ref:`multiple packages 
+     NOTE: Replace ``py35`` with the name of the environment you
+     want to create. ``anaconda`` is the metapackage that
+     includes all of the Python packages comprising the Anaconda
+     distribution. ``python=3.5`` is the package and version you
+     want to install in this new environment. This could be any
+     package, such as ``numpy=1.7``, or :ref:`multiple packages
      <installing multiple packages>`.
 
-   * For Python 2.7: 
+   * For Python 2.7:
 
      .. code-block:: bash
 
@@ -70,10 +70,10 @@ Python version into it:
 
 #. :ref:`Activate the new environment <activate-env>`.
 
-#. Verify that the new environment is your :ref:`current 
+#. Verify that the new environment is your :ref:`current
    environment <determine-current-env>`.
 
-#. Verify that the current environment uses the new Python 
+#. Verify that the current environment uses the new Python
    version:
 
    .. code::
@@ -84,22 +84,22 @@ Python version into it:
 Using a different version of Python
 ====================================
 
-To switch to an environment that has different version of Python, 
-:ref:`activate the environment <activate-env>`. 
+To switch to an environment that has different version of Python,
+:ref:`activate the environment <activate-env>`.
 
 
 Updating or upgrading Python
 =============================
 
-If you are in an environment with Python version 3.4.2, the 
-following command updates Python to 3.4.3, which is the latest 
+If you are in an environment with Python version 3.4.2, the
+following command updates Python to the latest
 version in the 3.4 branch:
 
 .. code-block:: bash
 
     conda update python
 
-The following command upgrades Python to another 
+The following command upgrades Python to another
 branch---3.5---by installing that version of Python:
 
 .. code-block:: bash

@@ -35,7 +35,7 @@ System requirements
 
 * Windows, macOS or Linux.
 
-* Python 2.7, 3.4 or 3.5.
+* Python 2.7, 3.4, 3.5 or 3.6.
 * pycosat.
 * PyYaml.
 * Requests.
