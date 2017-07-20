@@ -794,12 +794,11 @@ class IntegrationTests(TestCase):
             prefix = make_temp_prefix(str(uuid4())[:7])
 
             # set packages
-            run_command(Commands.CONFIG, prefix, "--add create_default_packages python")
             run_command(Commands.CONFIG, prefix, "--add create_default_packages pip")
             run_command(Commands.CONFIG, prefix, "--add create_default_packages flask")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
-            assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
+            assert yml_obj['create_default_packages'] == ['flask', 'pip']
 
             assert not package_is_installed(prefix, 'python-2')
             assert not package_is_installed(prefix, 'pytz')
@@ -818,12 +817,11 @@ class IntegrationTests(TestCase):
             prefix = make_temp_prefix(str(uuid4())[:7])
 
             # set packages
-            run_command(Commands.CONFIG, prefix, "--add create_default_packages python")
             run_command(Commands.CONFIG, prefix, "--add create_default_packages pip")
             run_command(Commands.CONFIG, prefix, "--add create_default_packages flask")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
-            assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
+            assert yml_obj['create_default_packages'] == ['flask', 'pip']
 
             assert not package_is_installed(prefix, 'python-2')
             assert not package_is_installed(prefix, 'pytz')
