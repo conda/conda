@@ -85,11 +85,13 @@ install_conda_build() {
     install_conda_dev $prefix
 
     # install conda-build dependencies (runtime and test)
-    $prefix/bin/conda install -y -q -c conda-forge perl pytest-xdist
+    $prefix/bin/conda config --append channels conda-forge
     $prefix/bin/conda install -y -q \
         anaconda-client numpy \
-        filelock jinja2 patchelf conda-verify contextlib2 pkginfo
-    $prefix/bin/pip install pytest-catchlog pytest-mock
+        filelock jinja2 patchelf conda-verify contextlib2 pkginfo \
+        perl pytest-xdist \
+        pytest-catchlog pytest-mock
+    $prefix/bin/conda config --remove channels conda-forge
 
     $prefix/bin/conda config --set add_pip_as_python_dependency true
 
