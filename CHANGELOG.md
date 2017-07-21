@@ -1,4 +1,4 @@
-## 4.3.23 (unreleased)
+## 4.3.23 (2017-07-21)
 
 ### Improvements
 * resolve #5391 PackageNotFound and NoPackagesFoundError clean up (#5506)
@@ -7,7 +7,9 @@
 * fix #5525 too many Nones in CondaHttpError (#5526)
 * fix #5508 assertion failure after test file not cleaned up (#5533)
 * fix #5523 catch OSError when home directory doesn't exist (#5549)
-
+* fix #5574 traceback formatting (#5580)
+* fix #5554 logger configuration levels (#5555)
+* fix #5649 create_default_packages configuration (#5703)
 
 ## 4.3.22 (2017-06-12)
 
