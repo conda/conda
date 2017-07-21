@@ -674,7 +674,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous-0.23')
             assert package_is_installed(prefix, 'flask')
 
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 7, 1), reason="#5263", strict=True)
+    @pytest.mark.xfail(datetime.now() < datetime(2017, 8, 1), reason="#5263", strict=True)
     def test_update_deps_flag_present(self):
         with make_temp_env("python=2 itsdangerous=0.23") as prefix:
             assert package_is_installed(prefix, 'python-2')
@@ -794,12 +794,11 @@ class IntegrationTests(TestCase):
             prefix = make_temp_prefix(str(uuid4())[:7])
 
             # set packages
-            run_command(Commands.CONFIG, prefix, "--add create_default_packages python")
             run_command(Commands.CONFIG, prefix, "--add create_default_packages pip")
             run_command(Commands.CONFIG, prefix, "--add create_default_packages flask")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
-            assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
+            assert yml_obj['create_default_packages'] == ['flask', 'pip']
 
             assert not package_is_installed(prefix, 'python-2')
             assert not package_is_installed(prefix, 'pytz')
@@ -818,12 +817,11 @@ class IntegrationTests(TestCase):
             prefix = make_temp_prefix(str(uuid4())[:7])
 
             # set packages
-            run_command(Commands.CONFIG, prefix, "--add create_default_packages python")
             run_command(Commands.CONFIG, prefix, "--add create_default_packages pip")
             run_command(Commands.CONFIG, prefix, "--add create_default_packages flask")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
-            assert yml_obj['create_default_packages'] == ['flask', 'pip', 'python']
+            assert yml_obj['create_default_packages'] == ['flask', 'pip']
 
             assert not package_is_installed(prefix, 'python-2')
             assert not package_is_installed(prefix, 'pytz')
