@@ -3,7 +3,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict, deque
 from logging import getLogger
-from weakref import WeakSet
+import sys
+from weakref import WeakSet, proxy
 
 from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
@@ -143,7 +144,7 @@ class PrefixDag(object):
             label = "%s %s" % (node.record.name, node.record.version)
             if node.specs:
                 # TODO: combine?
-                spec = node.specs[0]
+                spec = next(iter(node.specs))
                 label += "\\n%s" % ("?%s" if spec.optional else "%s") % spec
             if node.is_orphan:
                 shape = "box"
@@ -165,13 +166,27 @@ class PrefixDag(object):
     def format_url(self):
         return "https://condaviz.glitch.me/%s" % url_quote(self.dot_repr())
 
+    def request_svg(self):
+        from tempfile import NamedTemporaryFile
+        import requests
+        from ..common.compat import ensure_binary
+        response = requests.post("https://condaviz.glitch.me/post",
+                                 data={"digraph": self.dot_repr()})
+        response.raise_for_status()
+        with NamedTemporaryFile(suffix='.svg', delete=False) as fh:
+            fh.write(ensure_binary(response.text))
+        print("saved to: %s" % fh.name, file=sys.stderr)
+        return fh.name
+
     def open_url(self):
         import webbrowser
-        # TODO: remove this "safari" specifier once Apple gets its act together and
-        # releases macOS 10.12.6
-        browser = webbrowser.get("safari")
-        browser.open_new_tab(self.format_url())
-        # webbrowser.open_new_tab(self.format_url())
+        from ..common.url import path_to_url
+        location = self.request_svg()
+        try:
+            browser = webbrowser.get("safari")
+        except webbrowser.Error:
+            browser = webbrowser.get()
+        browser.open_new_tab(path_to_url(location))
 
     @property
     def orphans(self):
@@ -231,7 +246,7 @@ class PrefixDag(object):
 class Node(object):
 
     def __init__(self, dag, record):
-        self.record = record
+        self.record = proxy(record)
         self._constrains = tuple(MatchSpec(s).name for s in record.constrains)
         self._depends = tuple(MatchSpec(s).name for s in record.depends)
 
@@ -293,3 +308,13 @@ class Node(object):
     is_root = property(lambda self: self.has_children and not self.has_parents)
     is_leaf = property(lambda self: self.has_parents and not self.has_children)
     is_orphan = property(lambda self: not self.has_parents and not self.has_children)
+
+
+if __name__ == "__main__":
+    from ..core.linked_data import PrefixData
+    from ..common.compat import itervalues
+    from ..history import History
+    prefix = sys.argv[1]
+    records = PrefixData(prefix).iter_records()
+    specs = itervalues(History(prefix).get_requested_specs_map())
+    PrefixDag(records, specs).open_url()
