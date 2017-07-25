@@ -38,7 +38,13 @@ def get_packages(installed, regex):
 def list_packages(prefix, installed, regex=None, format='human',
                   show_channel_urls=None):
     res = 0
-    result = []
+    result = ['%-25s  %-15s %15s  %-15s' % (
+            "Name",
+            "Version",
+            "Build",
+            "Channel",
+    )]
+
     for dist in get_packages(installed, regex):
         if format == 'canonical':
             result.append(dist)
