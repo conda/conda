@@ -252,9 +252,11 @@ checked out into its own space.
 Build section
 =============
 
-Each field that expect a path can also handle a glob pattern. The matching is
+Specifies build information.
+
+Each field that expects a path can also handle a glob pattern. The matching is
 performed from the top of the build environment, so to match files inside
-your project, use a pattern similar to the following one:
+your project you can use a pattern similar to the following one:
 "\*\*/myproject/\*\*/\*.txt". This pattern will match any .txt file found in
 your project.
 
