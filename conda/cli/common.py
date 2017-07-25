@@ -11,7 +11,7 @@ import sys
 
 from ..base.constants import CONDA_TARBALL_EXTENSION, ROOT_ENV_NAME
 from ..base.context import context, get_prefix as context_get_prefix
-from ..common.compat import iteritems
+from ..common.compat import iteritems, on_win
 from ..common.constants import NULL
 
 get_prefix = partial(context_get_prefix, context)
@@ -692,3 +692,16 @@ def create_prefix_spec_map_with_deps(r, specs, default_prefix):
                 if not linked_spec.name.startswith(spec) and r.depends_on(spec, linked_spec):
                     prefix_spec_map[spec_prefix].add(linked_spec.name)
     return prefix_spec_map
+
+
+def check_non_admin():
+    if not context.non_admin_enabled:
+        if on_win:
+            from ..common.platform import is_admin_on_windows
+            if not is_admin_on_windows():
+                from ..exceptions import OperationNotAllowed
+                raise OperationNotAllowed()
+        else:
+            if os.geteuid() != 0 or os.getegid() != 0:
+                from ..exceptions import OperationNotAllowed
+                raise OperationNotAllowed()

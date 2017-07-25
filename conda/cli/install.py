@@ -13,6 +13,7 @@ from logging import getLogger
 from os.path import abspath, basename, exists, isdir, join
 
 from . import common
+from .common import check_non_admin
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
@@ -128,20 +129,6 @@ def get_revision(arg, json=False):
         return int(arg)
     except ValueError:
         CondaValueError("expected revision number, not: '%s'" % arg, json)
-
-
-def check_non_admin():
-    if not context.non_admin_enabled:
-        if on_win:
-            if on_win:
-                from ..common.platform import is_admin_on_windows
-                if not is_admin_on_windows():
-                    from ..exceptions import OperationNotAllowed
-                    raise OperationNotAllowed()
-            else:
-                if os.geteuid() != 0 or os.getegid() != 0:
-                    from ..exceptions import OperationNotAllowed
-                    raise OperationNotAllowed()
 
 
 def install(args, parser, command='install'):
