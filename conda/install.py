@@ -478,7 +478,7 @@ def run_script(prefix, dist, action='post-link', env_prefix=None):
         return True
     if on_win:
         try:
-            args = [os.environ['COMSPEC'], '/c', path]
+            args = [os.environ['COMSPEC'], '/d', '/c', path]
         except KeyError:
             return False
     else:
