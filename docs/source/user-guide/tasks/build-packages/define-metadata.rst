@@ -1,8 +1,8 @@
 .. _meta-yaml:
 
-============================
-Defining metadata (meta.yml)
-============================
+=============================
+Defining metadata (meta.yaml)
+=============================
 
 .. contents::
    :local:
@@ -33,7 +33,7 @@ Package name
 The lower case name of the package. It may contain "-", but no
 spaces.
 
-.. code-block:: yaml
+.. code-block:: none
 
    package:
      name: bsdiff4
@@ -47,7 +47,7 @@ such as 1.0 as floats, meaning that 0.10 will be the same as 0.1.
 To avoid this, put the version number in quotes so that it is
 interpreted as a string.
 
-.. code-block:: yaml
+.. code-block:: none
 
    package:
      version: "1.1.4"
@@ -67,10 +67,10 @@ The source may come from a tarball file, git, hg or svn. It may
 be a local path, and it may contain patches.
 
 
-Source from tarball/zip archive
--------------------------------
+Source from tarball or zip archive
+----------------------------------
 
-.. code-block:: yaml
+.. code-block:: none
 
    source:
      url: https://pypi.python.org/packages/source/b/bsdiff4/bsdiff4-1.1.4.tar.gz
@@ -78,9 +78,8 @@ Source from tarball/zip archive
      sha1: f0a2c9a30073449cfb7d171c57552f3109d93894
      sha256: 5a022ff4c1d1de87232b1c70bde50afbb98212fd246be4a867d8737173cf1f8f
 
-
 If an extracted archive contains only one folder at its top level, its contents
-will be moved one level up so that the extracted package contents sit in the
+will be moved one level up, so that the extracted package contents sit in the
 root of the work folder.
 
 Source from git
@@ -88,7 +87,7 @@ Source from git
 
 The git_url can also be a relative path to the recipe directory.
 
-.. code-block:: yaml
+.. code-block:: none
 
    source:
      git_url: https://github.com/ilanschnell/bsdiff4.git
@@ -98,7 +97,7 @@ The git_url can also be a relative path to the recipe directory.
 Source from hg
 --------------
 
-.. code-block:: yaml
+.. code-block:: none
 
    source:
      hg_url: ssh://hg@bitbucket.org/ilanschnell/bsdiff4
@@ -108,7 +107,7 @@ Source from hg
 Source from svn
 ---------------
 
-.. code-block:: yaml
+.. code-block:: none
 
    source:
      svn_url: https://github.com/ilanschnell/bsdiff
@@ -123,7 +122,7 @@ If the path is relative, it is taken relative to the recipe
 directory. The source is copied to the work directory before
 building.
 
-.. code-block:: yaml
+.. code-block:: none
 
    source:
      path: ../src
@@ -143,7 +142,7 @@ Patches
 
 Patches may optionally be applied to the source.
 
-.. code-block:: yaml
+.. code-block:: none
 
    source:
      #[source information here]
@@ -197,6 +196,57 @@ is checked out into its own space.
 Note: Dashes denote list items in YAML syntax. Each of these
 entries are extracted/cloned into one folder.
 
+Destination path
+----------------
+
+Within conda-build's work directory, you may specify a particular folder to
+place source into. This feature is new in conda-build 3.0. Conda-build will
+always drop you into the same folder (build folder/work), but it's up to you
+whether you want your source extracted into that folder, or nested deeper. This
+feature is particularly useful when dealing with multiple sources, but can apply
+to recipes with single sources as well.
+
+.. code-block:: none
+
+   source:
+     #[source information here]
+     folder: my-destination/folder
+
+
+Multiple sources
+----------------
+
+Some software is most easily built by aggregating several pieces. For this,
+conda-build 3.0 has added support for specifying arbitrarily many sources. The
+syntax for this is a list of source dictionaries. Each member of this list
+follows the same rules as the single source for earlier conda-build versions
+(listed above). All features for each member are supported.
+
+.. code-block:: none
+
+   source:
+     - url: https://package1.com/a.tar.bz2
+     - url: https://package1.com/b.tar.bz2
+     - git_url: https://github.com/conda/conda-build
+
+Note the dashes. These denote list items in YAML syntax. Each of these
+entries are extracted/cloned into one folder. This example won't actually work,
+because git will not clone into a non-empty folder. Let's specify some folders:
+
+.. code-block:: none
+
+   source:
+     - url: https://package1.com/a.tar.bz2
+       folder: stuff
+     - url: https://package1.com/b.tar.bz2
+       folder: stuff
+     - git_url: https://github.com/conda/conda-build
+       folder: conda-build
+
+Here, the two URL tarballs will go into one folder, but the git repo will be
+checked out into its own space.
+
+
 .. _meta-build:
 
 Build section
@@ -210,7 +260,13 @@ your project.
 
 NOTE: The quotation marks ("") are required for patterns that start with a \*.
 
-Recursive globbing using \*\* is supported only in conda-build >= 3.0.
+Each field that expect a path can also handle a glob pattern. The matching is
+performed from the top of the build environment, so to match files inside
+your project you can use a pattern similar to the following one:
+"\*\*/myproject/\*\*/\*.txt". This pattern will match any .txt file found in
+your project. The quotes are mandatory for patterns starting with a \*.
+Recursive globbing using \*\* is only supported in conda-build >= 3.0.
+
 
 Build number and string
 -----------------------
@@ -220,7 +276,7 @@ version. The number defaults to ``0``. The build string cannot
 contain "-". The string defaults to the default conda build
 string plus the build number.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      number: 1
@@ -233,7 +289,7 @@ Python entry points
 The following example creates a Python entry point named
 "bsdiff4" that calls ``bsdiff4.cli.main_bsdiff4()``.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      entry_points:
@@ -246,7 +302,7 @@ Python.app
 If osx_is_app is set, entry points use ``python.app`` instead of
 Python in macOS. The default is ``False``.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      osx_is_app: True
@@ -258,7 +314,7 @@ Features
 Defines what features a package has. For more information, see
 :doc:`features`.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      features:
@@ -274,7 +330,7 @@ neither. Usually it is best for the package that tracks a
 feature to be a metapackage that does not have the feature. For
 more information, see :doc:`features`.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      track_features:
@@ -287,7 +343,7 @@ Preserve Python egg directory
 This is needed for some packages that use features specific to
 setuptools. The default is ``False``.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      preserve_egg_dir: True
@@ -296,20 +352,22 @@ setuptools. The default is ``False``.
 Skip compiling some .py files into .pyc files
 ----------------------------------------------
 
-Some packages ship ``.py`` files that cannot be compiled, such
-as those that contain templates. Some packages also ship ``.py``
-files that should not be compiled yet, because the Python
-interpreter that will be used is not known at build time. In
-these cases, conda build can skip attempting to compile these
-files. The patterns used in this section do not need the \*\* to
-handle recursive paths.
+Some packages ship ``.py`` files that cannot be compiled, such 
+as those that contain templates. Some packages also ship ``.py`` 
+files that should not be compiled yet, because the Python 
+interpreter that will be used is not known at build time. In 
+these cases, conda build can skip attempting to compile these 
+files. The patterns used in this section do not need the \*\* to handle
+recursive paths.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      skip_compile_pyc:
-      - "*/templates/*.py"          # These should not (and cannot) be compiled
-      - "*/share/plugins/gdb/*.py"  # The python embedded into gdb is unknown
+       - "*/templates/*.py"          # These should not (and cannot) be compiled
+       - "*/share/plugins/gdb/*.py"  # The python embedded into gdb is unknown
+
+[@cio-docs: Lines are over the length limit.]
 
 
 .. _no-link:
@@ -320,7 +378,7 @@ No link
 A list of globs for files that should always be copied and never
 soft linked or hard linked.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      no_link:
@@ -334,7 +392,7 @@ scripts, this can be more convenient. You may need to use
 :ref:`selectors <preprocess-selectors>` to use different scripts
 for different platforms.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      script: python setup.py install
@@ -346,7 +404,7 @@ Set which RPATHs are used when making executables relocatable on
 Linux. This is a Linux feature that is ignored on other systems.
 The default is ``lib/``.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      rpaths:
@@ -361,7 +419,7 @@ Force files to always be included, even if they are already in
 the environment from the build dependencies. This may be needed,
 for example, to create a recipe for conda itself.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      always_include_files:
@@ -393,7 +451,7 @@ default is ``True``. It also accepts ``False``, which indicates
 no relocation for any files, or a list of files, which indicates
 relocation only for listed files.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      binary_relocation: False
@@ -415,7 +473,7 @@ relocation---RPATH---replacement will still be done, but
 hard-coded prefixes in binaries will not be replaced. Prefixes
 in text files will still be replaced.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      detect_binary_files_with_prefix: False
@@ -449,7 +507,7 @@ individually. This allows you to specify the type of file as
 binary, when it may be incorrectly detected as text for some
 reason. Binary files are those containing NULL bytes.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      binary_has_prefix_files:
@@ -468,7 +526,7 @@ handled differently---see :ref:`bin-prefix`---but there may be
 cases where such a binary file needs to be treated as an ordinary
 text file, in which case they need to be identified.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      has_prefix_files:
@@ -485,14 +543,14 @@ install prefix.
 
 To ignore all files in the build recipe, use:
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      ignore_prefix_files: True
 
 To specify individual filenames, use:
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      ignore_prefix_files:
@@ -509,7 +567,7 @@ Specifies whether conda build should skip the build of this
 recipe. Particularly useful for defining recipes that are
 platform specific. The default is ``False``.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      skip: True  # [not win]
@@ -522,30 +580,30 @@ Allows you to specify "no architecture" when building a package,
 thus making it compatible with all platforms and architectures.
 Noarch packages can be installed on any platform.
 
-Since conda-build 2.1, and conda 4.3, conda supports different
-languages. Assigning the noarch key as ``generic`` tells
+Starting with conda-build 2.1, and conda 4.3, there is a new syntax that
+supports different languages. Assigning the noarch key as ``generic`` tells
 conda to not try any manipulation of the contents.
 
-.. code-block:: yaml
+.. code-block:: none
 
-      build:
-        noarch: generic
+   build:
+     noarch: generic
 
 ``noarch: generic`` is most useful for packages such as static javascript assets
 and source archives. For pure Python packages that can run on any Python
 version, you can use the ``noarch: python`` value instead:
 
-.. code-block:: yaml
+.. code-block:: none
 
-     build:
-       noarch: python
+   build:
+     noarch: python
 
-The legacy syntax for ``noarch_python`` is still valid, and should be
-used when you need to be certain that your package will be installable where
-conda 4.3 is not yet available. All other forms of noarch packages require
-conda >=4.3 to install.
+The legacy syntax for ``noarch_python`` is still valid, and is what you should
+use if you need to be certain that your package will be installable where conda
+4.3 is not yet available. All other forms of noarch packages require conda >=4.3
+to install.
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      noarch_python: True
@@ -558,7 +616,7 @@ The full conda build recipe and rendered ``meta.yaml`` file is
 included in the :ref:`package_metadata` by default. You can
 disable this with:
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      include_recipe: False
@@ -573,7 +631,7 @@ environment variables documented in :ref:`env-vars` are seen by
 the build script. To "white-list" environment variables that
 should be passed through to the build script:
 
-.. code-block:: yaml
+.. code-block:: none
 
    build:
      script_env:
@@ -584,6 +642,54 @@ If a listed environment variable is missing from the environment
 seen by the conda build process itself, a UserWarning is
 emitted during the build process and the variable remains
 undefined.
+
+.. _run_exports:
+
+Pin downstream
+--------------
+
+It is often useful to require a particular runtime library to be present at
+runtime when a particular library or package is used at build time. For example,
+if you use a C++ compiler to build a package with dynamic linkage, then it is
+likely that you also need to include the C++ runtime package corresponding to
+that compiler as a runtime requirement. Generally, these imposed pinnings should
+be added to the tool (compiler) or library (jpeg, bzip2, and so on) used at build
+time, rather than to the package using those tools or libraries.
+
+.. code-block:: none
+
+   build:
+     run_exports:
+       - libstdc++
+
+You can express version constraints directly, or use any of the jinja2 helper
+functions listed at :ref:`extra_jinja2`.
+
+For example, you may use :ref:`pinning_expressions` to obtain flexible version
+pinning relative to versions present at build time:
+
+.. code-block:: none
+
+  build:
+    run_exports:
+      - libstdc++  {{ pin_compatible('g++', 'x') }}
+
+With this example, if g++ were version 5.3.0, this pinning expression would
+evaluate to ``>=5.3.0,<6``.
+
+Note that ``run_exports`` can be specified both in the build section, and on
+a per-output basis for split packages.
+
+The potential downside of this feature is that it takes some control over
+constraints away from downstream users. If an upstream package has a
+problematic run_exports constraint, you can ignore it in your recipe by
+listing the upstream package name in the ``build/ignore_run_exports`` section:
+
+.. code-block:: none
+
+   build:
+     ignore_run_exports:
+       - libstdc++
 
 
 Requirements section
@@ -602,7 +708,7 @@ Build
 Packages required to build the package. Python and NumPy must be
 listed explicitly if they are required.
 
-.. code-block:: yaml
+.. code-block:: none
 
    requirements:
      build:
@@ -617,7 +723,7 @@ that are installed automatically whenever the package is
 installed. Package names should follow the
 :ref:`build-version-spec`.
 
-.. code-block:: yaml
+.. code-block:: none
 
    requirements:
      run:
@@ -636,7 +742,7 @@ The line in the ``meta.yaml`` file should literally say
 ``meta.yaml`` file uses ``numpy x.x``, it is required to use the
 ``--numpy`` option with ``conda-build``.
 
-.. code-block:: yaml
+.. code-block:: none
 
    requirements:
      run:
@@ -660,7 +766,7 @@ Test files
 Test files that are copied from the recipe into the temporary
 test directory and are needed during testing.
 
-.. code-block:: yaml
+.. code-block:: none
 
    test:
      files:
@@ -673,7 +779,7 @@ Source files
 Test files that are copied from the source work directory into
 the temporary test directory and are needed during testing.
 
-.. code-block:: yaml
+.. code-block:: none
 
    test:
      source_files:
@@ -690,7 +796,7 @@ Test requirements
 In addition to the runtime requirements, you can specify
 requirements needed during testing.
 
-.. code-block:: yaml
+.. code-block:: none
 
    test:
      requires:
@@ -702,7 +808,7 @@ Test commands
 
 Commands that are run as part of the test.
 
-.. code-block:: yaml
+.. code-block:: none
 
    test:
      commands:
@@ -716,7 +822,7 @@ Python imports
 List of Python modules or packages that will be imported in the
 test environment.
 
-.. code-block:: yaml
+.. code-block:: none
 
    test:
      imports:
@@ -761,16 +867,20 @@ in conda build 2.1.0.
 
    outputs:
      - name: some-subpackage
+       version: 1.0
      - name: some-other-subpackage
+       version: 2.0
 
 
-NOTE: If any output is specified in the outputs section, the
-default packaging behavior of conda build is bypassed. In other
-words, if any subpackage is specified, then you do not get the
-normal top-level build for this recipe without explicitly
-defining a subpackage for it. This is an alternative to the
-existing behavior, not an addition to it. For more information,
-see :ref:`implicit_metapackages`.
+NOTE: If any output is specified in the outputs section, the 
+default packaging behavior of conda build is bypassed. In other 
+words, if any subpackage is specified, then you do not get the 
+normal top-level build for this recipe without explicitly 
+defining a subpackage for it. This is an alternative to the 
+existing behavior, not an addition to it. For more information, 
+see :ref:`implicit_metapackages`. Each output may have its own version and
+requirements. Additionally, subpackages may impose downstream pinning similarly
+to `Pin downstream`_ to help keep your packages aligned.
 
 
 Specifying files to include in output
@@ -847,24 +957,24 @@ requirements/build section.
        requirements:
          - some-dep
 
-Subpackage dependencies propagate to the top-level package if
-and only if the subpackage is listed as a requirement.
-
-EXAMPLE: In this example, the top-level package depends on both
-``some-dep-that-will-propagate`` and ``some-dep`` as runtime
-requirements.
+You can also impose runtime dependencies whenever a given (sub)package is
+installed as a build dependency. For example, if we had an overarching
+"compilers" package, and within that, had ``gcc`` and ``libgcc`` outputs, we
+could force recipes that use gcc to include a matching libgcc runtime
+requirement:
 
 .. code-block:: none
 
-   requirements:
-     run:
-       - some-dep-that-will-propagate
-
    outputs:
-     - name: some-dep-that-will-propagate
-       requirements:
-         - some-dep
+     - name: gcc
+       run_exports:
+         - libgcc 2.*
+     - name: libgcc
 
+Note: Variant expressions are very powerful here. You can express the version
+requirement in the run_exports entry as a jinja function to insert values
+based on the actual version of libgcc produced by the recipe. Read more about
+them at :ref:`referencing_subpackages`.
 
 .. _implicit_metapackages:
 
@@ -1014,7 +1124,7 @@ About section
 Specifies identifying information about the package. The
 information displays in the Anaconda.org channel.
 
-.. code-block:: yaml
+.. code-block:: none
 
   about:
     home: https://github.com/ilanschnell/bsdiff4
@@ -1031,7 +1141,7 @@ metadata.  Many licenses require the license statement to be
 distributed with the package. The filename is relative to the
 source directory.
 
-.. code-block:: yaml
+.. code-block:: none
 
   about:
     license_file: LICENSE
@@ -1049,7 +1159,7 @@ Entry point
 
 The command that is called to launch the app.
 
-.. code-block:: yaml
+.. code-block:: none
 
   app:
     entry: ipython notebook
@@ -1060,7 +1170,7 @@ Icon file
 
 The icon file contained in the recipe.
 
-.. code-block:: yaml
+.. code-block:: none
 
   app:
     icon: icon_64x64.png
@@ -1071,7 +1181,7 @@ Summary
 
 Summary of the package used in the launcher.
 
-.. code-block:: yaml
+.. code-block:: none
 
   app:
     summary:  "The Jupyter Notebook"
@@ -1083,7 +1193,7 @@ Own environment
 If ``True``, installing the app through the launcher installs
 into its own environment. The default is ``False``.
 
-.. code-block:: yaml
+.. code-block:: none
 
   app:
     own_environment: True
@@ -1097,7 +1207,7 @@ standard YAML form.
 
 EXAMPLE: To store recipe maintainer information:
 
-.. code-block:: yaml
+.. code-block:: none
 
   extra:
     maintainers:
@@ -1115,7 +1225,7 @@ EXAMPLE: The following ``meta.yaml`` would work with the GIT
 values defined for git repositores. The recipe is included at the
 base directory of the git repository, so the git_url is ``../``:
 
-.. code-block:: yaml
+.. code-block:: none
 
      package:
        name: mypkg
@@ -1142,7 +1252,7 @@ somewhat more verbose.
 EXAMPLE: A version of the previous example using the syntax that
 allows defaults:
 
-.. code-block:: yaml
+.. code-block:: none
 
      package:
        name: mypkg
@@ -1207,7 +1317,7 @@ selector is evaluated, and if it is ``False``, the line that it
 is on is removed. A selector has the form ``# [<selector>]`` at
 the end of a line.
 
-.. code-block:: yaml
+.. code-block:: none
 
    source:
      url: http://path/to/unix/source    # [not win]
@@ -1270,8 +1380,8 @@ variables are booleans.
      - True if the Python version is 3.4.
    * - py35
      - True if the Python version is 3.5.
-     * - py36
-       - True if the Python version is 3.6.
+   * - py36
+     - True if the Python version is 3.6.
    * - np
      - The NumPy version as an integer such as ``111``. See the
        CONDA_NPY :ref:`environment variable <build-envs>`.
@@ -1279,7 +1389,7 @@ variables are booleans.
 Because the selector is any valid Python expression, complicated
 logic is possible:
 
-.. code-block:: yaml
+.. code-block:: none
 
    source:
      url: http://path/to/windows/source      # [win]
@@ -1289,7 +1399,7 @@ logic is possible:
 NOTE: The selectors delete only the line that they are on, so you
 may need to put the same selector on multiple lines:
 
-.. code-block:: yaml
+.. code-block:: none
 
    source:
      url: http://path/to/windows/source     # [win]

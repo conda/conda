@@ -34,6 +34,7 @@ Anaconda.org, you will need an
    environment-variables.rst
    make-relocatable.rst
    add-scripts.rst
+   variants.rst
    use-shared-libraries.rst
    sign-packages.rst
    add-win-start-menu-items.rst
