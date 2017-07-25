@@ -104,7 +104,7 @@ def configure_parser(sub_parsers, name='remove'):
 
 
 def execute(args, parser):
-    from .install import check_write
+    from .install import check_non_admin, check_write
     from ..common.path import is_private_env, prefix_to_env_name
     from ..console import json_progress_bars
     from ..core.index import get_index
@@ -120,6 +120,8 @@ def execute(args, parser):
     if not (args.all or args.package_names):
         raise CondaValueError('no package names supplied,\n'
                               '       try "conda remove -h" for more details')
+
+    check_non_admin()
 
     prefix = context.prefix_w_legacy_search
     if args.all and prefix == context.default_prefix:

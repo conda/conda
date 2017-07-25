@@ -305,6 +305,16 @@ class ChannelNotAllowed(ChannelError):
         super(ChannelNotAllowed, self).__init__(msg, *args)
 
 
+class OperationNotAllowed(CondaError):
+
+    def __init__(self):
+        message = dals("""
+        The create, install, update, and remove operations have been disabled
+        on your system for non-privileged users.
+        """)
+        super(OperationNotAllowed, self).__init__(message)
+
+
 class CondaImportError(CondaError, ImportError):
     def __init__(self, message):
         msg = '%s' % message

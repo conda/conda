@@ -130,11 +130,27 @@ def get_revision(arg, json=False):
         CondaValueError("expected revision number, not: '%s'" % arg, json)
 
 
+def check_non_admin():
+    if not context.non_admin_enabled:
+        if on_win:
+            if on_win:
+                from ..common.platform import is_admin_on_windows
+                if not is_admin_on_windows():
+                    from ..exceptions import OperationNotAllowed
+                    raise OperationNotAllowed()
+            else:
+                if os.geteuid() != 0 or os.getegid() != 0:
+                    from ..exceptions import OperationNotAllowed
+                    raise OperationNotAllowed()
+
+
 def install(args, parser, command='install'):
     """
     conda install, conda update, and conda create
     """
     context.validate_configuration()
+    check_non_admin()
+
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
