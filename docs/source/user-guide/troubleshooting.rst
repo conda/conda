@@ -64,13 +64,13 @@ or Anaconda is already installed, and you cannot continue.
 Solution
 ----------
 
-Install using the -f option.
+Install using the --force option.
 
 
 Download and install the appropriate Miniconda
 for your operating system from the `Miniconda download page
 <https://conda.io/miniconda.html>`_ using the force option
-``-f``:
+``--force`` or ``-f``:
 
 .. code-block:: bash
 
@@ -156,7 +156,7 @@ You have site-specific directories or, for Python, you have
 so-called site-specific files. These are typically located in
 ``~/.local`` on Unix. For a full description of the locations of
 site-specific packages, see `PEP 370
-<http://legacy.python.org/dev/peps/pep-0370/>`_.  s with
+<http://legacy.python.org/dev/peps/pep-0370/>`_.  As with
 PYTHONPATH, Python may try importing packages from this
 directory, which can cause issues.
 
@@ -225,7 +225,7 @@ pkg_resources.DistributionNotFound: conda==3.6.1-6-gb31b0d4-dirty
 Cause
 ------
 
-Unknown.
+The local version of conda needs updating.
 
 Solution
 ----------
@@ -346,8 +346,8 @@ The shell then caches the location, which is called hashing in
 shell terminology. When you run command again, the shell does not
 have to search the PATH again.
 
-The problem is that before you installed the program, you ran a
-command which loaded and hashed the one in some other location on
+The problem is that before you installed the program, you ran a command which
+loaded and hashed another version of that program in some other location on
 the PATH, such as ``/usr/bin``. Then you installed the program
 using ``conda install``, but the shell still had the old instance
 hashed.
@@ -355,6 +355,7 @@ hashed.
 
 Solution
 ---------
+
 Reactivate the environment or run ``hash -r`` (in bash) or
 ``rehash`` (in zsh).
 
@@ -534,7 +535,7 @@ running the following command:
 
 .. code-block:: bash
 
-   anaconda search -t conda cx_freeze
+   $ anaconda search -t conda cx_freeze
    Using Anaconda Cloud api site https://api.anaconda.org
    Run 'anaconda show <USER/PACKAGE>' to get more details:
    Packages:
@@ -571,7 +572,7 @@ command line:
 
 .. code-block:: bash
 
-   conda create -c pyzo -n cxfreeze_py34 cx_freeze python=3.4
+   $ conda create -c pyzo -n cxfreeze_py34 cx_freeze python=3.4
    Using Anaconda Cloud api site https://api.anaconda.org
    Fetching package metadata: ..........
    Solving package specifications: .........

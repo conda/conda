@@ -208,7 +208,7 @@ EXAMPLE:
 Change command prompt (changeps1)
 ---------------------------------
 
-When using ``activate``, change the command prompt from ``PS1``
+When using ``activate``, change the command prompt from ``$PS1``
 to include the activated environment. The default is ``True``.
 
 EXAMPLE:
@@ -497,19 +497,6 @@ Conda build configuration
 =========================
 
 
-Automatically upload conda build packages to Anaconda.org (anaconda_upload)
----------------------------------------------------------------------------
-
-Automatically upload packages built with conda build to
-`Anaconda.org <http://anaconda.org>`_. The default is ``False``.
-
-EXAMPLE:
-
-.. code-block:: yaml
-
-  anaconda_upload: True
-
-
 Specify conda build output root directory (conda-build)
 -------------------------------------------------------
 
@@ -525,6 +512,163 @@ EXAMPLE:
 
   conda-build:
       root-dir: ~/conda-builds
+
+
+Automatically upload conda build packages to Anaconda.org (anaconda_upload)
+---------------------------------------------------------------------------
+
+Automatically upload packages built with conda build to
+`Anaconda.org <http://anaconda.org>`_. The default is ``False``.
+
+EXAMPLE:
+
+.. code-block:: yaml
+
+  anaconda_upload: True
+
+
+Token to be used for Anaconda.org uploads (conda-build 3.0+)
+------------------------------------------------------------
+
+Tokens are a means of authenticating with anaconda.org without logging in.
+You can pass your token to conda-build with this condarc setting, or with a CLI
+argument.  This is unset by default.  Setting it implicitly enables
+anaconda_upload.
+
+  .. code-block:: yaml
+
+     conda-build:
+         anaconda_token: gobbledygook
+
+
+Limit build output verbosity (conda-build 3.0+)
+-----------------------------------------------
+
+Conda-build's output verbosity can be reduced with the ``quiet`` setting. For 
+more verbosity use the CLI flag ``--debug``.
+
+.. code-block:: yaml
+
+   conda-build:
+       quiet: true
+
+
+Disable filename hashing (conda-build 3.0+)
+-------------------------------------------
+
+Conda-build 3 adds hashes to filenames to allow greater customization of
+dependency versions. If you find this disruptive, you can disable the hashing
+with the following config entry:
+
+.. code-block:: yaml
+
+   conda-build:
+       filename_hashing: false
+
+NOTE: conda-build does no checking when clobbering packages. If you
+utilize conda-build 3's build matrices with a build configuration that is not
+reflected in the build string, packages will be missing due to clobbering.
+
+
+Disable recipe and package verification (conda-build 3.0+)
+----------------------------------------------------------
+
+By default, conda-build uses conda-verify to ensure that your recipe and package
+meet some minimum sanity checks.  You can disable these:
+
+.. code-block:: yaml
+
+   conda-build:
+       no_verify: true
+
+
+Disable per-build folder creation (conda-build 3.0+)
+----------------------------------------------------
+
+By default, conda-build creates a new folder for each build, named for the
+package name plus a timestamp. This allows you to do multiple builds at once. If
+you have issues with long paths, you may need to disable this behavior. You
+should first try to change the build output root directory with the ``root-dir``
+setting described above, but fall back to this as necessary:
+
+.. code-block:: yaml
+
+   conda-build:
+       set_build_id: false
+
+
+Skip building packages that already exist (conda-build 3.0+)
+------------------------------------------------------------
+
+By default, conda-build builds all recipes that you specify. You can instead
+skip recipes that are already built. A recipe is skipped if and only if *all* of
+its outputs are available on your currently configured channels.
+
+.. code-block:: yaml
+
+   conda-build:
+       skip_existing: true
+
+
+Omit recipe from package (conda-build 3.0+)
+-------------------------------------------
+
+By default, conda-build includes the recipe that was used to build the package.
+If this contains sensitive or proprietary information, you can omit the recipe.
+
+.. code-block:: yaml
+
+   conda-build:
+       include_recipe: false
+
+NOTE: If you do not include the recipe, you cannot use conda-build to test
+the package after the build completes. This means that you cannot split your
+build and test steps across two distinct CLI commands (``conda build --notest
+recipe`` and ``conda build -t recipe``). If you need to omit the recipe and
+split your steps, your only option is to remove the recipe files from the
+tarball artifacts after your test step. Conda-build does not provide tools for
+doing that.
+
+
+Disable activation of environments during build/test (conda-build 3.0+)
+-----------------------------------------------------------------------
+
+By default, conda-build activates the build and test environments prior to
+executing the build or test scripts. This adds necessary PATH entries, and also
+runs any activate.d scripts you may have. If you disable activation, the PATH
+will still be modified, but the activate.d scripts will not run. This is not
+recommended, but some people prefer this.
+
+.. code-block:: yaml
+
+   conda-build:
+       activate: false
+
+
+PyPI upload settings (conda-build 3.0+)
+---------------------------------------
+
+Unset by default.  If you have wheel outputs in your recipe, conda-build will
+try to upload them to the PyPI repository specified by the ``pypi_repository``
+setting using credentials from this file path.
+
+.. code-block:: yaml
+
+   conda-build:
+       pypirc: ~/.pypirc
+
+
+PyPI repository to upload to (conda-build 3.0+)
+-----------------------------------------------
+
+Unset by default.  If you have wheel outputs in your recipe, conda-build will
+try to upload them to this PyPI repository using credentials from the file
+specified by the ``pypirc`` setting.
+
+.. code-block:: yaml
+
+   conda-build:
+       pypi_repository: pypi
 
 
 Specify environment directories (envs_dirs)

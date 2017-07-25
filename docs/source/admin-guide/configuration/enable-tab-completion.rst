@@ -17,7 +17,7 @@ To enable tab completion:
 
    .. code-block:: bash
 
-      eval "(register-python-argcomplete conda)"
+      eval "$(register-python-argcomplete conda)"
 
 #. Test it:
 

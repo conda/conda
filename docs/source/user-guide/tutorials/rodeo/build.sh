@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PYTHON setup.py install
+$PYTHON setup.py install
 
 if [ `uname` == Darwin ]
 then

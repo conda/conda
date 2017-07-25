@@ -177,7 +177,7 @@ defined only on macOS.
    * - LDFLAGS
      - Same as CFLAGS.
    * - MACOSX_DEPLOYMENT_TARGET
-     - Same as Anaconda Python.
+     - Same as the Anaconda Python macOS deployment target. Currently ``10.6``.
    * - OSX_ARCH
      - ``i386`` or ``x86_64``, depending on Python build.
 

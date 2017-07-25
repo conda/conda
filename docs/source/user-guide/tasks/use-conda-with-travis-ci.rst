@@ -98,8 +98,7 @@ recipe is tested as well.
 #. Include the conda recipe in the same directory as your source
    code.
 
-#. In your [@electronwill: which file? The meta.yaml? .travis.yml?] file,
-   replace the following line:
+#. In your ``.travis.yml`` file, replace the following line:
 
    .. code-block:: yaml
 

@@ -59,7 +59,7 @@ System configuration file
 
    .. code-block:: bash
 
-       which conda
+      $ which conda
       /tmp/miniconda/bin/conda
 
 #. View the contents of the ``.condarc`` file in the
@@ -74,9 +74,9 @@ System configuration file
    that users may download packages only from the ``admin``
    channel:
 
-   .. code-block:: none
+   .. code-block:: bash
 
-     cat /tmp/miniconda/.condarc
+     $ cat /tmp/miniconda/.condarc
      allow_other_channels : false
      channel_alias: https://conda.anaconda.org/
      channels:
@@ -99,7 +99,7 @@ User configuration file
 
    .. code-block:: bash
 
-     conda info
+     $ conda info
      Current conda install:
      . . .
             channel URLs : http://repo.continuum.io/pkgs/free/osx-64/
@@ -114,9 +114,9 @@ User configuration file
 #. View the contents of the administrative ``.condarc`` file in
    the directory that was located in step 1:
 
-   .. code-block:: none
+   .. code-block:: bash
 
-     cat ~/.condarc
+     $ cat ~/.condarc
      channels:
        - defaults
 
@@ -129,7 +129,7 @@ User configuration file
 
    .. code-block:: bash
 
-      conda search flask
+      $ conda search flask
       Fetching package metadata:
       Error: URL 'http://repo.continuum.io/pkgs/pro/osx-64/' not
       in allowed channels.

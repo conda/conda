@@ -12,6 +12,7 @@ package naming conventions listed below.
 
 package name
 ============
+
 The name of a package, without any reference to a particular
 version. Conda package names are normalized, and they may contain
 only lowercase alpha characters, numeric digits, underscores,
@@ -25,6 +26,7 @@ by ``package_name``.
 
 package version
 ===============
+
 A version number or string, often similar to ``X.Y`` or
 ``X.Y.Z``, but it may take other forms as well.
 
@@ -35,6 +37,7 @@ A version number or string, often similar to ``X.Y`` or
 
 build string
 ============
+
 An arbitrary string that identifies a particular build of a
 package for conda.  It may contain suggestive mnemonics, but
 these are subject to change, and you should not rely on it or try
@@ -47,6 +50,7 @@ to parse it for any specific information.
 
 canonical name
 ==============
+
 The package name, version and build string joined together by
 hyphens---name-version-buildstring. In usage documentation, these
 are referred to by ``canonical_name``.
@@ -57,6 +61,7 @@ are referred to by ``canonical_name``.
 
 filename
 ========
+
 Conda package filenames are canonical names, plus the suffix
 ``.tar.bz2``.
 
@@ -77,6 +82,7 @@ The following figure compares a canonical name to a filename:
 
 package specification
 =====================
+
 A package name together with a package version---which may be
 partial or absent---joined by an equal sign.
 

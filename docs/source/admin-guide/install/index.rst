@@ -29,8 +29,7 @@ System requirements
 
 * For Miniconda---400 MB disk space.
 
-* For Anaconda---300 MB disk space to download Anaconda plus
-  another 300 MB to install it.
+* For Anaconda---Minimum 3 GB disk space to download and install.
 
 
 * Windows, macOS or Linux.
