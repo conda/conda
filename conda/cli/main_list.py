@@ -38,13 +38,7 @@ def get_packages(installed, regex):
 def list_packages(prefix, installed, regex=None, format='human',
                   show_channel_urls=None):
     res = 0
-    result = ['%-25s  %-15s %15s  %-15s' % (
-            "Name",
-            "Version",
-            "Build",
-            "Channel",
-    )]
-
+    result = []
     for dist in get_packages(installed, regex):
         if format == 'canonical':
             result.append(dist)
@@ -94,10 +88,18 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
 
     exitcode, output = list_packages(prefix, installed, regex, format=format,
                                      show_channel_urls=show_channel_urls)
-    if not json:
-        print('\n'.join(map(text_type, output)))
-    else:
+    if context.json:
         stdout_json(output)
+
+    else:
+        print('%-25s  %-15s %15s  %-15s' % (
+            "Name",
+            "Version",
+            "Build",
+            "Channel",)
+        )
+        print('\n'.join(map(text_type, output)))
+
     return exitcode
 
 
