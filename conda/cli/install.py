@@ -123,14 +123,13 @@ def install(args, parser, command='install'):
     args_packages = [s.strip('"\'') for s in args.packages]
 
     if newenv and not args.no_default_packages:
-        default_packages = list(context.create_default_packages)
         # Override defaults if they are specified at the command line
+        # TODO: rework in 4.4 branch using MatchSpec
+        args_packages_names = [pkg.replace(' ', '=').split('=', 1)[0] for pkg in args_packages]
         for default_pkg in context.create_default_packages:
-            if any(pkg.split('=')[0] == default_pkg for pkg in args_packages):
-                default_packages.remove(default_pkg)
-                args_packages.extend(default_packages)
-    else:
-        default_packages = []
+            default_pkg_name = default_pkg.replace(' ', '=').split('=', 1)[0]
+            if default_pkg_name not in args_packages_names:
+                args_packages.append(default_pkg)
 
     common.ensure_use_local(args)
     common.ensure_override_channels_requires_channel(args)
@@ -167,9 +166,8 @@ def install(args, parser, command='install'):
                               "must supply command line package specs or --file")
 
     if newenv and args.clone:
-        package_diff = set(args_packages) - set(default_packages)
-        if package_diff:
-            raise TooManyArgumentsError(0, len(package_diff), list(package_diff),
+        if args.packages:
+            raise TooManyArgumentsError(0, len(args.packages), list(args.packages),
                                         'did not expect any arguments for --clone')
 
         clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
