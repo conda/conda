@@ -28,7 +28,7 @@ log = getLogger(__name__)
 
 # TODO: for conda-build compatibility only
 # remove in conda 4.4
-class ResolvePackageNotFound(CondaError):  # change back to Exception in conda 4.4
+class ResolvePackageNotFound(Exception):
     def __init__(self, bad_deps):
         # bad_deps is a list of lists
         self.bad_deps = tuple(dep for deps in bad_deps for dep in deps if dep)
@@ -393,6 +393,7 @@ class AuthenticationError(CondaError):
 class PackagesNotFoundError(CondaError):
 
     def __init__(self, packages, channel_urls=()):
+
         format_list = lambda iterable: '  - ' + '\n  - '.join(text_type(x) for x in iterable)
 
         if channel_urls:

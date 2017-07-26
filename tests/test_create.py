@@ -279,7 +279,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/not-a-channel")
             stdout, stderr = run_command(Commands.SEARCH, prefix, "python --json")
             packages = json.loads(stdout)
-            assert len(packages) > 1
+            assert len(packages) >= 1
 
     def test_create_install_update_remove_smoketest(self):
         with make_temp_env("python=3.5") as prefix:
@@ -779,7 +779,6 @@ class IntegrationTests(TestCase):
             # assert conda search can now find rpy2
             stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
-            assert len(json_obj['rpy2']) > 1
 
     def test_clone_offline_multichannel_with_untracked(self):
         with make_temp_env("python=3.5") as prefix:
@@ -1049,7 +1048,7 @@ class IntegrationTests(TestCase):
     def test_search_gawk_not_win_filter(self):
         with make_temp_env() as prefix:
             stdout, stderr = run_command(
-                Commands.SEARCH, prefix, "gawk", "--platform", "win-64", "--json", use_exception_handler=True)
+                Commands.SEARCH, prefix, "*gawk", "--platform", "win-64", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert "gawk" in json_obj.keys()
             assert "m2-gawk" in json_obj.keys()
@@ -1058,7 +1057,7 @@ class IntegrationTests(TestCase):
     @pytest.mark.skipif(not on_win, reason="gawk is a windows only package")
     def test_search_gawk_on_win(self):
         with make_temp_env() as prefix:
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json", use_exception_handler=True)
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "*gawk", "--json", use_exception_handler=True)
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert "gawk" in json_obj.keys()
             assert "m2-gawk" in json_obj.keys()

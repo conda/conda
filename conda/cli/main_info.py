@@ -351,7 +351,6 @@ def execute(args, parser):
     if args.all or context.json:
         for option in options:
             setattr(args, option, True)
-
     info_dict = get_info_dict(args.system)
 
     if (args.all or all(not getattr(args, opt) for opt in options)) and not context.json:
