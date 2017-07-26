@@ -1187,7 +1187,7 @@ class CacheUrlAction(PathAction):
                 #   make sure that remote url is the most recent url in the
                 #   writable cache urls.txt
                 origin_url = source_package_cache._urls_data.get_url(self.target_package_basename)
-                if origin_url and has_platform(origin_url, context.known_platforms):
+                if origin_url and has_platform(origin_url, context.known_subdirs):
                     target_package_cache._urls_data.add_url(origin_url)
             else:
                 # so our tarball source isn't a package cache, but that doesn't mean it's not
@@ -1217,7 +1217,7 @@ class CacheUrlAction(PathAction):
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy,
                             force=context.force)
 
-                if origin_url and has_platform(origin_url, context.known_platforms):
+                if origin_url and has_platform(origin_url, context.known_subdirs):
                     target_package_cache._urls_data.add_url(origin_url)
                 else:
                     target_package_cache._urls_data.add_url(self.url)
