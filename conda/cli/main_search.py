@@ -14,47 +14,42 @@ from ..common.io import spinner
 from ..compat import itervalues, text_type
 from ..exceptions import PackagesNotFoundError
 
-descr = """Search for packages and display their information. The input is a
-MatchSpec, which is a fundamentally query language for conda packages.
-To perform a search with a search string that starts
-with a -, separate the search from the options with --, like 'conda search -- -h'.
-
+descr = """Search for packages and display associated information.
+The input is a MatchSpec, a query language for conda packages.
+See examples below.
 """
-example = '''
-Examples:git
 
-Search for a specific package (but no other packages that have 'scikit-learn'
-in the name):
+example = """
+Examples:
+
+Search for a specific package named 'scikit-learn':
 
     conda search scikit-learn
 
-Search for packages that has 'scikit' in its name:
+Search for packages containing 'scikit' in the package name:
 
-   conda search "*scikit*"
-   conda search "scikit*"
+    conda search *scikit*
 
-Fetch detail  package builds:
+Note that your shell may expand '*' before handing the command over to conda.
+Therefore it is sometimes necessary to use single or double quotes around the query.
 
-  conda search numpy --info
-  conda search numpy=1.12 --info
-  conda search conda-forge::numpy=1.12 --info
+    conda search '*scikit'
+    conda search "*scikit*"
 
 Search for packages for 64-bit Linux (by default, packages for your current
 platform are shown):
 
-   conda search --platform linux-64
-   conda search numpy --platform linux-64
+    conda search numpy[subdir=linux-64]
 
 Search for a specific version of a package:
 
-   conda search numpy=1.12
+    conda search 'numpy>=1.12'
 
-Search for a package in a specific channel (e.g. conda-forge):
+Search for a package on a specific channel
 
-   conda search conda-forge::numpy
-   conda search conda-forge::numpy=1.12
-   conda search conda-forge::numpy=1.12 --platform linux-64
-'''
+    conda search conda-forge::numpy
+    conda search 'numpy[channel=conda-forge, subdir=osx-64]'
+"""
 
 
 def configure_parser(sub_parsers):
@@ -78,7 +73,7 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-i', "--info",
         action="store_true",
-        help="Provide detail information of each build of a package",
+        help="Provide detailed information about each package. Similar to output of 'conda info package-name'."
     )
     p.add_argument(
         "--names-only",
@@ -104,6 +99,7 @@ def configure_parser(sub_parsers):
         'match_spec',
         default='*',
         nargs='?',
+        help=SUPPRESS,
     )
     p.add_argument(
         "--spec",
@@ -133,13 +129,24 @@ def execute(args, parser):
     from ..models.version import VersionOrder
     from ..base.context import context
 
+    spec = MatchSpec(args.match_spec)
+    if spec.get_exact_value('subdir'):
+        platform = spec.get_exact_value('subdir')
+    elif args.platform:
+        platform = args.platform
+    else:
+        platform = ''
+    if platform and platform != context.subdir:
+        args.unknown = False
+    ensure_use_local(args)
+    ensure_override_channels_requires_channel(args, dashc=False)
+
     platform = args.platform or ''
     if platform and platform != context.subdir:
         args.unknown = False
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args, dashc=False)
 
-    spec = MatchSpec(args.match_spec)
     with spinner("Loading channels", not context.verbosity and not context.quiet, context.json):
         spec_channel = spec.get_exact_value('channel')
         channel_urls = (spec_channel,) if spec_channel else context.channels
