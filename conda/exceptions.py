@@ -754,7 +754,7 @@ class ExceptionHandler(object):
             message_builder.append(
                 "An unexpected error has occurred. Conda has prepared the above report."
             )
-
+            message_builder.append('')
             self.out_stream.write('\n'.join(message_builder))
 
     def _calculate_ask_do_upload(self):

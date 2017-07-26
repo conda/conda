@@ -331,8 +331,13 @@ def execute(args, parser):
         return
 
     if args.packages:
-        print_package_info(args.packages)
-        return
+        from ..resolve import ResolvePackageNotFound
+        try:
+            print_package_info(args.packages)
+            return
+        except ResolvePackageNotFound as e:  # pragma: no cover
+            from ..exceptions import PackagesNotFoundError
+            raise PackagesNotFoundError(e.bad_deps)
 
     if args.unsafe_channels:
         if not context.json:

@@ -353,6 +353,8 @@ class Context(Configuration):
 
     @property
     def default_prefix(self):
+        if self.active_prefix:
+            return self.active_prefix
         _default_env = os.getenv('CONDA_DEFAULT_ENV')
         if _default_env in (None, ROOT_ENV_NAME, 'root'):
             return self.root_prefix
@@ -395,17 +397,11 @@ class Context(Configuration):
             return None
 
     @property
-    def prefix(self):
-        return get_prefix(self, self._argparse_args, False)
-
-    @property
-    def prefix_w_legacy_search(self):
-        return get_prefix(self, self._argparse_args, True)
-
-    @property
-    def clone_src(self):
-        assert self._argparse_args.clone is not None
-        return locate_prefix_by_name(self, self._argparse_args.clone)
+    def target_prefix(self):
+        # used for the prefix that is the target of the command currently being executed
+        # different from the active prefix, which is sometimes given by -p or -n command line flags
+        from ..core.envs_manager import determine_target_prefix
+        return determine_target_prefix(self)
 
     @property
     def root_prefix(self):
@@ -776,16 +772,6 @@ def get_help_dict():
     })
 
 
-def get_prefix(ctx, args, search=True):
-    from ..core.envs_manager import get_prefix
-    return get_prefix(ctx, args, search)
-
-
-def locate_prefix_by_name(ctx, name):
-    from ..core.envs_manager import EnvsDirectory
-    return EnvsDirectory.locate_prefix_by_name(name, ctx.envs_dirs)
-
-
 @memoize
 def _get_user_agent(context_platform):
     import platform
@@ -823,6 +809,12 @@ def _get_user_agent(context_platform):
     if libc_ver:
         user_agent += " {}/{}".format(libc_family, libc_ver)
     return user_agent
+
+
+# backward compatibility for conda-build
+def get_prefix(ctx, args, search=True):
+    from ..core.envs_manager import determine_target_prefix
+    return determine_target_prefix(ctx or context, args)
 
 
 try:

@@ -11,7 +11,7 @@ from conda.base.context import context
 from conda.cli.common import list_prefixes
 from conda.cli.main import generate_parser
 from conda.common.io import captured
-from conda.exceptions import EnvironmentNameNotFound
+from conda.exceptions import EnvironmentNameNotFound, EnvironmentLocationNotFound
 from conda.install import rm_rf
 from conda_env.cli.main import create_parser
 from conda_env.exceptions import SpecNotFound
@@ -232,7 +232,7 @@ class NewIntegrationTests(unittest.TestCase):
         run_conda_command(Commands.CREATE, test_env_name_3)
         self.assertTrue(env_is_created(test_env_name_3))
 
-        with pytest.raises(EnvironmentNameNotFound) as execinfo:
+        with pytest.raises(EnvironmentLocationNotFound) as execinfo:
             run_env_command(Commands.ENV_REMOVE, 'does-not-exist')
 
         run_env_command(Commands.ENV_REMOVE, test_env_name_3)

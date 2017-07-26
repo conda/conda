@@ -207,7 +207,12 @@ def print_explicit(prefix, add_md5=False):
 def execute(args, parser):
     from ..base.context import context
     from .common import stdout_json
-    prefix = context.prefix_w_legacy_search
+    from ..core.envs_manager import EnvsDirectory
+    prefix = context.target_prefix
+    if not EnvsDirectory.is_conda_environment(prefix):
+        from ..exceptions import EnvironmentLocationNotFound
+        raise EnvironmentLocationNotFound(prefix)
+
     regex = args.regex
     if args.full_name:
         regex = r'^%s$' % regex

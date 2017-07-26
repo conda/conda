@@ -8,6 +8,8 @@ import re
 import sys
 from tempfile import NamedTemporaryFile
 
+from .base.context import ROOT_ENV_NAME, context
+
 try:
     from cytoolz.itertoolz import concatv, drop
 except ImportError:  # pragma: no cover
@@ -37,8 +39,6 @@ class Activator(object):
     # information to the __init__ method of this class.
 
     def __init__(self, shell, arguments=None):
-        from .base.context import context
-        self.context = context
         self.shell = shell
         self._raw_arguments = arguments
 
@@ -201,15 +201,17 @@ class Activator(object):
             if not isdir(join(prefix, 'conda-meta')):
                 from .exceptions import EnvironmentLocationNotFound
                 raise EnvironmentLocationNotFound(prefix)
+        elif env_name_or_prefix in (ROOT_ENV_NAME, 'root'):
+            prefix = context.root_prefix
         else:
-            from .base.context import locate_prefix_by_name
-            prefix = locate_prefix_by_name(self.context, env_name_or_prefix)
+            from .core.envs_manager import EnvsDirectory
+            prefix = EnvsDirectory.locate_prefix_by_name(env_name_or_prefix)
         prefix = normpath(prefix)
 
         # query environment
         old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))
         old_conda_prefix = os.getenv('CONDA_PREFIX')
-        max_shlvl = self.context.max_shlvl
+        max_shlvl = context.max_shlvl
 
         if old_conda_prefix == prefix:
             return self.build_reactivate()
@@ -398,12 +400,12 @@ class Activator(object):
         return self.path_conversion(path_list)
 
     def _default_env(self, prefix):
-        if prefix == self.context.root_prefix:
+        if prefix == context.root_prefix:
             return 'base'
         return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
 
     def _prompt_modifier(self, conda_default_env):
-        return "(%s) " % conda_default_env if self.context.changeps1 else ""
+        return "(%s) " % conda_default_env if context.changeps1 else ""
 
     def _get_activate_scripts(self, prefix):
         return self.path_conversion(glob(join(

@@ -188,7 +188,7 @@ def split_anaconda_token(url):
     return cleaned_url.rstrip('/'), token
 
 
-def split_platform(url, known_platforms):
+def split_platform(url, known_subdirs):
     """
 
     Examples:
@@ -197,19 +197,19 @@ def split_platform(url, known_platforms):
         (u'https://1.2.3.4/t/tk-123/path', u'osx-64')
 
     """
-    _platform_match_regex = r'/(%s)/?' % r'|'.join(r'%s' % d for d in known_platforms)
+    _platform_match_regex = r'/(%s)/?' % r'|'.join(r'%s' % d for d in known_subdirs)
     _platform_match = re.search(_platform_match_regex, url, re.IGNORECASE)
     platform = _platform_match.groups()[0] if _platform_match else None
     cleaned_url = url.replace('/' + platform, '', 1) if platform is not None else url
     return cleaned_url.rstrip('/'), platform
 
 
-def has_platform(url, known_platforms):
+def has_platform(url, known_subdirs):
     url_no_package_name, _ = split_filename(url)
     if not url_no_package_name:
         return None
     maybe_a_platform = url_no_package_name.rsplit('/', 1)[-1]
-    return maybe_a_platform in known_platforms and maybe_a_platform or None
+    return maybe_a_platform in known_subdirs and maybe_a_platform or None
 
 
 def _split_package_filename(url):
@@ -235,10 +235,10 @@ def split_scheme_auth_token(url):
     return remainder_url, url_parts.scheme, url_parts.auth, token
 
 
-def split_conda_url_easy_parts(url, known_platforms):
+def split_conda_url_easy_parts(url, known_subdirs):
     # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
-    cleaned_url, platform = split_platform(cleaned_url, known_platforms)
+    cleaned_url, platform = split_platform(cleaned_url, known_subdirs)
     cleaned_url, package_filename = _split_package_filename(cleaned_url)
 
     # TODO: split out namespace using regex

@@ -1,17 +1,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from functools import partial
 from os import listdir
 from os.path import basename, isdir, isfile, join
 import re
 import sys
 
 from ..base.constants import PREFIX_MAGIC_FILE, ROOT_ENV_NAME
-from ..base.context import context, get_prefix as context_get_prefix
+from ..base.context import context
 from ..common.compat import itervalues
 from ..models.match_spec import MatchSpec
-
-get_prefix = partial(context_get_prefix, context)
 
 
 def ensure_use_local(args):
