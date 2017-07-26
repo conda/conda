@@ -73,7 +73,8 @@ def configure_parser(sub_parsers):
     p.add_argument(
         '-i', "--info",
         action="store_true",
-        help="Provide detailed information about each package. Similar to output of 'conda info package-name'."
+        help="Provide detailed information about each package. "
+             "Similar to output of 'conda info package-name'."
     )
     p.add_argument(
         "--names-only",
