@@ -3,7 +3,7 @@ from os.path import isdir, join
 import sys
 
 from conda._vendor.auxlib.entity import EntityEncoder
-from conda.base.context import context, get_prefix as context_get_prefix
+from conda.base.context import context
 
 root_env_name = 'root'
 
@@ -16,7 +16,8 @@ def stdout_json(d):
 
 
 def get_prefix(args, search=True):
-    return context_get_prefix(context, args, search)
+    from conda.core.envs_manager import determine_target_prefix
+    return determine_target_prefix(context, args)
 
 
 def find_prefix_name(name):

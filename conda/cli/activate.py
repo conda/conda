@@ -47,9 +47,14 @@ activate' from PATH. """)
         raise CondaSystemExit("No help available for command %s" % ensure_text_type(sys.argv[1]))
 
 
+def locate_prefix_by_name(ctx, name):
+    from ..core.envs_manager import EnvsDirectory
+    return EnvsDirectory.locate_prefix_by_name(name, ctx.envs_dirs)
+
+
 def prefix_from_arg(arg, shell):
     shelldict = shells[shell] if shell else {}
-    from ..base.context import context, locate_prefix_by_name
+    from ..base.context import context
     'Returns a platform-native path'
     # MSYS2 converts Unix paths to Windows paths with unix seps
     # so we must check for the drive identifier too.

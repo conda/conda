@@ -1360,6 +1360,7 @@ class IntegrationTests(TestCase):
 
         # regression test for #3489
         # don't raise for remove --all if environment doesn't exist
+        rm_rf(prefix)
         run_command(Commands.REMOVE, prefix, "--all")
 
     def test_transactional_rollback_simple(self):

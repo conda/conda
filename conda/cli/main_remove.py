@@ -107,6 +107,7 @@ def execute(args, parser):
     from ..exceptions import CondaEnvironmentError, CondaValueError
     from ..gateways.disk.delete import delete_trash
     from ..resolve import MatchSpec
+    from ..core.envs_manager import EnvsDirectory
     from ..core.linked_data import linked_data
     from ..gateways.disk.delete import rm_rf
     from ..instructions import PREFIX
@@ -116,13 +117,17 @@ def execute(args, parser):
         raise CondaValueError('no package names supplied,\n'
                               '       try "conda remove -h" for more details')
 
-    prefix = context.prefix_w_legacy_search
+    prefix = context.target_prefix
     if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
     if args.all and not isdir(prefix):
         # full environment removal was requested, but environment doesn't exist anyway
         return 0
+
+    if not EnvsDirectory.is_conda_environment(prefix):
+        from ..exceptions import EnvironmentLocationNotFound
+        raise EnvironmentLocationNotFound(prefix)
 
     ensure_use_local(args)
     ensure_override_channels_requires_channel(args)
