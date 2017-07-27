@@ -493,12 +493,41 @@ the Anaconda command-line client is installed and you are
 logged in with the ``anaconda login`` command.
 
 
+Specify environment directories (envs_dirs)
+-------------------------------------------
+
+Specify directories in which environments are located. If this
+key is set, the root prefix ``envs_dir`` is not used unless
+explicitly included. This key also determines where the package
+caches are located.
+
+For each envs here, ``envs/pkgs`` is used as the pkgs cache,
+except for the standard ``envs`` directory in the root
+directory, for which the normal ``root_dir/pkgs`` is used.
+
+EXAMPLE:
+
+.. code-block:: yaml
+
+  envs_dirs:
+    - ~/my-envs
+    - /opt/anaconda/envs
+
+The CONDA_ENVS_PATH environment variable overwrites this setting:
+
+* For macOS and Linux:
+  ``CONDA_ENVS_PATH=~/my-envs:/opt/anaconda/envs``
+
+* For Windows:
+  ``set CONDA_ENVS_PATH=C:\Users\joe\envs;C:\Anaconda\envs``
+
+
 Conda build configuration
 =========================
 
 
-Specify conda build output root directory (conda-build)
--------------------------------------------------------
+Specify conda build output root directory (root-dir)
+----------------------------------------------------
 
 Build output root directory. You can also set this with the
 CONDA_BLD_PATH environment variable. The default is
@@ -527,8 +556,8 @@ EXAMPLE:
   anaconda_upload: True
 
 
-Token to be used for Anaconda.org uploads (conda-build 3.0+)
-------------------------------------------------------------
+Token to be used for Anaconda.org uploads (conda-build 3.0+) (anaconda_token)
+-----------------------------------------------------------------------------
 
 Tokens are a means of authenticating with anaconda.org without logging in.
 You can pass your token to conda-build with this condarc setting, or with a CLI
@@ -541,8 +570,8 @@ anaconda_upload.
          anaconda_token: gobbledygook
 
 
-Limit build output verbosity (conda-build 3.0+)
------------------------------------------------
+Limit build output verbosity (conda-build 3.0+) (quiet)
+-------------------------------------------------------
 
 Conda-build's output verbosity can be reduced with the ``quiet`` setting. For 
 more verbosity use the CLI flag ``--debug``.
@@ -553,8 +582,8 @@ more verbosity use the CLI flag ``--debug``.
        quiet: true
 
 
-Disable filename hashing (conda-build 3.0+)
--------------------------------------------
+Disable filename hashing (conda-build 3.0+) (filename_hashing)
+--------------------------------------------------------------
 
 Conda-build 3 adds hashes to filenames to allow greater customization of
 dependency versions. If you find this disruptive, you can disable the hashing
@@ -570,8 +599,8 @@ utilize conda-build 3's build matrices with a build configuration that is not
 reflected in the build string, packages will be missing due to clobbering.
 
 
-Disable recipe and package verification (conda-build 3.0+)
-----------------------------------------------------------
+Disable recipe and package verification (conda-build 3.0+) (no_verify)
+----------------------------------------------------------------------
 
 By default, conda-build uses conda-verify to ensure that your recipe and package
 meet some minimum sanity checks.  You can disable these:
@@ -582,8 +611,8 @@ meet some minimum sanity checks.  You can disable these:
        no_verify: true
 
 
-Disable per-build folder creation (conda-build 3.0+)
-----------------------------------------------------
+Disable per-build folder creation (conda-build 3.0+) (set_build_id)
+-------------------------------------------------------------------
 
 By default, conda-build creates a new folder for each build, named for the
 package name plus a timestamp. This allows you to do multiple builds at once. If
@@ -597,8 +626,8 @@ setting described above, but fall back to this as necessary:
        set_build_id: false
 
 
-Skip building packages that already exist (conda-build 3.0+)
-------------------------------------------------------------
+Skip building packages that already exist (conda-build 3.0+) (skip_existing)
+----------------------------------------------------------------------------
 
 By default, conda-build builds all recipes that you specify. You can instead
 skip recipes that are already built. A recipe is skipped if and only if *all* of
@@ -610,8 +639,8 @@ its outputs are available on your currently configured channels.
        skip_existing: true
 
 
-Omit recipe from package (conda-build 3.0+)
--------------------------------------------
+Omit recipe from package (conda-build 3.0+) (include_recipe)
+------------------------------------------------------------
 
 By default, conda-build includes the recipe that was used to build the package.
 If this contains sensitive or proprietary information, you can omit the recipe.
@@ -630,8 +659,8 @@ tarball artifacts after your test step. Conda-build does not provide tools for
 doing that.
 
 
-Disable activation of environments during build/test (conda-build 3.0+)
------------------------------------------------------------------------
+Disable activation of environments during build/test (conda-build 3.0+) (activate)
+----------------------------------------------------------------------------------
 
 By default, conda-build activates the build and test environments prior to
 executing the build or test scripts. This adds necessary PATH entries, and also
@@ -645,8 +674,8 @@ recommended, but some people prefer this.
        activate: false
 
 
-PyPI upload settings (conda-build 3.0+)
----------------------------------------
+PyPI upload settings (conda-build 3.0+) (pypirc)
+------------------------------------------------
 
 Unset by default.  If you have wheel outputs in your recipe, conda-build will
 try to upload them to the PyPI repository specified by the ``pypi_repository``
@@ -658,8 +687,8 @@ setting using credentials from this file path.
        pypirc: ~/.pypirc
 
 
-PyPI repository to upload to (conda-build 3.0+)
------------------------------------------------
+PyPI repository to upload to (conda-build 3.0+) (pypi_repository)
+-----------------------------------------------------------------
 
 Unset by default.  If you have wheel outputs in your recipe, conda-build will
 try to upload them to this PyPI repository using credentials from the file
@@ -669,35 +698,6 @@ specified by the ``pypirc`` setting.
 
    conda-build:
        pypi_repository: pypi
-
-
-Specify environment directories (envs_dirs)
--------------------------------------------
-
-Specify directories in which environments are located. If this
-key is set, the root prefix ``envs_dir`` is not used unless
-explicitly included. This key also determines where the package
-caches are located.
-
-For each envs here, ``envs/pkgs`` is used as the pkgs cache,
-except for the standard ``envs`` directory in the root
-directory, for which the normal ``root_dir/pkgs`` is used.
-
-EXAMPLE:
-
-.. code-block:: yaml
-
-  envs_dirs:
-    - ~/my-envs
-    - /opt/anaconda/envs
-
-The CONDA_ENVS_PATH environment variable overwrites this setting:
-
-* For macOS and Linux:
-  ``CONDA_ENVS_PATH=~/my-envs:/opt/anaconda/envs``
-
-* For Windows:
-  ``set CONDA_ENVS_PATH=C:\Users\joe\envs;C:\Anaconda\envs``
 
 
 Obtaining information from the .condarc file
