@@ -34,6 +34,6 @@ def test_check_non_admin_enabled_false():
 
 
 def test_check_non_admin_enabled_true():
-    with env_var('CONDA_NON_ADMIN_ENABLED', 'false', reset_context):
+    with env_var('CONDA_NON_ADMIN_ENABLED', 'true', reset_context):
         check_non_admin()
         assert True
