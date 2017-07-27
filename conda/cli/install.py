@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import abspath, basename, exists, isdir, join
+from os.path import abspath, basename, exists, isdir
 
 from . import common
 from .._vendor.auxlib.ish import dals
@@ -17,11 +17,10 @@ from ..base.context import context
 from ..common.compat import text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import get_channel_priority_map, get_index
-from ..core.linked_data import linked as install_linked
 from ..core.solve import Solver
 from ..exceptions import (CondaImportError, CondaOSError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
-                          PackageNotInstalledError, PackagesNotFoundError, TooManyArgumentsError,
+                          PackagesNotFoundError, TooManyArgumentsError,
                           UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
 from ..plan import (revert_actions)
@@ -56,7 +55,8 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         if not isdir(src_prefix):
             raise DirectoryNotFoundError(src_arg)
     else:
-        src_prefix = context.clone_src
+        assert context._argparse_args.clone is not None
+        src_prefix = EnvsDirectory.locate_prefix_by_name(context._argparse_args.clone)
 
     if not json:
         print("Source:      %s" % src_prefix)
@@ -108,7 +108,7 @@ def install(args, parser, command='install'):
     isinstall = bool(command == 'install')
     if newenv:
         common.ensure_name_or_prefix(args, command)
-    prefix = context.prefix if newenv or args.mkdir else context.prefix_w_legacy_search
+    prefix = context.target_prefix
     if newenv:
         check_prefix(prefix, json=context.json)
     if context.force_32bit and prefix == context.root_prefix:
@@ -122,26 +122,14 @@ def install(args, parser, command='install'):
 
     args_packages = [s.strip('"\'') for s in args.packages]
 
-    linked_dists = install_linked(prefix)
-    linked_names = tuple(ld.quad[0] for ld in linked_dists)
-    if isupdate and not args.all:
-        for name in args_packages:
-            common.arg2spec(name, json=context.json, update=True)
-            if name not in linked_names:
-                envs_dir = join(context.root_prefix, 'envs')
-                private_env_prefix = EnvsDirectory(envs_dir).get_private_env_prefix(name)
-                if private_env_prefix is None:
-                    raise PackageNotInstalledError(prefix, name)
-
     if newenv and not args.no_default_packages:
-        default_packages = list(context.create_default_packages)
         # Override defaults if they are specified at the command line
+        # TODO: rework in 4.4 branch using MatchSpec
+        args_packages_names = [pkg.replace(' ', '=').split('=', 1)[0] for pkg in args_packages]
         for default_pkg in context.create_default_packages:
-            if any(pkg.split('=')[0] == default_pkg for pkg in args_packages):
-                default_packages.remove(default_pkg)
-                args_packages.extend(default_packages)
-    else:
-        default_packages = []
+            default_pkg_name = default_pkg.replace(' ', '=').split('=', 1)[0]
+            if default_pkg_name not in args_packages_names:
+                args_packages.append(default_pkg)
 
     common.ensure_use_local(args)
     common.ensure_override_channels_requires_channel(args)
@@ -169,11 +157,6 @@ def install(args, parser, command='install'):
         if '@EXPLICIT' in specs:
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             return
-    elif getattr(args, 'all', False):
-        if not linked_dists:
-            log.info("There are no packages installed in prefix %s", prefix)
-            return
-        specs.extend(d.quad[0] for d in linked_dists)
     specs.extend(common.specs_from_args(args_packages, json=context.json))
 
     if isinstall and args.revision:
@@ -183,9 +166,8 @@ def install(args, parser, command='install'):
                               "must supply command line package specs or --file")
 
     if newenv and args.clone:
-        package_diff = set(args_packages) - set(default_packages)
-        if package_diff:
-            raise TooManyArgumentsError(0, len(package_diff), list(package_diff),
+        if args.packages:
+            raise TooManyArgumentsError(0, len(args.packages), list(args.packages),
                                         'did not expect any arguments for --clone')
 
         clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
@@ -203,7 +185,6 @@ def install(args, parser, command='install'):
         else:
             raise EnvironmentLocationNotFound(prefix)
 
-    index = {}
     try:
         if isinstall and args.revision:
             index = get_index(channel_urls=index_args['channel_urls'],
@@ -214,7 +195,6 @@ def install(args, parser, command='install'):
             progressive_fetch_extract = unlink_link_transaction.get_pfe()
         else:
             solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
-            index, _ = solver._prepare()
             unlink_link_transaction = solver.solve_for_transaction(
                 force_reinstall=context.force,
             )
@@ -264,7 +244,6 @@ def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args,
     try:
         progressive_fetch_extract.execute()
         unlink_link_transaction.execute()
-        # execute_actions(actions, index, verbose=not context.quiet)
 
     except SystemExit as e:
         raise CondaSystemExit('Exiting', e)

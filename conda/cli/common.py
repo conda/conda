@@ -1,17 +1,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from functools import partial
 from os import listdir
 from os.path import basename, isdir, isfile, join
 import re
 import sys
 
 from ..base.constants import PREFIX_MAGIC_FILE, ROOT_ENV_NAME
-from ..base.context import context, get_prefix as context_get_prefix
+from ..base.context import context
 from ..common.compat import itervalues
 from ..models.match_spec import MatchSpec
-
-get_prefix = partial(context_get_prefix, context)
 
 
 def ensure_use_local(args):
@@ -186,15 +183,15 @@ def stdout_json_success(success=True, **kwargs):
 
     # this code reverts json output for plan back to previous behavior
     #   relied on by Anaconda Navigator and nb_conda
-    unlink_link_transaction = kwargs.get('unlink_link_transaction')
+    unlink_link_transaction = kwargs.pop('unlink_link_transaction', None)
     if unlink_link_transaction:
         from .._vendor.toolz.itertoolz import concat
         actions = kwargs.setdefault('actions', {})
-        actions['LINK'] = tuple(str(d) for d in concat(
-            stp.link_dists for stp in itervalues(unlink_link_transaction.prefix_setups)
+        actions['LINK'] = tuple(d.dist_str() for d in concat(
+            stp.link_precs for stp in itervalues(unlink_link_transaction.prefix_setups)
         ))
-        actions['UNLINK'] = tuple(str(d) for d in concat(
-            stp.unlink_dists for stp in itervalues(unlink_link_transaction.prefix_setups)
+        actions['UNLINK'] = tuple(d.dist_str() for d in concat(
+            stp.unlink_precs for stp in itervalues(unlink_link_transaction.prefix_setups)
         ))
     result.update(kwargs)
     stdout_json(result)

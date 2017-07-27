@@ -73,7 +73,7 @@ _conda_deactivate() {
     if [ -z "${CONDA_PREFIX+x}" ]; then
         case "$_CONDA_SHELL_FLAVOR" in
             dash) PS1=$(echo "${PS1-}" | awk '{ string=substr($0, 27); print string; }') ;;
-            *) [ -n "${PS1:+x}" ] && PS1=${PS1:26} ;;
+            *) [ -n "${PS1:+x}" ] && [ "${PS1:0:22}" = '$CONDA_PROMPT_MODIFIER' ] && PS1=${PS1:26} ;;
         esac
     fi
 

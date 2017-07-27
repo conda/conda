@@ -399,6 +399,7 @@ class Solver(object):
             UnlinkLinkTransaction:
 
         """
+        self._prepare()
         with spinner("Solving environment", not context.verbosity and not context.quiet,
                      context.json):
             if self.prefix == context.root_prefix and context.enable_private_envs:

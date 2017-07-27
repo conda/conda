@@ -8,6 +8,7 @@
 * resolve #988 allow channel name to be part of the package name spec (#5365)
 * resolve #5530 add ability for users to choose to post unexpected errors to core maintainers (#5531, #5571, ##5585)
 * Solver, UI, History, and Other (#5546, #5583)
+* improve 'conda search' to leverage new MatchSpec query language (#5597)
 
 ### Deprecations/Breaking Changes
 * remove support for with_features_depends (#5191)
@@ -40,6 +41,7 @@
 * logging simplifications/improvements (#5547, #5578)
 * update license information (#5568)
 * enable threadpool use for repodata collection by default (#5546, #5587)
+* conda info now raises PackagesNotFoundError (#5655)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -60,6 +62,9 @@
 * fix #5444 environment.yml file not found (#5475)
 * fix #3200 use proper unbound checks in bash code and test (#5476)
 * invalidate PrefixData cache on rm_rf for conda-build (#5491, #5499)
+* fix exception when generating JSON output (#5628)
+* fix target prefix determination (#5642)
+* use proxy to avoid segfaults (#5716)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
@@ -78,9 +83,17 @@
 * rename CondaFileNotFoundError to PathNotFoundError (#5521)
 * work toward repodata API (#5267)
 * rename PackageNotFoundError to PackagesNotFoundError and fix message formatting (#5602)
+* update conda 4.4 bld.bat windows recipe (#5573)
+* remove last remnant of CondaEnvRuntimeError (#5643)
 
 
-## 4.3.23 (unreleased)
+## 4.3.24 (unreleased)
+
+### Bug Fixes
+* fix #5708 package priority sort order (#5733)
+
+
+## 4.3.23 (2017-07-21)
 
 ### Improvements
 * resolve #5391 PackageNotFound and NoPackagesFoundError clean up (#5506)
@@ -89,7 +102,9 @@
 * fix #5525 too many Nones in CondaHttpError (#5526)
 * fix #5508 assertion failure after test file not cleaned up (#5533)
 * fix #5523 catch OSError when home directory doesn't exist (#5549)
-
+* fix #5574 traceback formatting (#5580)
+* fix #5554 logger configuration levels (#5555)
+* fix #5649 create_default_packages configuration (#5703)
 
 ## 4.3.22 (2017-06-12)
 

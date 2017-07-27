@@ -386,8 +386,8 @@ class Resolve(object):
         bld = rec.get('build_number', 0)
         bs = rec.get('build')
         ts = rec.get('timestamp', 0)
-        return ((valid, -cpri, ver, bld, bs, ts) if context.channel_priority else
-                (valid, ver, -cpri, bld, bs, ts))
+        return ((valid, -cpri, ver, bld, ts, bs) if context.channel_priority else
+                (valid, ver, -cpri, bld, ts, bs))
 
     def features(self, dist):
         _features = self.index[dist].get('features') or ()
@@ -546,7 +546,7 @@ class Resolve(object):
                 elif pkey[3] != version_key[3]:
                     ib += 1
                 # last field is timestamp. Use it as differentiator when build numbers are similar
-                elif pkey[5] != version_key[5]:
+                elif pkey[4] != version_key[4]:
                     ib += 1
 
                 if iv or include0:
