@@ -347,7 +347,7 @@ class ProgressBar(object):
             pass
         elif enabled:
             bar_format = "{desc}{bar} | {percentage:3.0f}% "
-            self.pbar = tqdm(desc=description, bar_format=bar_format, total=1)
+            self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, total=1)
 
     def update_to(self, fraction):
         if self.json:
