@@ -1,6 +1,6 @@
-===============================================
-Restricting the packages that users can install
-===============================================
+=============================================
+Administering a multi-user conda installation
+=============================================
 
 By default, conda and all packages it installs, including
 Anaconda, are installed locally with a user-specific
