@@ -19,7 +19,7 @@
 
 import sys, os
 
-# If extensions or modules to document with autodoc are in another directory,
+# If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('../..'))
@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 #needs_sphinx = '1.0'
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
-# coming with Sphinx, named 'sphinx.ext.*' or your custom ones.
+# coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
@@ -134,7 +134,7 @@ html_context = {
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
 
-# The name of an image file, relative to this directory to place at the top
+# The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 #html_logo = None
 
@@ -143,7 +143,7 @@ html_context = {
 # pixels large.
 #html_favicon = None
 
-# Add any paths that contain custom static files such as style sheets here,
+# Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
@@ -186,7 +186,7 @@ html_static_path = ['_static']
 # base URL from which the finished HTML is served.
 #html_use_opensearch = ''
 
-# This is the file name suffix for HTML files e.g. ".xhtml".
+# This is the file name suffix for HTML files (e.g. ".xhtml").
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
@@ -213,7 +213,7 @@ latex_documents = [
    u'Continuum Analytics', 'manual'),
 ]
 
-# The name of an image file ,relative to this directory to place at the top of
+# The name of an image file (relative to this directory) to place at the top of
 # the title page.
 #latex_logo = None
 
