@@ -307,11 +307,7 @@ class ChannelNotAllowed(ChannelError):
 
 class OperationNotAllowed(CondaError):
 
-    def __init__(self):
-        message = dals("""
-        The create, install, update, and remove operations have been disabled
-        on your system for non-privileged users.
-        """)
+    def __init__(self, message):
         super(OperationNotAllowed, self).__init__(message)
 
 
