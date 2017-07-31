@@ -1,7 +1,8 @@
-## 4.3.24 (unreleased)
+## 4.3.24 (2017-07-31)
 
 ### Bug Fixes
 * fix #5708 package priority sort order (#5733)
+
 
 ## 4.3.23 (2017-07-21)
 
@@ -15,6 +16,7 @@
 * fix #5574 traceback formatting (#5580)
 * fix #5554 logger configuration levels (#5555)
 * fix #5649 create_default_packages configuration (#5703)
+
 
 ## 4.3.22 (2017-06-12)
 
