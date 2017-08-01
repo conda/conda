@@ -10,7 +10,7 @@ removed. If these scripts exit nonzero, the installation or
 removal fails. 
 
 These scripts are executed in a subprocess by conda, using 
-``/bin/bash <script>`` on Linux and ``%COMSPEC% /c <script>`` 
+``/bin/bash <script>`` on Linux and macOS, and ``%COMSPEC% /c <script>`` 
 on Windows.  
 
 The convention for the path and filenames of these scripts on 
@@ -18,7 +18,7 @@ Windows is::
 
   Scripts/.<name>-<action>.bat
 
-On Linux [@cios-docs: and macOS?], the convention is::
+On Linux and macOS, the convention is::
 
   bin/.<name>-<action>.sh
 
