@@ -379,8 +379,9 @@ following circumstances:
 
 The command ``type command_name`` always tells you exactly what
 is being run. This is better than ``which command_name``, which
-ignores hashed commands and searches the PATH directly, and
-``hash -r`` in bash or ``rehash`` in zsh, which reset the hash.
+ignores hashed commands and searches the PATH directly.
+The hash is reset by ``source activate``, or by ``hash -r`` in bash or
+``rehash`` in zsh.
 
 
 .. _wrong-python:

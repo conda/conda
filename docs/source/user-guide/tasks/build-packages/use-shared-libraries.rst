@@ -31,7 +31,8 @@ assemblies, but it may turn towards that in the future to resolve
 complications with multiple versions of the same library on the
 same system.
 
-This path is added to ``os.environ["PATH"]`` for all Python processes, 
+For now, most DLLs are installed into ``(install prefix)\\Library\\bin``.
+This path is added to ``os.environ["PATH"]`` for all Python processes,
 so that DLLs can be located, regardless of the value of the
 system's PATH environment variable.
 

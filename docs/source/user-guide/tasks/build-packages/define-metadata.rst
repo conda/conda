@@ -796,7 +796,8 @@ Test requirements
 ------------------
 
 In addition to the runtime requirements, you can specify
-requirements needed during testing.
+requirements needed during testing. The runtime requirements that you specified
+in the "run" section described above are automatically included during testing.
 
 .. code-block:: none
 

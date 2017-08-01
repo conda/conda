@@ -169,17 +169,14 @@ Notes
 * All metadata is gathered from the standard metadata from the
   ``setup()`` function. Metadata that are not directly supported
   by ``setup()`` can be added using one of the options specified
-  below.
-
-  [@electronwill] In the preceding paragraph "below" is ambiguous.
-  What information is this referring to?
+  above.
 
 * By default, import tests are run for each subpackage specified
   by packages, and command line tests ``command --help`` are run
   for each ``setuptools entry_points`` command. This is done to
   ensure that the package is built correctly. You can disable or
   change these using the ``conda_import_tests`` and
-  ``conda_command_tests`` options.
+  ``conda_command_tests`` options specified above.
 
 * The Python version used in the build must be the same as where
   conda is installed, as ``bdist_conda`` uses ``conda-build``.
