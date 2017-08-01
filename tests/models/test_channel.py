@@ -911,10 +911,11 @@ class OtherChannelParsingTests(TestCase):
         reset_context()
 
     def test_channels_with_dashes(self):
+        # regression test for #5763
         assert context.channels == ('http://test/conda/anaconda-cluster',)
         channel_urls = prioritize_channels(context.channels)
         assert channel_urls == odict((
-            ('http://test/conda/anaconda-cluster/osx-64', ('http://test/conda/anaconda-cluster', 0)),
+            ('http://test/conda/anaconda-cluster/%s' % context.subdir, ('http://test/conda/anaconda-cluster', 0)),
             ('http://test/conda/anaconda-cluster/noarch', ('http://test/conda/anaconda-cluster', 0)),
         ))
 
