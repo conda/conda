@@ -45,6 +45,7 @@ install Anaconda if you select a user-writable install location.
 
 Installing in silent mode
 =========================
+
 You can use :ref:`silent installation <silent-mode-glossary>` of
 Miniconda or Anaconda for deployment or testing or building
 services such as Travis CI and AppVeyor.
