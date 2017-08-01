@@ -237,10 +237,10 @@ following messages:
       Nothing to test for: postgis-2.2.2-0
       # If you want to upload this package to anaconda.org later, type:
       #
-      # anaconda upload /Users/adefusco/Applications/anaconda3/conda-bld/osx-64/postgis-2.2.2-0.tar.bz2
+      # $ anaconda upload /Users/adefusco/Applications/anaconda3/conda-bld/osx-64/postgis-2.2.2-0.tar.bz2
       #
       # To have conda build upload to anaconda.org automatically, use
-      # conda config --set anaconda_upload yes
+      # $ conda config --set anaconda_upload yes
 
 * Linux:
 
@@ -250,10 +250,10 @@ following messages:
       Nothing to test for: postgis-2.2.2-0
       # If you want to upload this package to anaconda.org later, type:
       #
-      # anaconda upload /home/adefusco/anaconda3/conda-bld/linux-64/postgis-2.2.2-0.tar.bz2
+      # $ anaconda upload /home/adefusco/anaconda3/conda-bld/linux-64/postgis-2.2.2-0.tar.bz2
       #
       # To have conda build upload to anaconda.org automatically, use
-      # conda config --set anaconda_upload yes
+      # $ conda config --set anaconda_upload yes
 
 
 NOTE: Your path may be different depending on the install

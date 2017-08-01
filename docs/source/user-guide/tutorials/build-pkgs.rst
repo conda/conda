@@ -144,7 +144,7 @@ for their architecture.
 
    .. code-block:: bash
 
-       PYTHON setup.py install     # Python command to install the script.
+       $PYTHON setup.py install     # Python command to install the script.
 
 
 #. Save your new ``build.sh`` file to the same directory where you

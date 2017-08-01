@@ -160,7 +160,7 @@ on the same machine or on a different machine.
    .. code::
 
       # This file may be used to create an environment using:
-      # conda create --name <env> --file <this file>
+      # $ conda create --name <env> --file <this file>
       # platform: osx-64
       @EXPLICIT
       https://repo.continuum.io/pkgs/free/osx-64/mkl-11.3.3-0.tar.bz2
