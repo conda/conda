@@ -13,9 +13,9 @@ You also need to :ref:`install conda build <install-conda-build>`.
 .. toctree::
    :maxdepth: 1
 
-   build-pkgs-skeleton.rst
-   build-pkgs.rst
-   build-postgis.rst
-   build-windows.rst
-   build-apps.rst
-   build-nltk.rst
+   build-pkgs-skeleton
+   build-pkgs
+   build-postgis
+   build-windows
+   build-apps
+   build-nltk

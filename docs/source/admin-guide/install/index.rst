@@ -93,8 +93,8 @@ environment and their version numbers, run ``conda list``.
    :maxdepth: 1
    :hidden:
 
-   download.rst
-   windows.rst
-   macos.rst
-   linux.rst
-   test-installation.rst
+   download
+   windows
+   macos
+   linux
+   test-installation

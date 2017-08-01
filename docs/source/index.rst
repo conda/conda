@@ -51,12 +51,12 @@ that approach may not be as up to date.
    :hidden:
    :maxdepth: 1
 
-   user-guide/index.rst
-   admin-guide/index.rst
-   help-support.rst
-   release-notes.rst
-   commands.rst
-   glossary.rst
-   license.rst
+   user-guide/index
+   admin-guide/index
+   help-support
+   release-notes
+   commands
+   glossary
+   license
 
 .. |reg|    unicode:: U+000AE .. REGISTERED SIGN
