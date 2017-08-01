@@ -202,33 +202,6 @@ def rm_rf_pkgs_dirs():
     return writable_pkgs_dirs
 
 
-def find_source_cache():
-    cache_dirs = {
-        'source cache': context.src_cache,
-        'git cache': context.git_cache,
-        'hg cache': context.hg_cache,
-        'svn cache': context.svn_cache,
-    }
-
-    sizes = {}
-    totalsize = 0
-    for cache_type, cache_dir in cache_dirs.items():
-        dirsize = 0
-        for root, d, files in walk(cache_dir):
-            for fn in files:
-                size = lstat(join(root, fn)).st_size
-                totalsize += size
-                dirsize += size
-        sizes[cache_type] = dirsize
-
-    return {
-        'warnings': [],
-        'cache_dirs': cache_dirs,
-        'cache_sizes': sizes,
-        'total_size': totalsize,
-    }
-
-
 def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
     from .common import confirm_yn
     from ..gateways.disk.delete import rm_rf
@@ -266,10 +239,9 @@ def _execute(args, parser):
     }
     one_target_ran = False
 
-    if args.source_cache or args.all:
-        json_result['source_cache'] = find_source_cache()
-        rm_source_cache(args, **json_result['source_cache'])
-        one_target_ran = True
+    if args.source_cache:
+        print("WARNING: 'conda clean --source-cache' is deprecated.\n"
+              "    Use conda-build to remove source cache files.", file=sys.stderr)
 
     if args.force_pkgs_dirs:
         writable_pkgs_dirs = rm_rf_pkgs_dirs()

@@ -300,30 +300,6 @@ class Context(Configuration):
         return self.croot
 
     @property
-    def src_cache(self):
-        path = join(self.croot, 'src_cache')
-        conda_bld_ensure_dir(path)
-        return path
-
-    @property
-    def git_cache(self):
-        path = join(self.croot, 'git_cache')
-        conda_bld_ensure_dir(path)
-        return path
-
-    @property
-    def hg_cache(self):
-        path = join(self.croot, 'hg_cache')
-        conda_bld_ensure_dir(path)
-        return path
-
-    @property
-    def svn_cache(self):
-        path = join(self.croot, 'svn_cache')
-        conda_bld_ensure_dir(path)
-        return path
-
-    @property
     def conda_build(self):
         # conda-build needs its config map to be mutable
         try:

@@ -234,12 +234,6 @@ def configure_parser_clean(sub_parsers):
              "symlinks back to the package cache.",
     )
     removal_target_options.add_argument(
-        '-s', '--source-cache',
-        action='store_true',
-        # help="Remove files from the source cache of conda build.",
-        help=SUPPRESS,
-    )
-    removal_target_options.add_argument(
         "-t", "--tarballs",
         action="store_true",
         help="Remove cached package tarballs.",
