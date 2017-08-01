@@ -95,14 +95,14 @@ def _read_channel_configuration(scheme, host, port, path):
     for name, channel in sorted(context.custom_channels.items(), reverse=True,
                                 key=lambda x: len(x[0])):
         that_test_url = join_url(channel.location, channel.name)
-        if test_url.startswith(that_test_url):
+        if tokenized_startswith(test_url.split('/'), that_test_url.split('/')):
             subname = test_url.replace(that_test_url, '', 1).strip('/')
             return (channel.location, join_url(channel.name, subname), scheme,
                     channel.auth, channel.token)
 
     # Step 5. channel_alias match
     ca = context.channel_alias
-    if ca.location and test_url.startswith(ca.location):
+    if ca.location and tokenized_startswith(test_url.split('/'), ca.location.split('/')):
         name = test_url.replace(ca.location, '', 1).strip('/') or None
         return ca.location, name, scheme, ca.auth, ca.token
 
