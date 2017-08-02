@@ -6,9 +6,10 @@ from collections import Mapping
 from os.path import basename
 import re
 
+from . import translate_feature_str
 from .channel import Channel, MultiChannel
 from .dist import Dist
-from .index_record import IndexRecord, PackageRef, push_individual_feature
+from .index_record import IndexRecord, PackageRef
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -460,6 +461,16 @@ def _parse_channel(channel_val):
 
 
 def _parse_spec_str(spec_str):
+    # pre-step for ugly backward compat
+    if spec_str.endswith('@'):
+        k, v = translate_feature_str(spec_str)
+        return {
+            'name': '*',
+            'provides_features': {
+                k: v,
+            },
+        }
+
     # Step 1. strip '#' comment
     if '#' in spec_str:
         ndx = spec_str.index('#')
@@ -682,12 +693,14 @@ class FeatureMatch(MatchInterface):
         if isinstance(value, string_types):
             result_map = {}
             for val in value.replace(' ', ',').split(','):
-                push_individual_feature(result_map, val)
+                k, v = translate_feature_str(val)
+                result_map[k] = v
         else:
             assert isiterable(value), type(value)
             result_map = {}
             for val in value:
-                push_individual_feature(result_map, val)
+                k, v = translate_feature_str(val)
+                result_map[k] = v
         return frozendict(result_map)
 
     def match(self, other):

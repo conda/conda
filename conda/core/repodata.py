@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
+from collections import OrderedDict, defaultdict
 from contextlib import closing
 from genericpath import getmtime, isfile
 import hashlib
@@ -14,13 +15,12 @@ import re
 from textwrap import dedent
 from time import time
 import warnings
-from collections import OrderedDict, defaultdict
 
 from .. import CondaError, iteritems
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import CONDA_HOMEPAGE_URL, UNKNOWN_CHANNEL
+from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode,
                              text_type, with_metaclass)
@@ -452,7 +452,7 @@ def make_feature_record(feature_name, feature_value):
         name=pkg_name,
         version='0',
         build='0',
-        channel=UNKNOWN_CHANNEL,
+        channel='@',
         subdir=context.subdir,
         md5="0123456789",
         provides_features={
