@@ -814,7 +814,7 @@ explicitly specified.
            - some-dep
 
 
-For example, a subpackage requirements section may have a list of dependencies but no build
+It is also possible for a subpackage requirements section to have a list of dependencies but no build
 section or run section. This is the same as having a build section with this
 dependency list and a run section with the same dependency list.
 
