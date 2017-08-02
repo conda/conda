@@ -11,6 +11,7 @@ import os
 from os.path import abspath, basename, exists, isdir
 
 from . import common
+from .common import check_non_admin
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
@@ -103,6 +104,8 @@ def install(args, parser, command='install'):
     conda install, conda update, and conda create
     """
     context.validate_configuration()
+    check_non_admin()
+
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')

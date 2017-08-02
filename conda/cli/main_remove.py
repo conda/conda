@@ -12,8 +12,6 @@ import logging
 from os.path import isdir
 import sys
 
-from conda.cli.install import handle_txn
-from conda.core.solve import Solver
 from .conda_argparse import (add_parser_channels, add_parser_help, add_parser_insecure,
                              add_parser_json, add_parser_no_pin, add_parser_offline,
                              add_parser_prefix, add_parser_pscheck, add_parser_quiet,
@@ -112,12 +110,16 @@ def execute(args, parser):
     from ..gateways.disk.delete import rm_rf
     from ..instructions import PREFIX
     from ..plan import (add_unlink)
+    from .install import handle_txn
+    from ..core.solve import Solver
 
     if not (args.all or args.package_names):
         raise CondaValueError('no package names supplied,\n'
                               '       try "conda remove -h" for more details')
 
     prefix = context.target_prefix
+    check_non_admin()
+
     if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)

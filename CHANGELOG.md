@@ -87,7 +87,16 @@
 * remove last remnant of CondaEnvRuntimeError (#5643)
 
 
-## 4.3.24 (unreleased)
+## 4.3.25 (unreleased)
+
+### Improvements
+* add non-admin check to optionally disable non-privileged operation (#5724)
+
+### Bug Fixes
+* fix #5763 channel url string splitting error (#5764)
+
+
+## 4.3.24 (2017-07-31)
 
 ### Bug Fixes
 * fix #5708 package priority sort order (#5733)
@@ -105,6 +114,7 @@
 * fix #5574 traceback formatting (#5580)
 * fix #5554 logger configuration levels (#5555)
 * fix #5649 create_default_packages configuration (#5703)
+
 
 ## 4.3.22 (2017-06-12)
 

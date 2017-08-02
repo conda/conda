@@ -99,6 +99,7 @@ class Context(Configuration):
     enable_private_envs = PrimitiveParameter(False)
     force_32bit = PrimitiveParameter(False)
     max_shlvl = PrimitiveParameter(2)
+    non_admin_enabled = PrimitiveParameter(True)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
     pinned_packages = SequenceParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
     rollback_enabled = PrimitiveParameter(True)
@@ -691,6 +692,10 @@ def get_help_dict():
         'migrated_channel_aliases': dals("""
             A list of previously-used channel_alias values, useful for example when switching
             between different Anaconda Repository instances.
+            """),
+        'non_admin_enabled': dals("""
+            Allows completion of conda's create, install, update, and remove operations, for
+            non-privileged (non-root or non-administrator) users.
             """),
         'offline': dals("""
             Restrict conda to cached download content and file:// based urls.
