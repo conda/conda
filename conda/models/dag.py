@@ -8,6 +8,7 @@ from weakref import WeakSet, proxy
 
 from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
+from ..common.compat import iteritems, itervalues
 from ..common.url import quote as url_quote
 
 try:
@@ -61,10 +62,10 @@ class PrefixDag(object):
             else:
                 break
 
-        # if spec is a track_features spec, then we also need to remove packages that match
+        # if spec is a provides_features spec, then we also need to remove packages that match
         # those features
-        for feature in spec.get_raw_value('track_features') or ():
-            feature_spec = MatchSpec(features=feature)
+        for feature_name, feature_val in iteritems(spec.get_raw_value('provides_features') or {}):
+            feature_spec = MatchSpec(requires_features={feature_name: feature_val})
             while True:
                 for node in self.nodes:
                     if feature_spec.match(node.record):
@@ -312,7 +313,6 @@ class Node(object):
 
 if __name__ == "__main__":
     from ..core.linked_data import PrefixData
-    from ..common.compat import itervalues
     from ..history import History
     prefix = sys.argv[1]
     records = PrefixData(prefix).iter_records()

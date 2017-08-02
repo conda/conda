@@ -149,24 +149,25 @@ class Solver(object):
         if specs_to_remove:
             # Rather than invoking SAT for removal, we can use the DAG and simple tree traversal
             # if we're careful about how we handle features.
-            _track_features_specs = (spec for spec in specs_to_remove if 'track_features' in spec)
-            feature_names = set(concat(spec.get_raw_value('track_features')
-                                       for spec in _track_features_specs))
+            _provides_fts_specs = (spec for spec in specs_to_remove if 'provides_features' in spec)
+            feature_names = set(concat(spec.get_raw_value('provides_features')
+                                       for spec in _provides_fts_specs))
             dag = PrefixDag((index[dist] for dist in solution), itervalues(specs_map))
 
             removed_records = []
             for spec in specs_to_remove:
-                # If the spec was is track_features spec, then we need to also remove every package
-                # with a feature that matches the track_feature.  The `dag.remove_spec()` method
-                # handles that for us.
+                # If the spec was a provides_features spec, then we need to also remove every
+                # package with a requires_feature that matches the provides_feature.  The
+                # `dag.remove_spec()` method handles that for us.
                 removed_records.extend(dag.remove_spec(spec))
 
             for rec in removed_records:
-                # We keep specs (minus the feature part) for the non track_features packages
+                # We keep specs (minus the feature part) for the non provides_features packages
                 # if they're in the history specs.  Otherwise, we pop them from the specs_map.
-                if set(rec.features or ()) & feature_names and rec.name in specs_from_history_map:
+                rec_has_a_feature = set(rec.requires_features or ()) & feature_names
+                if rec_has_a_feature and rec.name in specs_from_history_map:
                     spec = specs_map.get(rec.name, MatchSpec(rec.name))
-                    spec._match_components.pop('features', None)
+                    spec._match_components.pop('requires_features', None)
                     specs_map[spec.name] = spec
                 else:
                     specs_map.pop(rec.name, None)

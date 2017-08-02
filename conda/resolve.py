@@ -144,7 +144,12 @@ class Resolve(object):
         feats = set()
         for s in specs:
             ms = MatchSpec(s)
-            if ms.name[-1] == '@':
+            if ms.get_exact_value('provides_features'):
+                kv_features = ("%s=%s" % (k, v)
+                               for k, v in iteritems(ms.get_exact_value('provides_features')))
+                feats.update(kv_features)
+            elif ms.name[-1] == '@':
+                # TODO: remove
                 feats.add(ms.name[:-1])
             else:
                 spec2.append(ms)
@@ -342,8 +347,10 @@ class Resolve(object):
             if ms.get_exact_value('name'):
                 res = self.groups.get(ms.name, [])
             elif ms.get_exact_value('provides_features'):
-                kv_features = ("%s=%s" % (k, v) for k, v in iteritems(ms.get_exact_value('provides_features')) or ())
-                res = list(chain.from_iterable(self.trackers[kvf] for kvf in kv_features if kvf in self.trackers))
+                kv_features = ("%s=%s" % (k, v) for k, v in
+                               iteritems(ms.get_exact_value('provides_features')) or ())
+                res = list(chain.from_iterable(self.trackers[kvf]
+                                               for kvf in kv_features if kvf in self.trackers))
             else:
                 res = self.index.keys()
             res = [p for p in res if self.match(ms, p)]
@@ -356,8 +363,8 @@ class Resolve(object):
         if deps is None:
             rec = self.index[dist]
             deps = [MatchSpec(d) for d in rec.combined_depends]
-            provides_features_specs = tuple(MatchSpec(provides_features={k: v})
-                                         for k, v in iteritems(self.index[dist].requires_features))
+            provides_features_specs = tuple(MatchSpec(provides_features={k: v}) for k, v
+                                            in iteritems(self.index[dist].requires_features))
             if provides_features_specs:
                 deps.extend(provides_features_specs)
             self.ms_depends_[dist] = deps
@@ -584,39 +591,39 @@ class Resolve(object):
         result.extend(must_have.values())
         return result
 
-    def explicit(self, specs):
-        """
-        Given the specifications, return:
-          A. if one explicit specification is given, and
-             all dependencies of this package are explicit as well ->
-             return the filenames of those dependencies (as well as the
-             explicit specification)
-          B. if not one explicit specifications are given ->
-             return the filenames of those (not thier dependencies)
-          C. None in all other cases
-        """
-        def add_defaults_if_no_channel(string):
-            return 'defaults::' + string if '::' not in string else string
-
-        specs = list(map(MatchSpec, specs))
-        if len(specs) == 1:
-            ms = MatchSpec(specs[0])
-            fn = ms._to_filename_do_not_use()
-            if fn is None:
-                return None
-            fkey = Dist(add_defaults_if_no_channel(fn))
-            if fkey not in self.index:
-                return None
-            res = [ms2._to_filename_do_not_use() for ms2 in self.ms_depends(fkey)]
-            res.append(fn)
-        else:
-            res = [spec._to_filename_do_not_use() for spec in specs if str(spec) != 'conda']
-
-        if None in res:
-            return None
-        res = [Dist(add_defaults_if_no_channel(f)) for f in sorted(res)]
-        log.debug('explicit(%r) finished', specs)
-        return res
+    # def explicit(self, specs):
+    #     """
+    #     Given the specifications, return:
+    #       A. if one explicit specification is given, and
+    #          all dependencies of this package are explicit as well ->
+    #          return the filenames of those dependencies (as well as the
+    #          explicit specification)
+    #       B. if not one explicit specifications are given ->
+    #          return the filenames of those (not thier dependencies)
+    #       C. None in all other cases
+    #     """
+    #     def add_defaults_if_no_channel(string):
+    #         return 'defaults::' + string if '::' not in string else string
+    #
+    #     specs = list(map(MatchSpec, specs))
+    #     if len(specs) == 1:
+    #         ms = MatchSpec(specs[0])
+    #         fn = ms._to_filename_do_not_use()
+    #         if fn is None:
+    #             return None
+    #         fkey = Dist(add_defaults_if_no_channel(fn))
+    #         if fkey not in self.index:
+    #             return None
+    #         res = [ms2._to_filename_do_not_use() for ms2 in self.ms_depends(fkey)]
+    #         res.append(fn)
+    #     else:
+    #         res = [spec._to_filename_do_not_use() for spec in specs if str(spec) != 'conda']
+    #
+    #     if None in res:
+    #         return None
+    #     res = [Dist(add_defaults_if_no_channel(f)) for f in sorted(res)]
+    #     log.debug('explicit(%r) finished', specs)
+    #     return res
 
     def environment_is_consistent(self, installed):
         log.debug('Checking if the current environment is consistent')

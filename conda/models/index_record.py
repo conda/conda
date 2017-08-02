@@ -23,6 +23,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import total_ordering
 
+from . import translate_feature_str
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .._vendor.auxlib.collection import frozendict
@@ -84,14 +85,8 @@ EMPTY_LINK = Link(source='')
 
 
 def push_individual_feature(result_map, val):
-    if '=' in val:
-        k, v = val.split('=', 1)
-        result_map[k] = v
-    else:
-        if 'mkl' in val:
-            result_map['blas'] = val
-        else:
-            result_map[val] = 'true'
+    k, v = translate_feature_str(val)
+    result_map[k] = v
 
 
 def _make_provides_features(track_features, instance):
