@@ -811,7 +811,7 @@ specified.
 
 
 If you do not specify a build or run section in requirements, any listed
-dependencies are implicitly added to *both* build and run requirements
+dependencies are implicitly added to *both* build and run requirements.
 
 .. code-block:: none
 
