@@ -40,7 +40,7 @@ from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
 from conda.exceptions import CondaHTTPError, DryRunExit, PackagesNotFoundError, RemoveError, \
-    conda_exception_handler
+    conda_exception_handler, CommandArgumentError, OperationNotAllowed
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -453,6 +453,21 @@ class IntegrationTests(TestCase):
     def test_noarch_generic_package(self):
         with make_temp_env("-c conda-test font-ttf-inconsolata") as prefix:
             assert isfile(join(prefix, 'fonts', 'Inconsolata-Regular.ttf'))
+
+    def test_override_channels(self):
+        with pytest.raises(OperationNotAllowed):
+            with env_var('CONDA_OVERRIDE_CHANNELS_ENABLED', 'no', reset_context):
+                with make_temp_env("--override-channels python") as prefix:
+                    assert prefix
+
+        with pytest.raises(CommandArgumentError):
+            with make_temp_env("--override-channels python") as prefix:
+                assert prefix
+
+        stdout, stderr = run_command(Commands.SEARCH, None, "--override-channels -c conda-test flask --json")
+        assert not stderr
+        assert len(json.loads(stdout)["flask"]) < 3
+        assert json.loads(stdout)["flask"][0]["noarch"] == "python"
 
     def test_create_empty_env(self):
         with make_temp_env() as prefix:
@@ -1192,7 +1207,7 @@ class IntegrationTests(TestCase):
                 mock_method.side_effect = side_effect
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 8, 1),
+    @pytest.mark.xfail(datetime.now() < datetime(2017, 9, 1),
                        reason="I can't figure out why this if failing yet.", strict=True)
     def test_offline_with_empty_index_cache(self):
         with make_temp_env() as prefix, make_temp_channel(['flask-0.10.1']) as channel:

@@ -134,8 +134,6 @@ def install(args, parser, command='install'):
             if default_pkg_name not in args_packages_names:
                 args_packages.append(default_pkg)
 
-    common.ensure_use_local(args)
-    common.ensure_override_channels_requires_channel(args)
     index_args = {
         'use_cache': args.use_index_cache,
         'channel_urls': context.channels,
