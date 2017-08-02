@@ -793,11 +793,15 @@ because it creates ambiguous runtime conditions.
 Subpackage requirements
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Subpackages support requirements in the same way that top-level recipes do.
-Build requirements are specific to the packaging phase for a given subpackage.
-No requirements are inherited from the top level recipe. Any requirements you
-need for packaging or for the subpackage at runtime must be explicitly
-specified.
+Like a top level recipe, a subpackage may have zero or more dependencies listed
+as build requirements and zero or more dependencies listed as run requirements.
+
+The dependencies listed as subpackage build requirements are only available
+during the packaging phase of that subpackage.
+
+A subpackage does not automatically inherit any dependencies from its top level
+recipe, so any build or run requirements needed by the subpackage must be
+explicitly specified.
 
 .. code-block:: none
 
@@ -810,8 +814,9 @@ specified.
            - some-dep
 
 
-If you do not specify a build or run section in requirements, any listed
-dependencies are implicitly added to *both* build and run requirements.
+A subpackage requirements section may have a list of dependencies and no build
+section or run section. This is the same as having a build section with this
+dependency list and a run section with the same dependency list.
 
 .. code-block:: none
 
