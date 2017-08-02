@@ -97,8 +97,8 @@ def configure_parser(sub_parsers, name='remove'):
 
 
 def execute(args, parser):
-    from .common import (confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
-                         specs_from_args, stdout_json)
+    from .common import (check_non_admin, confirm_yn, ensure_override_channels_requires_channel,
+                         ensure_use_local, specs_from_args, stdout_json)
     from ..base.context import context
     from ..common.compat import iteritems, iterkeys
     from ..core.index import get_index
