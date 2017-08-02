@@ -10,18 +10,34 @@ from .package_cache import PackageCache
 from .repodata import collect_all_repodata_as_index, make_feature_record
 from ..base.constants import MAX_CHANNEL_PRIORITY
 from ..base.context import context
-from ..common.compat import iteritems, itervalues
+from ..common.compat import iteritems, iterkeys, itervalues
+from ..exceptions import OperationNotAllowed
 from ..gateways.disk.read import read_index_json
-from ..models.channel import prioritize_channels
+from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord, PackageRecord
 
 try:
-    from cytoolz.itertoolz import take
+    from cytoolz.itertoolz import concat, take
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import take  # NOQA
+    from .._vendor.toolz.itertoolz import concat, take  # NOQA
 
 log = getLogger(__name__)
+
+
+def check_whitelist(channel_urls):
+    if context.whitelist_channels:
+        whitelist_channel_urls = tuple(concat(
+            Channel(c).base_urls for c in context.whitelist_channels
+        ))
+        for url in channel_urls:
+            these_urls = Channel(url).base_urls
+            if not all(this_url in whitelist_channel_urls for this_url in these_urls):
+                bad_channel = Channel(url)
+                raise OperationNotAllowed("Channel not included in whitelist:\n"
+                                          "  location: %s\n"
+                                          "  canonical name: %s\n"
+                                          % (bad_channel.location, bad_channel.canonical_name))
 
 
 def get_index(channel_urls=(), prepend=True, platform=None,
@@ -37,6 +53,9 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         unknown = True
 
     channel_priority_map = get_channel_priority_map(channel_urls, prepend, platform, use_local)
+
+    check_whitelist(iterkeys(channel_priority_map))
+
     index = fetch_index(channel_priority_map, use_cache=use_cache)
 
     if prefix or unknown:

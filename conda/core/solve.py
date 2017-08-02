@@ -437,7 +437,12 @@ class Solver(object):
             known_channels = tuple(c.canonical_name for c in self.channels)
 
             _supplement_index_with_prefix(self._index, self.prefix, known_channels)
-            _supplement_index_with_cache(self._index, known_channels)
+            if context.offline or ('unknown' in context._argparse_args
+                                   and context._argparse_args.unknown):
+                # This is really messed up right now.  Dates all the way back to
+                # https://github.com/conda/conda/commit/f761f65a82b739562a0d997a2570e2b8a0bdc783
+                # TODO: revisit this later
+                _supplement_index_with_cache(self._index, known_channels)
             _supplement_index_with_features(self._index)
 
             self._r = Resolve(self._index)

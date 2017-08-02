@@ -97,8 +97,7 @@ def configure_parser(sub_parsers, name='remove'):
 
 
 def execute(args, parser):
-    from .common import (check_non_admin, confirm_yn, ensure_override_channels_requires_channel,
-                         ensure_use_local, specs_from_args, stdout_json)
+    from .common import check_non_admin, confirm_yn, specs_from_args, stdout_json
     from ..base.context import context
     from ..common.compat import iteritems, iterkeys
     from ..core.index import get_index
@@ -131,8 +130,6 @@ def execute(args, parser):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
 
-    ensure_use_local(args)
-    ensure_override_channels_requires_channel(args)
     if not args.features and args.all:
         index = linked_data(prefix)
         index = {dist: info for dist, info in iteritems(index)}

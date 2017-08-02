@@ -12,22 +12,6 @@ from ..common.compat import itervalues
 from ..models.match_spec import MatchSpec
 
 
-def ensure_use_local(args):
-    if not args.use_local:
-        return
-
-
-def ensure_override_channels_requires_channel(args, dashc=True):
-    if args.override_channels and not (args.channel or args.use_local):
-        from ..exceptions import CondaValueError
-        if dashc:
-            raise CondaValueError('--override-channels requires -c/--channel'
-                                  ' or --use-local')
-        else:
-            raise CondaValueError('--override-channels requires --channel'
-                                  'or --use-local')
-
-
 def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
     assert default in choices, default
     if context.dry_run:

@@ -123,8 +123,6 @@ package.""",
 
 
 def execute(args, parser):
-    from .common import (ensure_override_channels_requires_channel,
-                         ensure_use_local)
     from ..core.index import get_index
     from ..models.match_spec import MatchSpec
     from ..models.version import VersionOrder
@@ -139,14 +137,6 @@ def execute(args, parser):
         platform = ''
     if platform and platform != context.subdir:
         args.unknown = False
-    ensure_use_local(args)
-    ensure_override_channels_requires_channel(args, dashc=False)
-
-    platform = args.platform or ''
-    if platform and platform != context.subdir:
-        args.unknown = False
-    ensure_use_local(args)
-    ensure_override_channels_requires_channel(args, dashc=False)
 
     with spinner("Loading channels", not context.verbosity and not context.quiet, context.json):
         spec_channel = spec.get_exact_value('channel')
@@ -177,7 +167,7 @@ def execute(args, parser):
             json_obj[match.name].append(match)
         stdout_json(json_obj)
 
-    elif context.info:
+    elif args.info:
         for record in matches:
             pretty_record(record)
 
