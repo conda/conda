@@ -7,7 +7,7 @@
 * resolve #1543 add support and tests for --no-deps and --only-deps (#5265)
 * resolve #988 allow channel name to be part of the package name spec (#5365)
 * resolve #5530 add ability for users to choose to post unexpected errors to core maintainers (#5531, #5571, #5585)
-* Solver, UI, History, and Other (#5546, #5583)
+* Solver, UI, History, and Other (#5546, #5583, #5740)
 * improve 'conda search' to leverage new MatchSpec query language (#5597)
 
 ### Deprecations/Breaking Changes
