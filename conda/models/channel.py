@@ -222,6 +222,10 @@ class Channel(object):
             return None
         return "%s://%s" % (self.scheme, join_url(self.location, self.name))
 
+    @property
+    def base_urls(self):
+        return self.base_url,
+
     def __str__(self):
         return self.base_url or ""
 
@@ -315,6 +319,10 @@ class MultiChannel(Channel):
     @property
     def base_url(self):
         return None
+
+    @property
+    def base_urls(self):
+        return tuple(c.base_url for c in self._channels)
 
     def url(self, with_credentials=False):
         return None
