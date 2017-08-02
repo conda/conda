@@ -5,6 +5,7 @@ from collections import OrderedDict
 from genericpath import exists
 from glob import glob
 from logging import getLogger
+import os
 import sys
 
 from .compat import iteritems, on_win
@@ -26,6 +27,13 @@ def is_admin_on_windows():  # pragma: unix no cover
     except Exception as e:
         log.info('%r', e)
         return 'unknown'
+
+
+def is_admin():
+    if on_win:
+        return is_admin_on_windows()
+    else:
+        return os.geteuid() == 0 or os.getegid() == 0
 
 
 @memoize

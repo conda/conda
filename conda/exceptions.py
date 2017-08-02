@@ -305,6 +305,12 @@ class ChannelNotAllowed(ChannelError):
         super(ChannelNotAllowed, self).__init__(msg, *args)
 
 
+class OperationNotAllowed(CondaError):
+
+    def __init__(self, message):
+        super(OperationNotAllowed, self).__init__(message)
+
+
 class CondaImportError(CondaError, ImportError):
     def __init__(self, message):
         msg = '%s' % message

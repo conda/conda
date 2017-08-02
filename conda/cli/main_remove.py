@@ -18,7 +18,7 @@ from .common import (InstalledPackages, add_parser_channels, add_parser_help, ad
                      add_parser_use_index_cache, add_parser_use_local, add_parser_yes, confirm_yn,
                      create_prefix_spec_map_with_deps, ensure_override_channels_requires_channel,
                      ensure_use_local, names_in_specs, specs_from_args, stdout_json,
-                     add_parser_insecure)
+                     add_parser_insecure, check_non_admin)
 from ..base.constants import ROOT_NO_RM
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys
@@ -120,6 +120,8 @@ def execute(args, parser):
     if not (args.all or args.package_names):
         raise CondaValueError('no package names supplied,\n'
                               '       try "conda remove -h" for more details')
+
+    check_non_admin()
 
     prefix = context.prefix_w_legacy_search
     if args.all and prefix == context.default_prefix:
