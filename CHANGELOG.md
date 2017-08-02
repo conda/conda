@@ -1,3 +1,12 @@
+## 4.3.25 (unreleased)
+
+### Improvements
+* add non-admin check to optionally disable non-privileged operation (#5724)
+
+### Bug Fixes
+* fix #5763 channel url string splitting error (#5764)
+
+
 ## 4.3.24 (2017-07-31)
 
 ### Bug Fixes
