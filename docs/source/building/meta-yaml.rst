@@ -796,7 +796,7 @@ Subpackage requirements
 Like a top level recipe, a subpackage may have zero or more dependencies listed
 as build requirements and zero or more dependencies listed as run requirements.
 
-The dependencies listed as subpackage build requirements are only available
+The dependencies listed as subpackage build requirements are available only 
 during the packaging phase of that subpackage.
 
 A subpackage does not automatically inherit any dependencies from its top level
@@ -814,7 +814,7 @@ explicitly specified.
            - some-dep
 
 
-A subpackage requirements section may have a list of dependencies and no build
+For example, a subpackage requirements section may have a list of dependencies but no build
 section or run section. This is the same as having a build section with this
 dependency list and a run section with the same dependency list.
 
