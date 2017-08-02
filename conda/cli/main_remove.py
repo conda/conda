@@ -69,6 +69,20 @@ def configure_parser(sub_parsers, name='remove'):
         action="store_true",
         help="%s features (instead of packages)." % name.capitalize(),
     )
+
+    # TODO: --features currently sorta still work. But super sloppy.
+
+    # p.add_argument(
+    #     '--feature',
+    #     metavar='FEATURE_NAME=FEATURE_VALUE',
+    #     dest='features',
+    #     action="append",
+    #     help="Feature to remove in the conda environment. "
+    #          "The value must be a key-value pair separated by an equal sign e.g. blas=nomkl. "
+    #          "Can be used multiple times. "
+    #          "Equivalent to a MatchSpec specifying a single 'provides_features'.",
+    # )
+
     p.add_argument(
         "--force",
         action="store_true",
@@ -112,7 +126,7 @@ def execute(args, parser):
     from .install import handle_txn
     from ..core.solve import Solver
 
-    if not (args.all or args.package_names):
+    if not (args.all or args.package_names or args.features):
         raise CondaValueError('no package names supplied,\n'
                               '       try "conda remove -h" for more details')
 

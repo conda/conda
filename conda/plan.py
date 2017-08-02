@@ -18,7 +18,7 @@ from conda.core.index import _supplement_index_with_prefix
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
-from .common.compat import on_win, itervalues
+from .common.compat import on_win, itervalues, text_type
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
@@ -33,7 +33,7 @@ from .models.channel import Channel
 from .models.dist import Dist
 from .models.enums import LinkType
 from .models.version import normalized_version
-from .resolve import MatchSpec, Resolve
+from .resolve import MatchSpec, Resolve, dashlist
 from .utils import human_bytes
 
 try:
@@ -56,10 +56,21 @@ def print_dists(dists_extras):
         print(line)
 
 
-def display_actions(actions, index, show_channel_urls=None):
+def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), specs_to_add=()):
     prefix = actions.get("PREFIX")
+    builder = ['', '## Package Plan ##\n']
     if prefix:
-        print("Package plan for environment '%s':" % prefix)
+        builder.append('  environment location: %s' % prefix)
+        builder.append('')
+    if specs_to_remove:
+        builder.append('  removed specs: %s'
+                       % dashlist(sorted(text_type(s) for s in specs_to_remove), indent=4))
+        builder.append('')
+    if specs_to_add:
+        builder.append('  added / updated specs: %s'
+                       % dashlist(sorted(text_type(s) for s in specs_to_add), indent=4))
+        builder.append('')
+    print('\n'.join(builder))
 
     if show_channel_urls is None:
         show_channel_urls = context.show_channel_urls

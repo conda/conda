@@ -10,6 +10,7 @@ from logging import getLogger
 import os
 from os.path import abspath, basename, exists, isdir
 
+from conda.models.match_spec import MatchSpec
 from . import common
 from .common import check_non_admin
 from .._vendor.auxlib.ish import dals
@@ -124,7 +125,6 @@ def install(args, parser, command='install'):
 """ % prefix)
 
     args_packages = [s.strip('"\'') for s in args.packages]
-
     if newenv and not args.no_default_packages:
         # Override defaults if they are specified at the command line
         # TODO: rework in 4.4 branch using MatchSpec
@@ -133,6 +133,7 @@ def install(args, parser, command='install'):
             default_pkg_name = default_pkg.replace(' ', '=').split('=', 1)[0]
             if default_pkg_name not in args_packages_names:
                 args_packages.append(default_pkg)
+    args_packages.extend(text_type(MatchSpec(provides_features=ft)) for ft in args.features or ())
 
     index_args = {
         'use_cache': args.use_index_cache,

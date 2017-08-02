@@ -23,8 +23,8 @@ Unsatisfiable = UnsatisfiableError
 ResolvePackageNotFound = ResolvePackageNotFound
 
 
-def dashlist(iterable):
-    return ''.join('\n  - ' + str(x) for x in iterable)
+def dashlist(iterable, indent=2):
+    return ''.join('\n' + ' ' * indent + '- ' + str(x) for x in iterable)
 
 
 class Resolve(object):
