@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from unittest import TestCase
 
+from conda._vendor.auxlib.collection import frozendict
 import pytest
 
 from conda import text_type
@@ -84,7 +85,7 @@ class MatchSpecTests(TestCase):
 
     def test_no_name_match_spec(self):
         ms = MatchSpec(track_features="mkl")
-        assert str(ms) == "*[track_features=mkl]"
+        assert str(ms) == "*[provides_features='blas=mkl']"
 
     def test_to_filename(self):
         m1 = MatchSpec(fn='foo-1.7-52.tar.bz2')
@@ -195,10 +196,10 @@ class MatchSpecTests(TestCase):
         assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "defaults/linux-32::numpy"
         assert m("numpy[channel=https://repo.continuum.io/pkgs/free/linux-32]") == "defaults/linux-32::numpy"
 
-        assert m("numpy[build=py3*_2, track_features=mkl]") == "numpy[build=py3*_2,track_features=mkl]"
-        assert m("numpy[build=py3*_2, track_features='mkl debug']") == "numpy[build=py3*_2,track_features='debug mkl']"
-        assert m("numpy[track_features='mkl,debug', build=py3*_2]") == "numpy[build=py3*_2,track_features='debug mkl']"
-        assert m("numpy[track_features='mkl,debug' build=py3*_2]") == "numpy[build=py3*_2,track_features='debug mkl']"
+        assert m("numpy[build=py3*_2, track_features=mkl]") == "numpy[build=py3*_2,provides_features='blas=mkl']"
+        assert m("numpy[build=py3*_2, track_features='mkl debug']") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
+        assert m("numpy[track_features='mkl,debug', build=py3*_2]") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
+        assert m("numpy[track_features='mkl,debug' build=py3*_2]") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
 
         assert m("numpy=1.10=py38_0") == "numpy==1.10=py38_0"
         assert m("numpy==1.10=py38_0") == "numpy==1.10=py38_0"
@@ -209,6 +210,11 @@ class MatchSpecTests(TestCase):
         # assert m("numpy-1.10-py38_0") == "numpy==1.10=py38_0"
         # assert m("numpy-1.10-py38_0[channel=defaults]") == "defaults::numpy==1.10=py38_0"
         # assert m("*/win-32::numpy-1.10-py38_0[channel=defaults]") == "defaults/win-32::numpy==1.10=py38_0"
+
+        assert m('numpy[features="mkl debug" build_number=2]') == "numpy[build_number=2,features='blas=mkl debug=true']"
+
+
+
 
     def test_tarball_match_specs(self):
         def m(string):
@@ -350,15 +356,31 @@ class MatchSpecTests(TestCase):
         assert ms.get_exact_value('build') == '0'
         assert ms._to_filename_do_not_use() == 'zlib-1.2.7-0.tar.bz2'
 
-    def test_features(self):
+    def test_features_match(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
         a = MatchSpec(features='test')
+        assert text_type(a) == "*[features='test=true']"
+        assert not a.match(DPkg(dst))
+        assert not a.match(DPkg(dst, features=''))
         assert a.match(DPkg(dst, features='test'))
         assert not a.match(DPkg(dst, features='test2'))
         assert a.match(DPkg(dst, features='test me'))
         assert a.match(DPkg(dst, features='you test'))
         assert a.match(DPkg(dst, features='you test me'))
-        assert a.get_exact_value('features') == {'test'}
+        assert a.get_exact_value('features') == frozendict({'test': 'true'})
+
+        b = MatchSpec(features='mkl')
+        assert not b.match(DPkg(dst))
+        assert b.match(DPkg(dst, features='mkl'))
+        assert b.match(DPkg(dst, features='blas=mkl'))
+        assert b.match(DPkg(dst, features='blas=mkl debug'))
+        assert not b.match(DPkg(dst, features='debug'))
+
+        c = MatchSpec(features='nomkl')
+        assert not c.match(DPkg(dst))
+        assert not c.match(DPkg(dst, features='mkl'))
+        assert c.match(DPkg(dst, features='nomkl'))
+        assert c.match(DPkg(dst, features='blas=nomkl debug'))
 
 
 class TestArg2Spec(TestCase):

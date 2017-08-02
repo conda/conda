@@ -13,6 +13,8 @@ import sys
 from tempfile import gettempdir
 from uuid import uuid4
 
+from collections import defaultdict
+
 from conda import cli
 from conda._vendor.auxlib.collection import frozendict
 from conda._vendor.toolz.functoolz import memoize
@@ -146,16 +148,17 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
 
 
 def add_feature_records(index):
-    feature_names = set()
-    for record in itervalues(index):
-        if record.features:
-            feature_names.update(record.features)
-        if record.track_features:
-            feature_names.update(record.track_features)
+    all_features = defaultdict(set)
+    for rec in itervalues(index):
+        for k, v in iteritems(rec.requires_features):
+            all_features[k].add(v)
+        for k, v in iteritems(rec.provides_features):
+            all_features[k].add(v)
 
-    for feature_name in feature_names:
-        rec = make_feature_record(feature_name)
-        index[Dist(rec)] = rec
+    for feature_name, feature_values in iteritems(all_features):
+        for feature_value in feature_values:
+            rec = make_feature_record(feature_name, feature_value)
+            index[Dist(rec)] = rec
 
 
 @memoize

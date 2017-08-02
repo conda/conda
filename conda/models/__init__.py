@@ -14,3 +14,17 @@ Conda modules importable from ``conda.models`` are
 - ``conda.models``
 
 """
+
+def translate_feature_str(val):
+    if val.endswith('@'):
+        val = val[:-1]
+
+    if '=' in val:
+        feature_name, feature_value = val.split('=', 1)
+    else:
+        if 'mkl' in val:
+            feature_name, feature_value = 'blas', val
+        else:
+            feature_name, feature_value = val, 'true'
+
+    return feature_name, feature_value

@@ -79,7 +79,12 @@ class frozendict(odict):
         return hash(self.__key())
 
     def __eq__(self, other):
-        return self.__key() == other.__key()
+        try:
+            return self.__key() == other.__key()
+        except AttributeError:
+            if isinstance(other, Mapping):
+                return self.__key() == frozendict(other).__key()
+            return False
 
 
 def first(seq, key=lambda x: bool(x), default=None, apply=lambda x: x):

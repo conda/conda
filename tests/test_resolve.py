@@ -1,6 +1,9 @@
 from __future__ import absolute_import, print_function
 
+from datetime import datetime
 import unittest
+
+import pytest
 
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems
@@ -14,8 +17,6 @@ from .helpers import get_index_r_1
 
 index, r, = get_index_r_1()
 
-f_mkl = set(['mkl'])
-
 
 def add_defaults_if_no_channel(string):
     return 'defaults::' + string if '::' not in string else string
@@ -26,41 +27,42 @@ class TestSolve(unittest.TestCase):
     def assert_have_mkl(self, dists, names):
         for dist in dists:
             if dist.quad[0] in names:
-                self.assertEqual(r.features(dist), f_mkl)
+                record = index[dist]
+                assert record.requires_features['blas'] == 'mkl'
 
-    def test_explicit0(self):
-        self.assertEqual(r.explicit([]), [])
-
-    def test_explicit1(self):
-        self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0']), None)
-        self.assertEqual(r.explicit(['zlib']), None)
-        self.assertEqual(r.explicit(['zlib 1.2.7']), None)
-        # because zlib has no dependencies it is also explicit
-        exp_result = r.explicit([MatchSpec('zlib 1.2.7 0', channel='defaults')])
-        self.assertEqual(exp_result, [Dist('defaults::zlib-1.2.7-0.tar.bz2')])
-
-    def test_explicit2(self):
-        self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
-                                     'zlib 1.2.7 0']),
-                         [Dist('defaults::pycosat-0.6.0-py27_0.tar.bz2'),
-                          Dist('defaults::zlib-1.2.7-0.tar.bz2')])
-        self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
-                                     'zlib 1.2.7']), None)
-
-    def test_explicitNone(self):
-        self.assertEqual(r.explicit(['pycosat 0.6.0 notarealbuildstring']), None)
+    # def test_explicit0(self):
+    #     self.assertEqual(r.explicit([]), [])
+    #
+    # def test_explicit1(self):
+    #     self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0']), None)
+    #     self.assertEqual(r.explicit(['zlib']), None)
+    #     self.assertEqual(r.explicit(['zlib 1.2.7']), None)
+    #     # because zlib has no dependencies it is also explicit
+    #     exp_result = r.explicit([MatchSpec('zlib 1.2.7 0', channel='defaults')])
+    #     self.assertEqual(exp_result, [Dist('defaults::zlib-1.2.7-0.tar.bz2')])
+    #
+    # def test_explicit2(self):
+    #     self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
+    #                                  'zlib 1.2.7 0']),
+    #                      [Dist('defaults::pycosat-0.6.0-py27_0.tar.bz2'),
+    #                       Dist('defaults::zlib-1.2.7-0.tar.bz2')])
+    #     self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
+    #                                  'zlib 1.2.7']), None)
+    #
+    # def test_explicitNone(self):
+    #     self.assertEqual(r.explicit(['pycosat 0.6.0 notarealbuildstring']), None)
 
     def test_empty(self):
         self.assertEqual(r.install([]), [])
 
-    def test_anaconda_14(self):
-        specs = ['anaconda 1.4.0 np17py33_0']
-        res = r.explicit(specs)
-        self.assertEqual(len(res), 51)
-        assert r.install(specs) == res
-        specs.append('python 3.3*')
-        self.assertEqual(r.explicit(specs), None)
-        self.assertEqual(r.install(specs), res)
+    # def test_anaconda_14(self):
+    #     specs = ['anaconda 1.4.0 np17py33_0']
+    #     res = r.explicit(specs)
+    #     self.assertEqual(len(res), 51)
+    #     assert r.install(specs) == res
+    #     specs.append('python 3.3*')
+    #     self.assertEqual(r.explicit(specs), None)
+    #     self.assertEqual(r.install(specs), res)
 
     def test_iopro_nomkl(self):
         installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], returnall=True)
@@ -79,7 +81,7 @@ class TestSolve(unittest.TestCase):
               'zlib-1.2.7-0.tar.bz2']])
 
     def test_iopro_mkl(self):
-        installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', 'mkl@'], returnall=True)
+        installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(provides_features='mkl')], returnall=True)
         installed = [[dist.to_filename() for dist in psol] for psol in installed]
 
         self.assertEqual(installed,
@@ -96,17 +98,17 @@ class TestSolve(unittest.TestCase):
               'zlib-1.2.7-0.tar.bz2']])
 
     def test_mkl(self):
-        a = r.install(['mkl 11*', 'mkl@'])
+        a = r.install(['mkl 11*', MatchSpec(provides_features='mkl')])
         b = r.install(['mkl'])
         assert a == b
 
     def test_accelerate(self):
         self.assertEqual(
             r.install(['accelerate']),
-            r.install(['accelerate', 'mkl@']))
+            r.install(['accelerate', MatchSpec(provides_features='mkl')]))
 
     def test_scipy_mkl(self):
-        dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', 'mkl@'])
+        dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(provides_features='mkl')])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
         self.assertTrue(Dist('defaults::scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
 
@@ -132,7 +134,7 @@ def test_pseudo_boolean():
         'zlib-1.2.7-0.tar.bz2',
     ]]]
 
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', 'mkl@'], returnall=True) == [[
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(provides_features='mkl')], returnall=True) == [[
         Dist(add_defaults_if_no_channel(fn)) for fn in [
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'mkl-rt-11.0-p0.tar.bz2',
@@ -170,6 +172,20 @@ def test_generate_eq():
     eqv = {Dist(key).to_filename(): value for key, value in iteritems(eqv)}
     eqb = {Dist(key).to_filename(): value for key, value in iteritems(eqb)}
     assert eqv == {
+        'accelerate-1.0.0-np15py26_p0.tar.bz2': 2,
+        'accelerate-1.0.0-np15py27_p0.tar.bz2': 2,
+        'accelerate-1.0.0-np16py26_p0.tar.bz2': 2,
+        'accelerate-1.0.0-np16py27_p0.tar.bz2': 2,
+        'accelerate-1.0.0-np17py26_p0.tar.bz2': 2,
+        'accelerate-1.0.0-np17py27_p0.tar.bz2': 2,
+        'accelerate-1.0.0-np17py33_p0.tar.bz2': 2,
+        'accelerate-1.0.1-np15py26_p0.tar.bz2': 1,
+        'accelerate-1.0.1-np15py27_p0.tar.bz2': 1,
+        'accelerate-1.0.1-np16py26_p0.tar.bz2': 1,
+        'accelerate-1.0.1-np16py27_p0.tar.bz2': 1,
+        'accelerate-1.0.1-np17py26_p0.tar.bz2': 1,
+        'accelerate-1.0.1-np17py27_p0.tar.bz2': 1,
+        'accelerate-1.0.1-np17py33_p0.tar.bz2': 1,
         'anaconda-1.4.0-np15py26_0.tar.bz2': 1,
         'anaconda-1.4.0-np15py27_0.tar.bz2': 1,
         'anaconda-1.4.0-np16py26_0.tar.bz2': 1,
@@ -220,13 +236,60 @@ def test_generate_eq():
         'matplotlib-1.2.0-np17py26_1.tar.bz2': 1,
         'matplotlib-1.2.0-np17py27_1.tar.bz2': 1,
         'matplotlib-1.2.0-np17py33_1.tar.bz2': 1,
+        'mkl-10.3-0.tar.bz2': 1,
+        'mkl-10.3-p1.tar.bz2': 1,
+        'mkl-10.3-p2.tar.bz2': 1,
         'nose-1.2.1-py26_0.tar.bz2': 1,
         'nose-1.2.1-py27_0.tar.bz2': 1,
         'nose-1.2.1-py33_0.tar.bz2': 1,
-        'numba-0.7.0-np16py26_1.tar.bz2': 1,
-        'numba-0.7.0-np16py27_1.tar.bz2': 1,
-        'numba-0.7.0-np17py26_1.tar.bz2': 1,
-        'numba-0.7.0-np17py27_1.tar.bz2': 1,
+        'numba-0.7.0-np16py26_1.tar.bz2': 2,
+        'numba-0.7.0-np16py27_1.tar.bz2': 2,
+        'numba-0.7.0-np17py26_1.tar.bz2': 2,
+        'numba-0.7.0-np17py27_1.tar.bz2': 2,
+        'numba-0.7.1-np16py26_0.tar.bz2': 1,
+        'numba-0.7.1-np16py27_0.tar.bz2': 1,
+        'numba-0.7.1-np17py26_0.tar.bz2': 1,
+        'numba-0.7.1-np17py27_0.tar.bz2': 1,
+        'numbapro-0.10.0-np16py26_p0.tar.bz2': 2,
+        'numbapro-0.10.0-np16py27_p0.tar.bz2': 2,
+        'numbapro-0.10.0-np17py26_p0.tar.bz2': 2,
+        'numbapro-0.10.0-np17py27_p0.tar.bz2': 2,
+        'numbapro-0.10.1-np16py26_p0.tar.bz2': 1,
+        'numbapro-0.10.1-np16py27_p0.tar.bz2': 1,
+        'numbapro-0.10.1-np17py26_p0.tar.bz2': 1,
+        'numbapro-0.10.1-np17py27_p0.tar.bz2': 1,
+        'numexpr-2.0.1-np16py26_1.tar.bz2': 1,
+        'numexpr-2.0.1-np16py26_2.tar.bz2': 1,
+        'numexpr-2.0.1-np16py26_3.tar.bz2': 1,
+        'numexpr-2.0.1-np16py26_ce0.tar.bz2': 1,
+        'numexpr-2.0.1-np16py26_p1.tar.bz2': 1,
+        'numexpr-2.0.1-np16py26_p2.tar.bz2': 1,
+        'numexpr-2.0.1-np16py26_p3.tar.bz2': 1,
+        'numexpr-2.0.1-np16py26_pro0.tar.bz2': 1,
+        'numexpr-2.0.1-np16py27_1.tar.bz2': 1,
+        'numexpr-2.0.1-np16py27_2.tar.bz2': 1,
+        'numexpr-2.0.1-np16py27_3.tar.bz2': 1,
+        'numexpr-2.0.1-np16py27_ce0.tar.bz2': 1,
+        'numexpr-2.0.1-np16py27_p1.tar.bz2': 1,
+        'numexpr-2.0.1-np16py27_p2.tar.bz2': 1,
+        'numexpr-2.0.1-np16py27_p3.tar.bz2': 1,
+        'numexpr-2.0.1-np16py27_pro0.tar.bz2': 1,
+        'numexpr-2.0.1-np17py26_1.tar.bz2': 1,
+        'numexpr-2.0.1-np17py26_2.tar.bz2': 1,
+        'numexpr-2.0.1-np17py26_3.tar.bz2': 1,
+        'numexpr-2.0.1-np17py26_ce0.tar.bz2': 1,
+        'numexpr-2.0.1-np17py26_p1.tar.bz2': 1,
+        'numexpr-2.0.1-np17py26_p2.tar.bz2': 1,
+        'numexpr-2.0.1-np17py26_p3.tar.bz2': 1,
+        'numexpr-2.0.1-np17py26_pro0.tar.bz2': 1,
+        'numexpr-2.0.1-np17py27_1.tar.bz2': 1,
+        'numexpr-2.0.1-np17py27_2.tar.bz2': 1,
+        'numexpr-2.0.1-np17py27_3.tar.bz2': 1,
+        'numexpr-2.0.1-np17py27_ce0.tar.bz2': 1,
+        'numexpr-2.0.1-np17py27_p1.tar.bz2': 1,
+        'numexpr-2.0.1-np17py27_p2.tar.bz2': 1,
+        'numexpr-2.0.1-np17py27_p3.tar.bz2': 1,
+        'numexpr-2.0.1-np17py27_pro0.tar.bz2': 1,
         'numpy-1.5.1-py26_3.tar.bz2': 3,
         'numpy-1.5.1-py27_3.tar.bz2': 3,
         'numpy-1.6.2-py26_3.tar.bz2': 2,
@@ -278,12 +341,30 @@ def test_generate_eq():
         'requests-0.13.9-py26_0.tar.bz2': 1,
         'requests-0.13.9-py27_0.tar.bz2': 1,
         'requests-0.13.9-py33_0.tar.bz2': 1,
+        'scikit-learn-0.13-np15py26_0.tar.bz2': 1,
         'scikit-learn-0.13-np15py26_1.tar.bz2': 1,
+        'scikit-learn-0.13-np15py26_p0.tar.bz2': 1,
+        'scikit-learn-0.13-np15py26_p1.tar.bz2': 1,
+        'scikit-learn-0.13-np15py27_0.tar.bz2': 1,
         'scikit-learn-0.13-np15py27_1.tar.bz2': 1,
+        'scikit-learn-0.13-np15py27_p0.tar.bz2': 1,
+        'scikit-learn-0.13-np15py27_p1.tar.bz2': 1,
+        'scikit-learn-0.13-np16py26_0.tar.bz2': 1,
         'scikit-learn-0.13-np16py26_1.tar.bz2': 1,
+        'scikit-learn-0.13-np16py26_p0.tar.bz2': 1,
+        'scikit-learn-0.13-np16py26_p1.tar.bz2': 1,
+        'scikit-learn-0.13-np16py27_0.tar.bz2': 1,
         'scikit-learn-0.13-np16py27_1.tar.bz2': 1,
+        'scikit-learn-0.13-np16py27_p0.tar.bz2': 1,
+        'scikit-learn-0.13-np16py27_p1.tar.bz2': 1,
+        'scikit-learn-0.13-np17py26_0.tar.bz2': 1,
         'scikit-learn-0.13-np17py26_1.tar.bz2': 1,
+        'scikit-learn-0.13-np17py26_p0.tar.bz2': 1,
+        'scikit-learn-0.13-np17py26_p1.tar.bz2': 1,
+        'scikit-learn-0.13-np17py27_0.tar.bz2': 1,
         'scikit-learn-0.13-np17py27_1.tar.bz2': 1,
+        'scikit-learn-0.13-np17py27_p0.tar.bz2': 1,
+        'scikit-learn-0.13-np17py27_p1.tar.bz2': 1,
         'scipy-0.11.0-np15py26_3.tar.bz2': 1,
         'scipy-0.11.0-np15py27_3.tar.bz2': 1,
         'scipy-0.11.0-np16py26_3.tar.bz2': 1,
@@ -307,7 +388,8 @@ def test_generate_eq():
         'xlrd-0.9.0-py27_0.tar.bz2': 1,
         'xlrd-0.9.0-py33_0.tar.bz2': 1,
         'xlwt-0.7.4-py26_0.tar.bz2': 1,
-        'xlwt-0.7.4-py27_0.tar.bz2': 1}
+        'xlwt-0.7.4-py27_0.tar.bz2': 1,
+    }
     assert eqb == {
         'cairo-1.12.2-0.tar.bz2': 1,
         'cubes-0.10.2-py27_0.tar.bz2': 1,
@@ -319,6 +401,15 @@ def test_generate_eq():
         'gevent_zeromq-0.2.5-py26_1.tar.bz2': 1,
         'gevent_zeromq-0.2.5-py27_1.tar.bz2': 1,
         'libnetcdf-4.2.1.1-0.tar.bz2': 1,
+        'mkl-10.3-0.tar.bz2': 2,
+        'mkl-10.3-p1.tar.bz2': 1,
+        'mkl-11.0-np15py26_p0.tar.bz2': 1,
+        'mkl-11.0-np15py27_p0.tar.bz2': 1,
+        'mkl-11.0-np16py26_p0.tar.bz2': 1,
+        'mkl-11.0-np16py27_p0.tar.bz2': 1,
+        'mkl-11.0-np17py26_p0.tar.bz2': 1,
+        'mkl-11.0-np17py27_p0.tar.bz2': 1,
+        'mkl-11.0-np17py33_p0.tar.bz2': 1,
         'numexpr-2.0.1-np16py26_1.tar.bz2': 2,
         'numexpr-2.0.1-np16py26_2.tar.bz2': 1,
         'numexpr-2.0.1-np16py26_ce0.tar.bz2': 3,
@@ -362,6 +453,18 @@ def test_generate_eq():
         'scikit-image-0.8.2-np17py26_0.tar.bz2': 1,
         'scikit-image-0.8.2-np17py27_0.tar.bz2': 1,
         'scikit-image-0.8.2-np17py33_0.tar.bz2': 1,
+        'scikit-learn-0.13-np15py26_0.tar.bz2': 1,
+        'scikit-learn-0.13-np15py26_p0.tar.bz2': 1,
+        'scikit-learn-0.13-np15py27_0.tar.bz2': 1,
+        'scikit-learn-0.13-np15py27_p0.tar.bz2': 1,
+        'scikit-learn-0.13-np16py26_0.tar.bz2': 1,
+        'scikit-learn-0.13-np16py26_p0.tar.bz2': 1,
+        'scikit-learn-0.13-np16py27_0.tar.bz2': 1,
+        'scikit-learn-0.13-np16py27_p0.tar.bz2': 1,
+        'scikit-learn-0.13-np17py26_0.tar.bz2': 1,
+        'scikit-learn-0.13-np17py26_p0.tar.bz2': 1,
+        'scikit-learn-0.13-np17py27_0.tar.bz2': 1,
+        'scikit-learn-0.13-np17py27_p0.tar.bz2': 1,
         'sphinx-1.1.3-py26_2.tar.bz2': 1,
         'sphinx-1.1.3-py27_2.tar.bz2': 1,
         'sphinx-1.1.3-py33_2.tar.bz2': 1,
@@ -376,7 +479,9 @@ def test_generate_eq():
         'theano-0.5.0-np16py27_0.tar.bz2': 1,
         'theano-0.5.0-np17py26_0.tar.bz2': 1,
         'theano-0.5.0-np17py27_0.tar.bz2': 1,
-        'zeromq-2.2.0-0.tar.bz2': 1}
+        'wiserf-1.1-np17py27_0.tar.bz2': 1,
+        'zeromq-2.2.0-0.tar.bz2': 1,
+    }
 
 
 def test_unsat():
@@ -803,7 +908,7 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]]]
 
-    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', 'mkl@'],
+    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(provides_features='mkl')],
         returnall=True) == [[Dist(add_defaults_if_no_channel(fname)) for fname in [
             'mkl-rt-11.0-p0.tar.bz2',           # This,
             'numpy-1.6.2-py26_p4.tar.bz2',      # this,
@@ -883,7 +988,7 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]]]
 
-    assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', 'mkl@'],
+    assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(provides_features='mkl')],
         returnall=True)[0] == [[Dist(add_defaults_if_no_channel(fname)) for fname in [
             'dateutil-2.1-py27_1.tar.bz2',
             'mkl-rt-11.0-p0.tar.bz2',           # This
