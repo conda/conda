@@ -9,7 +9,7 @@ is a flat directory that contains the following files:
   recipe. Only ``package/name`` and ``package/version`` are 
   required.
 
-* ``build.sh``---The Unix script that installs the files for the 
+* ``build.sh``---The script that installs the files for the 
   package on macOS and Linux. It is executed using the ``bash`` 
   command.
 

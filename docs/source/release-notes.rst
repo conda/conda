@@ -402,7 +402,7 @@ Improvements
 
 * use install.rm_rf for TemporaryDirectory cleanup (#3425)
 * improve handling of local dependency information (#2107)
-* add default channels to exports for Windows and Unix (#4103)
+* add default channels to exports for Windows Linux and macOS (#4103)
 * make subdir configurable (#4178)
 
 Bug Fixes
@@ -730,7 +730,7 @@ Improvements
 * remove excess output from conda --help (#2872)
 * remove os.remove in update_prefix (#3006)
 * better error behavior if conda is spec'd for a non-root environment (#2956)
-* scale back try_write function on unix (#3076)
+* scale back try_write function on Linux and macOS (#3076)
 
 Bug Fixes
 ^^^^^^^^^
@@ -1479,7 +1479,7 @@ Complete list:
 * add --use-local to search and remove
 * allow --use-local to be used along with -c (--channels) and --override-channels. --override-channels now requires either -c or --use-local
 * allow paths in has_prefix to be quoted, to allow for spaces in paths on Windows
-* retain Unix style path separators for prefixes in has_prefix on Windows (if the placeholder path uses /, replace it with a path that uses /, not \\)
+* retain Linux/macOS style path separators for prefixes in has_prefix on Windows (if the placeholder path uses /, replace it with a path that uses /, not \\)
 * fix bug in --use-local due to API changes in conda-build
 * include user site directories in conda info -s
 * make binary has_prefix replacement work with spaces after the prefix
@@ -1662,8 +1662,8 @@ Complete list:
 * add ability to disable self update of conda, by setting "self_update: False" in .condarc
 * Try installing packages using the old way of just installing the maximum versions of things first. This provides a major speedup of solving the package specifications in the cases where this scheme works.
 * Don't include python=3.3 in the specs automatically for the Python 3 version of conda.  This allows you to do "conda create -n env package" for a package that only has a Python 2 version without specifying "python=2". This change has no effect in Python 2.
-* Automatically put symlinks to conda, activate, and deactivate in each environment on Unix.
-* On Unix, activate and deactivate now remove the root environment from the PATH. This should prevent "bleed through" issues with commands not installed in the activated environment but that are installed in the root environment. If you have "setup.py develop" installed conda on Unix, you should run this command again, as the activate and deactivate scripts have changed.
+* Automatically put symlinks to conda, activate, and deactivate in each environment on Linux and macOS.
+* On Linux and macOS, activate and deactivate now remove the root environment from the PATH. This should prevent "bleed through" issues with commands not installed in the activated environment but that are installed in the root environment. If you have "setup.py develop" installed conda on Linux or macOS, you should run this command again, as the activate and deactivate scripts have changed.
 * Begin work to support Python 3.4.
 * Fix a bug in version comparison
 * Fix usage of sys.stdout and sys.stderr in environments like pythonw on Windows where they are nonstandard file descriptors.
@@ -1858,7 +1858,7 @@ Complete list:
 -------------------
 
 * add conda init command, to allow installing conda via pip
-* fix prefix being replaced by placeholder after conda build on Unix
+* fix prefix being replaced by placeholder after conda build on Linux and macOS
 * add 'use_pip' to condarc configuration file
 * fixed activate on Windows to set CONDA_DEFAULT_ENV
 * allow setting "always_yes: True" in condarc file, which implies always using the --yes option whenever asked to proceed

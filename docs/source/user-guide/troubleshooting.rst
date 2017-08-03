@@ -154,7 +154,7 @@ Cause
 
 You have site-specific directories or, for Python, you have
 so-called site-specific files. These are typically located in
-``~/.local`` on Unix. For a full description of the locations of
+``~/.local`` on Linux and macOS. For a full description of the locations of
 site-specific packages, see `PEP 370
 <http://legacy.python.org/dev/peps/pep-0370/>`_.  As with
 PYTHONPATH, Python may try importing packages from this

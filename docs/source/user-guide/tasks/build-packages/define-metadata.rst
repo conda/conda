@@ -481,7 +481,7 @@ in text files will still be replaced.
      detect_binary_files_with_prefix: False
 
 Windows handles binary prefix replacement very differently than
-Unix systems such as macOS and Linux. At this time, we are
+Unix-like systems such as macOS and Linux. At this time, we are
 unaware of any executable or library that uses hardcoded
 embedded paths for locating other libraries or program data on
 Windows. Instead, Windows follows `DLL search path
@@ -1361,7 +1361,7 @@ variables are booleans.
    * - osx
      - True if the platform is macOS.
    * - unix
-     - True if the platform is Unix, either macOS or Linux.
+     - True if the platform is either macOS or Linux.
    * - win
      - True if the platform is Windows.
    * - win32
