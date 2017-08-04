@@ -1451,12 +1451,12 @@ class IntegrationTests(TestCase):
                     'build': s.get('build_string') or s['build']
                 }
 
-        with make_temp_env("python=3.5.2") as prefix:
+        with make_temp_env("python=3") as prefix:
             stdout, stderr = run_command(Commands.LIST, prefix, '--json')
             stdout_json = json.loads(stdout)
             packages = [pkg_info(package) for package in stdout_json]
             python_package = next((p for p in packages if p['name'] == 'python'), None)
-            assert python_package['version'] == '3.5.2'
+            assert python_package['version'].startswith('3')
 
 
 @pytest.mark.skipif(True, reason="get the rest of Solve API worked out first")
