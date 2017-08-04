@@ -19,7 +19,7 @@ index, r, = get_index_r_1()
 
 
 def add_defaults_if_no_channel(string):
-    return 'defaults::' + string if '::' not in string else string
+    return 'channel-1::' + string if '::' not in string else string
 
 
 class TestSolve(unittest.TestCase):
@@ -39,13 +39,13 @@ class TestSolve(unittest.TestCase):
     #     self.assertEqual(r.explicit(['zlib 1.2.7']), None)
     #     # because zlib has no dependencies it is also explicit
     #     exp_result = r.explicit([MatchSpec('zlib 1.2.7 0', channel='defaults')])
-    #     self.assertEqual(exp_result, [Dist('defaults::zlib-1.2.7-0.tar.bz2')])
+    #     self.assertEqual(exp_result, [Dist('channel-1::zlib-1.2.7-0.tar.bz2')])
     #
     # def test_explicit2(self):
     #     self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
     #                                  'zlib 1.2.7 0']),
-    #                      [Dist('defaults::pycosat-0.6.0-py27_0.tar.bz2'),
-    #                       Dist('defaults::zlib-1.2.7-0.tar.bz2')])
+    #                      [Dist('channel-1::pycosat-0.6.0-py27_0.tar.bz2'),
+    #                       Dist('channel-1::zlib-1.2.7-0.tar.bz2')])
     #     self.assertEqual(r.explicit(['pycosat 0.6.0 py27_0',
     #                                  'zlib 1.2.7']), None)
     #
@@ -110,12 +110,12 @@ class TestSolve(unittest.TestCase):
     def test_scipy_mkl(self):
         dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(provides_features='mkl')])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
-        self.assertTrue(Dist('defaults::scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
+        self.assertTrue(Dist('channel-1::scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
 
     def test_anaconda_nomkl(self):
         dists = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         self.assertEqual(len(dists), 107)
-        self.assertTrue(Dist('defaults::scipy-0.12.0-np17py27_0.tar.bz2') in dists)
+        self.assertTrue(Dist('channel-1::scipy-0.12.0-np17py27_0.tar.bz2') in dists)
 
 
 def test_pseudo_boolean():
@@ -152,8 +152,8 @@ def test_pseudo_boolean():
 
 def test_get_dists():
     dists = r.get_reduced_index(["anaconda 1.5.0"])
-    assert Dist('defaults::anaconda-1.5.0-np17py27_0.tar.bz2') in dists
-    assert Dist('defaults::dynd-python-0.3.0-np17py33_0.tar.bz2') in dists
+    assert Dist('channel-1::anaconda-1.5.0-np17py27_0.tar.bz2') in dists
+    assert Dist('channel-1::dynd-python-0.3.0-np17py33_0.tar.bz2') in dists
 
 
 def test_generate_eq():
@@ -923,8 +923,8 @@ def test_no_features():
             ]]]
 
     index2 = index.copy()
-    index2["defaults::pandas-0.12.0-np16py27_0.tar.bz2"] = IndexRecord(**{
-            "channel": "defaults",
+    index2["channel-1::pandas-0.12.0-np16py27_0.tar.bz2"] = IndexRecord(**{
+            "channel": "channel-1",
             "subdir": context.subdir,
             "md5": "0123456789",
             "fn": "doesnt-matter-here",
@@ -946,8 +946,8 @@ def test_no_features():
             "version": "0.12.0"
         })
     # Make it want to choose the pro version by having it be newer.
-    index2["defaults::numpy-1.6.2-py27_p5.tar.bz2"] = IndexRecord(**{
-            "channel": "defaults",
+    index2["channel-1::numpy-1.6.2-py27_p5.tar.bz2"] = IndexRecord(**{
+            "channel": "channel-1",
             "subdir": context.subdir,
             "md5": "0123456789",
             "fn": "doesnt-matter-here",
@@ -1040,20 +1040,20 @@ def test_broken_install():
 
     # Add an incompatible numpy; installation should be untouched
     installed1 = list(installed)
-    installed1[1] = Dist('defaults::numpy-1.7.1-py33_p0.tar.bz2')
+    installed1[1] = Dist('channel-1::numpy-1.7.1-py33_p0.tar.bz2')
     assert set(r.install([], installed1)) == set(installed1)
     assert r.install(['numpy 1.6*'], installed1) == installed  # adding numpy spec again snaps the packages back to a consistent state
 
     # Add an incompatible pandas; installation should be untouched, then fixed
     installed2 = list(installed)
-    installed2[3] = Dist('defaults::pandas-0.11.0-np17py27_1.tar.bz2')
+    installed2[3] = Dist('channel-1::pandas-0.11.0-np17py27_1.tar.bz2')
     assert set(r.install([], installed2)) == set(installed2)
     assert r.install(['pandas'], installed2) == installed
 
     # Removing pandas should fix numpy, since pandas depends on it
     installed3 = list(installed)
-    installed3[1] = Dist('defaults::numpy-1.7.1-py33_p0.tar.bz2')
-    installed3[3] = Dist('defaults::pandas-0.11.0-np17py27_1.tar.bz2')
+    installed3[1] = Dist('channel-1::numpy-1.7.1-py33_p0.tar.bz2')
+    installed3[3] = Dist('channel-1::pandas-0.11.0-np17py27_1.tar.bz2')
     installed4 = r.remove(['pandas'], installed)
     assert r.bad_installed(installed4, [])[0] is None
 
@@ -1123,16 +1123,19 @@ def test_channel_priority():
         # Should select the "other", older package because it
         # has a lower channel priority number
         installed1 = r2.install(spec)
+        r2._reduced_index_cache.clear()
         # Should select the newer package because now the "other"
         # package has a higher priority number
         r2.index[Dist(fn2)] = IndexRecord.from_objects(r2.index[Dist(fn2)], priority=2)
         installed2 = r2.install(spec)
+        r2._reduced_index_cache.clear()
         # Should also select the newer package because we have
         # turned off channel priority altogether
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
         r2.index[Dist(fn2)] = IndexRecord.from_objects(r2.index[Dist(fn2)], priority=0)
         installed3 = r2.install(spec)
+        r2._reduced_index_cache.clear()
         assert installed1 != installed2
         assert installed1 != installed3
         assert installed2 == installed3

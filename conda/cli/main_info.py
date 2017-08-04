@@ -16,7 +16,7 @@ import re
 import sys
 
 from .conda_argparse import add_parser_json, add_parser_offline
-from ..common.compat import iteritems, itervalues, on_win
+from ..common.compat import iteritems, itervalues, on_win, text_type
 
 log = getLogger(__name__)
 
@@ -108,17 +108,17 @@ def dump_record(pkg):
     return {k: v for k, v in iteritems(pkg.dump()) if k not in IGNORE_FIELDS}
 
 
-def pretty_package(dist, pkg):
+def pretty_package(prec):
     from ..utils import human_bytes
 
-    pkg = dump_record(pkg)
+    pkg = dump_record(prec)
     d = OrderedDict([
-        ('file name', dist.to_filename()),
+        ('file name', prec.fn),
         ('name', pkg['name']),
         ('version', pkg['version']),
         ('build string', pkg['build']),
         ('build number', pkg['build_number']),
-        ('channel', dist.channel),
+        ('channel', text_type(prec.channel)),
         ('size', human_bytes(pkg['size'])),
     ])
     for key in sorted(set(pkg.keys()) - SKIP_FIELDS):
@@ -136,22 +136,22 @@ def pretty_package(dist, pkg):
 
 
 def print_package_info(packages):
-    from .common import arg2spec, stdout_json
-    from ..core.index import get_index
     from ..base.context import context
-    from ..resolve import Resolve
-    index = get_index()
-    r = Resolve(index)
+    from ..models.match_spec import MatchSpec
+    from ..core.repodata import query_all
+
+    results = {}
+    for package in packages:
+        spec = MatchSpec(package)
+        results[package] = tuple(query_all(context.channels, context.subdirs, spec))
+
     if context.json:
-        stdout_json({
-            package: [dump_record(r.index[d])
-                      for d in r.get_dists_for_spec(arg2spec(package))]
-            for package in packages
-        })
+        from .common import stdout_json
+        stdout_json({package: results[package] for package in packages})
     else:
-        for package in packages:
-            for dist in r.get_dists_for_spec(arg2spec(package)):
-                pretty_package(dist, r.index[dist])
+        for result in itervalues(results):
+            for prec in result:
+                pretty_package(prec)
 
 
 def get_info_dict(system=False):

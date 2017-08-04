@@ -11,7 +11,9 @@ from conda.common.compat import iteritems
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
 from conda.core.index import get_index
-from conda.core.repodata import Response304ContentUnchanged, cache_fn_url, read_mod_and_etag
+from conda.core.repodata import Response304ContentUnchanged, cache_fn_url, read_mod_and_etag, \
+    SubdirData
+from conda.models.channel import Channel
 
 try:
     from unittest.mock import patch
@@ -145,3 +147,13 @@ class StaticFunctionTests(TestCase):
         hash6 = cache_fn_url("https://repo.continuum.io/pkgs/r/osx-64")
         assert hash4 != hash6
 
+
+# @pytest.mark.integration
+# class SubdirDataTests(TestCase):
+#
+#     def test_basic_subdir_data(self):
+#         channel = Channel("https://conda.anaconda.org/conda-test/linux-64")
+#         sd = SubdirData(channel)
+#         sd.load()
+#         print(sd._names_index.keys())
+#         assert 0

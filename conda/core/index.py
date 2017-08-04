@@ -5,17 +5,23 @@ from collections import namedtuple
 from itertools import chain
 from logging import getLogger
 
+from concurrent.futures import as_completed
+
 from .linked_data import linked_data
 from .package_cache import PackageCache
-from .repodata import collect_all_repodata_as_index, make_feature_record
+from .repodata import SubdirData, make_feature_record
+from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import MAX_CHANNEL_PRIORITY
 from ..base.context import context
-from ..common.compat import iteritems, iterkeys, itervalues
+from ..common.compat import iteritems, iterkeys, itervalues, odict
+from ..common.io import backdown_thread_pool
 from ..exceptions import OperationNotAllowed
 from ..gateways.disk.read import read_index_json
+from ..models import translate_feature_str
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK, IndexRecord, PackageRecord
+from ..models.match_spec import MatchSpec
 
 try:
     from cytoolz.itertoolz import concat, take
@@ -78,6 +84,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
     # channel_urls reversed to build up index in correct order
     CollectTask = namedtuple('CollectTask', ('url', 'schannel', 'priority'))
     tasks = (CollectTask(url, *channel_urls[url]) for url in reversed(channel_urls))
+    from .repodata import collect_all_repodata_as_index
     index = collect_all_repodata_as_index(use_cache, tasks)
 
     return index
@@ -135,8 +142,8 @@ def _supplement_index_with_cache(index, channels):
 
 
 def _supplement_index_with_features(index, features=()):
-    for feat in chain(context.track_features, features):
-        rec = make_feature_record(feat)
+    for feature in chain(context.track_features, features):
+        rec = make_feature_record(*translate_feature_str(feature))
         index[Dist(rec)] = rec
 
 
@@ -153,3 +160,85 @@ def get_channel_priority_map(channel_urls=(), prepend=True, platform=None, use_l
 
 def dist_str_in_index(index, dist_str):
     return Dist(dist_str) in index
+
+
+def get_reduced_index(prefix, channels, subdirs, specs):
+
+    # TODO: need a "combine" step to consolidate specs
+
+    with backdown_thread_pool() as executor:
+
+        channel_priority_map = odict((k, v[1]) for k, v in
+                                     iteritems(prioritize_channels(channels, subdirs=subdirs)))
+        subdir_datas = tuple(SubdirData(Channel(url), priority) for url, priority in
+                             iteritems(channel_priority_map))
+
+        records = IndexedSet()
+        collected_names = set()
+        collected_provides_features = set()
+        pending_names = set()
+        pending_provides_features = set()
+
+        def query_all(spec):
+            futures = (executor.submit(sd.query, spec) for sd in subdir_datas)
+            return tuple(concat(future.result() for future in as_completed(futures)))
+
+        def push_spec(spec):
+            name = spec.get_raw_value('name')
+            if name and name not in collected_names:
+                pending_names.add(name)
+            provides_features = spec.get_raw_value('provides_features')
+            if provides_features:
+                for ftr_name, ftr_value in iteritems(provides_features):
+                    kv_feature = "%s=%s" % (ftr_name, ftr_value)
+                    if kv_feature not in collected_provides_features:
+                        pending_provides_features.add(kv_feature)
+
+        def push_record(record):
+            for _spec in record.combined_depends:
+                push_spec(_spec)
+            if record.provides_features:
+                for ftr_name, ftr_value in iteritems(record.provides_features):
+                    kv_feature = "%s=%s" % (ftr_name, ftr_value)
+                    push_spec(MatchSpec(provides_features=kv_feature))
+
+        for spec in specs:
+            push_spec(spec)
+
+        while pending_names or pending_provides_features:
+            while pending_names:
+                name = pending_names.pop()
+                collected_names.add(name)
+                spec = MatchSpec(name)
+                new_records = query_all(spec)
+                for record in new_records:
+                    push_record(record)
+                records.update(new_records)
+
+            while pending_provides_features:
+                kv_feature = pending_provides_features.pop()
+                collected_provides_features.add(kv_feature)
+                spec = MatchSpec(provides_features=kv_feature)
+                new_records = query_all(spec)
+                for record in new_records:
+                    push_record(record)
+                records.update(new_records)
+
+        reduced_index = {Dist(rec): rec for rec in records}
+
+        known_channels = tuple(Channel(c).canonical_name for c in channels)
+
+        if prefix is not None:
+            _supplement_index_with_prefix(reduced_index, prefix, known_channels)
+
+        if context.offline or ('unknown' in context._argparse_args
+                               and context._argparse_args.unknown):
+            # This is really messed up right now.  Dates all the way back to
+            # https://github.com/conda/conda/commit/f761f65a82b739562a0d997a2570e2b8a0bdc783
+            # TODO: revisit this later
+            _supplement_index_with_cache(reduced_index, known_channels)
+        _supplement_index_with_features(reduced_index)
+
+        # TODO: make feature records ???
+
+        return reduced_index

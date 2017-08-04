@@ -59,6 +59,9 @@ class PriorityField(Field):
     def unbox(self, instance, instance_type, val):
         return int(val)
 
+    def dump(self, instance, instance_type, val):
+        return self.unbox(instance, instance_type, val)
+
 
 class LinkTypeField(EnumField):
     def box(self, instance, instance_type, val):

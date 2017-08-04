@@ -11,7 +11,9 @@ import sys
 from threading import Event, Thread
 from time import sleep
 
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
+from math import floor
 
 from .compat import StringIO, iteritems, on_win
 from .constants import NULL
@@ -367,6 +369,23 @@ class ProgressBar(object):
         elif self.enabled:
             self.pbar.close()
         self.enabled = False
+
+
+@contextmanager
+def backdown_thread_pool(max_workers=10):
+    """Tries to create an executor with max_workers, but will back down ultimately to a single
+    thread of the OS decides you can't have more than one.
+    """
+    try:
+        yield ThreadPoolExecutor(max_workers)
+    except RuntimeError as e:
+        # RuntimeError is thrown if number of threads are limited by OS
+        log.debug(repr(e))
+        try:
+            yield ThreadPoolExecutor(floor(max_workers / 2))
+        except RuntimeError as e:
+            log.debug(repr(e))
+            yield ThreadPoolExecutor(1)
 
 
 if __name__ == "__main__":
