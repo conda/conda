@@ -31,7 +31,7 @@ from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixi
                                      EnumField, Field, IntegerField, ListField, MapField,
                                      StringField)
 from ..base.context import context
-from ..common.compat import isiterable, itervalues, string_types, text_type
+from ..common.compat import isiterable, itervalues, string_types, text_type, iteritems
 
 
 @total_ordering
@@ -99,6 +99,8 @@ def _make_provides_features(track_features, instance):
     if instance.name in ('python', 'numpy'):
         ver = '.'.join(instance.version.split('.')[:2])
         push_individual_feature(result_map, "%s=%s" % (instance.name, ver))
+        if instance.name == 'python':
+            result_map = {k: v for k, v in iteritems(result_map) if not k.startswith('vc')}
     return frozendict(result_map)
 
 

@@ -14,6 +14,8 @@ Conda modules importable from ``conda.models`` are
 - ``conda.models``
 
 """
+from ..common.compat import text_type
+
 
 def translate_feature_str(val):
     if val.endswith('@'):
@@ -24,6 +26,8 @@ def translate_feature_str(val):
     else:
         if 'mkl' in val:
             feature_name, feature_value = 'blas', val
+        elif len(val) == 4 and val.startswith('vc'):
+            feature_name, feature_value = val[:2], text_type(int(val[2:]))
         else:
             feature_name, feature_value = val, 'true'
 
