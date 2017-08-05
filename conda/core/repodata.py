@@ -395,7 +395,7 @@ def make_feature_record(feature_name, feature_value):
         build='0',
         channel='@',
         subdir=context.subdir,
-        md5="0123456789",
+        md5="12345678901234567890123456789012",
         provides_features={
             feature_name: feature_value,
         },

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from itertools import chain
 from logging import getLogger
 
@@ -16,17 +16,18 @@ from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, odict
 from ..common.io import backdown_thread_pool
 from ..exceptions import OperationNotAllowed
-from ..gateways.disk.read import read_index_json
 from ..models import translate_feature_str
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
-from ..models.index_record import EMPTY_LINK, IndexRecord, PackageRecord
+from ..models.index_record import EMPTY_LINK, IndexRecord
 from ..models.match_spec import MatchSpec
+from ..models.package_cache_record import PackageCacheRecord
+from ..models.prefix_record import PrefixRecord
 
 try:
-    from cytoolz.itertoolz import concat, take
+    from cytoolz.itertoolz import concat, concatv, take
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, take  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, take  # NOQA
 
 log = getLogger(__name__)
 
@@ -91,23 +92,19 @@ def fetch_index(channel_urls, use_cache=False, index=None):
 
 
 def _supplement_index_with_prefix(index, prefix, channels):
-    # type: (Dict[Dist, IndexRecord], str, Set[canonical_channel]) -> None
     # supplement index with information from prefix/conda-meta
     assert prefix
     maxp = len(channels) + 1
-    for dist, info in iteritems(linked_data(prefix)):
+    for dist, prefix_record in iteritems(linked_data(prefix)):
         if dist in index:
             # The downloaded repodata takes priority, so we do not overwrite.
             # We do, however, copy the link information so that the solver (i.e. resolve)
             # knows this package is installed.
-            old_record = index[dist]
-            link = info.get('link') or EMPTY_LINK
-            index[dist] = IndexRecord.from_objects(old_record, link=link)
+            current_record = index[dist]
+            link = prefix_record.get('link') or EMPTY_LINK
+            index[dist] = PrefixRecord.from_objects(current_record, prefix_record, link=link)
         else:
-            # If the package is not in the repodata, use the local data. If
-            # the 'depends' field is not present, we need to set it; older
-            # installations are likely to have this.
-            depends = info.get('depends') or ()
+            # If the package is not in the repodata, use the local data.
             # If the channel is known but the package is not in the index, it
             # is because 1) the channel is unavailable offline, or 2) it no
             # longer contains this package. Either way, we should prefer any
@@ -115,30 +112,21 @@ def _supplement_index_with_prefix(index, prefix, channels):
             # it is in a channel we don't know about, assign it a value just
             # above the priority of all known channels.
             priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-            index[dist] = IndexRecord.from_objects(info, depends=depends, priority=priority)
+            index[dist] = PrefixRecord.from_objects(prefix_record, priority=priority)
 
 
 def _supplement_index_with_cache(index, channels):
-    # type: (Dict[Dist, IndexRecord], Set[canonical_channel]) -> None
     # supplement index with packages from the cache
     maxp = len(channels) + 1
-    for pc_entry in PackageCache.get_all_extracted_entries():
-        dist = Dist(pc_entry)
+    for pcrec in PackageCache.get_all_extracted_entries():
+        dist = Dist(pcrec)
         if dist in index:
             # The downloaded repodata takes priority
-            continue
-        pkg_dir = pc_entry.extracted_package_dir
-        index_json_record = read_index_json(pkg_dir)
-        # See the discussion above about priority assignments.
-        priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-        repodata_record = PackageRecord.from_objects(
-            index_json_record,
-            fn=dist.to_filename(),
-            schannel=dist.channel,
-            priority=priority,
-            url=dist.to_url(),
-        )
-        index[dist] = repodata_record
+            current_record = index[dist]
+            index[dist] = PackageCacheRecord.from_objects(current_record, pcrec)
+        else:
+            priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
+            index[dist] = PackageCacheRecord.from_objects(pcrec, priority=priority)
 
 
 def _supplement_index_with_features(index, features=()):
@@ -164,7 +152,22 @@ def dist_str_in_index(index, dist_str):
 
 def get_reduced_index(prefix, channels, subdirs, specs):
 
-    # TODO: need a "combine" step to consolidate specs
+    # this block of code is a "combine" step intended to filter out redundant specs
+    specs_map = defaultdict(list)
+    for spec in specs:
+        specs_map[spec.name].append(spec)
+    consolidated_specs = set()
+    for spec_name, specs_group in iteritems(specs_map):
+        if len(specs_group) == 1:
+            consolidated_specs.add(specs_group[0])
+        elif spec_name == '*':
+            consolidated_specs.update(specs_group)
+        else:
+            keep_specs = []
+            for spec in specs_group:
+                if len(spec._match_components) > 1 or spec.target or spec.optional:
+                    keep_specs.append(spec)
+            consolidated_specs.update(keep_specs)
 
     with backdown_thread_pool() as executor:
 
@@ -202,7 +205,7 @@ def get_reduced_index(prefix, channels, subdirs, specs):
                     kv_feature = "%s=%s" % (ftr_name, ftr_value)
                     push_spec(MatchSpec(provides_features=kv_feature))
 
-        for spec in specs:
+        for spec in consolidated_specs:
             push_spec(spec)
 
         while pending_names or pending_provides_features:
@@ -237,8 +240,18 @@ def get_reduced_index(prefix, channels, subdirs, specs):
             # https://github.com/conda/conda/commit/f761f65a82b739562a0d997a2570e2b8a0bdc783
             # TODO: revisit this later
             _supplement_index_with_cache(reduced_index, known_channels)
-        _supplement_index_with_features(reduced_index)
 
-        # TODO: make feature records ???
+        # add feature records for the solver
+        known_features = set()
+        for rec in itervalues(reduced_index):
+            known_features.update("%s=%s" % (k, v) for k, v in concatv(
+                iteritems(rec.provides_features),
+                iteritems(rec.requires_features),
+            ))
+        known_features.update("%s=%s" % translate_feature_str(ftr)
+                              for ftr in context.track_features)
+        for ftr_str in known_features:
+            rec = make_feature_record(*ftr_str.split('=', 1))
+            reduced_index[Dist(rec)] = rec
 
         return reduced_index

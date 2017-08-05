@@ -203,11 +203,13 @@ class Resolve(object):
                     if fkey not in deps:
                         deps.add(fkey)
                         slist.extend(ms3 for ms3 in self.ms_depends(fkey) if ms3.name != ms.name)
+
         # Find the list of dependencies they have in common. And for each of
         # *those*, find the individual packages that they all share. Those need
         # to be removed as conflict candidates.
         commkeys = set.intersection(*(set(s.keys()) for s in sdeps.values()))
         commkeys = {k: set.intersection(*(v[k] for v in sdeps.values())) for k in commkeys}
+
         # and find the dependency chains that lead to them.
         bad_deps = []
         for ms, sdep in iteritems(sdeps):
@@ -228,6 +230,7 @@ class Resolve(object):
             else:
                 # This means the package *itself* was the common conflict.
                 bad_deps.append((ms,))
+
         raise UnsatisfiableError(bad_deps)
 
     def get_reduced_index(self, specs):
