@@ -10,7 +10,7 @@ import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os import makedirs
-from os.path import dirname, join, splitext
+from os.path import dirname, isdir, join, splitext
 import re
 from textwrap import dedent
 from time import time
@@ -19,7 +19,7 @@ import warnings
 from .. import CondaError, iteritems
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import CONDA_HOMEPAGE_URL
+from ..base.constants import CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, odict, text_type,
                              with_metaclass)
@@ -29,6 +29,7 @@ from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)
 from ..gateways.connection.session import CondaSession
+from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, prioritize_channels
@@ -529,10 +530,6 @@ class SubdirData(object):
         return self
 
     @property
-    def use_cache(self):
-        return False
-
-    @property
     def cache_path_json(self):
         return self.cache_path_base + '.json'
 
@@ -556,14 +553,23 @@ class SubdirData(object):
             mtime = getmtime(self.cache_path_json)
         except (IOError, OSError):
             log.debug("No local cache found for %s at %s", self.url_w_subdir, self.cache_path_json)
-            if self.use_cache or (context.offline and not self.url_w_subdir.startswith('file://')):
-                return {'packages': {}}
+            if context.use_index_cache or (context.offline
+                                           and not self.url_w_subdir.startswith('file://')):
+                log.debug("Using cached data for %s at %s forced. Returning empty repodata.",
+                          self.url_w_subdir, self.cache_path_json)
+                return {
+                    '_package_records': (),
+                    '_names_index': defaultdict(list),
+                    '_provides_features_index': defaultdict(list),
+                    '_requires_features_index': defaultdict(list),
+                    '_priority': Priority(MAX_CHANNEL_PRIORITY),
+                }
             else:
                 mod_etag_headers = {}
         else:
             mod_etag_headers = read_mod_and_etag(self.cache_path_json)
 
-            if self.use_cache:
+            if context.use_index_cache:
                 log.debug("Using cached repodata for %s at %s because use_cache=True",
                           self.url_w_subdir, self.cache_path_json)
 
@@ -601,6 +607,8 @@ class SubdirData(object):
                                                        mod_etag_headers.get('_mod'))
             return _internal_state
         else:
+            if not isdir(dirname(self.cache_path_json)):
+                mkdir_p(dirname(self.cache_path_json))
             with open(self.cache_path_json, 'w') as fh:
                 fh.write(raw_repodata_str or '{}')
             _internal_state = self._process_raw_repodata_str(raw_repodata_str)
