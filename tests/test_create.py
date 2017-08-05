@@ -1213,51 +1213,53 @@ class IntegrationTests(TestCase):
         from conda.core.repodata import SubdirData
         SubdirData._cache_.clear()
 
-        with make_temp_env() as prefix:
-            pkgs_dir = join(prefix, 'pkgs')
-            with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
-                with make_temp_channel(['flask-0.10.1']) as channel:
-                    # Clear the index cache.
-                    index_cache_dir = create_cache_dir()
-                    run_command(Commands.CLEAN, '', "--index-cache")
-                    assert not exists(index_cache_dir)
+        try:
+            with make_temp_env() as prefix:
+                pkgs_dir = join(prefix, 'pkgs')
+                with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
+                    with make_temp_channel(['flask-0.10.1']) as channel:
+                        # Clear the index cache.
+                        index_cache_dir = create_cache_dir()
+                        run_command(Commands.CLEAN, '', "--index-cache")
+                        assert not exists(index_cache_dir)
 
-                    # Then attempt to install a package with --offline. The package (flask) is
-                    # available in a local channel, however its dependencies are not. Make sure
-                    # that a) it fails because the dependencies are not available and b)
-                    # we don't try to download the repodata from non-local channels but we do
-                    # download repodata from local channels.
-                    from conda.gateways.connection.session import CondaSession
+                        # Then attempt to install a package with --offline. The package (flask) is
+                        # available in a local channel, however its dependencies are not. Make sure
+                        # that a) it fails because the dependencies are not available and b)
+                        # we don't try to download the repodata from non-local channels but we do
+                        # download repodata from local channels.
+                        from conda.gateways.connection.session import CondaSession
 
-                    orig_get = CondaSession.get
+                        orig_get = CondaSession.get
 
-                    result_dict = {}
-                    def side_effect(self, url, **kwargs):
-                        if not url.startswith('file://'):
-                            raise AssertionError('Attempt to fetch repodata: {}'.format(url))
-                        if url.startswith(channel):
-                            result_dict['local_channel_seen'] = True
-                        return orig_get(self, url, **kwargs)
+                        result_dict = {}
+                        def side_effect(self, url, **kwargs):
+                            if not url.startswith('file://'):
+                                raise AssertionError('Attempt to fetch repodata: {}'.format(url))
+                            if url.startswith(channel):
+                                result_dict['local_channel_seen'] = True
+                            return orig_get(self, url, **kwargs)
 
-                    with patch.object(CondaSession, 'get', autospec=True) as mock_method:
-                        mock_method.side_effect = side_effect
+                        with patch.object(CondaSession, 'get', autospec=True) as mock_method:
+                            mock_method.side_effect = side_effect
 
-                        SubdirData._cache_.clear()
+                            SubdirData._cache_.clear()
 
-                        # This first install passes because flask and its dependencies are in the
-                        # package cache.
-                        assert not package_is_installed(prefix, "flask")
-                        run_command(Commands.INSTALL, prefix, "-c", channel, "flask", "--offline")
-                        assert package_is_installed(prefix, "flask")
+                            # This first install passes because flask and its dependencies are in the
+                            # package cache.
+                            assert not package_is_installed(prefix, "flask")
+                            run_command(Commands.INSTALL, prefix, "-c", channel, "flask", "--offline")
+                            assert package_is_installed(prefix, "flask")
 
-                        # The mock should have been called with our local channel URL though.
-                        assert result_dict.get('local_channel_seen')
+                            # The mock should have been called with our local channel URL though.
+                            assert result_dict.get('local_channel_seen')
 
-                        # Fails because pytz cannot be found in available channels.
-                        with pytest.raises(PackagesNotFoundError):
-                            run_command(Commands.INSTALL, prefix, "-c", channel, "pytz", "--offline")
-                        assert not package_is_installed(prefix, "pytz")
-
+                            # Fails because pytz cannot be found in available channels.
+                            with pytest.raises(PackagesNotFoundError):
+                                run_command(Commands.INSTALL, prefix, "-c", channel, "pytz", "--offline")
+                            assert not package_is_installed(prefix, "pytz")
+        finally:
+            SubdirData._cache_.clear()
 
     def test_create_from_extracted(self):
         with make_temp_package_cache() as pkgs_dir:
