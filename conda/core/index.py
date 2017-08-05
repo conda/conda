@@ -152,22 +152,23 @@ def dist_str_in_index(index, dist_str):
 
 def get_reduced_index(prefix, channels, subdirs, specs):
 
-    # this block of code is a "combine" step intended to filter out redundant specs
-    specs_map = defaultdict(list)
-    for spec in specs:
-        specs_map[spec.name].append(spec)
-    consolidated_specs = set()
-    for spec_name, specs_group in iteritems(specs_map):
-        if len(specs_group) == 1:
-            consolidated_specs.add(specs_group[0])
-        elif spec_name == '*':
-            consolidated_specs.update(specs_group)
-        else:
-            keep_specs = []
-            for spec in specs_group:
-                if len(spec._match_components) > 1 or spec.target or spec.optional:
-                    keep_specs.append(spec)
-            consolidated_specs.update(keep_specs)
+    # # this block of code is a "combine" step intended to filter out redundant specs
+    # # causes a problem with py.test tests/core/test_solve.py -k broken_install
+    # specs_map = defaultdict(list)
+    # for spec in specs:
+    #     specs_map[spec.name].append(spec)
+    # consolidated_specs = set()
+    # for spec_name, specs_group in iteritems(specs_map):
+    #     if len(specs_group) == 1:
+    #         consolidated_specs.add(specs_group[0])
+    #     elif spec_name == '*':
+    #         consolidated_specs.update(specs_group)
+    #     else:
+    #         keep_specs = []
+    #         for spec in specs_group:
+    #             if len(spec._match_components) > 1 or spec.target or spec.optional:
+    #                 keep_specs.append(spec)
+    #         consolidated_specs.update(keep_specs)
 
     with backdown_thread_pool() as executor:
 
@@ -205,7 +206,7 @@ def get_reduced_index(prefix, channels, subdirs, specs):
                     kv_feature = "%s=%s" % (ftr_name, ftr_value)
                     push_spec(MatchSpec(provides_features=kv_feature))
 
-        for spec in consolidated_specs:
+        for spec in specs:
             push_spec(spec)
 
         while pending_names or pending_provides_features:
