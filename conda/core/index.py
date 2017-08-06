@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from itertools import chain
 from logging import getLogger
 
@@ -19,7 +19,7 @@ from ..exceptions import OperationNotAllowed
 from ..models import translate_feature_str
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
-from ..models.index_record import EMPTY_LINK, IndexRecord
+from ..models.index_record import EMPTY_LINK
 from ..models.match_spec import MatchSpec
 from ..models.package_cache_record import PackageCacheRecord
 from ..models.prefix_record import PrefixRecord
@@ -77,7 +77,6 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
 
 def fetch_index(channel_urls, use_cache=False, index=None):
-    # type: (prioritize_channels(), bool, bool, Dict[Dist, IndexRecord]) -> Dict[Dist, IndexRecord]
     log.debug('channel_urls=' + repr(channel_urls))
 
     use_cache = use_cache or context.use_index_cache

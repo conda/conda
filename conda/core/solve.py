@@ -436,11 +436,16 @@ class Solver(object):
 
         # with spinner("Loading channels", not context.verbosity and not context.quiet,
         #              context.json):
-        reduced_index = get_reduced_index(self.prefix, self.channels,
-                                          self.subdirs, prepared_specs)
-        self._prepared_specs = prepared_specs
-        self._index = reduced_index
-        self._r = Resolve(reduced_index)
+        if hasattr(self, '_index'):
+            # added in install_actions for conda-build back-compat
+            self._prepared_specs = prepared_specs
+            self._r = Resolve(self._index)
+        else:
+            reduced_index = get_reduced_index(self.prefix, self.channels,
+                                              self.subdirs, prepared_specs)
+            self._prepared_specs = prepared_specs
+            self._index = reduced_index
+            self._r = Resolve(reduced_index)
 
         # channel_priority_map = build_channel_priority_map()
         # if self._index is None:
