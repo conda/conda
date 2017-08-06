@@ -403,7 +403,7 @@ run_tests() {
     if [ "$FLAKE8" = true ]; then
         flake8 --statistics
     elif [ -n "$CONDA_BUILD" ]; then
-        conda_build_smoke_test
+        # conda_build_smoke_test
         if ! [ -n "$ON_WIN" ]; then
             conda_build_test
         fi
