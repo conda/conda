@@ -436,7 +436,7 @@ class Solver(object):
 
         # with spinner("Loading channels", not context.verbosity and not context.quiet,
         #              context.json):
-        if hasattr(self, '_index'):
+        if hasattr(self, '_index') and self._index:
             # added in install_actions for conda-build back-compat
             self._prepared_specs = prepared_specs
             self._r = Resolve(self._index)
