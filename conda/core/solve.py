@@ -429,21 +429,16 @@ class Solver(object):
         if self._prepared and prepared_specs == prepared_specs:
             return self._index, self._r
 
-        def build_channel_priority_map():
-            return odict((subdir_url, (c.canonical_name, priority))
-                         for priority, c in enumerate(self.channels)
-                         for subdir_url in c.urls(True, self.subdirs))
-
         if hasattr(self, '_index') and self._index:
             # added in install_actions for conda-build back-compat
             self._prepared_specs = prepared_specs
-            self._r = Resolve(self._index)
+            self._r = Resolve(self._index, channels=self.channels)
         else:
             reduced_index = get_reduced_index(self.prefix, self.channels,
                                               self.subdirs, prepared_specs)
             self._prepared_specs = prepared_specs
             self._index = reduced_index
-            self._r = Resolve(reduced_index)
+            self._r = Resolve(reduced_index, channels=self.channels)
 
         self._prepared = True
         return self._index, self._r

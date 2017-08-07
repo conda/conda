@@ -19,7 +19,7 @@ import warnings
 from .. import CondaError, iteritems
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import CONDA_HOMEPAGE_URL, MAX_CHANNEL_PRIORITY
+from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, odict, text_type,
                              with_metaclass)
@@ -34,7 +34,7 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, prioritize_channels
 from ..models.dist import Dist
-from ..models.index_record import IndexRecord, PackageRecord, Priority
+from ..models.index_record import IndexRecord, PackageRecord
 from ..models.match_spec import MatchSpec
 
 try:
@@ -50,7 +50,7 @@ except ImportError:  # pragma: no cover
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderrlog')
 
-REPODATA_PICKLE_VERSION = 5
+REPODATA_PICKLE_VERSION = 6
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
 
@@ -63,9 +63,9 @@ def query_all(channels, subdirs, package_ref_or_match_spec):
         try:
             from concurrent.futures import ThreadPoolExecutor, as_completed
             executor = ThreadPoolExecutor(10)
-            futures = (executor.submit(SubdirData(Channel(url), priority).query,
-                                       package_ref_or_match_spec)
-                       for url, priority in iteritems(channel_priority_map))
+            futures = (executor.submit(
+                SubdirData(Channel(url)).query, package_ref_or_match_spec
+            ) for url in channel_priority_map)
             result = tuple(concat(future.result() for future in as_completed(futures)))
         except (ImportError, RuntimeError) as e:
             # concurrent.futures is only available in Python >= 3.2 or if futures is installed
@@ -75,8 +75,7 @@ def query_all(channels, subdirs, package_ref_or_match_spec):
         executor.shutdown(wait=True)
 
     if result is None:
-        subdir_datas = (SubdirData(Channel(url), priority)
-                        for url, priority in iteritems(channel_priority_map))
+        subdir_datas = (SubdirData(Channel(url)) for url in channel_priority_map)
         result = tuple(concat(sd.query(package_ref_or_match_spec) for sd in subdir_datas))
 
     return result
@@ -84,17 +83,15 @@ def query_all(channels, subdirs, package_ref_or_match_spec):
 
 class SubdirDataType(type):
 
-    # TODO: the priority mechanism here is NOT thread safe
-
-    def __call__(cls, channel, priority=None):
+    def __call__(cls, channel):
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
         cache_key = channel.url(with_credentials=True)
         if not cache_key.startswith('file://') and cache_key in SubdirData._cache_:
-            return SubdirData._cache_[cache_key].set_priority(priority)
+            return SubdirData._cache_[cache_key]
         else:
-            subdir_data_instance = super(SubdirDataType, cls).__call__(channel, priority)
+            subdir_data_instance = super(SubdirDataType, cls).__call__(channel)
             SubdirData._cache_[cache_key] = subdir_data_instance
             return subdir_data_instance
 
@@ -130,7 +127,7 @@ class SubdirData(object):
                 if prec == param:
                     yield prec
 
-    def __init__(self, channel, priority=None):
+    def __init__(self, channel):
         assert channel.subdir
         assert not channel.package_filename
         self.channel = channel
@@ -138,13 +135,7 @@ class SubdirData(object):
         self.url_w_credentials = self.channel.url(with_credentials=True)
         self.cache_path_base = join(create_cache_dir(),
                                     splitext(cache_fn_url(self.url_w_credentials))[0])
-        self._priority = Priority(priority if priority is not None else 1)
         self._loaded = False
-
-    def set_priority(self, value):
-        if value is not None:
-            self._priority._priority = self._priority_value = value
-        return self
 
     @property
     def cache_path_json(self):
@@ -161,7 +152,6 @@ class SubdirData(object):
         self._names_index = _internal_state['_names_index']
         self._provides_features_index = _internal_state['_provides_features_index']
         self._requires_features_index = _internal_state['_requires_features_index']
-        self._priority = _internal_state['_priority']
         self._loaded = True
         return self
 
@@ -179,7 +169,6 @@ class SubdirData(object):
                     '_names_index': defaultdict(list),
                     '_provides_features_index': defaultdict(list),
                     '_requires_features_index': defaultdict(list),
-                    '_priority': Priority(MAX_CHANNEL_PRIORITY),
                 }
             else:
                 mod_etag_headers = {}
@@ -296,10 +285,6 @@ class SubdirData(object):
                       self.url_w_subdir, self.cache_path_json)
             return None
 
-        # assert isinstance(_internal_state['_priority'], Priority)
-        # log.debug("setting priority for %s to '%d'", _internal_state.get('_url'), priority)
-        # _internal_state['_priority']._priority = priority
-
         return _pickled_state
 
     def _process_raw_repodata_str(self, raw_repodata_str):
@@ -308,7 +293,6 @@ class SubdirData(object):
         subdir = json_obj.get('info', {}).get('subdir') or self.channel.subdir
         assert subdir == self.channel.subdir
         add_pip = context.add_pip_as_python_dependency
-        priority = self._priority
         schannel = self.channel.canonical_name
 
         self._package_records = _package_records = []
@@ -333,7 +317,6 @@ class SubdirData(object):
             '_url': json_obj.get('_url'),
             '_add_pip': add_pip,
             '_pickle_version': REPODATA_PICKLE_VERSION,
-            '_priority': priority,
             '_schannel': schannel,
         }
 
@@ -341,7 +324,6 @@ class SubdirData(object):
             'arch': json_obj.get('info', {}).get('arch'),
             'channel': self.channel,
             'platform': json_obj.get('info', {}).get('platform'),
-            'priority': priority,
             'schannel': schannel,
             'subdir': subdir,
         }

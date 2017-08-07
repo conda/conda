@@ -4,6 +4,9 @@ from collections import defaultdict
 from itertools import chain
 import logging
 
+from conda.common.compat import odict
+
+from conda.models.channel import Channel
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types, text_type
@@ -13,7 +16,7 @@ from .exceptions import ResolvePackageNotFound, UnsatisfiableError
 from .models.dist import Dist
 from .models.index_record import PackageRef
 from .models.match_spec import MatchSpec
-from .models.version import normalized_version
+from .models.version import normalized_version, VersionOrder
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('conda.stdoutlog')
@@ -29,8 +32,11 @@ def dashlist(iterable, indent=2):
 
 class Resolve(object):
 
-    def __init__(self, index, sort=False, processed=False):
+    def __init__(self, index, sort=False, processed=False, channels=()):
         self.index = index
+
+        self.channels = channels
+        self._channel_priorities_map = self._make_channel_priorities(channels) if channels else {}
 
         groups = {}
         trackers = defaultdict(list)
@@ -397,14 +403,27 @@ class Resolve(object):
 
     def version_key(self, dist, vtype=None):
         rec = self.index[dist]
-        cpri = rec.get('priority', 1)
-        valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
-        ver = normalized_version(rec.get('version', ''))
-        bld = rec.get('build_number', 0)
-        bs = rec.get('build')
+        channel = rec.channel
+        channel_priority = self._channel_priorities_map.get(channel.canonical_name, 1)
+        valid = 1 if channel_priority < MAX_CHANNEL_PRIORITY else 0
+        version_comparator = VersionOrder(rec.get('version', ''))
+        build_number = rec.get('build_number', 0)
+        build_string = rec.get('build')
         ts = rec.get('timestamp', 0)
-        return ((valid, -cpri, ver, bld, ts, bs) if context.channel_priority else
-                (valid, ver, -cpri, bld, ts, bs))
+        if context.channel_priority:
+            return valid, -channel_priority, version_comparator, build_number, ts, build_string
+        else:
+            return valid, version_comparator, -channel_priority, build_number, ts, build_string
+
+    def _make_channel_priorities(self, channels):
+        priorities_map = odict()
+        for channel_priority, chn in enumerate(channels):
+            channel = Channel(chn)
+            channel_name = channel.canonical_name
+            if channel_name in priorities_map:
+                continue
+            priorities_map[channel_name] = min(channel_priority, MAX_CHANNEL_PRIORITY - 1)
+        return priorities_map
 
     # def features(self, dist):
     #     _features = self.index[dist].get('features') or ()
@@ -645,7 +664,7 @@ class Resolve(object):
             rec = self.index[dist]
             dists[dist] = rec
             specs.append(MatchSpec(' '.join(self.package_quad(dist)[:3])))
-        r2 = Resolve(dists, True, True)
+        r2 = Resolve(dists, True, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -661,7 +680,7 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r2 = Resolve(reduced_index, True, True)
+        r2 = Resolve(reduced_index, True, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(specs, True)
         if solution:
@@ -681,7 +700,7 @@ class Resolve(object):
             rec = self.index[dist]
             dists[dist] = rec
             specs.append(MatchSpec(' '.join(self.package_quad(dist)[:3])))
-        r2 = Resolve(dists, True, True)
+        r2 = Resolve(dists, True, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -801,7 +820,7 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r2 = Resolve(reduced_index, True, True)
+        r2 = Resolve(reduced_index, True, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(specs, True)
         if not solution:

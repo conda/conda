@@ -173,8 +173,7 @@ def get_reduced_index(prefix, channels, subdirs, specs):
 
         channel_priority_map = odict((k, v[1]) for k, v in
                                      iteritems(prioritize_channels(channels, subdirs=subdirs)))
-        subdir_datas = tuple(SubdirData(Channel(url), priority) for url, priority in
-                             iteritems(channel_priority_map))
+        subdir_datas = tuple(SubdirData(Channel(url)) for url in channel_priority_map)
 
         records = IndexedSet()
         collected_names = set()

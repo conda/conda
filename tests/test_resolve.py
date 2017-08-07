@@ -9,6 +9,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import iteritems
 from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
+from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
@@ -1109,36 +1110,53 @@ def test_remove():
 
 
 def test_channel_priority():
-    fn1 = 'pandas-0.10.1-np17py27_0.tar.bz2'
-    fn2 = 'other::' + fn1
-    spec = ['pandas', 'python 2.7*']
+    channels = (
+        Channel("channel-A"),
+        Channel("channel-1"),
+        Channel("channel-B"),
+    )
+
     index2 = index.copy()
-    index2[Dist(fn2)] = index2[Dist(add_defaults_if_no_channel(fn1))].copy()
-    index2 = {Dist(key): value for key, value in iteritems(index2)}
-    r2 = Resolve(index2)
-    rec = r2.index[Dist(fn2)]
+    record_0 = index2[Dist('channel-1::pandas-0.11.0-np17py27_1.tar.bz2')]
+
+    fn1 = 'channel-1::pandas-0.10.1-np17py27_0.tar.bz2'
+    record_1 = index2[Dist(fn1)]
+    record_2 = IndexRecord.from_objects(record_1, channel=Channel("channel-A"))
+
+    index2[Dist(record_2)] = record_2
+
+    spec = ['pandas', 'python 2.7*']
+
+    r2 = Resolve(index2, channels=channels)
+    # rec = r2.index[Dist(fn2)]
 
     with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
-        r2.index[Dist(fn2)] = IndexRecord.from_objects(r2.index[Dist(fn2)], priority=0)
-        # Should select the "other", older package because it
-        # has a lower channel priority number
-        installed1 = r2.install(spec)
-        r2._reduced_index_cache.clear()
-        # Should select the newer package because now the "other"
-        # package has a higher priority number
-        r2.index[Dist(fn2)] = IndexRecord.from_objects(r2.index[Dist(fn2)], priority=2)
-        installed2 = r2.install(spec)
-        r2._reduced_index_cache.clear()
-        # Should also select the newer package because we have
-        # turned off channel priority altogether
+        # Should select the "record_2" because it has highest channel priority, even though
+        # 'channel-1::pandas-0.11.1-np17py27_0.tar.bz2' would otherwise be preferred
+        installed1 = [index2[dist] for dist in r2.install(spec)]
+        assert record_2 in installed1
+        assert record_1 not in installed1
+        assert record_0 not in installed1
+
+        r3 = Resolve(index2, channels=reversed(channels))
+        installed2 = [index2[dist] for dist in r3.install(spec)]
+        assert record_0 in installed2
+        assert record_2 not in installed2
+        assert record_1 not in installed2
+
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
-        r2.index[Dist(fn2)] = IndexRecord.from_objects(r2.index[Dist(fn2)], priority=0)
-        installed3 = r2.install(spec)
+        # Should also select the newer package because we have
+        # turned off channel priority altogether
         r2._reduced_index_cache.clear()
-        assert installed1 != installed2
-        assert installed1 != installed3
-        assert installed2 == installed3
+        installed3 = [index2[dist] for dist in r2.install(spec)]
+        assert record_0 in installed3
+        assert record_1 not in installed3
+        assert record_2 not in installed3
+
+    assert installed1 != installed2
+    assert installed1 != installed3
+    assert installed2 == installed3
 
 
 def test_dependency_sort():

@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 
-from .index_record import Link, PackageRecord, PathsData, PriorityField
+from .index_record import Link, PackageRecord, PathsData
 from .._vendor.auxlib.entity import ComposableField, ListField, StringField
 from ..common.compat import string_types
 
@@ -21,9 +21,6 @@ class PrefixRecord(PackageRecord):
     # app = ComposableField(App, required=False)
 
     requested_spec = StringField(required=False)
-
-    # the channel priority when the package was installed into the prefix
-    priority = PriorityField(required=False)
 
     # There have been requests in the past to save remote server auth
     # information with the package.  Open to rethinking that though.

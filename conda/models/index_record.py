@@ -21,46 +21,15 @@
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from functools import total_ordering
-
 from . import translate_feature_str
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, Field, IntegerField, ListField, MapField,
+                                     EnumField, IntegerField, ListField, MapField,
                                      StringField)
 from ..base.context import context
-from ..common.compat import isiterable, itervalues, string_types, text_type, iteritems
-
-
-@total_ordering
-class Priority(object):
-
-    def __init__(self, priority):
-        self._priority = priority
-
-    def __int__(self):
-        return self._priority
-
-    def __lt__(self, other):
-        return self._priority < int(other)
-
-    def __eq__(self, other):
-        return self._priority == int(other)
-
-    def __repr__(self):
-        return "Priority(%d)" % self._priority
-
-
-class PriorityField(Field):
-    _type = (int, Priority)
-
-    def unbox(self, instance, instance_type, val):
-        return int(val)
-
-    def dump(self, instance, instance_type, val):
-        return self.unbox(instance, instance_type, val)
+from ..common.compat import isiterable, iteritems, itervalues, string_types, text_type
 
 
 class LinkTypeField(EnumField):
@@ -355,7 +324,6 @@ class PackageRecord(IndexJsonRecord, PackageRef):
     # work with
 
     date = StringField(required=False)
-    priority = PriorityField(required=False)
     size = IntegerField(required=False)
 
     package_type = EnumField(PackageType, required=False, nullable=True)
