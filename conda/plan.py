@@ -11,7 +11,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath, basename
+from os.path import abspath, basename, isdir
 import sys
 
 from conda.core.index import _supplement_index_with_prefix
@@ -300,7 +300,7 @@ def handle_menuinst(unlink_dists, link_dists):
 
 
 def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
-    # TODO: we really shouldn't be mutating the plan list here; turn plan into a tuple
+    # this is only used for conda-build at this point
     first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
     if first_unlink_link_idx >= 0:
         grouped_instructions = groupby(lambda x: x[0], plan)
@@ -308,10 +308,15 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
         link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
         unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
 
-        unlink_precs = tuple(index[d] for d in unlink_dists)
+        if isdir(prefix):
+            unlink_precs = tuple(index[d] for d in unlink_dists)
+        else:
+            # there's nothing to unlink in an environment that doesn't exist
+            # this is a hack for what appears to be a logic error in conda-build
+            # caught in tests/test_subpackages.py::test_subpackage_recipes[python_test_dep]
+            unlink_precs = ()
         link_precs = tuple(index[d] for d in link_dists)
 
-        # TODO: ideally we'd move these two lines before both the y/n confirmation and the --dry-run exit  # NOQA
         pfe = ProgressiveFetchExtract(link_precs)
         pfe.prepare()
 
@@ -466,6 +471,9 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         channels = subdirs = None
 
     specs = tuple(MatchSpec(spec) for spec in specs)
+
+    from .core.linked_data import PrefixData
+    PrefixData._cache_.clear()
 
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
     if index:
