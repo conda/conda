@@ -5,14 +5,10 @@ from argparse import SUPPRESS
 from collections import defaultdict
 import sys
 
-from conda.core.index import get_channel_priority_map
 from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
                              add_parser_known, add_parser_offline, add_parser_prefix,
                              add_parser_use_index_cache, add_parser_use_local)
-from ..cli.common import stdout_json
-from ..common.io import spinner
 from ..compat import text_type
-from ..exceptions import PackagesNotFoundError
 
 descr = """Search for packages and display associated information.
 The input is a MatchSpec, a query language for conda packages.
@@ -126,6 +122,8 @@ def execute(args, parser):
     from ..models.match_spec import MatchSpec
     from ..models.version import VersionOrder
     from ..base.context import context
+    from ..cli.common import stdout_json
+    from ..common.io import spinner
 
     spec = MatchSpec(args.match_spec)
     if spec.get_exact_value('subdir'):
@@ -144,14 +142,15 @@ def execute(args, parser):
                          key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
     if not matches:
-        channel_priority_map = get_channel_priority_map(
+        from .install import calculate_channel_urls
+        channels_urls = tuple(calculate_channel_urls(
             channel_urls=context.channels,
             prepend=not args.override_channels,
             platform=None,
             use_local=args.use_local,
-        )
-        channels_urls = tuple(channel_priority_map)
+        ))
         from ..models.match_spec import MatchSpec
+        from ..exceptions import PackagesNotFoundError
         raise PackagesNotFoundError((text_type(spec),), channels_urls)
 
     if context.json:

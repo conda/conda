@@ -613,7 +613,7 @@ def revert_actions(prefix, revision=-1, index=None):
     if state == curr:
         return {}  # TODO: return txn with nothing_to_do
 
-    _supplement_index_with_prefix(index, prefix, {})
+    _supplement_index_with_prefix(index, prefix)
     r = Resolve(index)
 
     state = r.dependency_sort({d.name: d for d in (Dist(s) for s in state)})

@@ -158,7 +158,7 @@ def get_info_dict(system=False):
     from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
     from ..base.context import conda_in_private_env, context, sys_rc_path, user_rc_path
     from ..common.url import mask_anaconda_token
-    from ..models.channel import offline_keep, prioritize_channels
+    from ..models.channel import offline_keep, all_channel_urls
 
     try:
         from ..install import linked_data
@@ -199,7 +199,7 @@ def get_info_dict(system=False):
     else:  # pragma: no cover
         conda_build_version = conda_build.__version__
 
-    channels = list(prioritize_channels(context.channels).keys())
+    channels = list(all_channel_urls(context.channels))
     if not context.json:
         channels = [c + ('' if offline_keep(c) else '  (offline)')
                     for c in channels]

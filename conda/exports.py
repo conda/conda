@@ -60,9 +60,9 @@ is_linked, linked, linked_data = is_linked, linked, linked_data
 from .misc import untracked, walk_prefix  # NOQA
 untracked, walk_prefix = untracked, walk_prefix
 
-from .resolve import MatchSpec, ResolvePackageNotFound, Resolve, Unsatisfiable, normalized_version  # NOQA
+from .resolve import MatchSpec, ResolvePackageNotFound, Resolve, Unsatisfiable  # NOQA
 MatchSpec, Resolve = MatchSpec, Resolve
-Unsatisfiable, normalized_version = Unsatisfiable, normalized_version
+Unsatisfiable = Unsatisfiable
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
 from .utils import hashsum_file, human_bytes, unix_path_to_win, url_path  # NOQA
@@ -74,8 +74,8 @@ win_path_to_unix, url_path = win_path_to_unix, url_path
 from .gateways.disk.read import compute_md5sum  # NOQA
 md5_file = compute_md5sum
 
-from .models.version import VersionOrder  # NOQA
-VersionOrder = VersionOrder
+from .models.version import VersionOrder, normalized_version  # NOQA
+VersionOrder, normalized_version = VersionOrder, normalized_version
 
 import conda.base.context  # NOQA
 from .base.context import get_prefix, non_x86_linux_machines, sys_rc_path  # NOQA

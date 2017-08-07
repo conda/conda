@@ -21,7 +21,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, odict, text_type,
+from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, text_type,
                              with_metaclass)
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache import PackageCache
@@ -32,7 +32,7 @@ from ..gateways.connection.session import CondaSession
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
-from ..models.channel import Channel, prioritize_channels
+from ..models.channel import Channel, all_channel_urls
 from ..models.dist import Dist
 from ..models.index_record import IndexRecord, PackageRecord
 from ..models.match_spec import MatchSpec
@@ -55,8 +55,7 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
 
 def query_all(channels, subdirs, package_ref_or_match_spec):
-    channel_priority_map = odict((k, v[1]) for k, v in
-                                 iteritems(prioritize_channels(channels, subdirs=subdirs)))
+    channel_urls = all_channel_urls(channels, subdirs=subdirs)
 
     result = executor = None
     if context.concurrent:
@@ -65,7 +64,7 @@ def query_all(channels, subdirs, package_ref_or_match_spec):
             executor = ThreadPoolExecutor(10)
             futures = (executor.submit(
                 SubdirData(Channel(url)).query, package_ref_or_match_spec
-            ) for url in channel_priority_map)
+            ) for url in channel_urls)
             result = tuple(concat(future.result() for future in as_completed(futures)))
         except (ImportError, RuntimeError) as e:
             # concurrent.futures is only available in Python >= 3.2 or if futures is installed
@@ -75,7 +74,7 @@ def query_all(channels, subdirs, package_ref_or_match_spec):
         executor.shutdown(wait=True)
 
     if result is None:
-        subdir_datas = (SubdirData(Channel(url)) for url in channel_priority_map)
+        subdir_datas = (SubdirData(Channel(url)) for url in channel_urls)
         result = tuple(concat(sd.query(package_ref_or_match_spec) for sd in subdir_datas))
 
     return result
@@ -604,10 +603,9 @@ def make_feature_record(feature_name, feature_value):
     )
 
 
-def collect_all_repodata_as_index(use_cache, tasks):
+def collect_all_repodata_as_index(use_cache, channel_urls):
     index = {}
-    for task in tasks:
-        url, schannel, priority = task
+    for url in channel_urls:
         sd = SubdirData(Channel(url))
         index.update((Dist(prec), prec) for prec in sd.load()._package_records)
     return index

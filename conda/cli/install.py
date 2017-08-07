@@ -18,7 +18,7 @@ from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import text_type
 from ..core.envs_manager import EnvsDirectory
-from ..core.index import get_channel_priority_map, get_index
+from ..core.index import calculate_channel_urls, get_index
 from ..core.solve import Solver
 from ..exceptions import (CondaImportError, CondaOSError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
@@ -203,13 +203,12 @@ def install(args, parser, command='install'):
             progressive_fetch_extract = unlink_link_transaction.get_pfe()
 
     except ResolvePackageNotFound as e:
-        channel_priority_map = get_channel_priority_map(
+        channels_urls = tuple(calculate_channel_urls(
             channel_urls=index_args['channel_urls'],
             prepend=index_args['prepend'],
             platform=None,
             use_local=index_args['use_local'],
-        )
-        channels_urls = tuple(channel_priority_map)
+        ))
         raise PackagesNotFoundError(e.bad_deps, channels_urls)
 
     except (UnsatisfiableError, SystemExit) as e:

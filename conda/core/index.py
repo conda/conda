@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import namedtuple
 from itertools import chain
 from logging import getLogger
 
@@ -11,13 +10,12 @@ from .linked_data import linked_data
 from .package_cache import PackageCache
 from .repodata import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
-from ..base.constants import MAX_CHANNEL_PRIORITY
 from ..base.context import context
-from ..common.compat import iteritems, iterkeys, itervalues, odict
+from ..common.compat import iteritems, itervalues
 from ..common.io import backdown_thread_pool
 from ..exceptions import OperationNotAllowed
 from ..models import translate_feature_str
-from ..models.channel import Channel, prioritize_channels
+from ..models.channel import Channel, all_channel_urls
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK
 from ..models.match_spec import MatchSpec
@@ -59,18 +57,16 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     if context.offline and unknown is None:
         unknown = True
 
-    channel_priority_map = get_channel_priority_map(channel_urls, prepend, platform, use_local)
+    channel_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
 
-    check_whitelist(iterkeys(channel_priority_map))
+    check_whitelist(channel_urls)
 
-    index = fetch_index(channel_priority_map, use_cache=use_cache)
+    index = fetch_index(channel_urls, use_cache=use_cache)
 
-    if prefix or unknown:
-        known_channels = {chnl for chnl, _ in itervalues(channel_priority_map)}
     if prefix:
-        _supplement_index_with_prefix(index, prefix, known_channels)
+        _supplement_index_with_prefix(index, prefix)
     if unknown:
-        _supplement_index_with_cache(index, known_channels)
+        _supplement_index_with_cache(index)
     if context.track_features:
         _supplement_index_with_features(index)
     return index
@@ -82,18 +78,15 @@ def fetch_index(channel_urls, use_cache=False, index=None):
     use_cache = use_cache or context.use_index_cache
 
     # channel_urls reversed to build up index in correct order
-    CollectTask = namedtuple('CollectTask', ('url', 'schannel', 'priority'))
-    tasks = (CollectTask(url, *channel_urls[url]) for url in reversed(channel_urls))
     from .repodata import collect_all_repodata_as_index
-    index = collect_all_repodata_as_index(use_cache, tasks)
+    index = collect_all_repodata_as_index(use_cache, channel_urls)
 
     return index
 
 
-def _supplement_index_with_prefix(index, prefix, channels):
+def _supplement_index_with_prefix(index, prefix):
     # supplement index with information from prefix/conda-meta
     assert prefix
-    maxp = len(channels) + 1
     for dist, prefix_record in iteritems(linked_data(prefix)):
         if dist in index:
             # The downloaded repodata takes priority, so we do not overwrite.
@@ -110,13 +103,11 @@ def _supplement_index_with_prefix(index, prefix, channels):
             # other version of the package to this one. On the other hand, if
             # it is in a channel we don't know about, assign it a value just
             # above the priority of all known channels.
-            priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-            index[dist] = PrefixRecord.from_objects(prefix_record, priority=priority)
+            index[dist] = prefix_record
 
 
-def _supplement_index_with_cache(index, channels):
+def _supplement_index_with_cache(index):
     # supplement index with packages from the cache
-    maxp = len(channels) + 1
     for pcrec in PackageCache.get_all_extracted_entries():
         dist = Dist(pcrec)
         if dist in index:
@@ -124,8 +115,7 @@ def _supplement_index_with_cache(index, channels):
             current_record = index[dist]
             index[dist] = PackageCacheRecord.from_objects(current_record, pcrec)
         else:
-            priority = MAX_CHANNEL_PRIORITY if dist.channel in channels else maxp
-            index[dist] = PackageCacheRecord.from_objects(pcrec, priority=priority)
+            index[dist] = pcrec
 
 
 def _supplement_index_with_features(index, features=()):
@@ -134,15 +124,14 @@ def _supplement_index_with_features(index, features=()):
         index[Dist(rec)] = rec
 
 
-def get_channel_priority_map(channel_urls=(), prepend=True, platform=None, use_local=False):
+def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):
     if use_local:
         channel_urls = ['local'] + list(channel_urls)
     if prepend:
         channel_urls += context.channels
 
     subdirs = (platform, 'noarch') if platform is not None else context.subdirs
-    channel_priority_map = prioritize_channels(channel_urls, subdirs=subdirs)
-    return channel_priority_map
+    return all_channel_urls(channel_urls, subdirs=subdirs)
 
 
 def dist_str_in_index(index, dist_str):
@@ -171,9 +160,8 @@ def get_reduced_index(prefix, channels, subdirs, specs):
 
     with backdown_thread_pool() as executor:
 
-        channel_priority_map = odict((k, v[1]) for k, v in
-                                     iteritems(prioritize_channels(channels, subdirs=subdirs)))
-        subdir_datas = tuple(SubdirData(Channel(url)) for url in channel_priority_map)
+        channel_urls = all_channel_urls(channels, subdirs=subdirs)
+        subdir_datas = tuple(SubdirData(Channel(url)) for url in channel_urls)
 
         records = IndexedSet()
         collected_names = set()
@@ -228,17 +216,15 @@ def get_reduced_index(prefix, channels, subdirs, specs):
 
         reduced_index = {Dist(rec): rec for rec in records}
 
-        known_channels = tuple(Channel(c).canonical_name for c in channels)
-
         if prefix is not None:
-            _supplement_index_with_prefix(reduced_index, prefix, known_channels)
+            _supplement_index_with_prefix(reduced_index, prefix)
 
         if context.offline or ('unknown' in context._argparse_args
                                and context._argparse_args.unknown):
             # This is really messed up right now.  Dates all the way back to
             # https://github.com/conda/conda/commit/f761f65a82b739562a0d997a2570e2b8a0bdc783
             # TODO: revisit this later
-            _supplement_index_with_cache(reduced_index, known_channels)
+            _supplement_index_with_cache(reduced_index)
 
         # add feature records for the solver
         known_features = set()

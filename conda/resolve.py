@@ -4,19 +4,17 @@ from collections import defaultdict
 from itertools import chain
 import logging
 
-from conda.common.compat import odict
-
-from conda.models.channel import Channel
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, string_types, text_type
+from .common.compat import iteritems, iterkeys, itervalues, odict, string_types, text_type
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
 from .exceptions import ResolvePackageNotFound, UnsatisfiableError
+from .models.channel import Channel
 from .models.dist import Dist
 from .models.index_record import PackageRef
 from .models.match_spec import MatchSpec
-from .models.version import normalized_version, VersionOrder
+from .models.version import VersionOrder
 
 log = logging.getLogger(__name__)
 stdoutlog = logging.getLogger('conda.stdoutlog')
