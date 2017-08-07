@@ -54,389 +54,6 @@ REPODATA_PICKLE_VERSION = 5
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
 
-# class RepoDataType(type):
-#     """This (meta) class provides (ordered) dictionary-like access to Repodata."""
-#
-#     def __init__(cls, name, bases, dict):
-#         cls._instances = OrderedDict()
-#
-#     def __getitem__(cls, url):
-#         return cls._instances[url]
-#
-#     def __iter__(cls):
-#         return iter(cls._instances)
-#
-#     def __reversed__(cls):
-#         return reversed(cls._instances)
-#
-#     def __len__(cls):
-#         return len(cls._instances)
-#
-# @with_metaclass(RepoDataType)
-# class RepoData(object):
-#     """This object represents all the package metainfo of a single channel."""
-#
-#     @staticmethod
-#     def enable(url, name, priority, cache_dir=None):
-#         RepoData._instances[url] = RepoData(url, name, priority, cache_dir)
-#
-#     @staticmethod
-#     def get(url):
-#         return RepoData._instances.get(url)
-#
-#     @staticmethod
-#     def clear():
-#         RepoData._instances.clear()
-#
-#     @staticmethod
-#     def load_all(use_cache=False):
-#         try:
-#             import concurrent.futures
-#             with concurrent.futures.ThreadPoolExecutor(10) as e:
-#                 for rd in RepoData._instances.values():
-#                     e.submit(rd.load(use_cache=use_cache, session=CondaSession()))
-#         except (ImportError) as e:
-#             for rd in RepoData._instances.values():
-#                 rd.load(use_cache=use_cache, session=CondaSession())
-#
-#     def __init__(self, url, name, priority, cache_dir=None):
-#         """Create a RepoData object."""
-#
-#         self.url = url
-#         self.name = name
-#         self.priority = priority
-#         self.cache_dir = cache_dir
-#         self._data = None
-#
-#     def load(self, use_cache=False, session=None):
-#         """Syncs this object with an upstream RepoData object."""
-#
-#         session = session if session else CondaSession()
-#         self._data = fetch_repodata(self.url, self.name, self.priority,
-#                                     cache_dir=self.cache_dir,
-#                                     use_cache=use_cache, session=session)
-#
-#     def _persist(self, cache_dir=None):
-#         """Save data to local cache."""
-#
-#         cache_path = join(cache_dir or self.cache_dir or create_cache_dir(),
-#                           cache_fn_url(self.url))
-#         write_pickled_repodata(cache_path, self._data)
-#
-#     def query(self, query):
-#         """query information about a package"""
-#         raise NotImplemented
-#
-#     def contains(self, package_ref):
-#         """Check whether the package is contained in this channel."""
-#         raise NotImplemented
-#
-#     def validate(self, package_ref):
-#         """Check whether the package could be added to this channel."""
-#         raise NotImplemented
-#
-#     def add(self, package_ref):
-#         """Add the given package-ref to this channel."""
-#         raise NotImplemented
-#
-#     def remove(self, package_ref):
-#         """Remove the given package-ref from this channel."""
-#         raise NotImplemented
-#
-#     @property
-#     def index(self):
-#         # WARNING: This method will soon be deprecated.
-#         return self._data
-
-
-def read_mod_and_etag(path):
-    with open(path, 'rb') as f:
-        try:
-            with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
-                match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
-                result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
-                return result
-        except (BufferError, ValueError):
-            # BufferError: cannot close exported pointers exist
-            #   https://github.com/conda/conda/issues/4592
-            # ValueError: cannot mmap an empty file
-            return {}
-
-
-def get_cache_control_max_age(cache_control_value):
-    max_age = re.search(r"max-age=(\d+)", cache_control_value)
-    return int(max_age.groups()[0]) if max_age else 0
-
-
-class Response304ContentUnchanged(Exception):
-    pass
-
-
-def fetch_repodata_remote_request(url, etag, mod_stamp):
-    if not context.ssl_verify:
-        warnings.simplefilter('ignore', InsecureRequestWarning)
-
-    session = CondaSession()
-
-    headers = {}
-    if etag:
-        headers["If-None-Match"] = etag
-    if mod_stamp:
-        headers["If-Modified-Since"] = mod_stamp
-
-    if 'repo.continuum.io' in url or url.startswith("file://"):
-        filename = 'repodata.json.bz2'
-        headers['Accept-Encoding'] = 'identity'
-    else:
-        headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
-        headers['Content-Type'] = 'application/json'
-        filename = 'repodata.json'
-
-    try:
-        timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
-        resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
-                           timeout=timeout)
-        if log.isEnabledFor(DEBUG):
-            log.debug(stringify(resp))
-        resp.raise_for_status()
-
-        if resp.status_code == 304:
-            raise Response304ContentUnchanged()
-
-        def maybe_decompress(filename, resp_content):
-            return ensure_text_type(bz2.decompress(resp_content)
-                                    if filename.endswith('.bz2')
-                                    else resp_content).strip()
-        json_str = maybe_decompress(filename, resp.content)
-
-        saved_fields = {'_url': url}
-        add_http_value_to_dict(resp, 'Etag', saved_fields, '_etag')
-        add_http_value_to_dict(resp, 'Last-Modified', saved_fields, '_mod')
-        add_http_value_to_dict(resp, 'Cache-Control', saved_fields, '_cache_control')
-
-        # add extra values to the raw repodata json
-        if json_str and json_str != "{}":
-            raw_repodata_str = "%s, %s" % (
-                json.dumps(saved_fields)[:-1],  # remove trailing '}'
-                json_str[1:]  # remove first '{'
-            )
-        else:
-            raw_repodata_str = json.dumps(saved_fields)
-        return raw_repodata_str
-
-    except InvalidSchema as e:
-        if 'SOCKS' in text_type(e):
-            message = dals("""
-            Requests has identified that your current working environment is configured
-            to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your
-            proxy configuration, run `conda install pysocks`, and then you can re-enable
-            your proxy configuration.
-            """)
-            raise CondaDependencyError(message)
-        else:
-            raise
-
-    except (ConnectionError, HTTPError, SSLError) as e:
-        # status_code might not exist on SSLError
-        status_code = getattr(e.response, 'status_code', None)
-        if status_code == 404:
-            if not url.endswith('/noarch'):
-                return None
-            else:
-                if context.allow_non_channel_urls:
-                    help_message = dedent("""
-                    WARNING: The remote server could not find the noarch directory for the
-                    requested channel with url: %s
-
-                    It is possible you have given conda an invalid channel. Please double-check
-                    your conda configuration using `conda config --show`.
-
-                    If the requested url is in fact a valid conda channel, please request that the
-                    channel administrator create `noarch/repodata.json` and associated
-                    `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
-                    $ mkdir noarch
-                    $ echo '{}' > noarch/repodata.json
-                    $ bzip2 -k noarch/repodata.json
-                    """) % maybe_unquote(dirname(url))
-                    stderrlog.warn(help_message)
-                    return None
-                else:
-                    help_message = dals("""
-                    The remote server could not find the noarch directory for the
-                    requested channel with url: %s
-
-                    As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
-                    associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                    empty. please request that the channel administrator create
-                    `noarch/repodata.json` and associated `noarch/repodata.json.bz2` files.
-                    $ mkdir noarch
-                    $ echo '{}' > noarch/repodata.json
-                    $ bzip2 -k noarch/repodata.json
-
-                    You will need to adjust your conda configuration to proceed.
-                    Use `conda config --show` to view your configuration's current state.
-                    Further configuration help can be found at <%s>.
-                    """) % (maybe_unquote(dirname(url)),
-                            join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
-
-        elif status_code == 403:
-            if not url.endswith('/noarch'):
-                return None
-            else:
-                if context.allow_non_channel_urls:
-                    help_message = dedent("""
-                    WARNING: The remote server could not find the noarch directory for the
-                    requested channel with url: %s
-
-                    It is possible you have given conda an invalid channel. Please double-check
-                    your conda configuration using `conda config --show`.
-
-                    If the requested url is in fact a valid conda channel, please request that the
-                    channel administrator create `noarch/repodata.json` and associated
-                    `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
-                    $ mkdir noarch
-                    $ echo '{}' > noarch/repodata.json
-                    $ bzip2 -k noarch/repodata.json
-                    """) % maybe_unquote(dirname(url))
-                    stderrlog.warn(help_message)
-                    return None
-                else:
-                    help_message = dals("""
-                    The remote server could not find the noarch directory for the
-                    requested channel with url: %s
-
-                    As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
-                    associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                    empty. please request that the channel administrator create
-                    `noarch/repodata.json` and associated `noarch/repodata.json.bz2` files.
-                    $ mkdir noarch
-                    $ echo '{}' > noarch/repodata.json
-                    $ bzip2 -k noarch/repodata.json
-
-                    You will need to adjust your conda configuration to proceed.
-                    Use `conda config --show` to view your configuration's current state.
-                    Further configuration help can be found at <%s>.
-                    """) % (maybe_unquote(dirname(url)),
-                            join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
-
-        elif status_code == 401:
-            channel = Channel(url)
-            if channel.token:
-                help_message = dals("""
-                The token '%s' given for the URL is invalid.
-
-                If this token was pulled from anaconda-client, you will need to use
-                anaconda-client to reauthenticate.
-
-                If you supplied this token to conda directly, you will need to adjust your
-                conda configuration to proceed.
-
-                Use `conda config --show` to view your configuration's current state.
-                Further configuration help can be found at <%s>.
-               """) % (channel.token, join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
-
-            elif context.channel_alias.location in url:
-                # Note, this will not trigger if the binstar configured url does
-                # not match the conda configured one.
-                help_message = dals("""
-                The remote server has indicated you are using invalid credentials for this channel.
-
-                If the remote site is anaconda.org or follows the Anaconda Server API, you
-                will need to
-                  (a) remove the invalid token from your system with `anaconda logout`, optionally
-                      followed by collecting a new token with `anaconda login`, or
-                  (b) provide conda with a valid token directly.
-
-                Further configuration help can be found at <%s>.
-               """) % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')
-
-            else:
-                help_message = dals("""
-                The credentials you have provided for this URL are invalid.
-
-                You will need to modify your conda configuration to proceed.
-                Use `conda config --show` to view your configuration's current state.
-                Further configuration help can be found at <%s>.
-                """) % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')
-
-        elif status_code is not None and 500 <= status_code < 600:
-            help_message = dals("""
-            An remote server error occurred when trying to retrieve this URL.
-
-            A 500-type error (e.g. 500, 501, 502, 503, etc.) indicates the server failed to
-            fulfill a valid request.  The problem may be spurious, and will resolve itself if you
-            try your request again.  If the problem persists, consider notifying the maintainer
-            of the remote server.
-            """)
-
-        else:
-            help_message = dals("""
-            An HTTP error occurred when trying to retrieve this URL.
-            HTTP errors are often intermittent, and a simple retry will get you on your way.
-            %s
-            """) % maybe_unquote(repr(e))
-
-        raise CondaHTTPError(help_message,
-                             join_url(url, filename),
-                             status_code,
-                             getattr(e.response, 'reason', None),
-                             getattr(e.response, 'elapsed', None),
-                             e.response)
-
-    except ValueError as e:
-        raise CondaIndexError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
-
-
-def make_feature_record(feature_name, feature_value):
-    # necessary for the SAT solver to do the right thing with features
-    pkg_name = "%s=%s@" % (feature_name, feature_value)
-    return IndexRecord(
-        name=pkg_name,
-        version='0',
-        build='0',
-        channel='@',
-        subdir=context.subdir,
-        md5="12345678901234567890123456789012",
-        provides_features={
-            feature_name: feature_value,
-        },
-        build_number=0,
-        fn=pkg_name,
-    )
-
-
-def collect_all_repodata_as_index(use_cache, tasks):
-    index = {}
-    for task in tasks:
-        url, schannel, priority = task
-        sd = SubdirData(Channel(url))
-        index.update((Dist(prec), prec) for prec in sd.load()._package_records)
-    return index
-
-
-def cache_fn_url(url):
-    # url must be right-padded with '/' to not invalidate any existing caches
-    if not url.endswith('/'):
-        url += '/'
-    md5 = hashlib.md5(ensure_binary(url)).hexdigest()
-    return '%s.json' % (md5[:8],)
-
-
-def add_http_value_to_dict(resp, http_key, d, dict_key):
-    value = resp.headers.get(http_key)
-    if value:
-        d[dict_key] = value
-
-
-def create_cache_dir():
-    cache_dir = join(PackageCache.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
-    try:
-        makedirs(cache_dir)
-    except OSError:
-        pass
-    return cache_dir
-
-
 def query_all(channels, subdirs, package_ref_or_match_spec):
     channel_priority_map = odict((k, v[1]) for k, v in
                                  iteritems(prioritize_channels(channels, subdirs=subdirs)))
@@ -745,9 +362,293 @@ class SubdirData(object):
             for ftr_name, ftr_value in iteritems(package_record.requires_features):
                 _requires_features_index["%s=%s" % (ftr_name, ftr_value)].append(package_record)
 
-        # for feature_name, feature_values in iteritems(all_features):
-        #     for feature_value in feature_values:
-        #         rec = make_feature_record(feature_name, feature_value)
-        #         packages[Dist(rec)] = rec
         self._internal_state = _internal_state
         return _internal_state
+
+
+def read_mod_and_etag(path):
+    with open(path, 'rb') as f:
+        try:
+            with closing(mmap(f.fileno(), 0, access=ACCESS_READ)) as m:
+                match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
+                result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
+                return result
+        except (BufferError, ValueError):
+            # BufferError: cannot close exported pointers exist
+            #   https://github.com/conda/conda/issues/4592
+            # ValueError: cannot mmap an empty file
+            return {}
+
+
+def get_cache_control_max_age(cache_control_value):
+    max_age = re.search(r"max-age=(\d+)", cache_control_value)
+    return int(max_age.groups()[0]) if max_age else 0
+
+
+class Response304ContentUnchanged(Exception):
+    pass
+
+
+def fetch_repodata_remote_request(url, etag, mod_stamp):
+    if not context.ssl_verify:
+        warnings.simplefilter('ignore', InsecureRequestWarning)
+
+    session = CondaSession()
+
+    headers = {}
+    if etag:
+        headers["If-None-Match"] = etag
+    if mod_stamp:
+        headers["If-Modified-Since"] = mod_stamp
+
+    if 'repo.continuum.io' in url or url.startswith("file://"):
+        filename = 'repodata.json.bz2'
+        headers['Accept-Encoding'] = 'identity'
+    else:
+        headers['Accept-Encoding'] = 'gzip, deflate, compress, identity'
+        headers['Content-Type'] = 'application/json'
+        filename = 'repodata.json'
+
+    try:
+        timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
+        resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
+                           timeout=timeout)
+        if log.isEnabledFor(DEBUG):
+            log.debug(stringify(resp))
+        resp.raise_for_status()
+
+        if resp.status_code == 304:
+            raise Response304ContentUnchanged()
+
+        def maybe_decompress(filename, resp_content):
+            return ensure_text_type(bz2.decompress(resp_content)
+                                    if filename.endswith('.bz2')
+                                    else resp_content).strip()
+        json_str = maybe_decompress(filename, resp.content)
+
+        saved_fields = {'_url': url}
+        add_http_value_to_dict(resp, 'Etag', saved_fields, '_etag')
+        add_http_value_to_dict(resp, 'Last-Modified', saved_fields, '_mod')
+        add_http_value_to_dict(resp, 'Cache-Control', saved_fields, '_cache_control')
+
+        # add extra values to the raw repodata json
+        if json_str and json_str != "{}":
+            raw_repodata_str = "%s, %s" % (
+                json.dumps(saved_fields)[:-1],  # remove trailing '}'
+                json_str[1:]  # remove first '{'
+            )
+        else:
+            raw_repodata_str = json.dumps(saved_fields)
+        return raw_repodata_str
+
+    except InvalidSchema as e:
+        if 'SOCKS' in text_type(e):
+            message = dals("""
+            Requests has identified that your current working environment is configured
+            to use a SOCKS proxy, but pysocks is not installed.  To proceed, remove your
+            proxy configuration, run `conda install pysocks`, and then you can re-enable
+            your proxy configuration.
+            """)
+            raise CondaDependencyError(message)
+        else:
+            raise
+
+    except (ConnectionError, HTTPError, SSLError) as e:
+        # status_code might not exist on SSLError
+        status_code = getattr(e.response, 'status_code', None)
+        if status_code == 404:
+            if not url.endswith('/noarch'):
+                return None
+            else:
+                if context.allow_non_channel_urls:
+                    help_message = dedent("""
+                    WARNING: The remote server could not find the noarch directory for the
+                    requested channel with url: %s
+
+                    It is possible you have given conda an invalid channel. Please double-check
+                    your conda configuration using `conda config --show`.
+
+                    If the requested url is in fact a valid conda channel, please request that the
+                    channel administrator create `noarch/repodata.json` and associated
+                    `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
+                    $ mkdir noarch
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
+                    """) % maybe_unquote(dirname(url))
+                    stderrlog.warn(help_message)
+                    return None
+                else:
+                    help_message = dals("""
+                    The remote server could not find the noarch directory for the
+                    requested channel with url: %s
+
+                    As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
+                    associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                    empty. please request that the channel administrator create
+                    `noarch/repodata.json` and associated `noarch/repodata.json.bz2` files.
+                    $ mkdir noarch
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
+
+                    You will need to adjust your conda configuration to proceed.
+                    Use `conda config --show` to view your configuration's current state.
+                    Further configuration help can be found at <%s>.
+                    """) % (maybe_unquote(dirname(url)),
+                            join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+
+        elif status_code == 403:
+            if not url.endswith('/noarch'):
+                return None
+            else:
+                if context.allow_non_channel_urls:
+                    help_message = dedent("""
+                    WARNING: The remote server could not find the noarch directory for the
+                    requested channel with url: %s
+
+                    It is possible you have given conda an invalid channel. Please double-check
+                    your conda configuration using `conda config --show`.
+
+                    If the requested url is in fact a valid conda channel, please request that the
+                    channel administrator create `noarch/repodata.json` and associated
+                    `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
+                    $ mkdir noarch
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
+                    """) % maybe_unquote(dirname(url))
+                    stderrlog.warn(help_message)
+                    return None
+                else:
+                    help_message = dals("""
+                    The remote server could not find the noarch directory for the
+                    requested channel with url: %s
+
+                    As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
+                    associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+                    empty. please request that the channel administrator create
+                    `noarch/repodata.json` and associated `noarch/repodata.json.bz2` files.
+                    $ mkdir noarch
+                    $ echo '{}' > noarch/repodata.json
+                    $ bzip2 -k noarch/repodata.json
+
+                    You will need to adjust your conda configuration to proceed.
+                    Use `conda config --show` to view your configuration's current state.
+                    Further configuration help can be found at <%s>.
+                    """) % (maybe_unquote(dirname(url)),
+                            join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+
+        elif status_code == 401:
+            channel = Channel(url)
+            if channel.token:
+                help_message = dals("""
+                The token '%s' given for the URL is invalid.
+
+                If this token was pulled from anaconda-client, you will need to use
+                anaconda-client to reauthenticate.
+
+                If you supplied this token to conda directly, you will need to adjust your
+                conda configuration to proceed.
+
+                Use `conda config --show` to view your configuration's current state.
+                Further configuration help can be found at <%s>.
+               """) % (channel.token, join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+
+            elif context.channel_alias.location in url:
+                # Note, this will not trigger if the binstar configured url does
+                # not match the conda configured one.
+                help_message = dals("""
+                The remote server has indicated you are using invalid credentials for this channel.
+
+                If the remote site is anaconda.org or follows the Anaconda Server API, you
+                will need to
+                  (a) remove the invalid token from your system with `anaconda logout`, optionally
+                      followed by collecting a new token with `anaconda login`, or
+                  (b) provide conda with a valid token directly.
+
+                Further configuration help can be found at <%s>.
+               """) % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')
+
+            else:
+                help_message = dals("""
+                The credentials you have provided for this URL are invalid.
+
+                You will need to modify your conda configuration to proceed.
+                Use `conda config --show` to view your configuration's current state.
+                Further configuration help can be found at <%s>.
+                """) % join_url(CONDA_HOMEPAGE_URL, 'docs/config.html')
+
+        elif status_code is not None and 500 <= status_code < 600:
+            help_message = dals("""
+            An remote server error occurred when trying to retrieve this URL.
+
+            A 500-type error (e.g. 500, 501, 502, 503, etc.) indicates the server failed to
+            fulfill a valid request.  The problem may be spurious, and will resolve itself if you
+            try your request again.  If the problem persists, consider notifying the maintainer
+            of the remote server.
+            """)
+
+        else:
+            help_message = dals("""
+            An HTTP error occurred when trying to retrieve this URL.
+            HTTP errors are often intermittent, and a simple retry will get you on your way.
+            %s
+            """) % maybe_unquote(repr(e))
+
+        raise CondaHTTPError(help_message,
+                             join_url(url, filename),
+                             status_code,
+                             getattr(e.response, 'reason', None),
+                             getattr(e.response, 'elapsed', None),
+                             e.response)
+
+    except ValueError as e:
+        raise CondaIndexError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
+
+
+def make_feature_record(feature_name, feature_value):
+    # necessary for the SAT solver to do the right thing with features
+    pkg_name = "%s=%s@" % (feature_name, feature_value)
+    return IndexRecord(
+        name=pkg_name,
+        version='0',
+        build='0',
+        channel='@',
+        subdir=context.subdir,
+        md5="12345678901234567890123456789012",
+        provides_features={
+            feature_name: feature_value,
+        },
+        build_number=0,
+        fn=pkg_name,
+    )
+
+
+def collect_all_repodata_as_index(use_cache, tasks):
+    index = {}
+    for task in tasks:
+        url, schannel, priority = task
+        sd = SubdirData(Channel(url))
+        index.update((Dist(prec), prec) for prec in sd.load()._package_records)
+    return index
+
+
+def cache_fn_url(url):
+    # url must be right-padded with '/' to not invalidate any existing caches
+    if not url.endswith('/'):
+        url += '/'
+    md5 = hashlib.md5(ensure_binary(url)).hexdigest()
+    return '%s.json' % (md5[:8],)
+
+
+def add_http_value_to_dict(resp, http_key, d, dict_key):
+    value = resp.headers.get(http_key)
+    if value:
+        d[dict_key] = value
+
+
+def create_cache_dir():
+    cache_dir = join(PackageCache.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
+    try:
+        makedirs(cache_dir)
+    except OSError:
+        pass
+    return cache_dir

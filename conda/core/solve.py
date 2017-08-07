@@ -434,8 +434,6 @@ class Solver(object):
                          for priority, c in enumerate(self.channels)
                          for subdir_url in c.urls(True, self.subdirs))
 
-        # with spinner("Loading channels", not context.verbosity and not context.quiet,
-        #              context.json):
         if hasattr(self, '_index') and self._index:
             # added in install_actions for conda-build back-compat
             self._prepared_specs = prepared_specs
@@ -446,23 +444,6 @@ class Solver(object):
             self._prepared_specs = prepared_specs
             self._index = reduced_index
             self._r = Resolve(reduced_index)
-
-        # channel_priority_map = build_channel_priority_map()
-        # if self._index is None:
-        #     self._index = fetch_index(channel_priority_map, context.use_index_cache)
-        #
-        # known_channels = tuple(c.canonical_name for c in self.channels)
-        #
-        # _supplement_index_with_prefix(self._index, self.prefix, known_channels)
-        # if context.offline or ('unknown' in context._argparse_args
-        #                        and context._argparse_args.unknown):
-        #     # This is really messed up right now.  Dates all the way back to
-        #     # https://github.com/conda/conda/commit/f761f65a82b739562a0d997a2570e2b8a0bdc783
-        #     # TODO: revisit this later
-        #     _supplement_index_with_cache(self._index, known_channels)
-        # _supplement_index_with_features(self._index)
-        #
-        # self._r = Resolve(self._index)
 
         self._prepared = True
         return self._index, self._r
