@@ -214,6 +214,7 @@ def pretty_record(record):
     push_line("license", "license")
     push_line("subdir", "subdir")
     push_line("url", "url")
+    push_line("md5", "md5")
     builder.append("%-12s: %s" % ("dependencies", dashlist(record.depends)))
     builder.append('\n')
     sys.stdout.write('\n'.join(builder))

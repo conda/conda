@@ -129,6 +129,7 @@ class TestJson(unittest.TestCase):
                     license     : LGPL
                     subdir      : osx-64
                     url         : https://repo.continuum.io/pkgs/free/osx-64/nose-1.3.0-py33_0.tar.bz2
+                    md5         : 474921e7ffb0915d04e3e02aa1f0f110
                     dependencies:
                       - python 3.3*
                     """.dals() in result
