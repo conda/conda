@@ -5,10 +5,11 @@
 * conda shell function (#5044, #5141, #5162, #5169, #5182, #5210, #5482)
 * resolve #5160 conda xontrib plugin (#5157)
 * resolve #1543 add support and tests for --no-deps and --only-deps (#5265)
-* resolve #988 allow channel name to be part of the package name spec (#5365)
+* resolve #988 allow channel name to be part of the package name spec (#5365, #5791)
 * resolve #5530 add ability for users to choose to post unexpected errors to core maintainers (#5531, #5571, #5585)
 * Solver, UI, History, and Other (#5546, #5583, #5740)
 * improve 'conda search' to leverage new MatchSpec query language (#5597)
+* key-value features (#5645)
 
 ### Deprecations/Breaking Changes
 * remove support for with_features_depends (#5191)
@@ -42,6 +43,7 @@
 * update license information (#5568)
 * enable threadpool use for repodata collection by default (#5546, #5587)
 * conda info now raises PackagesNotFoundError (#5655)
+* index building optimizations (#5776)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
