@@ -88,6 +88,14 @@ class PrefixData(object):
     def iter_records(self):
         return itervalues(self._prefix_records)
 
+    def all_subdir_urls(self):
+        subdir_urls = set()
+        for prefix_record in itervalues(self._prefix_records):
+            subdir_url = prefix_record.channel.subdir_url
+            if subdir_url:
+                subdir_urls.add(subdir_url)
+        return subdir_urls
+
     @property
     def _prefix_records(self):
         return self.__prefix_records or self.load() or self.__prefix_records
