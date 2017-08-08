@@ -114,38 +114,18 @@ class TestJson(unittest.TestCase):
             stdout, stderr = run_command(Commands.SEARCH, prefix, "nose", "--info", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
 
-            assert """
-                    nose 1.3.0 py33_0
-                    -----------------
-                    file name   : nose-1.3.0-py33_0.tar.bz2
-                    name        : nose
-                    version     : 1.3.0
-                    build string: py33_0
-                    build number: 0
-                    size        : 199 KB
-                    arch        : x86_64
-                    constrains  : ()
-                    platform    : Platform.osx
-                    license     : LGPL
-                    subdir      : osx-64
-                    url         : https://repo.continuum.io/pkgs/free/osx-64/nose-1.3.0-py33_0.tar.bz2
-                    md5         : 474921e7ffb0915d04e3e02aa1f0f110
-                    dependencies:
-                      - python 3.3*
-                    """.dals() in result
-
-            print(result)
-
-
-
+            assert "file name   : nose-1.3.7-py36_1.tar.bz2" in result
+            assert "name        : nose" in result
+            assert "url         : https://repo.continuum.io/pkgs/free/osx-64/nose-1.3.7-py36_1.tar.bz2" in result
+            assert "md5         : 000d05881390d878889499f289c5324a" in result
 
     @pytest.mark.integration
-    def test_search_3(self):
+    def test_search_4(self):
         self.assertIsInstance(capture_json_with_argv('conda search --json --use-index-cache'), dict)
 
     #
 
     @pytest.mark.integration
-    def test_search_7(self):
+    def test_search_5(self):
         self.assertIsInstance(capture_json_with_argv('conda search --platform win-32 --json'), dict)
 
