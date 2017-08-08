@@ -54,7 +54,7 @@ dotlog = getLogger('dotupdate')
 stderrlog = getLogger('stderrlog')
 
 REPODATA_PICKLE_VERSION = 1
-REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*)"'
+REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
 
 def collect_all_repodata(use_cache, tasks):
