@@ -83,8 +83,8 @@ inherited from the shell environment in which you invoke
        additional arguments to make, such as ``-j2``, which uses
        2 CPU cores to build your recipe.
    * - PY_VER
-     - Python version building against. Set via ``--python`` argument
-       or via CONDA_PY environment variable.
+     - Python version building against. Set with the ``--python`` argument
+       or with the CONDA_PY environment variable.
    * - NPY_VER
      - NumPy version to build against. Set with the ``--numpy``
        argument or with the CONDA_NPY environment variable.

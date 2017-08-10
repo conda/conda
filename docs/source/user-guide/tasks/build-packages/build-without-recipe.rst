@@ -164,7 +164,7 @@ Notes
 
 * You must install ``bdist_conda`` into a root conda environment,
   as it imports ``conda`` and ``conda_build``. It is included as
-  part of the conda build package.
+  part of the ``conda-build`` package.
 
 * All metadata is gathered from the standard metadata from the
   ``setup()`` function. Metadata that are not directly supported

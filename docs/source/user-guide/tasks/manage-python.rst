@@ -10,14 +10,14 @@ Managing Python
 Conda treats Python the same as any other package, so it is easy
 to manage and update multiple installations.
 
-Anaconda supports Python 2.7, 3.4 and 3.5. The default is Python
-2.7 or 3.5, depending on which installer you used:
+Anaconda supports Python 2.7, 3.4, 3.5 and 3.6. The default is Python
+2.7 or 3.6, depending on which installer you used:
 
 * For the installers "Anaconda" and "Miniconda," the default is
   2.7.
 
 * For the installers "Anaconda3" or "Miniconda3," the default is
-  3.5.
+  3.6.
 
 
 Viewing a list of available Python versions
@@ -48,16 +48,16 @@ Python version into it:
 
 #. Create the new environment:
 
-   * For Python 3.5:
+   * For Python 3.6:
 
      .. code-block:: bash
 
-        conda create -n py35 python=3.5 anaconda
+        conda create -n py36 python=3.6 anaconda
 
-     NOTE: Replace ``py35`` with the name of the environment you
+     NOTE: Replace ``py36`` with the name of the environment you
      want to create. ``anaconda`` is the metapackage that
      includes all of the Python packages comprising the Anaconda
-     distribution. ``python=3.5`` is the package and version you
+     distribution. ``python=3.6`` is the package and version you
      want to install in this new environment. This could be any
      package, such as ``numpy=1.7``, or :ref:`multiple packages
      <installing multiple packages>`.
@@ -100,8 +100,8 @@ version in the 3.4 branch:
     conda update python
 
 The following command upgrades Python to another
-branch---3.5---by installing that version of Python:
+branch---3.6---by installing that version of Python:
 
 .. code-block:: bash
 
-    conda install python=3.5
+    conda install python=3.6

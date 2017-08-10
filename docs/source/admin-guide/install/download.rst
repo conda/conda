@@ -88,7 +88,7 @@ Choosing a version of Python
   Anaconda and Miniconda.
 * The newest stable version of Python is 3.6, which is included
   with Anaconda3 and Miniconda3.
-* You can easily set up additional versions of Python such as 3.4
+* You can easily set up additional versions of Python such as 3.5
   by downloading any version and creating a new environment with
   just a few clicks. See :doc:`../../user-guide/getting-started`.
 
@@ -101,51 +101,50 @@ MD5 checksums are available for
 checksums are available for
 `Anaconda <https://docs.continuum.io/anaconda/install/hashes/>`_.
 
-The format for the filenames is as follows:
+Download the installer file and before installing verify it as follows:
 
 * macOS: In iTerm or a terminal window enter ``md5 filename`` or ``shasum -a 256 filename``.
 
   NOTE: Replace ``filename`` with the actual path and name of the
-  downloaded package file.
+  downloaded installer file.
 
-* Linux: In a terminal window enter ``md5sum filename`` or ``sha256sum filename``
+* Linux: In a terminal window enter ``md5sum filename`` or ``sha256sum filename``.
 
   NOTE: Replace ``filename`` with the actual path and name of the
-  downloaded package file.
+  downloaded installer file.
 
-For Windows, open a PowerShell console (requires PowerShell V4 or later)
-and verify the file as follows:
+* Windows:
 
-``Get-FileHash filename -Algorithm MD5`` or ``Get-FileHash filename -Algorithm SHA256``
+  * If you have PowerShell V4 or later:
+  
+    Open a PowerShell console and verify the file as follows::
 
-NOTE: Replace "filename" with the actual path and name of the downloaded
-package file.
+      Get-FileHash filename -Algorithm MD5`` or ``Get-FileHash filename -Algorithm SHA256
 
-If you don't have PowerShell V4 or later, use the free `online verifier tool
-<https://gallery.technet.microsoft.com/PowerShell-File-Checksum-e57dcd67>`_
-on the Microsoft website.
+    NOTE: Replace "filename" with the actual path and name of the downloaded
+    file.
 
-For macOS and Linux:
+  * If you don't have PowerShell V4 or later:
+  
+    Use the free `online verifier tool
+    <https://gallery.technet.microsoft.com/PowerShell-File-Checksum-e57dcd67>`_
+    on the Microsoft website.
 
-#. Download the file and extract it.
+    #. Download the file and extract it.
 
-#. Open a terminal window.
+    #. Open a Command Prompt window.
 
-#. Navigate to the file.
+    #. Navigate to the file.
 
-#. Run one of the following commands:
+    #. Run one of the following commands:
 
-   * For MD5:
+       * For MD5::
 
-     .. code-block:: none
+           Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm MD5 -Online
 
-        Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm MD5 -Online
+       * For SHA256::
 
-   * For SHA256:
+           Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online
 
-     .. code-block:: none
-
-        Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online
-
-   NOTE: In both commands, replace ``C:\path\to\file.ext`` with
-   the actual path, filename and extension.
+       NOTE: In both commands, replace ``C:\path\to\file.ext`` with
+       the actual path, filename and extension.
