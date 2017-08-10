@@ -143,7 +143,7 @@ def execute(args, parser):
         channel_urls = (spec_channel,) if spec_channel else context.channels
         index = get_index(channel_urls=channel_urls,
                           prepend=not args.override_channels,
-                          platform=args.platform, use_local=args.use_local,
+                          platform=platform, use_local=args.use_local,
                           use_cache=args.use_index_cache, prefix=None,
                           unknown=args.unknown)
 

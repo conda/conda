@@ -1,6 +1,7 @@
 import json
 import unittest
 
+from conda._vendor.auxlib.ish import dals
 import pytest
 
 from conda.base.context import context
@@ -111,21 +112,17 @@ class TestJson(unittest.TestCase):
         from tests.test_create import run_command
         from tests.test_create import Commands
         with make_temp_env() as prefix:
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "nose", "--info", use_exception_handler=True)
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "*/linux-64::nose==1.3.7[build=py36_1]", "--info", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
-
             assert "file name   : nose-1.3.7-py36_1.tar.bz2" in result
             assert "name        : nose" in result
-            assert "url         : https://repo.continuum.io/pkgs/free/osx-64/nose-1.3.7-py36_1.tar.bz2" in result
-            assert "md5         : 000d05881390d878889499f289c5324a" in result
+            assert "url         : https://repo.continuum.io/pkgs/free/linux-64/nose-1.3.7-py36_1.tar.bz2" in result
+            assert "md5         : f4f697f5ad4df9c8fe35357d269718a5" in result
 
     @pytest.mark.integration
     def test_search_4(self):
         self.assertIsInstance(capture_json_with_argv('conda search --json --use-index-cache'), dict)
 
-    #
-
     @pytest.mark.integration
     def test_search_5(self):
         self.assertIsInstance(capture_json_with_argv('conda search --platform win-32 --json'), dict)
-
