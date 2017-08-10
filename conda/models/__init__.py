@@ -14,3 +14,32 @@ Conda modules importable from ``conda.models`` are
 - ``conda.models``
 
 """
+from ..common.compat import text_type
+from ..base.context import context
+
+
+def translate_feature_str(val):
+    if val.endswith('@'):
+        val = val[:-1]
+
+    if '=' in val:
+        feature_name, feature_value = val.split('=', 1)
+        if feature_value == 'nomkl':
+            if context.subdir == 'osx-64':
+                feature_value = 'accelerate'
+            else:
+                feature_value = 'openblas'
+    else:
+        if 'mkl' in val:
+            if val == 'nomkl':
+                if context.subdir == 'osx-64':
+                    val = 'accelerate'
+                else:
+                    val = 'openblas'
+            feature_name, feature_value = 'blas', val
+        elif len(val) == 4 and val.startswith('vc'):
+            feature_name, feature_value = val[:2], text_type(int(val[2:]))
+        else:
+            feature_name, feature_value = val, 'true'
+
+    return feature_name, feature_value

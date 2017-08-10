@@ -42,11 +42,11 @@ matrix:
           packages:
             - dash
             - zsh
-    - env: PYTHON_VERSION=3.6 CONDA_BUILD=2.1.15
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=2.1.x
       sudo: false
       language: generic
       os: linux
-    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.0
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=master
       sudo: false
       language: generic
       os: linux
@@ -56,7 +56,7 @@ matrix:
       os: osx
   allow_failures:
     - os: osx
-    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.0
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=master
 
 install:
   - source utils/functions.sh && run_setup

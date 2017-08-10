@@ -69,6 +69,20 @@ def configure_parser(sub_parsers, name='remove'):
         action="store_true",
         help="%s features (instead of packages)." % name.capitalize(),
     )
+
+    # TODO: --features currently sorta still work. But super sloppy.
+
+    # p.add_argument(
+    #     '--feature',
+    #     metavar='FEATURE_NAME=FEATURE_VALUE',
+    #     dest='features',
+    #     action="append",
+    #     help="Feature to remove in the conda environment. "
+    #          "The value must be a key-value pair separated by an equal sign e.g. blas=nomkl. "
+    #          "Can be used multiple times. "
+    #          "Equivalent to a MatchSpec specifying a single 'provides_features'.",
+    # )
+
     p.add_argument(
         "--force",
         action="store_true",
@@ -100,7 +114,6 @@ def execute(args, parser):
     from .common import check_non_admin, confirm_yn, specs_from_args, stdout_json
     from ..base.context import context
     from ..common.compat import iteritems, iterkeys
-    from ..core.index import get_index
     from ..exceptions import CondaEnvironmentError, CondaValueError
     from ..gateways.disk.delete import delete_trash
     from ..resolve import MatchSpec
@@ -112,7 +125,7 @@ def execute(args, parser):
     from .install import handle_txn
     from ..core.solve import Solver
 
-    if not (args.all or args.package_names):
+    if not (args.all or args.package_names or args.features):
         raise CondaValueError('no package names supplied,\n'
                               '       try "conda remove -h" for more details')
 
@@ -130,22 +143,15 @@ def execute(args, parser):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
 
-    if not args.features and args.all:
-        index = linked_data(prefix)
-        index = {dist: info for dist, info in iteritems(index)}
-    else:
-        index = get_index(channel_urls=context.channels,
-                          prepend=not args.override_channels,
-                          use_local=args.use_local,
-                          use_cache=args.use_index_cache,
-                          prefix=prefix)
-
     delete_trash()
     if args.all:
         if prefix == context.root_prefix:
             raise CondaEnvironmentError('cannot remove root environment,\n'
                                         '       add -n NAME or -p PREFIX option')
         print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
+
+        index = linked_data(prefix)
+        index = {dist: info for dist, info in iteritems(index)}
 
         actions = defaultdict(list)
         actions[PREFIX] = prefix

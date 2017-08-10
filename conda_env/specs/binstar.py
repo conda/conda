@@ -1,7 +1,9 @@
 import re
-from conda.resolve import normalized_version
+
+from conda.models.version import normalized_version
 from .. import env
 from ..exceptions import EnvironmentFileNotDownloaded
+
 try:
     from binstar_client import errors
     from binstar_client.utils import get_server_api

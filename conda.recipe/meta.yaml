@@ -2,7 +2,7 @@
 
 package:
   name: conda
-  version: "{{ GIT_DESCRIBE_TAG }}"
+  version: "{{ setup_py_data.version }}"
 
 source:
   path: ../

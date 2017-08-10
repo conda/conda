@@ -14,8 +14,8 @@ log = getLogger(__name__)
 
 
 class NoarchField(EnumField):
-    def box(self, instance, val):
-        return super(NoarchField, self).box(instance, NoarchType.coerce(val))
+    def box(self, instance, instance_type, val):
+        return super(NoarchField, self).box(instance, instance_type, NoarchType.coerce(val))
 
 
 class Noarch(Entity):
