@@ -850,7 +850,7 @@ build prefix. Explicit file lists support glob expressions.
 Directory names are also supported, and they recursively include
 contents.
 
-.. code-block:: yaml
+.. code-block:: none
 
    outputs:
      - name: subpackage-name
@@ -1249,7 +1249,7 @@ your downloaded source code.
 EXAMPLE: To process a project's ``setup.py`` and obtain the
 version and other metadata:
 
-.. code-block:: yaml
+.. code-block:: none
 
     {% set data = load_setup_py_data() %}
 

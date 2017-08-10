@@ -375,7 +375,7 @@ Bug Fixes
 ^^^^^^^^^
 
 * fix #4398 'hard' was used for link type at one point (#4409)
-* fixed "No matches for wildcard '$activate_d/*.fish'" warning (#4415)
+* fixed "No matches for wildcard '$activate_d/\*.fish'" warning (#4415)
 * print correct activate/deactivate message for fish shell (#4423)
 * fix 'Dist' object has no attribute 'fn' (#4424)
 * fix noarch generic and add additional integration test (#4431)

@@ -40,8 +40,9 @@ of your code.
 Conda package and environment manager is included in all versions of
 :ref:`Anaconda\ |reg| <anaconda-glossary>`,
 :ref:`Miniconda <miniconda-glossary>` and
-:doc:`/anaconda-repository/index`. Conda is also included in the
-Continuum `subscriptions <https://www.continuum.io/anaconda-subscriptions>`_
+`Anaconda Repository <https://docs.continuum.io/anaconda-repository/>`_.
+Conda is also included in the Continuum `subscriptions
+<https://www.continuum.io/anaconda-subscriptions>`_
 of Anaconda, which provide on-site enterprise package and
 environment management for Python, R, Node.js, Java and other
 application stacks. Conda is also available on PyPI, although
