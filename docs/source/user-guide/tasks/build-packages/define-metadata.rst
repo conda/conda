@@ -1,4 +1,4 @@
-:: yaml.. _meta-yaml:
+.. _meta-yaml:
 
 =============================
 Defining metadata (meta.yaml)
