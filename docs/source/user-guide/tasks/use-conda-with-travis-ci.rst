@@ -114,7 +114,7 @@ recipe is tested as well.
 
 For more information on building conda packages, see
 :doc:`build-packages/index` and
-:doc:`build-packages/sample-recipes>`.
+:doc:`build-packages/sample-recipes`.
 
 
 AppVeyor

@@ -2,21 +2,22 @@
 Managing channels
 =================
 
-Different channels can have the same package, so conda must 
-handle these channel collisions. If you use only the defaults 
-channel or use only channels that contain packages that do not 
-exist in any of the other channels in your list, there will be no 
-channel collisions. The way conda resolves these collisions 
-matters only when you have multiple channels in your channel list 
-that host the same package.
+Different channels can have the same package, so conda must handle these
+channel collisions.
+
+There will be no channel collisions if you use only the defaults channel.
+There will also be no channel collisions if all of the channels you use only
+contain packages that do not exist in any of the other channels in your list.
+The way conda resolves these collisions matters only when you have multiple
+channels in your channel list that host the same package.
 
 
 Before conda 4.1.0
 ==================
 
-Before conda 4.1.0 was released on June 14, 2016, when 2 channels 
+Before conda 4.1.0 was released on June 14, 2016, when two channels 
 hosted packages with the same name, conda installed the package 
-with the highest version number. If there were 2 packages 
+with the highest version number. If there were two packages 
 with the same version number, conda installed the one with the 
 highest build number. Only if both the version numbers and build 
 numbers were identical did the channel ordering make a 

@@ -20,9 +20,9 @@ The final built packages from this tutorial are available on
 
 This tutorial also describes writing recipes. You can see the
 final `SEP recipe
-<https://github.com/conda/conda-docs/tree/master/docs/source/build_tutorials/sep>`_
+<https://github.com/conda/conda-docs/tree/master/docs/source/user-guide/tutorials/sep>`_
 and the `pySLALIB recipe
-<https://github.com/conda/conda-docs/tree/master/docs/source/build_tutorials/pyslalib>`_
+<https://github.com/conda/conda-docs/tree/master/docs/source/user-guide/tutorials/pyslalib>`_
 on GitHub in the `conda documentation repository
 <https://github.com/conda/conda-docs>`_.
 
@@ -104,7 +104,7 @@ Other tools
 Some environments initially lack tools such as bzip2 or Git
 that may be needed for some build workflows.
 
-Git is available through conda: ``conda install git``.
+Git is available through conda: ``conda install git``
 
 You can obtain bzip2 the same way. The conda bzip2 package
 includes only the bzip2 library and not the bzip2 executable, so
@@ -160,10 +160,9 @@ Automated testing
 ==================
 
 After the build, if the recipe directory contains a test file
-named ``run_test.bat`` on Windows or ``run_test.py`` on any
-platform, the file runs to test the package, and any errors are
-reported. On macOS and Linux, you can place a file named
-``run_test.sh`` in the recipe directory.
+named ``run_test.bat`` on Windows, or ``run_test.sh`` on macOS or Linux,
+or ``run_test.py`` on any platform, the file runs to test the package,
+and any errors are reported.
 
 NOTE: Use the :ref:`Test section of the meta.yaml file
 <meta-test>` to move data files from the recipe directory to the
@@ -222,7 +221,7 @@ Make a conda skeleton recipe
    Three skeleton files have been created:
 
    * ``bld.bat`` for Windows.
-   * ``build.sh`` for OS X/Linux.
+   * ``build.sh`` for macOS/Linux.
    * ``meta.yaml`` for all platforms.
 
 
@@ -238,12 +237,12 @@ it.
    line that adds NumPy as a requirement to build the package.
 
 #. Add a second line to list NumPy as a requirement to run the
-   package:
+   package.
 
-   * Set the NumPy version to the letters ``x.x``.
+Set the NumPy version to the letters ``x.x``.
 
-   * Make sure the new line is aligned with ``- python`` on the
-     line above it.
+Make sure the new line is aligned with ``- python`` on the
+line above it.
 
 EXAMPLE:
 
@@ -362,7 +361,7 @@ To build a pySLALIB package:
      install. Under Programming Languages, choose to install
      Visual C++.
 
-   * For Python 3, install Visual Studio 2008. Choose Custom
+   * For Python 2, install Visual Studio 2008. Choose Custom
      install. Choose to install X64 Compilers and Tools. Install
      Visual Studio 2008 Service Pack 1.
 
@@ -376,7 +375,7 @@ To build a pySLALIB package:
    email address. Intel will email you a download link.
 
    * For Python 3, download and install Intel Parallel Studio XE
-     Composer Edition for Fortran Windows
+     Composer Edition for Fortran Windows.
 
    * For Python 2, open the download page for Intel Parallel
      Studio XE Composer Edition for Fortran Windows. Select
@@ -393,7 +392,7 @@ To build a pySLALIB package:
 
 #. Make a recipe. You can write a recipe from scratch, or use
    the `recipe we wrote
-   <https://github.com/conda/conda-docs/tree/master/docs/source/build_tutorials/pyslalib>`_.
+   <https://github.com/conda/conda-docs/tree/master/docs/source/user-guide/tutorials/pyslalib>`_.
    This recipe contains 4 files:
 
    * ``meta.yaml`` sets the GitHub location of the pySLALIB files
@@ -413,9 +412,14 @@ To build a pySLALIB package:
    ``pyslalib`` and copy in the 4 files mentioned in the previous
    step.
 
-#. Build the package. In the **Apps** menu, under Intel Parallel
-   Studio XE 2016, open the Compiler 16.0 Update 3 for Intel 64
-   Visual Studio 2015 environment command prompt.
+#. Build the package.
+
+   * For Python 3, in the **Apps** menu, under Intel Parallel
+     Studio XE 2016, open the Compiler 16.0 Update 3 for Intel 64
+     Visual Studio 2015 environment command prompt.
+
+   * For Python 2, in the **Apps** menu, under Intel Parallel
+     Studio XE 2013, open the Intel 64 Visual Studio 2008 mode command prompt.
 
 #. Run ``conda-build``, using the correct path name of the recipe
    directory, including your correct user name. In this example,

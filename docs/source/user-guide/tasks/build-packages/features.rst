@@ -2,7 +2,7 @@
 Features
 ========
 
-Features are a way to track differences in 2 packages that have
+Features are a way to track differences in two packages that have
 the same name and version. For example, a feature might indicate
 a specialized compiler or runtime, or a fork of a package. The
 canonical example of a feature is the mkl feature in Anaconda

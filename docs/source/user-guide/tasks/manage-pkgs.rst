@@ -246,6 +246,8 @@ update it, type ``y`` to update:
    Proceed ([y]/n)? y
 
 
+.. _pinning-packages:
+
 Preventing packages from updating (pinning)
 ===========================================
 

@@ -282,13 +282,13 @@ parts:
     EXAMPLE: 1.0|1.4* matches 1.0, 1.4 and 1.4.1b2, but not 1.2.
 
   * <, >, <=, >=, == and != are relational operators on versions,
-  which are compared using
-  `PEP-440 <https://www.python.org/dev/peps/pep-0440/>`_.  For example, ``<=1.0``
-  matches ``0.9``, ``0.9.1``, and ``1.0``, but not ``1.0.1``. ``==`` and ``!=``
-  are exact equality.
+    which are compared using
+    `PEP-440 <https://www.python.org/dev/peps/pep-0440/>`_.  For example,
+    ``<=1.0`` matches ``0.9``, ``0.9.1``, and ``1.0``, but not ``1.0.1``.
+    ``==`` and ``!=`` are exact equality.
 
-  Pre-release versioning is also supported such that ``>1.0b4`` will match
-  ``1.0b5`` and ``1.0rc1`` but not ``1.0b4`` or ``1.0a5``.
+    Pre-release versioning is also supported such that ``>1.0b4`` will match
+    ``1.0b5`` and ``1.0rc1`` but not ``1.0b4`` or ``1.0a5``.
 
     EXAMPLE: <=1.0 matches 0.9, 0.9.1, and 1.0, but not 1.0.1.
 

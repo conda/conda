@@ -140,23 +140,17 @@ macOS and Linux.
                cp $RECIPE_DIR/rodeo_mac.command $PREFIX/bin
            fi
 
-     #. Add this line to the app section in ``meta.yaml``:
-
-        ```
+     #. Add this line to the app section in ``meta.yaml``::
 
            entry: open ${PREFIX}/bin/rodeo_mac.command [osx]
 
-        ```
-
      #. A logo PNG file to be displayed in Navigator is provided
-     in the conda build recipe. Download the app.png file from
-     https://github.com/yhat/rodeo/blob/master/resources/app.png
-     directly from the Github repository to the directory that
-     contains the ``meta.yaml`` file.
+        in the conda build recipe. Download the app.png file from
+        https://github.com/yhat/rodeo/blob/master/resources/app.png
+        directly from the Github repository to the directory that
+        contains the ``meta.yaml`` file.
 
-The completed app section should look like this:
-
-```
+The completed app section should look like this::
 
     app:
       entry: rodeo .                              [win]
@@ -165,8 +159,6 @@ The completed app section should look like this:
       icon: app.png
       summary: Rodeo Data Science IDE
       type: web
-
-```
 
 You can download full versions of the
 :download:`meta.yaml <rodeo/meta.yaml>` and
@@ -263,7 +255,7 @@ Uploading to Cloud
      filename you saved in :ref:`build4`. Your path and filename
      vary depending on your installation and operating system.
 
-For more information about Cloud, see `Anaconda Cloud
+For more information about Cloud, see the `Anaconda Cloud documentation
 <https://docs.continuum.io/anaconda-cloud/>`_.
 
 

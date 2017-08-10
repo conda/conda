@@ -152,7 +152,7 @@ Patches may optionally be applied to the source.
 Conda build automatically determines the patch strip level.
 
 Destination path
-~~~~~~~~~~~~~~~~
+----------------
 
 Within conda-build's work directory, you may specify a particular folder to
 place source into. This feature is new in conda-build 3.0. Conda-build will
@@ -169,7 +169,7 @@ to recipes with single sources as well.
 
 
 Source from multiple sources
-———-------------------------
+----------------------------
 
 Some software is most easily built by aggregating several pieces. For this,
 conda-build 3.0 has added support for arbitrarily specifying many sources.
@@ -191,60 +191,9 @@ Example:
       folder: conda-build
 
 Here, the two URL tarballs will go into one folder, and the git repo
-is checked out into its own space.
+is checked out into its own space. Git will not clone into a non-empty folder.
 
-Note: Dashes denote list items in YAML syntax. Each of these
-entries are extracted/cloned into one folder.
-
-Destination path
-----------------
-
-Within conda-build's work directory, you may specify a particular folder to
-place source into. This feature is new in conda-build 3.0. Conda-build will
-always drop you into the same folder (build folder/work), but it's up to you
-whether you want your source extracted into that folder, or nested deeper. This
-feature is particularly useful when dealing with multiple sources, but can apply
-to recipes with single sources as well.
-
-.. code-block:: none
-
-   source:
-     #[source information here]
-     folder: my-destination/folder
-
-
-Multiple sources
-----------------
-
-Some software is most easily built by aggregating several pieces. For this,
-conda-build 3.0 has added support for specifying arbitrarily many sources. The
-syntax for this is a list of source dictionaries. Each member of this list
-follows the same rules as the single source for earlier conda-build versions
-(listed above). All features for each member are supported.
-
-.. code-block:: none
-
-   source:
-     - url: https://package1.com/a.tar.bz2
-     - url: https://package1.com/b.tar.bz2
-     - git_url: https://github.com/conda/conda-build
-
-Note the dashes. These denote list items in YAML syntax. Each of these
-entries are extracted/cloned into one folder. This example won't actually work,
-because git will not clone into a non-empty folder. Let's specify some folders:
-
-.. code-block:: none
-
-   source:
-     - url: https://package1.com/a.tar.bz2
-       folder: stuff
-     - url: https://package1.com/b.tar.bz2
-       folder: stuff
-     - git_url: https://github.com/conda/conda-build
-       folder: conda-build
-
-Here, the two URL tarballs will go into one folder, but the git repo will be
-checked out into its own space.
+Note: Dashes denote list items in YAML syntax.
 
 
 .. _meta-build:
@@ -1301,12 +1250,12 @@ practice means changing the conda build source code. See the
 
 For more information, see the `Jinja2 template
 documentation <http://jinja.pocoo.org/docs/dev/templates/>`_
-and `the list of available environment
-variables <https://conda.io/docs/building/environment-vars.html>`_.
+and :doc:`the list of available environment
+variables <environment-variables>`.
 
 Jinja templates are evaluated during the build process. To
 retrieve a fully rendered ``meta.yaml`` use the
-`../commands/build/conda-render`.
+:doc:`../../../commands/build/conda-render`.
 
 
 .. _preprocess-selectors:

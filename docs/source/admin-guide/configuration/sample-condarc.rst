@@ -22,5 +22,5 @@ Sample .condarc file
   # and in 'conda list'. The default is False.
   show_channel_urls: True
 
-
-  See :doc:`use-condarc` for more information about this file.
+  # For more information about this file see:
+  # https://conda.io/docs/admin-guide/configuration/use-condarc.html

@@ -21,7 +21,11 @@ Conda general commands
 
 The following commands are part of conda:
 
+.. toctree::
+   :glob:
+   :maxdepth: 2
 
+   commands/*
 
 Conda build commands
 ====================
@@ -29,7 +33,11 @@ Conda build commands
 The following commands are part of the conda build package, which 
 can be installed with ``conda install conda-build``:
 
+.. toctree::
+   :glob:
+   :maxdepth: 2
 
+   commands/build/*
 
 Conda environment commands
 ==========================
@@ -37,6 +45,11 @@ Conda environment commands
 The following commands are part of the conda-env package, which 
 is installed automatically with conda:
 
+.. toctree::
+   :glob:
+   :maxdepth: 2
+
+   commands/env/*
 
 Conda vs. pip vs. virtualenv commands
 =====================================
@@ -49,7 +62,7 @@ manager, and virtualenv is an environment manager. Conda is both.
 Task                                    Conda package and environment manager command              Pip package manager command                                                Virtualenv environment manager command
 =====================================   ========================================================   ========================================================================   ========================================================
 Install a package                       ``conda install $PACKAGE_NAME``                            ``pip install $PACKAGE_NAME``                                              X
-Update a package                        ``conda update --name $ENVIRONMENT_NAME $PACKAGE_NAME``                      ``pip install --upgrade $PACKAGE_NAME``                                    X
+Update a package                        ``conda update --name $ENVIRONMENT_NAME $PACKAGE_NAME``    ``pip install --upgrade $PACKAGE_NAME``                                    X
 Update package manager                  ``conda update conda``                                     Linux/OSX: ``pip install -U pip`` Win: ``python -m pip install -U pip``    X
 Uninstall a package                     ``conda remove --name $ENVIRONMENT_NAME $PACKAGE_NAME``    ``pip uninstall $PACKAGE_NAME``                                            X
 Create an environment                   ``conda create --name $ENVIRONMENT_NAME python``           X                                                                          ``cd $ENV_BASE_DIR; virtualenv $ENVIRONMENT_NAME``

@@ -2,7 +2,7 @@
 Conda
 =====
 
-.. figure::  ../../img/conda_logo.svg
+.. figure::  /img/conda_logo.svg
    :align: center
    :width: 50%
 

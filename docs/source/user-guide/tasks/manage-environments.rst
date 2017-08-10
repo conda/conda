@@ -111,9 +111,9 @@ Creating an environment from an environment.yml file
 
 #. Activate the new environment:
 
-   * Windows---``activate myenv``.
+   * Windows: ``activate myenv``
 
-   * macOS and Linux---``activate myenv``.
+   * macOS and Linux: ``source activate myenv``
 
    NOTE: Replace ``myenv`` with the name of the environment.
 
@@ -217,9 +217,9 @@ Activating an environment
 
 To activate an environment:
 
-* Windows---``activate myenv``.
+* Windows: ``activate myenv``
 
-* macOS and Linux---``source activate myenv``.
+* macOS and Linux: ``source activate myenv``
 
 Conda prepends the path name ``myenv`` onto your system command.
 
@@ -229,9 +229,9 @@ Deactivating an environment
 
 To deactivate an environment:
 
-* Windows---``deactivate myenv``.
+* Windows: ``deactivate``
 
-* macOS and Linux---``source deactivate myenv``.
+* macOS and Linux: ``source deactivate``
 
 Conda removes the path name ``myenv`` from your system command.
 
@@ -438,9 +438,9 @@ current directory, it will be overwritten during this task.
 
 #. Activate the environment to export:
 
-   * Windows---``activate myenv``.
+   * Windows: ``activate myenv``
 
-   * macOS and Linux---``source activate myenv``.
+   * macOS and Linux: ``source activate myenv``
 
    NOTE: Replace ``myenv`` with the name of the environment.
 

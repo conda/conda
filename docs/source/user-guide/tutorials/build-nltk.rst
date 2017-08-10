@@ -43,7 +43,7 @@ Upload the resulting conda packages to your local repository or to
 `Anaconda Notebook Extension <https://docs.continuum.io/anaconda/jupyter-notebook-extensions>`_
 anaconda-client CLI:
 
-.. code-block:: python
+.. code-block:: bash
 
     anaconda upload $CONDA_ROOT/conda-bld/$ARCH/nltk-with-data.tar.bz2
     anaconda upload $CONDA_ROOT/conda-bld/$ARCH/nltk-with-data.tar.bz2

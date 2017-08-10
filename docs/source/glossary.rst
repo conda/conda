@@ -10,6 +10,7 @@ Glossary
 
 .condarc
 ========
+
 The Conda Runtime Configuration file, an optional ``.yaml`` file
 that allows you to configure many aspects of conda, such as which
 channels it searches for packages, proxy settings and environment
@@ -19,13 +20,14 @@ when you use the ``conda config`` command. The ``.condarc`` file
 can also be located in a root environment, in which case it
 overrides any ``.condarc`` in the home directory. For more
 information, see :doc:`admin-guide/configuration/use-condarc`
-and :doc:`admin-guide/configuration/restrict-packages-user-install`.
+and :doc:`admin-guide/configuration/admin-multi-user-install`.
 Pronounced "conda r-c".
 
 .. _activate-deactivate-glossary:
 
 activate/deactivate environment
 ===============================
+
 Conda commands used to switch or move between installed
 environments. The ``activate`` command prepends the path of your
 current environment to the PATH environment variable so that you
@@ -44,6 +46,7 @@ replace ``program_name`` with the name of the program.
 
 Anaconda
 ========
+
 A downloadable, free, open source, high-performance and optimized
 Python and R distribution. Anaconda includes
 :ref:`conda <conda-glossary>`, conda build, Python and 100+
@@ -68,6 +71,7 @@ See also :ref:`miniconda-glossary` and :ref:`conda-glossary`.
 
 Anaconda Cloud
 ==============
+
 A web-based repository hosting service in the cloud. Packages
 created locally can be published to the cloud to be shared with
 others. Free accounts on Cloud can publish packages to be shared
@@ -79,6 +83,7 @@ public version of Continuum's Anaconda Repository.
 
 Anaconda Navigator
 ==================
+
 A desktop graphical user interface (GUI) included in all versions
 of Anaconda that allows you to easily manage conda packages,
 environments, channels and notebooks without a command line
@@ -88,6 +93,7 @@ interface (CLI).
 
 Channels
 ========
+
 The locations of the repositories where conda looks for packages.
 Channels may point to a Cloud repository or a private
 location on a remote or local repository that you or your organization
@@ -102,6 +108,7 @@ the ``.condarc`` file by the channel name "defaults."
 
 Conda
 =====
+
 The package and environment manager program bundled with Anaconda
 that installs and updates conda packages and their dependencies.
 Conda also lets you easily switch between conda environments on
@@ -112,6 +119,7 @@ your local computer.
 
 Conda environment
 =================
+
 A folder or directory that contains a specific collection of
 conda packages and their dependencies, so they can be maintained
 and run separately without interference from each other. For
@@ -133,6 +141,7 @@ language packages. Environments can be created from:
 
 Conda package
 =============
+
 A compressed file that contains everything that a software
 program needs in order to be installed and run, so that you do
 not have to manually find and install each dependency separately.
@@ -144,6 +153,7 @@ manage conda packages with conda.
 
 Conda repository
 ================
+
 A cloud-based repository that contains 720+ open source certified
 packages that are easily installed locally with the
 ``conda install`` command. Anyone can access the repository from:
@@ -159,6 +169,7 @@ packages that are easily installed locally with the
 
 Metapackage
 ===========
+
 A conda package that only lists dependencies and does not include
 any functional programs or libraries. The metapackage may contain
 links to software files that are automatically downloaded when
@@ -174,6 +185,7 @@ Anaconda installer. You can create metapackages with the
 
 Miniconda
 =========
+
 A free minimal installer for conda. Miniconda is a small, bootstrap
 version of Anaconda that includes only conda, Python, the
 packages they depend on and a small number of other useful
@@ -190,6 +202,7 @@ See also :ref:`anaconda-glossary` and :ref:`conda-glossary`.
 
 Noarch package
 ==============
+
 A conda package that contains nothing specific to any system
 architecture, so it may be installed from any system. When conda
 searches for packages on any system in a channel, conda checks
@@ -200,6 +213,7 @@ the ``noarch`` directory. Noarch is a contraction of "no architecture".
 
 Package manager
 ===============
+
 A collection of software tools that automates the process of
 installing, updating, configuring and removing computer programs
 for a computer's operating system. Also known as a package management
@@ -209,6 +223,7 @@ system. Conda is a package manager.
 
 Packages
 ========
+
 Software files and information about the software, such as its
 name, the specific version and a description, bundled into a
 file that can be installed and managed by a package manager.
@@ -217,6 +232,7 @@ file that can be installed and managed by a package manager.
 
 Repository
 ==========
+
 Any storage location from which software assets may be retrieved
 and installed on a local computer. See also
 :ref:`anaconda-cloud-glossary` and
@@ -226,6 +242,7 @@ and installed on a local computer. See also
 
 Silent mode installation
 ========================
+
 When installing Miniconda or Anaconda in silent mode, screen
 prompts are not shown on screen and default settings are
 automatically accepted.

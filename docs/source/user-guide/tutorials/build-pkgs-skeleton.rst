@@ -356,5 +356,6 @@ packages, even those that are already available to conda install.
 
 More information
 =================
-For more options, see the full `conda skeleton documentation
-<https://conda.io/docs/commands/build/conda-skeleton-pypi.html>`_.
+
+For more options, see the full :doc:`conda skeleton command documentation
+<../../commands>`.

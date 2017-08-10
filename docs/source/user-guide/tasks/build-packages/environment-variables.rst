@@ -288,7 +288,6 @@ Environment variables that affect the build process
    * - CONDA_PY
      - The Python version used to build the package. Should
        be ``27``, ``34``, ``35`` or ``36``.
-
    * - CONDA_NPY
      - The NumPy version used to build the package, such as
        ``19``, ``110`` or ``111``.
@@ -306,8 +305,7 @@ Environment variables to set build features
 
 The environment variables listed in the following table are
 inherited from the process running conda build. These variables
-control :ref:`features <features>` as defined in the
-:doc:`meta-yaml` file.
+control :doc:`features`.
 
 .. list-table::
    :widths: 15 43 42

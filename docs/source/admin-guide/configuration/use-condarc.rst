@@ -27,7 +27,7 @@ in which case it overrides any in the home directory.
 
 NOTE: A ``.condarc`` file can also be used in an
 administrator-controlled installation to override the users’
-configuration. See :doc:`restrict-packages-user-install`.
+configuration. See :doc:`admin-multi-user-install`.
 
 The ``.condarc`` configuration file follows simple
 `YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.

@@ -2,10 +2,11 @@
 Installing and updating conda build
 ===================================
 
-Conda build is required if you want to build conda packages. It 
-is included when you :doc:`install 
-conda <../../../admin-guide/install/index>`, but must be 
-installed separately.
+To enable building conda packages:
+
+* :doc:`install conda <../../../admin-guide/install/index>`
+* install conda build
+* update conda and conda build
 
 
 .. _install-conda-build:
@@ -20,10 +21,10 @@ To install conda build, run:
    conda install conda-build
 
 
-Update conda build
-==================
+Updating conda and conda build
+==============================
 
-Keep your versions of conda and conda build up to date to 
+Keep your versions of conda and conda build up to date to
 take advantage of bug fixes and new features.
 
 To update conda and conda build, run:
@@ -33,5 +34,5 @@ To update conda and conda build, run:
   conda update conda
   conda update conda-build
 
-For release notes, see the `conda build Github 
+For release notes, see the `conda build Github
 page <https://github.com/conda/conda-build/releases>`_.
