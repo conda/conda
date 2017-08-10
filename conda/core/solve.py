@@ -434,6 +434,18 @@ class Solver(object):
             self._prepared_specs = prepared_specs
             self._r = Resolve(self._index, channels=self.channels)
         else:
+            # add in required channels that aren't explicitly given in the channels list
+            additional_channels = set()
+            additional_channels.update(
+                Channel(subdir_url) for subdir_url in PrefixData(self.prefix).all_subdir_urls()
+            )
+            for spec in concatv(self.specs_to_remove, self.specs_to_add):
+                # TODO: correct handling for subdir isn't yet done
+                channel = spec.get_exact_value('channel')
+                if channel:
+                    additional_channels.add(Channel(channel))
+
+            self.channels.update(additional_channels)
             reduced_index = get_reduced_index(self.prefix, self.channels,
                                               self.subdirs, prepared_specs)
             self._prepared_specs = prepared_specs

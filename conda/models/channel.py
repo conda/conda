@@ -227,6 +227,13 @@ class Channel(object):
     def base_urls(self):
         return self.base_url,
 
+    @property
+    def subdir_url(self):
+        url = self.url(True)
+        if self.package_filename and url:
+            url = url.rsplit('/', 1)[0]
+        return url
+
     def __str__(self):
         return self.base_url or ""
 

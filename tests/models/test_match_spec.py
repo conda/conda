@@ -249,6 +249,10 @@ class MatchSpecTests(TestCase):
         assert m(url) == "*[url='%s']" % url
         # url = '*[url="file:///var/folders/cp/7r2s_s593j7_cpdtxxsmct880000gp/T/edfc ñçêáôß/flask-0.10.1-py35_2.tar.bz2"]'
 
+        # TODO: we need this working correctly with both channel and subdir
+        # especially for usages around PrefixData.all_subdir_urls() and Solver._prepare()
+        # assert MatchSpec('defaults/zos::python').get_exact_value('channel').urls() == ()
+
     def test_exact_values(self):
         assert MatchSpec("*").get_exact_value('name') is None
         assert MatchSpec("numpy").get_exact_value('name') == 'numpy'
