@@ -1,6 +1,7 @@
 import json
 import unittest
 
+from conda._vendor.auxlib.ish import dals
 import pytest
 
 from conda.base.context import context
@@ -111,40 +112,17 @@ class TestJson(unittest.TestCase):
         from tests.test_create import run_command
         from tests.test_create import Commands
         with make_temp_env() as prefix:
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "nose", "--info", use_exception_handler=True)
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "*/linux-64::nose==1.3.7[build=py36_1]", "--info", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
-
-            assert """
-                    nose 1.3.0 py33_0
-                    -----------------
-                    file name   : nose-1.3.0-py33_0.tar.bz2
-                    name        : nose
-                    version     : 1.3.0
-                    build string: py33_0
-                    build number: 0
-                    size        : 199 KB
-                    arch        : x86_64
-                    constrains  : ()
-                    platform    : Platform.osx
-                    license     : LGPL
-                    subdir      : osx-64
-                    url         : https://repo.continuum.io/pkgs/free/osx-64/nose-1.3.0-py33_0.tar.bz2
-                    dependencies:
-                      - python 3.3*
-                    """.dals() in result
-
-            print(result)
-
-
-
+            assert "file name   : nose-1.3.7-py36_1.tar.bz2" in result
+            assert "name        : nose" in result
+            assert "url         : https://repo.continuum.io/pkgs/free/linux-64/nose-1.3.7-py36_1.tar.bz2" in result
+            assert "md5         : f4f697f5ad4df9c8fe35357d269718a5" in result
 
     @pytest.mark.integration
-    def test_search_3(self):
+    def test_search_4(self):
         self.assertIsInstance(capture_json_with_argv('conda search --json --use-index-cache'), dict)
 
-    #
-
     @pytest.mark.integration
-    def test_search_7(self):
+    def test_search_5(self):
         self.assertIsInstance(capture_json_with_argv('conda search --platform win-32 --json'), dict)
-
