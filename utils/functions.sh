@@ -277,7 +277,8 @@ install_conda_build() {
     $prefix/$BIN_DIR/conda install -y \
         perl pytest-xdist pytest-catchlog pytest-mock \
         anaconda-client numpy \
-        filelock jinja2 conda-verify contextlib2 pkginfo
+        filelock jinja2 conda-verify contextlib2 pkginfo \
+        glob2 beautifulsoup4 chardet pycrypto
     conda config --remove channels conda-forge
     if ! [ -n "$ON_WIN" ]; then
         $prefix/$BIN_DIR/conda install -y -q patchelf
@@ -402,7 +403,7 @@ run_tests() {
     if [ "$FLAKE8" = true ]; then
         flake8 --statistics
     elif [ -n "$CONDA_BUILD" ]; then
-        conda_build_smoke_test
+        # conda_build_smoke_test
         if ! [ -n "$ON_WIN" ]; then
             conda_build_test
         fi

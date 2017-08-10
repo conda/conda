@@ -11,14 +11,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath, basename
+from os.path import abspath, basename, isdir
 import sys
 
 from conda.core.index import _supplement_index_with_prefix
 from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
-from .common.compat import on_win, itervalues
+from .common.compat import on_win, itervalues, text_type
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
 from .core.package_cache import ProgressiveFetchExtract
@@ -33,7 +33,7 @@ from .models.channel import Channel
 from .models.dist import Dist
 from .models.enums import LinkType
 from .models.version import normalized_version
-from .resolve import MatchSpec, Resolve
+from .resolve import MatchSpec, Resolve, dashlist
 from .utils import human_bytes
 
 try:
@@ -56,10 +56,21 @@ def print_dists(dists_extras):
         print(line)
 
 
-def display_actions(actions, index, show_channel_urls=None):
+def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), specs_to_add=()):
     prefix = actions.get("PREFIX")
+    builder = ['', '## Package Plan ##\n']
     if prefix:
-        print("Package plan for environment '%s':" % prefix)
+        builder.append('  environment location: %s' % prefix)
+        builder.append('')
+    if specs_to_remove:
+        builder.append('  removed specs: %s'
+                       % dashlist(sorted(text_type(s) for s in specs_to_remove), indent=4))
+        builder.append('')
+    if specs_to_add:
+        builder.append('  added / updated specs: %s'
+                       % dashlist(sorted(text_type(s) for s in specs_to_add), indent=4))
+        builder.append('')
+    print('\n'.join(builder))
 
     if show_channel_urls is None:
         show_channel_urls = context.show_channel_urls
@@ -289,7 +300,7 @@ def handle_menuinst(unlink_dists, link_dists):
 
 
 def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
-    # TODO: we really shouldn't be mutating the plan list here; turn plan into a tuple
+    # this is only used for conda-build at this point
     first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
     if first_unlink_link_idx >= 0:
         grouped_instructions = groupby(lambda x: x[0], plan)
@@ -297,10 +308,15 @@ def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
         link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
         unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
 
-        unlink_precs = tuple(index[d] for d in unlink_dists)
+        if isdir(prefix):
+            unlink_precs = tuple(index[d] for d in unlink_dists)
+        else:
+            # there's nothing to unlink in an environment that doesn't exist
+            # this is a hack for what appears to be a logic error in conda-build
+            # caught in tests/test_subpackages.py::test_subpackage_recipes[python_test_dep]
+            unlink_precs = ()
         link_precs = tuple(index[d] for d in link_dists)
 
-        # TODO: ideally we'd move these two lines before both the y/n confirmation and the --dry-run exit  # NOQA
         pfe = ProgressiveFetchExtract(link_precs)
         pfe.prepare()
 
@@ -456,6 +472,9 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     specs = tuple(MatchSpec(spec) for spec in specs)
 
+    from .core.linked_data import PrefixData
+    PrefixData._cache_.clear()
+
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
     if index:
         solver._index = index
@@ -594,7 +613,7 @@ def revert_actions(prefix, revision=-1, index=None):
     if state == curr:
         return {}  # TODO: return txn with nothing_to_do
 
-    _supplement_index_with_prefix(index, prefix, {})
+    _supplement_index_with_prefix(index, prefix)
     r = Resolve(index)
 
     state = r.dependency_sort({d.name: d for d in (Dist(s) for s in state)})

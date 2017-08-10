@@ -284,7 +284,8 @@ class NewIntegrationTests(unittest.TestCase):
         """
             Test conda env export
         """
-
+        from conda.core.linked_data import PrefixData
+        PrefixData._cache_.clear()
         run_conda_command(Commands.CREATE, test_env_name_2, "python=3.5")
         self.assertTrue(env_is_created(test_env_name_2))
 

@@ -138,17 +138,20 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 def test_display_actions_0():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
-    actions = defaultdict(list, {"FETCH": [Dist('defaults::sympy-0.7.2-py27_0'), Dist("defaults::numpy-1.7.1-py27_0")]})
+    actions = defaultdict(list, {"FETCH": [Dist('channel-1::sympy-0.7.2-py27_0'), Dist("channel-1::numpy-1.7.1-py27_0")]})
     # The older test index doesn't have the size metadata
-    d = Dist.from_string('defaults::sympy-0.7.2-py27_0.tar.bz2')
+    d = Dist.from_string('channel-1::sympy-0.7.2-py27_0.tar.bz2')
     index[d] = IndexRecord.from_objects(index[d], size=4374752)
-    d = Dist.from_string("defaults::numpy-1.7.1-py27_0.tar.bz2")
+    d = Dist.from_string("channel-1::numpy-1.7.1-py27_0.tar.bz2")
     index[d] = IndexRecord.from_objects(index[d], size=5994338)
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be downloaded:
 
     package                    |            build
@@ -162,13 +165,17 @@ The following packages will be downloaded:
 
     actions = defaultdict(list, {'PREFIX':
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
-    ['/Users/aaronmeurer/anaconda'], 'LINK': ['defaults::python-3.3.2-0', 'defaults::readline-6.2-0 1', 'defaults::sqlite-3.7.13-0 1', 'defaults::tk-8.5.13-0 1', 'defaults::zlib-1.2.7-0 1']})
+    ['/Users/aaronmeurer/anaconda'], 'LINK': ['channel-1::python-3.3.2-0', 'channel-1::readline-6.2-0 1', 'channel-1::sqlite-3.7.13-0 1', 'channel-1::tk-8.5.13-0 1', 'channel-1::zlib-1.2.7-0 1']})
 
     with captured() as c:
         display_actions(actions, index)
 
 
-    assert c.stdout == """Package plan for environment '/Users/aaronmeurer/anaconda/envs/test':
+    assert c.stdout == """
+## Package Plan ##
+
+  environment location: /Users/aaronmeurer/anaconda/envs/test
+
 
 The following NEW packages will be INSTALLED:
 
@@ -186,7 +193,11 @@ The following NEW packages will be INSTALLED:
     with captured() as c:
         display_actions(actions, index)
 
-    assert c.stdout == """Package plan for environment '/Users/aaronmeurer/anaconda/envs/test':
+    assert c.stdout == """
+## Package Plan ##
+
+  environment location: /Users/aaronmeurer/anaconda/envs/test
+
 
 The following packages will be REMOVED:
 
@@ -198,13 +209,16 @@ The following packages will be REMOVED:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0'], 'UNLINK':
-    ['defaults::cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['channel-1::cython-0.19.1-py33_0'], 'UNLINK':
+    ['channel-1::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be UPDATED:
 
     cython: 0.19-py33_0 --> 0.19.1-py33_0
@@ -217,20 +231,26 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be DOWNGRADED:
 
     cython: 0.19.1-py33_0 --> 0.19-py33_0
 
 """
 
-    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
-        'defaults::dateutil-1.5-py33_0', 'defaults::numpy-1.7.1-py33_0'], 'UNLINK':
-        ['defaults::cython-0.19-py33_0', 'defaults::dateutil-2.1-py33_1', 'defaults::pip-1.3.1-py33_1']})
+    actions = defaultdict(list, {'LINK': ['channel-1::cython-0.19.1-py33_0',
+        'channel-1::dateutil-1.5-py33_0', 'channel-1::numpy-1.7.1-py33_0'], 'UNLINK':
+        ['channel-1::cython-0.19-py33_0', 'channel-1::dateutil-2.1-py33_1', 'channel-1::pip-1.3.1-py33_1']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following NEW packages will be INSTALLED:
 
     numpy:    1.7.1-py33_0
@@ -249,14 +269,17 @@ The following packages will be DOWNGRADED:
 
 """
 
-    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
-        'defaults::dateutil-2.1-py33_1'], 'UNLINK':  ['defaults::cython-0.19-py33_0',
-            'defaults::dateutil-1.5-py33_0']})
+    actions = defaultdict(list, {'LINK': ['channel-1::cython-0.19.1-py33_0',
+        'channel-1::dateutil-2.1-py33_1'], 'UNLINK':  ['channel-1::cython-0.19-py33_0',
+            'channel-1::dateutil-1.5-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be UPDATED:
 
     cython:   0.19-py33_0 --> 0.19.1-py33_0
@@ -270,6 +293,9 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be DOWNGRADED:
 
     cython:   0.19.1-py33_0 --> 0.19-py33_0
@@ -293,6 +319,9 @@ def test_display_actions_show_channel_urls():
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be downloaded:
 
     package                    |            build
@@ -306,20 +335,24 @@ The following packages will be downloaded:
 
     actions = defaultdict(list, {'PREFIX':
     '/Users/aaronmeurer/anaconda/envs/test', 'SYMLINK_CONDA':
-    ['/Users/aaronmeurer/anaconda'], 'LINK': ['defaults::python-3.3.2-0', 'defaults::readline-6.2-0', 'defaults::sqlite-3.7.13-0', 'defaults::tk-8.5.13-0', 'defaults::zlib-1.2.7-0']})
+    ['/Users/aaronmeurer/anaconda'], 'LINK': ['channel-1::python-3.3.2-0', 'channel-1::readline-6.2-0', 'channel-1::sqlite-3.7.13-0', 'channel-1::tk-8.5.13-0', 'channel-1::zlib-1.2.7-0']})
 
     with captured() as c:
         display_actions(actions, index)
 
-    assert c.stdout == """Package plan for environment '/Users/aaronmeurer/anaconda/envs/test':
+    assert c.stdout == """
+## Package Plan ##
+
+  environment location: /Users/aaronmeurer/anaconda/envs/test
+
 
 The following NEW packages will be INSTALLED:
 
-    python:   3.3.2-0  defaults
-    readline: 6.2-0    defaults
-    sqlite:   3.7.13-0 defaults
-    tk:       8.5.13-0 defaults
-    zlib:     1.2.7-0  defaults
+    python:   3.3.2-0  channel-1
+    readline: 6.2-0    channel-1
+    sqlite:   3.7.13-0 channel-1
+    tk:       8.5.13-0 channel-1
+    zlib:     1.2.7-0  channel-1
 
 """
 
@@ -329,28 +362,35 @@ The following NEW packages will be INSTALLED:
     with captured() as c:
         display_actions(actions, index)
 
-    assert c.stdout == """Package plan for environment '/Users/aaronmeurer/anaconda/envs/test':
+    assert c.stdout == """
+## Package Plan ##
+
+  environment location: /Users/aaronmeurer/anaconda/envs/test
+
 
 The following packages will be REMOVED:
 
-    python:   3.3.2-0  defaults
-    readline: 6.2-0    defaults
-    sqlite:   3.7.13-0 defaults
-    tk:       8.5.13-0 defaults
-    zlib:     1.2.7-0  defaults
+    python:   3.3.2-0  channel-1
+    readline: 6.2-0    channel-1
+    sqlite:   3.7.13-0 channel-1
+    tk:       8.5.13-0 channel-1
+    zlib:     1.2.7-0  channel-1
 
 """
 
-    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0'], 'UNLINK':
-    ['defaults::cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['channel-1::cython-0.19.1-py33_0'], 'UNLINK':
+    ['channel-1::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be UPDATED:
 
-    cython: 0.19-py33_0 defaults --> 0.19.1-py33_0 defaults
+    cython: 0.19-py33_0 channel-1 --> 0.19.1-py33_0 channel-1
 
 """
 
@@ -360,50 +400,59 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be DOWNGRADED:
 
-    cython: 0.19.1-py33_0 defaults --> 0.19-py33_0 defaults
+    cython: 0.19.1-py33_0 channel-1 --> 0.19-py33_0 channel-1
 
 """
 
-    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
-        'defaults::dateutil-1.5-py33_0', 'defaults::numpy-1.7.1-py33_0'], 'UNLINK':
-        ['defaults::cython-0.19-py33_0', 'defaults::dateutil-2.1-py33_1', 'defaults::pip-1.3.1-py33_1']})
+    actions = defaultdict(list, {'LINK': ['channel-1::cython-0.19.1-py33_0',
+        'channel-1::dateutil-1.5-py33_0', 'channel-1::numpy-1.7.1-py33_0'], 'UNLINK':
+        ['channel-1::cython-0.19-py33_0', 'channel-1::dateutil-2.1-py33_1', 'channel-1::pip-1.3.1-py33_1']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following NEW packages will be INSTALLED:
 
-    numpy:    1.7.1-py33_0 defaults
+    numpy:    1.7.1-py33_0 channel-1
 
 The following packages will be REMOVED:
 
-    pip:      1.3.1-py33_1 defaults
+    pip:      1.3.1-py33_1 channel-1
 
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0  defaults --> 0.19.1-py33_0 defaults
+    cython:   0.19-py33_0  channel-1 --> 0.19.1-py33_0 channel-1
 
 The following packages will be DOWNGRADED:
 
-    dateutil: 2.1-py33_1   defaults --> 1.5-py33_0    defaults
+    dateutil: 2.1-py33_1   channel-1 --> 1.5-py33_0    channel-1
 
 """
 
-    actions = defaultdict(list, {'LINK': ['defaults::cython-0.19.1-py33_0',
-        'defaults::dateutil-2.1-py33_1'], 'UNLINK':  ['defaults::cython-0.19-py33_0',
-            'defaults::dateutil-1.5-py33_0']})
+    actions = defaultdict(list, {'LINK': ['channel-1::cython-0.19.1-py33_0',
+        'channel-1::dateutil-2.1-py33_1'], 'UNLINK':  ['channel-1::cython-0.19-py33_0',
+            'channel-1::dateutil-1.5-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0 defaults --> 0.19.1-py33_0 defaults
-    dateutil: 1.5-py33_0  defaults --> 2.1-py33_1    defaults
+    cython:   0.19-py33_0 channel-1 --> 0.19.1-py33_0 channel-1
+    dateutil: 1.5-py33_0  channel-1 --> 2.1-py33_1    channel-1
 
 """
 
@@ -413,28 +462,34 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be DOWNGRADED:
 
-    cython:   0.19.1-py33_0 defaults --> 0.19-py33_0 defaults
-    dateutil: 2.1-py33_1    defaults --> 1.5-py33_0  defaults
+    cython:   0.19.1-py33_0 channel-1 --> 0.19-py33_0 channel-1
+    dateutil: 2.1-py33_1    channel-1 --> 1.5-py33_0  channel-1
 
 """
 
     actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
 
-    d = Dist('defaults::cython-0.19.1-py33_0.tar.bz2')
+    d = Dist('channel-1::cython-0.19.1-py33_0.tar.bz2')
     index[d] = DPkg(d, channel='my_channel')
-    d = Dist('defaults::dateutil-1.5-py33_0.tar.bz2')
+    d = Dist('channel-1::dateutil-1.5-py33_0.tar.bz2')
     index[d] = DPkg(d, channel='my_channel')
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0 defaults   --> 0.19.1-py33_0 my_channel
-    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    defaults  \n\
+    cython:   0.19-py33_0 channel-1  --> 0.19.1-py33_0 my_channel
+    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    channel-1 \n\
 
 """
 
@@ -444,10 +499,13 @@ The following packages will be UPDATED:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be DOWNGRADED:
 
-    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 defaults  \n\
-    dateutil: 2.1-py33_1    defaults   --> 1.5-py33_0  my_channel
+    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 channel-1 \n\
+    dateutil: 2.1-py33_1    channel-1  --> 1.5-py33_0  my_channel
 
 """
 
@@ -671,12 +729,15 @@ def test_display_actions_features():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'
     reset_context(())
 
-    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['channel-1::numpy-1.7.1-py33_p0', 'channel-1::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following NEW packages will be INSTALLED:
 
     cython: 0.19-py33_0  \n\
@@ -684,12 +745,15 @@ The following NEW packages will be INSTALLED:
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['channel-1::numpy-1.7.1-py33_p0', 'channel-1::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be REMOVED:
 
     cython: 0.19-py33_0  \n\
@@ -697,49 +761,61 @@ The following packages will be REMOVED:
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'UNLINK': ['channel-1::numpy-1.7.1-py33_p0'], 'LINK': ['channel-1::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be DOWNGRADED:
 
     numpy: 1.7.1-py33_p0 [mkl] --> 1.7.0-py33_p0 [mkl]
 
 """
 
-    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'LINK': ['channel-1::numpy-1.7.1-py33_p0'], 'UNLINK': ['channel-1::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be UPDATED:
 
     numpy: 1.7.0-py33_p0 [mkl] --> 1.7.1-py33_p0 [mkl]
 
 """
 
-    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'LINK': ['channel-1::numpy-1.7.1-py33_p0'], 'UNLINK': ['channel-1::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     # NB: Packages whose version do not changed are put in UPDATED
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be UPDATED:
 
     numpy: 1.7.1-py33_0 --> 1.7.1-py33_p0 [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['channel-1::numpy-1.7.1-py33_p0'], 'LINK': ['channel-1::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be UPDATED:
 
     numpy: 1.7.1-py33_p0 [mkl] --> 1.7.1-py33_0
@@ -748,78 +824,96 @@ The following packages will be UPDATED:
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
     reset_context(())
 
-    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
+    actions = defaultdict(list, {'LINK': ['channel-1::numpy-1.7.1-py33_p0', 'channel-1::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following NEW packages will be INSTALLED:
 
-    cython: 0.19-py33_0   defaults
-    numpy:  1.7.1-py33_p0 defaults [mkl]
+    cython: 0.19-py33_0   channel-1
+    numpy:  1.7.1-py33_p0 channel-1 [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0', 'defaults::cython-0.19-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['channel-1::numpy-1.7.1-py33_p0', 'channel-1::cython-0.19-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be REMOVED:
 
-    cython: 0.19-py33_0   defaults
-    numpy:  1.7.1-py33_p0 defaults [mkl]
+    cython: 0.19-py33_0   channel-1
+    numpy:  1.7.1-py33_p0 channel-1 [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'UNLINK': ['channel-1::numpy-1.7.1-py33_p0'], 'LINK': ['channel-1::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be DOWNGRADED:
 
-    numpy: 1.7.1-py33_p0 defaults [mkl] --> 1.7.0-py33_p0 defaults [mkl]
+    numpy: 1.7.1-py33_p0 channel-1 [mkl] --> 1.7.0-py33_p0 channel-1 [mkl]
 
 """
 
-    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.0-py33_p0']})
+    actions = defaultdict(list, {'LINK': ['channel-1::numpy-1.7.1-py33_p0'], 'UNLINK': ['channel-1::numpy-1.7.0-py33_p0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be UPDATED:
 
-    numpy: 1.7.0-py33_p0 defaults [mkl] --> 1.7.1-py33_p0 defaults [mkl]
+    numpy: 1.7.0-py33_p0 channel-1 [mkl] --> 1.7.1-py33_p0 channel-1 [mkl]
 
 """
 
-    actions = defaultdict(list, {'LINK': ['defaults::numpy-1.7.1-py33_p0'], 'UNLINK': ['defaults::numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'LINK': ['channel-1::numpy-1.7.1-py33_p0'], 'UNLINK': ['channel-1::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     # NB: Packages whose version do not changed are put in UPDATED
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be UPDATED:
 
-    numpy: 1.7.1-py33_0 defaults --> 1.7.1-py33_p0 defaults [mkl]
+    numpy: 1.7.1-py33_0 channel-1 --> 1.7.1-py33_p0 channel-1 [mkl]
 
 """
 
-    actions = defaultdict(list, {'UNLINK': ['defaults::numpy-1.7.1-py33_p0'], 'LINK': ['defaults::numpy-1.7.1-py33_0']})
+    actions = defaultdict(list, {'UNLINK': ['channel-1::numpy-1.7.1-py33_p0'], 'LINK': ['channel-1::numpy-1.7.1-py33_0']})
 
     with captured() as c:
         display_actions(actions, index)
 
     assert c.stdout == """
+## Package Plan ##
+
+
 The following packages will be UPDATED:
 
-    numpy: 1.7.1-py33_p0 defaults [mkl] --> 1.7.1-py33_0 defaults
+    numpy: 1.7.1-py33_p0 channel-1 [mkl] --> 1.7.1-py33_0 channel-1
 
 """
 

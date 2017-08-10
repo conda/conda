@@ -11,7 +11,7 @@ from conda.base.context import reset_context
 from conda.common.io import env_var
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.download import TmpDownload
-from conda.core.repodata import fetch_repodata
+from conda.core.repodata import fetch_repodata_remote_request
 from conda.core.package_cache import download
 
 
@@ -35,7 +35,7 @@ class TestConnectionWithShortTimeouts(TestCase):
                     with pytest.raises(CondaHTTPError) as execinfo:
                         url = "http://240.0.0.0/channel/osx-64"
                         msg = "Connection error:"
-                        fetch_repodata(url, 'channel', 0)
+                        fetch_repodata_remote_request(url, None, None)
                         assert msg in str(execinfo)
 
     def test_tmpDownload(self):

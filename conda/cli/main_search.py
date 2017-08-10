@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import sys
 from argparse import SUPPRESS
 from collections import defaultdict
+import sys
 
-from conda.core.index import get_channel_priority_map
 from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
                              add_parser_known, add_parser_offline, add_parser_prefix,
                              add_parser_use_index_cache, add_parser_use_local)
-from ..cli.common import stdout_json
-from ..common.io import spinner
-from ..compat import itervalues, text_type
-from ..exceptions import PackagesNotFoundError
+from ..compat import text_type
 
 descr = """Search for packages and display associated information.
 The input is a MatchSpec, a query language for conda packages.
@@ -123,42 +119,38 @@ package.""",
 
 
 def execute(args, parser):
-    from ..core.index import get_index
     from ..models.match_spec import MatchSpec
     from ..models.version import VersionOrder
     from ..base.context import context
+    from ..cli.common import stdout_json
+    from ..common.io import spinner
 
     spec = MatchSpec(args.match_spec)
     if spec.get_exact_value('subdir'):
-        platform = spec.get_exact_value('subdir')
+        subdirs = spec.get_exact_value('subdir'),
     elif args.platform:
-        platform = args.platform
+        subdirs = args.platform,
     else:
-        platform = ''
-    if platform and platform != context.subdir:
-        args.unknown = False
+        subdirs = context.subdirs
 
     with spinner("Loading channels", not context.verbosity and not context.quiet, context.json):
         spec_channel = spec.get_exact_value('channel')
         channel_urls = (spec_channel,) if spec_channel else context.channels
-        index = get_index(channel_urls=channel_urls,
-                          prepend=not args.override_channels,
-                          platform=args.platform, use_local=args.use_local,
-                          use_cache=args.use_index_cache, prefix=None,
-                          unknown=args.unknown)
 
-    matches = {record for record in itervalues(index) if spec.match(record)}
-    matches = sorted(matches, key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
+        from ..core.repodata import query_all
+        matches = sorted(query_all(channel_urls, subdirs, spec),
+                         key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
     if not matches:
-        channel_priority_map = get_channel_priority_map(
+        from .install import calculate_channel_urls
+        channels_urls = tuple(calculate_channel_urls(
             channel_urls=context.channels,
             prepend=not args.override_channels,
             platform=None,
             use_local=args.use_local,
-        )
-        channels_urls = tuple(channel_priority_map)
+        ))
         from ..models.match_spec import MatchSpec
+        from ..exceptions import PackagesNotFoundError
         raise PackagesNotFoundError((text_type(spec),), channels_urls)
 
     if context.json:
