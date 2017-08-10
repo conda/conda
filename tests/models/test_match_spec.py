@@ -18,6 +18,8 @@ from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
 from conda.models.version import VersionSpec
 
 
+blas_value = 'accelerate' if context.subdir == 'osx-64' else 'openblas'
+
 def DPkg(s, **kwargs):
     d = Dist(s)
     return IndexRecord(
@@ -211,7 +213,7 @@ class MatchSpecTests(TestCase):
         # assert m("numpy-1.10-py38_0[channel=defaults]") == "defaults::numpy==1.10=py38_0"
         # assert m("*/win-32::numpy-1.10-py38_0[channel=defaults]") == "defaults/win-32::numpy==1.10=py38_0"
 
-        assert m('numpy[features="mkl debug" build_number=2]') == "numpy[build_number=2,features='blas=mkl debug=true']"
+        assert m('numpy[features="mkl debug" build_number=2]') == "numpy[build_number=2,provides_features='blas=mkl debug=true']"
 
 
 
@@ -359,28 +361,28 @@ class MatchSpecTests(TestCase):
     def test_features_match(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
         a = MatchSpec(features='test')
-        assert text_type(a) == "*[features='test=true']"
+        assert text_type(a) == "*[provides_features='test=true']"
         assert not a.match(DPkg(dst))
-        assert not a.match(DPkg(dst, features=''))
-        assert a.match(DPkg(dst, features='test'))
-        assert not a.match(DPkg(dst, features='test2'))
-        assert a.match(DPkg(dst, features='test me'))
-        assert a.match(DPkg(dst, features='you test'))
-        assert a.match(DPkg(dst, features='you test me'))
-        assert a.get_exact_value('features') == frozendict({'test': 'true'})
+        assert not a.match(DPkg(dst, track_features=''))
+        assert a.match(DPkg(dst, track_features='test'))
+        assert not a.match(DPkg(dst, track_features='test2'))
+        assert a.match(DPkg(dst, track_features='test me'))
+        assert a.match(DPkg(dst, track_features='you test'))
+        assert a.match(DPkg(dst, track_features='you test me'))
+        assert a.get_exact_value('provides_features') == frozendict({'test': 'true'})
 
         b = MatchSpec(features='mkl')
         assert not b.match(DPkg(dst))
-        assert b.match(DPkg(dst, features='mkl'))
-        assert b.match(DPkg(dst, features='blas=mkl'))
-        assert b.match(DPkg(dst, features='blas=mkl debug'))
-        assert not b.match(DPkg(dst, features='debug'))
+        assert b.match(DPkg(dst, track_features='mkl'))
+        assert b.match(DPkg(dst, track_features='blas=mkl'))
+        assert b.match(DPkg(dst, track_features='blas=mkl debug'))
+        assert not b.match(DPkg(dst, track_features='debug'))
 
         c = MatchSpec(features='nomkl')
         assert not c.match(DPkg(dst))
-        assert not c.match(DPkg(dst, features='mkl'))
-        assert c.match(DPkg(dst, features='nomkl'))
-        assert c.match(DPkg(dst, features='blas=nomkl debug'))
+        assert not c.match(DPkg(dst, track_features='mkl'))
+        assert c.match(DPkg(dst, track_features='nomkl'))
+        assert c.match(DPkg(dst, track_features='blas=nomkl debug'))
 
 
 class TestArg2Spec(TestCase):

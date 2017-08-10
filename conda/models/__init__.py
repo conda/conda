@@ -24,6 +24,11 @@ def translate_feature_str(val):
 
     if '=' in val:
         feature_name, feature_value = val.split('=', 1)
+        if feature_value == 'nomkl':
+            if context.subdir == 'osx-64':
+                feature_value = 'accelerate'
+            else:
+                feature_value = 'openblas'
     else:
         if 'mkl' in val:
             if val == 'nomkl':

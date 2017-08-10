@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 from unittest import TestCase
 
+from conda.base.context import context
 from conda.common.compat import text_type
 from conda.models.channel import Channel
 from conda.models.index_record import IndexJsonRecord
@@ -10,6 +11,7 @@ from conda.models.prefix_record import PrefixRecord
 
 log = getLogger(__name__)
 
+blas_value = 'accelerate' if context.subdir == 'osx-64' else 'openblas'
 
 class PrefixRecordTests(TestCase):
 
@@ -68,7 +70,8 @@ class PrefixRecordTests(TestCase):
 
         rec = IndexJsonRecord.from_objects(base, track_features='debug nomkl')
         assert rec.track_features == ('debug', 'nomkl')
-        assert rec.provides_features == {'debug': 'true', 'blas': 'nomkl'}
+        assert rec.provides_features == {'debug': 'true',
+                                         'blas': blas_value}
         assert dict(rec.dump()) == dict(
             name='austin',
             version='1.2.3',
@@ -78,7 +81,7 @@ class PrefixRecordTests(TestCase):
             depends=(),
             constrains=(),
             track_features='debug nomkl',
-            provides_features={'debug': 'true', 'blas': 'nomkl'},
+            provides_features={'debug': 'true', 'blas': blas_value},
         )
 
         rec = IndexJsonRecord.from_objects(base, track_features='debug nomkl',
@@ -120,7 +123,7 @@ class PrefixRecordTests(TestCase):
             url="https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
         )
         assert base.track_features == ()
-        assert base.provides_features == {'python': '1.2'}
+        assert base.provides_features == {}
 
 
     def test_requires_features(self):
@@ -136,8 +139,7 @@ class PrefixRecordTests(TestCase):
         )
 
         assert rec.features == ('debug', 'nomkl')
-        assert rec.requires_features == {'debug': 'true', 'blas': 'nomkl',
-                                         'python': '2.7', 'numpy': '1.11'}
+        assert rec.requires_features == {'debug': 'true', 'blas': blas_value}
         assert dict(rec.dump()) == dict(
             name='austin',
             version='1.2.3',
@@ -147,6 +149,6 @@ class PrefixRecordTests(TestCase):
             depends=('python 2.7.*', 'numpy 1.11*'),
             constrains=(),
             features='debug nomkl',
-            requires_features={'debug': 'true', 'blas': 'nomkl', 'python': '2.7', 'numpy': '1.11'},
+            requires_features={'debug': 'true', 'blas': blas_value},
         )
 

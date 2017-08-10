@@ -378,7 +378,7 @@ def backdown_thread_pool(max_workers=10):
     """
     try:
         yield ThreadPoolExecutor(max_workers)
-    except RuntimeError as e:
+    except RuntimeError as e:  # pragma: no cover
         # RuntimeError is thrown if number of threads are limited by OS
         log.debug(repr(e))
         try:
@@ -386,8 +386,3 @@ def backdown_thread_pool(max_workers=10):
         except RuntimeError as e:
             log.debug(repr(e))
             yield ThreadPoolExecutor(1)
-
-
-if __name__ == "__main__":
-    with spinner("status"):
-        sleep(6)
