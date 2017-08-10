@@ -65,11 +65,13 @@ def _make_provides_features(track_features, instance):
     result_map = {}
     for feat in track_features:
         push_individual_feature(result_map, feat)
-    if instance.name in ('python', 'numpy'):
-        ver = '.'.join(instance.version.split('.')[:2])
-        push_individual_feature(result_map, "%s=%s" % (instance.name, ver))
-        if instance.name == 'python':
-            result_map = {k: v for k, v in iteritems(result_map) if not k.startswith('vc')}
+    # # this is a translation that forces python and numpy into features
+    # if instance.name in ('python', 'numpy'):
+    #     ver = '.'.join(instance.version.split('.')[:2])
+    #     push_individual_feature(result_map, "%s=%s" % (instance.name, ver))
+    if instance.name == 'python':
+        # python does not provide the vc feature
+        result_map = {k: v for k, v in iteritems(result_map) if not k.startswith('vc')}
     return frozendict(result_map)
 
 
@@ -77,18 +79,19 @@ def _make_requires_features(features, depends):
     result_map = {}
     for feat in features:
         push_individual_feature(result_map, feat)
-    for dep in depends:
-        specish = dep.split(' ')
-        spec_name = specish[0]
-        if spec_name in ('python', 'numpy') and len(specish) > 1:
-            version = specish[1]
-            if not any(x in version for x in ',|'):  # make sure version is exact enough
-                try:
-                    split_vals = version.split('.')
-                    major, minor = int(split_vals[0]), int(split_vals[1].rstrip('*'))
-                    result_map[spec_name] = '%s.%s' % (major, minor)
-                except (IndexError, ValueError):
-                    continue
+    # # this is a translation that forces python and numpy into features
+    # for dep in depends:
+    #     specish = dep.split(' ')
+    #     spec_name = specish[0]
+    #     if spec_name in ('python', 'numpy') and len(specish) > 1:
+    #         version = specish[1]
+    #         if not any(x in version for x in ',|'):  # make sure version is exact enough
+    #             try:
+    #                 split_vals = version.split('.')
+    #                 major, minor = int(split_vals[0]), int(split_vals[1].rstrip('*'))
+    #                 result_map[spec_name] = '%s.%s' % (major, minor)
+    #             except (IndexError, ValueError):
+    #                 continue
     return frozendict(result_map)
 
 

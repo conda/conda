@@ -167,7 +167,6 @@ class MatchSpec(object):
         'version',
         'build',
         'build_number',
-        'features',
         'requires_features',
         'provides_features',
         'url',
@@ -177,6 +176,9 @@ class MatchSpec(object):
     def __init__(self, optional=False, target=None, **kwargs):
         self.optional = optional
         self.target = target
+        if 'features' in kwargs:
+            if 'provides_features' not in kwargs:
+                kwargs['provides_features'] = kwargs.pop('features')
         self._match_components = self._build_components(**kwargs)
 
     def get_exact_value(self, field_name):
@@ -195,18 +197,13 @@ class MatchSpec(object):
         return self.__str__()
 
     def match(self, rec):
-        """f
+        """
         Accepts an `IndexRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
         for field_name, v in iteritems(self._match_components):
-            if field_name == 'features':
-                if not (self._match_individual(rec, 'provides_features', v)
-                        or self._match_individual(rec, 'requires_features', v)):
-                    return False
-            else:
-                if not self._match_individual(rec, field_name, v):
-                    return False
+            if not self._match_individual(rec, field_name, v):
+                return False
         return True
 
     def _match_individual(self, record, field_name, match_component):
@@ -815,7 +812,6 @@ class LowerStrMatch(StrMatch):
 
 _implementors = {
     'name': LowerStrMatch,
-    'features': FeatureMatch,
     'provides_features': FeatureMatch,
     'requires_features': FeatureMatch,
     'version': VersionSpec,
