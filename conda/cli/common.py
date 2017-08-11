@@ -5,26 +5,11 @@ from os.path import basename, isdir, isfile, join
 import re
 import sys
 
+from .._vendor.auxlib.ish import dals
 from ..base.constants import PREFIX_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import itervalues
 from ..models.match_spec import MatchSpec
-
-
-def ensure_use_local(args):
-    if not args.use_local:
-        return
-
-
-def ensure_override_channels_requires_channel(args, dashc=True):
-    if args.override_channels and not (args.channel or args.use_local):
-        from ..exceptions import CondaValueError
-        if dashc:
-            raise CondaValueError('--override-channels requires -c/--channel'
-                                  ' or --use-local')
-        else:
-            raise CondaValueError('--override-channels requires --channel'
-                                  'or --use-local')
 
 
 def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
@@ -232,3 +217,13 @@ def handle_envs_list(acc, output=True):
 
     if output:
         print()
+
+
+def check_non_admin():
+    from ..common.platform import is_admin
+    if not context.non_admin_enabled and not is_admin():
+        from ..exceptions import OperationNotAllowed
+        raise OperationNotAllowed(dals("""
+            The create, install, update, and remove operations have been disabled
+            on your system for non-privileged users.
+        """))

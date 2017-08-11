@@ -40,7 +40,7 @@ from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
 from conda.exceptions import CondaHTTPError, DryRunExit, PackagesNotFoundError, RemoveError, \
-    conda_exception_handler
+    conda_exception_handler, CommandArgumentError, OperationNotAllowed
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -454,6 +454,21 @@ class IntegrationTests(TestCase):
         with make_temp_env("-c conda-test font-ttf-inconsolata") as prefix:
             assert isfile(join(prefix, 'fonts', 'Inconsolata-Regular.ttf'))
 
+    def test_override_channels(self):
+        with pytest.raises(OperationNotAllowed):
+            with env_var('CONDA_OVERRIDE_CHANNELS_ENABLED', 'no', reset_context):
+                with make_temp_env("--override-channels python") as prefix:
+                    assert prefix
+
+        with pytest.raises(CommandArgumentError):
+            with make_temp_env("--override-channels python") as prefix:
+                assert prefix
+
+        stdout, stderr = run_command(Commands.SEARCH, None, "--override-channels -c conda-test flask --json")
+        assert not stderr
+        assert len(json.loads(stdout)["flask"]) < 3
+        assert json.loads(stdout)["flask"][0]["noarch"] == "python"
+
     def test_create_empty_env(self):
         with make_temp_env() as prefix:
             assert exists(join(prefix, 'conda-meta/history'))
@@ -815,7 +830,6 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, "python-2.7")
             assert not package_is_installed(prefix, "itsdangerous-0.23")
 
-    @pytest.mark.xfail(on_win, strict=True, reason="On Windows the Python package is pulled in as 'vc' feature-provider.")
     def test_package_optional_pinning(self):
         with make_temp_env("") as prefix:
             run_command(Commands.CONFIG, prefix,
@@ -1155,6 +1169,8 @@ class IntegrationTests(TestCase):
 
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
+        from conda.core.repodata import SubdirData
+        SubdirData._cache_.clear()
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         with make_temp_env(prefix=prefix):
@@ -1192,42 +1208,57 @@ class IntegrationTests(TestCase):
                 mock_method.side_effect = side_effect
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 8, 1),
-                       reason="I can't figure out why this if failing yet.", strict=True)
     def test_offline_with_empty_index_cache(self):
-        with make_temp_env() as prefix, make_temp_channel(['flask-0.10.1']) as channel:
-            # Clear the index cache.
-            index_cache_dir = create_cache_dir()
-            run_command(Commands.CLEAN, '', "--index-cache")
-            assert not exists(index_cache_dir)
+        from conda.core.repodata import SubdirData
+        SubdirData._cache_.clear()
 
-            # Then attempt to install a package with --offline. The package (flask) is
-            # available in a local channel, however its dependencies are not. Make sure
-            # that a) it fails because the dependencies are not available and b)
-            # we don't try to download the repodata from non-local channels but we do
-            # download repodata from local channels.
-            from conda.gateways.connection.session import CondaSession
+        try:
+            with make_temp_env() as prefix:
+                pkgs_dir = join(prefix, 'pkgs')
+                with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
+                    with make_temp_channel(['flask-0.10.1']) as channel:
+                        # Clear the index cache.
+                        index_cache_dir = create_cache_dir()
+                        run_command(Commands.CLEAN, '', "--index-cache")
+                        assert not exists(index_cache_dir)
 
-            orig_get = CondaSession.get
+                        # Then attempt to install a package with --offline. The package (flask) is
+                        # available in a local channel, however its dependencies are not. Make sure
+                        # that a) it fails because the dependencies are not available and b)
+                        # we don't try to download the repodata from non-local channels but we do
+                        # download repodata from local channels.
+                        from conda.gateways.connection.session import CondaSession
 
-            result_dict = {}
-            def side_effect(self, url, **kwargs):
-                if not url.startswith('file://'):
-                    raise AssertionError('Attempt to fetch repodata: {}'.format(url))
-                if url.startswith(channel):
-                    result_dict['local_channel_seen'] = True
-                return orig_get(self, url, **kwargs)
+                        orig_get = CondaSession.get
 
-            with patch.object(CondaSession, 'get', autospec=True) as mock_method:
-                mock_method.side_effect = side_effect
+                        result_dict = {}
+                        def side_effect(self, url, **kwargs):
+                            if not url.startswith('file://'):
+                                raise AssertionError('Attempt to fetch repodata: {}'.format(url))
+                            if url.startswith(channel):
+                                result_dict['local_channel_seen'] = True
+                            return orig_get(self, url, **kwargs)
 
-                # Fails because flask dependencies are not retrievable.
-                with pytest.raises(PackagesNotFoundError):
-                    run_command(Commands.INSTALL, prefix, "-c", channel,
-                                "flask", "--json", "--offline")
+                        with patch.object(CondaSession, 'get', autospec=True) as mock_method:
+                            mock_method.side_effect = side_effect
 
-                # The mock should have been called with our local channel URL though.
-                assert result_dict.get('local_channel_seen')
+                            SubdirData._cache_.clear()
+
+                            # This first install passes because flask and its dependencies are in the
+                            # package cache.
+                            assert not package_is_installed(prefix, "flask")
+                            run_command(Commands.INSTALL, prefix, "-c", channel, "flask", "--offline")
+                            assert package_is_installed(prefix, "flask")
+
+                            # The mock should have been called with our local channel URL though.
+                            assert result_dict.get('local_channel_seen')
+
+                            # Fails because pytz cannot be found in available channels.
+                            with pytest.raises(PackagesNotFoundError):
+                                run_command(Commands.INSTALL, prefix, "-c", channel, "pytz", "--offline")
+                            assert not package_is_installed(prefix, "pytz")
+        finally:
+            SubdirData._cache_.clear()
 
     def test_create_from_extracted(self):
         with make_temp_package_cache() as pkgs_dir:
@@ -1436,12 +1467,12 @@ class IntegrationTests(TestCase):
                     'build': s.get('build_string') or s['build']
                 }
 
-        with make_temp_env("python=3.5.2") as prefix:
+        with make_temp_env("python=3") as prefix:
             stdout, stderr = run_command(Commands.LIST, prefix, '--json')
             stdout_json = json.loads(stdout)
             packages = [pkg_info(package) for package in stdout_json]
             python_package = next((p for p in packages if p['name'] == 'python'), None)
-            assert python_package['version'] == '3.5.2'
+            assert python_package['version'].startswith('3')
 
 
 @pytest.mark.skipif(True, reason="get the rest of Solve API worked out first")

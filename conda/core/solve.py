@@ -7,8 +7,7 @@ from os.path import join
 
 from enum import Enum
 
-from .index import (_supplement_index_with_cache, _supplement_index_with_features,
-                    _supplement_index_with_prefix, fetch_index)
+from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .linked_data import PrefixData, linked_data
 from .._vendor.boltons.setutils import IndexedSet
@@ -111,7 +110,6 @@ class Solver(object):
                 the solved state of the environment.
 
         """
-        index, r = self._prepare()
         prune = context.prune if prune is NULL else prune
         ignore_pinned = context.ignore_pinned if ignore_pinned is NULL else ignore_pinned
         deps_modifier = context.deps_modifier if deps_modifier is NULL else deps_modifier
@@ -122,6 +120,9 @@ class Solver(object):
 
         # force_remove is a special case where we return early
         if specs_to_remove and force_remove:
+            if specs_to_add:
+                raise NotImplementedError()
+            index, r = self._prepare(specs_to_remove)
             solution = tuple(Dist(rec) for rec in PrefixData(self.prefix).iter_records()
                              if not any(spec.match(rec) for spec in specs_to_remove))
             return IndexedSet(index[d] for d in r.dependency_sort({d.name: d for d in solution}))
@@ -146,27 +147,33 @@ class Solver(object):
         specs_from_history_map = History(self.prefix).get_requested_specs_map()
         specs_map.update(specs_from_history_map)
 
+        # let's pretend for now that this is the right place to build the index
+        prepared_specs = tuple(concatv(specs_to_remove, specs_to_add,
+                                       itervalues(specs_from_history_map)))
+        index, r = self._prepare(prepared_specs)
+
         if specs_to_remove:
             # Rather than invoking SAT for removal, we can use the DAG and simple tree traversal
             # if we're careful about how we handle features.
-            _track_features_specs = (spec for spec in specs_to_remove if 'track_features' in spec)
-            feature_names = set(concat(spec.get_raw_value('track_features')
-                                       for spec in _track_features_specs))
+            _provides_fts_specs = (spec for spec in specs_to_remove if 'provides_features' in spec)
+            feature_names = set(concat(spec.get_raw_value('provides_features')
+                                       for spec in _provides_fts_specs))
             dag = PrefixDag((index[dist] for dist in solution), itervalues(specs_map))
 
             removed_records = []
             for spec in specs_to_remove:
-                # If the spec was is track_features spec, then we need to also remove every package
-                # with a feature that matches the track_feature.  The `dag.remove_spec()` method
-                # handles that for us.
+                # If the spec was a provides_features spec, then we need to also remove every
+                # package with a requires_feature that matches the provides_feature.  The
+                # `dag.remove_spec()` method handles that for us.
                 removed_records.extend(dag.remove_spec(spec))
 
             for rec in removed_records:
-                # We keep specs (minus the feature part) for the non track_features packages
+                # We keep specs (minus the feature part) for the non provides_features packages
                 # if they're in the history specs.  Otherwise, we pop them from the specs_map.
-                if set(rec.features or ()) & feature_names and rec.name in specs_from_history_map:
+                rec_has_a_feature = set(rec.requires_features or ()) & feature_names
+                if rec_has_a_feature and rec.name in specs_from_history_map:
                     spec = specs_map.get(rec.name, MatchSpec(rec.name))
-                    spec._match_components.pop('features', None)
+                    spec._match_components.pop('requires_features', None)
                     specs_map[spec.name] = spec
                 else:
                     specs_map.pop(rec.name, None)
@@ -253,7 +260,7 @@ class Solver(object):
         # constraint) and also making them optional. The result here will be less cases of
         # `UnsatisfiableError` handed to users, at the cost of more packages being modified
         # or removed from the environment.
-        conflicting_specs = r.get_conflicting_specs(final_environment_specs)
+        conflicting_specs = r.get_conflicting_specs(tuple(final_environment_specs))
         for spec in conflicting_specs:
             if spec.target:
                 final_environment_specs.remove(spec)
@@ -264,7 +271,7 @@ class Solver(object):
         log.debug("final specs to add:\n    %s\n",
                   "\n    ".join(text_type(s) for s in final_environment_specs))
         pre_solution = solution
-        solution = r.solve(final_environment_specs)  # return value is List[dist]
+        solution = r.solve(tuple(final_environment_specs))  # return value is List[dist]
 
         # add back inconsistent packages to solution
         if add_back_map:
@@ -399,7 +406,6 @@ class Solver(object):
             UnlinkLinkTransaction:
 
         """
-        self._prepare()
         with spinner("Solving environment", not context.verbosity and not context.quiet,
                      context.json):
             if self.prefix == context.root_prefix and context.enable_private_envs:
@@ -416,31 +422,35 @@ class Solver(object):
                 #   History right now. Do we need to include other categories from the solve?
                 return UnlinkLinkTransaction(stp)
 
-    def _prepare(self):
+    def _prepare(self, prepared_specs):
         # All of this _prepare() method is hidden away down here. Someday we may want to further
         # abstract away the use of `index` or the Resolve object.
 
-        if self._prepared:
+        if self._prepared and prepared_specs == prepared_specs:
             return self._index, self._r
 
-        def build_channel_priority_map():
-            return odict((subdir_url, (c.canonical_name, priority))
-                         for priority, c in enumerate(self.channels)
-                         for subdir_url in c.urls(True, self.subdirs))
+        if hasattr(self, '_index') and self._index:
+            # added in install_actions for conda-build back-compat
+            self._prepared_specs = prepared_specs
+            self._r = Resolve(self._index, channels=self.channels)
+        else:
+            # add in required channels that aren't explicitly given in the channels list
+            additional_channels = set()
+            additional_channels.update(
+                Channel(subdir_url) for subdir_url in PrefixData(self.prefix).all_subdir_urls()
+            )
+            for spec in concatv(self.specs_to_remove, self.specs_to_add):
+                # TODO: correct handling for subdir isn't yet done
+                channel = spec.get_exact_value('channel')
+                if channel:
+                    additional_channels.add(Channel(channel))
 
-        with spinner("Loading channels", not context.verbosity and not context.quiet,
-                     context.json):
-            channel_priority_map = build_channel_priority_map()
-            if self._index is None:
-                self._index = fetch_index(channel_priority_map, context.use_index_cache)
-
-            known_channels = tuple(c.canonical_name for c in self.channels)
-
-            _supplement_index_with_prefix(self._index, self.prefix, known_channels)
-            _supplement_index_with_cache(self._index, known_channels)
-            _supplement_index_with_features(self._index)
-
-            self._r = Resolve(self._index)
+            self.channels.update(additional_channels)
+            reduced_index = get_reduced_index(self.prefix, self.channels,
+                                              self.subdirs, prepared_specs)
+            self._prepared_specs = prepared_specs
+            self._index = reduced_index
+            self._r = Resolve(reduced_index, channels=self.channels)
 
         self._prepared = True
         return self._index, self._r

@@ -11,7 +11,9 @@ import sys
 from threading import Event, Thread
 from time import sleep
 
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
+from math import floor
 
 from .compat import StringIO, iteritems, on_win
 from .constants import NULL
@@ -347,7 +349,7 @@ class ProgressBar(object):
             pass
         elif enabled:
             bar_format = "{desc}{bar} | {percentage:3.0f}% "
-            self.pbar = tqdm(desc=description, bar_format=bar_format, total=1)
+            self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, total=1)
 
     def update_to(self, fraction):
         if self.json:
@@ -369,6 +371,18 @@ class ProgressBar(object):
         self.enabled = False
 
 
-if __name__ == "__main__":
-    with spinner("status"):
-        sleep(6)
+@contextmanager
+def backdown_thread_pool(max_workers=10):
+    """Tries to create an executor with max_workers, but will back down ultimately to a single
+    thread of the OS decides you can't have more than one.
+    """
+    try:
+        yield ThreadPoolExecutor(max_workers)
+    except RuntimeError as e:  # pragma: no cover
+        # RuntimeError is thrown if number of threads are limited by OS
+        log.debug(repr(e))
+        try:
+            yield ThreadPoolExecutor(floor(max_workers / 2))
+        except RuntimeError as e:
+            log.debug(repr(e))
+            yield ThreadPoolExecutor(1)

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from os.path import basename
 
 from conda._vendor.boltons.setutils import IndexedSet
+from conda.base.context import context
 from conda.core.solve import Solver
 from conda.models.channel import Channel, prioritize_channels
 
@@ -23,6 +24,8 @@ def install(prefix, specs, args, env, prune=False):
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
     channel_urls = channel_urls + [chan for chan in env.channels if chan != 'nodefaults']
+    if 'nodefaults' not in env.channels:
+        channel_urls.extend(context.channels)
     _channel_priority_map = prioritize_channels(channel_urls)
 
     channel_names = IndexedSet(Channel(url).canonical_name for url in _channel_priority_map)

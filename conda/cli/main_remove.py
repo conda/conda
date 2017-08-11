@@ -12,8 +12,6 @@ import logging
 from os.path import isdir
 import sys
 
-from conda.cli.install import handle_txn
-from conda.core.solve import Solver
 from .conda_argparse import (add_parser_channels, add_parser_help, add_parser_insecure,
                              add_parser_json, add_parser_no_pin, add_parser_offline,
                              add_parser_prefix, add_parser_pscheck, add_parser_quiet,
@@ -71,6 +69,20 @@ def configure_parser(sub_parsers, name='remove'):
         action="store_true",
         help="%s features (instead of packages)." % name.capitalize(),
     )
+
+    # TODO: --features currently sorta still work. But super sloppy.
+
+    # p.add_argument(
+    #     '--feature',
+    #     metavar='FEATURE_NAME=FEATURE_VALUE',
+    #     dest='features',
+    #     action="append",
+    #     help="Feature to remove in the conda environment. "
+    #          "The value must be a key-value pair separated by an equal sign e.g. blas=nomkl. "
+    #          "Can be used multiple times. "
+    #          "Equivalent to a MatchSpec specifying a single 'provides_features'.",
+    # )
+
     p.add_argument(
         "--force",
         action="store_true",
@@ -99,11 +111,9 @@ def configure_parser(sub_parsers, name='remove'):
 
 
 def execute(args, parser):
-    from .common import (confirm_yn, ensure_override_channels_requires_channel, ensure_use_local,
-                         specs_from_args, stdout_json)
+    from .common import check_non_admin, confirm_yn, specs_from_args, stdout_json
     from ..base.context import context
     from ..common.compat import iteritems, iterkeys
-    from ..core.index import get_index
     from ..exceptions import CondaEnvironmentError, CondaValueError
     from ..gateways.disk.delete import delete_trash
     from ..resolve import MatchSpec
@@ -112,12 +122,16 @@ def execute(args, parser):
     from ..gateways.disk.delete import rm_rf
     from ..instructions import PREFIX
     from ..plan import (add_unlink)
+    from .install import handle_txn
+    from ..core.solve import Solver
 
-    if not (args.all or args.package_names):
+    if not (args.all or args.package_names or args.features):
         raise CondaValueError('no package names supplied,\n'
                               '       try "conda remove -h" for more details')
 
     prefix = context.target_prefix
+    check_non_admin()
+
     if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
@@ -129,24 +143,15 @@ def execute(args, parser):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
 
-    ensure_use_local(args)
-    ensure_override_channels_requires_channel(args)
-    if not args.features and args.all:
-        index = linked_data(prefix)
-        index = {dist: info for dist, info in iteritems(index)}
-    else:
-        index = get_index(channel_urls=context.channels,
-                          prepend=not args.override_channels,
-                          use_local=args.use_local,
-                          use_cache=args.use_index_cache,
-                          prefix=prefix)
-
     delete_trash()
     if args.all:
         if prefix == context.root_prefix:
             raise CondaEnvironmentError('cannot remove root environment,\n'
                                         '       add -n NAME or -p PREFIX option')
         print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
+
+        index = linked_data(prefix)
+        index = {dist: info for dist, info in iteritems(index)}
 
         actions = defaultdict(list)
         actions[PREFIX] = prefix

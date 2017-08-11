@@ -5,14 +5,15 @@ from copy import copy
 from itertools import chain
 from logging import getLogger
 
+from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import (DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN,
                               MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL)
 from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
 from ..common.path import is_path, win_path_backout
 from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
-                          split_conda_url_easy_parts, split_scheme_auth_token, urlparse,
-                          split_platform)
+                          split_conda_url_easy_parts, split_platform, split_scheme_auth_token,
+                          urlparse)
 
 try:
     from cytoolz.functoolz import excepts
@@ -222,6 +223,17 @@ class Channel(object):
             return None
         return "%s://%s" % (self.scheme, join_url(self.location, self.name))
 
+    @property
+    def base_urls(self):
+        return self.base_url,
+
+    @property
+    def subdir_url(self):
+        url = self.url(True)
+        if self.package_filename and url:
+            url = url.rsplit('/', 1)[0]
+        return url
+
     def __str__(self):
         return self.base_url or ""
 
@@ -316,6 +328,10 @@ class MultiChannel(Channel):
     def base_url(self):
         return None
 
+    @property
+    def base_urls(self):
+        return tuple(c.base_url for c in self._channels)
+
     def url(self, with_credentials=False):
         return None
 
@@ -398,14 +414,14 @@ def _read_channel_configuration(scheme, host, port, path):
     for name, channel in sorted(context.custom_channels.items(), reverse=True,
                                 key=lambda x: len(x[0])):
         that_test_url = join_url(channel.location, channel.name)
-        if test_url.startswith(that_test_url):
+        if tokenized_startswith(test_url.split('/'), that_test_url.split('/')):
             subname = test_url.replace(that_test_url, '', 1).strip('/')
             return (channel.location, join_url(channel.name, subname), scheme,
                     channel.auth, channel.token)
 
     # Step 5. channel_alias match
     ca = context.channel_alias
-    if ca.location and test_url.startswith(ca.location):
+    if ca.location and tokenized_startswith(test_url.split('/'), ca.location.split('/')):
         name = test_url.replace(ca.location, '', 1).strip('/') or None
         return ca.location, name, scheme, ca.auth, ca.token
 
@@ -468,6 +484,14 @@ def prioritize_channels(channels, with_credentials=True, subdirs=None):
             if url in result:
                 continue
             result[url] = channel.canonical_name, min(channel_priority, MAX_CHANNEL_PRIORITY - 1)
+    return result
+
+
+def all_channel_urls(channels, subdirs=None, with_credentials=True):
+    result = IndexedSet()
+    for chn in channels:
+        channel = Channel(chn)
+        result.update(channel.urls(with_credentials, subdirs))
     return result
 
 

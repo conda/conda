@@ -30,6 +30,13 @@ def is_admin_on_windows():  # pragma: unix no cover
         return 'unknown'
 
 
+def is_admin():
+    if on_win:
+        return is_admin_on_windows()
+    else:
+        return os.geteuid() == 0 or os.getegid() == 0
+
+
 @memoize
 def linux_get_libc_version():
     """

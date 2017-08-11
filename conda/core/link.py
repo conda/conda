@@ -699,7 +699,8 @@ class UnlinkLinkTransaction(object):
 
         for actions, (prefix, stp) in zip(legacy_action_groups, iteritems(self.prefix_setups)):
             pseudo_index = {Dist(prec): prec for prec in concatv(stp.unlink_precs, stp.link_precs)}
-            display_actions(actions, pseudo_index, show_channel_urls=context.show_channel_urls)
+            display_actions(actions, pseudo_index, show_channel_urls=context.show_channel_urls,
+                            specs_to_remove=stp.remove_specs, specs_to_add=stp.update_specs)
 
         return legacy_action_groups
 

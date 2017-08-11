@@ -2,24 +2,22 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
-import os
+from logging import getLogger
 from tempfile import gettempdir
-
-from conda.base.constants import APP_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNELS_UNIX
-from conda.common.io import env_var
+from unittest import TestCase
 
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import context, reset_context, Context
+from conda.base.constants import APP_NAME, DEFAULT_CHANNELS_UNIX
+from conda.base.context import Context, context, reset_context
 from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
-from conda.common.url import join_url, join
+from conda.common.io import env_var
 from conda.common.serialize import yaml_load
+from conda.common.url import join, join_url
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
-from logging import getLogger
-from unittest import TestCase
 
 try:
     from unittest.mock import patch
@@ -931,3 +929,35 @@ class UnknownChannelTests(TestCase):
         assert channel.base_url is None
         assert channel.url() == defaults.url()
         assert channel.urls() == defaults.urls()
+
+
+class OtherChannelParsingTests(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        string = dals("""
+        default_channels:
+           - http://test/conda/anaconda
+        channels:
+           - http://test/conda/anaconda-cluster
+        """)
+        reset_context()
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
+        context._set_raw_data(rd)
+        Channel._reset_state()
+
+        cls.platform = context.subdir
+
+    @classmethod
+    def tearDownClass(cls):
+        reset_context()
+
+    def test_channels_with_dashes(self):
+        # regression test for #5763
+        assert context.channels == ('http://test/conda/anaconda-cluster',)
+        channel_urls = prioritize_channels(context.channels)
+        assert channel_urls == odict((
+            ('http://test/conda/anaconda-cluster/%s' % context.subdir, ('http://test/conda/anaconda-cluster', 0)),
+            ('http://test/conda/anaconda-cluster/noarch', ('http://test/conda/anaconda-cluster', 0)),
+        ))
+

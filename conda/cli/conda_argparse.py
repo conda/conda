@@ -178,25 +178,23 @@ def add_parser_create_install_update(p):
     )
     add_parser_show_channel_urls(p)
 
-    if 'update' in p.prog:
-        # I don't know if p.prog is the correct thing to use here but it's the
-        # only thing that seemed to contain the command name
-        p.add_argument(
-            'packages',
-            metavar='package_spec',
-            action="store",
-            nargs='*',
-            help="Packages to update in the conda environment.",
-        )
-    else:  # create or install
-        # Same as above except the completer is not only installed packages
-        p.add_argument(
-            'packages',
-            metavar='package_spec',
-            action="store",
-            nargs='*',
-            help="Packages to install into the conda environment.",
-        )
+    p.add_argument(
+        'packages',
+        metavar='package_spec',
+        action="store",
+        nargs='*',
+        help="Packages to install or update in the conda environment.",
+    )
+    p.add_argument(
+        '--feature',
+        metavar='FEATURE_NAME=FEATURE_VALUE',
+        dest='features',
+        action="append",
+        help="Feature to add or update in the conda environment. "
+             "The value must be a key-value pair separated by an equal sign e.g. blas=nomkl. "
+             "Can be used multiple times. "
+             "Equivalent to a MatchSpec specifying a single 'provides_features'.",
+    )
 
 
 def add_parser_pscheck(p):

@@ -10,13 +10,15 @@ from logging import getLogger
 import os
 from os.path import abspath, basename, exists, isdir
 
+from conda.models.match_spec import MatchSpec
 from . import common
+from .common import check_non_admin
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import text_type
 from ..core.envs_manager import EnvsDirectory
-from ..core.index import get_channel_priority_map, get_index
+from ..core.index import calculate_channel_urls, get_index
 from ..core.solve import Solver
 from ..exceptions import (CondaImportError, CondaOSError, CondaSystemExit, CondaValueError,
                           DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
@@ -103,6 +105,8 @@ def install(args, parser, command='install'):
     conda install, conda update, and conda create
     """
     context.validate_configuration()
+    check_non_admin()
+
     newenv = bool(command == 'create')
     isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
@@ -121,7 +125,6 @@ def install(args, parser, command='install'):
 """ % prefix)
 
     args_packages = [s.strip('"\'') for s in args.packages]
-
     if newenv and not args.no_default_packages:
         # Override defaults if they are specified at the command line
         # TODO: rework in 4.4 branch using MatchSpec
@@ -130,9 +133,8 @@ def install(args, parser, command='install'):
             default_pkg_name = default_pkg.replace(' ', '=').split('=', 1)[0]
             if default_pkg_name not in args_packages_names:
                 args_packages.append(default_pkg)
+    args_packages.extend(text_type(MatchSpec(provides_features=ft)) for ft in args.features or ())
 
-    common.ensure_use_local(args)
-    common.ensure_override_channels_requires_channel(args)
     index_args = {
         'use_cache': args.use_index_cache,
         'channel_urls': context.channels,
@@ -201,13 +203,12 @@ def install(args, parser, command='install'):
             progressive_fetch_extract = unlink_link_transaction.get_pfe()
 
     except ResolvePackageNotFound as e:
-        channel_priority_map = get_channel_priority_map(
+        channels_urls = tuple(calculate_channel_urls(
             channel_urls=index_args['channel_urls'],
             prepend=index_args['prepend'],
             platform=None,
             use_local=index_args['use_local'],
-        )
-        channels_urls = tuple(channel_priority_map)
+        ))
         raise PackagesNotFoundError(e.bad_deps, channels_urls)
 
     except (UnsatisfiableError, SystemExit) as e:

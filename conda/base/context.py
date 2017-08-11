@@ -93,12 +93,14 @@ class Context(Configuration):
     changeps1 = PrimitiveParameter(True)
     concurrent = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
-    default_python = PrimitiveParameter('%d.%d' % sys.version_info[:2],
-                                        element_type=string_types + (NoneType,))
+    default_python = PrimitiveParameter(default_python_default(),
+                                        element_type=string_types + (NoneType,),
+                                        validation=default_python_validation)
     disallow = SequenceParameter(string_types)
     enable_private_envs = PrimitiveParameter(False)
     force_32bit = PrimitiveParameter(False)
     max_shlvl = PrimitiveParameter(2)
+    non_admin_enabled = PrimitiveParameter(True)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
     pinned_packages = SequenceParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
     rollback_enabled = PrimitiveParameter(True)
@@ -133,34 +135,36 @@ class Context(Configuration):
     remote_max_retries = PrimitiveParameter(3)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
+
+    # #############################
+    # channels
+    # #############################
+    allow_non_channel_urls = PrimitiveParameter(True)
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
-    allow_non_channel_urls = PrimitiveParameter(True)
-
-    # channels
+    channel_priority = PrimitiveParameter(True)
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',))  # channel for args.channel
-    _migrated_channel_aliases = SequenceParameter(string_types,
-                                                  aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
+    _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
+    _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
                                           aliases=('default_channels',))
-    _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
+    _migrated_channel_aliases = SequenceParameter(string_types,
+                                                  aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
     migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
-    _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
+    override_channels_enabled = PrimitiveParameter(True)
+    show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
+    whitelist_channels = SequenceParameter(string_types)
 
-    default_python = PrimitiveParameter(default_python_default(),
-                                        validation=default_python_validation)
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
     always_yes = PrimitiveParameter(None, aliases=('yes',), element_type=(bool, NoneType))
-    channel_priority = PrimitiveParameter(True)
     debug = PrimitiveParameter(False)
     dry_run = PrimitiveParameter(False)
     error_upload_url = PrimitiveParameter(ERROR_UPLOAD_URL)
     force = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
-    info = PrimitiveParameter(False)
     no_dependencies = PrimitiveParameter(False, aliases=('no_deps',))
     offline = PrimitiveParameter(False)
     only_dependencies = PrimitiveParameter(False, aliases=('only_deps',))
@@ -169,7 +173,6 @@ class Context(Configuration):
     ignore_pinned = PrimitiveParameter(False)
     report_errors = PrimitiveParameter(None, element_type=(bool, NoneType))
     shortcuts = PrimitiveParameter(True)
-    show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
     update_dependencies = PrimitiveParameter(False, aliases=('update_deps',))
     _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
 
@@ -483,6 +486,22 @@ class Context(Configuration):
 
     @property
     def channels(self):
+        if (self._argparse_args and 'override_channels' in self._argparse_args
+                and self._argparse_args['override_channels']):
+            if not self.override_channels_enabled:
+                from ..exceptions import OperationNotAllowed
+                raise OperationNotAllowed(dals("""
+                Overriding channels has been disabled.
+                """))
+            elif not (self._argparse_args and 'channel' in self._argparse_args
+                      and self._argparse_args['channel']):
+                from ..exceptions import CommandArgumentError
+                raise CommandArgumentError(dals("""
+                At least one -c / --channel flag must be supplied when using --override-channels.
+                """))
+            else:
+                return self._argparse_args['channel']
+
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and 'channel' in self._argparse_args:
             # TODO: it's args.channel right now, not channels
@@ -519,7 +538,6 @@ class Context(Configuration):
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
 # I don't think this documentation is correct any longer. # NOQA
             'update_dependencies',
-            'use_index_cache',
         )
         return tuple(p for p in super(Context, self).list_parameters()
                      if p not in UNLISTED_PARAMETERS)
@@ -549,8 +567,6 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     from ..models.channel import Channel
     Channel._reset_state()
     # need to import here to avoid circular dependency
-    from ..core.repodata import RepoData
-    RepoData.clear()
     return context
 
 
@@ -679,9 +695,6 @@ def get_help_dict():
         'json': dals("""
             Ensure all output written to stdout is structured json.
             """),
-        'info': dals("""
-            Provide detail information on each build of a package
-            """),
         'local_repodata_ttl': dals("""
             For a value of False or 0, always fetch remote repodata (HTTP 304 responses
             respected). For a value of True or 1, respect the HTTP Cache-Control max-age
@@ -692,8 +705,15 @@ def get_help_dict():
             A list of previously-used channel_alias values, useful for example when switching
             between different Anaconda Repository instances.
             """),
+        'non_admin_enabled': dals("""
+            Allows completion of conda's create, install, update, and remove operations, for
+            non-privileged (non-root or non-administrator) users.
+            """),
         'offline': dals("""
             Restrict conda to cached download content and file:// based urls.
+            """),
+        'override_channels_enabled': dals("""
+            Permit use of the --overide-channels command-line flag.
             """),
         'path_conflict': dals("""
             The method by which conda handle's conflicting/overlapping paths during a
@@ -761,6 +781,9 @@ def get_help_dict():
             A list of features that are tracked by default. An entry here is similar to
             adding an entry to the create_default_packages list.
             """),
+        'use_index_cache': dals("""
+            Use cache of channel index files, even if it has expired.
+            """),
         'use_pip': dals("""
             Include non-conda-installed python packages with conda list. This does not
             affect any conda command or functionality other than the output of the
@@ -769,6 +792,13 @@ def get_help_dict():
         'verbosity': dals("""
             Sets output log level. 0 is warn. 1 is info. 2 is debug. 3 is trace.
             """),
+        'whitelist_channels': dals("""
+            The exclusive list of channels allowed to be used on the system. Use of any
+            other channels will result in an error. If conda-build channels are to be
+            allowed, along with the --use-local command line flag, be sure to include the
+            'local' channel in the list. If the list is empty or left undefined, no
+            channel exclusions will be enforced.
+            """)
     })
 
 
