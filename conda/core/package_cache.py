@@ -265,12 +265,26 @@ class PackageCache(object):
                 package_tarball_full_path=package_tarball_full_path,
                 extracted_package_dir=extracted_package_dir,
             )
+            return package_cache_record
         except (IOError, OSError):
+            # no info/repodata_record.json exists
+            # try reading info/index.json
             try:
                 index_json_record = read_index_json(extracted_package_dir)
             except (IOError, OSError):
+                # info/index.json doesn't exist either
+                if isdir(extracted_package_dir) and not isfile(package_tarball_full_path):
+                    # We have a directory that looks like a conda package, but without
+                    # (1) info/repodata_record.json or info/index.json, and (2) a conda package
+                    # tarball, there's not much we can do.  We'll just ignore it.
+                    return None
+
                 try:
                     if self.is_writable:
+                        if isdir(extracted_package_dir):
+                            # We have a partially unpacked conda package directory. Best thing
+                            # to do is remove it and try extracting.
+                            rm_rf(extracted_package_dir)
                         extract_tarball(package_tarball_full_path, extracted_package_dir)
                         index_json_record = read_index_json(extracted_package_dir)
                     else:
@@ -294,7 +308,14 @@ class PackageCache(object):
                 package_tarball_full_path=package_tarball_full_path,
                 extracted_package_dir=extracted_package_dir,
             )
-        return package_cache_record
+
+            # write the info/repodata_record.json file so we can short-circuit this next time
+            if self.is_writable:
+                repodata_record = PackageRecord.from_objects(package_cache_record)
+                repodata_record_path = join(extracted_package_dir, 'info', 'repodata_record.json')
+                write_as_json_to_file(repodata_record_path, repodata_record)
+
+            return package_cache_record
 
     @staticmethod
     def _dedupe_pkgs_dir_contents(pkgs_dir_contents):
