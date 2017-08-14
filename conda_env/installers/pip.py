@@ -8,7 +8,7 @@ from conda_env.pip_util import pip_args
 from conda.exceptions import CondaValueError
 
 
-def _pip_install_via_requirements(prefix, specs, args, *_):
+def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
     """
     Installs the pip dependencies in specs using a temporary pip requirements file.
 
