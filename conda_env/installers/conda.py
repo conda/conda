@@ -33,7 +33,7 @@ def install(prefix, specs, args, env, *_, **kwargs):
     subdirs = IndexedSet(basename(url) for url in _channel_priority_map)
 
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
-    unlink_link_transaction = solver.solve_for_transaction(prune=args.prune)
+    unlink_link_transaction = solver.solve_for_transaction(prune=getattr(args, 'prune', False))
 
     pfe = unlink_link_transaction.get_pfe()
     pfe.execute()
