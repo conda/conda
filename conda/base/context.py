@@ -532,7 +532,10 @@ def get_help_dict():
         'always_softlink': dals("""
             Register a preference that files be soft-linked (symlinked) into a prefix during
             install rather than hard-linked. The link source is the 'pkgs_dir' package cache
-            from where the package is being linked.
+            from where the package is being linked. WARNING: Using this option can result in
+            corruption of long-lived conda environments. Package caches are *caches*, which
+            means there is some churn and invalidation. With this option, the contents of
+            environments can be switched out (or erased) via operations on other environments.
             """),
         'always_yes': dals("""
             Automatically choose the 'yes' option whenever asked to proceed with a conda
