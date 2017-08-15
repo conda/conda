@@ -11,6 +11,7 @@ from tempfile import mkdtemp
 from traceback import format_exception_only
 import warnings
 
+from conda.base.constants import SafetyChecks
 from .linked_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
 from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreatePrefixRecordAction, CreateNonadminAction,
@@ -193,7 +194,7 @@ class UnlinkLinkTransaction(object):
 
         assert not context.dry_run
 
-        if context.skip_safety_checks:
+        if context.safety_checks == SafetyChecks.disabled:
             self._verified = True
             return
 
