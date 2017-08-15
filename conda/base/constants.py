@@ -96,6 +96,15 @@ CONDA_TARBALL_EXTENSION = '.tar.bz2'
 UNKNOWN_CHANNEL = "<unknown>"
 
 
+class SafetyChecks(Enum):
+    disabled = 'disabled'
+    warn = 'warn'
+    enabled = 'enabled'
+
+    def __str__(self):
+        return self.value
+
+
 class PathConflict(Enum):
     clobber = 'clobber'
     warn = 'warn'

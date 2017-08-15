@@ -26,7 +26,7 @@ import requests
 
 from conda import CondaError, CondaMultiError
 from conda._vendor.auxlib.entity import EntityEncoder
-from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
+from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE, SafetyChecks
 from conda.base.context import Context, context, reset_context
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.compat import PY2, iteritems, itervalues, text_type
@@ -314,33 +314,58 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask')
             assert_package_is_installed(prefix, 'python-3')
 
-    def test_skip_safety_checks_basic(self):
+    def test_safety_checks(self):
+        # This test uses https://anaconda.org/conda-test/spiffy-test-app/0.5/download/noarch/spiffy-test-app-0.5-pyh6afbcc8_0.tar.bz2
+        # which is a modification of https://anaconda.org/conda-test/spiffy-test-app/1.0/download/noarch/spiffy-test-app-1.0-pyh6afabb7_0.tar.bz2
+        # as documented in info/README within that package.
+        # I also had to fix the post-link script in the package by adding quotation marks to handle
+        # spaces in path names.
+
         with make_temp_env() as prefix:
             with open(join(prefix, 'condarc'), 'a') as fh:
-                fh.write("skip_safety_checks: true\n")
+                fh.write("safety_checks: enabled\n")
             reload_config(prefix)
-            assert context.skip_safety_checks is True
+            assert context.safety_checks is SafetyChecks.enabled
 
-            run_command(Commands.INSTALL, prefix, 'python=3.5')
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert_package_is_installed(prefix, 'python-3')
+            with pytest.raises(CondaMultiError) as exc:
+                run_command(Commands.INSTALL, prefix, '-c conda-test spiffy-test-app=0.5')
 
-            run_command(Commands.INSTALL, prefix, 'flask=0.10')
-            assert_package_is_installed(prefix, 'flask-0.10.1')
-            assert_package_is_installed(prefix, 'python-3')
+            error_message = text_type(exc.value)
+            message1 = dals("""
+            The path 'site-packages/spiffy_test_app-1.0-py2.7.egg-info/top_level.txt'
+            has an incorrect size.
+              reported size: 32 bytes
+              actual size: 16 bytes
+            """)
+            message2 = dals("""
+            The path 'site-packages/spiffy_test_app/__init__.py'
+            has a sha256 mismatch.
+              reported sha256: 1234567890123456789012345678901234567890123456789012345678901234
+              actual sha256: 32d822669b582f82da97225f69e3ef01ab8b63094e447a9acca148a6e79afbed
+            """)
+            assert message1 in error_message
+            assert message2 in error_message
 
-            run_command(Commands.INSTALL, prefix, '--force', 'flask=0.10')
-            assert_package_is_installed(prefix, 'flask-0.10.1')
-            assert_package_is_installed(prefix, 'python-3')
+            with open(join(prefix, 'condarc'), 'a') as fh:
+                fh.write("safety_checks: warn\n")
+            reload_config(prefix)
+            assert context.safety_checks is SafetyChecks.warn
 
-            run_command(Commands.UPDATE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask-0.10.1')
-            assert_package_is_installed(prefix, 'flask')
-            assert_package_is_installed(prefix, 'python-3')
+            stdout, stderr = run_command(Commands.INSTALL, prefix, '-c conda-test spiffy-test-app=0.5')
+            assert message1 in stderr
+            assert message2 in stderr
+            assert package_is_installed(prefix, "spiffy-test-app-0.5")
 
-            run_command(Commands.REMOVE, prefix, 'flask')
-            assert not package_is_installed(prefix, 'flask-0.')
-            assert_package_is_installed(prefix, 'python-3')
+        with make_temp_env() as prefix:
+            with open(join(prefix, 'condarc'), 'a') as fh:
+                fh.write("safety_checks: disabled\n")
+            reload_config(prefix)
+            assert context.safety_checks is SafetyChecks.disabled
+
+            stdout, stderr = run_command(Commands.INSTALL, prefix, '-c conda-test spiffy-test-app=0.5')
+            assert message1 not in stderr
+            assert message2 not in stderr
+            assert package_is_installed(prefix, "spiffy-test-app-0.5")
 
     @pytest.mark.xfail(strict=True)
     def test_non_root_conda(self):
