@@ -331,5 +331,9 @@ class PackageRecord(IndexJsonRecord, PackageRef):
 
     package_type = EnumField(PackageType, required=False, nullable=True)
 
+    def __str__(self):
+        return "%s/%s::%s==%s=%s" % (self.channel.canonical_name, self.subdir, self.name,
+                                     self.version, self.build)
+
 
 IndexRecord = PackageRecord

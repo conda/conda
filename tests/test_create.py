@@ -7,7 +7,7 @@ from datetime import datetime
 from glob import glob
 import json
 from json import loads as json_loads
-from logging import DEBUG, getLogger
+from logging import DEBUG, INFO, getLogger
 import os
 from os.path import basename, dirname, exists, isdir, isfile, join, lexists, relpath
 from random import sample
@@ -57,8 +57,10 @@ except ImportError:
 
 
 log = getLogger(__name__)
-TRACE, DEBUG = TRACE, DEBUG  # these are so the imports aren't cleared, but it's easy to switch back and forth
-TEST_LOG_LEVEL = DEBUG
+TRACE, DEBUG, INFO = TRACE, DEBUG, INFO  # these are so the imports aren't cleared, but it's easy to switch back and forth
+TEST_LOG_LEVEL = INFO
+stderr_log_level(TEST_LOG_LEVEL, 'conda')
+stderr_log_level(TEST_LOG_LEVEL, 'requests')
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 UINCODE_CHARACTERS = u"ōγђ家固한"
