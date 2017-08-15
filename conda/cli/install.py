@@ -16,7 +16,7 @@ from .common import check_non_admin
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import text_type
+from ..common.compat import text_type, on_win
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import calculate_channel_urls, get_index
 from ..core.solve import Solver
@@ -80,16 +80,39 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
 
 def print_activate(env_name_or_prefix):  # pragma: no cover
     if not context.quiet and not context.json:
-        message = dals("""
-
-        To activate this environment, use
-
-            $ conda activate %s
-
-        To deactivate an active environment, use
-
-            $ conda deactivate
-        """) % env_name_or_prefix
+        if 'CONDA_SHLVL' in os.environ or os.path.split(os.environ.get('SHELL', ''))[-1] == 'fish':
+            message = dals("""
+    
+            To activate this environment, use
+    
+                $ conda activate %s
+    
+            To deactivate an active environment, use
+    
+                $ conda deactivate
+            """) % env_name_or_prefix
+        elif on_win:
+            message = dals("""
+            #
+            # To activate this environment, use:
+            # > activate %s
+            #
+            # To deactivate an active environment, use:
+            # > deactivate
+            #
+            # * for power-users using bash, you must source
+            #
+            """) % env_name_or_prefix
+        else:
+            message = dals("""
+            #
+            # To activate this environment, use:
+            # > source activate %s
+            #
+            # To deactivate an active environment, use:
+            # > source deactivate
+            #
+            """) % env_name_or_prefix
         print(message)  # TODO: use logger
 
 
