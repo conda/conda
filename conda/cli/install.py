@@ -82,14 +82,14 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
     if not context.quiet and not context.json:
         if 'CONDA_SHLVL' in os.environ or os.path.split(os.environ.get('SHELL', ''))[-1] == 'fish':
             message = dals("""
-    
-            To activate this environment, use
-    
-                $ conda activate %s
-    
-            To deactivate an active environment, use
-    
-                $ conda deactivate
+            #
+            # To activate this environment, use
+            #
+            #     $ conda activate %s
+            #
+            # To deactivate an active environment, use
+            #
+            #     $ conda deactivate
             """) % env_name_or_prefix
         elif on_win:
             message = dals("""
