@@ -203,9 +203,11 @@
 
 ### Improvements
 * add non-admin check to optionally disable non-privileged operation (#5724)
+* add extra warning message to always_softlink configuration option (#5826)
 
 ### Bug Fixes
 * fix #5763 channel url string splitting error (#5764)
+* fix regex for repodata _mod and _etag (#5795)
 
 
 ## 4.3.24 (2017-07-31)
