@@ -559,7 +559,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
 
         elif status_code is not None and 500 <= status_code < 600:
             help_message = dals("""
-            An remote server error occurred when trying to retrieve this URL.
+            A remote server error occurred when trying to retrieve this URL.
 
             A 500-type error (e.g. 500, 501, 502, 503, etc.) indicates the server failed to
             fulfill a valid request.  The problem may be spurious, and will resolve itself if you

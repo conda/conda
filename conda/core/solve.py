@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from genericpath import exists
-from logging import getLogger
+from logging import getLogger, DEBUG
 from os.path import join
 
 from enum import Enum
@@ -22,7 +22,7 @@ from ..models.channel import Channel
 from ..models.dag import PrefixDag
 from ..models.dist import Dist
 from ..models.match_spec import MatchSpec
-from ..resolve import Resolve
+from ..resolve import Resolve, dashlist
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby
@@ -165,6 +165,7 @@ class Solver(object):
                 # If the spec was a provides_features spec, then we need to also remove every
                 # package with a requires_feature that matches the provides_feature.  The
                 # `dag.remove_spec()` method handles that for us.
+                log.trace("using dag to remove records for %s", spec)
                 removed_records.extend(dag.remove_spec(spec))
 
             for rec in removed_records:
@@ -189,6 +190,8 @@ class Solver(object):
         _, inconsistent_dists = r.bad_installed(solution, ())
         add_back_map = {}  # name: (dist, spec)
         if inconsistent_dists:
+            if log.isEnabledFor(DEBUG):
+                log.debug("found inconsistent dists: %s", dashlist(inconsistent_dists))
             for dist in inconsistent_dists:
                 # pop and save matching spec in specs_map
                 add_back_map[dist.name] = (dist, specs_map.pop(dist.name, None))
@@ -261,6 +264,8 @@ class Solver(object):
         # `UnsatisfiableError` handed to users, at the cost of more packages being modified
         # or removed from the environment.
         conflicting_specs = r.get_conflicting_specs(tuple(final_environment_specs))
+        if log.isEnabledFor(DEBUG):
+            log.debug("conflicting specs: %s", dashlist(conflicting_specs))
         for spec in conflicting_specs:
             if spec.target:
                 final_environment_specs.remove(spec)
@@ -268,8 +273,9 @@ class Solver(object):
                 final_environment_specs.add(neutered_spec)
 
         # Finally! We get to call SAT.
-        log.debug("final specs to add:\n    %s\n",
-                  "\n    ".join(text_type(s) for s in final_environment_specs))
+        if log.isEnabledFor(DEBUG):
+            log.debug("final specs to add: %s",
+                      dashlist(sorted(text_type(s) for s in final_environment_specs)))
         pre_solution = solution
         solution = r.solve(tuple(final_environment_specs))  # return value is List[dist]
 
@@ -436,9 +442,11 @@ class Solver(object):
         else:
             # add in required channels that aren't explicitly given in the channels list
             additional_channels = set()
-            additional_channels.update(
-                Channel(subdir_url) for subdir_url in PrefixData(self.prefix).all_subdir_urls()
-            )
+            # # TODO: probably necessary for correctness, but causes major issues with expired
+            # # tokens and channels that no longer exist
+            # additional_channels.update(
+            #     Channel(subdir_url) for subdir_url in PrefixData(self.prefix).all_subdir_urls()
+            # )
             for spec in concatv(self.specs_to_remove, self.specs_to_add):
                 # TODO: correct handling for subdir isn't yet done
                 channel = spec.get_exact_value('channel')

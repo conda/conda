@@ -92,7 +92,8 @@ class PrefixData(object):
         subdir_urls = set()
         for prefix_record in itervalues(self._prefix_records):
             subdir_url = prefix_record.channel.subdir_url
-            if subdir_url:
+            if subdir_url and subdir_url not in subdir_urls:
+                log.debug("adding subdir url %s for %s", subdir_url, prefix_record)
                 subdir_urls.add(subdir_url)
         return subdir_urls
 
@@ -101,6 +102,7 @@ class PrefixData(object):
         return self.__prefix_records or self.load() or self.__prefix_records
 
     def _load_single_record(self, prefix_record_json_path):
+        log.trace("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
             json_data = json_load(fh.read())
         prefix_record = PrefixRecord(**json_data)
