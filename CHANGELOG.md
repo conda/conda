@@ -113,6 +113,9 @@
 
 ### Deprecations/Breaking Changes
 * the conda 'root' environment is now generally referred to as the 'base' environment
+* Conda 4.4 now warns when available information about per-path sha256 sums and file sizes
+  do not match the recorded information.  The warning is scheduled to be an error in conda 4.5.
+  Behavior is configurable via the `safety_checks` configuration parameter.
 * remove support for with_features_depends (#5191)
 * resolve #5468 remove --alt-hint from CLI API (#5469)
 
@@ -154,6 +157,8 @@
 * enable threadpool use for repodata collection by default (#5546, #5587)
 * conda info now raises PackagesNotFoundError (#5655)
 * index building optimizations (#5776)
+* fix #5811 change safety_checks default to 'warn' for conda 4.4 (#5824)
+* add constrained dependencies to conda's own recipe (#5823)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -177,6 +182,10 @@
 * fix exception when generating JSON output (#5628)
 * fix target prefix determination (#5642)
 * use proxy to avoid segfaults (#5716)
+* fix #5790 incorrect activation message (#5820)
+* fix #5808 assertion error when loading package cache (#5815)
+* fix #5809 _pip_install_via_requirements got an unexpected keyword argument 'prune' (#5814)
+* fix #5811 change safety_checks default to 'warn' for conda 4.4 (#5824)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
