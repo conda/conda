@@ -378,6 +378,19 @@ class IntegrationTests(TestCase):
             assert_json_parsable(stdout)
             assert not stderr
 
+            # regression test for #5825
+            # contents of LINK and UNLINK is expected to have Dist format
+            json_obj = json.loads(stdout)
+            dist_dump = json_obj['actions']['LINK'][0]
+            assert 'dist_name' in dist_dump
+
+            stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5 --json --dry-run")
+            assert_json_parsable(stdout)
+            assert not stderr
+            json_obj = json.loads(stdout)
+            dist_dump = json_obj['actions']['LINK'][0]
+            assert 'dist_name' in dist_dump
+
             stdout, stderr = run_command(Commands.INSTALL, prefix, 'flask=0.10 --json')
             assert_json_parsable(stdout)
             assert not stderr
@@ -403,6 +416,12 @@ class IntegrationTests(TestCase):
             assert not stderr
             assert not package_is_installed(prefix, 'flask-0.')
             assert_package_is_installed(prefix, 'python-3')
+
+            # regression test for #5825
+            # contents of LINK and UNLINK is expected to have Dist format
+            json_obj = json.loads(stdout)
+            dist_dump = json_obj['actions']['UNLINK'][0]
+            assert 'dist_name' in dist_dump
 
             stdout, stderr = run_command(Commands.LIST, prefix, '--revisions --json')
             assert not stderr
