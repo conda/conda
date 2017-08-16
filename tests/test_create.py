@@ -58,7 +58,7 @@ except ImportError:
 
 log = getLogger(__name__)
 TRACE, DEBUG, INFO = TRACE, DEBUG, INFO  # these are so the imports aren't cleared, but it's easy to switch back and forth
-TEST_LOG_LEVEL = INFO
+TEST_LOG_LEVEL = DEBUG
 stderr_log_level(TEST_LOG_LEVEL, 'conda')
 stderr_log_level(TEST_LOG_LEVEL, 'requests')
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
