@@ -214,7 +214,10 @@
 * remove last remnant of CondaEnvRuntimeError (#5643)
 
 
-## 4.3.25 (unreleased)
+## 4.3.25 (2017-08-16)
+
+### Deprecations/Breaking Changes
+* resolve #5834 change default value of 'allow_softlinks' from True to False (#5839)
 
 ### Improvements
 * add non-admin check to optionally disable non-privileged operation (#5724)
