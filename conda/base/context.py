@@ -10,7 +10,7 @@ import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
                         ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME,
-                        SEARCH_PATH)
+                        SEARCH_PATH, SafetyChecks)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -101,12 +101,15 @@ class Context(Configuration):
     force_32bit = PrimitiveParameter(False)
     max_shlvl = PrimitiveParameter(2)
     non_admin_enabled = PrimitiveParameter(True)
+
+    # Safety & Security
+    safety_checks = PrimitiveParameter(SafetyChecks.warn)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
+
     pinned_packages = SequenceParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
-    skip_safety_checks = PrimitiveParameter(False)
     use_index_cache = PrimitiveParameter(False)
 
     _root_prefix = PrimitiveParameter("", aliases=('root_dir', 'root_prefix'))
@@ -532,7 +535,6 @@ class Context(Configuration):
             'only_dependencies',
             'prune',
             'root_prefix',
-            'skip_safety_checks',
             'subdir',
             'subdirs',
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
@@ -603,7 +605,10 @@ def get_help_dict():
         'always_softlink': dals("""
             Register a preference that files be soft-linked (symlinked) into a prefix during
             install rather than hard-linked. The link source is the 'pkgs_dir' package cache
-            from where the package is being linked.
+            from where the package is being linked. WARNING: Using this option can result in
+            corruption of long-lived conda environments. Package caches are *caches*, which
+            means there is some churn and invalidation. With this option, the contents of
+            environments can be switched out (or erased) via operations on other environments.
             """),
         'always_yes': dals("""
             Automatically choose the 'yes' option whenever asked to proceed with a conda
@@ -761,6 +766,10 @@ def get_help_dict():
         'rollback_enabled': dals("""
             Should any error occur during an unlink/link transaction, revert any disk
             mutations made to that point in the transaction.
+            """),
+        'safety_checks': dals("""
+            Enforce available safety guarantees during package installation.
+            The value must be one of 'enabled', 'warn', or 'disabled'.
             """),
         'shortcuts': dals("""
             Allow packages to create OS-specific shortcuts (e.g. in the Windows Start

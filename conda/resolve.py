@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from itertools import chain
-import logging
+from logging import getLogger, DEBUG
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
@@ -16,8 +16,8 @@ from .models.index_record import PackageRef
 from .models.match_spec import MatchSpec
 from .models.version import VersionOrder
 
-log = logging.getLogger(__name__)
-stdoutlog = logging.getLogger('conda.stdoutlog')
+log = getLogger(__name__)
+stdoutlog = getLogger('conda.stdoutlog')
 
 # used in conda build
 Unsatisfiable = UnsatisfiableError
@@ -242,7 +242,8 @@ class Resolve(object):
         if cache_key in self._reduced_index_cache:
             return self._reduced_index_cache[cache_key]
 
-        log.debug('Retrieving packages for: %s', specs)
+        if log.isEnabledFor(DEBUG):
+            log.debug('Retrieving packages for: %s', dashlist(sorted(text_type(s) for s in specs)))
 
         specs, features = self.verify_specs(specs)
         filter = self.default_filter(features)
@@ -804,7 +805,8 @@ class Resolve(object):
 
     def solve(self, specs, returnall=False, _remove=False):
         # type: (List[str], bool) -> List[Dist]
-        log.debug("Solving for %s", specs)
+        if log.isEnabledFor(DEBUG):
+            log.debug('Solving for: %s', dashlist(sorted(text_type(s) for s in specs)))
 
         # Find the compliant packages
         len0 = len(specs)

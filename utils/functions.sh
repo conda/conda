@@ -274,7 +274,7 @@ install_conda_build() {
 
     # install conda-build dependencies (runtime and test)
     conda config --append channels conda-forge
-    $prefix/$BIN_DIR/conda install -y \
+    $prefix/$BIN_DIR/conda install -y -vvv \
         perl pytest-xdist pytest-catchlog pytest-mock \
         anaconda-client numpy \
         filelock jinja2 conda-verify contextlib2 pkginfo \
@@ -374,7 +374,7 @@ conda_build_test() {
     . $prefix/etc/profile.d/conda.sh
     conda activate root
     conda info
-    echo "skip_safety_checks: true" >> ~/.condarc
+    echo "safety_checks: disabled" >> ~/.condarc
 
     pushd conda-build
 

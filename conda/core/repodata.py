@@ -4,6 +4,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import bz2
 from collections import defaultdict
 from contextlib import closing
+from errno import ENODEV
+from functools import wraps
 from genericpath import getmtime, isfile
 import hashlib
 import json
@@ -354,11 +356,16 @@ def read_mod_and_etag(path):
                 match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
                 result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
                 return result
-        except (BufferError, ValueError):
+        except (BufferError, ValueError, OSError):  # pragma: no cover
             # BufferError: cannot close exported pointers exist
             #   https://github.com/conda/conda/issues/4592
             # ValueError: cannot mmap an empty file
             return {}
+        except (IOError, OSError) as e:  # pragma: no cover
+            # OSError: [Errno 19] No such device
+            if e.errno == ENODEV:
+                return {}
+            raise
 
 
 def get_cache_control_max_age(cache_control_value):
@@ -559,7 +566,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
 
         elif status_code is not None and 500 <= status_code < 600:
             help_message = dals("""
-            An remote server error occurred when trying to retrieve this URL.
+            A remote server error occurred when trying to retrieve this URL.
 
             A 500-type error (e.g. 500, 501, 502, 503, etc.) indicates the server failed to
             fulfill a valid request.  The problem may be spurious, and will resolve itself if you

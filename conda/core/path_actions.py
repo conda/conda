@@ -22,7 +22,7 @@ from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            parse_entry_point_def,
                            pyc_path, url_to_path, win_path_ok)
 from ..common.url import has_platform, path_to_url, unquote
-from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
+from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError
 from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_pyc, copy, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
@@ -347,7 +347,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                 reported_sha256 = None
             source_sha256 = compute_sha256sum(self.source_full_path)
             if reported_sha256 and reported_sha256 != source_sha256:
-                return CondaVerificationError(dals("""
+                return SafetyError(dals("""
                 The package for %s located at %s
                 appears to be corrupted. The path '%s'
                 has a sha256 mismatch.
@@ -367,7 +367,7 @@ class LinkPathAction(CreateInPrefixPathAction):
             if reported_size_in_bytes:
                 source_size_in_bytes = getsize(self.source_full_path)
                 if reported_size_in_bytes != source_size_in_bytes:
-                    return CondaVerificationError(dals("""
+                    return SafetyError(dals("""
                     The package for %s located at %s
                     appears to be corrupted. The path '%s'
                     has an incorrect size.

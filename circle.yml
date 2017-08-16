@@ -11,8 +11,8 @@ dependencies:
     - "~/miniconda/pkgs"
     - "~/.cache/pip"
   override:
-    - source utils/functions.sh && run_setup
+    - source utils/functions.sh && set -e && run_setup
 
 test:
   override:
-    - source utils/functions.sh && run_tests && conda_activate_test
+    - source utils/functions.sh && set -e && run_tests && conda_activate_test

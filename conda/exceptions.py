@@ -12,7 +12,7 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
-from .base.constants import PathConflict
+from .base.constants import PathConflict, SafetyChecks
 from .common.compat import ensure_text_type, input, iteritems, iterkeys, on_win, string_types
 from .common.io import timeout
 from .common.signals import get_signal_name
@@ -28,7 +28,7 @@ log = getLogger(__name__)
 
 # TODO: for conda-build compatibility only
 # remove in conda 4.4
-class ResolvePackageNotFound(Exception):
+class ResolvePackageNotFound(CondaError):
     def __init__(self, bad_deps):
         # bad_deps is a list of lists
         self.bad_deps = tuple(dep for deps in bad_deps for dep in deps if dep)
@@ -536,6 +536,11 @@ class CondaVerificationError(CondaError):
         super(CondaVerificationError, self).__init__(message)
 
 
+class SafetyError(CondaError):
+    def __init__(self, message):
+        super(SafetyError, self).__init__(message)
+
+
 class NotWritableError(CondaError):
 
     def __init__(self, path):
@@ -602,19 +607,32 @@ def maybe_raise(error, context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)
         clobber_errors = groups.get(True, ())
-        non_clobber_errors = groups.get(False, ())
-        if clobber_errors:
-            if context.path_conflict == PathConflict.prevent and not context.clobber:
-                raise error
-            elif context.path_conflict == PathConflict.warn and not context.clobber:
-                print_conda_exception(CondaMultiError(clobber_errors))
-        if non_clobber_errors:
-            raise CondaMultiError(non_clobber_errors)
+        groups = groupby(lambda e: isinstance(e, SafetyError), groups.get(False, ()))
+        safety_errors = groups.get(True, ())
+        other_errors = groups.get(False, ())
+
+        if ((safety_errors and context.safety_checks == SafetyChecks.enabled)
+                or (clobber_errors and context.path_conflict == PathConflict.prevent
+                    and not context.clobber)
+                or other_errors):
+            raise error
+        elif ((safety_errors and context.safety_checks == SafetyChecks.warn)
+              or (clobber_errors and context.path_conflict == PathConflict.warn
+                  and not context.clobber)):
+            print_conda_exception(error)
+
     elif isinstance(error, ClobberError):
         if context.path_conflict == PathConflict.prevent and not context.clobber:
             raise error
         elif context.path_conflict == PathConflict.warn and not context.clobber:
             print_conda_exception(error)
+
+    elif isinstance(error, SafetyError):
+        if context.safety_checks == SafetyChecks.enabled:
+            raise error
+        elif context.safety_checks == SafetyChecks.warn:
+            print_conda_exception(error)
+
     else:
         raise error
 

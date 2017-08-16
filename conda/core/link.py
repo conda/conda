@@ -11,6 +11,7 @@ from tempfile import mkdtemp
 from traceback import format_exception_only
 import warnings
 
+from conda.base.constants import SafetyChecks
 from .linked_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
 from .package_cache import PackageCache
 from .path_actions import (CompilePycAction, CreatePrefixRecordAction, CreateNonadminAction,
@@ -193,7 +194,7 @@ class UnlinkLinkTransaction(object):
 
         assert not context.dry_run
 
-        if context.skip_safety_checks:
+        if context.safety_checks == SafetyChecks.disabled:
             self._verified = True
             return
 
@@ -672,6 +673,8 @@ class UnlinkLinkTransaction(object):
         ))
 
     def make_legacy_action_groups(self, pfe):
+        # this code reverts json output for plan back to previous behavior
+        #   relied on by Anaconda Navigator and nb_conda
         from ..models.dist import Dist
         legacy_action_groups = []
 
@@ -684,9 +687,9 @@ class UnlinkLinkTransaction(object):
 
             actions['PREFIX'] = setup.target_prefix
             for prec in setup.unlink_precs:
-                actions['UNLINK'].append(prec)
+                actions['UNLINK'].append(Dist(prec))
             for prec in setup.link_precs:
-                actions['LINK'].append(prec)
+                actions['LINK'].append(Dist(prec))
 
             legacy_action_groups.append(actions)
 

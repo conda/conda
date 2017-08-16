@@ -39,6 +39,9 @@ requirements:
     - pyopenssl >=16.2.0
     - requests >=2.12.4,<=2.14.2
     - ruamel_yaml >=0.11.14
+  run_constrained:
+    - conda-build >=2.1
+    - cytoolz >=0.8.1
 
 test:
   requires:

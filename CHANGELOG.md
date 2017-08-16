@@ -113,6 +113,9 @@
 
 ### Deprecations/Breaking Changes
 * the conda 'root' environment is now generally referred to as the 'base' environment
+* Conda 4.4 now warns when available information about per-path sha256 sums and file sizes
+  do not match the recorded information.  The warning is scheduled to be an error in conda 4.5.
+  Behavior is configurable via the `safety_checks` configuration parameter.
 * remove support for with_features_depends (#5191)
 * resolve #5468 remove --alt-hint from CLI API (#5469)
 
@@ -154,6 +157,8 @@
 * enable threadpool use for repodata collection by default (#5546, #5587)
 * conda info now raises PackagesNotFoundError (#5655)
 * index building optimizations (#5776)
+* fix #5811 change safety_checks default to 'warn' for conda 4.4 (4.4.0rc1) (#5824)
+* add constrained dependencies to conda's own recipe (4.4.0rc1) (#5823)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -177,6 +182,11 @@
 * fix exception when generating JSON output (#5628)
 * fix target prefix determination (#5642)
 * use proxy to avoid segfaults (#5716)
+* fix #5790 incorrect activation message (4.4.0rc1) (#5820)
+* fix #5808 assertion error when loading package cache (4.4.0rc1) (#5815)
+* fix #5809 _pip_install_via_requirements got an unexpected keyword argument 'prune' (4.4.0rc1) (#5814)
+* fix #5811 change safety_checks default to 'warn' for conda 4.4 (4.4.0rc1) (#5824)
+* fix #5825 --json output format (4.4.0rc1) (#5831)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
@@ -203,9 +213,12 @@
 
 ### Improvements
 * add non-admin check to optionally disable non-privileged operation (#5724)
+* add extra warning message to always_softlink configuration option (#5826)
 
 ### Bug Fixes
 * fix #5763 channel url string splitting error (#5764)
+* fix regex for repodata _mod and _etag (#5795)
+* fix uncaught OSError for missing device (#5830)
 
 
 ## 4.3.24 (2017-07-31)
