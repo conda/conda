@@ -87,7 +87,7 @@ def ssl_verify_validation(value):
 class Context(Configuration):
 
     add_pip_as_python_dependency = PrimitiveParameter(True)
-    allow_softlinks = PrimitiveParameter(True)
+    allow_softlinks = PrimitiveParameter(False)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
