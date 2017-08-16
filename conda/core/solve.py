@@ -382,7 +382,8 @@ class Solver(object):
                 prec = next((rec for rec in final_precs if spec.match(rec)), None)
                 assert prec
                 link_precs.add(prec)
-                unlink_precs.add(prec)
+                if prec in previous_records:
+                    unlink_precs.add(prec)
 
         # TODO: add back 'noarch: python' to unlink and link if python version changes
         # TODO: get the sort order correct for unlink_records
