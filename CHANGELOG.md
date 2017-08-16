@@ -1,4 +1,4 @@
-## 4.3.25 (unreleased)
+## 4.3.25 (2017-08-16)
 
 ### Improvements
 * add non-admin check to optionally disable non-privileged operation (#5724)
