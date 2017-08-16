@@ -8,7 +8,6 @@ import sys
 from .._vendor.auxlib.ish import dals
 from ..base.constants import PREFIX_MAGIC_FILE, ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import itervalues
 from ..models.match_spec import MatchSpec
 
 

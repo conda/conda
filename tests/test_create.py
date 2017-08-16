@@ -374,7 +374,7 @@ class IntegrationTests(TestCase):
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
 
-            stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5 --json")
+            stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5 --json --dry-run", use_exception_handler=True)
             assert_json_parsable(stdout)
             assert not stderr
 
@@ -384,7 +384,7 @@ class IntegrationTests(TestCase):
             dist_dump = json_obj['actions']['LINK'][0]
             assert 'dist_name' in dist_dump
 
-            stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5 --json --dry-run")
+            stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5 --json")
             assert_json_parsable(stdout)
             assert not stderr
             json_obj = json.loads(stdout)
@@ -1056,8 +1056,9 @@ class IntegrationTests(TestCase):
         stdout, stderr = run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json", use_exception_handler=True)
 
         loaded = json.loads(stdout)
-        assert "python" in "\n".join(loaded['actions']['LINK'])
-        assert "flask" in "\n".join(loaded['actions']['LINK'])
+        names = set(d['name'] for d in loaded['actions']['LINK'])
+        assert "python" in names
+        assert "flask" in names
 
     def test_packages_not_found(self):
         with make_temp_env() as prefix:
