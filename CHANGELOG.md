@@ -118,6 +118,10 @@
   Behavior is configurable via the `safety_checks` configuration parameter.
 * remove support for with_features_depends (#5191)
 * resolve #5468 remove --alt-hint from CLI API (#5469)
+* resolve #5834 change default value of 'allow_softlinks' from True to False (#5835)
+
+### API
+* Add Solver from conda.core.solver with three methods to conda.api (4.4.0rc1) (#5838)
 
 ### Improvements
 * constrained, optional dependencies (#4982)
@@ -187,6 +191,7 @@
 * fix #5809 _pip_install_via_requirements got an unexpected keyword argument 'prune' (4.4.0rc1) (#5814)
 * fix #5811 change safety_checks default to 'warn' for conda 4.4 (4.4.0rc1) (#5824)
 * fix #5825 --json output format (4.4.0rc1) (#5831)
+* fix force_reinstall for case when packages aren't actually installed (4.4.0rc1) (#5836)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)

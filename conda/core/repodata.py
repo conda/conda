@@ -5,7 +5,6 @@ import bz2
 from collections import defaultdict
 from contextlib import closing
 from errno import ENODEV
-from functools import wraps
 from genericpath import getmtime, isfile
 import hashlib
 import json
