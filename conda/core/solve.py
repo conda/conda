@@ -344,8 +344,8 @@ class Solver(object):
                   self.prefix, "\n    ".join(text_type(d) for d in solution))
         return IndexedSet(index[d] for d in solution)
 
-    def solve_for_diff(self, deps_modifier=None, prune=NULL, ignore_pinned=NULL,
-                       force_remove=NULL, force_reinstall=NULL):
+    def solve_for_diff(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
+                       force_remove=NULL, force_reinstall=False):
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
