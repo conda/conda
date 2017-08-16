@@ -4,6 +4,7 @@
 build/
 dist/
 docs/build
+docs/_build
 .cache/
 .idea/
 ve/
@@ -23,3 +24,4 @@ conda_build_test_recipe/
 record.txt
 .vagrant/
 Vagrantfile
+env/
