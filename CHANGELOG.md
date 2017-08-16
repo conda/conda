@@ -7,6 +7,7 @@
 ### Bug Fixes
 * fix #5763 channel url string splitting error (#5764)
 * fix regex for repodata _mod and _etag (#5795)
+* fix uncaught OSError for missing device (#5830)
 
 
 ## 4.3.24 (2017-07-31)
