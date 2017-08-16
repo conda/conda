@@ -261,8 +261,8 @@ def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args,
         common.confirm_yn()
 
     elif context.dry_run:
-        common.stdout_json_success(unlink_link_transaction=unlink_link_transaction, prefix=prefix,
-                                   dry_run=True)
+        actions = unlink_link_transaction.make_legacy_action_groups(progressive_fetch_extract)[0]
+        common.stdout_json_success(prefix=prefix, actions=actions, dry_run=True)
         raise DryRunExit()
 
     try:
@@ -279,4 +279,4 @@ def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args,
 
     if context.json:
         actions = unlink_link_transaction.make_legacy_action_groups(progressive_fetch_extract)[0]
-        common.stdout_json_success(actions=actions)
+        common.stdout_json_success(prefix=prefix, actions=actions)

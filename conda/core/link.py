@@ -673,6 +673,8 @@ class UnlinkLinkTransaction(object):
         ))
 
     def make_legacy_action_groups(self, pfe):
+        # this code reverts json output for plan back to previous behavior
+        #   relied on by Anaconda Navigator and nb_conda
         from ..models.dist import Dist
         legacy_action_groups = []
 
@@ -685,9 +687,9 @@ class UnlinkLinkTransaction(object):
 
             actions['PREFIX'] = setup.target_prefix
             for prec in setup.unlink_precs:
-                actions['UNLINK'].append(prec)
+                actions['UNLINK'].append(Dist(prec))
             for prec in setup.link_precs:
-                actions['LINK'].append(prec)
+                actions['LINK'].append(Dist(prec))
 
             legacy_action_groups.append(actions)
 
