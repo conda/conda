@@ -14,6 +14,9 @@ CondaError = CondaError
 from . import compat, plan  # NOQA
 compat, plan = compat, plan
 
+from .core.solve import Solver  # NOQA
+Solver = Solver
+
 from .plan import display_actions, execute_actions, execute_plan, install_actions  # NOQA
 display_actions, execute_actions = display_actions, execute_actions
 execute_plan, install_actions = execute_plan, install_actions
