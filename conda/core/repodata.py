@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import bz2
 from contextlib import closing
+from errno import ENODEV
 from functools import wraps
 from genericpath import getmtime, isfile
 import hashlib
@@ -82,11 +83,16 @@ def read_mod_and_etag(path):
                 match_objects = take(3, re.finditer(REPODATA_HEADER_RE, m))
                 result = dict(map(ensure_unicode, mo.groups()) for mo in match_objects)
                 return result
-        except (BufferError, ValueError):
+        except (BufferError, ValueError, OSError):  # pragma: no cover
             # BufferError: cannot close exported pointers exist
             #   https://github.com/conda/conda/issues/4592
             # ValueError: cannot mmap an empty file
             return {}
+        except (IOError, OSError) as e:  # pragma: no cover
+            # OSError: [Errno 19] No such device
+            if e.errno == ENODEV:
+                return {}
+            raise
 
 
 def get_cache_control_max_age(cache_control_value):
