@@ -152,13 +152,17 @@ def main():
     elif sys_argv[1] == '..deactivate.path':
         activation_path = get_activate_path(sys_argv[3], shell)
 
+        shelldict = shells[shell]
+        curr_path = shelldict['path_to'](os.environ[str('PATH')])
+        pathsep = shelldict['pathsep']
+
         if os.getenv('_CONDA_HOLD'):
-            new_path = regex.sub(r'%s(:?)' % regex.escape(activation_path),
+            new_path = regex.sub(r'%s(%s?)' % (regex.escape(activation_path), pathsep),
                                  r'CONDA_PATH_PLACEHOLDER\1',
-                                 os.environ[str('PATH')], 1)
+                                 curr_path, 1)
         else:
-            new_path = regex.sub(r'%s(:?)' % regex.escape(activation_path), r'',
-                                 os.environ[str('PATH')], 1)
+            new_path = regex.sub(r'%s(%s?)' % (regex.escape(activation_path), pathsep), r'',
+                                 curr_path, 1)
 
         print(new_path)
         sys.exit(0)
