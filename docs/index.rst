@@ -11,6 +11,7 @@ Welcome to conda's documentation!
    :caption: Contents:
 
    commands/index
+   configuration
 
 
 

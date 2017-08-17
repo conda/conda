@@ -3,3 +3,4 @@ sphinx
 sphinx-autobuild
 sphinx-argparse
 sphinx_rtd_theme
+sphinxcontrib-programoutput
