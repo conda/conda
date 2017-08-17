@@ -68,10 +68,10 @@ def run_command(command, *arguments, **kwargs):
 
     """
     initialize_std_loggers()
-    use_exception_handler = kwargs.get('use_exception_handler', False)
-    configuration_search_path = kwargs.get('search_path', SEARCH_PATH)
-    stdout = kwargs.get('stdout', STRING)
-    stderr = kwargs.get('stderr', STRING)
+    use_exception_handler = kwargs.pop('use_exception_handler', False)
+    configuration_search_path = kwargs.pop('search_path', SEARCH_PATH)
+    stdout = kwargs.pop('stdout', STRING)
+    stderr = kwargs.pop('stderr', STRING)
     p = generate_parser()
 
     arguments = map(win_path_double_escape, arguments)
