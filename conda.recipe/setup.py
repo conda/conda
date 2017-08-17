@@ -52,11 +52,11 @@ setup(
         'build_py': packaging.BuildPyCommand,
         'sdist': packaging.SDistCommand,
     },
-    entry_points={
-        'console_scripts': [
-            "conda = conda.cli:main",
-            "conda-env = conda_env.cli.main:main"
-        ],
-    },
+    # entry_points={
+    #     'console_scripts': [
+    #         "conda = conda.cli:main",
+    #         "conda-env = conda_env.cli.main:main"
+    #     ],
+    # },
     zip_safe=False,
 )
