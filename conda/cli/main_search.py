@@ -88,8 +88,8 @@ def configure_parser(sub_parsers):
         '--platform',
         action='store',
         dest='platform',
-        help="""Search the given platform. Should be formatted like 'osx-64', 'linux-32',
-        'win-64', and so on. The default is to search the current platform.""",
+        help="Search the given platform. Should be formatted like 'osx-64', 'linux-32', "
+             "'win-64', and so on. The default is to search the current platform.",
         default=None,
     )
     p.add_argument(
