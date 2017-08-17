@@ -66,12 +66,13 @@ def test_info_package_json():
 
 @patch('conda.cli.install.install', side_effect=KeyError('blarg'))
 def test_get_info_dict(cli_install_mock):
+    # This test patches conda.cli.install.install to throw an artificial exception.
+    # What we're looking for here is the proper behavior for how error reports work with
+    # collecting `conda info` in this situation.
     with env_var('CONDA_REPORT_ERRORS', 'false', reset_context):
         out, err, rc = run_command(Commands.CREATE, "-n blargblargblarg blarg --dry-run",
                                    use_exception_handler=True)
-        sys.stdout.write(out)
         sys.stderr.write(err)
-        assert not out
         assert "conda info could not be constructed" not in err
 
         out, err, rc = run_command(Commands.CREATE, "-n blargblargblarg blarg --dry-run --json",
