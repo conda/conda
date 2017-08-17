@@ -8,6 +8,8 @@ User guide
    overview
    concepts
    getting-started
+   install/index
+   configuration/index
    tutorials/index
    tasks/index
    cheatsheet

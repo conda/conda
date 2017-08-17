@@ -4,7 +4,7 @@ Installing and updating conda build
 
 To enable building conda packages:
 
-* :doc:`install conda <../../../admin-guide/install/index>`
+* :doc:`install conda <../../install/index>`
 * install conda build
 * update conda and conda build
 

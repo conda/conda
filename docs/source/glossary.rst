@@ -19,8 +19,8 @@ it is automatically created in your home directory
 when you use the ``conda config`` command. The ``.condarc`` file
 can also be located in a root environment, in which case it
 overrides any ``.condarc`` in the home directory. For more
-information, see :doc:`admin-guide/configuration/use-condarc`
-and :doc:`admin-guide/configuration/admin-multi-user-install`.
+information, see :doc:`user-guide/configuration/use-condarc`
+and :doc:`user-guide/configuration/admin-multi-user-install`.
 Pronounced "conda r-c".
 
 .. _activate-deactivate-glossary:

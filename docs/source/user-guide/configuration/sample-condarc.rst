@@ -23,4 +23,4 @@ Sample .condarc file
   show_channel_urls: True
 
   # For more information about this file see:
-  # https://conda.io/docs/admin-guide/configuration/use-condarc.html
+  # https://conda.io/docs/user-guide/configuration/use-condarc.html

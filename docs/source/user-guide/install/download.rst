@@ -90,7 +90,7 @@ Choosing a version of Python
   with Anaconda3 and Miniconda3.
 * You can easily set up additional versions of Python such as 3.5
   by downloading any version and creating a new environment with
-  just a few clicks. See :doc:`../../user-guide/getting-started`.
+  just a few clicks. See :doc:`../getting-started`.
 
 
 Cryptographic hash verification

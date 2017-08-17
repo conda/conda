@@ -3,7 +3,7 @@ Tutorials
 ===========
 
 Before you start the tutorials, you should already have
-installed :doc:`Miniconda <../../admin-guide/install/index>` or Anaconda_.
+installed :doc:`Miniconda <../install/index>` or Anaconda_.
 
 .. _Anaconda: https://docs.continuum.io/anaconda/install
 

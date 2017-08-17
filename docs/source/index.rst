@@ -53,7 +53,6 @@ that approach may not be as up to date.
    :maxdepth: 1
 
    user-guide/index
-   admin-guide/index
    help-support
    release-notes
    commands

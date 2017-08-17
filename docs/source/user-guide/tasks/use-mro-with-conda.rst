@@ -31,7 +31,7 @@ Installing MRO and other R language packages
 You can install MRO and other R language packages several ways:
 
 * Add the MRO channel to your :doc:`.condarc configuration file
-  <../../admin-guide/configuration/use-condarc>` above the R
+  <../configuration/use-condarc>` above the R
   channel, and then use ``conda install r``. Use conda to install
   other packages.
 
