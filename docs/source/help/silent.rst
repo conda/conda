@@ -1,5 +1,5 @@
-install/quick
-=============
+help/silent
+===========
 
 .. raw:: html
 

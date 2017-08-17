@@ -1,5 +1,5 @@
-get-involved
-============
+announcements
+=============
 
 .. raw:: html
 

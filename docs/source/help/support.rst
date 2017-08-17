@@ -1,4 +1,4 @@
-get-involved
+help/support
 ============
 
 .. raw:: html

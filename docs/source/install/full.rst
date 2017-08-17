@@ -1,5 +1,5 @@
-install/quick
-=============
+install/full
+============
 
 .. raw:: html
 

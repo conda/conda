@@ -1,5 +1,5 @@
-get-involved
-============
+help/help
+=========
 
 .. raw:: html
 
