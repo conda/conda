@@ -10,8 +10,7 @@ Welcome to conda's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   create
-   commands/install
+   commands
 
 
 

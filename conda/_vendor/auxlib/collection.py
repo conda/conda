@@ -26,6 +26,12 @@ class _Null(object):
     def __len__(self):
         return 0
 
+    def __str__(self):
+        return "NULL (not set)"
+
+    def __repr__(self):
+        return "NULL"
+
 
 # Use this NULL object when needing to distinguish a value from None
 # For example, when parsing json, you may need to determine if a json key was given and set
