@@ -10,6 +10,15 @@ import logging
 from os.path import isdir, isfile
 import re
 
+from .common import disp_features, stdout_json
+from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
+from ..base.context import context
+from ..common.compat import text_type
+from ..core.envs_manager import EnvsDirectory
+from ..core.linked_data import is_linked, linked, linked_data
+from ..egg_info import get_egg_info
+from ..history import History
+
 log = logging.getLogger(__name__)
 
 
@@ -31,10 +40,6 @@ def get_packages(installed, regex):
 
 def list_packages(prefix, installed, regex=None, format='human',
                   show_channel_urls=None):
-    from .common import disp_features
-    from ..base.constants import DEFAULTS_CHANNEL_NAME
-    from ..base.context import context
-    from ..core.linked_data import is_linked
     res = 0
     result = []
     for dist in get_packages(installed, regex):
@@ -66,12 +71,6 @@ def list_packages(prefix, installed, regex=None, format='human',
 
 def print_packages(prefix, regex=None, format='human', piplist=False,
                    json=False, show_channel_urls=None):
-    from .common import stdout_json
-    from ..base.context import context
-    from ..common.compat import text_type
-    from ..core.linked_data import linked
-    from ..egg_info import get_egg_info
-
     if not isdir(prefix):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
@@ -100,9 +99,6 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
 
 
 def print_explicit(prefix, add_md5=False):
-    from ..base.constants import UNKNOWN_CHANNEL
-    from ..base.context import context
-    from ..core.linked_data import linked_data
     if not isdir(prefix):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
@@ -118,9 +114,6 @@ def print_explicit(prefix, add_md5=False):
 
 
 def execute(args, parser):
-    from ..base.context import context
-    from .common import stdout_json
-    from ..core.envs_manager import EnvsDirectory
     prefix = context.target_prefix
     if not EnvsDirectory.is_conda_environment(prefix):
         from ..exceptions import EnvironmentLocationNotFound
@@ -131,7 +124,6 @@ def execute(args, parser):
         regex = r'^%s$' % regex
 
     if args.revisions:
-        from ..history import History
         h = History(prefix)
         if isfile(h.path):
             if not context.json:

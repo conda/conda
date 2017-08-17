@@ -6,9 +6,10 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from .install import install
+from ..gateways.disk.delete import delete_trash
+
 
 def execute(args, parser):
-    from .install import install
-    from ..gateways.disk.delete import delete_trash
     install(args, parser, 'install')
     delete_trash()

@@ -11,23 +11,23 @@ import logging
 from os.path import isdir
 import sys
 
+from .common import check_non_admin, confirm_yn, specs_from_args, stdout_json
+from .install import handle_txn
+from ..base.context import context
+from ..common.compat import iteritems, iterkeys
+from ..core.envs_manager import EnvsDirectory
+from ..core.linked_data import linked_data
+from ..core.solve import Solver
+from ..exceptions import CondaEnvironmentError, CondaValueError
+from ..gateways.disk.delete import delete_trash, rm_rf
+from ..instructions import PREFIX
+from ..plan import (add_unlink)
+from ..resolve import MatchSpec
+
 log = logging.getLogger(__name__)
 
 
 def execute(args, parser):
-    from .common import check_non_admin, confirm_yn, specs_from_args, stdout_json
-    from ..base.context import context
-    from ..common.compat import iteritems, iterkeys
-    from ..exceptions import CondaEnvironmentError, CondaValueError
-    from ..gateways.disk.delete import delete_trash
-    from ..resolve import MatchSpec
-    from ..core.envs_manager import EnvsDirectory
-    from ..core.linked_data import linked_data
-    from ..gateways.disk.delete import rm_rf
-    from ..instructions import PREFIX
-    from ..plan import (add_unlink)
-    from .install import handle_txn
-    from ..core.solve import Solver
 
     if not (args.all or args.package_names or args.features):
         raise CondaValueError('no package names supplied,\n'
