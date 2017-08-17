@@ -6,61 +6,6 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .conda_argparse import add_parser_create_install_update, add_parser_json
-from ..common.compat import on_win
-from ..common.constants import NULL
-
-help = "Create a new conda environment from a list of specified packages. "
-descr = (help +
-         "To use the created environment, use 'source activate "
-         "envname' look in that directory first.  This command requires either "
-         "the -n NAME or -p PREFIX option.")
-
-example = """
-Examples:
-
-    conda create -n myenv sqlite
-
-"""
-
-
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'create',
-        description=descr,
-        help=help,
-        epilog=example,
-    )
-    if on_win:
-        p.add_argument(
-            "--shortcuts",
-            action="store_true",
-            help="Install start menu shortcuts",
-            dest="shortcuts",
-            default=NULL,
-        )
-        p.add_argument(
-            "--no-shortcuts",
-            action="store_false",
-            help="Don't install start menu shortcuts",
-            dest="shortcuts",
-            default=NULL,
-        )
-    add_parser_create_install_update(p)
-    add_parser_json(p)
-    p.add_argument(
-        "--clone",
-        action="store",
-        help='Path to (or name of) existing local environment.',
-        metavar='ENV',
-    )
-    p.add_argument(
-        "--no-default-packages",
-        action="store_true",
-        help='Ignore create_default_packages in the .condarc file.',
-    )
-    p.set_defaults(func=execute)
-
 
 def execute(args, parser):
     from .install import install

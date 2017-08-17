@@ -35,6 +35,7 @@ Additional help for each command can be accessed by using:
     conda <command> -h
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
+
 import sys
 
 PARSER = None
@@ -49,17 +50,10 @@ def generate_parser():
 
     from .. import __version__
     from .conda_argparse import ArgumentParser
-    from .main_clean import configure_parser as configure_parser_clean
-    from .main_config import configure_parser as configure_parser_config
-    from .main_create import configure_parser as configure_parser_create
-    from .main_help import configure_parser as configure_parser_help
-    from .main_info import configure_parser as configure_parser_info
-    from .main_install import configure_parser as configure_parser_install
-    from .main_list import configure_parser as configure_parser_list
-    from .main_package import configure_parser as configure_parser_package
-    from .main_remove import configure_parser as configure_parser_remove
-    from .main_search import configure_parser as configure_parser_search
-    from .main_update import configure_parser as configure_parser_update
+    from .parsers import (configure_parser_clean, configure_parser_config, configure_parser_create,
+                          configure_parser_help, configure_parser_info, configure_parser_install,
+                          configure_parser_list, configure_parser_package, configure_parser_remove,
+                          configure_parser_search, configure_parser_update)
 
     p = ArgumentParser(
         description='conda is a tool for managing and deploying applications,'
@@ -133,7 +127,11 @@ def _main(*args):
     context.__init__(SEARCH_PATH, 'conda', args)
     init_loggers(context)
 
-    exit_code = args.func(args, p)
+    relative_mod, func_name = args.func.rsplit('.', 1)
+    # func_name should always be 'execute'
+    from importlib import import_module
+    module = import_module(relative_mod, __name__.rsplit('.', 1)[0])
+    exit_code = getattr(module, func_name)(args, p)
     if isinstance(exit_code, int):
         return exit_code
 

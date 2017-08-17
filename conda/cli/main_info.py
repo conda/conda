@@ -15,66 +15,9 @@ from os.path import exists, expanduser, isfile, join
 import re
 import sys
 
-from .conda_argparse import add_parser_json, add_parser_offline
 from ..common.compat import iteritems, itervalues, on_win, text_type
 
 log = getLogger(__name__)
-
-help = "Display information about current conda install."
-
-example = """
-
-Examples:
-
-    conda info -a
-"""
-
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'info',
-        description=help,
-        help=help,
-        epilog=example,
-    )
-    add_parser_json(p)
-    add_parser_offline(p)
-    p.add_argument(
-        '-a', "--all",
-        action="store_true",
-        help="Show all information, (environments, license, and system "
-             "information.")
-    p.add_argument(
-        '-e', "--envs",
-        action="store_true",
-        help="List all known conda environments.",
-    )
-    p.add_argument(
-        '-l', "--license",
-        action="store_true",
-        help="Display information about the local conda licenses list.",
-    )
-    p.add_argument(
-        '-s', "--system",
-        action="store_true",
-        help="List environment variables.",
-    )
-    p.add_argument(
-        'packages',
-        action="store",
-        nargs='*',
-        help="Display information about packages.",
-    )
-    p.add_argument(
-        '--root',
-        action='store_true',
-        help='Display root environment path.',
-    )
-    p.add_argument(
-        '--unsafe-channels',
-        action='store_true',
-        help='Display list of channels with tokens exposed.',
-    )
-    p.set_defaults(func=execute)
 
 
 def get_user_site():  # pragma: no cover

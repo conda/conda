@@ -8,32 +8,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import subprocess
 import sys
 
-descr = "Displays a list of available conda commands and their help strings."
-
-example = """
-Examples:
-
-    conda help install
-"""
-
-
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'help',
-        description=descr,
-        help=descr,
-        epilog=example,
-    )
-    p.add_argument(
-        'command',
-        metavar='COMMAND',
-        action="store",
-        nargs='?',
-        help="""Print help information for COMMAND (same as: conda COMMAND
-        --help).""",
-    )
-    p.set_defaults(func=execute)
-
 
 def execute(args, parser):
     if not args.command:
