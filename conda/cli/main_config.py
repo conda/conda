@@ -118,8 +118,10 @@ or the file path given by the 'CONDARC' environment variable, if it is set
     action = p.add_mutually_exclusive_group(required=True)
     action.add_argument(
         "--show",
-        action="store_true",
-        help="Display all configuration values as calculated and compiled.",
+        nargs='*',
+        default=None,
+        help="Display configuration values as calculated and compiled. "
+             "If no arguments given, show information for all configuration values.",
     )
     action.add_argument(
         "--show-sources",
@@ -133,8 +135,10 @@ or the file path given by the 'CONDARC' environment variable, if it is set
     )
     action.add_argument(
         "--describe",
-        action="store_true",
-        help="Describe available configuration parameters.",
+        nargs='*',
+        default=None,
+        help="Describe given configuration parameters. If no arguments given, show "
+             "information for all configuration parameters.",
     )
     action.add_argument(
         "--write-default",
@@ -296,28 +300,49 @@ def execute_config(args, parser):
             print('\n'.join(lines))
         return
 
-    if args.show:
+    if args.show is not None:
+        if args.show:
+            paramater_names = args.show
+            all_names = context.list_parameters()
+            not_params = set(paramater_names) - set(all_names)
+            if not_params:
+                from ..exceptions import ArgumentError
+                from ..resolve import dashlist
+                raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
+        else:
+            paramater_names = context.list_parameters()
+
         from collections import OrderedDict
 
-        d = OrderedDict((key, getattr(context, key))
-                        for key in context.list_parameters())
+        d = OrderedDict((key, getattr(context, key)) for key in paramater_names)
         if context.json:
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
                   cls=EntityEncoder))
         else:
             # coerce channels
-            d['custom_channels'] = {k: text_type(v).replace(k, '')  # TODO: the replace here isn't quite right  # NOQA
-                                    for k, v in iteritems(d['custom_channels'])}
+            if 'custom_channels' in d:
+                d['custom_channels'] = {k: text_type(v).replace(k, '')  # TODO: the replace here isn't quite right  # NOQA
+                                        for k, v in iteritems(d['custom_channels'])}
             # TODO: custom_multichannels needs better formatting
-            d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls])
-                                         for k, chnls in iteritems(d['custom_multichannels'])}
+            if 'custom_multichannels' in d:
+                d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls])
+                                             for k, chnls in iteritems(d['custom_multichannels'])}
 
             print('\n'.join(format_dict(d)))
         context.validate_configuration()
         return
 
-    if args.describe:
-        paramater_names = context.list_parameters()
+    if args.describe is not None:
+        if args.describe:
+            paramater_names = args.describe
+            all_names = context.list_parameters()
+            not_params = set(paramater_names) - set(all_names)
+            if not_params:
+                from ..exceptions import ArgumentError
+                from ..resolve import dashlist
+                raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
+        else:
+            paramater_names = context.list_parameters()
         if context.json:
             print(json.dumps([context.describe_parameter(name) for name in paramater_names],
                              sort_keys=True, indent=2, separators=(',', ': '),
