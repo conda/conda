@@ -431,6 +431,12 @@ class IntegrationTests(TestCase):
             assert any(line.endswith("<pip>") for line in stdout_lines
                        if line.lower().startswith("flask"))
 
+            # regression test for #5847
+            #   when using rm_rf on a directory
+            assert prefix in linked_data_
+            rm_rf(join(prefix, get_python_site_packages_short_path("3.5")))
+            assert prefix not in linked_data_
+
     def test_list_with_pip_wheel(self):
         with make_temp_env("python=3.5 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
@@ -443,6 +449,12 @@ class IntegrationTests(TestCase):
             # regression test for #3433
             run_command(Commands.INSTALL, prefix, "python=3.4")
             assert_package_is_installed(prefix, 'python-3.4.')
+
+            # regression test for #5847
+            #   when using rm_rf on a file
+            assert prefix in linked_data_
+            rm_rf(join(prefix, get_python_site_packages_short_path("3.4")), "os.py")
+            assert prefix not in linked_data_
 
     def test_install_tarball_from_local_channel(self):
         # Regression test for #2812
