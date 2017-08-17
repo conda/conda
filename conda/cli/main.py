@@ -45,60 +45,9 @@ def generate_parser():
     global PARSER
     if PARSER is not None:
         return PARSER
-
-    from argparse import SUPPRESS
-
-    from .. import __version__
-    from .conda_argparse import ArgumentParser
-    from .parsers import (configure_parser_clean, configure_parser_config, configure_parser_create,
-                          configure_parser_help, configure_parser_info, configure_parser_install,
-                          configure_parser_list, configure_parser_package, configure_parser_remove,
-                          configure_parser_search, configure_parser_update)
-
-    p = ArgumentParser(
-        description='conda is a tool for managing and deploying applications,'
-                    ' environments and packages.',
-    )
-    p.add_argument(
-        '-V', '--version',
-        action='version',
-        version='conda %s' % __version__,
-        help="Show the conda version number and exit."
-    )
-    p.add_argument(
-        "--debug",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        "--json",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    sub_parsers = p.add_subparsers(
-        metavar='command',
-        dest='cmd',
-    )
-    # http://bugs.python.org/issue9253
-    # http://stackoverflow.com/a/18283730/1599393
-    sub_parsers.required = True
-
-    configure_parser_clean(sub_parsers)
-    configure_parser_config(sub_parsers)
-    configure_parser_create(sub_parsers)
-    configure_parser_help(sub_parsers)
-    configure_parser_info(sub_parsers)
-    configure_parser_install(sub_parsers)
-    configure_parser_list(sub_parsers)
-    configure_parser_package(sub_parsers)
-    configure_parser_remove(sub_parsers)
-    configure_parser_remove(sub_parsers, name='uninstall')
-    configure_parser_search(sub_parsers)
-    configure_parser_update(sub_parsers)
-    configure_parser_update(sub_parsers, name='upgrade')
-
-    PARSER = p
-    return p
+    from .conda_argparse import generate_parser
+    PARSER = generate_parser()
+    return PARSER
 
 
 def init_loggers(context=None):
