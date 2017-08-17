@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import bz2
 from contextlib import contextmanager
-from datetime import datetime
 from glob import glob
 import json
 from json import loads as json_loads
@@ -20,14 +19,15 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-from conda._vendor.auxlib.ish import dals
 import pytest
 import requests
 
 from conda import CondaError, CondaMultiError
 from conda._vendor.auxlib.entity import EntityEncoder
+from conda._vendor.auxlib.ish import dals
 from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE, SafetyChecks
 from conda.base.context import Context, context, reset_context
+from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.compat import PY2, iteritems, itervalues, text_type
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level
@@ -39,8 +39,8 @@ from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
     linked as install_linked, linked_data
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
-from conda.exceptions import CondaHTTPError, DryRunExit, PackagesNotFoundError, RemoveError, \
-    conda_exception_handler, CommandArgumentError, OperationNotAllowed
+from conda.exceptions import CommandArgumentError, CondaHTTPError, DryRunExit, OperationNotAllowed, \
+    PackagesNotFoundError, RemoveError, conda_exception_handler
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -123,9 +123,9 @@ def run_command(command, prefix, *arguments, **kwargs):
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         with argv(['python_api'] + split_command_line), captured() as c:
             if use_exception_handler:
-                conda_exception_handler(args.func, args, p)
+                conda_exception_handler(do_call, args, p)
             else:
-                args.func(args, p)
+                do_call(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout, file=sys.stderr)
     if command is Commands.CONFIG:

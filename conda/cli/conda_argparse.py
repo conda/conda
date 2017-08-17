@@ -67,6 +67,15 @@ def generate_parser():
     return p
 
 
+def do_call(args, parser):
+    relative_mod, func_name = args.func.rsplit('.', 1)
+    # func_name should always be 'execute'
+    from importlib import import_module
+    module = import_module(relative_mod, __name__.rsplit('.', 1)[0])
+    exit_code = getattr(module, func_name)(args, parser)
+    return exit_code
+
+
 class ArgumentParser(ArgumentParserBase):
     def __init__(self, *args, **kwargs):
         if not kwargs.get('formatter_class'):
@@ -355,8 +364,10 @@ or the file path given by the 'CONDARC' environment variable, if it is set
     action = p.add_mutually_exclusive_group(required=True)
     action.add_argument(
         "--show",
-        action="store_true",
-        help="Display all configuration values as calculated and compiled.",
+        nargs='*',
+        default=None,
+        help="Display configuration values as calculated and compiled. "
+             "If no arguments given, show information for all configuration values.",
     )
     action.add_argument(
         "--show-sources",
@@ -370,8 +381,10 @@ or the file path given by the 'CONDARC' environment variable, if it is set
     )
     action.add_argument(
         "--describe",
-        action="store_true",
-        help="Describe available configuration parameters.",
+        nargs='*',
+        default=None,
+        help="Describe given configuration parameters. If no arguments given, show "
+             "information for all configuration parameters.",
     )
     action.add_argument(
         "--write-default",

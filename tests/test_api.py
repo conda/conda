@@ -3,9 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import inspect
 
-from conda._vendor.auxlib.collection import NULL
 from conda.api import Solver
 from conda.common.compat import odict
+from conda.common.constants import NULL
 
 
 def inspect_arguments(f, arguments):

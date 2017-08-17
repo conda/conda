@@ -4,9 +4,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 from shlex import split
 
+from .conda_argparse import do_call
+from .main import generate_parser
 from ..base.constants import APP_NAME, SEARCH_PATH
 from ..base.context import context
-from ..cli.main import generate_parser
 from ..common.io import CaptureTarget, argv, captured
 from ..common.path import win_path_double_escape
 from ..exceptions import conda_exception_handler
@@ -88,9 +89,9 @@ def run_command(command, *arguments, **kwargs):
     try:
         with argv(['python_api'] + split_command_line), captured(stdout, stderr) as c:
             if use_exception_handler:
-                return_code = conda_exception_handler(args.func, args, p)
+                return_code = conda_exception_handler(do_call, args, p)
             else:
-                return_code = args.func(args, p)
+                return_code = do_call(args, p)
     except Exception as e:
         log.debug("\n  stdout: %s\n  stderr: %s", c.stdout, c.stderr)
         e.stdout, e.stderr = c.stdout, c.stderr

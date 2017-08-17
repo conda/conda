@@ -64,6 +64,7 @@ def init_loggers(context=None):
 
 
 def _main(*args):
+    from .conda_argparse import do_call
     from ..base.constants import SEARCH_PATH
     from ..base.context import context
 
@@ -76,11 +77,7 @@ def _main(*args):
     context.__init__(SEARCH_PATH, 'conda', args)
     init_loggers(context)
 
-    relative_mod, func_name = args.func.rsplit('.', 1)
-    # func_name should always be 'execute'
-    from importlib import import_module
-    module = import_module(relative_mod, __name__.rsplit('.', 1)[0])
-    exit_code = getattr(module, func_name)(args, p)
+    exit_code = do_call(args, p)
     if isinstance(exit_code, int):
         return exit_code
 
