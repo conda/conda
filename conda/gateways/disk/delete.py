@@ -30,16 +30,12 @@ def rm_rf(path, max_retries=5, trash=True):
         path = abspath(path)
         log.trace("rm_rf %s", path)
         if isdir(path) and not islink(path):
-            try:
-                # On Windows, always move to trash first.
-                if trash and on_win:
-                    move_result = move_path_to_trash(path, preclean=False)
-                    if move_result:
-                        return True
-                backoff_rmdir(path)
-            finally:
-                from ...core.linked_data import delete_prefix_from_linked_data
-                delete_prefix_from_linked_data(path)
+            # On Windows, always move to trash first.
+            if trash and on_win:
+                move_result = move_path_to_trash(path, preclean=False)
+                if move_result:
+                    return True
+            backoff_rmdir(path)
         elif lexists(path):
             try:
                 backoff_unlink(path)
@@ -51,11 +47,12 @@ def rm_rf(path, max_retries=5, trash=True):
                     if move_result:
                         return True
                 log.info("Failed to remove %s.", path)
-
         else:
             log.trace("rm_rf failed. Not a link, file, or directory: %s", path)
         return True
     finally:
+        from ...core.linked_data import delete_prefix_from_linked_data
+        delete_prefix_from_linked_data(path)
         if lexists(path):
             log.info("rm_rf failed for %s", path)
             return False
