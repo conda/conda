@@ -10,7 +10,7 @@ Welcome to conda's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   commands
+   commands/index
 
 
 
