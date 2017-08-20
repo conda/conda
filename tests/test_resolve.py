@@ -260,7 +260,7 @@ def test_generate_eq():
     dists = r.get_reduced_index(['anaconda'])
     r2 = Resolve(dists, True, True)
     C = r2.gen_clauses()
-    eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
+    eqc, eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
     #   coefficients.
@@ -269,8 +269,10 @@ def test_generate_eq():
     # - a package that only has one version should not appear, unless
     #   include=True as it will have a 0 coefficient. The same is true of the
     #   latest version of a package.
+    eqc = {Dist(key).to_filename(): value for key, value in iteritems(eqc)}
     eqv = {Dist(key).to_filename(): value for key, value in iteritems(eqv)}
     eqb = {Dist(key).to_filename(): value for key, value in iteritems(eqb)}
+    assert eqc == {}
     assert eqv == {
         'anaconda-1.4.0-np15py26_0.tar.bz2': 1,
         'anaconda-1.4.0-np15py27_0.tar.bz2': 1,
