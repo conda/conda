@@ -631,10 +631,22 @@ evaluate to ``>=5.3.0,<6``.
 Note that ``run_exports`` can be specified both in the build section, and on
 a per-output basis for split packages.
 
+``run_exports`` only affects directly named dependencies. For example, if you
+have a metapackage that includes a compiler that lists ``run_exports``, you also
+need to define ``run_exports`` in the metapackage so that it takes effect
+when people install your metapackage.  This is important, because if
+``run_exports`` affected transitive dependencies, you would see many added
+dependencies to shared libraries where they are not actually direct
+dependencies. For example, Python uses bzip2, which can use ``run_exports`` to
+make sure that people use a compatible build of bzip2. If people list python as
+a build time dependency, bzip2 should only be imposed for python itself, and
+should not be automatically imposed as a runtime dependency for the thing using
+python.
+
 The potential downside of this feature is that it takes some control over
-constraints away from downstream users. If an upstream package has a
-problematic run_exports constraint, you can ignore it in your recipe by
-listing the upstream package name in the ``build/ignore_run_exports`` section:
+constraints away from downstream users. If an upstream package has a problematic
+run_exports constraint, you can ignore it in your recipe by listing the upstream
+package name in the ``build/ignore_run_exports`` section:
 
 .. code-block:: yaml
 
