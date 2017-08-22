@@ -32,7 +32,7 @@ Anaconda Cloud, you will need an
    features
    environment-variables
    make-relocatable
-   add-scripts
+   link-scripts
    variants
    use-shared-libraries
    sign-packages
