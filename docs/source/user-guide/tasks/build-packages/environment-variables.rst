@@ -99,6 +99,12 @@ inherited from the shell environment in which you invoke
      - Name of the package being built.
    * - PKG_VERSION
      - Version of the package being built.
+   * - ``PKG_BUILD_STRING``
+     - Complete build string of the package being built, including hash.
+       EXAMPLE: py27h21422ab_0 . Conda-build 3.0+.
+   * - ``PKG_HASH``
+     - Hash of the package being built, without leading h. EXAMPLE: 21422ab .
+       Conda-build 3.0+.
    * - PYTHON
      - Path to the Python executable in the build prefix. Python
        is installed only in the build prefix when it is listed as
