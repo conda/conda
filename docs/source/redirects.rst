@@ -64,6 +64,7 @@ Redirects
    install/quick
    install/sample-condarc
    install/tab-completion
+   user-guide/tasks/build-packages/add-scripts
    using/cheatsheet
    using/envs
    using/index

@@ -818,6 +818,8 @@ NOTE: Python .py and Perl .pl scripts are valid only
 as part of Python and Perl packages, respectively.
 
 
+.. _package-outputs:
+
 Outputs section
 ================
 
