@@ -26,7 +26,7 @@ EXAMPLES:
 */pkgs*
 
 Also referred to as PKGS_DIR. This directory contains 
-exploded packages, ready to be linked in conda environments. 
+decompressed packages, ready to be linked in conda environments. 
 Each package resides in a subdirectory corresponding to its 
 canonical name.
 
