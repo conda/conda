@@ -9,9 +9,10 @@ import pytest
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.cli.common import list_prefixes
+from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser
 from conda.common.io import captured
-from conda.exceptions import EnvironmentNameNotFound, EnvironmentLocationNotFound
+from conda.exceptions import EnvironmentLocationNotFound
 from conda.install import rm_rf
 from conda_env.cli.main import create_parser
 from conda_env.exceptions import SpecNotFound
@@ -111,7 +112,7 @@ def run_conda_command(command, prefix, *arguments):
     args = p.parse_args(split(command_line))
     context._set_argparse_args(args)
     with captured() as c:
-        args.func(args, p)
+        do_call(args, p)
 
     return c.stdout, c.stderr
 
