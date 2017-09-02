@@ -27,7 +27,7 @@ from ...models.package_info import PackageInfo, PackageMetadata, PathData, PathD
 log = getLogger(__name__)
 
 listdir = listdir
-lexists, isdir, isfile = lexists, isdir, isfile
+lexists, isdir, isfile, glob = lexists, isdir, isfile, glob
 
 
 def yield_lines(path):
