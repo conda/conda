@@ -217,14 +217,15 @@ end
 #   command conda env list | awk 'NR > 2 {print $1}'
 # end
 
+set -x CONDA_ROOT_FISH_CACHED (command conda info --root)
 
 # Faster but less tested (?)
 function __fish_conda_commands
-  command echo -e "activate\ndeactivate" ;and ls --color=none (conda info --root)/bin/conda-* | sed -r 's/^.*conda-([a-z]+)/\1/'
+  command echo -e "activate\ndeactivate" ;and ls --color=none $CONDA_ROOT_FISH_CACHED/bin/conda-* | sed -r 's/^.*conda-([a-z]+)/\1/'
 end
 
 function __fish_conda_envs
-  command echo root ;and ls -1 --color=none (conda info --root)/envs/
+  command echo root ;and ls -1 --color=none $CONDA_ROOT_FISH_CACHED/envs/
 end
 
 function __fish_conda_packages
