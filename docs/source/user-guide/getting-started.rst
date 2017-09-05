@@ -32,7 +32,7 @@ exercises:
 
   * For packages that are in neither location, install a package
     with the pip package manager. Install a free 30-day trial
-    of Continuum’s commercial package, IOPro.
+    of Anaconda's commercial package, IOPro.
 
   10 minutes
 
@@ -357,7 +357,7 @@ Installing packages from Anaconda.org
 For packages that are not available using ``conda install``, look
 on Anaconda.org, a package management service for both public and
 private package repositories. Like Anaconda and Miniconda,
-Anaconda.org is a Continuum Analytics product.
+Anaconda.org is an Anaconda product.
 
 TIP: You are not required to register with Anaconda.org to
 download files.
@@ -439,7 +439,7 @@ Installing commercial packages
 Installing commercial packages is the same as installing any
 other package with conda.
 
-EXAMPLE: To install a free trial of one of Continuum’s commercial
+EXAMPLE: To install a free trial of one of Anaconda's commercial
 packages, IOPro, which can speed up your Python processing:
 
 .. code::
@@ -517,7 +517,7 @@ More information
 * Full documentation---`<https://conda.io/docs/>`_.
 * Cheat sheet---:doc:`cheatsheet`.
 * FAQs---`<http://docs.continuum.io/anaconda/faq.html>`_.
-* Free community support---`<https://groups.google.com/a/continuum.io/forum/#!forum/anaconda>`_.
-* Paid support options---`<http://continuum.io/support>`_.
-* Training---`<https://www.continuum.io/training>`_.
-* Consulting---`<https://www.continuum.io/quick-start-consulting>`_.
+* Free community support---`<https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda>`_.
+* Paid support options---`<https://www.anaconda.com/support/>`_.
+* Training---`<https://www.anaconda.com/training/>`_.
+* Consulting---`<https://www.anaconda.com/consulting/>`_.

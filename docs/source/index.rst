@@ -31,20 +31,19 @@ your usual version of Python in your normal environment.
 
 In its default configuration, conda can install and manage the
 thousand packages at repo.continuum.io that are built, reviewed
-and maintained by Continuum Analytics\ |reg|.
+and maintained by Anaconda\ |reg|.
 
 Conda can be combined with continuous integration systems such
 as Travis CI and AppVeyor to provide frequent, automated testing
 of your code.
 
-Conda package and environment manager is included in all versions of
+The conda package and environment manager is included in all versions of
 :ref:`Anaconda\ |reg| <anaconda-glossary>`,
 :ref:`Miniconda <miniconda-glossary>` and
 `Anaconda Repository <https://docs.continuum.io/anaconda-repository/>`_.
-Conda is also included in the Continuum `subscriptions
-<https://www.continuum.io/anaconda-subscriptions>`_
-of Anaconda, which provide on-site enterprise package and
-environment management for Python, R, Node.js, Java and other
+Conda is also included in `Anaconda Enterprise
+<https://www.anaconda.com/enterprise/>`_ , which provides on-site enterprise
+package and environment management for Python, R, Node.js, Java and other
 application stacks. Conda is also available on PyPI, although
 that approach may not be as up to date.
 

@@ -179,5 +179,5 @@ More information
 ================
 
 For community help on using conda with MRO, join the `conda
-<https://groups.google.com/a/continuum.io/forum/#!forum/conda>`_
+<https://groups.google.com/a/anaconda.com/forum/#!forum/conda>`_
 email group.

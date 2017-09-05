@@ -8,7 +8,7 @@ Installing on Windows
      Windows <https://conda.io/miniconda.html>`_.
 
    * `Anaconda installer for
-     Windows <http://continuum.io/downloads>`_.
+     Windows <https://www.anaconda.com/download/>`_.
 
 #. Double-click the ``.exe`` file.
 

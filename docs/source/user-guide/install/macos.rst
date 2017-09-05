@@ -6,7 +6,7 @@ Installing on macOS
 
    * `Miniconda installer for macOS <https://conda.io/miniconda.html>`_.
 
-   * `Anaconda installer for macOS <http://continuum.io/downloads>`_.
+   * `Anaconda installer for macOS <https://www.anaconda.com/download/>`_.
 
 #. Install:
 

@@ -1119,7 +1119,7 @@ already-installed compiler, such as Visual Studio.
 Note also the ``run_exports`` key in meta.yaml. This is useful for compiler
 recipes to impose runtime constraints based on the versions of subpackages
 created by the compiler recipe. For more information, see the :ref:`run_exports`
-section of the meta.yaml docs. Compiler packages provided by Continuum use the
+section of the meta.yaml docs. Compiler packages provided by Anaconda use the
 run_exports key extensively. For example, recipes that include the
 ``gcc_linux-cos5-x86_64`` package as a build time dependency (either directly,
 or through a ``{{ compilers('c') }}`` jinja2 function) will automatically have a

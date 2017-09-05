@@ -4,8 +4,8 @@ Conda license
 
 Conda is released under the 3-clause BSD license with the following terms:
 
-(c) 2017 Continuum Analytics, Inc. http://continuum.io. All 
-Rights Reserved
+(c) 2017 Continuum Analytics, Inc. (dba Anaconda, Inc.). http://anaconda.com.
+All Rights Reserved
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:

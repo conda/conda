@@ -6,7 +6,7 @@ Installing on Linux
 
    * `Miniconda installer for Linux <https://conda.io/miniconda.html>`_.
 
-   * `Anaconda installer for Linux <http://continuum.io/downloads>`_.
+   * `Anaconda installer for Linux <https://www.anaconda.com/download/>`_.
 
 #. In your terminal window, run:
 

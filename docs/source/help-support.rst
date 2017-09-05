@@ -3,11 +3,11 @@ Help and support
 =================
 
 * Get free community support with our `Google group
-  <https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda/>`_.
+  <https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda>`_.
 
-* Paid `support <https://www.continuum.io/anaconda-support>`_,
-  `training <https://www.continuum.io/training>`_ and
-  `consulting <https://www.continuum.io/quick-start-consulting>`_
+* Paid `support <https://www.anaconda.com/support/>`_,
+  `training <https://www.anaconda.com/training/>`_ and
+  `consulting <https://www.anaconda.com/consulting/>`_
   options are available. Our teaching philosophy is that the best
   way to learn is with hands-on experience addressing real-world
   problems. Courses are available to individuals online, at
@@ -23,9 +23,9 @@ Join the conda email group
 ===========================
 
 Join the mailing lists for both `Anaconda
-<https://groups.google.com/a/continuum.io/forum/?fromgroups#!forum/anaconda>`_
+<https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda>`_
 and `conda
-<https://groups.google.com/a/continuum.io/forum/#!forum/conda>`_.
+<https://groups.google.com/a/anaconda.com/forum/#!forum/conda>`_.
 Ask questions, answer questions, discuss ways to use conda,
 request new features and submit any other comments you may have.
 
@@ -58,7 +58,7 @@ Send feedback
 =============
 
 Send feedback about the conda documentation to
-`documentation@continuum.io <mailto:documentation@continuum.io>`_.
+`documentation@anaconda.com <mailto:documentation@anaconda.com>`_.
 
 
 Presentations and blog posts
@@ -68,19 +68,13 @@ Presentations and blog posts
   <https://speakerdeck.com/teoliphant/packaging-and-deployment-with-conda>`_.
 
 * `Python 3 Support in Anaconda---Ilan Schnell
-  <https://www.continuum.io/content/python-3-support-anaconda>`_.
+  <https://www.anaconda.com/blog/developer-blog/python-3-support-anaconda/>`_.
 
 * `New Advances in conda---Ilan Schnell
-  <https://www.continuum.io/blog/developer/new-advances-conda>`_.
+  <https://www.anaconda.com/blog/developer/new-advances-conda/>`_.
 
 * `Python Packages and Environments with conda---Bryan Van de Ven
-  <https://www.continuum.io/content/python-packages-and-environments-conda>`_.
-
-* `Advanced Features of conda, Part 1---Aaron Meurer
-  <https://www.continuum.io/blog/developer/advanced-features-conda-part-1>`_.
-
-* `Advanced Features of conda, Part 2---Aaron Meurer
-  <https://www.continuum.io/blog/developer/advanced-features-conda-part-2>`_
+  <https://www.anaconda.com/blog/developer-blog/python-packages-and-environments-conda/>`_.
 
 
 Conda announcements list

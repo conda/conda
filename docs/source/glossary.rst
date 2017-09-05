@@ -55,7 +55,7 @@ their dependencies that have been tested to work well together,
 including SciPy, NumPy and many others. Use the ``conda install`` command
 to easily install 1,000+ popular open source packages
 for data science---including advanced and scientific
-analytics---from the Continuum repository. Use the ``conda``
+analytics---from the Anaconda repository. Use the ``conda``
 command to install thousands more open source packages.
 
 Because Anaconda is a Python distribution, it can make
@@ -77,7 +77,7 @@ created locally can be published to the cloud to be shared with
 others. Free accounts on Cloud can publish packages to be shared
 publicly. Paid subscriptions to Cloud can designate packages as
 private to be shared with authorized users. Anaconda Cloud is a
-public version of Continuum's Anaconda Repository.
+public version of Anaconda Repository.
 
 .. _navigator-glossary:
 
@@ -191,7 +191,7 @@ version of Anaconda that includes only conda, Python, the
 packages they depend on and a small number of other useful
 packages, including pip, zlib and a few others. Use the
 ``conda install`` command to install 720+ additional conda
-packages from the Continuum repository.
+packages from the Anaconda repository.
 
 Because Miniconda is a Python distribution, and it can make
 installing Python quick and easy even for new users.

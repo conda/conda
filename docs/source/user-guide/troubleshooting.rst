@@ -553,7 +553,7 @@ running the following command:
 
 In this example, there are 4 different places that you could try
 to get the package. None of them are officially supported or
-endorsed by Continuum, but members of the conda community have
+endorsed by Anaconda, but members of the conda community have
 provided many valuable packages. If you want to go with public
 opinion, then `the web interface
 <https://anaconda.org/search?q=cx_freeze>`_ provides more

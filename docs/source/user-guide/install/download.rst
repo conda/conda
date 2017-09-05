@@ -9,12 +9,11 @@ Downloading conda
 
 You have 3 conda download options:
 
-* `Download Anaconda <http://continuum.io/downloads>`_---free.
+* `Download Anaconda <https://www.anaconda.com/download/>`_---free.
 
 * `Download Miniconda <https://conda.io/miniconda.html>`_---free.
 
-* Purchase an `Anaconda subscription
-  <https://www.continuum.io/anaconda-subscriptions>`_.
+* Purchase `Anaconda Enterprise <https://www.anaconda.com/enterprise/>`_.
 
 You can download any of these 3 options with legacy Python 2.7 or
 current Python 3.

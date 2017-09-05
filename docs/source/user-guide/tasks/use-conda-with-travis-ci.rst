@@ -70,7 +70,7 @@ see `Building a Python Project
 Supporting packages that do not have official builds
 ====================================================
 
-To support a package that does not have official Continuum builds:
+To support a package that does not have official Anaconda builds:
 
 #. Build the package yourself.
 

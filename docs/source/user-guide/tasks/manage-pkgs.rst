@@ -95,7 +95,7 @@ Installing packages from Anaconda.org
 Packages that are not available using conda install can be
 obtained from Anaconda.org. Formerly Binstar.org, Anaconda.org,
 is a package management service for both public and private
-package repositories. Anaconda.org is a Continuum Analytics
+package repositories. Anaconda.org is an Anaconda
 product, just like Anaconda and Miniconda.
 
 To install a package from Anaconda.org:
@@ -174,7 +174,7 @@ installing any other package:
 
    conda install --name myenv iopro
 
-This command installs a free trial of one of Continuum’s
+This command installs a free trial of one of Anaconda's
 commercial packages called `IOPro
 <https://docs.continuum.io/iopro/>`_, which can speed up your
 Python processing. Except for academic use, this free trial
