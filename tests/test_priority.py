@@ -22,16 +22,16 @@ class PriorityIntegrationTests(TestCase):
             # update --all
             update_stdout, _ = run_command(Commands.UPDATE, prefix, '--all')
 
-            # pycosat should be in the SUPERSEDED list
+            # xz should be in the SUPERSEDED list
             superceded_split = update_stdout.split('SUPERSEDED')
             assert len(superceded_split) == 2
-            assert 'pycosat' in superceded_split[1]
+            assert 'xz' in superceded_split[1]
 
             # python sys.version should show conda-forge python
             python_tuple = get_conda_list_tuple(prefix, "python")
             assert python_tuple[3] == 'conda-forge'
-            # conda list should show pycosat coming from conda-forge
-            pycosat_tuple = get_conda_list_tuple(prefix, "pycosat")
+            # conda list should show xz coming from conda-forge
+            pycosat_tuple = get_conda_list_tuple(prefix, "xz")
             assert pycosat_tuple[3] == 'conda-forge'
 
     def test_channel_priority_update(self):
