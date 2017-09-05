@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from conda.common.compat import on_win
 import pytest
 
 from conda.base.context import context
@@ -10,6 +11,7 @@ from .test_create import (make_temp_env, assert_package_is_installed,
 @pytest.mark.integration
 class PriorityIntegrationTests(TestCase):
 
+    @pytest.mark.skipif(on_win, reason="xz packages are different on windows than unix")
     def test_channel_order_channel_priority_true(self):
         with make_temp_env("python=3.5 pycosat==0.6.1") as prefix:
             assert_package_is_installed(prefix, 'python')
