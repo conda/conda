@@ -1,24 +1,17 @@
 from __future__ import absolute_import, print_function
 
-import json
 import unittest
 
-from conda.common.io import env_var
-
 from conda.base.context import reset_context
-from conda.common.compat import iteritems, text_type
+from conda.common.compat import iteritems
+from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
-from os.path import dirname, join
+from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound, dashlist
+from tests.helpers import get_index_r_1, get_index_r_3, raises
 
-from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
-from tests.helpers import raises
-
-with open(join(dirname(__file__), 'index.json')) as fi:
-    index = {Dist(key): IndexRecord(**value) for key, value in iteritems(json.load(fi))}
-
-r = Resolve(index)
+index, r, = get_index_r_1()
 
 f_mkl = set(['mkl'])
 
@@ -256,7 +249,7 @@ def test_get_dists():
     assert Dist('dynd-python-0.3.0-np17py33_0.tar.bz2') in dists
 
 
-def test_generate_eq():
+def test_generate_eq_1():
     dists = r.get_reduced_index(['anaconda'])
     r2 = Resolve(dists, True, True)
     C = r2.gen_clauses()
@@ -981,7 +974,7 @@ def test_remove():
         'zlib-1.2.7-0.tar.bz2']]
 
 
-def test_channel_priority():
+def test_channel_priority_1():
     fn1 = 'pandas-0.10.1-np17py27_0.tar.bz2'
     fn2 = 'other::' + fn1
     spec = ['pandas', 'python 2.7*']
@@ -1009,6 +1002,240 @@ def test_channel_priority():
         assert installed1 != installed2
         assert installed1 != installed3
         assert installed2 == installed3
+
+
+def test_channel_priority_2():
+    this_index = index.copy()
+    index3, r3 = get_index_r_3()
+    this_index.update(index3)
+    spec = ['pandas', 'python 2.7*']
+    this_r = Resolve(this_index)
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
+        dists = this_r.get_reduced_index(spec)
+        r2 = Resolve(dists, True, True)
+        C = r2.gen_clauses()
+        eqc, eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc = {Dist(key).to_filename(): value for key, value in iteritems(eqc)}
+        assert eqc == {
+            'python-2.7.6-2.tar.bz2': 1,
+            'python-2.7.7-2.tar.bz2': 1,
+            'openssl-1.0.1c-0.tar.bz2': 1,
+            'python-2.7.3-7.tar.bz2': 1,
+            'openssl-1.0.2d-0.tar.bz2': 1,
+            'openssl-1.0.1j-5.tar.bz2': 1,
+            'tk-8.5.15-0.tar.bz2': 1,
+            'openssl-1.0.2h-1.tar.bz2': 1,
+            'python-2.7.3-2.tar.bz2': 1,
+            'python-2.7.4-0.tar.bz2': 1,
+            'zlib-1.2.8-0.tar.bz2': 1,
+            'openssl-1.0.2e-0.tar.bz2': 1,
+            'python-2.7.10-0.tar.bz2': 1,
+            'python-2.7.6-1.tar.bz2': 1,
+            'sqlite-3.13.0-0.tar.bz2': 1,
+            'openssl-1.0.2l-0.tar.bz2': 1,
+            'python-2.7.3-3.tar.bz2': 1,
+            'system-5.8-0.tar.bz2': 1,
+            'python-2.7.3-5.tar.bz2': 1,
+            'python-2.7.8-0.tar.bz2': 1,
+            'python-2.7.5-3.tar.bz2': 1,
+            'openssl-1.0.2k-0.tar.bz2': 1,
+            'python-2.7.9-1.tar.bz2': 1,
+            'python-2.7.5-0.tar.bz2': 1,
+            'python-2.7.13-0.tar.bz2': 1,
+            'readline-6.2-2.tar.bz2': 1,
+            'openssl-1.0.2f-0.tar.bz2': 1,
+            'python-2.7.6-0.tar.bz2': 1,
+            'readline-6.2-0.tar.bz2': 1,
+            'tk-8.5.18-0.tar.bz2': 1,
+            'python-2.7.11-5.tar.bz2': 1,
+            'openssl-1.0.2i-0.tar.bz2': 1,
+            'openssl-1.0.2j-0.tar.bz2': 1,
+            'system-5.8-1.tar.bz2': 1,
+            'python-2.7.12-0.tar.bz2': 1,
+            'python-2.7.9-0.tar.bz2': 1,
+            'openssl-1.0.2k-1.tar.bz2': 1,
+            'system-5.8-2.tar.bz2': 1,
+            'python-2.7.10-1.tar.bz2': 1,
+            'openssl-1.0.2k-2.tar.bz2': 1,
+            'python-2.7.5-1.tar.bz2': 1,
+            'zlib-1.2.7-0.tar.bz2': 1,
+            'openssl-1.0.1g-0.tar.bz2': 1,
+            'openssl-1.0.1j-0.tar.bz2': 1,
+            'openssl-1.0.1j-4.tar.bz2': 1,
+            'openssl-1.0.1j-3.tar.bz2': 1,
+            'python-2.7.5-2.tar.bz2': 1,
+            'openssl-1.0.1k-0.tar.bz2': 1,
+            'sqlite-3.9.2-0.tar.bz2': 1,
+            'python-2.7.12-1.tar.bz2': 1,
+            'openssl-1.0.1j-2.tar.bz2': 1,
+            'openssl-1.0.1h-1.tar.bz2': 1,
+            'zlib-1.2.7-2.tar.bz2': 1,
+            'openssl-1.0.2h-0.tar.bz2': 1,
+            'python-2.7.9-3.tar.bz2': 1,
+            'openssl-1.0.1j-1.tar.bz2': 1,
+            'openssl-1.0.1h-0.tar.bz2': 1,
+            'python-2.7.3-4.tar.bz2': 1,
+            'python-2.7.11-0.tar.bz2': 1,
+            'openssl-1.0.1k-1.tar.bz2': 1,
+            'python-2.7.10-2.tar.bz2': 1,
+            'sqlite-3.8.4.1-1.tar.bz2': 1,
+            'zlib-1.2.7-1.tar.bz2': 1,
+            'zlib-1.2.8-3.tar.bz2': 1,
+            'python-2.7.9-2.tar.bz2': 1,
+            'openssl-1.0.2g-0.tar.bz2': 1,
+            'sqlite-3.8.4.1-0.tar.bz2': 1,
+            'python-2.7.8-1.tar.bz2': 1,
+            'tk-8.5.13-0.tar.bz2': 1,
+            'python-2.7.7-0.tar.bz2': 1,
+            'sqlite-3.7.13-0.tar.bz2': 1,
+            'python-2.7.3-6.tar.bz2': 1,
+        }
+        installed_w_priority = [str(d) for d in this_r.install(spec)]
+        assert installed_w_priority == [
+            'defaults::dateutil-2.1-py27_1',
+            'defaults::numpy-1.7.1-py27_0',
+            'defaults::openssl-1.0.1c-0',
+            'defaults::pandas-0.11.0-np17py27_1',
+            'defaults::python-2.7.5-0',
+            'defaults::pytz-2013b-py27_0',
+            'defaults::readline-6.2-0',
+            'defaults::scipy-0.12.0-np17py27_0',
+            'defaults::six-1.3.0-py27_0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+        ]
+
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
+        dists = this_r.get_reduced_index(spec)
+        r2 = Resolve(dists, True, True)
+        C = r2.gen_clauses()
+        eqc, eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc = {Dist(key).to_filename(): value for key, value in iteritems(eqc)}
+        assert eqc == {
+            'python-2.7.3-2.tar.bz2': 10,
+            'zlib-1.2.7-2.tar.bz2': 1,
+            'scipy-0.11.0-np17py27_p2.tar.bz2': 1,
+            'pandas-0.10.0-np17py27_0.tar.bz2': 2,
+            'python-2.7.9-3.tar.bz2': 4,
+            'openssl-1.0.2k-0.tar.bz2': 1,
+            'python-2.7.3-5.tar.bz2': 10,
+            'python-2.7.11-0.tar.bz2': 2,
+            'openssl-1.0.1h-1.tar.bz2': 11,
+            'openssl-1.0.1j-5.tar.bz2': 10,
+            'sqlite-3.7.13-0.tar.bz2': 3,
+            'python-2.7.7-0.tar.bz2': 6,
+            'python-2.7.9-1.tar.bz2': 4,
+            'python-2.7.3-7.tar.bz2': 10,
+            'openssl-1.0.1c-0.tar.bz2': 13,
+            'numpy-1.7.0rc1-py27_0.tar.bz2': 2,
+            'python-2.7.4-0.tar.bz2': 9,
+            'python-2.7.3-4.tar.bz2': 10,
+            'python-2.7.8-1.tar.bz2': 5,
+            'openssl-1.0.2j-0.tar.bz2': 2,
+            'openssl-1.0.1k-1.tar.bz2': 9,
+            'openssl-1.0.1j-3.tar.bz2': 10,
+            'scipy-0.11.0-np16py27_ce1.tar.bz2': 1,
+            'pandas-0.10.1-np17py27_0.tar.bz2': 1,
+            'numpy-1.6.2-py27_4.tar.bz2': 4,
+            'python-2.7.10-1.tar.bz2': 3,
+            'python-2.7.9-2.tar.bz2': 4,
+            'scipy-0.11.0-np17py27_pro1.tar.bz2': 1,
+            'numpy-1.6.2-py27_p4.tar.bz2': 4,
+            'numpy-1.6.2-py27_ce0.tar.bz2': 4,
+            'numpy-1.6.2-py27_p3.tar.bz2': 4,
+            'scipy-0.11.0-np16py27_3.tar.bz2': 1,
+            'python-2.7.7-2.tar.bz2': 6,
+            'python-2.7.6-1.tar.bz2': 7,
+            'scipy-0.11.0-np16py27_p3.tar.bz2': 1,
+            'scipy-0.11.0-np17py27_ce1.tar.bz2': 1,
+            'pandas-0.10.1-np16py27_0.tar.bz2': 1,
+            'scipy-0.11.0-np17py27_ce0.tar.bz2': 1,
+            'openssl-1.0.1j-4.tar.bz2': 10,
+            'scipy-0.11.0-np16py27_pro0.tar.bz2': 1,
+            'python-2.7.12-1.tar.bz2': 1,
+            'pandas-0.9.0-np17py27_0.tar.bz2': 4,
+            'openssl-1.0.2h-0.tar.bz2': 4,
+            'numpy-1.7.0b2-py27_pro0.tar.bz2': 3,
+            'tk-8.5.15-0.tar.bz2': 1,
+            'openssl-1.0.1h-0.tar.bz2': 11,
+            'pandas-0.9.1-np17py27_0.tar.bz2': 3,
+            'openssl-1.0.2e-0.tar.bz2': 7,
+            'openssl-1.0.1j-2.tar.bz2': 10,
+            'python-2.7.6-0.tar.bz2': 7,
+            'numpy-1.6.2-py27_3.tar.bz2': 4,
+            'sqlite-3.9.2-0.tar.bz2': 1,
+            'openssl-1.0.2f-0.tar.bz2': 6,
+            'python-2.7.3-3.tar.bz2': 10,
+            'openssl-1.0.2h-1.tar.bz2': 4,
+            'zlib-1.2.7-0.tar.bz2': 1,
+            'python-2.7.9-0.tar.bz2': 4,
+            'python-2.7.10-0.tar.bz2': 3,
+            'pytz-2012d-py27_0.tar.bz2': 2,
+            'nose-1.1.2-py27_0.tar.bz2': 2,
+            'pandas-0.8.1-np17py27_0.tar.bz2': 5,
+            'scipy-0.11.0-np17py27_3.tar.bz2': 1,
+            'scipy-0.11.0-np17py27_2.tar.bz2': 1,
+            'python-2.7.10-2.tar.bz2': 3,
+            'python-2.7.5-1.tar.bz2': 8,
+            'sqlite-3.8.4.1-0.tar.bz2': 2,
+            'scipy-0.11.0-np17py27_p3.tar.bz2': 1,
+            'nose-1.2.1-py27_0.tar.bz2': 1,
+            'python-2.7.6-2.tar.bz2': 7,
+            'openssl-1.0.1g-0.tar.bz2': 12,
+            'tk-8.5.13-0.tar.bz2': 2,
+            'openssl-1.0.1j-0.tar.bz2': 10,
+            'pandas-0.9.1-np16py27_0.tar.bz2': 3,
+            'six-1.2.0-py27_0.tar.bz2': 1,
+            'python-2.7.12-0.tar.bz2': 1,
+            'python-2.7.8-0.tar.bz2': 5,
+            'numpy-1.7.0-py27_p0.tar.bz2': 1,
+            'numpy-1.7.0b2-py27_ce0.tar.bz2': 3,
+            'scipy-0.11.0-np16py27_2.tar.bz2': 1,
+            'numpy-1.7.0rc1-py27_p0.tar.bz2': 2,
+            'openssl-1.0.1j-1.tar.bz2': 10,
+            'pytz-2012j-py27_0.tar.bz2': 1,
+            'numpy-1.6.2-py27_p1.tar.bz2': 4,
+            'openssl-1.0.2i-0.tar.bz2': 3,
+            'scipy-0.11.0-np17py27_pro0.tar.bz2': 1,
+            'numpy-1.6.2-py27_1.tar.bz2': 4,
+            'openssl-1.0.1k-0.tar.bz2': 9,
+            'scipy-0.11.0-np16py27_p2.tar.bz2': 1,
+            'pandas-0.8.1-np16py27_0.tar.bz2': 5,
+            'openssl-1.0.2d-0.tar.bz2': 8,
+            'openssl-1.0.2g-0.tar.bz2': 5,
+            'openssl-1.0.2k-1.tar.bz2': 1,
+            'pandas-0.10.0-np16py27_0.tar.bz2': 2,
+            'python-2.7.3-6.tar.bz2': 10,
+            'sqlite-3.8.4.1-1.tar.bz2': 2,
+            'numpy-1.6.2-py27_pro0.tar.bz2': 4,
+            'scipy-0.11.0-np16py27_pro1.tar.bz2': 1,
+            'openssl-1.0.2k-2.tar.bz2': 1,
+            'zlib-1.2.7-1.tar.bz2': 1,
+            'dateutil-1.5-py27_0.tar.bz2': 1,
+            'python-2.7.11-5.tar.bz2': 2,
+            'numpy-1.7.0-py27_0.tar.bz2': 1,
+            'python-2.7.5-3.tar.bz2': 8,
+            'python-2.7.5-2.tar.bz2': 8,
+            'python-2.7.5-0.tar.bz2': 8,
+            'pandas-0.9.0-np16py27_0.tar.bz2': 4,
+        }
+        installed_wo_priority = [str(d) for d in this_r.install(spec)]
+        assert installed_wo_priority == [
+            'conda-test::openssl-1.0.2l-0',
+            'conda-test::python-2.7.13-0',
+            'conda-test::sqlite-3.13.0-0',
+            'conda-test::tk-8.5.18-0',
+            'conda-test::zlib-1.2.8-3',
+            'defaults::dateutil-2.1-py27_1',
+            'defaults::numpy-1.7.1-py27_0',
+            'defaults::pandas-0.11.0-np17py27_1',
+            'defaults::pytz-2013b-py27_0',
+            'defaults::readline-6.2-0',
+            'defaults::scipy-0.12.0-np17py27_0',
+            'defaults::six-1.3.0-py27_0',
+        ]
 
 
 def test_dependency_sort():
