@@ -387,13 +387,6 @@ class MultiChannel(Channel):
 
     def urls(self, with_credentials=False, subdirs=None):
         _channels = self._channels
-        if self.name == 'defaults':
-            platform = next((s for s in reversed(subdirs or context.subdirs) if s != 'noarch'), '')
-            if platform != context.subdir:
-                # necessary shenanigan because different platforms have different default channels
-                urls = DEFAULT_CHANNELS_WIN if 'win' in platform else DEFAULT_CHANNELS_UNIX
-                ca = context.channel_alias
-                _channels = tuple(Channel.make_simple_channel(ca, v) for v in urls)
         return list(chain.from_iterable(c.urls(with_credentials, subdirs) for c in _channels))
 
     @property
@@ -412,14 +405,12 @@ def prioritize_channels(channels, with_credentials=True, subdirs=None):
     channels = concat((Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
                       for c in (Channel(c) for c in channels))
     result = odict()
-    priority_counter = 0
-    for chn in channels:
+    for priority_counter, chn in enumerate(channels):
         channel = Channel(chn)
         for url in channel.urls(with_credentials, subdirs):
             if url in result:
                 continue
             result[url] = channel.canonical_name, min(priority_counter, MAX_CHANNEL_PRIORITY - 1)
-        priority_counter += 1
     return result
 
 
