@@ -438,7 +438,7 @@ class IntegrationTests(TestCase):
             assert prefix not in linked_data_
 
     def test_list_with_pip_wheel(self):
-        with make_temp_env("python=3.5 pip") as prefix:
+        with make_temp_env("python=3.6 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
@@ -447,13 +447,13 @@ class IntegrationTests(TestCase):
                        if line.lower().startswith("flask"))
 
             # regression test for #3433
-            run_command(Commands.INSTALL, prefix, "python=3.4")
-            assert_package_is_installed(prefix, 'python-3.4.')
+            run_command(Commands.INSTALL, prefix, "python=3.5")
+            assert_package_is_installed(prefix, 'python-3.5.')
 
             # regression test for #5847
             #   when using rm_rf on a file
             assert prefix in linked_data_
-            rm_rf(join(prefix, get_python_site_packages_short_path("3.4")), "os.py")
+            rm_rf(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
             assert prefix not in linked_data_
 
     def test_install_tarball_from_local_channel(self):
