@@ -4,8 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 from logging import getLogger
 
-from ..base.constants import (DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN,
-                              MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL)
+from ..base.constants import (DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL)
 from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
 from ..common.path import is_path, win_path_backout
