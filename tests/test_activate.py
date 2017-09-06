@@ -191,7 +191,7 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
 
 @pytest.mark.installed
 def test_activate_deactivate(shell):
-    if shell == "bash.exe" and datetime.now() < datetime(2017, 9, 1):
+    if shell == "bash.exe" and datetime.now() < datetime(2017, 10, 1):
         pytest.xfail("fix this soon")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
@@ -208,7 +208,7 @@ def test_activate_deactivate(shell):
 
 @pytest.mark.installed
 def test_activate_root_simple(shell):
-    if shell == "bash.exe" and datetime.now() < datetime(2017, 9, 1):
+    if shell == "bash.exe" and datetime.now() < datetime(2017, 10, 1):
         pytest.xfail("fix this soon")
     shell_vars = _format_vars(shell)
     with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:

@@ -496,6 +496,24 @@ def _collect_repodatas_concurrent(executor, use_cache, tasks):
     return repodatas
 
 
+def make_feature_record(feature_name, feature_value):
+    # necessary for the SAT solver to do the right thing with features
+    pkg_name = "%s=%s@" % (feature_name, feature_value)
+    return IndexRecord(
+        name=pkg_name,
+        version='0',
+        build='0',
+        channel='@',
+        subdir=context.subdir,
+        md5="12345678901234567890123456789012",
+        provides_features={
+            feature_name: feature_value,
+        },
+        build_number=0,
+        fn=pkg_name,
+    )
+
+
 def cache_fn_url(url):
     # url must be right-padded with '/' to not invalidate any existing caches
     if not url.endswith('/'):
