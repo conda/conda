@@ -4,8 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 from logging import getLogger
 
-from ..base.constants import (DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN,
-                              MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL)
+from ..base.constants import (DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL)
 from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
 from ..common.path import is_path, win_path_backout
@@ -14,10 +13,10 @@ from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
 
 try:
     from cytoolz.functoolz import excepts
-    from cytoolz.itertoolz import concatv, topk
+    from cytoolz.itertoolz import concat, concatv, topk
 except ImportError:
     from .._vendor.toolz.functoolz import excepts  # NOQA
-    from .._vendor.toolz.itertoolz import concatv, topk  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, topk  # NOQA
 
 log = getLogger(__name__)
 
@@ -387,13 +386,6 @@ class MultiChannel(Channel):
 
     def urls(self, with_credentials=False, subdirs=None):
         _channels = self._channels
-        if self.name == 'defaults':
-            platform = next((s for s in reversed(subdirs or context.subdirs) if s != 'noarch'), '')
-            if platform != context.subdir:
-                # necessary shenanigan because different platforms have different default channels
-                urls = DEFAULT_CHANNELS_WIN if 'win' in platform else DEFAULT_CHANNELS_UNIX
-                ca = context.channel_alias
-                _channels = tuple(Channel.make_simple_channel(ca, v) for v in urls)
         return list(chain.from_iterable(c.urls(with_credentials, subdirs) for c in _channels))
 
     @property
@@ -409,13 +401,15 @@ def prioritize_channels(channels, with_credentials=True, subdirs=None):
     #   urls as the key, and a tuple of canonical channel name and channel priority
     #   number as the value
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
+    channels = concat((Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
+                      for c in (Channel(c) for c in channels))
     result = odict()
-    for channel_priority, chn in enumerate(channels):
+    for priority_counter, chn in enumerate(channels):
         channel = Channel(chn)
         for url in channel.urls(with_credentials, subdirs):
             if url in result:
                 continue
-            result[url] = channel.canonical_name, min(channel_priority, MAX_CHANNEL_PRIORITY - 1)
+            result[url] = channel.canonical_name, min(priority_counter, MAX_CHANNEL_PRIORITY - 1)
     return result
 
 

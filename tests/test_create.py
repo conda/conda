@@ -887,7 +887,10 @@ class IntegrationTests(TestCase):
     def test_search_gawk_not_win_filter(self):
         with make_temp_env() as prefix:
             stdout, stderr = run_command(
-                Commands.SEARCH, prefix, "gawk", "--platform", "win-64", "--json", use_exception_handler=True)
+                Commands.SEARCH, prefix, "gawk", "--platform", "win-64", "--json",
+                "-c", "https://repo.continuum.io/pkgs/msys2 --json",
+                use_exception_handler=True,
+            )
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert "gawk" in json_obj.keys()
             assert "m2-gawk" in json_obj.keys()
