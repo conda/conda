@@ -2,6 +2,7 @@
 
 ### Deprecations/Breaking Changes
 * resolve #5922 prioritize channels within multi-channels (#5923)
+* add https://repo.continuum.io/pkgs/main to defaults multi-channel (#5931)
 
 ### Improvements
 * add a channel priority minimization pass to solver logic (#5859)
