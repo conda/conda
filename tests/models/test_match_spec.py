@@ -215,9 +215,6 @@ class MatchSpecTests(TestCase):
 
         assert m('numpy[features="mkl debug" build_number=2]') == "numpy[build_number=2,provides_features='blas=mkl debug=true']"
 
-
-
-
     def test_tarball_match_specs(self):
         def m(string):
             return text_type(MatchSpec(string))

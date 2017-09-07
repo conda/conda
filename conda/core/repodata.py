@@ -11,7 +11,7 @@ import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os import makedirs
-from os.path import dirname, isdir, join, splitext
+from os.path import dirname, isdir, join
 import re
 from textwrap import dedent
 from time import time
@@ -133,8 +133,9 @@ class SubdirData(object):
         self.channel = channel
         self.url_w_subdir = self.channel.url(with_credentials=False)
         self.url_w_credentials = self.channel.url(with_credentials=True)
-        self.cache_path_base = join(create_cache_dir(),
-                                    splitext(cache_fn_url(self.url_w_credentials))[0])
+        # self.cache_path_base = join(create_cache_dir(),
+        #                             splitext(cache_fn_url(self.url_w_credentials))[0])
+        self.cache_path_base = join(create_cache_dir(channel), 'repodata')
         self._loaded = False
 
     @property
@@ -631,10 +632,21 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
         d[dict_key] = value
 
 
-def create_cache_dir():
-    cache_dir = join(PackageCache.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
-    try:
-        makedirs(cache_dir)
-    except OSError:
-        pass
-    return cache_dir
+def create_cache_dir(channel=None):
+    if not channel:
+        # legacy implementation
+        cache_dir = join(PackageCache.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
+        try:
+            makedirs(cache_dir)
+        except OSError:
+            pass
+        return cache_dir
+    else:
+        channel = Channel(channel)
+        assert channel.subdir
+        channel_safe_name = channel.safe_name
+        cache_dir = PackageCache.first_writable(context.pkgs_dirs).pkgs_dir
+        cache_subdir = join(cache_dir, channel_safe_name, channel.subdir)
+        mkdir_p(cache_subdir)
+        touch(join(cache_dir, channel_safe_name, 'metadata.json'))
+        return cache_subdir

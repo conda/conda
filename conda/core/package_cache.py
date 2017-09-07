@@ -7,6 +7,7 @@ from os import listdir
 from os.path import basename, dirname, join
 from tarfile import ReadError
 
+from conda.models.channel import Channel
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
@@ -73,6 +74,23 @@ class PackageCache(object):
         self._package_cache_records[package_cache_record] = package_cache_record
 
     def load(self):
+        def _read_dir(dir_path):
+            subdirs = tuple(s for s in listdir(dir_path) if isdir(join(dir_path, s))
+                            and isfile(join(dir_path, s, 'repodata.json')))
+            for subdir in subdirs:
+                cache_dir = join(dir_path, subdir)
+                for _base_name in self._dedupe_pkgs_dir_contents(listdir(cache_dir)):
+                    full_path = join(cache_dir, _base_name)
+                    if islink(full_path):
+                        continue
+                    elif (isdir(full_path) and isfile(join(full_path, 'info', 'index.json'))
+                          or isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION)):
+                        package_cache_record = self._make_single_record(full_path)
+                        if package_cache_record:
+                            _package_cache_records[package_cache_record] = package_cache_record
+                    else:
+                        log.trace("ignoring cache subpath: %s", full_path)
+
         self.__package_cache_records = _package_cache_records = {}
         self._check_writable()  # called here to create the cache if it doesn't exist
         if not isdir(self.pkgs_dir):
@@ -85,9 +103,16 @@ class PackageCache(object):
                 continue
             elif (isdir(full_path) and isfile(join(full_path, 'info', 'index.json'))
                   or isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION)):
-                package_cache_record = self._make_single_record(base_name)
+                package_cache_record = self._make_single_record(full_path)
                 if package_cache_record:
                     _package_cache_records[package_cache_record] = package_cache_record
+            elif isdir(full_path) and isfile(join(full_path, 'metadata.json')):
+                # This is a new-style package cache directory
+                # It has two extra directory levels, the first representing the *name* of the
+                #   channel, and the second representing the subdir.
+                _read_dir(full_path)
+            else:
+                log.trace("ignoring cache path: %s", full_path)
 
     def get(self, package_ref, default=NULL):
         assert isinstance(package_ref, PackageRef)
@@ -249,12 +274,12 @@ class PackageCache(object):
         args = ('%s=%r' % (key, getattr(self, key)) for key in ('pkgs_dir',))
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
-    def _make_single_record(self, package_filename):
-        if not package_filename.endswith(CONDA_TARBALL_EXTENSION):
-            package_filename += CONDA_TARBALL_EXTENSION
+    def _make_single_record(self, package_tarball_full_path):
+        if not package_tarball_full_path.endswith(CONDA_TARBALL_EXTENSION):
+            package_tarball_full_path += CONDA_TARBALL_EXTENSION
 
-        package_tarball_full_path = join(self.pkgs_dir, package_filename)
-        log.trace("adding to package cache %s", package_tarball_full_path)
+        package_filename = basename(package_tarball_full_path)
+        log.debug("adding to package cache %s", package_tarball_full_path)
         extracted_package_dir = package_tarball_full_path[:-len(CONDA_TARBALL_EXTENSION)]
 
         # try reading info/repodata_record.json
@@ -410,9 +435,13 @@ class ProgressiveFetchExtract(object):
         ), None)
         if pcrec_from_writable_cache:
             # extract in place
+            channel_safe_name = pcrec_from_writable_cache.channel.safe_name
+            subdir = pcrec_from_writable_cache.subdir
             extract_axn = ExtractPackageAction(
                 source_full_path=pcrec_from_writable_cache.package_tarball_full_path,
                 target_pkgs_dir=dirname(pcrec_from_writable_cache.package_tarball_full_path),
+                target_pkgs_dir_channel_name=channel_safe_name,
+                target_pkgs_dir_subdir=subdir,
                 target_extracted_dirname=basename(pcrec_from_writable_cache.extracted_package_dir),
                 record_or_spec=pcrec_from_writable_cache,
                 md5sum=pcrec_from_writable_cache.md5,
@@ -433,9 +462,13 @@ class ProgressiveFetchExtract(object):
                 expected_size_in_bytes = pref_or_spec.size
             except AttributeError:
                 expected_size_in_bytes = None
+            channel_safe_name = pcrec_from_read_only_cache.channel.safe_name
+            subdir = pcrec_from_read_only_cache.subdir
             cache_axn = CacheUrlAction(
                 url=path_to_url(pcrec_from_read_only_cache.package_tarball_full_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
+                target_pkgs_dir_channel_name=channel_safe_name,
+                target_pkgs_dir_subdir=subdir,
                 target_package_basename=pcrec_from_read_only_cache.fn,
                 md5sum=md5,
                 expected_size_in_bytes=expected_size_in_bytes,
@@ -444,6 +477,8 @@ class ProgressiveFetchExtract(object):
             extract_axn = ExtractPackageAction(
                 source_full_path=cache_axn.target_full_path,
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
+                target_pkgs_dir_channel_name=channel_safe_name,
+                target_pkgs_dir_subdir=subdir,
                 target_extracted_dirname=trgt_extracted_dirname,
                 record_or_spec=pcrec_from_read_only_cache,
                 md5sum=pcrec_from_read_only_cache.md5,
@@ -458,9 +493,17 @@ class ProgressiveFetchExtract(object):
             expected_size_in_bytes = pref_or_spec.size
         except AttributeError:
             expected_size_in_bytes = None
+        channel = Channel(url)
+        if channel.subdir:
+            channel_safe_name = channel.safe_name
+            subdir = channel.subdir
+        else:
+            channel_safe_name = subdir = None
         cache_axn = CacheUrlAction(
             url=url,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
+            target_pkgs_dir_channel_name=channel_safe_name,
+            target_pkgs_dir_subdir=subdir,
             target_package_basename=pref_or_spec.fn,
             md5sum=md5,
             expected_size_in_bytes=expected_size_in_bytes,
@@ -468,6 +511,8 @@ class ProgressiveFetchExtract(object):
         extract_axn = ExtractPackageAction(
             source_full_path=cache_axn.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
+            target_pkgs_dir_channel_name=channel_safe_name,
+            target_pkgs_dir_subdir=subdir,
             target_extracted_dirname=pref_or_spec.fn[:-len(CONDA_TARBALL_EXTENSION)],
             record_or_spec=pref_or_spec,
             md5sum=md5,

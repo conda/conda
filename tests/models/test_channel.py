@@ -6,6 +6,8 @@ from logging import getLogger
 from tempfile import gettempdir
 from unittest import TestCase
 
+import sys
+
 from conda._vendor.auxlib.ish import dals
 from conda.base.constants import APP_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS
 from conda.base.context import Context, context, reset_context
@@ -528,6 +530,10 @@ class CustomConfigChannelTests(TestCase):
                 assert channel.token is None
                 assert channel.scheme == "file"
                 assert channel.canonical_name == "local"
+                assert channel.name == "conda-bld"
+                assert channel.safe_name == "conda-bld"
+                assert channel.location  # just make sure it has some value; changes depending on test OS and other environmental factors
+                assert channel.scheme == 'file'
 
                 assert channel.urls() == Channel(local_channel_first_subchannel).urls()
                 assert channel.urls()[0].startswith('file:///')

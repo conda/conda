@@ -4,13 +4,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from copy import copy
 from itertools import chain
 from logging import getLogger
+from os.path import split as path_split
 
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
 from ..common.path import is_path, win_path_backout
-from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
+from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url, quote as url_quote,
                           split_conda_url_easy_parts, split_platform, split_scheme_auth_token,
                           urlparse)
 
@@ -86,6 +87,10 @@ class Channel(object):
         return self.name
 
     @property
+    def safe_name(self):
+        return url_quote(self.name.replace('/', '_').replace('\\', '_'))
+
+    @property
     def subdir(self):
         return self.platform
 
@@ -133,7 +138,10 @@ class Channel(object):
                 location, name = ca.location, test_url.replace(ca.location, '', 1)
             else:
                 url_parts = urlparse(test_url)
-                location, name = Url(host=url_parts.host, port=url_parts.port).url, url_parts.path
+                if url_parts.host:
+                    location, name = Url(host=url_parts.host, port=url_parts.port).url, url_parts.path
+                else:
+                    location, name = path_split(test_url)
             return Channel(scheme=scheme, auth=auth, location=location, token=token,
                            name=name.strip('/'))
         else:
@@ -303,6 +311,10 @@ class MultiChannel(Channel):
         self.token = None
         self.platform = platform
         self.package_filename = None
+
+    @property
+    def safe_name(self):
+        raise RuntimeError("Conda multi-channels do not have safe names.\n%s" % self._channels)
 
     @property
     def channel_location(self):

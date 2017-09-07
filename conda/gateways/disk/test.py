@@ -18,6 +18,7 @@ from ...models.enums import LinkType
 log = getLogger(__name__)
 
 
+@memoize
 def file_path_is_writable(path):
     path = expand(path)
     log.trace("checking path is writable %s", path)

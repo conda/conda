@@ -97,6 +97,15 @@ class PrefixData(object):
                 subdir_urls.add(subdir_url)
         return subdir_urls
 
+    def query(self, package_ref_or_match_spec):
+        # returns a generator
+        param = package_ref_or_match_spec
+        if isinstance(param, MatchSpec):
+            return (pcrec for pcrec in itervalues(self._prefix_records) if param.match(pcrec))
+        else:
+            # assume isinstance(param, PackageRef)
+            return (pcrec for pcrec in itervalues(self._prefix_records) if pcrec == param)
+
     @property
     def _prefix_records(self):
         return self.__prefix_records or self.load() or self.__prefix_records
