@@ -98,7 +98,11 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         for dist in actions[FETCH]:
             dist = Dist(dist)
             info = index[dist]
-            extra = '%15s' % human_bytes(info['size'])
+            try:
+                extra = '%15s' % human_bytes(info['size'])
+            except Exception as e:
+                import pdb; pdb.set_trace()
+                assert 0
             schannel = channel_filt(channel_str(info))
             if schannel:
                 extra += '  ' + schannel

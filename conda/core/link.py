@@ -11,10 +11,9 @@ from tempfile import mkdtemp
 from traceback import format_exception_only
 import warnings
 
-from conda.base.constants import SafetyChecks
 from .linked_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
 from .package_cache import PackageCache
-from .path_actions import (CompilePycAction, CreatePrefixRecordAction, CreateNonadminAction,
+from .path_actions import (CompilePycAction, CreateNonadminAction, CreatePrefixRecordAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
                            RemoveMenuAction, UnlinkPathAction, UnregisterEnvironmentLocationAction,
@@ -22,6 +21,7 @@ from .path_actions import (CompilePycAction, CreatePrefixRecordAction, CreateNon
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
+from ..base.constants import SafetyChecks
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win
 from ..common.io import spinner

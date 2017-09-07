@@ -215,9 +215,6 @@ class MatchSpecTests(TestCase):
 
         assert m('numpy[features="mkl debug" build_number=2]') == "numpy[build_number=2,provides_features='blas=mkl debug=true']"
 
-
-
-
     def test_tarball_match_specs(self):
         def m(string):
             return text_type(MatchSpec(string))
@@ -252,6 +249,9 @@ class MatchSpecTests(TestCase):
         # TODO: we need this working correctly with both channel and subdir
         # especially for usages around PrefixData.all_subdir_urls() and Solver._prepare()
         # assert MatchSpec('defaults/zos::python').get_exact_value('channel').urls() == ()
+
+        url = "file:///usr/local/Cellar/python3/3.5.2_1/Frameworks/Python.framework/Versions/3.5/conda-bld/osx-64/flask-0.10.1-py35_2.tar.bz2"
+        assert m(url) == "local/osx-64::flask==0.10.1=py35_2"
 
     def test_exact_values(self):
         assert MatchSpec("*").get_exact_value('name') is None

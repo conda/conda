@@ -526,6 +526,10 @@ class CustomConfigChannelTests(TestCase):
                 assert channel.token is None
                 assert channel.scheme == "file"
                 assert channel.canonical_name == "local"
+                assert channel.name == "conda-bld"
+                assert channel.safe_name == "conda-bld"
+                assert channel.location == "/usr/local/Cellar/python3/3.5.2_1/Frameworks/Python.framework/Versions/3.5"
+                assert channel.scheme == 'file'
 
                 assert channel.urls() == Channel(local_channel_first_subchannel).urls()
                 assert channel.urls()[0].startswith('file:///')
