@@ -3,12 +3,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import hashlib
 from logging import DEBUG, getLogger
-from os.path import basename, exists, join
+from os.path import basename, dirname, exists, isdir, join
 import tempfile
 import warnings
 
 from . import ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema, SSLError
 from .session import CondaSession
+from ..disk import mkdir_p
 from ..disk.delete import rmtree
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
@@ -31,6 +32,9 @@ def download(url, target_full_path, md5sum, progress_update_callback=None):
     #       header.
     if exists(target_full_path):
         maybe_raise(BasicClobberError(target_full_path, url, context), context)
+
+    if not isdir(dirname(target_full_path)):
+        mkdir_p(dirname(target_full_path))
 
     if not context.ssl_verify:
         disable_ssl_verify_warning()
