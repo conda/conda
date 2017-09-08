@@ -1,14 +1,8 @@
 from __future__ import absolute_import, print_function
 
-from datetime import datetime
 import unittest
-
-import pytest
 
 from conda.base.context import context, reset_context
-import unittest
-
-from conda.base.context import reset_context
 from conda.common.compat import iteritems
 from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
@@ -16,10 +10,7 @@ from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
-from tests.helpers import raises
-from .helpers import get_index_r_1
-from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound, dashlist
-from tests.helpers import get_index_r_1, get_index_r_3, raises
+from .helpers import get_index_r_1, get_index_r_3, raises
 
 index, r, = get_index_r_1()
 f_mkl = set(['mkl'])
