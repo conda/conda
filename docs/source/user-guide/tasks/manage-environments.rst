@@ -510,7 +510,9 @@ To remove an environment:
 
 .. code::
 
-   conda env remove --name myenv --all
+   conda remove --name myenv --all
+
+(You may instead use ``conda env remove --name myenv``.)
 
 To verify that the environment was removed:
 
