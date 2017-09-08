@@ -6,6 +6,9 @@ import unittest
 import pytest
 
 from conda.base.context import context, reset_context
+import unittest
+
+from conda.base.context import reset_context
 from conda.common.compat import iteritems
 from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
@@ -15,8 +18,11 @@ from conda.models.index_record import IndexRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
 from tests.helpers import raises
 from .helpers import get_index_r_1
+from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound, dashlist
+from tests.helpers import get_index_r_1, get_index_r_3, raises
 
 index, r, = get_index_r_1()
+f_mkl = set(['mkl'])
 
 
 def add_defaults_if_no_channel(string):
@@ -157,11 +163,11 @@ def test_get_dists():
     assert Dist('channel-1::dynd-python-0.3.0-np17py33_0.tar.bz2') in dists
 
 
-def test_generate_eq():
+def test_generate_eq_1():
     reduced_index = r.get_reduced_index(['anaconda'])
     r2 = Resolve(reduced_index, True, True)
     C = r2.gen_clauses()
-    eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
+    eqc, eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
     #   coefficients.
@@ -170,8 +176,10 @@ def test_generate_eq():
     # - a package that only has one version should not appear, unless
     #   include=True as it will have a 0 coefficient. The same is true of the
     #   latest version of a package.
+    eqc = {Dist(key).to_filename(): value for key, value in iteritems(eqc)}
     eqv = {Dist(key).to_filename(): value for key, value in iteritems(eqv)}
     eqb = {Dist(key).to_filename(): value for key, value in iteritems(eqb)}
+    assert eqc == {}
     assert eqv == {
         'accelerate-1.0.0-np15py26_p0.tar.bz2': 2,
         'accelerate-1.0.0-np15py27_p0.tar.bz2': 2,
@@ -1109,7 +1117,7 @@ def test_remove():
         'zlib-1.2.7-0.tar.bz2']]
 
 
-def test_channel_priority():
+def test_channel_priority_1():
     channels = (
         Channel("channel-A"),
         Channel("channel-1"),
@@ -1157,6 +1165,252 @@ def test_channel_priority():
     assert installed1 != installed2
     assert installed1 != installed3
     assert installed2 == installed3
+
+
+def test_channel_priority_2():
+    this_index = index.copy()
+    index3, r3 = get_index_r_3()
+    this_index.update(index3)
+    spec = ['pandas', 'python 2.7*']
+    this_r = Resolve(this_index)
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
+        dists = this_r.get_reduced_index(spec)
+        r2 = Resolve(dists, True, True)
+        C = r2.gen_clauses()
+        eqc, eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc = {str(Dist(key)): value for key, value in iteritems(eqc)}
+        assert eqc == {
+            'conda-test::system-5.8-1': 1,
+            'conda-test::python-2.7.6-1': 1,
+            'conda-test::openssl-1.0.2l-0': 1,
+            'conda-test::openssl-1.0.1k-0': 1,
+            'conda-test::python-2.7.3-5': 1,
+            'conda-test::system-5.8-0': 1,
+            'conda-test::openssl-1.0.2g-0': 1,
+            'conda-test::zlib-1.2.7-0': 1,
+            'conda-test::python-2.7.13-0': 1,
+            'conda-test::tk-8.5.18-0': 1,
+            'conda-test::openssl-1.0.2k-2': 1,
+            'conda-test::openssl-1.0.1j-0': 1,
+            'conda-test::python-2.7.3-7': 1,
+            'conda-test::readline-6.2-0': 1,
+            'conda-test::python-2.7.9-3': 1,
+            'conda-test::python-2.7.10-2': 1,
+            'conda-test::python-2.7.4-0': 1,
+            'conda-test::python-2.7.12-1': 1,
+            'conda-test::openssl-1.0.1h-1': 1,
+            'conda-test::zlib-1.2.7-2': 1,
+            'conda-test::openssl-1.0.1k-1': 1,
+            'conda-test::python-2.7.3-2': 1,
+            'conda-test::python-2.7.9-2': 1,
+            'conda-test::openssl-1.0.2k-1': 1,
+            'conda-test::openssl-1.0.1j-4': 1,
+            'conda-test::tk-8.5.13-0': 1,
+            'conda-test::python-2.7.7-0': 1,
+            'conda-test::openssl-1.0.2i-0': 1,
+            'conda-test::python-2.7.7-2': 1,
+            'conda-test::system-5.8-2': 1,
+            'conda-test::python-2.7.3-3': 1,
+            'conda-test::openssl-1.0.2k-0': 1,
+            'conda-test::zlib-1.2.8-0': 1,
+            'conda-test::zlib-1.2.7-1': 1,
+            'conda-test::python-2.7.6-0': 1,
+            'conda-test::openssl-1.0.1j-1': 1,
+            'conda-test::python-2.7.5-0': 1,
+            'conda-test::openssl-1.0.1j-2': 1,
+            'conda-test::python-2.7.8-0': 1,
+            'conda-test::sqlite-3.13.0-0': 1,
+            'conda-test::sqlite-3.9.2-0': 1,
+            'conda-test::python-2.7.11-0': 1,
+            'conda-test::openssl-1.0.2f-0': 1,
+            'conda-test::python-2.7.12-0': 1,
+            'conda-test::python-2.7.6-2': 1,
+            'conda-test::python-2.7.9-0': 1,
+            'conda-test::openssl-1.0.1c-0': 1,
+            'conda-test::python-2.7.5-3': 1,
+            'conda-test::openssl-1.0.1g-0': 1,
+            'conda-test::openssl-1.0.1h-0': 1,
+            'conda-test::openssl-1.0.2h-0': 1,
+            'conda-test::openssl-1.0.2j-0': 1,
+            'conda-test::openssl-1.0.1j-5': 1,
+            'conda-test::zlib-1.2.8-3': 1,
+            'conda-test::readline-6.2-2': 1,
+            'conda-test::openssl-1.0.2h-1': 1,
+            'conda-test::python-2.7.9-1': 1,
+            'conda-test::openssl-1.0.2d-0': 1,
+            'conda-test::python-2.7.10-0': 1,
+            'conda-test::python-2.7.3-6': 1,
+            'conda-test::openssl-1.0.2e-0': 1,
+            'conda-test::sqlite-3.8.4.1-0': 1,
+            'conda-test::sqlite-3.8.4.1-1': 1,
+            'conda-test::python-2.7.5-2': 1,
+            'conda-test::sqlite-3.7.13-0': 1,
+            'conda-test::tk-8.5.15-0': 1,
+            'conda-test::openssl-1.0.1j-3': 1,
+            'conda-test::python-2.7.10-1': 1,
+            'conda-test::python-2.7.8-1': 1,
+            'conda-test::python-2.7.5-1': 1,
+            'conda-test::python-2.7.3-4': 1,
+            'conda-test::python-2.7.11-5': 1,
+        }
+        installed_w_priority = [str(d) for d in this_r.install(spec)]
+        assert installed_w_priority == [
+            'defaults::dateutil-2.1-py27_1',
+            'defaults::numpy-1.7.1-py27_0',
+            'defaults::openssl-1.0.1c-0',
+            'defaults::pandas-0.11.0-np17py27_1',
+            'defaults::python-2.7.5-0',
+            'defaults::pytz-2013b-py27_0',
+            'defaults::readline-6.2-0',
+            'defaults::scipy-0.12.0-np17py27_0',
+            'defaults::six-1.3.0-py27_0',
+            'defaults::sqlite-3.7.13-0',
+            'defaults::system-5.8-1',
+            'defaults::tk-8.5.13-0',
+            'defaults::zlib-1.2.7-0',
+        ]
+
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
+        dists = this_r.get_reduced_index(spec)
+        r2 = Resolve(dists, True, True)
+        C = r2.gen_clauses()
+        eqc, eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc = {str(Dist(key)): value for key, value in iteritems(eqc)}
+        assert eqc == {
+            'conda-test::zlib-1.2.7-1': 1,
+            'conda-test::python-2.7.5-2': 8,
+            'conda-test::openssl-1.0.2f-0': 6,
+            'defaults::sqlite-3.7.13-0': 3,
+            'conda-test::python-2.7.6-1': 7,
+            'conda-test::python-2.7.10-2': 3,
+            'defaults::scipy-0.11.0-np17py27_p2': 1,
+            'defaults::scipy-0.11.0-np17py27_3': 1,
+            'defaults::python-2.7.5-0': 8,
+            'conda-test::openssl-1.0.2k-1': 1,
+            'conda-test::sqlite-3.8.4.1-1': 2,
+            'defaults::pandas-0.10.1-np16py27_0': 1,
+            'conda-test::python-2.7.3-2': 10,
+            'defaults::python-2.7.3-2': 10,
+            'defaults::numpy-1.6.2-py27_ce0': 4,
+            'conda-test::python-2.7.3-5': 10,
+            'conda-test::openssl-1.0.2g-0': 5,
+            'defaults::numpy-1.7.0rc1-py27_p0': 2,
+            'defaults::scipy-0.11.0-np16py27_3': 1,
+            'conda-test::python-2.7.7-2': 6,
+            'conda-test::tk-8.5.13-0': 2,
+            'conda-test::python-2.7.3-4': 10,
+            'conda-test::python-2.7.9-0': 4,
+            'defaults::numpy-1.6.2-py27_4': 4,
+            'conda-test::python-2.7.6-0': 7,
+            'defaults::numpy-1.7.0-py27_0': 1,
+            'conda-test::openssl-1.0.2j-0': 2,
+            'defaults::scipy-0.11.0-np17py27_ce0': 1,
+            'defaults::scipy-0.11.0-np17py27_p3': 1,
+            'defaults::pandas-0.8.1-np16py27_0': 5,
+            'defaults::dateutil-1.5-py27_0': 1,
+            'defaults::nose-1.2.1-py27_0': 1,
+            'defaults::scipy-0.11.0-np16py27_p2': 1,
+            'conda-test::python-2.7.10-0': 3,
+            'defaults::pandas-0.10.0-np16py27_0': 2,
+            'defaults::openssl-1.0.1c-0': 13,
+            'conda-test::python-2.7.4-0': 9,
+            'conda-test::openssl-1.0.1h-0': 11,
+            'conda-test::python-2.7.3-3': 10,
+            'conda-test::openssl-1.0.1j-3': 10,
+            'defaults::scipy-0.11.0-np17py27_2': 1,
+            'conda-test::openssl-1.0.2d-0': 8,
+            'conda-test::python-2.7.6-2': 7,
+            'conda-test::python-2.7.8-0': 5,
+            'conda-test::python-2.7.9-3': 4,
+            'conda-test::openssl-1.0.1j-0': 10,
+            'defaults::numpy-1.7.0rc1-py27_0': 2,
+            'conda-test::sqlite-3.9.2-0': 1,
+            'defaults::scipy-0.11.0-np17py27_pro1': 1,
+            'conda-test::python-2.7.5-0': 8,
+            'conda-test::openssl-1.0.1h-1': 11,
+            'conda-test::openssl-1.0.1k-0': 9,
+            'conda-test::zlib-1.2.7-2': 1,
+            'defaults::scipy-0.11.0-np17py27_pro0': 1,
+            'conda-test::python-2.7.9-1': 4,
+            'defaults::pandas-0.9.1-np17py27_0': 3,
+            'defaults::numpy-1.7.0b2-py27_ce0': 3,
+            'conda-test::openssl-1.0.1g-0': 12,
+            'conda-test::openssl-1.0.2k-0': 1,
+            'conda-test::openssl-1.0.1j-2': 10,
+            'defaults::python-2.7.3-6': 10,
+            'defaults::pandas-0.9.1-np16py27_0': 3,
+            'conda-test::python-2.7.11-0': 2,
+            'conda-test::sqlite-3.7.13-0': 3,
+            'conda-test::python-2.7.12-0': 1,
+            'defaults::numpy-1.6.2-py27_p3': 4,
+            'conda-test::tk-8.5.15-0': 1,
+            'conda-test::python-2.7.10-1': 3,
+            'conda-test::python-2.7.12-1': 1,
+            'defaults::pandas-0.9.0-np16py27_0': 4,
+            'defaults::nose-1.1.2-py27_0': 2,
+            'defaults::zlib-1.2.7-0': 1,
+            'defaults::scipy-0.11.0-np16py27_pro0': 1,
+            'conda-test::python-2.7.7-0': 6,
+            'conda-test::python-2.7.8-1': 5,
+            'conda-test::openssl-1.0.2e-0': 7,
+            'defaults::scipy-0.11.0-np16py27_pro1': 1,
+            'conda-test::openssl-1.0.1c-0': 13,
+            'conda-test::python-2.7.3-6': 10,
+            'defaults::python-2.7.3-4': 10,
+            'conda-test::python-2.7.11-5': 2,
+            'defaults::pytz-2012j-py27_0': 1,
+            'defaults::python-2.7.3-5': 10,
+            'defaults::numpy-1.6.2-py27_3': 4,
+            'conda-test::openssl-1.0.1j-5': 10,
+            'conda-test::openssl-1.0.1j-4': 10,
+            'defaults::python-2.7.4-0': 9,
+            'defaults::numpy-1.7.0-py27_p0': 1,
+            'defaults::numpy-1.6.2-py27_pro0': 4,
+            'defaults::scipy-0.11.0-np16py27_2': 1,
+            'defaults::python-2.7.3-3': 10,
+            'defaults::pandas-0.10.0-np17py27_0': 2,
+            'conda-test::openssl-1.0.1j-1': 10,
+            'defaults::scipy-0.11.0-np17py27_ce1': 1,
+            'defaults::scipy-0.11.0-np16py27_p3': 1,
+            'conda-test::openssl-1.0.2i-0': 3,
+            'defaults::pandas-0.10.1-np17py27_0': 1,
+            'defaults::tk-8.5.13-0': 2,
+            'defaults::pytz-2012d-py27_0': 2,
+            'defaults::pandas-0.9.0-np17py27_0': 4,
+            'defaults::numpy-1.6.2-py27_p4': 4,
+            'defaults::numpy-1.7.0b2-py27_pro0': 3,
+            'defaults::six-1.2.0-py27_0': 1,
+            'conda-test::python-2.7.3-7': 10,
+            'defaults::pandas-0.8.1-np17py27_0': 5,
+            'defaults::python-2.7.3-7': 10,
+            'conda-test::python-2.7.9-2': 4,
+            'defaults::scipy-0.11.0-np16py27_ce1': 1,
+            'conda-test::python-2.7.5-3': 8,
+            'defaults::numpy-1.6.2-py27_1': 4,
+            'conda-test::sqlite-3.8.4.1-0': 2,
+            'conda-test::zlib-1.2.7-0': 1,
+            'conda-test::python-2.7.5-1': 8,
+            'conda-test::openssl-1.0.2k-2': 1,
+            'conda-test::openssl-1.0.1k-1': 9,
+            'conda-test::openssl-1.0.2h-1': 4,
+            'conda-test::openssl-1.0.2h-0': 4,
+            'defaults::numpy-1.6.2-py27_p1': 4,
+        }
+        installed_wo_priority = [str(d) for d in this_r.install(spec)]
+        assert installed_wo_priority == [
+            'conda-test::openssl-1.0.2l-0',
+            'conda-test::python-2.7.13-0',
+            'conda-test::sqlite-3.13.0-0',
+            'conda-test::tk-8.5.18-0',
+            'conda-test::zlib-1.2.8-3',
+            'defaults::dateutil-2.1-py27_1',
+            'defaults::numpy-1.7.1-py27_0',
+            'defaults::pandas-0.11.0-np17py27_1',
+            'defaults::pytz-2013b-py27_0',
+            'defaults::readline-6.2-0',
+            'defaults::scipy-0.12.0-np17py27_0',
+            'defaults::six-1.3.0-py27_0',
+        ]
 
 
 def test_dependency_sort():

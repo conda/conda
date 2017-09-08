@@ -4,8 +4,8 @@ import pytest
 
 from conda.base.context import context, reset_context
 from conda.common.io import env_var
-from .test_create import (make_temp_env, assert_package_is_installed,
-                          run_command, Commands, get_conda_list_tuple)
+from .test_create import Commands, assert_package_is_installed, get_conda_list_tuple, \
+    make_temp_env, run_command
 
 
 @pytest.mark.integration

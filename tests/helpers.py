@@ -3,6 +3,7 @@ Helpers for the tests
 """
 from __future__ import absolute_import, division, print_function
 
+from collections import defaultdict
 from contextlib import contextmanager
 import json
 import os
@@ -13,15 +14,12 @@ import sys
 from tempfile import gettempdir
 from uuid import uuid4
 
-from collections import defaultdict
-
 from conda import cli
-from conda._vendor.auxlib.collection import frozendict
-from conda._vendor.toolz.functoolz import memoize
+from conda._vendor.auxlib.decorators import memoize
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
-from conda.core.repodata import make_feature_record, SubdirData
+from conda.core.repodata import SubdirData, make_feature_record
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import lexists
 from conda.gateways.logging import initialize_logging
@@ -36,7 +34,6 @@ try:
 except ImportError:
     import mock
     from mock import patch
-
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
 def strip_expected(stderr):
@@ -233,4 +230,3 @@ def get_index_r_3():
     index = {Dist(prec): prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
     return index, r
-

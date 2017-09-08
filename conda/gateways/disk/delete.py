@@ -45,11 +45,12 @@ def rm_rf(path, max_retries=5, trash=True):
                     if move_result:
                         return True
                 log.info("Failed to remove %s.", path)
-
         else:
             log.trace("rm_rf failed. Not a link, file, or directory: %s", path)
         return True
     finally:
+        from ...core.linked_data import delete_prefix_from_linked_data
+        delete_prefix_from_linked_data(path)
         if lexists(path):
             log.info("rm_rf failed for %s", path)
             return False
