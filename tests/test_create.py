@@ -1337,9 +1337,15 @@ class IntegrationTests(TestCase):
     def test_create_from_extracted(self):
         with make_temp_package_cache() as pkgs_dir:
             assert context.pkgs_dirs == (pkgs_dir,)
+
+            c = Channel(Channel('defaults').urls()[0])
+            pkgs_dir_channel_name = c.safe_name
+            pkgs_dir_subdir = c.subdir
+            pkgs_dir_dir = join(pkgs_dir, pkgs_dir_channel_name, pkgs_dir_subdir)
+
             def pkgs_dir_has_tarball(tarball_prefix):
                 return any(f.startswith(tarball_prefix) and f.endswith(CONDA_TARBALL_EXTENSION)
-                           for f in os.listdir(pkgs_dir))
+                           for f in os.listdir(pkgs_dir_dir))
 
             with make_temp_env() as prefix:
                 # First, make sure the openssl package is present in the cache,
@@ -1363,30 +1369,37 @@ class IntegrationTests(TestCase):
     def test_clean_tarballs_and_packages(self):
         with make_temp_package_cache() as pkgs_dir:
             with make_temp_env("flask") as prefix:
-                pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-                pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-                pkgs_dir_tarballs = [f for f in pkgs_dir_contents if f.endswith('.tar.bz2')]
-                assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
-                assert any(basename(f).startswith('flask-') for f in pkgs_dir_tarballs)
+                _flask_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("flask")))
+                assert len(_flask_pcrecs) == 1
+                flask_pcrec = _flask_pcrecs[0]
+                assert flask_pcrec.is_fetched
+                assert flask_pcrec.is_extracted
 
                 # --json flag is regression test for #5451
                 run_command(Commands.CLEAN, prefix, "--packages --yes --json")
+                _flask_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("flask")))
+                assert len(_flask_pcrecs) == 1
+                flask_pcrec = _flask_pcrecs[0]
+                assert flask_pcrec.is_fetched
+                assert isfile(flask_pcrec.package_tarball_full_path)
+                assert flask_pcrec.is_extracted
+                assert isdir(flask_pcrec.extracted_package_dir)
 
                 # --json flag is regression test for #5451
                 run_command(Commands.CLEAN, prefix, "--tarballs --yes --json")
-
-                pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-                pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-                pkgs_dir_tarballs = [f for f in pkgs_dir_contents if f.endswith('.tar.bz2')]
-
-                assert any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
-                assert not any(basename(f).startswith('flask-') for f in pkgs_dir_tarballs)
+                _flask_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("flask")))
+                assert len(_flask_pcrecs) == 1
+                flask_pcrec = _flask_pcrecs[0]
+                assert not flask_pcrec.is_fetched
+                assert not isfile(flask_pcrec.package_tarball_full_path)
+                assert flask_pcrec.is_extracted
+                assert isdir(flask_pcrec.extracted_package_dir)
 
             run_command(Commands.CLEAN, prefix, "--packages --yes")
-
-            pkgs_dir_contents = [join(pkgs_dir, d) for d in os.listdir(pkgs_dir)]
-            pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
-            assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
+            _flask_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("flask")))
+            assert not isdir(flask_pcrec.extracted_package_dir)
+            assert len(_flask_pcrecs) == 0
+            assert len(PackageCache(pkgs_dir)._package_cache_records) == 0
 
     def test_clean_source_cache(self):
         cache_dirs = {

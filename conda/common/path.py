@@ -57,6 +57,38 @@ def paths_equal(path1, path2):
     return normpath(abspath(path1)) == normpath(abspath(path2))
 
 
+def path_in(path1, path2):
+    """Is path1 in path2?
+
+    Args:
+        path1: unix or windows path
+        path2: unix or windows path
+
+    Returns:
+        bool: true if path1 in path2
+
+    Examples:
+        >>> path_in('/a/b/c', '/a/b/c/d')
+        True
+        >>> path_in('/a/b/c/d', '/a/b/c')
+        False
+        >>> path_in("c:\\\\a\\\\b\\\\c", 'c:/a/b/c/d/')
+        True
+
+    """
+    # is path1 in path2
+    path1_tokens = win_path_backout(path1).rstrip('/').split('/')
+    path2_tokens = win_path_backout(path2).rstrip('/').split('/')
+    try:
+        first_idx = path2_tokens.index(path1_tokens[0])
+        path2_tokens_remainder = path2_tokens[first_idx:]
+        if len(path2_tokens_remainder) < len(path1_tokens):
+            return False
+        return all(t == sw for t, sw in zip(path1_tokens, path2_tokens_remainder))
+    except ValueError:
+        return False
+
+
 @memoize
 def url_to_path(url):
     """Convert a file:// URL to a path.

@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import defaultdict
 from functools import reduce
 from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, join
 from tarfile import ReadError
 
-from conda.models.channel import Channel
+from conda.gateways.disk import mkdir_p
+from conda.models.enums import PathType
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
@@ -22,11 +24,14 @@ from ..common.url import path_to_url
 from ..gateways.disk.create import (create_package_cache_directory, extract_tarball,
                                     write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.link import CrossPlatformStLink
 from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_index_json,
-                                  read_index_json_from_tarball, read_repodata_json)
+                                  read_index_json_from_tarball, read_paths_json,
+                                  read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
+from ..models.channel import Channel
 from ..models.dist import Dist
-from ..models.index_record import PackageRecord, PackageRef
+from ..models.index_record import PackageRecord, PackageRef, PathsData
 from ..models.match_spec import MatchSpec
 from ..models.package_cache_record import PackageCacheRecord
 
@@ -74,9 +79,9 @@ class PackageCache(object):
         self._package_cache_records[package_cache_record] = package_cache_record
 
     def load(self):
-        def _read_dir(dir_path):
+        def _read_subdir(dir_path):
             subdirs = tuple(s for s in listdir(dir_path) if isdir(join(dir_path, s))
-                            and isfile(join(dir_path, s, 'repodata.json')))
+                            and isfile(join(dir_path, s, PACKAGE_CACHE_MAGIC_FILE)))
             for subdir in subdirs:
                 cache_dir = join(dir_path, subdir)
                 for _base_name in self._dedupe_pkgs_dir_contents(listdir(cache_dir)):
@@ -101,16 +106,16 @@ class PackageCache(object):
             full_path = join(self.pkgs_dir, base_name)
             if islink(full_path):
                 continue
-            elif (isdir(full_path) and isfile(join(full_path, 'info', 'index.json'))
-                  or isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION)):
+            elif (isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION)
+                  or isfile(join(full_path, 'info', 'index.json'))):
                 package_cache_record = self._make_single_record(full_path)
                 if package_cache_record:
                     _package_cache_records[package_cache_record] = package_cache_record
-            elif isdir(full_path) and isfile(join(full_path, 'metadata.json')):
+            elif isfile(join(full_path, 'metadata.json')):
                 # This is a new-style package cache directory
                 # It has two extra directory levels, the first representing the *name* of the
                 #   channel, and the second representing the subdir.
-                _read_dir(full_path)
+                _read_subdir(full_path)
             else:
                 log.trace("ignoring cache path: %s", full_path)
 
@@ -229,6 +234,8 @@ class PackageCache(object):
 
     @property
     def _package_cache_records(self):
+        # a map where both keys and values are PackageCacheRecord
+        #  Why? I don't know.  Consider changing.
         # don't actually populate _package_cache_records until we need it
         return self.__package_cache_records or self.load() or self.__package_cache_records
 
@@ -360,6 +367,34 @@ class PackageCache(object):
         _process(last, contents and contents[-1] or '')
         return contents
 
+    @property
+    def pcrecs_with_tarballs(self):
+        return tuple(pcrec for pcrec in self._package_cache_records if pcrec.is_fetched)
+
+    @property
+    def pcrecs_extracted(self):
+        return tuple(pcrec for pcrec in self._package_cache_records if pcrec.is_extracted)
+
+    def pcrecs_not_linked(self):
+        # search for records that are extracted but not linked into any environments
+        return tuple(pcrec for pcrec in self.pcrecs_extracted if not self._pcrec_is_in_use(pcrec))
+
+    @staticmethod
+    def _pcrec_is_in_use(pcrec):
+        # returns True if pcrec is hard linked into at least one environment
+        # NOTE: Cannot determine if an environment is symlinking to the package in the cache.
+        cross_platform_st_nlink = CrossPlatformStLink()
+        epd = pcrec.extracted_package_dir
+        paths_data = read_paths_json(epd)  # returns PathsData
+        for pd in paths_data.paths:
+            if pd.path_type != PathType.directory:
+                st_nlink = cross_platform_st_nlink(join(epd, pd.path))
+                if st_nlink > 1:
+                    inode_paths_in_package = len(getattr(pd, 'inode_paths', ())) or 1
+                    if st_nlink > inode_paths_in_package:
+                        return True
+        return False
+
 
 class UrlsData(object):
     # this is a class to manage urls.txt
@@ -368,24 +403,60 @@ class UrlsData(object):
 
     def __init__(self, pkgs_dir):
         self.pkgs_dir = pkgs_dir
-        self.urls_txt_path = urls_txt_path = join(pkgs_dir, 'urls.txt')
+        self.urls_txt_path = join(pkgs_dir, 'urls.txt')
+        self._load()
+        # if isfile(urls_txt_path):
+        #     with open(urls_txt_path, 'r') as fh:
+        #         self._urls_data = [line.strip() for line in fh]
+        #         self._urls_data.reverse()
+        # else:
+        #     self._urls_data = []
+
+    # def __contains__(self, url):
+    #     return url in self._urls_data
+    #
+    # def __iter__(self):
+    #     return iter(self._urls_data)
+
+    def _load(self):
+        urls_txt_path = self.urls_txt_path
+        self._urls_data = _urls_data = defaultdict(list)
         if isfile(urls_txt_path):
             with open(urls_txt_path, 'r') as fh:
-                self._urls_data = [line.strip() for line in fh]
-                self._urls_data.reverse()
-        else:
-            self._urls_data = []
-
-    def __contains__(self, url):
-        return url in self._urls_data
-
-    def __iter__(self):
-        return iter(self._urls_data)
+                _urls_data[None] = [line.strip() for line in fh]
+                _urls_data[None].reverse()
+            pkgs_dir = self.pkgs_dir
+            channel_dirs = (d for d in listdir(pkgs_dir) if isfile(join(pkgs_dir, d, 'metadata.json')))
+            for channel_dir in channel_dirs:
+                full_channel_dir = join(pkgs_dir, channel_dir)
+                subdirs = (d for d in listdir(full_channel_dir) if isfile(join(full_channel_dir, d, 'urls.txt')))
+                for subdir in subdirs:
+                    full_subdir = join(full_channel_dir, subdir)
+                    urls_txt_path = join(full_subdir, 'urls.txt')
+                    if isfile(urls_txt_path):
+                        with open(urls_txt_path, 'r') as fh:
+                            _urls_data["%s/%s" % (channel_dir, subdir)] = [line.strip() for line in fh]
+                            _urls_data["%s/%s" % (channel_dir, subdir)].reverse()
 
     def add_url(self, url):
-        with open(self.urls_txt_path, 'a') as fh:
+        if not url:
+            return
+        channel = Channel(url)
+        if channel.subdir:
+            channel_safe_name = channel.safe_name
+            subdir = channel.subdir
+            self._urls_data["%s/%s" % (channel_safe_name, subdir)].insert(0, url)
+            urls_txt_path = join(self.pkgs_dir, channel_safe_name, subdir, 'urls.txt')
+            if not isfile(urls_txt_path) and not isdir(dirname(urls_txt_path)):
+                mkdir_p(dirname(urls_txt_path))
+            with open(urls_txt_path, 'a') as fh:
+                fh.write(url + '\n')
+
+        # for now we write to both; later, we can just fall back to using repodata_record.json
+        urls_txt_path = self.urls_txt_path
+        self._urls_data[None].insert(0, url)
+        with open(urls_txt_path, 'a') as fh:
             fh.write(url + '\n')
-        self._urls_data.insert(0, url)
 
     def get_url(self, package_path):
         # package path can be a full path or just a basename
@@ -616,6 +687,7 @@ class ProgressiveFetchExtract(object):
                 extract_axn.execute(progress_update_extract_axn)
 
         except Exception as e:
+            log.debug("ProgressiveFetchExtract Exception", exc_info=True)
             if extract_axn:
                 extract_axn.reverse()
             if cache_axn:

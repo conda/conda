@@ -11,7 +11,7 @@ import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os import makedirs
-from os.path import dirname, isdir, join
+from os.path import dirname, isdir, join, splitext
 import re
 from textwrap import dedent
 from time import time
@@ -20,7 +20,7 @@ import warnings
 from .. import CondaError, iteritems
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import CONDA_HOMEPAGE_URL
+from ..base.constants import CONDA_HOMEPAGE_URL, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, text_type,
                              with_metaclass)
@@ -133,9 +133,8 @@ class SubdirData(object):
         self.channel = channel
         self.url_w_subdir = self.channel.url(with_credentials=False)
         self.url_w_credentials = self.channel.url(with_credentials=True)
-        # self.cache_path_base = join(create_cache_dir(),
-        #                             splitext(cache_fn_url(self.url_w_credentials))[0])
-        self.cache_path_base = join(create_cache_dir(channel), 'repodata')
+        self.cache_path_base = join(create_cache_dir(channel),
+                                    splitext(cache_fn_url(self.url_w_credentials))[0])
         self._loaded = False
 
     @property
@@ -623,7 +622,7 @@ def cache_fn_url(url):
     if not url.endswith('/'):
         url += '/'
     md5 = hashlib.md5(ensure_binary(url)).hexdigest()
-    return '%s.json' % (md5[:8],)
+    return '%s.repodata.json' % (md5[:8],)
 
 
 def add_http_value_to_dict(resp, http_key, d, dict_key):
@@ -635,7 +634,7 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
 def create_cache_dir(channel=None):
     if not channel:
         # legacy implementation
-        cache_dir = join(PackageCache.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
+        cache_dir = join(PackageCache.first_writable().pkgs_dir, 'cache')
         try:
             makedirs(cache_dir)
         except OSError:
@@ -645,8 +644,9 @@ def create_cache_dir(channel=None):
         channel = Channel(channel)
         assert channel.subdir
         channel_safe_name = channel.safe_name
-        cache_dir = PackageCache.first_writable(context.pkgs_dirs).pkgs_dir
+        cache_dir = PackageCache.first_writable().pkgs_dir
         cache_subdir = join(cache_dir, channel_safe_name, channel.subdir)
         mkdir_p(cache_subdir)
         touch(join(cache_dir, channel_safe_name, 'metadata.json'))
+        touch(join(cache_subdir, PACKAGE_CACHE_MAGIC_FILE))
         return cache_subdir

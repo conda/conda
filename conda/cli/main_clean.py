@@ -20,18 +20,17 @@ log = getLogger(__name__)
 
 def find_tarballs():
     from ..core.package_cache import PackageCache
-    pkgs_dirs = defaultdict(list)
+
+    pkgs_dirs = {}
     totalsize = 0
-    part_ext = CONDA_TARBALL_EXTENSION + '.part'
     for package_cache in PackageCache.writable_caches(context.pkgs_dirs):
-        pkgs_dir = package_cache.pkgs_dir
-        if not isdir(pkgs_dir):
-            continue
-        root, _, filenames = next(os.walk(pkgs_dir))
-        for fn in filenames:
-            if fn.endswith(CONDA_TARBALL_EXTENSION) or fn.endswith(part_ext):
-                pkgs_dirs[pkgs_dir].append(fn)
-                totalsize += getsize(join(root, fn))
+        tarball_pcrecs = package_cache.pcrecs_with_tarballs
+        totalsize += sum(pcrec.size for pcrec in tarball_pcrecs)
+
+        pkgs_dir_path_len = len(package_cache.pkgs_dir) + 1
+        tarball_paths = tuple(pcrec.package_tarball_full_path[pkgs_dir_path_len:]
+                              for pcrec in tarball_pcrecs)
+        pkgs_dirs[package_cache.pkgs_dir] = tarball_paths
 
     return pkgs_dirs, totalsize
 
@@ -85,56 +84,34 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
                     print("WARNING: cannot remove, file permissions: %s\n%r" % (fn, e))
                 else:
                     log.info("%r", e)
+    from ..core.package_cache import PackageCache
+    PackageCache._cache_ = {}
 
 
 def find_pkgs():
-    # TODO: This doesn't handle packages that have hard links to files within
-    # themselves, like bin/python3.3 and bin/python3.3m in the Python package
     warnings = []
 
-    from ..gateways.disk.link import CrossPlatformStLink
-    cross_platform_st_nlink = CrossPlatformStLink()
-    pkgs_dirs = defaultdict(list)
-    for pkgs_dir in context.pkgs_dirs:
-        if not os.path.exists(pkgs_dir):
-            if not context.json:
-                print("WARNING: {0} does not exist".format(pkgs_dir))
-            continue
-        pkgs = [i for i in listdir(pkgs_dir)
-                if (isdir(join(pkgs_dir, i)) and  # only include actual packages
-                    isdir(join(pkgs_dir, i, 'info')))]
-        for pkg in pkgs:
-            breakit = False
-            for root, dir, files in walk(join(pkgs_dir, pkg)):
-                for fn in files:
-                    try:
-                        st_nlink = cross_platform_st_nlink(join(root, fn))
-                    except OSError as e:
-                        warnings.append((fn, e))
-                        continue
-                    if st_nlink > 1:
-                        # print('%s is installed: %s' % (pkg, join(root, fn)))
-                        breakit = True
-                        break
+    from ..core.package_cache import PackageCache
+    from ..gateways.disk.read import read_paths_json
 
-                if breakit:
-                    break
-            else:
-                pkgs_dirs[pkgs_dir].append(pkg)
-
+    pkgs_dirs = {}
+    pkgsizes = {}
     totalsize = 0
-    pkgsizes = defaultdict(list)
-    for pkgs_dir in pkgs_dirs:
-        for pkg in pkgs_dirs[pkgs_dir]:
-            pkgsize = 0
-            for root, dir, files in walk(join(pkgs_dir, pkg)):
-                for fn in files:
-                    # We don't have to worry about counting things twice:  by
-                    # definition these files all have a link count of 1!
-                    size = lstat(join(root, fn)).st_size
-                    totalsize += size
-                    pkgsize += size
-            pkgsizes[pkgs_dir].append(pkgsize)
+    for package_cache in PackageCache.writable_caches(context.pkgs_dirs):
+        unused_pcrecs = package_cache.pcrecs_not_linked()
+
+        pkgsizes_this_pkgs_dir = []
+        for pcrec in unused_pcrecs:
+            paths_data = read_paths_json(pcrec.extracted_package_dir)
+            this_size = sum(getattr(pd, 'size_in_bytes', 0) for pd in paths_data.paths)
+            pkgsizes_this_pkgs_dir.append(this_size)
+            totalsize += this_size
+
+        pkgs_dir_path_len = len(package_cache.pkgs_dir) + 1
+        extracted_package_dirs = tuple(pcrec.extracted_package_dir[pkgs_dir_path_len:]
+                                       for pcrec in unused_pcrecs)
+        pkgs_dirs[package_cache.pkgs_dir] = extracted_package_dirs
+        pkgsizes[package_cache.pkgs_dir] = pkgsizes_this_pkgs_dir
 
     return pkgs_dirs, warnings, totalsize, pkgsizes
 
@@ -178,6 +155,9 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
             if verbose:
                 print("removing %s" % pkg)
             rm_rf(join(pkgs_dir, pkg))
+
+    from ..core.package_cache import PackageCache
+    PackageCache._cache_ = {}
 
 
 def rm_index_cache():

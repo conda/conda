@@ -20,7 +20,8 @@ from ..common.compat import iteritems, on_win, range, text_type
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def,
-                           pyc_path, url_to_path, win_path_ok)
+                           pyc_path, url_to_path, win_path_ok, path_in, win_path_backout,
+                           tokenized_startswith)
 from ..common.url import has_platform, path_to_url, unquote
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError
 from ..gateways.connection.download import download
@@ -1180,17 +1181,26 @@ class CacheUrlAction(PathAction):
 
         if self.url.startswith('file:/'):
             source_path = unquote(url_to_path(self.url))
-            if dirname(source_path) in context.pkgs_dirs:
+            package_cache_dir = next((pkgs_dir for pkgs_dir in context.pkgs_dirs
+                                      if tokenized_startswith(win_path_backout(pkgs_dir).split('/'),
+                                                              win_path_backout(source_path).split('/'))),
+                                     None)
+            if package_cache_dir:
                 # if url points to another package cache, link to the writable cache
                 create_hard_link_or_copy(source_path, self.target_full_path)
-                source_package_cache = PackageCache(dirname(source_path))
 
                 # the package is already in a cache, so it came from a remote url somewhere;
                 #   make sure that remote url is the most recent url in the
                 #   writable cache urls.txt
-                origin_url = source_package_cache._urls_data.get_url(self.target_package_basename)
+                package_cache = PackageCache(package_cache_dir)
+                pcrec = next(pcr for pcr in package_cache._package_cache_records
+                             if pcr.package_tarball_full_path == source_path)
+                origin_url = getattr(pcrec, 'url', None)
                 if origin_url and has_platform(origin_url, context.known_subdirs):
                     target_package_cache._urls_data.add_url(origin_url)
+
+                # copy the tarball to the writable cache
+                create_hard_link_or_copy(source_path, self.target_full_path)
             else:
                 # so our tarball source isn't a package cache, but that doesn't mean it's not
                 #   in another package cache somewhere
@@ -1204,25 +1214,25 @@ class CacheUrlAction(PathAction):
                 #   directory that might exist in this cache because we are going to overwrite it
                 #   anyway when we extract the tarball.
                 source_md5sum = compute_md5sum(source_path)
-                exclude_caches = self.target_pkgs_dir,
-                pc_entry = PackageCache.tarball_file_in_cache(source_path, source_md5sum,
-                                                              exclude_caches=exclude_caches)
+                exclude_caches = (self.target_pkgs_dir,)
+                pcrec = PackageCache.tarball_file_in_cache(source_path, source_md5sum,
+                                                           exclude_caches=exclude_caches)
 
-                if pc_entry:
-                    origin_url = target_package_cache._urls_data.get_url(
-                        pc_entry.extracted_package_dir
-                    )
+                # TODO: here and above, we really should be somehow copying the
+                # repodata_record.json file too
+
+                if pcrec:
+                     origin_url = getattr(pcrec, 'url', None)
                 else:
                     origin_url = None
-
-                # copy the tarball to the writable cache
-                create_link(source_path, self.target_full_path, link_type=LinkType.copy,
-                            force=context.force)
 
                 if origin_url and has_platform(origin_url, context.known_subdirs):
                     target_package_cache._urls_data.add_url(origin_url)
                 else:
                     target_package_cache._urls_data.add_url(self.url)
+
+                # copy the tarball to the writable cache
+                create_hard_link_or_copy(source_path, self.target_full_path)
 
         else:
             download(self.url, self.target_full_path, self.md5sum,
