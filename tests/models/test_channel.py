@@ -7,7 +7,7 @@ from tempfile import gettempdir
 from unittest import TestCase
 
 from conda._vendor.auxlib.ish import dals
-from conda.base.constants import APP_NAME, DEFAULT_CHANNELS_UNIX
+from conda.base.constants import APP_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS
 from conda.base.context import Context, context, reset_context
 from conda.common.compat import odict
 from conda.common.configuration import YamlRawParameter
@@ -102,8 +102,8 @@ class DefaultConfigChannelTests(TestCase):
         dc = Channel('defaults/win-32')
         assert dc.canonical_name == 'defaults'
         assert dc.subdir == 'win-32'
-        assert dc.urls()[0] == 'https://repo.continuum.io/pkgs/free/win-32'
-        assert dc.urls()[1] == 'https://repo.continuum.io/pkgs/free/noarch'
+        assert dc.urls()[0] == 'https://repo.continuum.io/pkgs/main/win-32'
+        assert dc.urls()[1] == 'https://repo.continuum.io/pkgs/main/noarch'
         assert dc.urls()[2].endswith('/win-32')
 
     def test_url_channel_w_platform(self):
