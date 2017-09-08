@@ -118,7 +118,11 @@ Download the installer file and before installing verify it as follows:
   
     Open a PowerShell console and verify the file as follows::
 
-      Get-FileHash filename -Algorithm MD5`` or ``Get-FileHash filename -Algorithm SHA256
+      Get-FileHash filename -Algorithm MD5
+    
+    or::
+    
+      Get-FileHash filename -Algorithm SHA256
 
     NOTE: Replace "filename" with the actual path and name of the downloaded
     file.
