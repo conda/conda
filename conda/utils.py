@@ -77,16 +77,17 @@ def path_identity(path):
 
 
 def win_path_to_unix(path, root_prefix=""):
-    """Convert a path or ;-separated string of paths into a unix representation
-
-    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-    """
-    path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
-
-    def _translation(found_path):
-        found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
-        return root_prefix + "/" + found
-    path = re.sub(path_re, _translation, path).replace(";/", ":/")
+    import subprocess, os
+    # If the user wishes to drive conda from MSYS2 itself while also having
+    # msys2 packages in their environment this allows the path conversion to
+    # happen relative to the actual shell. The onus is on the user to set
+    # CYGPATH to e.g. /usr/bin/cygpath.exe (this will be translated to e.g.
+    # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
+    try:
+        cygpath = os.environ[str('CYGPATH')]
+    except:
+        cygpath = 'cygpath.exe'
+    path = subprocess.check_output([cygpath, '-up', path]).decode('ascii').split('\n')[0]
     return path
 
 
