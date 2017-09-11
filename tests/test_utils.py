@@ -8,12 +8,12 @@ SOME_FILES = ["a", "b", "c"]
 
 def test_path_translations():
     paths = [
-        (r";z:\miniconda\Scripts\pip.exe",
-         ":/z/miniconda/Scripts/pip.exe",
-         ":/cygdrive/z/miniconda/Scripts/pip.exe"),
-        (r";z:\miniconda;z:\Documents (x86)\pip.exe;C:\test",
-         ":/z/miniconda:/z/Documents (x86)/pip.exe:/C/test",
-         ":/cygdrive/z/miniconda:/cygdrive/z/Documents (x86)/pip.exe:/cygdrive/C/test"),
+        (r"z:\miniconda\Scripts\pip.exe",
+         "/z/miniconda/Scripts/pip.exe",
+         "/cygdrive/z/miniconda/Scripts/pip.exe"),
+        (r"z:\miniconda;z:\Documents (x86)\pip.exe;C:\test",
+         "/z/miniconda:/z/Documents (x86)/pip.exe:/C/test",
+         "/cygdrive/z/miniconda:/cygdrive/z/Documents (x86)/pip.exe:/cygdrive/C/test"),
         # Failures:
         # (r"z:\miniconda\Scripts\pip.exe",
         #  "/z/miniconda/Scripts/pip.exe",
@@ -35,7 +35,7 @@ def test_path_translations():
 
 
 def test_text_translations():
-    test_win_text = "prepending z:\\msarahan\\code\\conda\\tests\\envsk5_b4i\\test 1 and z:\\msarahan\\code\\conda\\tests\\envsk5_b4i\\test 1\\scripts to path"
-    test_unix_text = "prepending /z/msarahan/code/conda/tests/envsk5_b4i/test 1 and /z/msarahan/code/conda/tests/envsk5_b4i/test 1/scripts to path"
+    test_win_text = "z:\\msarahan\\code\\conda\\tests\\envsk5_b4i\\test 1"
+    test_unix_text = "/z/msarahan/code/conda/tests/envsk5_b4i/test 1"
     assert_equals(test_win_text, utils.unix_path_to_win(test_unix_text))
     assert_equals(test_unix_text, utils.win_path_to_unix(test_win_text))

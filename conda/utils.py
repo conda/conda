@@ -83,11 +83,18 @@ def win_path_to_unix(path, root_prefix=""):
     # happen relative to the actual shell. The onus is on the user to set
     # CYGPATH to e.g. /usr/bin/cygpath.exe (this will be translated to e.g.
     # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
+    cygpath = os.environ.get('CYGPATH', 'cygpath.exe')
     try:
-        cygpath = os.environ[str('CYGPATH')]
-    except:
-        cygpath = 'cygpath.exe'
-    path = subprocess.check_output([cygpath, '-up', path]).decode('ascii').split('\n')[0]
+        path = subprocess.check_output([cygpath, '-up', path]).decode('ascii').split('\n')[0]
+    except Exception as e:
+        log.debug('%r' % e, exc_info=True)
+        # Convert a path or ;-separated string of paths into a unix representation
+        # Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
+        def _translation(found_path):
+            found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
+            return root_prefix + "/" + found
+        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
+        path = re.sub(path_re, _translation, path).replace(";/", ":/")
     return path
 
 
