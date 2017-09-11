@@ -11,9 +11,9 @@ def test_path_translations():
         (r"z:\miniconda\Scripts\pip.exe",
          "/z/miniconda/Scripts/pip.exe",
          "/cygdrive/z/miniconda/Scripts/pip.exe"),
-        (r"z:\miniconda;z:\Documents (x86)\pip.exe;C:\test",
-         "/z/miniconda:/z/Documents (x86)/pip.exe:/C/test",
-         "/cygdrive/z/miniconda:/cygdrive/z/Documents (x86)/pip.exe:/cygdrive/C/test"),
+        (r"z:\miniconda;z:\Documents (x86)\pip.exe;c:\test",
+         "/z/miniconda:/z/Documents (x86)/pip.exe:/c/test",
+         "/cygdrive/z/miniconda:/cygdrive/z/Documents (x86)/pip.exe:/cygdrive/c/test"),
         # Failures:
         # (r"z:\miniconda\Scripts\pip.exe",
         #  "/z/miniconda/Scripts/pip.exe",
