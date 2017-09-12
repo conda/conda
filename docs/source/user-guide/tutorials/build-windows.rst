@@ -46,6 +46,7 @@ version of Visual Studio (VS):
 * Python 2.7 packages with Visual Studio 2008
 * Python 3.4 packages with VS 2010
 * Python 3.5 packages with VS 2015
+* Python 3.6 packages with VS 2015
 
 Using these versions of VS to build packages for each of these
 versions of Python is also the practice used for the official
