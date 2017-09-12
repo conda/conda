@@ -231,6 +231,7 @@ def test_activate_root_simple(shell):
         assert_equals(stdout, u"%s" % shell_vars['base_path'], stderr)
 
 
+@pytest.mark.skipif(on_win, reason="This is all well-tested in conda 4.4.")
 @pytest.mark.installed
 def test_activate_root_env_from_other_env(shell):
     shell_vars = _format_vars(shell)
