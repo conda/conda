@@ -38,6 +38,8 @@ test_env_name_1 = "env-1"
 test_env_name_2 = "snowflakes"
 test_env_name_3 = "env_foo"
 test_env_name_4 = "env_bar"
+test_env_name_5 = "env_baz"
+test_env_name_6 = "env_boo"
 
 def escape_for_winpath(p):
     if p:
@@ -240,24 +242,33 @@ class NewIntegrationTests(unittest.TestCase):
         run_env_command(Commands.ENV_REMOVE, test_env_name_3)
         self.assertFalse(env_is_created(test_env_name_3))
     
-    def test_remove_env_leaves_working_dir_untouched(self):
+    def test_create_env_leaves_working_dir_untouched(self):
         """
-            Test that conda env create and remove work as intended even if there is a folder in the working directory
-            with - coincidentally or on purpose - the same name as the environment.
+            Test that conda env create will not use an existing folder in the working dir.
         """
         os.makedirs(test_env_name_4, exist_ok=False)
         try:
             run_conda_command(Commands.CREATE, test_env_name_4)
-            self.assertTrue(env_is_created(test_env_name_4), "environment was not created in the prefix dir but "
-                                                             "in the folder in the working directory instead")
-
-            run_env_command(Commands.ENV_REMOVE, test_env_name_4)
-            self.assertFalse(env_is_created(test_env_name_4), "environment was not removed from prefix dir")
-
-            self.assertTrue(os.path.exists(test_env_name_4), "folder in working directory was removed")
+            self.assertTrue(env_is_created(test_env_name_4), "environment was not created in the prefix dir")
         finally:
             shutil.rmtree(test_env_name_4)
+    
+    def test_remove_env_leaves_working_dir_untouched(self):
+        """
+            Test that conda env remove will not use an existing folder in the working dir.
+        """
+        run_conda_command(Commands.CREATE, test_env_name_5)
+        self.assertTrue(env_is_created(test_env_name_5))
 
+        os.makedirs(test_env_name_5, exist_ok=False)
+        try:
+            run_env_command(Commands.ENV_REMOVE, test_env_name_5)
+            self.assertFalse(env_is_created(test_env_name_5), "environment was not removed from prefix dir")
+
+            self.assertTrue(os.path.exists(test_env_name_5), "folder in working directory was removed")
+        finally:
+            if os.path.exists(test_env_name_5):
+                shutil.rmtree(test_env_name_5)
 
     def test_export(self):
         """
