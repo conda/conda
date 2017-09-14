@@ -39,7 +39,6 @@ test_env_name_2 = "snowflakes"
 test_env_name_3 = "env_foo"
 test_env_name_4 = "env_bar"
 test_env_name_5 = "env_baz"
-test_env_name_6 = "env_boo"
 
 def escape_for_winpath(p):
     if p:
