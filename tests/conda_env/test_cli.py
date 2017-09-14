@@ -1,6 +1,7 @@
 import json
 import os
 from shlex import split
+import shutil
 import tempfile
 import unittest
 
@@ -36,6 +37,7 @@ channels:
 test_env_name_1 = "env-1"
 test_env_name_2 = "snowflakes"
 test_env_name_3 = "env_foo"
+test_env_name_4 = "env_bar"
 
 def escape_for_winpath(p):
     if p:
@@ -237,6 +239,24 @@ class NewIntegrationTests(unittest.TestCase):
 
         run_env_command(Commands.ENV_REMOVE, test_env_name_3)
         self.assertFalse(env_is_created(test_env_name_3))
+    
+    def test_remove_env_leaves_working_dir_untouched(self):
+        """
+            Test that conda env create and remove work as intended even if there is a folder in the working directory
+            with - coincidentally or on purpose - the same name as the environment.
+        """
+        os.makedirs(test_env_name_4, exist_ok=False)
+        try:
+            run_conda_command(Commands.CREATE, test_env_name_4)
+            self.assertTrue(env_is_created(test_env_name_4), "environment was not created in the prefix dir but "
+                                                             "in the folder in the working directory instead")
+
+            run_env_command(Commands.ENV_REMOVE, test_env_name_4)
+            self.assertFalse(env_is_created(test_env_name_4), "environment was not removed from prefix dir")
+
+            self.assertTrue(os.path.exists(test_env_name_4), "folder in working directory was removed")
+        finally:
+            shutil.rmtree(test_env_name_4)
 
 
     def test_export(self):
