@@ -1,4 +1,4 @@
-## 4.3.26 (2017-09-07)
+## 4.3.26 (2017-09-15)
 
 ### Deprecations/Breaking Changes
 * resolve #5922 prioritize channels within multi-channels (#5923)
@@ -7,10 +7,12 @@
 ### Improvements
 * add a channel priority minimization pass to solver logic (#5859)
 * invoke cmd.exe with /D for pre/post link/unlink scripts (#5926)
+* add boto3 use to s3 adapter (#5949)
 
 ### Bug Fixes
 * always remove linked prefix entry with rm_rf (#5846)
 * resolve #5920 bump repodata pickle version (#5921)
+* fix msys2 activate and deactivate (#5950)
 
 
 ## 4.3.25 (2017-08-16)
