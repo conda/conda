@@ -456,6 +456,19 @@ class IntegrationTests(TestCase):
             rm_rf(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
             assert prefix not in linked_data_
 
+        # regression test for #5980, related to #5847
+        with make_temp_env() as prefix:
+            assert isdir(prefix)
+            assert prefix in linked_data_
+
+            rmtree(prefix)
+            assert not isdir(prefix)
+            assert prefix in linked_data_
+
+            rm_rf(prefix)
+            assert not isdir(prefix)
+            assert prefix not in linked_data_
+
     def test_install_tarball_from_local_channel(self):
         # Regression test for #2812
         # install from local channel
