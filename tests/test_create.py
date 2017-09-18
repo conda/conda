@@ -590,6 +590,14 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'python-3.5')
                 assert_package_is_installed(clone_prefix, 'decorator')
 
+    @pytest.mark.skipif(not on_win, reason="only applicable for windows paths")
+    def test_shebang_prefix_replacement_on_win(self):
+        # regression test for #5979
+        with make_temp_env("anaconda-client=1.6.3") as prefix:
+            with open(join(prefix, 'Scripts', 'binstar-script.py')) as fh:
+                first_line = fh.readlines()[0]
+            assert '/' not in first_line
+
     def test_install_prune(self):
         with make_temp_env("python=2 decorator") as prefix:
             assert_package_is_installed(prefix, 'decorator')
