@@ -49,9 +49,13 @@ For more information on ``umask``, see
 
 .. _permission-denied-sudo:
 
-Issue: Permission denied errors after using sudo conda command.
+Permission denied errors after using sudo conda command
+=======================================================
 
-Solution: Once you run conda with sudo, you must use sudo forever. We recommend that you NEVER run conda with sudo.
+Solution
+--------
+
+Once you run conda with sudo, you must use sudo forever. We recommend that you NEVER run conda with sudo.
 
 
 .. _fix-broken-conda:
