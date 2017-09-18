@@ -1,3 +1,10 @@
+## 4.3.27 (2017-09-18)
+
+### Bug Fixes
+
+* fix #5980 always delete_prefix_from_linked_data in rm_rf (#5982)
+
+
 ## 4.3.26 (2017-09-15)
 
 ### Deprecations/Breaking Changes
