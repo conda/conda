@@ -677,6 +677,37 @@ listed explicitly if they are required.
      build:
        - python
 
+Host
+----
+
+This section was added in conda-build 3.0. It represents packages that need to
+be specific to the target platform when the target platform is not necessarily
+the same as the native build platform. For example, in order for a recipe to
+"cross-capable", shared libraries requirements must be listed in the host
+section, rather than the build section, so that the shared libraries that get
+linked are ones for the target platform, rather than the native build platform.
+
+.. code-block:: yaml
+
+   requirements:
+     build:
+       - {{ compiler('c') }}
+     host:
+       - python
+
+Note: when both build and host sections are defined, the build section can be
+thought of as "build tools" - things that run on the native platform, but output
+results for the target platform. For example, a cross-compiler that runs on
+linux-64, but targets linux-armv7.
+
+When building on the native platform for the native platform, build and host
+sections are merged. When building for a non-native platform, the host
+requirements are installed into a separate prefix from the build requirements.
+The PREFIX environment variable points to the host prefix.  With respect to
+activation during builds, both the host and build environments are activated.
+The build prefix is activated before the host prefix, so that the host prefix
+has priority over the build prefix. Executables that don't exist in the host
+prefix should be found in the build prefix.
 
 Run
 ---
