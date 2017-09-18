@@ -6,11 +6,10 @@ Troubleshooting
    :local:
    :depth: 1
 
-
 .. _permission-denied:
 
 Permission denied errors during installation
-===============================================
+=============================================
 
 Cause
 -----
@@ -47,6 +46,13 @@ prevent the group and other users from having access:
 
 For more information on ``umask``, see
 `http://en.wikipedia.org/wiki/Umask <http://en.wikipedia.org/wiki/Umask>`_.
+
+.. _permission-denied-sudo:
+
+Issue: Permission denied errors after using sudo conda command.
+
+Solution: Once you run conda with sudo, you must use sudo forever. We recommend that you NEVER run conda with sudo.
+
 
 .. _fix-broken-conda:
 
