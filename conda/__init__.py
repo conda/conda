@@ -1,6 +1,3 @@
-# (c) 2012-2016 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 """OS-agnostic, system-level binary package manager."""
@@ -16,16 +13,17 @@ from .common.compat import iteritems, text_type
 __all__ = (
     "__name__", "__version__", "__author__", "__email__", "__license__", "__summary__", "__url__",
     "CONDA_PACKAGE_ROOT", "CondaError", "CondaMultiError", "CondaExitZero", "conda_signal_handler",
+    "__copyright__",
 )
 
 __name__ = "conda"
 __version__ = get_version(__file__)
-__author__ = "Continuum Analytics, Inc."
+__author__ = "Anaconda, Inc."
 __email__ = "conda@continuum.io"
-__license__ = "BSD"
+__license__ = "BSD-3-Clause"
+__copyright__ = "Copyright (c) 2012, Anaconda, Inc."
 __summary__ = __doc__
 __url__ = "https://github.com/conda/conda"
-
 
 if os.getenv('CONDA_ROOT') is None:
     os.environ[str('CONDA_ROOT')] = sys.prefix

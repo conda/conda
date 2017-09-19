@@ -119,6 +119,7 @@
 * remove support for with_features_depends (#5191)
 * resolve #5468 remove --alt-hint from CLI API (#5469)
 * resolve #5834 change default value of 'allow_softlinks' from True to False (#5835)
+* resolve #5842 add deprecation warnings for 'conda env upload' and 'conda env attach' (#5843)
 
 ### API
 * Add Solver from conda.core.solver with three methods to conda.api (4.4.0rc1) (#5838)
@@ -212,6 +213,21 @@
 * rename PackageNotFoundError to PackagesNotFoundError and fix message formatting (#5602)
 * update conda 4.4 bld.bat windows recipe (#5573)
 * remove last remnant of CondaEnvRuntimeError (#5643)
+
+
+## 4.3.26 (2017-09-07)
+
+### Deprecations/Breaking Changes
+* resolve #5922 prioritize channels within multi-channels (#5923)
+* add https://repo.continuum.io/pkgs/main to defaults multi-channel (#5931)
+
+### Improvements
+* add a channel priority minimization pass to solver logic (#5859)
+* invoke cmd.exe with /D for pre/post link/unlink scripts (#5926)
+
+### Bug Fixes
+* always remove linked prefix entry with rm_rf (#5846)
+* resolve #5920 bump repodata pickle version (#5921)
 
 
 ## 4.3.25 (2017-08-16)

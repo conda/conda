@@ -7,6 +7,8 @@ from ..env import from_environment
 from ..utils.notebooks import Notebook
 
 description = """
+WARNING: This command is deprecated in conda 4.4 and scheduled for removal in conda 4.5.
+
 Embeds information describing your conda environment
 into the notebook metadata
 """
@@ -70,6 +72,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    print("WARNING: conda env attach is deprecated and will be removed as part of conda 4.5.")
 
     if args.prefix is None:
         prefix = get_prefix(args)
