@@ -3,10 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import json
 from logging import LoggerAdapter, getLogger
-from tempfile import SpooledTemporaryFile, mkstemp
+from tempfile import SpooledTemporaryFile
 
 from .. import BaseAdapter, CaseInsensitiveDict, Response
-from ...disk.delete import rm_rf
 from ....common.compat import ensure_binary
 from ....common.url import url_to_s3_info
 
@@ -18,7 +17,6 @@ class S3Adapter(BaseAdapter):
 
     def __init__(self):
         super(S3Adapter, self).__init__()
-        self._temp_file = None
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
         resp = Response()
@@ -41,8 +39,7 @@ class S3Adapter(BaseAdapter):
                 return resp
 
     def close(self):
-        if self._temp_file:
-            rm_rf(self._temp_file)
+        pass
 
     def _send_boto3(self, boto3, resp, request):
         from botocore.exceptions import BotoCoreError, ClientError
@@ -112,10 +109,10 @@ class S3Adapter(BaseAdapter):
                 "Last-Modified": modified,
             })
 
-            _, self._temp_file = mkstemp()
-            key.get_contents_to_filename(self._temp_file)
-            f = open(self._temp_file, 'rb')
-            resp.raw = f
+            fh = SpooledTemporaryFile()
+            key.get_contents_to_file(fh)
+            fh.seek(0)
+            resp.raw = fh
             resp.close = resp.raw.close
         else:
             resp.status_code = 404
