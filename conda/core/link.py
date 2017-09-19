@@ -744,7 +744,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None):
 
     if on_win:
         try:
-            command_args = [os.environ[str('COMSPEC')], '/c', path]
+            command_args = [os.environ[str('COMSPEC')], '/d', '/c', path]
         except KeyError:
             log.info("failed to run %s for %s due to COMSPEC KeyError", action, prec.dist_str())
             return False

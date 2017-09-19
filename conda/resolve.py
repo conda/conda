@@ -10,11 +10,16 @@ from .common.compat import iteritems, iterkeys, itervalues, odict, string_types,
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
 from .exceptions import ResolvePackageNotFound, UnsatisfiableError
-from .models.channel import Channel
+from .models.channel import Channel, MultiChannel
 from .models.dist import Dist
 from .models.index_record import PackageRef
 from .models.match_spec import MatchSpec
 from .models.version import VersionOrder
+
+try:
+    from cytoolz.itertoolz import concat
+except ImportError:  # pragma: no cover
+    from ._vendor.toolz.itertoolz import concat  # NOQA
 
 log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')
@@ -414,22 +419,18 @@ class Resolve(object):
         else:
             return valid, version_comparator, -channel_priority, build_number, ts, build_string
 
-    def _make_channel_priorities(self, channels):
+    @staticmethod
+    def _make_channel_priorities(channels):
         priorities_map = odict()
-        for channel_priority, chn in enumerate(channels):
-            channel = Channel(chn)
-            channel_name = channel.canonical_name
+        for priority_counter, chn in enumerate(concat(
+            (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
+            for c in (Channel(c) for c in channels)
+        )):
+            channel_name = chn.canonical_name
             if channel_name in priorities_map:
                 continue
-            priorities_map[channel_name] = min(channel_priority, MAX_CHANNEL_PRIORITY - 1)
+            priorities_map[channel_name] = min(priority_counter, MAX_CHANNEL_PRIORITY - 1)
         return priorities_map
-
-    # def features(self, dist):
-    #     _features = self.index[dist].get('features') or ()
-    #     if isinstance(_features, string_types):
-    #         _features = _features.split()
-    #     assert isiterable(_features)
-    #     return set(_features)
 
     def package_quad(self, dist):
         rec = self.index.get(dist, None)
@@ -557,6 +558,7 @@ class Resolve(object):
         return {self.push_MatchSpec(C, nm): 1 for nm in missing}
 
     def generate_version_metrics(self, C, specs, include0=False):
+        eqc = {}  # a C.minimize() objective: Dict[varname, coeff]
         eqv = {}  # a C.minimize() objective: Dict[varname, coeff]
         eqb = {}  # a C.minimize() objective: Dict[varname, coeff]
         sdict = {}  # Dict[package_name, Dist]
@@ -580,25 +582,28 @@ class Resolve(object):
                 if targets and any(dist == t for t in targets):
                     continue
                 if pkey is None:
+                    ic = iv = ib = 0
+                # valid package, channel priority
+                elif pkey[0] != version_key[0] or pkey[1] != version_key[1]:
+                    ic += 1
                     iv = ib = 0
-                # any version number mismatch (each character compared one by one)
-                elif any(pk != vk for pk, vk in zip(pkey[:3], version_key[:3])):
+                # version
+                elif pkey[2] != version_key[2]:
                     iv += 1
                     ib = 0
-                # build number
-                elif pkey[3] != version_key[3]:
-                    ib += 1
-                # last field is timestamp. Use it as differentiator when build numbers are similar
-                elif pkey[4] != version_key[4]:
+                # build number, timestamp
+                elif pkey[3] != version_key[3] or pkey[4] != version_key[4]:
                     ib += 1
 
+                if ic or include0:
+                    eqc[dist.full_name] = ic
                 if iv or include0:
                     eqv[dist.full_name] = iv
                 if ib or include0:
                     eqb[dist.full_name] = ib
                 pkey = version_key
 
-        return eqv, eqb
+        return eqc, eqv, eqb
 
     def dependency_sort(self, must_have):
         # type: (Dict[package_name, Dist]) -> List[Dist]
@@ -759,7 +764,6 @@ class Resolve(object):
         return specs, preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
-        # type: (List[str], Option[?], bool, bool) -> List[Dist]
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
         pkgs = self.solve(specs, returnall=returnall, _remove=False)
         self.restore_bad(pkgs, preserve)
@@ -849,9 +853,10 @@ class Resolve(object):
             log.debug('Package removal metric: %d', obj7)
 
         # Requested packages: maximize versions
-        eq_req_v, eq_req_b = r2.generate_version_metrics(C, specr)
+        eq_req_c, eq_req_v, eq_req_b = r2.generate_version_metrics(C, specr)
+        solution, obj3a = C.minimize(eq_req_c, solution)
         solution, obj3 = C.minimize(eq_req_v, solution)
-        log.debug('Initial package version metric: %d', obj3)
+        log.debug('Initial package version metric: %d/%d', obj3a, obj3)
 
         # Track features: minimize feature count
         eq_feature_count = r2.generate_feature_count(C)
@@ -880,10 +885,11 @@ class Resolve(object):
         log.debug('Dependency update count: %d', obj50)
 
         # Remaining packages: maximize versions, then builds
-        eq_v, eq_b = r2.generate_version_metrics(C, speca)
+        eq_c, eq_v, eq_b = r2.generate_version_metrics(C, speca)
+        solution, obj5a = C.minimize(eq_c, solution)
         solution, obj5 = C.minimize(eq_v, solution)
         solution, obj6 = C.minimize(eq_b, solution)
-        log.debug('Additional package version/build metrics: %d/%d', obj5, obj6)
+        log.debug('Additional package version/build metrics: %d/%d/%d', obj5a, obj5, obj6)
 
         # Prune unnecessary packages
         eq_c = r2.generate_package_count(C, specm)

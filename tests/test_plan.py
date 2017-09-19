@@ -25,6 +25,7 @@ from .gateways.disk.test_permissions import tempdir
 from .helpers import captured, get_index_r_1, mock, tempdir
 
 index, r, = get_index_r_1()
+index = index.copy()  # create a shallow copy so this module can mutate state
 
 try:
     from unittest.mock import patch
