@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .._vendor.auxlib.collection import NULL, frozendict
-
-EMPTY_MAP = frozendict()
-
+from .._vendor.auxlib import NULL
 
 # Use this NULL object when needing to distinguish a value from None
 # For example, when parsing json, you may need to determine if a json key was given and set

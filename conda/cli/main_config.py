@@ -2,7 +2,6 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from argparse import SUPPRESS
 import collections
 import json
 import os
@@ -10,199 +9,18 @@ from os.path import isfile, join
 import sys
 from textwrap import wrap
 
-from .conda_argparse import add_parser_json
 from .. import CondaError
-from ..base.constants import CONDA_HOMEPAGE_URL
+from .._vendor.auxlib.entity import EntityEncoder
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, iteritems, string_types, text_type
-from ..common.constants import NULL
+from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
+from ..common.serialize import yaml_dump, yaml_load
 
-descr = """
-Modify configuration values in .condarc.  This is modeled after the git
-config command.  Writes to the user .condarc file (%s) by default.
-
-""" % user_rc_path
-
-# Note, the extra whitespace in the list keys is on purpose. It's so the
-# formatting from help2man is still valid YAML (otherwise it line wraps the
-# keys like "- conda - defaults"). Technically the parser here still won't
-# recognize it because it removes the indentation, but at least it will be
-# valid.
-additional_descr = """
-See `conda config --describe` or %s/docs/config.html
-for details on all the options that can go in .condarc.
-
-Examples:
-
-Display all configuration values as calculated and compiled:
-
-    conda config --show
-
-Display all identified configuration sources:
-
-    conda config --show-sources
-
-Describe all available configuration options:
-
-    conda config --describe
-
-Add the conda-canary channel:
-
-    conda config --add channels conda-canary
-
-Set the output verbosity to level 3 (highest):
-
-    conda config --set verbosity 3
-""" % CONDA_HOMEPAGE_URL
-
-
-# Note, the formatting of this is designed to work well with help2man
-example = """
-Examples:
-
-Get the channels defined in the system .condarc:
-
-    conda config --get channels --system
-
-Add the 'foo' Binstar channel:
-
-    conda config --add channels foo
-
-Disable the 'show_channel_urls' option:
-
-    conda config --set show_channel_urls no
-"""
-
-
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'config',
-        description=descr,
-        help=descr,
-        epilog=additional_descr,
-    )
-    add_parser_json(p)
-
-    # TODO: use argparse.FileType
-    location = p.add_mutually_exclusive_group()
-    location.add_argument(
-        "--system",
-        action="store_true",
-        help="""Write to the system .condarc file ({system}). Otherwise writes to the user
-        config file ({user}).""".format(system=sys_rc_path,
-                                        user=user_rc_path),
-    )
-    location.add_argument(
-        "--env",
-        action="store_true",
-        help="Write to the active conda environment .condarc file (%s). "
-             "If no environment is active, write to the user config file (%s)."
-             "" % (os.getenv('CONDA_PREFIX', "<no active environment>"), user_rc_path),
-    )
-    location.add_argument(
-        "--file",
-        action="store",
-        help="""Write to the given file. Otherwise writes to the user config file ({user})
-or the file path given by the 'CONDARC' environment variable, if it is set
-(default: %(default)s).""".format(user=user_rc_path),
-        default=os.environ.get('CONDARC', user_rc_path)
-    )
-
-    # XXX: Does this really have to be mutually exclusive. I think the below
-    # code will work even if it is a regular group (although combination of
-    # --add and --remove with the same keys will not be well-defined).
-    action = p.add_mutually_exclusive_group(required=True)
-    action.add_argument(
-        "--show",
-        action="store_true",
-        help="Display all configuration values as calculated and compiled.",
-    )
-    action.add_argument(
-        "--show-sources",
-        action="store_true",
-        help="Display all identified configuration sources.",
-    )
-    action.add_argument(
-        "--validate",
-        action="store_true",
-        help="Validate all configuration sources.",
-    )
-    action.add_argument(
-        "--describe",
-        action="store_true",
-        help="Describe available configuration parameters.",
-    )
-    action.add_argument(
-        "--write-default",
-        action="store_true",
-        help="Write the default configuration to a file. "
-             "Equivalent to `conda config --describe > ~/.condarc` "
-             "when no --env, --system, or --file flags are given.",
-    )
-    action.add_argument(
-        "--get",
-        nargs='*',
-        action="store",
-        help="Get a configuration value.",
-        default=None,
-        metavar='KEY',
-    )
-    action.add_argument(
-        "--append",
-        nargs=2,
-        action="append",
-        help="""Add one configuration value to the end of a list key.""",
-        default=[],
-        metavar=('KEY', 'VALUE'),
-    )
-    action.add_argument(
-        "--prepend", "--add",
-        nargs=2,
-        action="append",
-        help="""Add one configuration value to the beginning of a list key.""",
-        default=[],
-        metavar=('KEY', 'VALUE'),
-    )
-    action.add_argument(
-        "--set",
-        nargs=2,
-        action="append",
-        help="""Set a boolean or string key""",
-        default=[],
-        metavar=('KEY', 'VALUE'),
-    )
-    action.add_argument(
-        "--remove",
-        nargs=2,
-        action="append",
-        help="""Remove a configuration value from a list key. This removes
-    all instances of the value.""",
-        default=[],
-        metavar=('KEY', 'VALUE'),
-    )
-    action.add_argument(
-        "--remove-key",
-        nargs=1,
-        action="append",
-        help="""Remove a configuration key (and all its values).""",
-        default=[],
-        metavar="KEY",
-    )
-    action.add_argument(
-        "--stdin",
-        action="store_true",
-        help="Apply configuration information given in yaml format piped through stdin.",
-    )
-
-    p.add_argument(
-        "-f", "--force",
-        action="store_true",
-        default=NULL,
-        help=SUPPRESS,  # TODO: No longer used.  Remove in a future release.
-    )
-
-    p.set_defaults(func=execute)
+try:
+    from cytoolz.itertoolz import concat, groupby
+except ImportError:  # pragma: no cover
+    from .._vendor.toolz.itertoolz import concat, groupby  # NOQA
 
 
 def execute(args, parser):
@@ -214,8 +32,6 @@ def execute(args, parser):
 
 
 def format_dict(d):
-    from ..common.configuration import pretty_list, pretty_map
-
     lines = []
     for k, v in iteritems(d):
         if isinstance(v, collections.Mapping):
@@ -236,8 +52,6 @@ def format_dict(d):
 
 
 def parameter_description_builder(name):
-    from .._vendor.auxlib.entity import EntityEncoder
-    from ..common.serialize import yaml_dump
     builder = []
     details = context.describe_parameter(name)
     aliases = details['aliases']
@@ -269,13 +83,6 @@ def parameter_description_builder(name):
 
 
 def execute_config(args, parser):
-    try:
-        from cytoolz.itertoolz import concat, groupby
-    except ImportError:  # pragma: no cover
-        from .._vendor.toolz.itertoolz import concat, groupby  # NOQA
-    from .._vendor.auxlib.entity import EntityEncoder
-
-    from ..common.serialize import yaml_dump, yaml_load
 
     json_warnings = []
     json_get = {}
@@ -293,28 +100,49 @@ def execute_config(args, parser):
             print('\n'.join(lines))
         return
 
-    if args.show:
+    if args.show is not None:
+        if args.show:
+            paramater_names = args.show
+            all_names = context.list_parameters()
+            not_params = set(paramater_names) - set(all_names)
+            if not_params:
+                from ..exceptions import ArgumentError
+                from ..resolve import dashlist
+                raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
+        else:
+            paramater_names = context.list_parameters()
+
         from collections import OrderedDict
 
-        d = OrderedDict((key, getattr(context, key))
-                        for key in context.list_parameters())
+        d = OrderedDict((key, getattr(context, key)) for key in paramater_names)
         if context.json:
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
                   cls=EntityEncoder))
         else:
             # coerce channels
-            d['custom_channels'] = {k: text_type(v).replace(k, '')  # TODO: the replace here isn't quite right  # NOQA
-                                    for k, v in iteritems(d['custom_channels'])}
+            if 'custom_channels' in d:
+                d['custom_channels'] = {k: text_type(v).replace(k, '')  # TODO: the replace here isn't quite right  # NOQA
+                                        for k, v in iteritems(d['custom_channels'])}
             # TODO: custom_multichannels needs better formatting
-            d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls])
-                                         for k, chnls in iteritems(d['custom_multichannels'])}
+            if 'custom_multichannels' in d:
+                d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls])
+                                             for k, chnls in iteritems(d['custom_multichannels'])}
 
             print('\n'.join(format_dict(d)))
         context.validate_configuration()
         return
 
-    if args.describe:
-        paramater_names = context.list_parameters()
+    if args.describe is not None:
+        if args.describe:
+            paramater_names = args.describe
+            all_names = context.list_parameters()
+            not_params = set(paramater_names) - set(all_names)
+            if not_params:
+                from ..exceptions import ArgumentError
+                from ..resolve import dashlist
+                raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
+        else:
+            paramater_names = context.list_parameters()
         if context.json:
             print(json.dumps([context.describe_parameter(name) for name in paramater_names],
                              sort_keys=True, indent=2, separators=(',', ': '),

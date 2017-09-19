@@ -1,130 +1,22 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from argparse import SUPPRESS
 from collections import defaultdict
 import sys
 
-from .conda_argparse import (add_parser_channels, add_parser_insecure, add_parser_json,
-                             add_parser_known, add_parser_offline, add_parser_prefix,
-                             add_parser_use_index_cache, add_parser_use_local)
+from .install import calculate_channel_urls
+from ..base.context import context
+from ..cli.common import stdout_json
+from ..common.io import spinner
 from ..compat import text_type
-
-descr = """Search for packages and display associated information.
-The input is a MatchSpec, a query language for conda packages.
-See examples below.
-"""
-
-example = """
-Examples:
-
-Search for a specific package named 'scikit-learn':
-
-    conda search scikit-learn
-
-Search for packages containing 'scikit' in the package name:
-
-    conda search *scikit*
-
-Note that your shell may expand '*' before handing the command over to conda.
-Therefore it is sometimes necessary to use single or double quotes around the query.
-
-    conda search '*scikit'
-    conda search "*scikit*"
-
-Search for packages for 64-bit Linux (by default, packages for your current
-platform are shown):
-
-    conda search numpy[subdir=linux-64]
-
-Search for a specific version of a package:
-
-    conda search 'numpy>=1.12'
-
-Search for a package on a specific channel
-
-    conda search conda-forge::numpy
-    conda search 'numpy[channel=conda-forge, subdir=osx-64]'
-"""
-
-
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'search',
-        description=descr,
-        help=descr,
-        epilog=example,
-    )
-    add_parser_prefix(p)
-    p.add_argument(
-        "--canonical",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        '-f', "--full-name",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        '-i', "--info",
-        action="store_true",
-        help="Provide detailed information about each package. "
-             "Similar to output of 'conda info package-name'."
-    )
-    p.add_argument(
-        "--names-only",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    add_parser_known(p)
-    add_parser_use_index_cache(p)
-    p.add_argument(
-        '-o', "--outdated",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        '--platform',
-        action='store',
-        dest='platform',
-        help="""Search the given platform. Should be formatted like 'osx-64', 'linux-32',
-        'win-64', and so on. The default is to search the current platform.""",
-        default=None,
-    )
-    p.add_argument(
-        'match_spec',
-        default='*',
-        nargs='?',
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        "--spec",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        "--reverse-dependency",
-        action="store_true",
-        help="""Perform a reverse dependency search. When using this flag, the --full-name
-flag is recommended. Use 'conda info package' to see the dependencies of a
-package.""",
-    )
-    add_parser_offline(p)
-    add_parser_channels(p)
-    add_parser_json(p)
-    add_parser_use_local(p)
-    add_parser_insecure(p)
-    p.set_defaults(func=execute)
+from ..core.repodata import query_all
+from ..models.match_spec import MatchSpec
+from ..models.version import VersionOrder
+from ..resolve import dashlist
+from ..utils import human_bytes
 
 
 def execute(args, parser):
-    from ..models.match_spec import MatchSpec
-    from ..models.version import VersionOrder
-    from ..base.context import context
-    from ..cli.common import stdout_json
-    from ..common.io import spinner
-
     spec = MatchSpec(args.match_spec)
     if spec.get_exact_value('subdir'):
         subdirs = spec.get_exact_value('subdir'),
@@ -137,19 +29,16 @@ def execute(args, parser):
         spec_channel = spec.get_exact_value('channel')
         channel_urls = (spec_channel,) if spec_channel else context.channels
 
-        from ..core.repodata import query_all
         matches = sorted(query_all(channel_urls, subdirs, spec),
                          key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
     if not matches:
-        from .install import calculate_channel_urls
         channels_urls = tuple(calculate_channel_urls(
             channel_urls=context.channels,
             prepend=not args.override_channels,
             platform=None,
             use_local=args.use_local,
         ))
-        from ..models.match_spec import MatchSpec
         from ..exceptions import PackagesNotFoundError
         raise PackagesNotFoundError((text_type(spec),), channels_urls)
 
@@ -182,9 +71,6 @@ def execute(args, parser):
 
 
 def pretty_record(record):
-    from ..utils import human_bytes
-    from ..resolve import dashlist
-
     def push_line(display_name, attr_name):
         value = getattr(record, attr_name, None)
         if value is not None:

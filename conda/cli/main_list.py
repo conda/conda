@@ -3,98 +3,20 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from argparse import RawDescriptionHelpFormatter
 import logging
 from os.path import isdir, isfile
 import re
 
-from .conda_argparse import (add_parser_help, add_parser_json, add_parser_prefix,
-                             add_parser_show_channel_urls)
+from .common import disp_features, stdout_json
+from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
+from ..base.context import context
+from ..common.compat import text_type
+from ..core.envs_manager import EnvsDirectory
+from ..core.linked_data import is_linked, linked, linked_data
+from ..egg_info import get_egg_info
+from ..history import History
 
-descr = "List linked packages in a conda environment."
-
-# Note, the formatting of this is designed to work well with help2man
-examples = """
-Examples:
-
-List all packages in the current environment:
-
-    conda list
-
-List all packages installed into the environment 'myenv':
-
-    conda list -n myenv
-
-Save packages for future use:
-
-    conda list --export > package-list.txt
-
-Reinstall packages from an export file:
-
-    conda create -n myenv --file package-list.txt
-
-"""
 log = logging.getLogger(__name__)
-
-
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'list',
-        description=descr,
-        help=descr,
-        formatter_class=RawDescriptionHelpFormatter,
-        epilog=examples,
-        add_help=False,
-    )
-    add_parser_help(p)
-    add_parser_prefix(p)
-    add_parser_json(p)
-    add_parser_show_channel_urls(p)
-    p.add_argument(
-        '-c', "--canonical",
-        action="store_true",
-        help="Output canonical names of packages only. Implies --no-pip. ",
-    )
-    p.add_argument(
-        '-f', "--full-name",
-        action="store_true",
-        help="Only search for full names, i.e., ^<regex>$.",
-    )
-    p.add_argument(
-        "--explicit",
-        action="store_true",
-        help="List explicitly all installed conda packaged with URL "
-             "(output may be used by conda create --file).",
-    )
-    p.add_argument(
-        "--md5",
-        action="store_true",
-        help="Add MD5 hashsum when using --explicit",
-    )
-    p.add_argument(
-        '-e', "--export",
-        action="store_true",
-        help="Output requirement string only (output may be used by "
-             " conda create --file).",
-    )
-    p.add_argument(
-        '-r', "--revisions",
-        action="store_true",
-        help="List the revision history and exit.",
-    )
-    p.add_argument(
-        "--no-pip",
-        action="store_false",
-        default=True,
-        dest="pip",
-        help="Do not include pip-only installed packages.")
-    p.add_argument(
-        'regex',
-        action="store",
-        nargs="?",
-        help="List only packages matching this regular expression.",
-    )
-    p.set_defaults(func=execute)
 
 
 def print_export_header(subdir):
@@ -115,10 +37,6 @@ def get_packages(installed, regex):
 
 def list_packages(prefix, installed, regex=None, format='human',
                   show_channel_urls=None):
-    from .common import disp_features
-    from ..base.constants import DEFAULTS_CHANNEL_NAME
-    from ..base.context import context
-    from ..core.linked_data import is_linked
     res = 0
     result = []
     for dist in get_packages(installed, regex):
@@ -150,12 +68,6 @@ def list_packages(prefix, installed, regex=None, format='human',
 
 def print_packages(prefix, regex=None, format='human', piplist=False,
                    json=False, show_channel_urls=None):
-    from .common import stdout_json
-    from ..base.context import context
-    from ..common.compat import text_type
-    from ..core.linked_data import linked
-    from ..egg_info import get_egg_info
-
     if not isdir(prefix):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
@@ -184,9 +96,6 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
 
 
 def print_explicit(prefix, add_md5=False):
-    from ..base.constants import UNKNOWN_CHANNEL
-    from ..base.context import context
-    from ..core.linked_data import linked_data
     if not isdir(prefix):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
@@ -202,9 +111,6 @@ def print_explicit(prefix, add_md5=False):
 
 
 def execute(args, parser):
-    from ..base.context import context
-    from .common import stdout_json
-    from ..core.envs_manager import EnvsDirectory
     prefix = context.target_prefix
     if not EnvsDirectory.is_conda_environment(prefix):
         from ..exceptions import EnvironmentLocationNotFound
@@ -215,7 +121,6 @@ def execute(args, parser):
         regex = r'^%s$' % regex
 
     if args.revisions:
-        from ..history import History
         h = History(prefix)
         if isfile(h.path):
             if not context.json:

@@ -32,76 +32,22 @@ Additional help for each command can be accessed by using:
     conda <command> -h
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
+
 import sys
 
 PARSER = None
 
 
 def generate_parser():
+    # Generally using `global` is an anti-pattern.  But it's the lightest-weight way to memoize
+    # or do a singleton.  I'd normally use the `@memoize` decorator here, but I don't want
+    # to copy in the code or take the import hit.
     global PARSER
     if PARSER is not None:
         return PARSER
-
-    from argparse import SUPPRESS
-
-    from .. import __version__
-    from .conda_argparse import ArgumentParser
-    from .main_clean import configure_parser as configure_parser_clean
-    from .main_config import configure_parser as configure_parser_config
-    from .main_create import configure_parser as configure_parser_create
-    from .main_help import configure_parser as configure_parser_help
-    from .main_info import configure_parser as configure_parser_info
-    from .main_install import configure_parser as configure_parser_install
-    from .main_list import configure_parser as configure_parser_list
-    from .main_package import configure_parser as configure_parser_package
-    from .main_remove import configure_parser as configure_parser_remove
-    from .main_search import configure_parser as configure_parser_search
-    from .main_update import configure_parser as configure_parser_update
-
-    p = ArgumentParser(
-        description='conda is a tool for managing and deploying applications,'
-                    ' environments and packages.',
-    )
-    p.add_argument(
-        '-V', '--version',
-        action='version',
-        version='conda %s' % __version__,
-        help="Show the conda version number and exit."
-    )
-    p.add_argument(
-        "--debug",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        "--json",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    sub_parsers = p.add_subparsers(
-        metavar='command',
-        dest='cmd',
-    )
-    # http://bugs.python.org/issue9253
-    # http://stackoverflow.com/a/18283730/1599393
-    sub_parsers.required = True
-
-    configure_parser_clean(sub_parsers)
-    configure_parser_config(sub_parsers)
-    configure_parser_create(sub_parsers)
-    configure_parser_help(sub_parsers)
-    configure_parser_info(sub_parsers)
-    configure_parser_install(sub_parsers)
-    configure_parser_list(sub_parsers)
-    configure_parser_package(sub_parsers)
-    configure_parser_remove(sub_parsers)
-    configure_parser_remove(sub_parsers, name='uninstall')
-    configure_parser_search(sub_parsers)
-    configure_parser_update(sub_parsers)
-    configure_parser_update(sub_parsers, name='upgrade')
-
-    PARSER = p
-    return p
+    from .conda_argparse import generate_parser
+    PARSER = generate_parser()
+    return PARSER
 
 
 def init_loggers(context=None):
@@ -118,6 +64,7 @@ def init_loggers(context=None):
 
 
 def _main(*args):
+    from .conda_argparse import do_call
     from ..base.constants import SEARCH_PATH
     from ..base.context import context
 
@@ -130,7 +77,7 @@ def _main(*args):
     context.__init__(SEARCH_PATH, 'conda', args)
     init_loggers(context)
 
-    exit_code = args.func(args, p)
+    exit_code = do_call(args, p)
     if isinstance(exit_code, int):
         return exit_code
 

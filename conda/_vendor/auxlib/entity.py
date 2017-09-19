@@ -245,10 +245,11 @@ from logging import getLogger
 
 from enum import Enum
 
+from . import NULL
 from ._vendor.boltons.timeutils import isoparse
-from .collection import AttrDict, NULL, frozendict, make_immutable
-from .compat import integer_types, isiterable, iteritems, itervalues, odict, string_types, \
-    text_type, with_metaclass
+from .collection import AttrDict, frozendict, make_immutable
+from .compat import (integer_types, isiterable, iteritems, itervalues, odict, string_types,
+                     text_type, with_metaclass)
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
 from .logz import DumpEncoder
