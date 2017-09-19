@@ -36,9 +36,9 @@ class PriorityIntegrationTests(TestCase):
                 #
                 # The following packages will be UPDATED to a higher-priority channel:
                 #
-                superceded_split = update_stdout.split('DOWNGRADED')
-                assert len(superceded_split) == 2
-                assert 'pycosat' in superceded_split[1]
+                installed_str, x = update_stdout.split('UPDATED')
+                updated_str, downgraded_str = x.split('DOWNGRADED')
+                assert 'pycosat:' in updated_str
 
                 # python sys.version should show conda-forge python
                 python_tuple = get_conda_list_tuple(prefix, "python")
