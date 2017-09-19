@@ -261,9 +261,9 @@ def win_path_to_unix(path, root_prefix=""):
     # happen relative to the actual shell. The onus is on the user to set
     # CYGPATH to e.g. /usr/bin/cygpath.exe (this will be translated to e.g.
     # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
-    cygpath = os.environ.get('CYGPATH', 'cygpath.exe')
     if not path:
         return ''
+    cygpath = os.environ.get('CYGPATH', 'cygpath.exe')
     try:
         path = subprocess.check_output([cygpath, '-up', path]).decode('ascii').split('\n')[0]
     except Exception as e:

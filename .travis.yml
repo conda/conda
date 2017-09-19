@@ -46,7 +46,7 @@ matrix:
       sudo: false
       language: generic
       os: linux
-    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.21
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.20
       sudo: false
       language: generic
       os: linux
@@ -56,7 +56,6 @@ matrix:
       os: osx
   allow_failures:
     - os: osx
-    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.21
 
 install:
   - source utils/functions.sh && run_setup
