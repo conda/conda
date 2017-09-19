@@ -559,6 +559,12 @@ to install.
    build:
      noarch_python: True
 
+.. warning::
+
+  At the time of this writing, ``noarch`` packages should not make use of `preprocess-selectors`_:
+  ``noarch`` packages are built with the directives which evaluate to ``True`` in the platform
+  it was built, which probably will result in incorrect/incomplete installation in other
+  platforms.
 
 Include build recipe
 --------------------
@@ -869,12 +875,12 @@ in conda build 2.1.0.
        version: 2.0
 
 
-NOTE: If any output is specified in the outputs section, the 
-default packaging behavior of conda build is bypassed. In other 
-words, if any subpackage is specified, then you do not get the 
-normal top-level build for this recipe without explicitly 
-defining a subpackage for it. This is an alternative to the 
-existing behavior, not an addition to it. For more information, 
+NOTE: If any output is specified in the outputs section, the
+default packaging behavior of conda build is bypassed. In other
+words, if any subpackage is specified, then you do not get the
+normal top-level build for this recipe without explicitly
+defining a subpackage for it. This is an alternative to the
+existing behavior, not an addition to it. For more information,
 see :ref:`implicit_metapackages`. Each output may have its own version and
 requirements. Additionally, subpackages may impose downstream pinning similarly
 to :ref:`Pin downstream <run_exports>` to help keep your packages aligned.
@@ -954,7 +960,7 @@ explicitly specified.
 .. code-block:: none
 
    outputs:
-   
+
      - name: subpackage-name
        requirements:
          build:
