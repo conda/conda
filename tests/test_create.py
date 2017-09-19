@@ -536,6 +536,7 @@ class IntegrationTests(TestCase):
             self.assertIsInstance(stdout, str)
 
     def test_list_with_pip_egg(self):
+        from conda.exports import rm_rf as _rm_rf
         with make_temp_env("python=3.5 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install --egg --no-binary flask flask==0.10.1",
                        cwd=prefix, shell=True)
@@ -547,11 +548,11 @@ class IntegrationTests(TestCase):
             # regression test for #5847
             #   when using rm_rf on a directory
             assert prefix in PrefixData._cache_
-            from conda.exports import rm_rf as _rm_rf
             _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")))
             assert prefix not in PrefixData._cache_
 
     def test_list_with_pip_wheel(self):
+        from conda.exports import rm_rf as _rm_rf
         with make_temp_env("python=3.6 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
                        cwd=prefix, shell=True)
@@ -567,22 +568,21 @@ class IntegrationTests(TestCase):
             # regression test for #5847
             #   when using rm_rf on a file
             assert prefix in PrefixData._cache_
-            from conda.exports import rm_rf as _rm_rf
             _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
             assert prefix not in PrefixData._cache_
 
         # regression test for #5980, related to #5847
         with make_temp_env() as prefix:
             assert isdir(prefix)
-            assert prefix in linked_data_
+            assert prefix in PrefixData._cache_
 
             rmtree(prefix)
             assert not isdir(prefix)
-            assert prefix in linked_data_
+            assert prefix in PrefixData._cache_
 
             rm_rf(prefix)
             assert not isdir(prefix)
-            assert prefix not in linked_data_
+            assert prefix not in PrefixData._cache_
 
     def test_install_tarball_from_local_channel(self):
         # Regression test for #2812
