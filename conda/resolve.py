@@ -525,15 +525,19 @@ class Resolve(object):
             nkey = C.Not(self.to_sat_name(dist))
             for ms in self.ms_depends(dist):
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
-
+        log.debug("gen_clauses returning with clause count: %s", len(C.clauses))
         return C
 
     def generate_spec_constraints(self, C, specs):
-        return [(self.push_MatchSpec(C, ms),) for ms in specs]
+        result = [(self.push_MatchSpec(C, ms),) for ms in specs]
+        log.debug("generate_spec_constraints returning with clause count: %s", len(C.clauses))
+        return result
 
     def generate_feature_count(self, C):
-        return {self.push_MatchSpec(C, MatchSpec(provides_features=name)): 1
-                for name in iterkeys(self.trackers)}
+        result = {self.push_MatchSpec(C, MatchSpec(provides_features=name)): 1
+                  for name in iterkeys(self.trackers)}
+        log.debug("generate_feature_count returning with clause count: %s", len(C.clauses))
+        return result
 
     def generate_update_count(self, C, specs):
         return {'!'+ms.target: 1 for ms in specs if ms.target and C.from_name(ms.target)}
