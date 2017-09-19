@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from genericpath import exists
-from logging import getLogger, DEBUG
+from logging import DEBUG, getLogger
 from os.path import join
 
 from enum import Enum
@@ -17,6 +17,7 @@ from ..common.constants import NULL
 from ..common.io import spinner
 from ..common.path import paths_equal
 from ..exceptions import PackagesNotFoundError
+from ..gateways.logging import TRACE
 from ..history import History
 from ..models.channel import Channel
 from ..models.dag import PrefixDag
@@ -189,9 +190,10 @@ class Solver(object):
         # and then we add them back in following the main SAT call.
         _, inconsistent_dists = r.bad_installed(solution, ())
         add_back_map = {}  # name: (dist, spec)
+        if log.isEnabledFor(DEBUG):
+            log.debug("inconsistent dists: %s",
+                      dashlist(inconsistent_dists) if inconsistent_dists else 'None')
         if inconsistent_dists:
-            if log.isEnabledFor(DEBUG):
-                log.debug("found inconsistent dists: %s", dashlist(inconsistent_dists))
             for dist in inconsistent_dists:
                 # pop and save matching spec in specs_map
                 add_back_map[dist.name] = (dist, specs_map.pop(dist.name, None))
@@ -217,6 +219,8 @@ class Solver(object):
                     target = Dist(target_dist).full_name
                     new_spec = MatchSpec(spec, target=target)
                 specs_map[pkg_name] = new_spec
+        if log.isEnabledFor(TRACE):
+            log.trace("specs_map with targets: %s", specs_map)
 
         # If we're in UPDATE_ALL mode, we need to drop all the constraints attached to specs,
         # so they can all float and the solver can find the most up-to-date solution. In the case
