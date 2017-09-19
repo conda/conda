@@ -10,21 +10,21 @@ from logging import getLogger
 import os
 from os.path import abspath, basename, exists, isdir
 
-from conda.models.match_spec import MatchSpec
 from . import common
 from .common import check_non_admin
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import text_type, on_win
+from ..common.compat import on_win, text_type
 from ..core.envs_manager import EnvsDirectory
 from ..core.index import calculate_channel_urls, get_index
 from ..core.solve import Solver
-from ..exceptions import (CondaImportError, CondaOSError, CondaSystemExit, CondaValueError,
-                          DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
-                          PackagesNotFoundError, TooManyArgumentsError,
-                          UnsatisfiableError)
+from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
+                          CondaValueError, DirectoryNotFoundError, DryRunExit,
+                          EnvironmentLocationNotFound, PackagesNotFoundError,
+                          TooManyArgumentsError, UnsatisfiableError)
 from ..misc import append_env, clone_env, explicit, touch_nonadmin
+from ..models.match_spec import MatchSpec
 from ..plan import (revert_actions)
 from ..resolve import ResolvePackageNotFound
 
@@ -267,6 +267,9 @@ def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args,
 
     try:
         progressive_fetch_extract.execute()
+        if context.download_only:
+            raise CondaExitZero('Package caches prepared. UnlinkLinkTransaction cancelled with '
+                                '--download-only option.')
         unlink_link_transaction.execute()
 
     except SystemExit as e:

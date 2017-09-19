@@ -141,7 +141,7 @@ def make_temp_env(*packages, **kwargs):
         try:
             # try to clear any config that's been set by other tests
             reset_context([os.path.join(prefix+os.sep, 'condarc')])
-            run_command(Commands.CREATE, prefix, *packages)
+            run_command(Commands.CREATE, prefix, *packages, **kwargs)
             yield prefix
         finally:
             rmtree(prefix, ignore_errors=True)
@@ -1454,6 +1454,14 @@ class IntegrationTests(TestCase):
         # don't raise for remove --all if environment doesn't exist
         rm_rf(prefix)
         run_command(Commands.REMOVE, prefix, "--all")
+
+    def test_download_only_flag(self):
+        from conda.core.link import UnlinkLinkTransaction
+        with patch.object(UnlinkLinkTransaction, 'execute') as mock_method:
+            with make_temp_env('openssl --download-only', use_exception_handler=True) as prefix:
+                assert mock_method.call_count == 0
+            with make_temp_env('openssl', use_exception_handler=True) as prefix:
+                assert mock_method.call_count == 1
 
     def test_transactional_rollback_simple(self):
         from conda.core.path_actions import CreatePrefixRecordAction

@@ -1079,6 +1079,13 @@ def add_parser_create_install_update(p):
              "Can be used multiple times. "
              "Equivalent to a MatchSpec specifying a single 'provides_features'.",
     )
+    p.add_argument(
+        "--download-only",
+        action="store_true",
+        default=NULL,
+        help="Solve an environment and ensure package caches are populated, but exit "
+             "prior to unlinking and linking packages into the prefix.",
+    )
 
 
 def add_parser_pscheck(p):
