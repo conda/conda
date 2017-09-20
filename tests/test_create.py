@@ -574,7 +574,7 @@ class IntegrationTests(TestCase):
 
             # regression test for #3433
             run_command(Commands.INSTALL, prefix, "python=3.5")
-            assert package_is_installed(prefix, 'python-3.5.')
+            assert package_is_installed(prefix, 'python=3.5')
 
             # regression test for #5847
             #   when using rm_rf on a file
@@ -1387,15 +1387,15 @@ class IntegrationTests(TestCase):
     def test_create_from_extracted(self):
         with make_temp_package_cache() as pkgs_dir:
             assert context.pkgs_dirs == (pkgs_dir,)
-
-            c = Channel(Channel('defaults').urls()[0])
-            pkgs_dir_channel_name = c.safe_name
-            pkgs_dir_subdir = c.subdir
-            pkgs_dir_dir = join(pkgs_dir, pkgs_dir_channel_name, pkgs_dir_subdir)
+            channel_safe_names = set(Channel(url).safe_name for url in Channel('defaults').urls())
 
             def pkgs_dir_has_tarball(tarball_prefix):
-                return any(f.startswith(tarball_prefix) and f.endswith(CONDA_TARBALL_EXTENSION)
-                           for f in os.listdir(pkgs_dir_dir))
+                for safe_name in channel_safe_names:
+                    pkgs_dir_dir = join(pkgs_dir, safe_name, context.subdir)
+                    if any(f.startswith(tarball_prefix) and f.endswith(CONDA_TARBALL_EXTENSION)
+                           for f in os.listdir(pkgs_dir_dir)):
+                        return True
+                return False
 
             with make_temp_env() as prefix:
                 # First, make sure the openssl package is present in the cache,

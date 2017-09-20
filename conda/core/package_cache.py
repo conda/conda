@@ -416,9 +416,9 @@ class UrlsData(object):
 
     # def __contains__(self, url):
     #     return url in self._urls_data
-    #
-    # def __iter__(self):
-    #     return iter(self._urls_data)
+
+    def __iter__(self):
+        return iter(self._urls_data)
 
     def _load(self):
         urls_txt_path = self.urls_txt_path
