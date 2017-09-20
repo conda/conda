@@ -97,6 +97,7 @@ class Context(Configuration):
                                         element_type=string_types + (NoneType,),
                                         validation=default_python_validation)
     disallow = SequenceParameter(string_types)
+    download_only = PrimitiveParameter(False)
     enable_private_envs = PrimitiveParameter(False)
     force_32bit = PrimitiveParameter(False)
     max_shlvl = PrimitiveParameter(2)
@@ -681,6 +682,10 @@ def get_help_dict():
         'disallow': dals("""
             Package specifications to disallow installing. The default is to allow
             all packages.
+            """),
+        'download_only': dals("""
+            Solve an environment and ensure package caches are populated, but exit
+            prior to unlinking and linking packages into the prefix
             """),
         'envs_dirs': dals("""
             The list of directories to search for named environments. When creating a new
