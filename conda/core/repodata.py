@@ -89,8 +89,10 @@ class SubdirDataType(type):
         assert type(channel) is Channel
         cache_key = channel.url(with_credentials=True)
         if not cache_key.startswith('file://') and cache_key in SubdirData._cache_:
+            log.trace("found cached SubdirData for %s", cache_key)
             return SubdirData._cache_[cache_key]
         else:
+            log.trace("no cached SubdirData for %s", cache_key)
             subdir_data_instance = super(SubdirDataType, cls).__call__(channel)
             SubdirData._cache_[cache_key] = subdir_data_instance
             return subdir_data_instance
@@ -137,6 +139,10 @@ class SubdirData(object):
                                     splitext(cache_fn_url(self.url_w_credentials))[0])
         self._loaded = False
 
+    @staticmethod
+    def clear():
+        SubdirData._cache_.clear()
+
     @property
     def cache_path_json(self):
         return self.cache_path_base + '.json'
@@ -146,6 +152,7 @@ class SubdirData(object):
         return self.cache_path_base + '.q'
 
     def load(self):
+        log.debug("loading SubdirData: %s", self.url_w_subdir)
         _internal_state = self._load()
         self._internal_state = _internal_state
         self._package_records = _internal_state['_package_records']

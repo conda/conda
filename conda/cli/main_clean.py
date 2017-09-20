@@ -5,14 +5,12 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
 from logging import getLogger
 import os
 from os import listdir, lstat, walk
-from os.path import getsize, isdir, join
+from os.path import getsize, isfile, join
 import sys
 
-from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
 
 log = getLogger(__name__)
@@ -85,7 +83,9 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
                 else:
                     log.info("%r", e)
     from ..core.package_cache import PackageCache
-    PackageCache._cache_ = {}
+    PackageCache.clear()
+    from ..core.repodata import SubdirData
+    SubdirData.clear()
 
 
 def find_pkgs():
@@ -157,14 +157,30 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
             rm_rf(join(pkgs_dir, pkg))
 
     from ..core.package_cache import PackageCache
-    PackageCache._cache_ = {}
+    PackageCache.clear()
+    from ..core.repodata import SubdirData
+    SubdirData.clear()
 
 
 def rm_index_cache():
+    from glob import glob
+    from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
     from ..gateways.disk.delete import rm_rf
     from ..core.package_cache import PackageCache
     for package_cache in PackageCache.writable_caches():
-        rm_rf(join(package_cache.pkgs_dir, 'cache'))
+        pkgs_dir = package_cache.pkgs_dir
+        rm_rf(join(pkgs_dir, 'cache'))
+
+        channel_names = (channel_name for channel_name in listdir(pkgs_dir)
+                         if isfile(join(pkgs_dir, channel_name, 'metadata.json')))
+        for channel_name in channel_names:
+            for subdir in listdir(join(pkgs_dir, channel_name)):
+                full_subdir_path = join(pkgs_dir, channel_name, subdir)
+                if isfile(join(full_subdir_path, PACKAGE_CACHE_MAGIC_FILE)):
+                    for f in glob(join(full_subdir_path, '*.repodata.json')):
+                        rm_rf(join(full_subdir_path, f))
+                    for f in glob(join(full_subdir_path, '*.q')):
+                        rm_rf(join(full_subdir_path, f))
 
 
 def find_source_cache():

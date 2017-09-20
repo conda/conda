@@ -477,7 +477,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     specs = tuple(MatchSpec(spec) for spec in specs)
 
     from .core.linked_data import PrefixData
-    PrefixData._cache_.clear()
+    PrefixData.clear()
 
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
     if index:

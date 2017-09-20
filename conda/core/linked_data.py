@@ -37,6 +37,10 @@ class PrefixDataType(type):
 class PrefixData(object):
     _cache_ = {}
 
+    @staticmethod
+    def clear(cls):
+        PrefixData._cache_.clear()
+
     def __init__(self, prefix_path):
         self.prefix_path = prefix_path
         self.__prefix_records = None

@@ -36,7 +36,7 @@ from conda.common.serialize import json_dump, yaml_load
 from conda.common.url import path_to_url
 from conda.core.linked_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache import PackageCache
-from conda.core.repodata import create_cache_dir
+from conda.core.repodata import SubdirData, create_cache_dir
 from conda.core.solve import Solver
 from conda.exceptions import CommandArgumentError, CondaHTTPError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler
@@ -65,7 +65,7 @@ except ImportError:  # pragma: no cover
 
 log = getLogger(__name__)
 TRACE, DEBUG, INFO = TRACE, DEBUG, INFO  # these are so the imports aren't cleared, but it's easy to switch back and forth
-TEST_LOG_LEVEL = DEBUG
+TEST_LOG_LEVEL = TRACE
 stderr_log_level(TEST_LOG_LEVEL, 'conda')
 stderr_log_level(TEST_LOG_LEVEL, 'requests')
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
@@ -160,6 +160,8 @@ def make_temp_package_cache():
     pkgs_dir = join(prefix, 'pkgs')
     mkdir_p(pkgs_dir)
     touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
+    PackageCache.clear()
+    SubdirData.clear()
 
     try:
         with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
@@ -1229,22 +1231,70 @@ class IntegrationTests(TestCase):
             rmtree(prefix, ignore_errors=True)
 
     def test_clean_index_cache(self):
-        prefix = ''
+        with make_temp_package_cache() as pkgs_dir:
+            assert context.pkgs_dirs == (pkgs_dir,)
 
-        # make sure we have something in the index cache
-        stdout, stderr = run_command(Commands.INFO, prefix, "flask --json")
-        assert "flask" in json_loads(stdout)
-        index_cache_dir = create_cache_dir()
-        assert glob(join(index_cache_dir, "*.json"))
+            # make sure we have something in the index cache
+            stdout, stderr = run_command(Commands.INFO, None, "flask --json")
+            assert "flask" in json_loads(stdout)
+            index_cache_dir = create_cache_dir(Channel('defaults').urls()[0])
+            assert glob(join(index_cache_dir, "*.json"))
 
-        # now clear it
-        run_command(Commands.CLEAN, prefix, "--index-cache")
-        assert not glob(join(index_cache_dir, "*.json"))
+            # now clear it
+            run_command(Commands.CLEAN, None, "--index-cache")
+            assert not glob(join(index_cache_dir, "*.json"))
+
+    def test_clean_tarballs_and_packages(self):
+        with make_temp_package_cache() as pkgs_dir:
+            with make_temp_env("openssl") as prefix:
+                _openssl_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("openssl")))
+                assert len(_openssl_pcrecs) == 1
+                openssl_pcrec = _openssl_pcrecs[0]
+                assert openssl_pcrec.is_fetched
+                assert openssl_pcrec.is_extracted
+
+                PackageCache.clear()
+                SubdirData.clear()
+                _openssl_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("openssl")))
+                assert len(_openssl_pcrecs) == 1
+                openssl_pcrec = _openssl_pcrecs[0]
+                assert openssl_pcrec.is_fetched
+                assert openssl_pcrec.is_extracted
+
+                # --json flag is regression test for #5451
+                PackageCache.clear()
+                SubdirData.clear()
+                run_command(Commands.CLEAN, prefix, "--packages --yes --json")
+                _openssl_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("openssl")))
+                assert len(_openssl_pcrecs) == 1
+                openssl_pcrec = _openssl_pcrecs[0]
+                assert openssl_pcrec.is_fetched
+                assert isfile(openssl_pcrec.package_tarball_full_path)
+                assert openssl_pcrec.is_extracted
+                assert isdir(openssl_pcrec.extracted_package_dir)
+
+                # --json flag is regression test for #5451
+                PackageCache.clear()
+                SubdirData.clear()
+                run_command(Commands.CLEAN, prefix, "--tarballs --yes --json")
+                _openssl_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("openssl")))
+                assert len(_openssl_pcrecs) == 1
+                openssl_pcrec = _openssl_pcrecs[0]
+                assert not openssl_pcrec.is_fetched
+                assert not isfile(openssl_pcrec.package_tarball_full_path)
+                assert openssl_pcrec.is_extracted
+                assert isdir(openssl_pcrec.extracted_package_dir)
+
+            run_command(Commands.CLEAN, prefix, "--packages --yes")
+            _openssl_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("openssl")))
+            assert not isdir(openssl_pcrec.extracted_package_dir)
+            assert len(_openssl_pcrecs) == 0
+            assert len(PackageCache(pkgs_dir)._package_cache_records) == 0
 
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
-        from conda.core.repodata import SubdirData
-        SubdirData._cache_.clear()
+        PackageCache.clear()
+        SubdirData.clear()
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
         with make_temp_env(prefix=prefix):
@@ -1283,13 +1333,13 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
     def test_offline_with_empty_index_cache(self):
-        from conda.core.repodata import SubdirData
-        SubdirData._cache_.clear()
+        PackageCache.clear()
+        SubdirData.clear()
 
         try:
-            with make_temp_env() as prefix:
-                pkgs_dir = join(prefix, 'pkgs')
-                with env_var('CONDA_PKGS_DIRS', pkgs_dir, reset_context):
+            with make_temp_package_cache() as pkgs_dir:
+                assert context.pkgs_dirs == (pkgs_dir,)
+                with make_temp_env() as prefix:
                     with make_temp_channel(['flask=0.10.1']) as channel:
                         # Clear the index cache.
                         index_cache_dir = create_cache_dir()
@@ -1365,41 +1415,6 @@ class IntegrationTests(TestCase):
                 # appeared again, we decided to re-download the package for some reason.
                 run_command(Commands.INSTALL, prefix, 'openssl --offline')
                 assert not pkgs_dir_has_tarball('openssl-')
-
-    def test_clean_tarballs_and_packages(self):
-        with make_temp_package_cache() as pkgs_dir:
-            with make_temp_env("flask") as prefix:
-                _flask_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("flask")))
-                assert len(_flask_pcrecs) == 1
-                flask_pcrec = _flask_pcrecs[0]
-                assert flask_pcrec.is_fetched
-                assert flask_pcrec.is_extracted
-
-                # --json flag is regression test for #5451
-                run_command(Commands.CLEAN, prefix, "--packages --yes --json")
-                _flask_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("flask")))
-                assert len(_flask_pcrecs) == 1
-                flask_pcrec = _flask_pcrecs[0]
-                assert flask_pcrec.is_fetched
-                assert isfile(flask_pcrec.package_tarball_full_path)
-                assert flask_pcrec.is_extracted
-                assert isdir(flask_pcrec.extracted_package_dir)
-
-                # --json flag is regression test for #5451
-                run_command(Commands.CLEAN, prefix, "--tarballs --yes --json")
-                _flask_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("flask")))
-                assert len(_flask_pcrecs) == 1
-                flask_pcrec = _flask_pcrecs[0]
-                assert not flask_pcrec.is_fetched
-                assert not isfile(flask_pcrec.package_tarball_full_path)
-                assert flask_pcrec.is_extracted
-                assert isdir(flask_pcrec.extracted_package_dir)
-
-            run_command(Commands.CLEAN, prefix, "--packages --yes")
-            _flask_pcrecs = tuple(PackageCache(pkgs_dir).query(MatchSpec("flask")))
-            assert not isdir(flask_pcrec.extracted_package_dir)
-            assert len(_flask_pcrecs) == 0
-            assert len(PackageCache(pkgs_dir)._package_cache_records) == 0
 
     def test_clean_source_cache(self):
         cache_dirs = {

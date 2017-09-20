@@ -219,9 +219,9 @@ class PackageCache(object):
                          if pkgs_dir not in exclude_caches)
         return pc_entry
 
-    @classmethod
-    def clear(cls):
-        cls._cache_.clear()
+    @staticmethod
+    def clear():
+        PackageCache._cache_.clear()
 
     def tarball_file_in_this_cache(self, tarball_path, md5sum=None):
         tarball_full_path, md5sum = self._clean_tarball_path_and_get_md5sum(tarball_path,
@@ -237,7 +237,9 @@ class PackageCache(object):
         # a map where both keys and values are PackageCacheRecord
         #  Why? I don't know.  Consider changing.
         # don't actually populate _package_cache_records until we need it
-        return self.__package_cache_records or self.load() or self.__package_cache_records
+        if self.__package_cache_records is None:
+            self.load()
+        return self.__package_cache_records
 
     @property
     def is_writable(self):

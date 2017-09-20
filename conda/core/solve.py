@@ -459,6 +459,10 @@ class Solver(object):
                     additional_channels.add(Channel(channel))
 
             self.channels.update(additional_channels)
+
+            if log.isEnabledFor(DEBUG):
+                log.debug("Preparing solve with channels: %s", dashlist(self.channels))
+
             reduced_index = get_reduced_index(self.prefix, self.channels,
                                               self.subdirs, prepared_specs)
             self._prepared_specs = prepared_specs

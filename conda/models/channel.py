@@ -242,7 +242,7 @@ class Channel(object):
         return url
 
     def __str__(self):
-        return self.base_url or ""
+        return self.base_url or self.canonical_name
 
     def __repr__(self):
         return ("Channel(scheme=%r, auth=%r, location=%r, token=%r, name=%r, platform=%r, "
