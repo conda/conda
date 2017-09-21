@@ -384,7 +384,11 @@ class Context(Configuration):
     @property
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
-        return MatchSpec('openssl', optional=True),
+        return (
+            MatchSpec('ca-certificates', optional=True),
+            MatchSpec('certifi', optional=True),
+            MatchSpec('openssl', optional=True),
+        )
 
     @property
     def deps_modifier(self):
