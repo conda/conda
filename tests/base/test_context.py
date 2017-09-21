@@ -155,7 +155,9 @@ class ContextCustomRcTests(TestCase):
                 assert channel.channel_name.lower() == basename(conda_bld_path.lstrip('/')).lower()
                 if on_win:
                     # This is a test hack right now. channel.channel_location will actually be something like
-                    # 
+                    #    /C:/Users/builder/AppData/Local/Temp
+                    # Hasn't caused a problem so far, and fixing it is problematic right now for the correct
+                    #   construction of file:// urls
                     assert channel.channel_location == win_path_backout(dirname(conda_bld_path)).lstrip('/')
                 else:
                     assert channel.channel_location == win_path_backout(dirname(conda_bld_path))
