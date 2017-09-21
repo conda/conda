@@ -15,7 +15,7 @@ from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, odict, text_type, with_metaclass
+from ..common.compat import iteritems, itervalues, odict, text_type, with_metaclass, string_types
 from ..common.constants import NULL
 from ..common.io import ProgressBar
 from ..common.path import expand, url_to_path
@@ -72,7 +72,6 @@ class PackageCache(object):
         self._urls_data = UrlsData(pkgs_dir)
 
     def insert(self, package_cache_record):
-
         meta = join(package_cache_record.extracted_package_dir, 'info', 'repodata_record.json')
         write_as_json_to_file(meta, PackageRecord.from_objects(package_cache_record))
 
@@ -138,12 +137,17 @@ class PackageCache(object):
     def query(self, package_ref_or_match_spec):
         # returns a generator
         param = package_ref_or_match_spec
+
+        if isinstance(param, string_types):
+            param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             return (pcrec for pcrec in itervalues(self._package_cache_records)
                     if param.match(pcrec))
-        else:
-            # assume isinstance(param, PackageRef)
-            return (pcrec for pcrec in itervalues(self._package_cache_records) if pcrec == param)
+
+        if isinstance(param, Dist):
+            param = param.to_package_ref()
+        # assume isinstance(param, PackageRef)
+        return (pcrec for pcrec in itervalues(self._package_cache_records) if pcrec == param)
 
     @classmethod
     def query_all(cls, package_ref_or_match_spec, pkgs_dirs=None):
@@ -380,6 +384,7 @@ class PackageCache(object):
 
     def pcrecs_not_linked(self):
         # search for records that are extracted but not linked into any environments
+        # this is a method and not a property because there's some substantial work here
         return tuple(pcrec for pcrec in self.pcrecs_extracted if not self._pcrec_is_in_use(pcrec))
 
     @staticmethod

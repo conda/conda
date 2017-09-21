@@ -23,7 +23,7 @@ from .._vendor.auxlib.logz import stringify
 from ..base.constants import CONDA_HOMEPAGE_URL, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, text_type,
-                             with_metaclass)
+                             with_metaclass, string_types)
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache import PackageCache
 from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError
@@ -55,32 +55,6 @@ REPODATA_PICKLE_VERSION = 6
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
 
-def query_all(channels, subdirs, package_ref_or_match_spec):
-    channel_urls = all_channel_urls(channels, subdirs=subdirs)
-
-    result = executor = None
-    if context.concurrent:
-        try:
-            from concurrent.futures import ThreadPoolExecutor, as_completed
-            executor = ThreadPoolExecutor(10)
-            futures = (executor.submit(
-                SubdirData(Channel(url)).query, package_ref_or_match_spec
-            ) for url in channel_urls)
-            result = tuple(concat(future.result() for future in as_completed(futures)))
-        except (ImportError, RuntimeError) as e:
-            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-            # RuntimeError is thrown if number of threads are limited by OS
-            log.debug(repr(e))
-    if executor:
-        executor.shutdown(wait=True)
-
-    if result is None:
-        subdir_datas = (SubdirData(Channel(url)) for url in channel_urls)
-        result = tuple(concat(sd.query(package_ref_or_match_spec) for sd in subdir_datas))
-
-    return result
-
-
 class SubdirDataType(type):
 
     def __call__(cls, channel):
@@ -102,10 +76,48 @@ class SubdirDataType(type):
 class SubdirData(object):
     _cache_ = {}
 
+    def __init__(self, channel):
+        assert channel.subdir
+        assert not channel.package_filename
+        self.channel = channel
+        self.url_w_subdir = self.channel.url(with_credentials=False)
+        self.url_w_credentials = self.channel.url(with_credentials=True)
+        self.cache_path_base = join(create_cache_dir(channel),
+                                    splitext(cache_fn_url(self.url_w_credentials))[0])
+        self._loaded = False
+
+    @staticmethod
+    def query_all(channels, subdirs, package_ref_or_match_spec):
+        channel_urls = all_channel_urls(channels, subdirs=subdirs)
+
+        result = executor = None
+        if context.concurrent:
+            try:
+                from concurrent.futures import ThreadPoolExecutor, as_completed
+                executor = ThreadPoolExecutor(10)
+                futures = (executor.submit(
+                    SubdirData(Channel(url)).query, package_ref_or_match_spec
+                ) for url in channel_urls)
+                result = tuple(concat(future.result() for future in as_completed(futures)))
+            except (ImportError, RuntimeError) as e:
+                # concurrent.futures is only available in Python >= 3.2 or if futures is installed
+                # RuntimeError is thrown if number of threads are limited by OS
+                log.debug(repr(e))
+        if executor:
+            executor.shutdown(wait=True)
+
+        if result is None:
+            subdir_datas = (SubdirData(Channel(url)) for url in channel_urls)
+            result = tuple(concat(sd.query(package_ref_or_match_spec) for sd in subdir_datas))
+
+        return result
+
     def query(self, package_ref_or_match_spec):
         if not self._loaded:
             self.load()
         param = package_ref_or_match_spec
+        if isinstance(param, string_types):
+            param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             if param.get_exact_value('name'):
                 package_name = param.get_exact_value('name')
@@ -124,36 +136,20 @@ class SubdirData(object):
                     if param.match(prec):
                         yield prec
         else:
+            if isinstance(param, Dist):
+                param = param.to_package_ref()
             # assume isinstance(param, PackageRef)
             for prec in self._names_index[param.name]:
                 if prec == param:
                     yield prec
 
-    def __init__(self, channel):
-        assert channel.subdir
-        assert not channel.package_filename
-        self.channel = channel
-        self.url_w_subdir = self.channel.url(with_credentials=False)
-        self.url_w_credentials = self.channel.url(with_credentials=True)
-        self.cache_path_base = join(create_cache_dir(channel),
-                                    splitext(cache_fn_url(self.url_w_credentials))[0])
-        self._loaded = False
-
     @staticmethod
     def clear():
         SubdirData._cache_.clear()
 
-    @property
-    def cache_path_json(self):
-        return self.cache_path_base + '.json'
-
-    @property
-    def cache_path_pickle(self):
-        return self.cache_path_base + '.q'
-
     def load(self):
         log.debug("loading SubdirData: %s", self.url_w_subdir)
-        _internal_state = self._load()
+        _internal_state = self._do_collect_state()
         self._internal_state = _internal_state
         self._package_records = _internal_state['_package_records']
         self._names_index = _internal_state['_names_index']
@@ -162,15 +158,24 @@ class SubdirData(object):
         self._loaded = True
         return self
 
-    def _load(self):
+    @property
+    def _cache_path_json(self):
+        return self.cache_path_base + '.json'
+
+    @property
+    def _cache_path_pickle(self):
+        return self.cache_path_base + '.q'
+
+    def _do_collect_state(self):
         try:
-            mtime = getmtime(self.cache_path_json)
+            mtime = getmtime(self._cache_path_json)
         except (IOError, OSError):
-            log.debug("No local cache found for %s at %s", self.url_w_subdir, self.cache_path_json)
+            log.debug("No local cache found for %s at %s",
+                      self.url_w_subdir, self._cache_path_json)
             if context.use_index_cache or (context.offline
                                            and not self.url_w_subdir.startswith('file://')):
                 log.debug("Using cached data for %s at %s forced. Returning empty repodata.",
-                          self.url_w_subdir, self.cache_path_json)
+                          self.url_w_subdir, self._cache_path_json)
                 return {
                     '_package_records': (),
                     '_names_index': defaultdict(list),
@@ -180,11 +185,11 @@ class SubdirData(object):
             else:
                 mod_etag_headers = {}
         else:
-            mod_etag_headers = read_mod_and_etag(self.cache_path_json)
+            mod_etag_headers = read_mod_and_etag(self._cache_path_json)
 
             if context.use_index_cache:
                 log.debug("Using cached repodata for %s at %s because use_cache=True",
-                          self.url_w_subdir, self.cache_path_json)
+                          self.url_w_subdir, self._cache_path_json)
 
                 _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                            mod_etag_headers.get('_mod'))
@@ -200,13 +205,13 @@ class SubdirData(object):
             timeout = mtime + max_age - time()
             if (timeout > 0 or context.offline) and not self.url_w_subdir.startswith('file://'):
                 log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
-                          self.url_w_subdir, self.cache_path_json, timeout)
+                          self.url_w_subdir, self._cache_path_json, timeout)
                 _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                            mod_etag_headers.get('_mod'))
                 return _internal_state
 
             log.debug("Local cache timed out for %s at %s",
-                      self.url_w_subdir, self.cache_path_json)
+                      self.url_w_subdir, self._cache_path_json)
 
         try:
             raw_repodata_str = fetch_repodata_remote_request(self.url_w_credentials,
@@ -215,14 +220,14 @@ class SubdirData(object):
         except Response304ContentUnchanged:
             log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
                       self.url_w_subdir)
-            touch(self.cache_path_json)
+            touch(self._cache_path_json)
             _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
                                                        mod_etag_headers.get('_mod'))
             return _internal_state
         else:
-            if not isdir(dirname(self.cache_path_json)):
-                mkdir_p(dirname(self.cache_path_json))
-            with open(self.cache_path_json, 'w') as fh:
+            if not isdir(dirname(self._cache_path_json)):
+                mkdir_p(dirname(self._cache_path_json))
+            with open(self._cache_path_json, 'w') as fh:
                 fh.write(raw_repodata_str or '{}')
             _internal_state = self._process_raw_repodata_str(raw_repodata_str)
             self._internal_state = _internal_state
@@ -231,8 +236,8 @@ class SubdirData(object):
 
     def _pickle_me(self):
         try:
-            log.debug("Saving pickled state for %s at %s", self.url_w_subdir, self.cache_path_json)
-            with open(self.cache_path_pickle, 'wb') as fh:
+            log.debug("Saving pickled state for %s at %s", self.url_w_subdir, self._cache_path_json)
+            with open(self._cache_path_pickle, 'wb') as fh:
                 pickle.dump(self._internal_state, fh, -1)  # -1 means HIGHEST_PROTOCOL
         except Exception:
             log.debug("Failed to dump pickled repodata.", exc_info=True)
@@ -244,13 +249,13 @@ class SubdirData(object):
             return _pickled_state
 
         # pickled data is bad or doesn't exist; load cached json
-        log.debug("Loading raw json for %s at %s", self.url_w_subdir, self.cache_path_json)
-        with open(self.cache_path_json) as fh:
+        log.debug("Loading raw json for %s at %s", self.url_w_subdir, self._cache_path_json)
+        with open(self._cache_path_json) as fh:
             try:
                 raw_repodata_str = fh.read()
             except ValueError as e:
                 # ValueError: Expecting object: line 11750 column 6 (char 303397)
-                log.debug("Error for cache path: '%s'\n%r", self.cache_path_json, e)
+                log.debug("Error for cache path: '%s'\n%r", self._cache_path_json, e)
                 message = dals("""
                 An error occurred when loading cached repodata.  Executing
                 `conda clean --index-cache` will remove cached repodata files
@@ -265,18 +270,18 @@ class SubdirData(object):
 
     def _read_pickled(self, etag, mod_stamp):
 
-        if not isfile(self.cache_path_pickle) or not isfile(self.cache_path_json):
+        if not isfile(self._cache_path_pickle) or not isfile(self._cache_path_json):
             # Don't trust pickled data if there is no accompanying json data
             return None
 
         try:
-            if isfile(self.cache_path_pickle):
-                log.debug("found pickle file %s", self.cache_path_pickle)
-            with open(self.cache_path_pickle, 'rb') as fh:
+            if isfile(self._cache_path_pickle):
+                log.debug("found pickle file %s", self._cache_path_pickle)
+            with open(self._cache_path_pickle, 'rb') as fh:
                 _pickled_state = pickle.load(fh)
         except Exception as e:
             log.debug("Failed to load pickled repodata.", exc_info=True)
-            rm_rf(self.cache_path_pickle)
+            rm_rf(self._cache_path_pickle)
             return None
 
         def _check_pickled_valid():
@@ -289,7 +294,7 @@ class SubdirData(object):
 
         if not all(_check_pickled_valid()):
             log.debug("Pickle load validation failed for %s at %s.",
-                      self.url_w_subdir, self.cache_path_json)
+                      self.url_w_subdir, self._cache_path_json)
             return None
 
         return _pickled_state

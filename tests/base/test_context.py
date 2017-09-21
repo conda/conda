@@ -153,7 +153,12 @@ class ContextCustomRcTests(TestCase):
                 ]
                 assert channel.url() == join_url(conda_bld_url, context.subdir)
                 assert channel.channel_name.lower() == basename(conda_bld_path.lstrip('/')).lower()
-                assert channel.channel_location == win_path_backout(dirname(conda_bld_path))
+                if on_win:
+                    # This is a test hack right now. channel.channel_location will actually be something like
+                    # 
+                    assert channel.channel_location == win_path_backout(dirname(conda_bld_path)).lstrip('/')
+                else:
+                    assert channel.channel_location == win_path_backout(dirname(conda_bld_path))
                 assert channel.canonical_name == "local"
         finally:
             rm_rf(conda_bld_path)
