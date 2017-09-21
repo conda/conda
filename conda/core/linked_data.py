@@ -38,7 +38,7 @@ class PrefixData(object):
     _cache_ = {}
 
     @staticmethod
-    def clear(cls):
+    def clear():
         PrefixData._cache_.clear()
 
     def __init__(self, prefix_path):
