@@ -9,18 +9,18 @@ from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        PathConflict, ROOT_ENV_NAME, SEARCH_PATH, PLATFORM_DIRECTORIES)
+                        PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
 from .. import CondaError
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import first, frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
-from .._vendor.auxlib.path import expand
 from .._vendor.boltons.setutils import IndexedSet
 from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types, text_type
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
+from ..common.path import expand
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 

@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import reduce
 import os
-from os.path import basename, dirname, join, split, splitext
+from os.path import basename, dirname, join, split, splitext, expandvars, expanduser, abspath
 import re
 
 from .compat import on_win, string_types
@@ -241,3 +241,7 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
         return source_short_path.replace('python-scripts', bin_dir, 1)
     else:
         return source_short_path
+
+
+def expand(path):
+    return abspath(expanduser(expandvars(path)))
