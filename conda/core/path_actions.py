@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
 from logging import getLogger
-from os.path import basename, dirname, getsize, join
+from os.path import basename, getsize, join
 from random import random
 import re
 from time import sleep
@@ -19,9 +19,8 @@ from ..base.context import context
 from ..common.compat import iteritems, on_win, range, text_type
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
-                           parse_entry_point_def,
-                           pyc_path, url_to_path, win_path_ok, path_in, win_path_backout,
-                           tokenized_startswith)
+                           parse_entry_point_def, pyc_path, tokenized_startswith, url_to_path,
+                           win_path_backout, win_path_ok)
 from ..common.url import has_platform, path_to_url, unquote
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError
 from ..gateways.connection.download import download
@@ -1181,10 +1180,13 @@ class CacheUrlAction(PathAction):
 
         if self.url.startswith('file:/'):
             source_path = unquote(url_to_path(self.url))
-            package_cache_dir = next((pkgs_dir for pkgs_dir in context.pkgs_dirs
-                                      if tokenized_startswith(win_path_backout(pkgs_dir).split('/'),
-                                                              win_path_backout(source_path).split('/'))),
-                                     None)
+            package_cache_dir = next(
+                (pkgs_dir for pkgs_dir in context.pkgs_dirs if tokenized_startswith(
+                    win_path_backout(pkgs_dir).split('/'),
+                    win_path_backout(source_path).split('/')
+                )),
+                None
+            )
             if package_cache_dir:
                 # if url points to another package cache, link to the writable cache
                 create_hard_link_or_copy(source_path, self.target_full_path)
@@ -1222,7 +1224,7 @@ class CacheUrlAction(PathAction):
                 # repodata_record.json file too
 
                 if pcrec:
-                     origin_url = getattr(pcrec, 'url', None)
+                    origin_url = getattr(pcrec, 'url', None)
                 else:
                     origin_url = None
 

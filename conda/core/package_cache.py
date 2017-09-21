@@ -31,7 +31,7 @@ from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_in
 from ..gateways.disk.test import file_path_is_writable
 from ..models.channel import Channel
 from ..models.dist import Dist
-from ..models.index_record import PackageRecord, PackageRef, PathsData
+from ..models.index_record import PackageRecord, PackageRef
 from ..models.match_spec import MatchSpec
 from ..models.package_cache_record import PackageCacheRecord
 
@@ -287,7 +287,6 @@ class PackageCache(object):
         if not package_tarball_full_path.endswith(CONDA_TARBALL_EXTENSION):
             package_tarball_full_path += CONDA_TARBALL_EXTENSION
 
-        package_filename = basename(package_tarball_full_path)
         log.debug("adding to package cache %s", package_tarball_full_path)
         extracted_package_dir = package_tarball_full_path[:-len(CONDA_TARBALL_EXTENSION)]
 
@@ -426,21 +425,24 @@ class UrlsData(object):
         urls_txt_path = self.urls_txt_path
         self._urls_data = _urls_data = defaultdict(list)
         if isfile(urls_txt_path):
-            with open(urls_txt_path, 'r') as fh:
+            with open(urls_txt_path) as fh:
                 _urls_data[None] = [line.strip() for line in fh]
                 _urls_data[None].reverse()
             pkgs_dir = self.pkgs_dir
-            channel_dirs = (d for d in listdir(pkgs_dir) if isfile(join(pkgs_dir, d, 'metadata.json')))
+            channel_dirs = (d for d in listdir(pkgs_dir)
+                            if isfile(join(pkgs_dir, d, 'metadata.json')))
             for channel_dir in channel_dirs:
                 full_channel_dir = join(pkgs_dir, channel_dir)
-                subdirs = (d for d in listdir(full_channel_dir) if isfile(join(full_channel_dir, d, 'urls.txt')))
+                subdirs = (d for d in listdir(full_channel_dir)
+                           if isfile(join(full_channel_dir, d, 'urls.txt')))
                 for subdir in subdirs:
                     full_subdir = join(full_channel_dir, subdir)
                     urls_txt_path = join(full_subdir, 'urls.txt')
                     if isfile(urls_txt_path):
-                        with open(urls_txt_path, 'r') as fh:
-                            _urls_data["%s/%s" % (channel_dir, subdir)] = [line.strip() for line in fh]
-                            _urls_data["%s/%s" % (channel_dir, subdir)].reverse()
+                        with open(urls_txt_path) as fh:
+                            _key = "%s/%s" % (channel_dir, subdir)
+                            _urls_data[_key] = [line.strip() for line in fh]
+                            _urls_data[_key].reverse()
 
     def add_url(self, url):
         if not url:

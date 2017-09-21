@@ -139,7 +139,8 @@ class Channel(object):
             else:
                 url_parts = urlparse(test_url)
                 if url_parts.host:
-                    location, name = Url(host=url_parts.host, port=url_parts.port).url, url_parts.path
+                    location = Url(host=url_parts.host, port=url_parts.port).url
+                    name = url_parts.path
                 else:
                     location, name = path_split(test_url)
             return Channel(scheme=scheme, auth=auth, location=location, token=token,
