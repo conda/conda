@@ -335,6 +335,8 @@ class PackageCache(object):
                 md5 = None
 
             url = self._urls_data.get_url(package_tarball_full_path)
+            if url is None:
+                url = path_to_url(package_tarball_full_path)
             package_cache_record = PackageCacheRecord.from_objects(
                 index_json_record,
                 url=url,
