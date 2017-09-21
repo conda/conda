@@ -236,7 +236,8 @@ class SubdirData(object):
 
     def _pickle_me(self):
         try:
-            log.debug("Saving pickled state for %s at %s", self.url_w_subdir, self._cache_path_json)
+            log.debug("Saving pickled state for %s at %s",
+                      self.url_w_subdir, self._cache_path_json)
             with open(self._cache_path_pickle, 'wb') as fh:
                 pickle.dump(self._internal_state, fh, -1)  # -1 means HIGHEST_PROTOCOL
         except Exception:
