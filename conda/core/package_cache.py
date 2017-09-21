@@ -334,7 +334,7 @@ class PackageCache(object):
             else:
                 md5 = None
 
-            url = first(self._urls_data, lambda x: basename(x) == package_filename)
+            url = self._urls_data.get_url(package_tarball_full_path)
             package_cache_record = PackageCacheRecord.from_objects(
                 index_json_record,
                 url=url,
@@ -417,8 +417,8 @@ class UrlsData(object):
     # def __contains__(self, url):
     #     return url in self._urls_data
 
-    def __iter__(self):
-        return iter(self._urls_data)
+    # def __iter__(self):
+    #     return iter(self._urls_data)
 
     def _load(self):
         urls_txt_path = self.urls_txt_path
@@ -460,13 +460,13 @@ class UrlsData(object):
         with open(urls_txt_path, 'a') as fh:
             fh.write(url + '\n')
 
-    def get_url(self, package_path):
+    def get_url(self, package_fn_or_path):
         # package path can be a full path or just a basename
         #   can be either an extracted directory or tarball
-        package_path = basename(package_path)
-        if not package_path.endswith(CONDA_TARBALL_EXTENSION):
-            package_path += CONDA_TARBALL_EXTENSION
-        return first(self, lambda url: basename(url) == package_path)
+        filename = basename(package_fn_or_path)
+        if not filename.endswith(CONDA_TARBALL_EXTENSION):
+            filename += CONDA_TARBALL_EXTENSION
+        return first(self._urls_data, lambda url: url and basename(url) == filename)
 
 
 # ##############################
