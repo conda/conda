@@ -158,7 +158,7 @@ class ContextCustomRcTests(TestCase):
                     #    /C:/Users/builder/AppData/Local/Temp
                     # Hasn't caused a problem so far, and fixing it is problematic right now for the correct
                     #   construction of file:// urls
-                    assert channel.channel_location.lstrip('/') == win_path_backout(dirname(conda_bld_path))
+                    assert channel.channel_location.lstrip('/').lower() == win_path_backout(dirname(conda_bld_path)).lower()
                 else:
                     assert channel.channel_location == win_path_backout(dirname(conda_bld_path))
                 assert channel.canonical_name == "local"
