@@ -56,7 +56,7 @@ class TimestampField(NumberField):
 
     def box(self, instance, val):
         val = super(TimestampField, self).box(instance, val)
-        if val and val > 1550000000:  # sometime in 2019
+        if val and val > 253402300799:  # 9999-12-31
             val /= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
         return val
 
