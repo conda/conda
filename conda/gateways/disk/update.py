@@ -8,7 +8,7 @@ import re
 
 from . import exp_backoff_fn
 from .delete import rm_rf
-from ..._vendor.auxlib.path import expand
+from ...common.path import expand
 
 log = getLogger(__name__)
 

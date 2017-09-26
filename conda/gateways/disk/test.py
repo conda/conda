@@ -11,8 +11,7 @@ from .link import islink
 from .read import find_first_existing
 from ... import CondaError
 from ..._vendor.auxlib.decorators import memoize
-from ..._vendor.auxlib.path import expand
-from ...common.path import get_python_short_path
+from ...common.path import expand, get_python_short_path
 from ...models.enums import LinkType
 
 log = getLogger(__name__)

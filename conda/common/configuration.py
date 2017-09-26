@@ -30,11 +30,11 @@ from enum import Enum, EnumMeta
 from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, string_types,
                      text_type, with_metaclass)
 from .constants import EMPTY_MAP, NULL
+from .path import expand
 from .yaml import yaml_load
 from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import AttrDict, first, frozendict, last, make_immutable
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
-from .._vendor.auxlib.path import expand
 from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
 from .._vendor.boltons.setutils import IndexedSet
 

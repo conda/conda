@@ -10,11 +10,10 @@ from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
-from .._vendor.auxlib.path import expand
 from ..base.constants import CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
-from ..common.path import url_to_path
+from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import create_package_cache_directory
