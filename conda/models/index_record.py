@@ -6,7 +6,7 @@ from functools import total_ordering
 from .enums import LinkType, NoarchType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, Field, IntegerField, ListField, MapField,
-                                     StringField)
+                                     StringField, NumberField)
 from ..common.compat import string_types
 
 
@@ -50,6 +50,15 @@ class LinkTypeField(EnumField):
 class NoarchField(EnumField):
     def box(self, instance, val):
         return super(NoarchField, self).box(instance, NoarchType.coerce(val))
+
+
+class TimestampField(NumberField):
+
+    def box(self, instance, val):
+        val = super(TimestampField, self).box(instance, val)
+        if val and val > 253402300799:  # 9999-12-31
+            val /= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
+        return val
 
 
 class Link(DictSafeMixin, Entity):
@@ -99,7 +108,7 @@ class IndexRecord(DictSafeMixin, Entity):
     requires = ListField(string_types, required=False)
     size = IntegerField(required=False)
     subdir = StringField(required=False)
-    timestamp = IntegerField(required=False)
+    timestamp = TimestampField(required=False)
     track_features = StringField(required=False)
     version = StringField()
 
