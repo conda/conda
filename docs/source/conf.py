@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# (c) 2012-2017 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2017 Anaconda, Inc. / https://www.anaconda.com
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -55,7 +55,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Conda'
-copyright = u'2017, Continuum Analytics'
+copyright = u'2017, Anaconda, Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -210,7 +210,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'conda.tex', u'conda Documentation',
-   u'Continuum Analytics', 'manual'),
+   u'Anaconda, Inc.', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -240,7 +240,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'conda', u'conda Documentation',
-     [u'Continuum Analytics'], 1)
+     [u'Anaconda, Inc.'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -254,7 +254,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'conda', u'conda Documentation',
-   u'Continuum Analytics', 'conda', 'One line description of project.',
+   u'Anaconda, Inc.', 'conda', 'One line description of project.',
    'Miscellaneous'),
 ]
 

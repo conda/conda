@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
+# (c) 2012-2013 Anaconda, Inc. / http://continuum.io
 # All Rights Reserved
 #
 # conda is distributed under the terms of the BSD 3-clause license.
@@ -161,7 +161,7 @@ def generate_man(command):
             'help2man',
             '--name', 'conda %s' % command,
             '--section', '1',
-            '--source', 'Continuum Analytics',
+            '--source', 'Anaconda, Inc.',
             '--version-string', conda_version,
             '--no-info',
             'conda %s' % command,
