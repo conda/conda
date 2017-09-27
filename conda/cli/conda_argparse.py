@@ -379,6 +379,6 @@ def add_parser_insecure(p):
         "-k", "--insecure",
         action="store_false",
         default=NULL,
-        help="Allow conda to perform \"insecure\" SSL connections and transfers."
+        help="Allow conda to perform \"insecure\" SSL connections and transfers. "
              "Equivalent to setting 'ssl_verify' to 'false'."
     )
