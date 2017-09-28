@@ -15,6 +15,8 @@
 #
 #     to the end of your ~/.config/config.fish file.
 #
+#     Use the actual path instead of `conda info --root` to speed up sourcing. See issue #6029.
+#
 # USAGE
 #
 #     To activate an environment (via name or path), you can use one of the following:
@@ -220,11 +222,11 @@ end
 
 # Faster but less tested (?)
 function __fish_conda_commands
-  command echo -e "activate\ndeactivate" ;and ls --color=none (conda info --root)/bin/conda-* | sed -r 's/^.*conda-([a-z]+)/\1/'
+  printf "activate\ndeactivate\n" ;and command ls (conda info --root)/bin/conda-* | sed -E 's/^.*conda-([a-z]+)/\1/'
 end
 
 function __fish_conda_envs
-  command echo root ;and ls -1 --color=none (conda info --root)/envs/
+  command echo root ;and command ls -1 (conda info --root)/envs/
 end
 
 function __fish_conda_packages
