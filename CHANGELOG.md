@@ -164,6 +164,9 @@
 * index building optimizations (#5776)
 * fix #5811 change safety_checks default to 'warn' for conda 4.4 (4.4.0rc1) (#5824)
 * add constrained dependencies to conda's own recipe (4.4.0rc1) (#5823)
+* clean up parser imports (4.4.0rc2) (#5844)
+* resolve #5983 add --download-only flag to create, install, and update (4.4.0rc2) (#5988)
+* add ca-certificates and certifi to aggressive_update_packages default (4.4.0rc2) (#5994)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
