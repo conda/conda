@@ -1,3 +1,11 @@
+## 4.3.28 (unreleased)
+
+### Bug Fixes
+
+* fix #5854 remove imports of pkg_resources (#5991)
+* fix millisecond timestamps (#6001)
+
+
 ## 4.3.27 (2017-09-18)
 
 ### Bug Fixes
