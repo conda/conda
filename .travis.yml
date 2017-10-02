@@ -36,6 +36,12 @@ matrix:
     - env: PYTHON_VERSION=3.6 SHELL_INTEGRATION=true
       sudo: false
       language: generic
+      os: linux
+      addons:
+        apt:
+          packages:
+            - dash
+            - zsh
     - env: PYTHON_VERSION=3.6 CONDA_BUILD=2.1.17
       sudo: false
       language: generic
