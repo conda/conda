@@ -133,5 +133,9 @@ class IntegrationTests(TestCase):
                 assert exists(python_path)
                 assert_package_is_installed(prefix, 'argh', exact=False, pip=True)
                 assert_package_is_installed(prefix, 'module-to-install-in-editable-mode', exact=False, pip=True)
-                assert_package_is_installed(prefix, 'six', exact=False, pip=True)
+                try:
+                    assert_package_is_installed(prefix, 'six', exact=False, pip=True)
+                except AssertionError:
+                    # six may now be conda-installed because of packaging changes
+                    assert_package_is_installed(prefix, 'six', exact=False, pip=False)
                 assert_package_is_installed(prefix, 'xmltodict-0.10.2-<pip>', exact=True, pip=True)
