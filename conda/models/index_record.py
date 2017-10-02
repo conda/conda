@@ -26,7 +26,7 @@ from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
-                                     EnumField, IntegerField, ListField, MapField,
+                                     EnumField, IntegerField, ListField, MapField, NumberField,
                                      StringField)
 from ..base.context import context
 from ..common.compat import isiterable, iteritems, itervalues, string_types, text_type
@@ -46,6 +46,15 @@ class LinkTypeField(EnumField):
 class NoarchField(EnumField):
     def box(self, instance, instance_type, val):
         return super(NoarchField, self).box(instance, instance_type, NoarchType.coerce(val))
+
+
+class TimestampField(NumberField):
+
+    def box(self, instance, instance_type, val):
+        val = super(TimestampField, self).box(instance, instance_type, val)
+        if val and val > 253402300799:  # 9999-12-31
+            val /= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
+        return val
 
 
 class Link(DictSafeMixin, Entity):

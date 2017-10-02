@@ -4,8 +4,8 @@ import pytest
 
 from conda.base.context import context, reset_context
 from conda.common.io import env_var
-from .test_create import (make_temp_env, assert_package_is_installed,
-                          run_command, Commands, get_conda_list_tuple)
+from .test_create import Commands, assert_package_is_installed, get_conda_list_tuple, \
+    make_temp_env, run_command
 
 
 @pytest.mark.integration
@@ -36,9 +36,9 @@ class PriorityIntegrationTests(TestCase):
                 #
                 # The following packages will be UPDATED to a higher-priority channel:
                 #
-                superceded_split = update_stdout.split('DOWNGRADED')
-                assert len(superceded_split) == 2
-                assert 'pycosat' in superceded_split[1]
+                installed_str, x = update_stdout.split('UPDATED')
+                updated_str, downgraded_str = x.split('DOWNGRADED')
+                assert 'pycosat:' in updated_str
 
                 # python sys.version should show conda-forge python
                 python_tuple = get_conda_list_tuple(prefix, "python")

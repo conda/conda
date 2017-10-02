@@ -124,6 +124,17 @@ def get_python_version_for_prefix(prefix):
         return record.version[:3]
 
 
+def delete_prefix_from_linked_data(path):
+    '''Here, path may be a complete prefix or a dist inside a prefix'''
+    linked_data_path = next((key for key in sorted(PrefixData._cache_, reverse=True)
+                             if path.startswith(key)),
+                            None)
+    if linked_data_path:
+        del PrefixData._cache_[linked_data_path]
+        return True
+    return False
+
+
 # exports
 def linked_data(prefix, ignore_channels=False):
     """

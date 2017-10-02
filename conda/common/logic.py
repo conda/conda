@@ -431,7 +431,8 @@ class Clauses(object):
             if additional:
                 if not additional[-1]:
                     return None
-                clauses = chain(clauses, additional)
+                clauses = tuple(chain(clauses, additional))
+        log.debug("Invoking SAT with clause count: %s", len(clauses))
         solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
         if solution in ("UNSAT", "UNKNOWN"):
             return None

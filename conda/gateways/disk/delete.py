@@ -45,7 +45,6 @@ def rm_rf(path, max_retries=5, trash=True):
                     if move_result:
                         return True
                 log.info("Failed to remove %s.", path)
-
         else:
             log.trace("rm_rf failed. Not a link, file, or directory: %s", path)
         return True

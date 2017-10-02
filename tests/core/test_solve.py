@@ -1145,6 +1145,25 @@ def test_force_reinstall_1():
         assert not link_dists
 
 
+def test_force_reinstall_2():
+    specs = MatchSpec("python=2"),
+    with get_solver(specs) as solver:
+        unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
+        assert not unlink_dists
+        # PrefixDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in link_dists])
+        order = (
+            'channel-1::openssl-1.0.1c-0',
+            'channel-1::readline-6.2-0',
+            'channel-1::sqlite-3.7.13-0',
+            'channel-1::system-5.8-1',
+            'channel-1::tk-8.5.13-0',
+            'channel-1::zlib-1.2.7-0',
+            'channel-1::python-2.7.5-0',
+        )
+        assert tuple(link_dists) == tuple(solver._index[Dist(d)] for d in order)
+
+
 @pytest.mark.integration  # this test is slower, so we'll lump it into integration
 def test_freeze_deps_1(pytestconfig):
 

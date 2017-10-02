@@ -12,65 +12,10 @@ from os import listdir, lstat, walk
 from os.path import getsize, isdir, join
 import sys
 
-from .conda_argparse import add_parser_json, add_parser_quiet, add_parser_yes
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
 
 log = getLogger(__name__)
-
-descr = """
-Remove unused packages and caches.
-"""
-
-example = """
-Examples:
-
-    conda clean --tarballs
-"""
-
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'clean',
-        description=descr,
-        help=descr,
-        epilog=example,
-    )
-    add_parser_yes(p)
-    add_parser_json(p)
-    add_parser_quiet(p)
-    p.add_argument(
-        "-a", "--all",
-        action="store_true",
-        help="Remove index cache, lock files, tarballs, "
-             "unused cache packages, and source cache.",
-    )
-    p.add_argument(
-        "-i", "--index-cache",
-        action="store_true",
-        help="Remove index cache.",
-    )
-    p.add_argument(
-        "-l", "--lock",
-        action="store_true",
-        help="Remove all conda lock files.",
-    )
-    p.add_argument(
-        "-t", "--tarballs",
-        action="store_true",
-        help="Remove cached package tarballs.",
-    )
-    p.add_argument(
-        '-p', '--packages',
-        action='store_true',
-        help="""Remove unused cached packages. Warning: this does not check
-    for symlinked packages.""",
-    )
-    p.add_argument(
-        '-s', '--source-cache',
-        action='store_true',
-        help="""Remove files from the source cache of conda build.""",
-    )
-    p.set_defaults(func=execute)
 
 
 def find_tarballs():

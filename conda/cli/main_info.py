@@ -14,67 +14,20 @@ from os import listdir
 from os.path import exists, expanduser, isfile, join
 import re
 import sys
+from textwrap import dedent
 
-from .conda_argparse import add_parser_json, add_parser_offline
+from .common import handle_envs_list, stdout_json
+from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
+from ..base.context import conda_in_private_env, context, sys_rc_path, user_rc_path
 from ..common.compat import iteritems, itervalues, on_win, text_type
+from ..common.url import mask_anaconda_token
+from ..core.envs_manager import EnvsDirectory
+from ..core.repodata import query_all
+from ..models.channel import all_channel_urls, offline_keep
+from ..models.match_spec import MatchSpec
+from ..utils import human_bytes
 
 log = getLogger(__name__)
-
-help = "Display information about current conda install."
-
-example = """
-
-Examples:
-
-    conda info -a
-"""
-
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'info',
-        description=help,
-        help=help,
-        epilog=example,
-    )
-    add_parser_json(p)
-    add_parser_offline(p)
-    p.add_argument(
-        '-a', "--all",
-        action="store_true",
-        help="Show all information, (environments, license, and system "
-             "information.")
-    p.add_argument(
-        '-e', "--envs",
-        action="store_true",
-        help="List all known conda environments.",
-    )
-    p.add_argument(
-        '-l', "--license",
-        action="store_true",
-        help="Display information about the local conda licenses list.",
-    )
-    p.add_argument(
-        '-s', "--system",
-        action="store_true",
-        help="List environment variables.",
-    )
-    p.add_argument(
-        'packages',
-        action="store",
-        nargs='*',
-        help="Display information about packages.",
-    )
-    p.add_argument(
-        '--root',
-        action='store_true',
-        help='Display root environment path.',
-    )
-    p.add_argument(
-        '--unsafe-channels',
-        action='store_true',
-        help='Display list of channels with tokens exposed.',
-    )
-    p.set_defaults(func=execute)
 
 
 def get_user_site():  # pragma: no cover
@@ -109,7 +62,6 @@ def dump_record(pkg):
 
 
 def pretty_package(prec):
-    from ..utils import human_bytes
 
     pkg = dump_record(prec)
     d = OrderedDict([
@@ -136,9 +88,6 @@ def pretty_package(prec):
 
 
 def print_package_info(packages):
-    from ..base.context import context
-    from ..models.match_spec import MatchSpec
-    from ..core.repodata import query_all
 
     results = {}
     for package in packages:
@@ -146,7 +95,6 @@ def print_package_info(packages):
         results[package] = tuple(query_all(context.channels, context.subdirs, spec))
 
     if context.json:
-        from .common import stdout_json
         stdout_json({package: results[package] for package in packages})
     else:
         for result in itervalues(results):
@@ -155,11 +103,6 @@ def print_package_info(packages):
 
 
 def get_info_dict(system=False):
-    from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
-    from ..base.context import conda_in_private_env, context, sys_rc_path, user_rc_path
-    from ..common.url import mask_anaconda_token
-    from ..models.channel import offline_keep, all_channel_urls
-
     try:
         from ..install import linked_data
         root_pkgs = linked_data(context.root_prefix)
@@ -214,7 +157,6 @@ def get_info_dict(system=False):
         if isfile(user_netrc):
             netrc_file = user_netrc
 
-    from ..core.envs_manager import EnvsDirectory
     active_prefix_name = EnvsDirectory.env_name(context.active_prefix)
 
     info_dict = dict(
@@ -320,9 +262,6 @@ def get_main_info_str(info_dict):
 
 
 def execute(args, parser):
-    from .common import handle_envs_list, stdout_json
-    from ..base.context import context
-
     if args.root:
         if context.json:
             stdout_json({'root_prefix': context.root_prefix})
@@ -387,10 +326,10 @@ def execute(args, parser):
             from _license import show_info
             show_info()  # pragma: no cover
         except ImportError:
-            print("""\
-WARNING: could not import _license.show_info
-# try:
-# $ conda install -n root _license""")
+            print(dedent("""
+                WARNING: could not import _license.show_info
+                # try:
+                # $ conda install -n root _license"""))
         except Exception as e:  # pragma: no cover
             log.warn('%r', e)
 

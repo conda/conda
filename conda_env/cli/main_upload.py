@@ -7,6 +7,8 @@ from ..env import from_file
 from ..utils.uploader import Uploader, is_installed
 
 description = """
+WARNING: This command is deprecated in conda 4.4 and scheduled for removal in conda 4.5.
+
 Upload an environment to anaconda.org
 """
 
@@ -62,6 +64,7 @@ def configure_parser(sub_parsers):
 
 
 def execute(args, parser):
+    print("WARNING: conda env upload is deprecated and will be removed as part of conda 4.5.")
 
     if not is_installed():
         raise exceptions.NoBinstar()

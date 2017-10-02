@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import bz2
 from contextlib import contextmanager
-from datetime import datetime
 from glob import glob
 import json
 from json import loads as json_loads
@@ -20,14 +19,15 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-from conda._vendor.auxlib.ish import dals
 import pytest
 import requests
 
 from conda import CondaError, CondaMultiError
 from conda._vendor.auxlib.entity import EntityEncoder
+from conda._vendor.auxlib.ish import dals
 from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE, SafetyChecks
 from conda.base.context import Context, context, reset_context
+from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.compat import PY2, iteritems, itervalues, text_type
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level
@@ -39,8 +39,8 @@ from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
     linked as install_linked, linked_data
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
-from conda.exceptions import CondaHTTPError, DryRunExit, PackagesNotFoundError, RemoveError, \
-    conda_exception_handler, CommandArgumentError, OperationNotAllowed
+from conda.exceptions import CommandArgumentError, CondaHTTPError, DryRunExit, OperationNotAllowed, \
+    PackagesNotFoundError, RemoveError, conda_exception_handler
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -123,9 +123,9 @@ def run_command(command, prefix, *arguments, **kwargs):
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         with argv(['python_api'] + split_command_line), captured() as c:
             if use_exception_handler:
-                conda_exception_handler(args.func, args, p)
+                conda_exception_handler(do_call, args, p)
             else:
-                args.func(args, p)
+                do_call(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout, file=sys.stderr)
     if command is Commands.CONFIG:
@@ -141,7 +141,7 @@ def make_temp_env(*packages, **kwargs):
         try:
             # try to clear any config that's been set by other tests
             reset_context([os.path.join(prefix+os.sep, 'condarc')])
-            run_command(Commands.CREATE, prefix, *packages)
+            run_command(Commands.CREATE, prefix, *packages, **kwargs)
             yield prefix
         finally:
             rmtree(prefix, ignore_errors=True)
@@ -536,6 +536,7 @@ class IntegrationTests(TestCase):
             self.assertIsInstance(stdout, str)
 
     def test_list_with_pip_egg(self):
+        from conda.exports import rm_rf as _rm_rf
         with make_temp_env("python=3.5 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install --egg --no-binary flask flask==0.10.1",
                        cwd=prefix, shell=True)
@@ -544,8 +545,15 @@ class IntegrationTests(TestCase):
             assert any(line.endswith("<pip>") for line in stdout_lines
                        if line.lower().startswith("flask"))
 
+            # regression test for #5847
+            #   when using rm_rf on a directory
+            assert prefix in PrefixData._cache_
+            _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")))
+            assert prefix not in PrefixData._cache_
+
     def test_list_with_pip_wheel(self):
-        with make_temp_env("python=3.5 pip") as prefix:
+        from conda.exports import rm_rf as _rm_rf
+        with make_temp_env("python=3.6 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
@@ -554,8 +562,27 @@ class IntegrationTests(TestCase):
                        if line.lower().startswith("flask"))
 
             # regression test for #3433
-            run_command(Commands.INSTALL, prefix, "python=3.4")
-            assert_package_is_installed(prefix, 'python-3.4.')
+            run_command(Commands.INSTALL, prefix, "python=3.5")
+            assert_package_is_installed(prefix, 'python-3.5.')
+
+            # regression test for #5847
+            #   when using rm_rf on a file
+            assert prefix in PrefixData._cache_
+            _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
+            assert prefix not in PrefixData._cache_
+
+        # regression test for #5980, related to #5847
+        with make_temp_env() as prefix:
+            assert isdir(prefix)
+            assert prefix in PrefixData._cache_
+
+            rmtree(prefix)
+            assert not isdir(prefix)
+            assert prefix in PrefixData._cache_
+
+            _rm_rf(prefix)
+            assert not isdir(prefix)
+            assert prefix not in PrefixData._cache_
 
     def test_install_tarball_from_local_channel(self):
         # Regression test for #2812
@@ -1107,7 +1134,10 @@ class IntegrationTests(TestCase):
     def test_search_gawk_not_win_filter(self):
         with make_temp_env() as prefix:
             stdout, stderr = run_command(
-                Commands.SEARCH, prefix, "*gawk", "--platform", "win-64", "--json", use_exception_handler=True)
+                Commands.SEARCH, prefix, "*gawk", "--platform", "win-64", "--json",
+                "-c", "https://repo.continuum.io/pkgs/msys2 --json",
+                use_exception_handler=True,
+            )
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
             assert "gawk" in json_obj.keys()
             assert "m2-gawk" in json_obj.keys()
@@ -1437,6 +1467,14 @@ class IntegrationTests(TestCase):
         # don't raise for remove --all if environment doesn't exist
         rm_rf(prefix)
         run_command(Commands.REMOVE, prefix, "--all")
+
+    def test_download_only_flag(self):
+        from conda.core.link import UnlinkLinkTransaction
+        with patch.object(UnlinkLinkTransaction, 'execute') as mock_method:
+            with make_temp_env('openssl --download-only', use_exception_handler=True) as prefix:
+                assert mock_method.call_count == 0
+            with make_temp_env('openssl', use_exception_handler=True) as prefix:
+                assert mock_method.call_count == 1
 
     def test_transactional_rollback_simple(self):
         from conda.core.path_actions import CreatePrefixRecordAction
