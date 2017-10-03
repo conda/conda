@@ -31,10 +31,10 @@ class PriorityIntegrationTests(TestCase):
 
             # python sys.version should show conda-forge python
             python_tuple = get_conda_list_tuple(prefix, "python")
-            assert python_tuple[3] == 'conda-forge'
+            assert python_tuple[3] == 'conda-forge', python_tuple
             # conda list should show xz coming from conda-forge
-            pycosat_tuple = get_conda_list_tuple(prefix, "xz")
-            assert pycosat_tuple[3] == 'conda-forge'
+            xz_tuple = get_conda_list_tuple(prefix, "xz")
+            assert xz_tuple[3] == 'conda-forge', xz_tuple
 
     def test_channel_priority_update(self):
         """

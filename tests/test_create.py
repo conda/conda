@@ -22,6 +22,7 @@ import shutil
 
 from datetime import datetime
 
+import conda
 from conda._vendor.auxlib.ish import dals
 from conda.gateways.anaconda_client import read_binstar_tokens
 import pytest
@@ -551,6 +552,7 @@ class IntegrationTests(TestCase):
             assert not exists(prefix)
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
+    @pytest.mark.xfail(conda.__version__.startswith('4.3'), reason='currently broken in 4.3')
     def test_remove_features(self):
         with make_temp_env("python=2 numpy nomkl") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
