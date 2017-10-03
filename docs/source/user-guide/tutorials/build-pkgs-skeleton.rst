@@ -75,7 +75,7 @@ skeleton file, ``meta.yaml`` in that directory. Download the other two
 skeleton files: :download:`build.sh <build.sh>` ,
 :download:`bld.bat <bld.bat>`. Save these files
 in the same ``pyinstrument`` directory where the ``meta.yaml`` file is present.
-Use the ``ls`` command on OS X or Linux or the
+Use the ``ls`` command on macOS or Linux or the
 ``dir`` command on Windows to verify that these files have been
 created. The three files have been populated with information
 from the PyPI metadata and in most cases will not need to be
