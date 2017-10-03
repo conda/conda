@@ -70,11 +70,11 @@ command:
 The two arguments to ``conda skeleton`` are the hosting location,
 in this case ``pypi``, and the name of the package.
 
-
 This creates a directory named ``Pyinstrument`` and creates the
 skeleton file, ``meta.yaml`` in that directory. Download the other two
-skeleton files: `build.sh <build.sh>` , `bld.bat <bld.bat>`. Save these files
-in the same ``pyinstrument`` directory where ``meta.yaml`` file is present.
+skeleton files: :download:`build.sh <build.sh>` ,
+:download:`bld.bat <bld.bat>`. Save these files
+in the same ``pyinstrument`` directory where the ``meta.yaml`` file is present.
 Use the ``ls`` command on OS X or Linux or the
 ``dir`` command on Windows to verify that these files have been
 created. The three files have been populated with information
