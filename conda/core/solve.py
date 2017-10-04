@@ -449,13 +449,12 @@ class Solver(object):
             self._r = Resolve(self._index, channels=self.channels)
         else:
             # add in required channels that aren't explicitly given in the channels list
+            # For correctness, we should probably add to additional_channels any channel that
+            #  is given by PrefixData(self.prefix).all_subdir_urls().  However that causes
+            #  usability problems with bad / expired tokens.
+
             additional_channels = set()
-            # # TODO: probably necessary for correctness, but causes major issues with expired
-            # # tokens and channels that no longer exist
-            # additional_channels.update(
-            #     Channel(subdir_url) for subdir_url in PrefixData(self.prefix).all_subdir_urls()
-            # )
-            for spec in concatv(self.specs_to_remove, self.specs_to_add):
+            for spec in self.specs_to_add:
                 # TODO: correct handling for subdir isn't yet done
                 channel = spec.get_exact_value('channel')
                 if channel:
