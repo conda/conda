@@ -238,7 +238,8 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         return
 
     if not lexists(src):
-        raise CondaError("Cannot link a source that does not exist. %s" % src)
+        raise CondaError("Cannot link a source that does not exist. %s\n"
+                         "Running `conda clean --packages` may resolve your problem." % src)
 
     if lexists(dst):
         if not force:
