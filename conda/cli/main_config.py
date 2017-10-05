@@ -377,9 +377,6 @@ def execute_config(args, parser):
                 bad = rc_config[key].__class__.__name__
                 from ..exceptions import CouldntParseError
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
-            if key == 'default_channels' and rc_path != sys_rc_path:
-                msg = "'default_channels' is only configurable for system installs"
-                raise NotImplementedError(msg)
             arglist = rc_config.setdefault(key, [])
             if item in arglist:
                 # Right now, all list keys should not contain duplicates
