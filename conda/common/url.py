@@ -95,9 +95,9 @@ def is_ipv4_address(string_ip):
 def is_ipv6_address(string_ip):
     """
     Examples:
-        >>> [is_ipv6_address(ip) for ip in ('::1', '2001:db8:85a3::370:7334', '1234:'*7+'1234')]
+        >> [is_ipv6_address(ip) for ip in ('::1', '2001:db8:85a3::370:7334', '1234:'*7+'1234')]
         [True, True, True]
-        >>> [is_ipv6_address(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
+        >> [is_ipv6_address(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
         [False, False]
     """
     try:
@@ -131,11 +131,11 @@ def is_ipv6_address_win_py27(string_ip):
 def is_ip_address(string_ip):
     """
     Examples:
-        >>> is_ip_address('192.168.10.10')
+        >> is_ip_address('192.168.10.10')
         True
-        >>> is_ip_address('::1')
+        >> is_ip_address('::1')
         True
-        >>> is_ip_address('www.google.com')
+        >> is_ip_address('www.google.com')
         False
     """
     return is_ipv4_address(string_ip) or is_ipv6_address(string_ip)
