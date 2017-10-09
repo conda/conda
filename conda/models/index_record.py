@@ -65,10 +65,9 @@ class TimestampField(NumberField):
     @staticmethod
     def _make_milliseconds(val):
         if val:
-            val = int(val)
             if val < 253402300799:  # 9999-12-31
                 val *= 1000  # convert seconds to milliseconds
-        return val
+        return int(val)
 
     def box(self, instance, val):
         return self._make_milliseconds(super(TimestampField, self).box(instance, val))
