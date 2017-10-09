@@ -54,30 +54,30 @@ class NoarchField(EnumField):
 
 class TimestampField(NumberField):
 
-    @staticmethod
-    def _make_seconds(val):
-        if val:
-            val = int(val)
-            if val > 253402300799:  # 9999-12-31
-                val //= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
-        return val
-
     # @staticmethod
-    # def _make_milliseconds(val):
+    # def _make_seconds(val):
     #     if val:
     #         val = int(val)
-    #         if val < 253402300799:  # 9999-12-31
-    #             val *= 1000  # convert seconds to milliseconds
+    #         if val > 253402300799:  # 9999-12-31
+    #             val //= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
     #     return val
 
+    @staticmethod
+    def _make_milliseconds(val):
+        if val:
+            val = int(val)
+            if val < 253402300799:  # 9999-12-31
+                val *= 1000  # convert seconds to milliseconds
+        return val
+
     def box(self, instance, val):
-        return self._make_seconds(super(TimestampField, self).box(instance, val))
+        return self._make_milliseconds(super(TimestampField, self).box(instance, val))
 
     def unbox(self, instance, instance_type, val):
-        return self._make_seconds(super(TimestampField, self).unbox(instance, instance_type, val))
+        return self._make_milliseconds(super(TimestampField, self).unbox(instance, instance_type, val))
 
     def dump(self, val):
-        return self._make_seconds(super(TimestampField, self).dump(val))
+        return self._make_milliseconds(super(TimestampField, self).dump(val))
 
 
 class Link(DictSafeMixin, Entity):
