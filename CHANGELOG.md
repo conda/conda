@@ -1,3 +1,10 @@
+## 4.3.29 (2017-10-09)
+
+### Bug Fixes
+
+* fix #6096 coerce to millisecond timestamps (#6131)
+
+
 ## 4.3.28 (2017-10-06)
 
 ### Bug Fixes
