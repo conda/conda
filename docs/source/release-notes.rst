@@ -1221,7 +1221,7 @@ This release contains many small bug fixes for all operating systems, and a few
 special fixes for Windows behavior.
 
 Notable changes for all systems (Windows, macOS and Linux)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * **Channel order now matters.** The most significant conda change is that
   when you add channels, channel order matters. If you have a list of channels
