@@ -107,7 +107,7 @@ Download the installer file and before installing verify it as follows:
   NOTE: Replace ``filename`` with the actual path and name of the
   downloaded installer file.
 
-* Linux: In a erminal window enter ``md5sum filename`` or ``sha256sum filename``.
+* Linux: In a Terminal window enter ``md5sum filename`` or ``sha256sum filename``.
 
   NOTE: Replace ``filename`` with the actual path and name of the
   downloaded installer file.
