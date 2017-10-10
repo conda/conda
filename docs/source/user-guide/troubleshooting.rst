@@ -643,3 +643,19 @@ Solution
 ---------
 
 Exercise caution when coding version requirements.
+
+
+ValidationError: Invalid value for timestamp
+=============================================
+
+Cause
+------
+
+This happens when certain packages are installed with conda 4.3.28, and then
+conda is downgraded to 4.3.27 or earlier.
+
+Solution
+---------
+
+See https://github.com/conda/conda/issues/6096.
+
