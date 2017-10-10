@@ -405,7 +405,7 @@ URL to the package that you want. To find this URL:
 
 #. Run the displayed command.
 
-#. To see the package downloaded, in the Terminal or an Anaconda Prompt, run:
+#. To check that the package downloaded, in the Terminal or an Anaconda Prompt, run:
 
    .. code::
 
@@ -453,7 +453,7 @@ Installing commercial packages is the same as installing any
 other package with conda.
 
 EXAMPLE: To install a free trial of one of Anaconda's commercial
-packages, IOPro, which can speed up your Python processing,in your Terminal
+packages, IOPro, which can speed up your Python processing, in your Terminal
 window or an Anaconda Prompt, run:
 
 .. code::

@@ -6,7 +6,7 @@ Installation
    :local:
    :depth: 1
 
-The fastest way to :ref:`obtain <rst-download>`conda is to install
+The fastest way to :doc:`obtain <download>` conda is to install
 :ref:`Miniconda <miniconda-glossary>`, a mini version of
 :ref:`Anaconda <anaconda-glossary>` that includes only conda and
 its dependencies. If you prefer to have conda plus over 720 open
@@ -20,9 +20,6 @@ which does require administrator permissions.
 For information on using our graphical installers for
 Windows or macOS, see the instructions for
 `installing Anaconda <http://docs.continuum.io/anaconda/install.html>`_.
-
-For information on using our Miniconda installers, see the quick
-`install instructions <https://docs.anaconda.com/docs_oss/conda/install/quick#windows-miniconda-install>`_.
 
 
 System requirements
@@ -44,6 +41,16 @@ System requirements
 
 NOTE: You do not need administrative or root permissions to
 install Anaconda if you select a user-writable install location.
+
+
+Regular installation
+====================
+
+Follow the instructions for your operating system:
+
+* :doc:`Windows <windows>`.
+* :doc:`macOS <macos>`.
+* :doc:`Linux <linux>`.
 
 
 Installing in silent mode
@@ -86,7 +93,7 @@ To see which Python installation is currently set as the default:
 
 * On macOS and Linux, open the Terminal and run---``which python``.
 
-* On Windows, open the Terminal and run---``where python``.
+* On Windows, open an Anaconda Prompt and run---``where python``.
 
 To see which packages are installed in your current conda
 environment and their version numbers, in your Terminal window

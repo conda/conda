@@ -116,7 +116,7 @@ To install a package from Anaconda.org:
    example it is the "pandas" channel.
 
 #. Now that you know the channel name, use the ``conda install``
-   command to install the package.In your Terminal window or an Anaconda Prompt,
+   command to install the package. In your Terminal window or an Anaconda Prompt,
    run:
 
    .. code::
@@ -126,7 +126,7 @@ To install a package from Anaconda.org:
    This command tells conda to install the bottleneck package
    from the pandas channel on Anaconda.org.
 
-#. To see the package is installed, in your Terminal window or an Anaconda Prompt,
+#. To check that the package is installed, in your Terminal window or an Anaconda Prompt,
    run:
 
    .. code::

@@ -75,7 +75,7 @@ programs and other components. Conda keeps track of the
 dependencies between packages and platforms.
 
 Conda packages are downloaded from remote channels, which are
-URLs to directories containing conda packages. The `conda``
+URLs to directories containing conda packages. The ``conda``
 command searches a default set of channels, and packages are
 automatically downloaded and updated from
 http://repo.continuum.io/pkgs/. You can modify what remote

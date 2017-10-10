@@ -33,7 +33,7 @@ in your Terminal window or an Anaconda Prompt, run:
 This lists all packages whose names contain the text ``python``.
 
 To list only the packages whose full name is exactly ``python``,
-add the ``--full-name`` option, in your Terminal window or an Anaconda Prompt,
+add the ``--full-name`` option. In your Terminal window or an Anaconda Prompt,
 run:
 
 .. code::
@@ -65,7 +65,7 @@ Python version into it:
      package, such as ``numpy=1.7``, or :ref:`multiple packages
      <installing multiple packages>`.
 
-   * To create the new environmentfor Python 2.7, in your Terminal window
+   * To create the new environment for Python 2.7, in your Terminal window
      or an Anaconda Prompt, run:
 
      .. code-block:: bash
