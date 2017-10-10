@@ -160,7 +160,7 @@ packages that are easily installed locally with the
 
 * The Navigator GUI.
 
-* A terminal or command prompt using conda commands.
+* A Terminal or Anaconda Prompt using conda commands.
 
 *  https://repo.continuum.io/pkgs/.
 

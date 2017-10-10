@@ -74,7 +74,7 @@ GUI versus command line installer
 Both GUI and command line installers are available for Windows,
 macOS and Linux:
 
-* If you do not wish to enter commands in a terminal window,
+* If you do not wish to enter commands in a Terminal window,
   choose the GUI installer.
 
 * If GUIs slow you down, choose the command line version.
@@ -102,12 +102,12 @@ checksums are available for
 
 Download the installer file and before installing verify it as follows:
 
-* macOS: In iTerm or a terminal window enter ``md5 filename`` or ``shasum -a 256 filename``.
+* macOS: In iTerm or a Terminal window enter ``md5 filename`` or ``shasum -a 256 filename``.
 
   NOTE: Replace ``filename`` with the actual path and name of the
   downloaded installer file.
 
-* Linux: In a terminal window enter ``md5sum filename`` or ``sha256sum filename``.
+* Linux: In a erminal window enter ``md5sum filename`` or ``sha256sum filename``.
 
   NOTE: Replace ``filename`` with the actual path and name of the
   downloaded installer file.
@@ -115,20 +115,20 @@ Download the installer file and before installing verify it as follows:
 * Windows:
 
   * If you have PowerShell V4 or later:
-  
+
     Open a PowerShell console and verify the file as follows::
 
       Get-FileHash filename -Algorithm MD5
-    
+
     or::
-    
+
       Get-FileHash filename -Algorithm SHA256
 
     NOTE: Replace "filename" with the actual path and name of the downloaded
     file.
 
   * If you don't have PowerShell V4 or later:
-  
+
     Use the free `online verifier tool
     <https://gallery.technet.microsoft.com/PowerShell-File-Checksum-e57dcd67>`_
     on the Microsoft website.

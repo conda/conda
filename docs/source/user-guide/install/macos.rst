@@ -10,7 +10,7 @@ Installing on macOS
 
 #. Install:
 
-   * Miniconda---In your terminal window, run:
+   * Miniconda---In your Terminal window, run:
 
      .. code::
 
@@ -24,7 +24,7 @@ Installing on macOS
    can change them later.
 
 #. To make the changes take effect, close and then re-open your
-   terminal window.
+   Terminal window.
 
 #. :doc:`Test your installation <test-installation>`.
 
@@ -80,7 +80,7 @@ EXAMPLE::
 Updating Anaconda or Miniconda
 ==============================
 
-#. Open a terminal window.
+#. Open a Terminal window.
 
 #. Navigate to the ``anaconda`` directory.
 
@@ -90,7 +90,7 @@ Updating Anaconda or Miniconda
 Uninstalling Anaconda or Miniconda
 ==================================
 
-#. Open a terminal window.
+#. Open a Terminal window.
 
 #. Remove the entire Miniconda install directory with::
 

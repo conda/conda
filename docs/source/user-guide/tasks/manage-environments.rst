@@ -23,7 +23,9 @@ TIP: By default, environments are installed into the ``envs``
 directory in your conda directory. Run ``conda create --help``
 for information on specifying a different path.
 
-#. To create an environment, run:
+Use the Terminal or an Anaconda Prompt for the following steps.
+
+#. To create an environment:
 
    .. code::
 
@@ -103,6 +105,8 @@ For details, run ``conda create --help``.
 Creating an environment from an environment.yml file
 ====================================================
 
+Use the Terminal or an Anaconda Prompt for the following steps.
+
 #. Create the environment from the ``environment.yml`` file:
 
    .. code::
@@ -126,6 +130,8 @@ Creating an environment from an environment.yml file
 
 Cloning an environment
 =======================
+
+Use the Terminal or an Anaconda Prompt for the following steps.
 
 You can make an exact copy of an environment by creating a clone
 of it:
@@ -154,6 +160,8 @@ Building identical conda environments
 You can use explicit specification files to build an identical
 conda environment on the same operating system platform, either
 on the same machine or on a different machine.
+
+Use the Terminal or an Anaconda Prompt for the following steps.
 
 #. Run ``conda list --explicit`` to produce a spec list such as:
 
@@ -217,9 +225,9 @@ Activating an environment
 
 To activate an environment:
 
-* Windows: ``activate myenv``
+* On Windows, in your Anaconda Prompt, run ``activate myenv``
 
-* macOS and Linux: ``source activate myenv``
+* On macOS and Linux, in your Terminal Window, run ``source activate myenv``
 
 Conda prepends the path name ``myenv`` onto your system command.
 
@@ -229,9 +237,9 @@ Deactivating an environment
 
 To deactivate an environment:
 
-* Windows: ``deactivate``
+* On Windows, in your Anaconda Prompt, run ``deactivate``
 
-* macOS and Linux: ``source deactivate``
+* On macOS and Linux, in your Terminal Window, run ``source deactivate``
 
 Conda removes the path name ``myenv`` from your system command.
 
@@ -243,6 +251,8 @@ environment before activating another.
 
 Determining your current environment
 ====================================
+
+Use the Terminal or an Anaconda Prompt for the following steps.
 
 By default, the active environment---the one you are currently
 using---is shown in parentheses () or brackets [] at the
@@ -272,7 +282,8 @@ To re-enable this option::
 Viewing a list of your environments
 ===================================
 
-To see a list of all of your environments:
+To see a list of all of your environments, in your Terminal window or an
+Anaconda Prompt, run:
 
 .. code::
 
@@ -299,19 +310,22 @@ Viewing a list of the packages in an environment
 
 To see a list of all packages installed in a specific environment:
 
-* If the environment is not activated:
+* If the environment is not activated, in your Terminal window or an
+  Anaconda Prompt, run:
 
   .. code-block:: bash
 
      conda list -n myenv
 
-* If the environment is activated:
+* If the environment is activated, in your Terminal window or an
+  Anaconda Prompt, run:
 
   .. code-block:: bash
 
      conda list
 
-To see if a specific package is installed in an environment:
+To see if a specific package is installed in an environment, in your Terminal window or an
+Anaconda Prompt, run:
 
 .. code-block:: bash
 
@@ -321,7 +335,8 @@ To see if a specific package is installed in an environment:
 Using pip in an environment
 ===========================
 
-To use pip in your environment:
+To use pip in your environment, in your Terminal window or an
+Anaconda Prompt, run:
 
 .. code-block:: bash
 
@@ -358,8 +373,8 @@ to give the script a name in the form
 Windows
 -------
 
-#. Locate the directory for the conda environment, such as
-   ``C:\Users\jsmith\Anaconda3\envs\analytics``.
+#. Locate the directory for the conda environment in your
+   Anaconda Prompt, such as ``C:\Users\jsmith\Anaconda3\envs\analytics``.
 
 #. Enter that directory and create these subdirectories and
    files::
@@ -389,7 +404,7 @@ When you run ``deactivate``, those variables are erased.
 macOS and Linux
 ---------------
 
-#. Locate the directory for the conda environment, such as
+#. Locate the directory for the conda environment in your Terminal window, such as
    ``/home/jsmith/anaconda3/envs/analytics``.
 
 #. Enter that directory and create these subdirectories and
@@ -438,9 +453,9 @@ current directory, it will be overwritten during this task.
 
 #. Activate the environment to export:
 
-   * Windows: ``activate myenv``
+   * On Windows, in your Anaconda Prompt, run ``activate myenv``
 
-   * macOS and Linux: ``source activate myenv``
+   * On macOS and Linux, in your Terminal window, run ``source activate myenv``
 
    NOTE: Replace ``myenv`` with the name of the environment.
 
@@ -506,7 +521,8 @@ environments while changing ``.condarc`` affects them all.
 Removing an environment
 =======================
 
-To remove an environment:
+To remove an environment, in your Terminal window or an
+Anaconda Prompt, run:
 
 .. code::
 
@@ -514,7 +530,8 @@ To remove an environment:
 
 (You may instead use ``conda env remove --name myenv``.)
 
-To verify that the environment was removed:
+To verify that the environment was removed, in your Terminal window or an
+Anaconda Prompt, run:
 
 .. code::
 

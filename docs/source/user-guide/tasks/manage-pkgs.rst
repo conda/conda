@@ -13,6 +13,8 @@ on this page. For details, see :doc:`../../commands`.
 Searching for packages
 =======================
 
+Use the Terminal or an Anaconda Prompt for the following steps.
+
 To see if a specific package such as SciPy is available for
 installation:
 
@@ -38,6 +40,8 @@ and is available for installation:
 
 Installing packages
 ===================
+
+Use the Terminal or an Anaconda Prompt for the following steps.
 
 To install a specific package such as SciPy into an existing
 environment "myenv":
@@ -112,7 +116,8 @@ To install a package from Anaconda.org:
    example it is the "pandas" channel.
 
 #. Now that you know the channel name, use the ``conda install``
-   command to install the package:
+   command to install the package.In your Terminal window or an Anaconda Prompt,
+   run:
 
    .. code::
 
@@ -121,7 +126,8 @@ To install a package from Anaconda.org:
    This command tells conda to install the bottleneck package
    from the pandas channel on Anaconda.org.
 
-#. Check to see that the package is now installed:
+#. To see the package is installed, in your Terminal window or an Anaconda Prompt,
+   run:
 
    .. code::
 
@@ -150,14 +156,16 @@ To install a non-conda package:
 
 #. Activate the environment where you want to put the program:
 
-   * Windows:**  ``activate myenv``.
-   * Linux, OS X:** ``source activate myenv``.
+   * On Windows, in your Anaconda Prompt, run ``activate myenv``.
+   * On macOS and Linux,in your Terminal window, run ``source activate myenv``.
 
-#. Use pip to install a program such as See::
+#. To use pip to install a program such as See, in your Terminal window or an Anaconda Prompt,
+   run::
 
      pip install see
 
-#. Verify the package was installed:
+#. To verify the package was installed, in your Terminal window or an Anaconda Prompt,
+   run:
 
    .. code::
 
@@ -168,7 +176,8 @@ Installing commercial packages
 ==============================
 
 Installing a commercial package such as IOPro is the same as
-installing any other package:
+installing any other package. In your Terminal window or an Anaconda Prompt,
+run:
 
 .. code-block:: bash
 
@@ -183,6 +192,8 @@ expires after 30 days.
 
 Viewing a list of installed packages
 ====================================
+
+Use the Terminal or an Anaconda Prompt for the following steps.
 
 To list all of the packages in the active environment:
 
@@ -203,6 +214,8 @@ Updating packages
 Use ``conda update`` command to check to see if a new update is
 available. If conda tells you an update is available, you can
 then choose whether or not to install it.
+
+Use the Terminal or an Anaconda Prompt for the following steps.
 
 To update a specific package:
 
@@ -269,7 +282,7 @@ With this ``pinned`` file, ``conda update numpy`` keeps NumPy at
 1.7.1, and ``conda install scipy=0.15.0`` causes an error.
 
 Use the ``--no-pin`` flag to override the update restriction on
-a package:
+a package. In the Terminal or an Anaconda Prompt, run:
 
 .. code-block:: bash
 
@@ -282,6 +295,8 @@ install, subsequent ``conda update`` commands without
 
 Removing packages
 =================
+
+Use the Terminal or an Anaconda Prompt for the following steps.
 
 To remove a package such as SciPy in an environment such as
 myenv:

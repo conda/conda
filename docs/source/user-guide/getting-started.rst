@@ -53,6 +53,8 @@ Managing conda
 
 To manage conda versions:
 
+Use the Terminal or an Anaconda Prompt for the following steps.
+
 #. Verify that conda is installed:
 
    .. code::
@@ -67,7 +69,7 @@ To manage conda versions:
    NOTE: If you see an error message, verify that you are logged
    into the same user account that you used to install Anaconda
    or Miniconda and that you have closed and re-opened the
-   terminal window or command prompt after installing it.
+   Terminal window  after installing it.
 
 #. Update conda to the current version:
 
@@ -93,6 +95,8 @@ Managing environments
 =========================
 
 To create a few environments and then move between them:
+
+Use the Terminal or an Anaconda Prompt for the following steps.
 
 #. Create an environment with ``conda create``:
 
@@ -174,12 +178,12 @@ To create a few environments and then move between them:
 
 #. Switch to another environment:
 
-   * Linux, OS X: ``source activate bunnies``
+   * Linux, macOS: ``source activate bunnies``
    * Windows:  ``activate bunnies``
 
 #. Change your path from the current environment back to the root:
 
-   * Linux, OS X: ``source deactivate``
+   * Linux, macOS: ``source deactivate``
    * Windows:  ``deactivate``
 
    TIP: When the environment is deactivated, its name is no
@@ -226,7 +230,8 @@ Managing Python
 Conda treats Python the same as any other package, so it is
 easy to manage and update multiple installations.
 
-To check which Python versions are available to install, run:
+To check which Python versions are available to install, in your Terminal window or an
+Anaconda Prompt, run:
 
 .. code::
 
@@ -239,6 +244,8 @@ contain the text "python", use ``conda search python``.
 To install Python 3 without overwriting your Python 2.7
 environment:
 
+Use the Terminal or an Anaconda Prompt for the following steps.
+
 #. Create a new environment named "snakes" and install the latest
    version of Python 3:
 
@@ -248,7 +255,7 @@ environment:
 
 #. Activate the new environment:
 
-   * Linux, OS X: ``source activate snakes``
+   * Linux, macOS: ``source activate snakes``
    * Windows:  ``activate snakes``
 
 #. Verify that the snakes environment has been added:
@@ -273,7 +280,7 @@ environment:
 
 #. Switch back to the default, version 2.7:
 
-   * Linux, OS X: ``source activate snowflakes``
+   * Linux, macOS: ``source activate snowflakes``
    * Windows:  ``activate snowflakes``
 
 #. Verify that the snowflakes environment uses the same Python
@@ -286,7 +293,7 @@ environment:
 #. Deactivate the snowflakes environment and then revert your
    PATH to its previous state:
 
-   * Linux, OS X: ``source deactivate``
+   * Linux, macOS: ``source deactivate``
    * Windows: ``deactivate``
 
 
@@ -306,6 +313,8 @@ packages using ``pip`` install instead of ``conda install`` and
 then install a commercial package.
 
 To find a package:
+
+Use the Terminal or an Anaconda Prompt for the following steps.
 
 #. To confirm that a package has been added or removed, view a
    list of packages and versions installed in an environment:
@@ -329,6 +338,8 @@ To find a package:
 
 To install the package:
 
+Use the Terminal or an Anaconda Prompt for the following steps.
+
 #. Install beautifulsoup4 into the current environment:
 
    .. code::
@@ -341,7 +352,7 @@ To install the package:
 
 #. Activate the bunnies environment:
 
-   * Linux, OS X: ``source activate bunnies``
+   * Linux, macOS: ``source activate bunnies``
    * Windows:  ``activate bunnies``
 
 #. List the newly installed program:
@@ -394,7 +405,7 @@ URL to the package that you want. To find this URL:
 
 #. Run the displayed command.
 
-#. Check to see that the package downloaded:
+#. To see the package downloaded, in the Terminal or an Anaconda Prompt, run:
 
    .. code::
 
@@ -413,6 +424,8 @@ environments for you. Pip cannot even update Python, because
 unlike conda, it does not consider Python a package. But it does
 install some things that conda does not, and vice versa. Both pip
 and conda are included in Anaconda and Miniconda.
+
+Use the Terminal or an Anaconda Prompt for the following steps.
 
 #. Activate the environment where you want to put the
    program, such as bunnies:
@@ -440,7 +453,8 @@ Installing commercial packages is the same as installing any
 other package with conda.
 
 EXAMPLE: To install a free trial of one of Anaconda's commercial
-packages, IOPro, which can speed up your Python processing:
+packages, IOPro, which can speed up your Python processing,in your Terminal
+window or an Anaconda Prompt, run:
 
 .. code::
 
@@ -458,27 +472,30 @@ Removing packages, environments, or conda
 To remove 1 or more of your test packages, environments, and/or
 conda:
 
-#. Remove the commercial package IOPro from the bunnies
-   environment:
+#. To remove the commercial package IOPro from the bunnies
+   environment, in your Terminal window or an Anaconda Prompt, run:
 
    .. code::
 
       conda remove --name bunnies iopro
 
-#. Confirm that IOPro has been removed:
+#. To confirm that IOPro has been removed, in your Terminal
+   window or an Anaconda Prompt, run:
 
    .. code::
 
       conda list
 
 
-#. Remove the snakes environment:
+#. To remove the snakes environment, in your Terminal
+   window or an Anaconda Prompt, run:
 
    .. code::
 
       conda remove --name snakes --all
 
-#. Verify that the snakes environment has been removed:
+#. To verify that the snakes environment has been removed,
+   in your Terminal window or an Anaconda Prompt, run:
 
    .. code::
 

@@ -1220,7 +1220,7 @@ Non-User-Facing Changes
 This release contains many small bug fixes for all operating systems, and a few
 special fixes for Windows behavior.
 
-Notable changes for all systems (Windows, OS X and Linux)
+Notable changes for all systems (Windows, macOS and Linux)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * **Channel order now matters.** The most significant conda change is that
@@ -1234,7 +1234,7 @@ Notable changes for all systems (Windows, OS X and Linux)
 * **New YAML parser/emitter.** PyYAML is replaced with ruamel.yaml,
   which gives more robust control over yaml document use.
   `More on ruamel.yaml <http://yaml.readthedocs.io/en/latest/>`_
-* **Shebang lines over 127 characters are now truncated (Linux, OS X
+* **Shebang lines over 127 characters are now truncated (Linux, macOS
   only).** `Shebangs <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_ are
   the first line of the many executable scripts that tell the operating
   system how to execute the program.  They start with ``#!``. Most OSes
@@ -1269,7 +1269,7 @@ Windows-only changes
   the shortcut icon, a terminal window will open with the environment
   containing the ``console_shortcut`` package already activated. ``conda install
   console_shortcut --shortcuts``
-* **Skip binary replacement on Windows.** Linux & OS X have binaries that
+* **Skip binary replacement on Windows.** Linux & macOS have binaries that
   are coded with library locations, and this information must sometimes be
   replaced for relocatability, but Windows does not generally embed prefixes
   in binaries, and was already relocatable. We skip binary replacement on

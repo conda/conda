@@ -10,6 +10,8 @@ R packages.
 
 R Essentials works very much like Anaconda:
 
+Use the Terminal or an Anaconda Prompt for the following steps.
+
 * You can install all of the most popular packages with all of
   their dependencies with a single command::
 
@@ -36,7 +38,8 @@ Installing R Essentials
    `install <https://docs.continuum.io/anaconda/install/>`_
    Anaconda.
 
-#. Install the R Essentials package into the current environment:
+#. To install the R Essentials package into the current environment,
+   in your Terminal window or an Anaconda Prompt, run:
 
    .. code::
 
@@ -51,7 +54,7 @@ similar to creating and sharing conda packages.
 
 EXAMPLE: To create a simple custom R bundle metapackage named
 "Custom-R-Bundle" that contains several popular programs and
-their dependencies, run::
+their dependencies, in the Terminal window or an Anaconda Prompt, run::
 
    conda metapackage custom-r-bundle 0.1.0 --dependencies r-irkernel jupyter r-ggplot2 r-dplyr --summary "My custom R bundle"
 
@@ -65,7 +68,7 @@ colleagues by uploading it to your channel on `Anaconda Cloud
   anaconda upload path/to/custom-r-bundle-0.1.0-0.tar.bz2
 
 Your friends and colleagues can now access your custom R bundle
-from any computer by running::
+from any computer by running in the Terminal window or an Anaconda Prompt::
 
   conda install -c <your anaconda.org username> custom-r-bundle
 

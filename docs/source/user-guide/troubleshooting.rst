@@ -146,7 +146,7 @@ or PYTHONHOME variables. The command ``conda info -a`` displays
 the values of these environment variables.
 
 * To unset these environment variables temporarily for the
-  current terminal session, run ``unset PYTHONPATH``.
+  current Terminal session, run ``unset PYTHONPATH``.
 
 * To unset them permanently, check for lines in the files:
 

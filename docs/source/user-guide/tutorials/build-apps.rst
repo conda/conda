@@ -215,7 +215,7 @@ the next task.
 Uploading to Cloud
 ==================
 
-#. In a terminal window, navigate to your root conda environment.
+#. In a Terminal window or an Anaconda Prompt, navigate to your root conda environment.
 
 #. Log in to Cloud:
 

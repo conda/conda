@@ -109,7 +109,7 @@ Windows example file path:
 
     C:\Users\jsmith\Miniconda\conda-bld\win-64\pyinstrument-0.13.1-py27_0.tar.bz2
 
-OS X example file path:
+macOS example file path:
 
 .. code-block:: text
 
@@ -173,7 +173,7 @@ Windows example file path:
     C:\Users\jsmith\Miniconda\conda-bld\win-64\pyinstrument-0.13.1-py33_0.tar.bz2
 
 
-OS X example file path:
+macOS example file path:
 
 .. code-block:: text
 
@@ -259,7 +259,7 @@ Anaconda.org, see the `Anaconda.org documentation
 #. Run ``conda install anaconda-client`` and enter your
    Anaconda.org username and password.
 
-#. Log into your Anaconda.org account from your terminal with
+#. Log into your Anaconda.org account from your Terminal or an Anaconda Prompt with
    the command ``anaconda login``.
 
 Now you can upload the new local packages to Anaconda.org.

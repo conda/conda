@@ -6,7 +6,7 @@ Installation
    :local:
    :depth: 1
 
-The fastest way to obtain conda is to install
+The fastest way to :ref:`obtain <rst-download>`conda is to install
 :ref:`Miniconda <miniconda-glossary>`, a mini version of
 :ref:`Anaconda <anaconda-glossary>` that includes only conda and
 its dependencies. If you prefer to have conda plus over 720 open
@@ -17,9 +17,12 @@ not require administrator permissions and is the most robust
 type of installation. You can also install Anaconda system wide,
 which does require administrator permissions.
 
-TIP: For information on using our graphical installers for
+For information on using our graphical installers for
 Windows or macOS, see the instructions for
 `installing Anaconda <http://docs.continuum.io/anaconda/install.html>`_.
+
+For information on using our Miniconda installers, see the quick
+`install instructions <https://docs.anaconda.com/docs_oss/conda/install/quick#windows-miniconda-install>`_.
 
 
 System requirements
@@ -73,21 +76,21 @@ variable. There is no need to set the PYTHONPATH environment
 variable.
 
 To see if the conda installation of Python is in your PATH
-variable, run one of the following commands:
+variable:
 
-* macOS and Linux---``echo $PATH``.
+* On macOS and Linux, open the Terminal and run---``echo $PATH``.
 
-* Windows---``echo %PATH%``.
+* On Windows, open an Anaconda Prompt and run---``echo %PATH%``.
 
-To see which Python installation is currently set as the default,
-run one of the following commands:
+To see which Python installation is currently set as the default:
 
-* macOS and Linux---``which python``.
+* On macOS and Linux, open the Terminal and run---``which python``.
 
-* Windows---``where python``.
+* On Windows, open the Terminal and run---``where python``.
 
 To see which packages are installed in your current conda
-environment and their version numbers, run ``conda list``.
+environment and their version numbers, in your Terminal window
+or an Anaconda Prompt, run ``conda list``.
 
 .. toctree::
    :maxdepth: 1

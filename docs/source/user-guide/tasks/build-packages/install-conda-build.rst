@@ -14,7 +14,7 @@ To enable building conda packages:
 Installing conda build
 ======================
 
-To install conda build, run:
+To install conda build, in your Terminal window or an Anaconda Prompt, run:
 
 .. code-block:: bash
 
@@ -27,7 +27,7 @@ Updating conda and conda build
 Keep your versions of conda and conda build up to date to
 take advantage of bug fixes and new features.
 
-To update conda and conda build, run:
+To update conda and conda build, in your Terminal window or an Anaconda Prompt, run:
 
 .. code-block:: bash
 

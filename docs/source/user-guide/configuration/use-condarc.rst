@@ -72,7 +72,7 @@ EXAMPLE: To set the auto_update_conda option to ``False``, run::
 
 For a complete list of conda config commands, see the
 `command reference <../../commands/conda-config>`. The same list
-is available at the command prompt by running
+is available at the Terminal or Anaconda Prompt by running
 ``conda config --help``.
 
 TIP: Conda supports :doc:`tab completion <enable-tab-completion>`
@@ -573,7 +573,7 @@ anaconda_upload.
 Limit build output verbosity (conda-build 3.0+) (quiet)
 -------------------------------------------------------
 
-Conda-build's output verbosity can be reduced with the ``quiet`` setting. For 
+Conda-build's output verbosity can be reduced with the ``quiet`` setting. For
 more verbosity use the CLI flag ``--debug``.
 
 .. code-block:: yaml

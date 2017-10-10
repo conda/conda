@@ -8,7 +8,7 @@ Installing on Linux
 
    * `Anaconda installer for Linux <https://www.anaconda.com/download/>`_.
 
-#. In your terminal window, run:
+#. In your Terminal window, run:
 
    * Miniconda:
 
@@ -28,7 +28,7 @@ Installing on Linux
    can change them later.
 
 #. To make the changes take effect, close and then re-open your
-   terminal window.
+   Terminal window.
 
 #. :doc:`Test your installation <test-installation>`.
 
@@ -45,7 +45,7 @@ See the instructions for
 Updating Anaconda or Miniconda
 ==============================
 
-#. Open a terminal window.
+#. Open a Terminal window.
 
 #. Run ``conda update conda``.
 
@@ -53,7 +53,7 @@ Updating Anaconda or Miniconda
 Uninstalling Anaconda or Miniconda
 ==================================
 
-#. Open a terminal window.
+#. Open a Terminal window.
 
 #. Remove the entire miniconda install directory with::
 

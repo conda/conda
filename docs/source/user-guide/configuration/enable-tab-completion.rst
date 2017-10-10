@@ -21,7 +21,7 @@ To enable tab completion:
 
 #. Test it:
 
-   #. Open a new terminal window.
+   #. Open a new Terminal window or an Anaconda Prompt.
 
    #. Type: ``conda ins``, and then press the Tab key.
 

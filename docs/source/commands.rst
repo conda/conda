@@ -6,9 +6,9 @@ Command reference
    :local:
    :depth: 1
 
-Conda provides many commands for managing packages and environments. 
-The links on this page provide help for each command. 
-You can also access help from the command line with the 
+Conda provides many commands for managing packages and environments.
+The links on this page provide help for each command.
+You can also access help from the command line with the
 ``--help`` flag:
 
 .. code-block:: bash
@@ -30,7 +30,7 @@ The following commands are part of conda:
 Conda build commands
 ====================
 
-The following commands are part of the conda build package, which 
+The following commands are part of the conda build package, which
 can be installed with ``conda install conda-build``:
 
 .. toctree::
@@ -42,7 +42,7 @@ can be installed with ``conda install conda-build``:
 Conda environment commands
 ==========================
 
-The following commands are part of the conda-env package, which 
+The following commands are part of the conda-env package, which
 is installed automatically with conda:
 
 .. toctree::
@@ -54,8 +54,8 @@ is installed automatically with conda:
 Conda vs. pip vs. virtualenv commands
 =====================================
 
-If you have used pip and virtualenv in the past, you can use 
-conda to perform all of the same operations. Pip is a package 
+If you have used pip and virtualenv in the past, you can use
+conda to perform all of the same operations. Pip is a package
 manager, and virtualenv is an environment manager. Conda is both.
 
 =====================================   ========================================================   ========================================================================   ========================================================
@@ -63,7 +63,7 @@ Task                                    Conda package and environment manager co
 =====================================   ========================================================   ========================================================================   ========================================================
 Install a package                       ``conda install $PACKAGE_NAME``                            ``pip install $PACKAGE_NAME``                                              X
 Update a package                        ``conda update --name $ENVIRONMENT_NAME $PACKAGE_NAME``    ``pip install --upgrade $PACKAGE_NAME``                                    X
-Update package manager                  ``conda update conda``                                     Linux/OSX: ``pip install -U pip`` Win: ``python -m pip install -U pip``    X
+Update package manager                  ``conda update conda``                                     Linux/macOS: ``pip install -U pip`` Win: ``python -m pip install -U pip``    X
 Uninstall a package                     ``conda remove --name $ENVIRONMENT_NAME $PACKAGE_NAME``    ``pip uninstall $PACKAGE_NAME``                                            X
 Create an environment                   ``conda create --name $ENVIRONMENT_NAME python``           X                                                                          ``cd $ENV_BASE_DIR; virtualenv $ENVIRONMENT_NAME``
 Activate an environment                 ``source activate $ENVIRONMENT_NAME``                      X                                                                          ``source $ENV_BASE_DIR/$ENVIRONMENT_NAME/bin/activate``

@@ -23,7 +23,8 @@ Anaconda supports Python 2.7, 3.4, 3.5 and 3.6. The default is Python
 Viewing a list of available Python versions
 ===========================================
 
-To list the versions of Python are that available to install:
+To list the versions of Python that are available to install,
+in your Terminal window or an Anaconda Prompt, run:
 
 .. code::
 
@@ -32,7 +33,8 @@ To list the versions of Python are that available to install:
 This lists all packages whose names contain the text ``python``.
 
 To list only the packages whose full name is exactly ``python``,
-add the ``--full-name`` option:
+add the ``--full-name`` option, in your Terminal window or an Anaconda Prompt,
+run:
 
 .. code::
 
@@ -48,7 +50,8 @@ Python version into it:
 
 #. Create the new environment:
 
-   * For Python 3.6:
+   * To create the new environment for Python 3.6, in your Terminal
+     window or an Anaconda Prompt, run:
 
      .. code-block:: bash
 
@@ -62,7 +65,8 @@ Python version into it:
      package, such as ``numpy=1.7``, or :ref:`multiple packages
      <installing multiple packages>`.
 
-   * For Python 2.7:
+   * To create the new environmentfor Python 2.7, in your Terminal window
+     or an Anaconda Prompt, run:
 
      .. code-block:: bash
 
@@ -73,8 +77,8 @@ Python version into it:
 #. Verify that the new environment is your :ref:`current
    environment <determine-current-env>`.
 
-#. Verify that the current environment uses the new Python
-   version:
+#. To verify that the current environment uses the new Python
+   version, in your Terminal window or an Anaconda Prompt, run:
 
    .. code::
 
@@ -90,6 +94,8 @@ To switch to an environment that has different version of Python,
 
 Updating or upgrading Python
 =============================
+
+Use the Terminal or an Anaconda Prompt for the following steps.
 
 If you are in an environment with Python version 3.4.2, the
 following command updates Python to the latest

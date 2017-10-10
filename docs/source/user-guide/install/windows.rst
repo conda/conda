@@ -17,9 +17,8 @@ Installing on Windows
    If you are unsure about any setting, accept the defaults. You
    can change them later.
 
-   When installation is finished, a new Command Prompt window
-   opens. If it does not open, in the **Start** menu, select
-   Command Prompt.
+   When installation is finished, from the **Start** menu, open the
+   Anaconda Prompt.
 
 #. :doc:`Test your installation <test-installation>`.
 
@@ -60,7 +59,9 @@ current user without registering Python as the system's default:
 Updating conda
 ==============
 
-#. From the command line, navigate to the ``anaconda`` folder.
+#. Open your Anaconda Prompt from the start menu.
+
+#. Navigate to the ``anaconda`` directory.
 
 #. Run ``conda update conda``.
 

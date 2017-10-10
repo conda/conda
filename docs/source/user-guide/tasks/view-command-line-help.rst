@@ -2,7 +2,7 @@
 Viewing command-line help
 =========================
 
-To see a list of supported conda commands, run:
+To see a list of supported conda commands, in your Terminal window or an Anaconda Prompt, run:
 
 .. code-block:: bash
 
@@ -17,7 +17,7 @@ OR
 To get help for a specific command, type the command name
 followed by ``--help``.
 
-EXAMPLE: To see help for the ``create`` command, run: 
+EXAMPLE: To see help for the ``create`` command, in your Terminal window or an Anaconda Prompt, run:
 
 .. code-block:: bash
 
