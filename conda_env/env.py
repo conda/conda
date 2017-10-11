@@ -58,7 +58,7 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
         dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
     # conda uses ruamel_yaml which returns a ruamel_yaml.comments.CommentedSeq
     # this doesn't dump correctly using pyyaml
-    channels = list(context.channels)
+    channels = sorted(context.channels)
     if not ignore_channels:
         for dist in conda_pkgs:
             if dist.channel not in channels:
