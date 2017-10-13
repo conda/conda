@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
-
 from logging import getLogger
 import os
 from os.path import (abspath, basename, expanduser, isdir, isfile, join, normpath,
@@ -53,6 +52,22 @@ _arch_names = {
 user_rc_path = abspath(expanduser('~/.condarc'))
 sys_rc_path = join(sys.prefix, '.condarc')
 
+class TargetPrefix:
+    def __init__(self, prefix, dest):
+        self._prefix = prefix
+        self._dest = dest
+    @property
+    def prefix(self):
+        return self._prefix
+    @property
+    def dest(self):
+        return self._dest if self._dest else self._prefix
+
+    def __repr__(self):
+        if self.dest != self.prefix:
+            return "%s:(into %s)" % (self.prefix, self.dest)
+        else:
+            return "%s" % self.prefix
 
 def channel_alias_validation(value):
     if value and not has_scheme(value):

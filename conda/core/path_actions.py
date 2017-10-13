@@ -102,7 +102,7 @@ class PrefixPathAction(PathAction):
 
     @property
     def target_full_path(self):
-        trgt, shrt_pth = self.target_prefix, self.target_short_path
+        trgt, shrt_pth = self.target_prefix.dest, self.target_short_path
         if trgt is not None and shrt_pth is not None:
             return join(trgt, win_path_ok(shrt_pth))
         else:
@@ -440,7 +440,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
 
         try:
             log.trace("rewriting prefixes in %s", self.target_full_path)
-            update_prefix(self.intermediate_path, self.target_prefix, self.prefix_placeholder,
+            update_prefix(self.intermediate_path, self.target_prefix.prefix, self.prefix_placeholder,
                           self.file_mode)
         except _PaddingError:
             raise PaddingError(self.target_full_path, self.prefix_placeholder,
@@ -905,7 +905,7 @@ class RegisterEnvironmentLocationAction(EnvsDirectoryPathAction):
         ed = EnvsDirectory(self.envs_dir_path)
 
         self.envs_dir_state = ed._get_state()
-        ed.register_env(self.target_prefix)
+        ed.register_env(self.target_prefix.prefix)
         ed.write_to_disk()
         self._execute_successful = True
 

@@ -211,8 +211,7 @@ class EnvsDirectory(object):
 
     @classmethod
     def get_envs_directory_for_prefix(cls, prefix_path):
-        prefix_path = right_pad_os_sep(normpath(prefix_path))
-
+        prefix_path = right_pad_os_sep(normpath(prefix_path.dest))
         for ed in context.envs_dirs:
             edo = cls(ed)
             if prefix_path.startswith(right_pad_os_sep(edo.root_dir)):
@@ -414,7 +413,6 @@ class EnvsDirectory(object):
     #     pep = first(self._preferred_env_packages, lambda p: p['package_name'] == package_name)
     #     return pep or None
 
-
 def determine_target_prefix(ctx, args=None):
     """Get the prefix to operate in
 
@@ -437,17 +435,20 @@ def determine_target_prefix(ctx, args=None):
         prefix_path = None
 
     if prefix_name is None and prefix_path is None:
-        return ctx.default_prefix
+        target_prefix = ctx.default_prefix
     elif prefix_path is not None:
-        return expand(prefix_path)
+        target_prefix = expand(prefix_path)
     else:
         if '/' in prefix_name:
             raise CondaValueError("'/' not allowed in environment name: %s" %
                                   prefix_name)
         if prefix_name in (ROOT_ENV_NAME, 'root'):
-            return ctx.root_prefix
+            target_prefix = ctx.root_prefix
         else:
             try:
-                return EnvsDirectory.locate_prefix_by_name(prefix_name)
+                target_prefix = EnvsDirectory.locate_prefix_by_name(prefix_name)
             except EnvironmentNameNotFound:
-                return join(EnvsDirectory.first_writable().envs_dir, prefix_name)
+                target_prefix = join(EnvsDirectory.first_writable().envs_dir, prefix_name)
+
+    from ..base.context import TargetPrefix
+    return TargetPrefix(target_prefix, argparse_args.target_dest)

@@ -52,9 +52,9 @@ def determine_link_type(extracted_package_dir, target_prefix):
         return LinkType.copy
     if context.always_softlink:
         return LinkType.softlink
-    if hardlink_supported(source_test_file, target_prefix):
+    if hardlink_supported(source_test_file, target_prefix.dest):
         return LinkType.hardlink
-    if context.allow_softlinks and softlink_supported(source_test_file, target_prefix):
+    if context.allow_softlinks and softlink_supported(source_test_file, target_prefix.dest):
         return LinkType.softlink
     return LinkType.copy
 
@@ -227,14 +227,14 @@ class UnlinkLinkTransaction(object):
                  remove_specs, update_specs):
 
         # make sure prefix directory exists
-        if not isdir(target_prefix):
+        if not isdir(target_prefix.dest):
             try:
-                mkdir_p(target_prefix)
+                mkdir_p(target_prefix.dest)
             except (IOError, OSError) as e:
                 log.debug(repr(e))
-                raise CondaError("Unable to create prefix directory '%s'.\n"
+                raise CondaError("Unable to create installation dest directory '%s'.\n"
                                  "Check that you have sufficient permissions."
-                                 "" % target_prefix)
+                                 "" % target_prefix.dest)
 
         # gather information from disk and caches
         prefix_data = PrefixData(target_prefix)
@@ -363,7 +363,7 @@ class UnlinkLinkTransaction(object):
                 path = link_path_action.target_short_path
                 path = lower_on_win(path)
                 link_paths_dict[path].append(axn)
-                if path not in unlink_paths and lexists(join(target_prefix, path)):
+                if path not in unlink_paths and lexists(join(target_prefix.dest, path)):
                     # we have a collision; at least try to figure out where it came from
                     colliding_prefix_rec = first(
                         (prefix_rec for prefix_rec in PrefixData(target_prefix).iter_records()),
@@ -398,7 +398,7 @@ class UnlinkLinkTransaction(object):
         # 2. make sure we're not removing a conda dependency from conda's env
         conda_prefixes = (join(context.root_prefix, 'envs', '_conda_'), context.root_prefix)
         conda_setups = tuple(setup for setup in itervalues(prefix_setups)
-                             if setup.target_prefix in conda_prefixes)
+                             if setup.target_prefix.prefix in conda_prefixes)
 
         conda_unlinked = any(prec.name == 'conda'
                              for setup in conda_setups
@@ -469,7 +469,8 @@ class UnlinkLinkTransaction(object):
             except CondaMultiError as e:
                 action, is_unlink = (None, axngroup.type == 'unlink')
                 prec = axngroup.pkg_data
-
+                import traceback
+                traceback.print_exc()
                 log.error("An error occurred while %s package '%s'.\n"
                           "%r\n"
                           "Attempting to roll back.\n",
@@ -506,8 +507,8 @@ class UnlinkLinkTransaction(object):
         axn_idx, action, is_unlink = 0, None, axngroup.type == 'unlink'
         prec = axngroup.pkg_data
 
-        if not isdir(join(target_prefix, 'conda-meta')):
-            mkdir_p(join(target_prefix, 'conda-meta'))
+        if not isdir(join(target_prefix.dest, 'conda-meta')):
+            mkdir_p(join(target_prefix.dest, 'conda-meta'))
 
         try:
             if axngroup.type == 'unlink':
@@ -522,14 +523,14 @@ class UnlinkLinkTransaction(object):
                          prec.dist_str(), target_prefix, prec.extracted_package_dir)
 
             if axngroup.type in ('unlink', 'link'):
-                run_script(target_prefix if is_unlink else prec.extracted_package_dir,
+                run_script(target_prefix.dest if is_unlink else prec.extracted_package_dir,
                            prec,
                            'pre-unlink' if is_unlink else 'pre-link',
-                           target_prefix)
+                           target_prefix.prefix)
             for axn_idx, action in enumerate(axngroup.actions):
                 action.execute()
             if axngroup.type in ('unlink', 'link'):
-                run_script(target_prefix, prec, 'post-unlink' if is_unlink else 'post-link')
+                run_script(target_prefix.dest, prec, 'post-unlink' if is_unlink else 'post-link')
         except Exception as e:  # this won't be a multi error
             # reverse this package
             log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action,
@@ -685,7 +686,7 @@ class UnlinkLinkTransaction(object):
                 for axn in pfe.cache_actions:
                     actions['FETCH'].append(Dist(axn.url))
 
-            actions['PREFIX'] = setup.target_prefix
+            actions['PREFIX'] = setup.target_prefix.prefix
             for prec in setup.unlink_precs:
                 actions['UNLINK'].append(Dist(prec))
             for prec in setup.link_precs:

@@ -137,8 +137,8 @@ def install(args, parser, command='install'):
         common.ensure_name_or_prefix(args, command)
     prefix = context.target_prefix
     if newenv:
-        check_prefix(prefix, json=context.json)
-    if context.force_32bit and prefix == context.root_prefix:
+        check_prefix(prefix.dest, json=context.json)
+    if context.force_32bit and prefix.dest == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in root env")
     if isupdate and not (args.file or args.all or args.packages):
         raise CondaValueError("""no package names supplied
@@ -201,10 +201,10 @@ def install(args, parser, command='install'):
         print_activate(args.name if args.name else prefix)
         return
 
-    if not isdir(prefix) and not newenv:
+    if not isdir(prefix.dest) and not newenv:
         if args.mkdir:
             try:
-                os.makedirs(prefix)
+                os.makedirs(prefix.dest)
             except OSError:
                 raise CondaOSError("Error: could not create directory: %s" % prefix)
         else:
