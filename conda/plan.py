@@ -368,7 +368,7 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
     # TODO: This should use the pinning mechanism. But don't change the API because cas uses it
     if r.explicit(specs) or is_private_env(prefix):
         return
-    log.debug('H0 specs=%r' % specs)
+    log.debug('H0 specs=%r' % (specs,))
     names_linked = {r.package_name(d): d for d in linked if d in r.index}
     mspecs = list(map(MatchSpec, specs))
 
@@ -414,7 +414,7 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
 
         if def_ver is not None:
             specs.append('%s %s*' % (name, def_ver))
-    log.debug('HF specs=%r' % specs)
+    log.debug('HF specs=%r' % (specs,))
 
 
 def get_pinned_specs(prefix):
@@ -604,14 +604,11 @@ def match_to_original_specs(specs, specs_for_prefix):
     matches_any_spec = lambda dst: next(spc for spc in specs if spc.name == dst)
     matched_specs_for_prefix = []
     for prefix_with_dists in specs_for_prefix:
-        linked = linked_data(prefix_with_dists.prefix)
-        r = prefix_with_dists.r
         new_matches = []
         for spec in prefix_with_dists.specs:
             matched = matches_any_spec(spec)
             if matched:
                 new_matches.append(matched)
-        add_defaults_to_specs(r, linked, new_matches, prefix=prefix_with_dists.prefix)
         matched_specs_for_prefix.append(SpecsForPrefix(
             prefix=prefix_with_dists.prefix, r=prefix_with_dists.r, specs=new_matches))
     return matched_specs_for_prefix
@@ -626,13 +623,14 @@ def get_actions_for_dists(specs_by_prefix, only_names, index, force, always_copy
     specs = augment_specs(prefix, specs, pinned)
 
     linked = linked_data(prefix)
-    must_have = odict()
+    add_defaults_to_specs(r, linked, specs, prefix)
 
     installed = linked
     if prune:
         installed = []
     pkgs = r.install(specs, installed, update_deps=update_deps)
 
+    must_have = odict()
     for fn in pkgs:
         dist = Dist(fn)
         name = r.package_name(dist)
@@ -736,7 +734,7 @@ def augment_specs(prefix, specs, pinned=True):
     if context.track_features:
         specs.extend(x + '@' for x in context.track_features)
 
-    return tuple(specs)
+    return list(specs)
 
 
 def remove_actions(prefix, specs, index, force=False, pinned=True):
