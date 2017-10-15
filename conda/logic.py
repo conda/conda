@@ -29,7 +29,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from itertools import chain, combinations
 import logging
-import pycosat
+import subprocess
 
 from .common.compat import iteritems
 from .exceptions import CondaValueError
@@ -434,23 +434,26 @@ class Clauses(object):
                 if not additional[-1]:
                     return None
                 clauses = chain(clauses, additional)
-        try:
-            solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
-        except TypeError:
-            # pycosat 0.6.1 should not require this; pycosat 0.6.0 did, but we
-            # have made conda dependent on pycosat 0.6.1. However, issue #2276
-            # suggests that some people are still seeing this behavior even when
-            # pycosat 0.6.1 is installed. Until we can understand why, this
-            # needs to stay. I still don't want to invoke it unnecessarily,
-            # because for large clauses lists it is slow.
-            clauses = list(map(list, clauses))
-            solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
-        if solution in ("UNSAT", "UNKNOWN"):
+        lines = ['p cnf %d ' % self.m]
+        lines.extend(' '.join(map(str, c)) + ' 0' for c in clauses)
+        lines[0] += str(len(lines)-1)
+        # Using the parallel SAT solver. Use 'glucose' for the serial
+        proc = subprocess.Popen(['glucose-syrup', '-verb=0', '-model'],
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                universal_newlines=False)
+        stdout, stderr = proc.communicate('\n'.join(lines).encode())
+        print(stdout.decode())
+        line = stdout.rsplit(b'\n', 2)[-2]
+        if not line.startswith(b'v'):
             return None
-        if additional and includeIf:
-            self.clauses.extend(additional)
-        if names:
-            return set(nm for nm in (self.indices.get(s) for s in solution) if nm and nm[0] != '!')
+        solution = list(map(int, line.split()[1:-1]))
+        if solution:
+            if additional and includeIf:
+                self.clauses.extend(additional)
+            if names:
+                return set(nm for nm in (self.indices.get(s) for s in solution) if nm and nm[0] != '!')
         return solution
 
     def itersolve(self, constraints=None, m=None):
