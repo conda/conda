@@ -1,14 +1,23 @@
+## 4.3.30 (2017-10-17)
+
+### Improvements
+* address #6056 add additional proxy variables to 'conda info --all' (#6083)
+
+### Bug Fixes
+* address #6164 move add_defaults_to_specs after augment_specs (#6172)
+* fix #6057 add additional detail for message 'cannot link source that does not exist' (#6082)
+* fix #6084 setting default_channels from CLI raises NotImplementedError (#6085)
+
+
 ## 4.3.29 (2017-10-09)
 
 ### Bug Fixes
-
 * fix #6096 coerce to millisecond timestamps (#6131)
 
 
 ## 4.3.28 (2017-10-06)
 
 ### Bug Fixes
-
 * fix #5854 remove imports of pkg_resources (#5991)
 * fix millisecond timestamps (#6001)
 
@@ -16,7 +25,6 @@
 ## 4.3.27 (2017-09-18)
 
 ### Bug Fixes
-
 * fix #5980 always delete_prefix_from_linked_data in rm_rf (#5982)
 
 
