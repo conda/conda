@@ -219,7 +219,7 @@ def execute_search(args, parser):
             names.append((name, res))
 
     if not names:
-        raise ResolvePackageNotFound(args.regex)
+        raise ResolvePackageNotFound([(args.regex,)])
 
     for name, pkgs in names:
         disp_name = name
