@@ -216,6 +216,7 @@
 * rename PackageNotFoundError to PackagesNotFoundError and fix message formatting (#5602)
 * update conda 4.4 bld.bat windows recipe (#5573)
 * remove last remnant of CondaEnvRuntimeError (#5643)
+* fix typo (4.4.0rc2) (#6043)
 
 
 ## 4.3.28 (unreleased)
