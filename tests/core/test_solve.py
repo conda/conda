@@ -21,7 +21,7 @@ from conda.models.dag import PrefixDag
 from conda.models.dist import Dist
 from conda.models.prefix_record import PrefixRecord
 from conda.resolve import MatchSpec
-from ..helpers import patch, get_index_r_1, get_index_r_2, get_index_r_3
+from ..helpers import patch, get_index_r_1, get_index_r_2, get_index_r_3, get_index_r_4
 from conda.common.compat import iteritems
 
 try:
@@ -67,6 +67,19 @@ def get_solver_3(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     get_index_r_3()
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(TEST_PREFIX, (Channel('channel-3'),), (context.subdir,),
+                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+        yield solver
+
+
+@contextmanager
+def get_solver_4(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+    PrefixData._cache_ = {}
+    pd = PrefixData(TEST_PREFIX)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
+    spec_map = {spec.name: spec for spec in history_specs}
+    get_index_r_4()
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(TEST_PREFIX, (Channel('channel-4'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
@@ -1160,6 +1173,32 @@ def test_force_reinstall_2():
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
+        )
+        assert tuple(link_dists) == tuple(solver._index[Dist(d)] for d in order)
+
+
+def test_timestamps_1():
+    specs = MatchSpec("python=3.6.2"),
+    with get_solver_4(specs) as solver:
+        unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
+        assert not unlink_dists
+        # PrefixDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in link_dists])
+        order = (
+            'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+            'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+            'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+            'channel-4::libffi-3.2.1-h4deb6c0_3',
+            'channel-4::ncurses-6.0-h06874d7_1',
+            'channel-4::openssl-1.0.2l-h077ae2c_5',
+            'channel-4::tk-8.6.7-h5979e9b_1',
+            'channel-4::xz-5.2.3-h2bcbf08_1',
+            'channel-4::zlib-1.2.11-hfbfcf68_1',
+            'channel-4::libedit-3.1-heed3624_0',
+            'channel-4::readline-7.0-hac23ff0_3',
+            'channel-4::sqlite-3.20.1-h6d8b0f3_1',
+            'channel-4::python-3.6.2-hca45abc_19',  # this package has a later timestamp but lower hash value
+                                                    # than the alternate 'channel-4::python-3.6.2-hda45abc_19'
         )
         assert tuple(link_dists) == tuple(solver._index[Dist(d)] for d in order)
 
