@@ -929,10 +929,12 @@ class IntegrationTests(TestCase):
             assert not len(json_obj.keys()) == 0
 
     def test_bad_anaconda_token_infinite_loop(self):
-        # First, confirm we get a 401 UNAUTHORIZED response from anaconda.org
+        # This test is being changed around 2017-10-17, when the behavior of anaconda.org
+        # was changed.  Previously, an expired token would return with a 401 response.
+        # Now, a 200 response is always given, with any public packages available on the channel.
         response = requests.get("https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/"
                                 "%s/repodata.json" % context.subdir)
-        assert response.status_code == 401
+        assert response.status_code == 200
 
         try:
             prefix = make_temp_prefix(str(uuid4())[:7])
@@ -942,13 +944,14 @@ class IntegrationTests(TestCase):
             yml_obj = yaml_load(stdout)
             assert yml_obj['channels'] == [channel_url, 'defaults']
 
-            with pytest.raises(CondaHTTPError):
+            with pytest.raises(PackageNotFoundError):
                 run_command(Commands.SEARCH, prefix, "boltons", "--json")
 
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "boltons", "--json",
-                                         use_exception_handler=True)
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "anaconda-mosaic", "--json")
+
             json_obj = json.loads(stdout)
-            assert json_obj['status_code'] == 401
+            assert "anaconda-mosaic" in json_obj
+            assert len(json_obj["anaconda-mosaic"]) > 0
 
         finally:
             rmtree(prefix, ignore_errors=True)
@@ -980,6 +983,7 @@ class IntegrationTests(TestCase):
 
         finally:
             rmtree(prefix, ignore_errors=True)
+            reset_context()
 
         # Step 2. Now with the token make sure we can see the anyjson package
         try:
