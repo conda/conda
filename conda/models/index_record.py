@@ -316,6 +316,8 @@ class IndexJsonRecord(BasePackageRef):
     license = StringField(required=False)
     license_family = StringField(required=False)
 
+    timestamp = TimestampField(required=False)
+
     @property
     def combined_depends(self):
         from .match_spec import MatchSpec
