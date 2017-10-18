@@ -1,3 +1,9 @@
+## 4.3.31 (unreleased)
+
+### Non-User-Facing Changes
+* fix two failing integration tests after anaconda.org API change (#6182)
+
+
 ## 4.3.30 (2017-10-17)
 
 ### Improvements
