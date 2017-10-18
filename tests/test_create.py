@@ -929,7 +929,9 @@ class IntegrationTests(TestCase):
             assert not len(json_obj.keys()) == 0
 
     def test_bad_anaconda_token_infinite_loop(self):
-        # First, confirm we get a 401 UNAUTHORIZED response from anaconda.org
+        # This test is being changed around 2017-10-17, when the behavior of anaconda.org
+        # was changed.  Previously, an expired token would return with a 401 response.
+        # Now, a 200 response is always given, with any public packages available on the channel.
         response = requests.get("https://conda.anaconda.org/t/cqgccfm1mfma/data-portal/"
                                 "%s/repodata.json" % context.subdir)
         assert response.status_code == 200
