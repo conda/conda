@@ -1304,7 +1304,7 @@ def test_features_solve_1():
                 'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
                 'channel-2::nomkl-1.0-0',
                 'channel-2::openssl-1.0.2l-0',
-                'channel-4::mkl-2018.0.0-hb491cac_4',
+                'channel-4::mkl-2018.0.0-hb491cac_4',  # <- this is wrong
                 'channel-4::ncurses-6.0-h06874d7_1',
                 'channel-4::tk-8.6.7-h5979e9b_1',
                 'channel-4::zlib-1.2.11-hfbfcf68_1',
