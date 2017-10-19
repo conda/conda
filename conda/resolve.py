@@ -17,9 +17,9 @@ from .models.match_spec import MatchSpec
 from .models.version import VersionOrder
 
 try:
-    from cytoolz.itertoolz import concat
+    from cytoolz.itertoolz import concat, groupby
 except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concat  # NOQA
+    from ._vendor.toolz.itertoolz import concat, groupby  # NOQA
 
 log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')
@@ -525,6 +525,14 @@ class Resolve(object):
             nkey = C.Not(self.to_sat_name(dist))
             for ms in self.ms_depends(dist):
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
+
+        tracker_groups = groupby(lambda x: x.split('=', 1)[0], self.trackers)
+        for tracker_name, values in iteritems(tracker_groups):
+            if len(values) > 1:
+                C.Require(C.AtMostOne, tuple(
+                    self.push_MatchSpec(C, MatchSpec(provides_features=feat)) for feat in values
+                ))
+
         log.debug("gen_clauses returning with clause count: %s", len(C.clauses))
         return C
 

@@ -154,8 +154,11 @@ class Solver(object):
         index, r = self._prepare(prepared_specs)
 
         if specs_to_remove:
-            # Rather than invoking SAT for removal, we can use the DAG and simple tree traversal
-            # if we're careful about how we handle features.
+            # In a previous implementation, we invoked SAT here via `r.remove()` to help with
+            # spec removal, and then later invoking SAT again via `r.solve()`. Rather than invoking
+            # SAT for spec removal determination, we can use the DAG and simple tree traversal
+            # if we're careful about how we handle features. We still invoke sat via `r.solve()`
+            # later.
             _provides_fts_specs = (spec for spec in specs_to_remove if 'provides_features' in spec)
             feature_names = set(concat(spec.get_raw_value('provides_features')
                                        for spec in _provides_fts_specs))
@@ -225,7 +228,7 @@ class Solver(object):
         # If we're in UPDATE_ALL mode, we need to drop all the constraints attached to specs,
         # so they can all float and the solver can find the most up-to-date solution. In the case
         # of UPDATE_ALL, `specs_map` wasn't initialized with packages from the current environment,
-        # but *only* historically-requested specs.  This let's UPDATE_ALL drop dependencies if
+        # but *only* historically-requested specs.  This lets UPDATE_ALL drop dependencies if
         # they're no longer needed, and their presence would otherwise prevent the updated solution
         # the user most likely wants.
         if deps_modifier == DepsModifier.UPDATE_ALL:
