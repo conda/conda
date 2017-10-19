@@ -230,3 +230,29 @@ def get_index_r_3():
     index = {Dist(prec): prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
     return index, r
+
+
+@memoize
+def get_index_r_4():
+    with open(join(dirname(__file__), 'index4.json')) as fi:
+        packages = json.load(fi)
+        repodata = {
+            "info": {
+                "subdir": context.subdir,
+                "arch": context.arch_name,
+                "platform": context.platform,
+            },
+            "packages": packages,
+        }
+
+    channel = Channel('https://conda.anaconda.org/channel-4/%s' % context.subdir)
+    sd = SubdirData(channel)
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
+        sd._process_raw_repodata_str(json.dumps(repodata))
+    sd._loaded = True
+    SubdirData._cache_[channel.url(with_credentials=True)] = sd
+
+    index = {Dist(prec): prec for prec in sd._package_records}
+    r = Resolve(index, channels=(channel,))
+
+    return index, r
