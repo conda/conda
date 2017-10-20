@@ -270,7 +270,7 @@ class ProxyError(CondaError):
     def __init__(self):
         message = dals("""
         Conda cannot proceed due to an error in your proxy configuration.
-        Check for typos and other configuration errors in any '.netrc' file in your home directory, 
+        Check for typos and other configuration errors in any '.netrc' file in your home directory,
         any environment variables ending in '_PROXY', and any other system-wide proxy
         configuration settings.
         """)
