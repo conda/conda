@@ -129,7 +129,7 @@ for their architecture.
 
    .. code-block:: bash
 
-       "%PYTHON%" setup.py install
+       "%PYTHON%" setup.py install --single-version-externally-managed --record=record.txt
        if errorlevel 1 exit 1
 
    NOTE: In ``bld.bat``, the best practice is to to add
@@ -144,7 +144,7 @@ for their architecture.
 
    .. code-block:: bash
 
-       $PYTHON setup.py install     # Python command to install the script.
+       $PYTHON setup.py install --single-version-externally-managed --record=record.txt  # Python command to install the script.
 
 
 #. Save your new ``build.sh`` file to the same directory where you

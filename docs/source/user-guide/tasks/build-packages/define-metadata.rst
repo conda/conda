@@ -346,7 +346,7 @@ for different platforms.
 .. code-block:: yaml
 
    build:
-     script: python setup.py install
+     script: python setup.py install --single-version-externally-managed --record=record.txt
 
 RPATHs
 ------
