@@ -12,6 +12,7 @@ from .link import islink
 from .read import find_first_existing
 from ... import CondaError
 from ..._vendor.auxlib.decorators import memoize
+from ...common.compat import text_type
 from ...common.path import expand, get_python_short_path
 from ...models.enums import LinkType
 
@@ -78,7 +79,7 @@ def hardlink_supported(source_file, dest_dir):
     # file system configuration, a symbolic link may be created
     # instead. If a symbolic link is created instead of a hard link,
     # return False.
-    test_file = join(dest_dir, '.tmp.%s.%s' % (basename(source_file), uuid4()[:8]))
+    test_file = join(dest_dir, '.tmp.%s.%s' % (basename(source_file), text_type(uuid4())[:8]))
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
     if lexists(test_file):
