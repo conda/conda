@@ -244,7 +244,7 @@ class NewIntegrationTests(unittest.TestCase):
         run_conda_command(Commands.CREATE, test_env_name_2)
         self.assertTrue(env_is_created(test_env_name_2))
 
-    def test_export_1(self):
+    def test_env_export(self):
         """
             Test conda env export
         """
