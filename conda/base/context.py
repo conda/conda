@@ -447,12 +447,15 @@ class Context(Configuration):
 
     @property
     def channels(self):
-        # add 'defaults' channel when necessary if --channel is given via the command line
+        # add 'defaults' channel if 'channels' is not defined in configuration files
+        # or environment variables, and 'defaults' is not already given with a `--channel` CLI flag
         if self._argparse_args and 'channel' in self._argparse_args:
             # TODO: it's args.channel right now, not channels
             argparse_channels = tuple(self._argparse_args['channel'] or ())
-            if argparse_channels and argparse_channels == self._channels:
-                return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
+            if not any('channels' in params and location != 'cmd'
+                       for location, params in iteritems(self.raw_data)):
+                if 'defaults' not in argparse_channels:
+                    return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
         return self._channels
 
     def get_descriptions(self):
