@@ -8,6 +8,7 @@ import pytest
 
 from conda_env.exceptions import SpecNotFound
 from conda_env.cli.main import create_parser
+from conda_env.yaml import load as yaml_load
 
 from conda.base.context import context
 from conda.base.constants import ROOT_ENV_NAME
@@ -243,7 +244,7 @@ class NewIntegrationTests(unittest.TestCase):
         run_conda_command(Commands.CREATE, test_env_name_2)
         self.assertTrue(env_is_created(test_env_name_2))
 
-    def test_export(self):
+    def test_env_export(self):
         """
             Test conda env export
         """
@@ -257,10 +258,19 @@ class NewIntegrationTests(unittest.TestCase):
             env_yaml.write(snowflake)
             env_yaml.flush()
             env_yaml.close()
+
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
             self.assertFalse(env_is_created(test_env_name_2))
             run_env_command(Commands.ENV_CREATE, env_yaml.name)
             self.assertTrue(env_is_created(test_env_name_2))
+
+            # regression test for #6220
+            snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2, '--no-builds')
+            assert not e.strip()
+            env_description = yaml_load(snowflake)
+            assert len(env_description['dependencies'])
+            for spec_str in env_description['dependencies']:
+                assert spec_str.count('=') == 1
 
     def test_list(self):
         """
