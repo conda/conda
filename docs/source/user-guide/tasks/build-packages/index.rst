@@ -36,6 +36,7 @@ Anaconda Cloud, you will need an
    link-scripts
    variants
    use-shared-libraries
+   compiler-tools
    sign-packages
    add-win-start-menu-items
    sample-recipes

@@ -286,6 +286,8 @@ python and R packages will have exact pins to the libxgboost package that was
 built by this recipe.
 
 
+.. _conda-build-variant-config-files:
+
 Creating conda-build variant config files
 -----------------------------------------
 
