@@ -452,7 +452,7 @@ class Context(Configuration):
         if self._argparse_args and 'channel' in self._argparse_args:
             # TODO: it's args.channel right now, not channels
             argparse_channels = tuple(self._argparse_args['channel'] or ())
-            if not any('channels' in params and location != 'cmd'
+            if not any('channels' in params and location != 'cmd_line'
                        for location, params in iteritems(self.raw_data)):
                 if 'defaults' not in argparse_channels:
                     return argparse_channels + (DEFAULTS_CHANNEL_NAME,)

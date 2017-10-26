@@ -196,3 +196,31 @@ class ContextDefaultRcTests(TestCase):
         subdirs = ('linux-highest', 'linux-64', 'noarch')
         with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
             assert context.subdirs == subdirs
+
+    def test_defaults_channel_added_with_dash_c(self):
+        # regression test for #6228
+
+        try:
+            # here, defaults should automatically be added
+            reset_context(argparse_args={'channel': ['conda-forge']})
+            assert context.channels == ('conda-forge', 'defaults')
+
+            # defaults should only be added once
+            reset_context(argparse_args={'channel': ['conda-forge', 'defaults']})
+            assert context.channels == ('conda-forge', 'defaults')
+
+            # other configuration is defined, so defaults should NOT be added
+            with env_var("CONDA_CHANNELS", "conda-forge"):
+                reset_context(argparse_args={'channel': ['bioconda']})
+                assert context.channels == ('bioconda', 'conda-forge')
+
+                # now it's ok to add defaults
+                reset_context(argparse_args={'channel': ['bioconda', 'defaults']})
+                assert context.channels == ('bioconda', 'defaults', 'conda-forge')
+
+            # again, only add defaults once
+            with env_var("CONDA_CHANNELS", "defaults"):
+                reset_context(argparse_args={'channel': ['bioconda']})
+                assert context.channels == ('bioconda', 'defaults')
+        finally:
+            reset_context()
