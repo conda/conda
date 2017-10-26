@@ -29,11 +29,11 @@ macOS:
 A compiler's "build platform" is the platform where the compiler runs and
 builds the code.
 
-A compiler's "target platform" is the platform where the built code will run.
+A compiler's "host platform" is the platform where the built code will run.
 
 Notice that all of these package names end in a platform identifier which
-specifies the target platform. All compiler packages are specific to both the
-build platform and the target platform.
+specifies the host platform. All compiler packages are specific to both the
+build platform and the host platform.
 
 Using the compiler packages
 ===========================
@@ -42,7 +42,7 @@ The compiler packages can be installed with conda. Because they are designed
 with (pseudo) cross-compiling in mind, all of the executables in a compiler
 package are "prefixed." Instead of ``gcc``, the executable name of the compiler
 you use will be something like ``x86_64-conda_cos6-linux-gnu-gcc``. These full
-compiler names are shown in the build logs, recording the target platform and
+compiler names are shown in the build logs, recording the host platform and
 helping prevent the common mistake of using the wrong compiler.
 
 Many build tools such as ``make`` and ``cmake`` search by default for a
@@ -120,7 +120,7 @@ to use::
       build:
         - {{ compiler('c') }}
 
-"Cross-capable" recipes can be used to make packages with a target platform
+"Cross-capable" recipes can be used to make packages with a host platform
 different than the build platform where conda-build runs. To write cross-capable
 recipes you may also need to use the "host" section in the requirements
 section::
@@ -252,7 +252,7 @@ With that warning in mind, let's look at good ways to customize clang.
    Activate scripts are named according to our package name so they won't
    conflict with other activate scripts.
 
-   The symlink for clang is a clang implementation detail that sets the target
+   The symlink for clang is a clang implementation detail that sets the host
    platform.
 
    We define ``macos_machine`` in aggregate's ``conda_build_config.yaml``:
