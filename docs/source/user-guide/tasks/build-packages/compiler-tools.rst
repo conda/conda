@@ -29,7 +29,8 @@ macOS:
 A compiler's "build platform" is the platform where the compiler runs and
 builds the code.
 
-A compiler's "host platform" is the platform where the built code will run.
+A compiler's "host platform" is the platform where the built code will finally
+be hosted and run.
 
 Notice that all of these package names end in a platform identifier which
 specifies the host platform. All compiler packages are specific to both the
