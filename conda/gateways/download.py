@@ -7,7 +7,8 @@ from os.path import basename, exists
 from threading import Lock
 import warnings
 
-from requests.exceptions import ConnectionError, HTTPError, InvalidSchema, SSLError
+from requests.exceptions import (ConnectionError, HTTPError, InvalidSchema,
+                                 ProxyError as RequestsProxyError, SSLError)
 
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
@@ -117,12 +118,8 @@ def download(url, target_full_path, md5sum):
             log.debug("MD5 sums mismatch for download: %s (%s != %s), "
                       "trying again" % (url, digest_builder.hexdigest(), md5sum))
             raise MD5MismatchError(url, target_full_path, md5sum, actual_md5sum)
-    except AttributeError as e:
-        # see #3962
-        if text_type(e) == "'NoneType' object has no attribute 'startswith'":
-            raise ProxyError()
-        else:
-            raise
+    except RequestsProxyError:
+        raise ProxyError()  # see #3962
 
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):

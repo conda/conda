@@ -18,7 +18,7 @@ from time import time
 import warnings
 
 from requests import ConnectionError, HTTPError
-from requests.exceptions import InvalidSchema, SSLError
+from requests.exceptions import InvalidSchema, ProxyError as RequestsProxyError, SSLError
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from .. import CondaError, iteritems
@@ -161,12 +161,8 @@ def fetch_repodata_remote_request(session, url, etag, mod_stamp):
         add_http_value_to_dict(resp, 'Cache-Control', fetched_repodata, '_cache_control')
         return fetched_repodata
 
-    except AttributeError as e:
-        # see #3962
-        if text_type(e) == "'NoneType' object has no attribute 'startswith'":
-            raise ProxyError()
-        else:
-            raise
+    except RequestsProxyError:
+        raise ProxyError()  # see #3962
 
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):
