@@ -12,7 +12,9 @@ Compiler packages
 
 Before Anaconda 5.0, compilers were installed using system tools such as XCode
 or ``yum install gcc``. Now there are conda packages for Linux and macOS
-compilers. These packages are split into separate compilers:
+compilers. Unlike the previous gcc 4.8.5 packages that included gcc, g++ and
+gfortran all in the same package, these conda packages are split into separate
+compilers:
 
 Linux:
 
@@ -104,8 +106,12 @@ to use. This variable is set at activation time using the activation hooks
 described above.
 
 The new ``_sysconfigdata`` customization system is only present in recent
-versions of the Python package. You can install it by updating your Python
-package.
+versions of the Python package. Conda-build automatically tries to use the
+latest Python version available in the currently configured channels, which
+normally gets the latest from the default channel. If you're using something
+other than conda-build while working with the new compilers, conda does not
+automatically update Python, so make sure you have the correct
+``_sysconfigdata`` files by updating your Python package manually.
 
 Anaconda compilers and conda-build 3
 ====================================
@@ -124,7 +130,12 @@ to use::
 "Cross-capable" recipes can be used to make packages with a host platform
 different than the build platform where conda-build runs. To write cross-capable
 recipes you may also need to use the "host" section in the requirements
-section::
+section. In this example we set "host" to "zlib" to tell conda-build to use
+the zlib in the conda environment and not the system zlib. This makes sure
+conda-build uses the zlib for the host platform and not the zlib for the build
+platform.
+
+::
 
     requirements:
       build:
@@ -228,9 +239,9 @@ With that warning in mind, let's look at good ways to customize clang.
    scripts that those install scripts are installing.
 
    Note that we make the package ``clang`` in the main material agree in version
-   with our output version (implicitly the same as the top-level recipe). The
-   ``clang`` package sets no environment variables at all, so it may be
-   difficult to use directly.
+   with our output version. This is implicitly the same as the top-level
+   recipe. The ``clang`` package sets no environment variables at all, so it
+   may be difficult to use directly.
 
 5. Let's examine the script ``install-clang.sh``::
 
