@@ -1,5 +1,9 @@
 ## 4.3.31 (unreleased)
 
+### Bug Fixes
+* fix #6023 assertion error for temp file (#6154)
+* fix #6220 --no-builds flag for 'conda env export' (#6221)
+
 ### Non-User-Facing Changes
 * fix two failing integration tests after anaconda.org API change (#6182)
 
