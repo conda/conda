@@ -93,8 +93,8 @@ Backward compatibility
 Some users want to use the latest Anaconda packages but do not yet want to use
 the Anaconda compilers. To enable this, the latest Python package builds have
 a default ``_sysconfigdata`` file. This file sets the compilers provided by the
-host system, such as ``gcc`` and ``g++``, as the default compilers. This way
-legacy recipes will keep working.
+system, such as ``gcc`` and ``g++``, as the default compilers. This way legacy
+recipes will keep working.
 
 Python packages also include an alternative ``_sysconfigdata`` file that sets
 the Anaconda compilers as the default compilers. The Anaconda Python executable
