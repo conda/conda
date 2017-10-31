@@ -227,7 +227,7 @@ function __fish_conda_commands
 end
 
 function __fish_conda_envs
-  basename  $CONDA_ROOT_FISH_CACHED/envs/*
+  basename  -a $CONDA_ROOT_FISH_CACHED/envs/*
 end
 
 function __fish_conda_packages
