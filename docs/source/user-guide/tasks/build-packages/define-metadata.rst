@@ -167,6 +167,20 @@ to recipes with single sources as well.
     #[source information here]
     folder: my-destination/folder
 
+Filename
+--------
+
+The filename key is ``fn``. It was formerly required with URL source types. It is not required now.
+
+If the ``fn`` key is provided, the file is saved on disk with that name. If the ``fn`` key is not provided, the file is saved on disk with a name matching the last part of the URL.
+
+For example, ``http://www.something.com/myfile.zip`` has an implicit filename of ``myfile.zip``. Users may change this by manually specifying ``fn``.
+
+.. code-block:: yaml
+
+  source:
+    url: http://www.something.com/myfile.zip
+    fn: otherfilename.zip
 
 Source from multiple sources
 ----------------------------
