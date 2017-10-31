@@ -37,7 +37,6 @@ Anaconda Cloud, you will need an
    variants
    use-shared-libraries
    compiler-tools
-   sign-packages
    add-win-start-menu-items
    sample-recipes
    build-without-recipe

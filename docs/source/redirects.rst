@@ -65,6 +65,7 @@ Redirects
    install/sample-condarc
    install/tab-completion
    user-guide/tasks/build-packages/add-scripts
+   user-guide/tasks/build-packages/sign-packages
    using/cheatsheet
    using/envs
    using/index
