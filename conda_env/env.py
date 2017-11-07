@@ -9,6 +9,7 @@ from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
 from conda.common.serialize import yaml_load
 from conda.core.linked_data import linked
+from conda.models.match_spec import MatchSpec
 from conda_env.yaml import dump
 from . import compat, exceptions, yaml
 from .pip_util import add_pip_installed
@@ -101,6 +102,12 @@ class Dependencies(OrderedDict):
                 self.update(line)
             else:
                 self['conda'].append(common.arg2spec(line))
+
+        if 'pip' in self:
+            if not self['pip']:
+                del self['pip']
+            if not any(MatchSpec(s).name == 'pip' for s in self['conda']):
+                self['conda'].append('pip')
 
     # TODO only append when it's not already present
     def add(self, package_name):
