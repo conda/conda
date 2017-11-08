@@ -6,11 +6,12 @@ import re
 
 from .base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, string_types
+from .common.compat import iteritems, iterkeys, itervalues, on_win, string_types
 from .common.io import time_recorder
 from .exceptions import CondaValueError, ResolvePackageNotFound, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
+from .models.enums import NoarchType
 from .models.index_record import IndexRecord
 from .toposort import toposort
 from .version import VersionSpec, normalized_version
@@ -698,11 +699,29 @@ class Resolve(object):
         # type: (Dict[package_name, Dist]) -> List[Dist]
         assert isinstance(must_have, dict)
 
-        digraph = {}
-        for key, dist in iteritems(must_have):
+        digraph = {}  # Dict[package_name, Set[dependent_package_names]]
+        for package_name, dist in iteritems(must_have):
             if dist in self.index:
-                depends = set(ms.name for ms in self.ms_depends(dist))
-                digraph[key] = depends
+                digraph[package_name] = set(ms.name for ms in self.ms_depends(dist))
+
+        # There are currently at least three special cases to be aware of.
+        # 1. The `toposort()` function, called below, contains special case code to remove
+        #    any circular dependency between python and pip.
+        # 2. conda/plan.py has special case code for menuinst
+        #       Always link/unlink menuinst first/last on windows in case a subsequent
+        #       package tries to import it to create/remove a shortcut
+        # 3. On windows, python noarch packages need an implicit dependency on conda added, if
+        #    conda is in the list of packages for the environment.  Python noarch packages
+        #    that have entry points use conda's own conda.exe python entry point binary. If conda
+        #    is going to be updated during an operation, the unlink / link order matters.
+        #    See issue #6057.
+
+        if on_win and 'conda' in digraph:
+            for package_name, dist in iteritems(must_have):
+                record = self.index.get(dist)
+                if hasattr(record, 'noarch') and record.noarch == NoarchType.python:
+                    digraph[package_name].add('conda')
+
         sorted_keys = toposort(digraph)
         must_have = must_have.copy()
         # Take all of the items in the sorted keys
