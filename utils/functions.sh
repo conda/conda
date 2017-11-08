@@ -418,13 +418,6 @@ run_tests() {
         conda_activate_test
         # $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags activate --required
     else
-        env | sort
-        id
-        ls -al "$HOME"
-        ls -al "$HOME/.conda"
-        ls -al "$HOME/.conda/pkgs"
-        ls -al /usr/local
-        ls -al /usr/local/pkgs
         conda_unit_test
         conda_integration_test
         $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags integration --required

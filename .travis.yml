@@ -20,43 +20,43 @@ matrix:
       sudo: true
       language: generic
       os: linux
-#    - env: PYTHON_VERSION=3.4
-#      sudo: false
-#      language: generic
-#      os: linux
-#    - env: PYTHON_VERSION=2.7
-#      sudo: false
-#      language: generic
-#      os: linux
-#    - env: FLAKE8=true
-#      sudo: false
-#      language: python
-#      python: '3.5'
-#      os: linux
-#    - env: PYTHON_VERSION=3.6 SHELL_INTEGRATION=true
-#      sudo: false
-#      language: generic
-#      os: linux
-#      addons:
-#        apt:
-#          packages:
-#            - dash
-#            - zsh
-#    - env: PYTHON_VERSION=3.6 CONDA_BUILD=2.1.17
-#      sudo: false
-#      language: generic
-#      os: linux
-#    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.21
-#      sudo: false
-#      language: generic
-#      os: linux
-#    - env: PYTHON_VERSION=3.6
-#      sudo: false
-#      language: generic
-#      os: osx
-#  allow_failures:
-#    - os: osx
-#    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.21
+    - env: PYTHON_VERSION=3.4
+      sudo: false
+      language: generic
+      os: linux
+    - env: PYTHON_VERSION=2.7
+      sudo: false
+      language: generic
+      os: linux
+    - env: FLAKE8=true
+      sudo: false
+      language: python
+      python: '3.5'
+      os: linux
+    - env: PYTHON_VERSION=3.6 SHELL_INTEGRATION=true
+      sudo: false
+      language: generic
+      os: linux
+      addons:
+        apt:
+          packages:
+            - dash
+            - zsh
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=2.1.17
+      sudo: false
+      language: generic
+      os: linux
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.21
+      sudo: false
+      language: generic
+      os: linux
+    - env: PYTHON_VERSION=3.6
+      sudo: false
+      language: generic
+      os: osx
+  allow_failures:
+    - os: osx
+    - env: PYTHON_VERSION=3.6 CONDA_BUILD=3.0.21
 
 install:
   - source utils/functions.sh && run_setup
