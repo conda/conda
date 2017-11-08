@@ -35,7 +35,7 @@ requirements:
     - enum34               [py<34]
     - futures              [py<34]
     - menuinst             [win]
-    - pycosat >=0.6.1
+    - pycosat >=0.6.3
     - pyopenssl >=16.2.0
     - requests >=2.12.4,<=2.14.2
     - ruamel_yaml >=0.11.14

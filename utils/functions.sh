@@ -120,8 +120,6 @@ remove_conda() {
        $prefix/conda-meta/cryptography-*.json \
        $prefix/conda-meta/idna-*.json \
        $prefix/conda-meta/ruamel-*.json \
-       $prefix/conda-meta/pycrypto-*.json \
-       $prefix/conda-meta/pycosat-*.json \
        $site_packages/conda* \
        $site_packages/requests* \
        $site_packages/pyopenssl* \
@@ -129,9 +127,15 @@ remove_conda() {
        $site_packages/idna* \
        $site_packages/ruamel*
 
+
        # leave these until appveyor gets its compilers worked out for py36
+       # $prefix/conda-meta/pycrypto-*.json \
        # $site_packages/pycrypto* \
+
+       # leave pycosat until version 0.6.3 is posted on PyPI
+       # $prefix/conda-meta/pycosat-*.json \
        # $site_packages/pycosat*
+
     ls -al $site_packages
 
     hash -r
@@ -144,6 +148,7 @@ install_python() {
 
     install_miniconda $prefix
     $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip
+    $prefix/$BIN_DIR/conda update -y -q pycosat
     remove_conda $prefix
 
     $PYTHON_EXE --version
