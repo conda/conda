@@ -413,6 +413,10 @@ run_tests() {
             conda_build_test
         fi
     elif [ -n "$SHELL_INTEGRATION" ]; then
+        conda_unit_test
+        conda_activate_test
+        # $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags activate --required
+    else
         env | sort
         id
         ls -al "$HOME"
@@ -420,10 +424,6 @@ run_tests() {
         ls -al "$HOME/.conda/pkgs"
         ls -al /usr/local
         ls -al /usr/local/pkgs
-        conda_unit_test
-        conda_activate_test
-        # $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags activate --required
-    else
         conda_unit_test
         conda_integration_test
         $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags integration --required
