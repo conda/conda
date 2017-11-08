@@ -205,8 +205,9 @@ conda_build_unit_test() {
     export PATH="$prefix/bin:$PATH"  # cheating
     conda info
 
-    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "not xattr and not skeleton_pypi"
-    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "not xattr and not skeleton_pypi"
+    condabuild_skip="not xattr and not skeleton_pypi and not perl-cpan-Moo"
+    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$condabuild_skip"
+    $prefix/bin/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$condabuild_skip"
     popd
 }
 

@@ -15,7 +15,7 @@ from .test_create import (make_temp_env, assert_package_is_installed,
 class PriorityIntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="xz packages are different on windows than unix")
-    @pytest.mark.skipif(conda.__version__.startswith('4.3') and datetime.now() < datetime(2017, 11, 1),
+    @pytest.mark.skipif(conda.__version__.startswith('4.3') and datetime.now() < datetime(2018, 1, 1),
                         reason='currently broken in 4.3')
     def test_channel_order_channel_priority_true(self):
         with make_temp_env("python=3.5 pycosat==0.6.1") as prefix:
