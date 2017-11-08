@@ -81,7 +81,7 @@ install_conda_full() {
 
     if ! [ -f "$prefix/conda-meta/history" ]; then
         install_miniconda $prefix
-        $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip
+        $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat
     fi
 
     local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
@@ -147,8 +147,7 @@ install_python() {
     local python_version=${2:-$PYTHON_VERSION}
 
     install_miniconda $prefix
-    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip
-    $prefix/$BIN_DIR/conda update -y -q pycosat
+    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat
     remove_conda $prefix
 
     $PYTHON_EXE --version
