@@ -58,7 +58,7 @@ can download the miniconda installer from https://conda.io/miniconda.html.
 """
 
 install_requires = [
-    'pycosat >=0.6.1',
+    'pycosat >=0.6.3',
     'requests >=2.12.4',
     'ruamel.yaml >=0.11.14'
 ]

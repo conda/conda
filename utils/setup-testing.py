@@ -25,8 +25,9 @@ with open(os.path.join(src_dir, "README.rst")) as f:
     long_description = f.read()
 
 install_requires = [
-    'pycosat >=0.6.1',
-    'requests >=2.5.3',
+    'pycosat >=0.6.3',
+    'requests >=2.12.4',
+    'ruamel.yaml >=0.11.14'
 ]
 
 if sys.version_info < (3, 4):
