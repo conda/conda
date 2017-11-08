@@ -253,7 +253,7 @@ def test_generate_eq_1():
     dists = r.get_reduced_index(['anaconda'])
     r2 = Resolve(dists, True, True)
     C = r2.gen_clauses()
-    eqc, eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
+    eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
     # Should satisfy the following criteria:
     # - lower versions of the same package should should have higher
     #   coefficients.
@@ -265,6 +265,7 @@ def test_generate_eq_1():
     eqc = {Dist(key).to_filename(): value for key, value in iteritems(eqc)}
     eqv = {Dist(key).to_filename(): value for key, value in iteritems(eqv)}
     eqb = {Dist(key).to_filename(): value for key, value in iteritems(eqb)}
+    eqt = {Dist(key).to_filename(): value for key, value in iteritems(eqt)}
     assert eqc == {}
     assert eqv == {
         'anaconda-1.4.0-np15py26_0.tar.bz2': 1,
@@ -474,6 +475,8 @@ def test_generate_eq_1():
         'theano-0.5.0-np17py26_0.tar.bz2': 1,
         'theano-0.5.0-np17py27_0.tar.bz2': 1,
         'zeromq-2.2.0-0.tar.bz2': 1}
+    # No timestamps in the current data set
+    assert eqt == {}
 
 
 def test_unsat():
@@ -489,6 +492,44 @@ def test_nonexistent():
     assert raises(ResolvePackageNotFound, lambda: r.install(['notarealpackage 2.0*']))
     # This exact version of NumPy does not exist
     assert raises(ResolvePackageNotFound, lambda: r.install(['numpy 1.5']))
+
+
+def test_timestamps_and_deps():
+    # If timestamp maximization is performed too early in the solve optimization,
+    # it will force unnecessary changes to dependencies. Timestamp maximization needs
+    # to be done at low priority so that conda is free to consider packages with the
+    # same version and build that are most compatible with the installed environment.
+    index2 = {Dist(key): value for key, value in iteritems(index)}
+    index2[Dist('mypackage-1.0-hash27_0.tar.bz2')] = IndexRecord(**{
+        'build': 'hash27_0',
+        'build_number': 0,
+        'depends': ['python 2.7*'],
+        'name': 'mypackage',
+        'requires': ['python 2.7*'],
+        'version': '1.0',
+        'timestamp': 1,
+    })
+    index2[Dist('mypackage-1.0-hash33_0.tar.bz2')] = IndexRecord(**{
+        'build': 'hash33_0',
+        'build_number': 0,
+        'depends': ['python 3.3*'],
+        'name': 'mypackage',
+        'requires': ['python 3.3*'],
+        'version': '1.0',
+        'timestamp': 0,
+    })
+    r = Resolve(index2)
+    installed1 = r.install(['python 2.7*', 'mypackage'])
+    print([k.dist_name for k in installed1])
+    assert any(k.name == 'python' and k.version.startswith('2.7') for k in installed1)
+    assert any(k.name == 'mypackage' and k.build == 'hash27_0' for k in installed1)
+    installed2 = r.install(['python 3.3*', 'mypackage'])
+    assert any(k.name == 'python' and k.version.startswith('3.3') for k in installed2)
+    assert any(k.name == 'mypackage' and k.build == 'hash33_0' for k in installed2)
+    installed3 = r.install(['mypackage'], r.install(['python 2.7*']))
+    assert installed1 == installed3
+    installed4 = r.install(['mypackage'], r.install(['python 3.3*']))
+    assert installed2 == installed4
 
 
 def test_nonexistent_deps():
@@ -1014,7 +1055,7 @@ def test_channel_priority_2():
         dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, True)
         C = r2.gen_clauses()
-        eqc, eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {str(Dist(key)): value for key, value in iteritems(eqc)}
         assert eqc == {
             'conda-test::system-5.8-1': 1,
@@ -1111,7 +1152,7 @@ def test_channel_priority_2():
         dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, True)
         C = r2.gen_clauses()
-        eqc, eqv, eqb = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {str(Dist(key)): value for key, value in iteritems(eqc)}
         assert eqc == {
             'conda-test::zlib-1.2.7-1': 1,
