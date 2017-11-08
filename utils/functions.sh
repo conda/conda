@@ -265,7 +265,6 @@ install_conda_dev_usr_local() {
     sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
     sudo chown -R root:root ./conda
     ls -al ./conda
-    sudo chown -R $(id -u):$(id -g) $HOME/.conda
 }
 
 
@@ -395,6 +394,9 @@ run_setup() {
         pip install flake8
     elif [[ $SUDO == true ]]; then
         install_conda_dev_usr_local
+        ls -al $HOME
+        ls -al $HOME/.conda
+        #     sudo chown -R $(id -u):$(id -g) $HOME/.conda
     elif [[ -n $CONDA_BUILD ]]; then
         install_conda_build
     else
