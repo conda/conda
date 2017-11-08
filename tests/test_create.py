@@ -672,7 +672,7 @@ class IntegrationTests(TestCase):
             assert not exists(prefix)
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2018, 1, 1), reason="fix features in conda 4.4", strict=True)
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 11, 21), reason="fix features in conda 4.4")
     def test_remove_features(self):
         with make_temp_env("python=2 numpy nomkl") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
@@ -746,7 +746,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous')
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
-    @pytest.mark.xfail(datetime.now() < datetime(2018, 1, 1), reason="fix features in conda 4.4", strict=True)
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 11, 21), reason="fix features in conda 4.4")
     def test_install_features(self):
         with make_temp_env("python=2 numpy nomkl") as prefix:
             numpy_details = get_conda_list_tuple(prefix, "numpy")
