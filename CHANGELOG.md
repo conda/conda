@@ -6,6 +6,7 @@
 
 ### Non-User-Facing Changes
 * fix two failing integration tests after anaconda.org API change (#6182)
+* resolve #6243 mark root as not writable when sys.prefix is not a conda environment (#6274)
 
 
 ## 4.3.30 (2017-10-17)
