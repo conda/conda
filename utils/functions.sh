@@ -4,14 +4,14 @@ set_vars() {
     case "$PYTHON_ARCH" in 32) arch=x86;; *) arch=x86_64;; esac
     case "$(uname -s)" in
         'Darwin')
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-MacOSX-$arch.sh"
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.30.1-MacOSX-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
             export ON_WIN=
             ;;
         'Linux')
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Linux-$arch.sh"
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.30-Linux-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
@@ -19,7 +19,7 @@ set_vars() {
             ;;
         CYGWIN*|MINGW*|MSYS*)
             export ON_WIN=true
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Windows-$arch.exe"
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.30-Windows-$arch.exe"
             export BIN_DIR="Scripts"
             export EXE_EXT=".exe"
             export INSTALL_PREFIX=/c/conda-root
@@ -394,9 +394,6 @@ run_setup() {
         pip install flake8
     elif [[ $SUDO == true ]]; then
         install_conda_dev_usr_local
-        ls -al $HOME
-        ls -al $HOME/.conda
-        #     sudo chown -R $(id -u):$(id -g) $HOME/.conda
     elif [[ -n $CONDA_BUILD ]]; then
         install_conda_build
     else
