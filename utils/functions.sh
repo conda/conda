@@ -154,13 +154,17 @@ install_python() {
 
 
 
-    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat
+    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat -vvv
+
+    ls -al $HOME
+    ls -al /usr/local/pkgs
+
+    exit 1
+
     remove_conda $prefix
 
 
 
-    ls -al $HOME
-    ls -al /usr/local/pkgs
 
 
     $PYTHON_EXE --version
