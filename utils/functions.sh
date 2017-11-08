@@ -266,6 +266,7 @@ install_conda_dev_usr_local() {
     sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
     sudo chown -R root:root ./conda
     ls -al ./conda
+    sudo chown -R $(id -u):$(id -g) $HOME/.conda
 }
 
 
