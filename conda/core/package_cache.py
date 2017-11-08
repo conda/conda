@@ -212,14 +212,13 @@ class PackageCache(object):
         return self.__is_writable or self._check_writable()
 
     def _check_writable(self):
-        # This method takes the action of creating an empty package cache if it does not exist.
-        #   Logic elsewhere, both in conda and in code that depends on conda, seems to make that
-        #   assumption.
         if isdir(self.pkgs_dir):
             i_wri = file_path_is_writable(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
         else:
-            log.debug("package cache directory '%s' does not exist", self.pkgs_dir)
+            log.trace("package cache directory '%s' does not exist", self.pkgs_dir)
             i_wri = create_package_cache_directory(self.pkgs_dir)
+            rm_rf(self.pkgs_dir)
+        log.debug("package cache directory '%s' writable: %s", i_wri)
         self.__is_writable = i_wri
         return i_wri
 
