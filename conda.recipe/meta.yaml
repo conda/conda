@@ -37,7 +37,7 @@ requirements:
     - menuinst             [win]
     - pycosat >=0.6.3
     - pyopenssl >=16.2.0
-    - requests >=2.12.4,<=2.14.2
+    - requests >=2.12.4,<3
     - ruamel_yaml >=0.11.14
   run_constrained:
     - conda-build >=2.1
