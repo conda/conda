@@ -218,7 +218,7 @@ class PackageCache(object):
             log.trace("package cache directory '%s' does not exist", self.pkgs_dir)
             i_wri = create_package_cache_directory(self.pkgs_dir)
             rm_rf(self.pkgs_dir)
-        log.debug("package cache directory '%s' writable: %s", i_wri)
+        log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         self.__is_writable = i_wri
         return i_wri
 
