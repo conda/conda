@@ -147,25 +147,8 @@ install_python() {
     local python_version=${2:-$PYTHON_VERSION}
 
     install_miniconda $prefix
-
-    set -x
-    env | sort
-    ls -al $HOME
-
-
-
-    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat -vvv
-
-    ls -al $HOME
-    ls -al /usr/local/pkgs
-
-    exit 1
-
+    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat
     remove_conda $prefix
-
-
-
-
 
     $PYTHON_EXE --version
     $prefix/$BIN_DIR/pip --version
