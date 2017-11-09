@@ -262,8 +262,7 @@ install_conda_dev() {
 
 
 install_conda_dev_usr_local() {
-    echo 'sudo su - root -c "source utils/functions.sh && install_conda_dev /usr/local"'
-    sudo su - root -c "source utils/functions.sh && install_conda_dev /usr/local"
+    sudo su root -c "PYTHON_VERSION=$PYTHON_VERSION SUDO=true source utils/functions.sh && install_conda_dev /usr/local"
     sudo chown -R root:root ./conda
     ls -al ./conda
 }
