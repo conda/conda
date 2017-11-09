@@ -500,37 +500,41 @@ def test_timestamps_and_deps():
     # to be done at low priority so that conda is free to consider packages with the
     # same version and build that are most compatible with the installed environment.
     index2 = {Dist(key): value for key, value in iteritems(index)}
-    index2[Dist('mypackage-1.0-hash27_0.tar.bz2')] = IndexRecord(**{
+    index2[Dist('mypackage-1.0-hash12_0.tar.bz2')] = IndexRecord(**{
         'build': 'hash27_0',
         'build_number': 0,
-        'depends': ['python 2.7*'],
+        'depends': ['libpng 1.2.*'],
         'name': 'mypackage',
-        'requires': ['python 2.7*'],
+        'requires': ['libpng 1.2.*'],
         'version': '1.0',
         'timestamp': 1,
     })
-    index2[Dist('mypackage-1.0-hash33_0.tar.bz2')] = IndexRecord(**{
-        'build': 'hash33_0',
+    index2[Dist('mypackage-1.0-hash15_0.tar.bz2')] = IndexRecord(**{
+        'build': 'hash15_0',
         'build_number': 0,
-        'depends': ['python 3.3*'],
+        'depends': ['libpng 1.5.*'],
         'name': 'mypackage',
-        'requires': ['python 3.3*'],
+        'requires': ['libpng 1.5.*'],
         'version': '1.0',
         'timestamp': 0,
     })
     r = Resolve(index2)
-    installed1 = r.install(['python 2.7*', 'mypackage'])
+    installed1 = r.install(['libpng 1.2.*', 'mypackage'])
     print([k.dist_name for k in installed1])
-    assert any(k.name == 'python' and k.version.startswith('2.7') for k in installed1)
-    assert any(k.name == 'mypackage' and k.build == 'hash27_0' for k in installed1)
-    installed2 = r.install(['python 3.3*', 'mypackage'])
-    assert any(k.name == 'python' and k.version.startswith('3.3') for k in installed2)
-    assert any(k.name == 'mypackage' and k.build == 'hash33_0' for k in installed2)
-    installed3 = r.install(['mypackage'], r.install(['python 2.7*']))
+    assert any(k.name == 'libpng' and k.version.startswith('1.2') for k in installed1)
+    assert any(k.name == 'mypackage' and k.build == 'hash12_0' for k in installed1)
+    installed2 = r.install(['libpng 1.5.*', 'mypackage'])
+    assert any(k.name == 'libpng' and k.version.startswith('1.5') for k in installed2)
+    assert any(k.name == 'mypackage' and k.build == 'hash15_0' for k in installed2)
+    # this is testing that previously installed reqs are not disrupted by newer timestamps.
+    #   regression test of sorts for https://github.com/conda/conda/issues/6271
+    installed3 = r.install(['mypackage'], r.install(['libpng 1.2.*']))
     assert installed1 == installed3
-    installed4 = r.install(['mypackage'], r.install(['python 3.3*']))
+    installed4 = r.install(['mypackage'], r.install(['libpng 1.5.*']))
     assert installed2 == installed4
-
+    # unspecified python version should maximize libpng (v1.5), even though it has a lower timestamp
+    installed5 = r.install(['mypackage'])
+    assert installed2 == installed5
 
 def test_nonexistent_deps():
     index2 = index.copy()
