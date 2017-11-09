@@ -222,6 +222,10 @@ class PackageCache(object):
         self.__is_writable = i_wri
         return i_wri
 
+    def _ensure_exists(self):
+        if not isfile(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE)):
+            create_package_cache_directory(self.pkgs_dir)
+
     @staticmethod
     def _clean_tarball_path_and_get_md5sum(tarball_path, md5sum=None):
         if tarball_path.startswith('file:/'):
@@ -402,6 +406,7 @@ class ProgressiveFetchExtract(object):
         # otherwise, if we find a match in a non-writable cache, we link it to the first writable
         #   cache, and then extract
         first_writable_cache = PackageCache.first_writable()
+        first_writable_cache._ensure_exists()
         pcrec_from_writable_cache = next((
             pcrec for pcrec in concat(pcache.query(pref_or_spec)
                                       for pcache in PackageCache.writable_caches())
@@ -533,6 +538,7 @@ class ProgressiveFetchExtract(object):
             for prec_or_spec, prec_actions in iteritems(self.paired_actions):
                 exc = self._execute_actions(prec_or_spec, prec_actions)
                 if exc:
+                    log.debug('%r', exc, exc_info=True)
                     exceptions.append(exc)
 
         if exceptions:
