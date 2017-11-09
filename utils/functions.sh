@@ -383,8 +383,9 @@ conda_build_test() {
     pushd conda-build
 
     # TODO: remove -k flag when conda/conda-build#1927 is merged
-    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "not xattr and not skeleton_pypi"
-    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "not xattr and not skeleton_pypi"
+    condabuild_skip="not xattr and not skeleton_pypi and not perl-cpan-Moo"
+    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$condabuild_skip"
+    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$condabuild_skip"
     popd
 }
 
