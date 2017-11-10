@@ -637,10 +637,13 @@ class Resolve(object):
         return {self.push_MatchSpec(C, nm): 1 for nm in missing}
 
     def generate_version_metrics(self, C, specs, include0=False):
-        eqc = {}  # a C.minimize() objective: Dict[varname, coeff]
-        eqv = {}  # a C.minimize() objective: Dict[varname, coeff]
-        eqb = {}  # a C.minimize() objective: Dict[varname, coeff]
-        eqt = {}  # a C.minimize() objective: Dict[varname, coeff]
+        # each of these are weights saying how well packages match the specs
+        #    format for each: a C.minimize() objective: Dict[varname, coeff]
+        eqc = {}  # channel
+        eqv = {}  # version
+        eqb = {}  # build number
+        eqt = {}  # timestamp
+
         sdict = {}  # Dict[package_name, Dist]
 
         for s in specs:
