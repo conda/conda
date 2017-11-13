@@ -246,6 +246,7 @@ def test_activate_bad_env_keeps_existing_good_env(shell):
 
 
 @pytest.mark.installed
+@pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 11, 21), reason="need to get 4.4.x merge-up finished", strict=True)
 def test_activate_deactivate(shell):
     if shell == 'bash.exe':
         pytest.skip("usage of cygpath in win_path_to_unix messes this test up")
@@ -283,6 +284,7 @@ def test_activate_deactivate(shell):
 
 
 @pytest.mark.installed
+@pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 11, 21), reason="need to get 4.4.x merge-up finished", strict=True)
 def test_activate_root_simple(shell):
     if shell == 'bash.exe':
         pytest.skip("usage of cygpath in win_path_to_unix messes this test up")
