@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import W_OK, access
-from os.path import basename, dirname, isdir, isfile, join, lexists
+from os.path import basename, dirname, isdir, isfile, join
 from uuid import uuid4
 
 from .create import create_link
