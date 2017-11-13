@@ -338,9 +338,9 @@ def treeify(spec_str):
             # on the fact that if we _do_ see a string instead, its
             # first character cannot possibly be equal to the operator.
             r = r[1:] if r[0] == c else (r,)
-            l = output.pop()
-            l = l[1:] if l[0] == c else (l,)
-            output.append((c,)+l+r)
+            left = output.pop()
+            left = left[1:] if left[0] == c else (left,)
+            output.append((c,)+left+r)
 
     for item in tokens:
         item = item.strip()

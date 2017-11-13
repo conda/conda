@@ -216,12 +216,41 @@
 * rename PackageNotFoundError to PackagesNotFoundError and fix message formatting (#5602)
 * update conda 4.4 bld.bat windows recipe (#5573)
 * remove last remnant of CondaEnvRuntimeError (#5643)
+* fix typo (4.4.0rc2) (#6043)
 
 
-## 4.3.28 (unreleased)
+## 4.3.31 (unreleased)
 
 ### Bug Fixes
+* fix #6023 assertion error for temp file (#6154)
+* fix #6220 --no-builds flag for 'conda env export' (#6221)
+* fix #6271 timestamp prioritization results in undesirable race-condition (#6279)
 
+### Non-User-Facing Changes
+* fix two failing integration tests after anaconda.org API change (#6182)
+* resolve #6243 mark root as not writable when sys.prefix is not a conda environment (#6274)
+
+
+## 4.3.30 (2017-10-17)
+
+### Improvements
+* address #6056 add additional proxy variables to 'conda info --all' (#6083)
+
+### Bug Fixes
+* address #6164 move add_defaults_to_specs after augment_specs (#6172)
+* fix #6057 add additional detail for message 'cannot link source that does not exist' (#6082)
+* fix #6084 setting default_channels from CLI raises NotImplementedError (#6085)
+
+
+## 4.3.29 (2017-10-09)
+
+### Bug Fixes
+* fix #6096 coerce to millisecond timestamps (#6131)
+
+
+## 4.3.28 (2017-10-06)
+
+### Bug Fixes
 * fix #5854 remove imports of pkg_resources (#5991)
 * fix millisecond timestamps (#6001)
 
@@ -229,7 +258,6 @@
 ## 4.3.27 (2017-09-18)
 
 ### Bug Fixes
-
 * fix #5980 always delete_prefix_from_linked_data in rm_rf (#5982)
 
 

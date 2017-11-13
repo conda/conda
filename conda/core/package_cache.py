@@ -212,16 +212,19 @@ class PackageCache(object):
         return self.__is_writable or self._check_writable()
 
     def _check_writable(self):
-        # This method takes the action of creating an empty package cache if it does not exist.
-        #   Logic elsewhere, both in conda and in code that depends on conda, seems to make that
-        #   assumption.
         if isdir(self.pkgs_dir):
             i_wri = file_path_is_writable(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
         else:
-            log.debug("package cache directory '%s' does not exist", self.pkgs_dir)
+            log.trace("package cache directory '%s' does not exist", self.pkgs_dir)
             i_wri = create_package_cache_directory(self.pkgs_dir)
+            rm_rf(self.pkgs_dir)
+        log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         self.__is_writable = i_wri
         return i_wri
+
+    def _ensure_exists(self):
+        if not isfile(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE)):
+            create_package_cache_directory(self.pkgs_dir)
 
     @staticmethod
     def _clean_tarball_path_and_get_md5sum(tarball_path, md5sum=None):
@@ -403,6 +406,7 @@ class ProgressiveFetchExtract(object):
         # otherwise, if we find a match in a non-writable cache, we link it to the first writable
         #   cache, and then extract
         first_writable_cache = PackageCache.first_writable()
+        first_writable_cache._ensure_exists()
         pcrec_from_writable_cache = next((
             pcrec for pcrec in concat(pcache.query(pref_or_spec)
                                       for pcache in PackageCache.writable_caches())
@@ -534,6 +538,7 @@ class ProgressiveFetchExtract(object):
             for prec_or_spec, prec_actions in iteritems(self.paired_actions):
                 exc = self._execute_actions(prec_or_spec, prec_actions)
                 if exc:
+                    log.debug('%r', exc, exc_info=True)
                     exceptions.append(exc)
 
         if exceptions:

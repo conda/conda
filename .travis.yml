@@ -20,7 +20,7 @@ matrix:
       sudo: true
       language: generic
       os: linux
-    - env: PYTHON_VERSION=3.4
+    - env: PYTHON_VERSION=3.5
       sudo: false
       language: generic
       os: linux
