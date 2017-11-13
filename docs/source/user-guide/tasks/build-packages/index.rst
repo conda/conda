@@ -40,3 +40,4 @@ Anaconda Cloud, you will need an
    add-win-start-menu-items
    sample-recipes
    build-without-recipe
+   wheel-files
