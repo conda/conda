@@ -3,6 +3,7 @@
 ### Bug Fixes
 * fix #6023 assertion error for temp file (#6154)
 * fix #6220 --no-builds flag for 'conda env export' (#6221)
+* fix #6271 timestamp prioritization results in undesirable race-condition (#6279)
 
 ### Non-User-Facing Changes
 * fix two failing integration tests after anaconda.org API change (#6182)
