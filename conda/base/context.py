@@ -312,7 +312,13 @@ class Context(Configuration):
     @property
     def root_writable(self):
         from ..gateways.disk.test import prefix_is_writable
-        return prefix_is_writable(self.root_prefix)
+        try:
+            return prefix_is_writable(self.root_prefix)
+        except CondaError:
+            # With pyinstaller, conda code can sometimes be called even though sys.prefix isn't
+            # a conda environment with a conda-meta/ directory.  In this case, it's safe to return
+            # False, because conda shouldn't itself be mutating that environment. See #6243
+            return False
 
     @property
     def envs_dirs(self):

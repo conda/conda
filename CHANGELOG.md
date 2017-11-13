@@ -221,8 +221,14 @@
 
 ## 4.3.31 (unreleased)
 
+### Bug Fixes
+* fix #6023 assertion error for temp file (#6154)
+* fix #6220 --no-builds flag for 'conda env export' (#6221)
+* fix #6271 timestamp prioritization results in undesirable race-condition (#6279)
+
 ### Non-User-Facing Changes
 * fix two failing integration tests after anaconda.org API change (#6182)
+* resolve #6243 mark root as not writable when sys.prefix is not a conda environment (#6274)
 
 
 ## 4.3.30 (2017-10-17)
