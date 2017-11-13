@@ -31,7 +31,7 @@ class ExportIntegrationTests(TestCase):
             output2, error= run_command(Commands.LIST, prefix2, "-e")
             self.assertEqual(output, output2)
 
-    @pytest.mark.xfail(datetime.now() < datetime(2017, 11, 1), reason="Bring back `conda list --export` #3445", strict=True)
+    @pytest.mark.xfail(datetime.now() < datetime(2018, 1, 1), reason="Bring back `conda list --export` #3445", strict=True)
     def test_multi_channel_export(self):
         """
             When try to import from txt

@@ -4,14 +4,14 @@ set_vars() {
     case "$PYTHON_ARCH" in 32) arch=x86;; *) arch=x86_64;; esac
     case "$(uname -s)" in
         'Darwin')
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-MacOSX-$arch.sh"
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.30.1-MacOSX-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
             export ON_WIN=
             ;;
         'Linux')
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Linux-$arch.sh"
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.30-Linux-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
@@ -19,7 +19,7 @@ set_vars() {
             ;;
         CYGWIN*|MINGW*|MSYS*)
             export ON_WIN=true
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Windows-$arch.exe"
+            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.30-Windows-$arch.exe"
             export BIN_DIR="Scripts"
             export EXE_EXT=".exe"
             export INSTALL_PREFIX=/c/conda-root
@@ -81,7 +81,7 @@ install_conda_full() {
 
     if ! [ -f "$prefix/conda-meta/history" ]; then
         install_miniconda $prefix
-        $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip
+        $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat
     fi
 
     local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
@@ -120,8 +120,6 @@ remove_conda() {
        $prefix/conda-meta/cryptography-*.json \
        $prefix/conda-meta/idna-*.json \
        $prefix/conda-meta/ruamel-*.json \
-       $prefix/conda-meta/pycrypto-*.json \
-       $prefix/conda-meta/pycosat-*.json \
        $site_packages/conda* \
        $site_packages/requests* \
        $site_packages/pyopenssl* \
@@ -129,9 +127,15 @@ remove_conda() {
        $site_packages/idna* \
        $site_packages/ruamel*
 
+
        # leave these until appveyor gets its compilers worked out for py36
+       # $prefix/conda-meta/pycrypto-*.json \
        # $site_packages/pycrypto* \
+
+       # leave pycosat until version 0.6.3 is posted on PyPI
+       # $prefix/conda-meta/pycosat-*.json \
        # $site_packages/pycosat*
+
     ls -al $site_packages
 
     hash -r
@@ -143,7 +147,7 @@ install_python() {
     local python_version=${2:-$PYTHON_VERSION}
 
     install_miniconda $prefix
-    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip
+    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat
     remove_conda $prefix
 
     $PYTHON_EXE --version
@@ -258,7 +262,7 @@ install_conda_dev() {
 
 
 install_conda_dev_usr_local() {
-    sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
+    sudo su root -c "PYTHON_VERSION=$PYTHON_VERSION SUDO=true source utils/functions.sh && install_conda_dev /usr/local"
     sudo chown -R root:root ./conda
     ls -al ./conda
 }
@@ -379,8 +383,9 @@ conda_build_test() {
     pushd conda-build
 
     # TODO: remove -k flag when conda/conda-build#1927 is merged
-    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "not xattr and not skeleton_pypi"
-    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "not xattr and not skeleton_pypi"
+    condabuild_skip="not xattr and not skeleton_pypi and not perl-cpan-Moo"
+    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$condabuild_skip"
+    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$condabuild_skip"
     popd
 }
 

@@ -21,7 +21,7 @@ from conda.models.dag import PrefixDag
 from conda.models.dist import Dist
 from conda.models.prefix_record import PrefixRecord
 from conda.resolve import MatchSpec
-from ..helpers import patch, get_index_r_1, get_index_r_2, get_index_r_3
+from ..helpers import patch, get_index_r_1, get_index_r_2, get_index_r_3, get_index_r_4
 from conda.common.compat import iteritems
 
 try:
@@ -68,6 +68,33 @@ def get_solver_3(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(TEST_PREFIX, (Channel('channel-3'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+        yield solver
+
+
+@contextmanager
+def get_solver_4(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+    PrefixData._cache_ = {}
+    pd = PrefixData(TEST_PREFIX)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
+    spec_map = {spec.name: spec for spec in history_specs}
+    get_index_r_4()
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(TEST_PREFIX, (Channel('channel-4'),), (context.subdir,),
+                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+        yield solver
+
+
+@contextmanager
+def get_solver_aggregate_1(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+    PrefixData._cache_ = {}
+    pd = PrefixData(TEST_PREFIX)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
+    spec_map = {spec.name: spec for spec in history_specs}
+    get_index_r_2()
+    get_index_r_4()
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(TEST_PREFIX, (Channel('channel-2'), Channel('channel-4'), ),
+                        (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
 
@@ -644,7 +671,7 @@ def test_broken_install():
     #     assert r.environment_is_consistent(order)
 
 
-def test_install_uninstall_features():
+def test_install_uninstall_features_1():
     specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.6.*")
     with env_var("CONDA_TRACK_FEATURES", 'mkl', reset_context):
         with get_solver(specs) as solver:
@@ -1164,141 +1191,258 @@ def test_force_reinstall_2():
         assert tuple(link_dists) == tuple(solver._index[Dist(d)] for d in order)
 
 
-@pytest.mark.integration  # this test is slower, so we'll lump it into integration
-def test_freeze_deps_1(pytestconfig):
+def test_timestamps_1():
+    specs = MatchSpec("python=3.6.2"),
+    with get_solver_4(specs) as solver:
+        unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
+        assert not unlink_dists
+        # PrefixDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in link_dists])
+        order = (
+            'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+            'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+            'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+            'channel-4::libffi-3.2.1-h4deb6c0_3',
+            'channel-4::ncurses-6.0-h06874d7_1',
+            'channel-4::openssl-1.0.2l-h077ae2c_5',
+            'channel-4::tk-8.6.7-h5979e9b_1',
+            'channel-4::xz-5.2.3-h2bcbf08_1',
+            'channel-4::zlib-1.2.11-hfbfcf68_1',
+            'channel-4::libedit-3.1-heed3624_0',
+            'channel-4::readline-7.0-hac23ff0_3',
+            'channel-4::sqlite-3.20.1-h6d8b0f3_1',
+            'channel-4::python-3.6.2-hca45abc_19',  # this package has a later timestamp but lower hash value
+                                                    # than the alternate 'channel-4::python-3.6.2-hda45abc_19'
+        )
+        assert tuple(link_dists) == tuple(solver._index[Dist(d)] for d in order)
 
-    # https://github.com/pytest-dev/pytest/issues/1599
-    capmanager = pytestconfig.pluginmanager.getplugin('capturemanager')
-    capmanager.suspendcapture()
 
-    with stderr_log_level(TRACE, 'conda'):
-
-        specs = MatchSpec("six=1.7"),
-        with get_solver_2(specs) as solver:
+def test_priority_1():
+    specs = (MatchSpec("pandas"), MatchSpec("python=2.7"))
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
+        with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
             print([Dist(rec).full_name for rec in final_state_1])
             order = (
+                'channel-2::mkl-2017.0.1-0',
                 'channel-2::openssl-1.0.2l-0',
                 'channel-2::readline-6.2-2',
                 'channel-2::sqlite-3.13.0-0',
                 'channel-2::tk-8.5.18-0',
-                'channel-2::xz-5.2.2-1',
                 'channel-2::zlib-1.2.8-3',
-                'channel-2::python-3.4.5-0',
-                'channel-2::six-1.7.3-py34_0',
+                'channel-2::python-2.7.13-0',
+                'channel-2::numpy-1.13.0-py27_0',
+                'channel-2::pytz-2017.2-py27_0',
+                'channel-2::six-1.10.0-py27_0',
+                'channel-2::python-dateutil-2.6.0-py27_0',
+                'channel-2::pandas-0.20.2-np113py27_0',
             )
             assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
-        # to keep six=1.7 as a requested spec, we have to downgrade python to 2.7
-        specs_to_add = MatchSpec("bokeh"),
-        with get_solver_2(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-            final_state_2 = solver.solve_final_state()
-            # PrefixDag(final_state_2, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_2])
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
+        with get_solver_aggregate_1(specs) as solver:
+            final_state_1 = solver.solve_final_state()
+            # PrefixDag(final_state_1, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_1])
             order = (
-                'channel-2::mkl-2017.0.1-0',
+                'channel-4::intel-openmp-2018.0.0-h15fc484_7',
+                'channel-2::libffi-3.2.1-1',
+                'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+                'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+                'channel-2::openssl-1.0.2l-0',
+                'channel-4::mkl-2018.0.0-hb491cac_4',
+                'channel-4::ncurses-6.0-h06874d7_1',
+                'channel-4::tk-8.6.7-h5979e9b_1',
+                'channel-4::zlib-1.2.11-hfbfcf68_1',
+                'channel-4::libedit-3.1-heed3624_0',
+                'channel-4::readline-7.0-hac23ff0_3',
+                'channel-4::sqlite-3.20.1-h6d8b0f3_1',
+                'channel-4::python-2.7.14-hc2b0042_21',
+                'channel-4::numpy-1.13.3-py27hbcc08e0_0',
+                'channel-2::pytz-2017.2-py27_0',
+                'channel-2::six-1.10.0-py27_0',
+                'channel-4::python-dateutil-2.6.1-py27h4ca5741_1',
+                'channel-4::pandas-0.20.3-py27h820b67f_2',
+            )
+            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+
+
+def test_features_solve_1():
+    # in this test, channel-2 is a view of pkgs/free/linux-64
+    #   and channel-4 is a view of the newer pkgs/main/linux-64
+    # The channel list, equivalent to context.channels is ('channel-2', 'channel-4')
+    specs = (MatchSpec("python=2.7"), MatchSpec("numpy"), MatchSpec("nomkl"))
+    with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
+        with get_solver_aggregate_1(specs) as solver:
+            final_state_1 = solver.solve_final_state()
+            # PrefixDag(final_state_1, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_1])
+            order = (
+                'channel-2::libgfortran-3.0.0-1',
+                'channel-2::nomkl-1.0-0',
                 'channel-2::openssl-1.0.2l-0',
                 'channel-2::readline-6.2-2',
                 'channel-2::sqlite-3.13.0-0',
                 'channel-2::tk-8.5.18-0',
-                'channel-2::xz-5.2.2-1',
-                'channel-2::yaml-0.1.6-0',
                 'channel-2::zlib-1.2.8-3',
+                'channel-2::openblas-0.2.19-0',
                 'channel-2::python-2.7.13-0',
-                'channel-2::backports-1.0-py27_0',
-                'channel-2::backports_abc-0.5-py27_0',
-                'channel-2::futures-3.1.1-py27_0',
-                'channel-2::markupsafe-0.23-py27_2',
-                'channel-2::numpy-1.13.0-py27_0',
-                'channel-2::pyyaml-3.12-py27_0',
-                'channel-2::requests-2.14.2-py27_0',
-                'channel-2::setuptools-27.2.0-py27_0',
-                'channel-2::six-1.7.3-py27_0',
-                'channel-2::bkcharts-0.2-py27_0',
-                'channel-2::jinja2-2.9.6-py27_0',
-                'channel-2::python-dateutil-2.6.0-py27_0',
-                'channel-2::singledispatch-3.4.0.3-py27_0',
-                'channel-2::ssl_match_hostname-3.4.0.2-py27_1',
-                'channel-2::tornado-4.5.1-py27_0',
-                'channel-2::bokeh-0.12.6-py27_0',
+                'channel-2::numpy-1.13.0-py27_nomkl_0',
             )
-            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
-        # now we can't install the latest bokeh 0.12.5, but instead we get bokeh 0.12.4
-        specs_to_add = MatchSpec("bokeh"),
-        with get_solver_2(specs_to_add, prefix_records=final_state_1,
-                          history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
-            final_state_2 = solver.solve_final_state()
-            # PrefixDag(final_state_2, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_2])
+    with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
+        with get_solver_aggregate_1(specs) as solver:
+            final_state_1 = solver.solve_final_state()
+            # PrefixDag(final_state_1, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_1])
             order = (
-                'channel-2::mkl-2017.0.1-0',
+                'channel-4::intel-openmp-2018.0.0-h15fc484_7',
+                'channel-2::libffi-3.2.1-1',
+                'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+                'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+                'channel-2::nomkl-1.0-0',
                 'channel-2::openssl-1.0.2l-0',
-                'channel-2::readline-6.2-2',
-                'channel-2::sqlite-3.13.0-0',
-                'channel-2::tk-8.5.18-0',
-                'channel-2::xz-5.2.2-1',
-                'channel-2::yaml-0.1.6-0',
-                'channel-2::zlib-1.2.8-3',
-                'channel-2::python-3.4.5-0',
-                'channel-2::backports_abc-0.5-py34_0',
-                'channel-2::markupsafe-0.23-py34_2',
-                'channel-2::numpy-1.13.0-py34_0',
-                'channel-2::pyyaml-3.12-py34_0',
-                'channel-2::requests-2.14.2-py34_0',
-                'channel-2::setuptools-27.2.0-py34_0',
-                'channel-2::six-1.7.3-py34_0',
-                'channel-2::jinja2-2.9.6-py34_0',
-                'channel-2::python-dateutil-2.6.0-py34_0',
-                'channel-2::tornado-4.4.2-py34_0',
-                'channel-2::bokeh-0.12.4-py34_0',
+                'channel-4::mkl-2018.0.0-hb491cac_4',  # <- this is wrong
+                'channel-4::ncurses-6.0-h06874d7_1',
+                'channel-4::tk-8.6.7-h5979e9b_1',
+                'channel-4::zlib-1.2.11-hfbfcf68_1',
+                'channel-4::libedit-3.1-heed3624_0',
+                'channel-4::readline-7.0-hac23ff0_3',
+                'channel-4::sqlite-3.20.1-h6d8b0f3_1',
+                'channel-4::python-2.7.14-hc2b0042_21',
+                'channel-4::numpy-1.13.3-py27hbcc08e0_0',
             )
-            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
-        # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
-        specs_to_add = MatchSpec("bokeh=0.12.5"),
-        with get_solver_2(specs_to_add, prefix_records=final_state_1,
-                          history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
-            final_state_2 = solver.solve_final_state()
-            # PrefixDag(final_state_2, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_2])
-            order = (
-                'channel-2::mkl-2017.0.1-0',
-                'channel-2::openssl-1.0.2l-0',
-                'channel-2::readline-6.2-2',
-                'channel-2::sqlite-3.13.0-0',
-                'channel-2::tk-8.5.18-0',
-                'channel-2::xz-5.2.2-1',
-                'channel-2::yaml-0.1.6-0',
-                'channel-2::zlib-1.2.8-3',
-                'channel-2::python-2.7.13-0',
-                'channel-2::backports-1.0-py27_0',
-                'channel-2::backports_abc-0.5-py27_0',
-                'channel-2::futures-3.1.1-py27_0',
-                'channel-2::markupsafe-0.23-py27_2',
-                'channel-2::numpy-1.13.0-py27_0',
-                'channel-2::pyyaml-3.12-py27_0',
-                'channel-2::requests-2.14.2-py27_0',
-                'channel-2::setuptools-27.2.0-py27_0',
-                'channel-2::six-1.7.3-py27_0',
-                'channel-2::jinja2-2.9.6-py27_0',
-                'channel-2::python-dateutil-2.6.0-py27_0',
-                'channel-2::singledispatch-3.4.0.3-py27_0',
-                'channel-2::ssl_match_hostname-3.4.0.2-py27_1',
-                'channel-2::tornado-4.5.1-py27_0',
-                'channel-2::bokeh-0.12.5-py27_1',
-            )
-            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
-        # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
-        specs_to_add = MatchSpec("bokeh=0.12.5"),
-        with get_solver_2(specs_to_add, prefix_records=final_state_1,
-                          history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
-            with pytest.raises(UnsatisfiableError):
-                solver.solve_final_state(deps_modifier=DepsModifier.FREEZE_INSTALLED)
+@pytest.mark.integration  # this test is slower, so we'll lump it into integration
+def test_freeze_deps_1():
+    specs = MatchSpec("six=1.7"),
+    with get_solver_2(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # PrefixDag(final_state_1, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_1])
+        order = (
+            'channel-2::openssl-1.0.2l-0',
+            'channel-2::readline-6.2-2',
+            'channel-2::sqlite-3.13.0-0',
+            'channel-2::tk-8.5.18-0',
+            'channel-2::xz-5.2.2-1',
+            'channel-2::zlib-1.2.8-3',
+            'channel-2::python-3.4.5-0',
+            'channel-2::six-1.7.3-py34_0',
+        )
+        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
-    capmanager.resumecapture()
+    # to keep six=1.7 as a requested spec, we have to downgrade python to 2.7
+    specs_to_add = MatchSpec("bokeh"),
+    with get_solver_2(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'channel-2::mkl-2017.0.1-0',
+            'channel-2::openssl-1.0.2l-0',
+            'channel-2::readline-6.2-2',
+            'channel-2::sqlite-3.13.0-0',
+            'channel-2::tk-8.5.18-0',
+            'channel-2::xz-5.2.2-1',
+            'channel-2::yaml-0.1.6-0',
+            'channel-2::zlib-1.2.8-3',
+            'channel-2::python-2.7.13-0',
+            'channel-2::backports-1.0-py27_0',
+            'channel-2::backports_abc-0.5-py27_0',
+            'channel-2::futures-3.1.1-py27_0',
+            'channel-2::markupsafe-0.23-py27_2',
+            'channel-2::numpy-1.13.0-py27_0',
+            'channel-2::pyyaml-3.12-py27_0',
+            'channel-2::requests-2.14.2-py27_0',
+            'channel-2::setuptools-27.2.0-py27_0',
+            'channel-2::six-1.7.3-py27_0',
+            'channel-2::bkcharts-0.2-py27_0',
+            'channel-2::jinja2-2.9.6-py27_0',
+            'channel-2::python-dateutil-2.6.0-py27_0',
+            'channel-2::singledispatch-3.4.0.3-py27_0',
+            'channel-2::ssl_match_hostname-3.4.0.2-py27_1',
+            'channel-2::tornado-4.5.1-py27_0',
+            'channel-2::bokeh-0.12.6-py27_0',
+        )
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+
+    # now we can't install the latest bokeh 0.12.5, but instead we get bokeh 0.12.4
+    specs_to_add = MatchSpec("bokeh"),
+    with get_solver_2(specs_to_add, prefix_records=final_state_1,
+                      history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'channel-2::mkl-2017.0.1-0',
+            'channel-2::openssl-1.0.2l-0',
+            'channel-2::readline-6.2-2',
+            'channel-2::sqlite-3.13.0-0',
+            'channel-2::tk-8.5.18-0',
+            'channel-2::xz-5.2.2-1',
+            'channel-2::yaml-0.1.6-0',
+            'channel-2::zlib-1.2.8-3',
+            'channel-2::python-3.4.5-0',
+            'channel-2::backports_abc-0.5-py34_0',
+            'channel-2::markupsafe-0.23-py34_2',
+            'channel-2::numpy-1.13.0-py34_0',
+            'channel-2::pyyaml-3.12-py34_0',
+            'channel-2::requests-2.14.2-py34_0',
+            'channel-2::setuptools-27.2.0-py34_0',
+            'channel-2::six-1.7.3-py34_0',
+            'channel-2::jinja2-2.9.6-py34_0',
+            'channel-2::python-dateutil-2.6.0-py34_0',
+            'channel-2::tornado-4.4.2-py34_0',
+            'channel-2::bokeh-0.12.4-py34_0',
+        )
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+
+    # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
+    specs_to_add = MatchSpec("bokeh=0.12.5"),
+    with get_solver_2(specs_to_add, prefix_records=final_state_1,
+                      history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'channel-2::mkl-2017.0.1-0',
+            'channel-2::openssl-1.0.2l-0',
+            'channel-2::readline-6.2-2',
+            'channel-2::sqlite-3.13.0-0',
+            'channel-2::tk-8.5.18-0',
+            'channel-2::xz-5.2.2-1',
+            'channel-2::yaml-0.1.6-0',
+            'channel-2::zlib-1.2.8-3',
+            'channel-2::python-2.7.13-0',
+            'channel-2::backports-1.0-py27_0',
+            'channel-2::backports_abc-0.5-py27_0',
+            'channel-2::futures-3.1.1-py27_0',
+            'channel-2::markupsafe-0.23-py27_2',
+            'channel-2::numpy-1.13.0-py27_0',
+            'channel-2::pyyaml-3.12-py27_0',
+            'channel-2::requests-2.14.2-py27_0',
+            'channel-2::setuptools-27.2.0-py27_0',
+            'channel-2::six-1.7.3-py27_0',
+            'channel-2::jinja2-2.9.6-py27_0',
+            'channel-2::python-dateutil-2.6.0-py27_0',
+            'channel-2::singledispatch-3.4.0.3-py27_0',
+            'channel-2::ssl_match_hostname-3.4.0.2-py27_1',
+            'channel-2::tornado-4.5.1-py27_0',
+            'channel-2::bokeh-0.12.5-py27_1',
+        )
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+
+    # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
+    specs_to_add = MatchSpec("bokeh=0.12.5"),
+    with get_solver_2(specs_to_add, prefix_records=final_state_1,
+                      history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
+        with pytest.raises(UnsatisfiableError):
+            solver.solve_final_state(deps_modifier=DepsModifier.FREEZE_INSTALLED)
 
 
 class PrivateEnvTests(TestCase):

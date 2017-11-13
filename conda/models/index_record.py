@@ -50,11 +50,36 @@ class NoarchField(EnumField):
 
 class TimestampField(NumberField):
 
-    def box(self, instance, instance_type, val):
-        val = super(TimestampField, self).box(instance, instance_type, val)
-        if val and val > 253402300799:  # 9999-12-31
-            val /= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
+    # @staticmethod
+    # def _make_seconds(val):
+    #     if val:
+    #         val = int(val)
+    #         if val > 253402300799:  # 9999-12-31
+    #             val //= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
+    #     return val
+
+    @staticmethod
+    def _make_milliseconds(val):
+        if val:
+            if val < 253402300799:  # 9999-12-31
+                val *= 1000  # convert seconds to milliseconds
+            val = int(val)
         return val
+
+    def box(self, instance, instance_type, val):
+        return self._make_milliseconds(
+            super(TimestampField, self).box(instance, instance_type, val)
+        )
+
+    def unbox(self, instance, instance_type, val):
+        return self._make_milliseconds(
+            super(TimestampField, self).unbox(instance, instance_type, val)
+        )
+
+    def dump(self, instance, instance_type, val):
+        return self._make_milliseconds(
+            super(TimestampField, self).dump(instance, instance_type, val)
+        )
 
 
 class Link(DictSafeMixin, Entity):
@@ -315,6 +340,8 @@ class IndexJsonRecord(BasePackageRef):
 
     license = StringField(required=False)
     license_family = StringField(required=False)
+
+    timestamp = TimestampField(required=False)
 
     @property
     def combined_depends(self):
