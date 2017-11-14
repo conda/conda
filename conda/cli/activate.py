@@ -66,10 +66,10 @@ def prefix_from_arg(arg, shell):
 def _get_prefix_paths(prefix):
     if on_win:
         yield prefix.rstrip("\\")
-        yield os.path.join(prefix, 'Library', 'mingw-w64', 'bin')
-        yield os.path.join(prefix, 'Library', 'usr', 'bin')
         yield os.path.join(prefix, 'Library', 'bin')
         yield os.path.join(prefix, 'Scripts')
+        yield os.path.join(prefix, 'Library', 'mingw-w64', 'bin')
+        yield os.path.join(prefix, 'Library', 'usr', 'bin')
     else:
         yield os.path.join(prefix, 'bin')
 
