@@ -1,8 +1,8 @@
-# {% set setup_py_data = load_setup_py_data() %}
+{% set setup_py_data = load_setup_py_data() %}
 
 package:
   name: conda
-  # version: "{{ setup_py_data.version }}"
+  version: "{{ setup_py_data.version }}"
 
 source:
   path: ../
@@ -26,25 +26,40 @@ build:
 requirements:
   build:
     - python
+    - m2-base              [win]
+    - m2-filesystem        [win]
+    - m2-git               [win]
   run:
     - python
     - conda-env >=2.6
     - enum34               [py<34]
+    - futures              [py<34]
     - menuinst             [win]
-    - pycosat >=0.6.1
+    - pycosat >=0.6.3
     - pyopenssl >=16.2.0
-    - requests >=2.12.4
+    - requests >=2.12.4,<3
     - ruamel_yaml >=0.11.14
+  run_constrained:
+    - conda-build >=2.1
+    - cytoolz >=0.8.1
 
 test:
+  requires:
+    - mock
+    - pytest
   imports:
     - conda
-  commands:
-    - conda --version
-    - conda info
+  # commands:
+    # TODO: need to move to a run_tests file
+    # TODO: disable these tests for now, because symlinking conda still giving issues
+    # - . $PREFIX/etc/profile.d/conda.sh && conda --version               [unix]
+    # - . $PREFIX/bin/conda info                                          [unix]
+    # - "%PREFIX%/Scripts/conda --version"                        # [win]
+    # - "%PREFIX%/Scripts/conda info"                             # [win]
+    # - py.test -m "not integration and not installed" $SRC_DIR/tests $SRC_DIR/conda
 
 about:
-  home: http://conda.pydata.org/
+  home: https://conda.io/
   license: BSD
   license_file: LICENSE.txt
   summary: OS-agnostic, system-level binary package and environment manager.

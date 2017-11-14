@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
+import ctypes
 from genericpath import exists
 from glob import glob
 from logging import getLogger
@@ -21,10 +22,10 @@ def is_admin_on_windows():  # pragma: unix no cover
     try:
         from ctypes import windll
         return windll.shell32.IsUserAnAdmin() != 0
-    except ImportError as e:
+    except ImportError as e:  # pragma: no cover
         log.debug('%r', e)
         return 'unknown'
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         log.info('%r', e)
         return 'unknown'
 
@@ -61,13 +62,13 @@ def linux_get_libc_version():
         )
         try:
             val = str(confstr(v))
-        except:
+        except:  # pragma: no cover
             pass
         else:
             if val:
                 break
 
-    if not val:
+    if not val:  # pragma: no cover
         # Weird, play it safe and assume glibc 2.5
         family, version = 'glibc', '2.5'
         log.warning("Failed to detect libc family and version, assuming %s/%s", family, version)
@@ -77,7 +78,7 @@ def linux_get_libc_version():
     # NPTL is just the name of the threading library, even though the
     # version refers to that of uClibc. readlink() can help to try to
     # figure out a better name instead.
-    if family == 'NPTL':
+    if family == 'NPTL':  # pragma: no cover
         clibs = glob('/lib/libc.so*')
         for clib in clibs:
             clib = readlink(clib)
@@ -93,3 +94,22 @@ def linux_get_libc_version():
         log.warning("Failed to detect non-glibc family, assuming %s (%s)", family, version)
         return family, version
     return family, version
+
+
+def get_free_space(dir_name):
+    """Return folder/drive free space (in bytes).
+    :param dir_name: the dir name need to check
+    :return: amount of free space
+
+    Examples:
+        >>> get_free_space(os.getcwd()) > 0
+        True
+    """
+    if on_win:
+        free_bytes = ctypes.c_ulonglong(0)
+        ctypes.windll.kernel32.GetDiskFreeSpaceExW(ctypes.c_wchar_p(dir_name), None, None,
+                                                   ctypes.pointer(free_bytes))
+        return free_bytes.value
+    else:
+        st = os.statvfs(dir_name)
+        return st.f_bavail * st.f_frsize

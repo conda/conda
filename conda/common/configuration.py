@@ -29,24 +29,24 @@ from enum import Enum, EnumMeta
 
 from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, string_types,
                      text_type, with_metaclass)
-from .constants import EMPTY_MAP, NULL
+from .constants import NULL
 from .path import expand
-from .yaml import yaml_load
+from .serialize import yaml_load
 from .. import CondaError, CondaMultiError
 from .._vendor.auxlib.collection import AttrDict, first, frozendict, last, make_immutable
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
 from .._vendor.boltons.setutils import IndexedSet
 
-try:
+try:  # pragma: no cover
     from cytoolz.dicttoolz import merge
     from cytoolz.functoolz import excepts
     from cytoolz.itertoolz import concat, concatv, unique
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.dicttoolz import merge
     from .._vendor.toolz.functoolz import excepts
     from .._vendor.toolz.itertoolz import concat, concatv, unique
-try:
+try:  # pragma: no cover
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
     from ruamel_yaml.scanner import ScannerError
 except ImportError:  # pragma: no cover
@@ -54,6 +54,8 @@ except ImportError:  # pragma: no cover
     from ruamel.yaml.scanner import ScannerError
 
 log = getLogger(__name__)
+
+EMPTY_MAP = frozendict()
 
 
 def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
@@ -812,8 +814,13 @@ class Configuration(object):
 
             if match is not None:
                 try:
-                    typed_value = typify_data_structure(match.value(parameter),
-                                                        parameter._element_type)
+                    untyped_value = match.value(parameter)
+                    if untyped_value is None:
+                        if isinstance(parameter, SequenceParameter):
+                            untyped_value = ()
+                        elif isinstance(parameter, MapParameter):
+                            untyped_value = {}
+                    typed_value = typify_data_structure(untyped_value, parameter._element_type)
                 except TypeCoercionError as e:
                     validation_errors.append(CustomValidationError(match.key, e.value,
                                                                    match.source, text_type(e)))

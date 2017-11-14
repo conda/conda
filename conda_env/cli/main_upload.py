@@ -1,12 +1,14 @@
-import textwrap
 from argparse import RawDescriptionHelpFormatter
-from conda.cli import common
+import textwrap
+
+from conda.cli.conda_argparse import add_parser_json
 from .. import exceptions
 from ..env import from_file
-from ..utils.uploader import is_installed, Uploader
-
+from ..utils.uploader import Uploader, is_installed
 
 description = """
+WARNING: This command is deprecated in conda 4.4 and scheduled for removal in conda 4.5.
+
 Upload an environment to anaconda.org
 """
 
@@ -57,11 +59,12 @@ def configure_parser(sub_parsers):
         default=None,
         nargs='?'
     )
-    common.add_parser_json(p)
+    add_parser_json(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
+    print("WARNING: conda env upload is deprecated and will be removed as part of conda 4.5.")
 
     if not is_installed():
         raise exceptions.NoBinstar()
@@ -105,6 +108,6 @@ def execute(args, parser):
         msg = "\n".join(["You are not authorized to upload a package into Anaconda.org",
                          "Verify that you are logged in anaconda.org with:",
                          "    anaconda login\n"])
-        raise exceptions.CondaEnvRuntimeError(msg)
+        raise exceptions.CondaEnvException(msg)
 
     print("Done.")

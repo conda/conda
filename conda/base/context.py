@@ -3,38 +3,34 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
+from os.path import (abspath, basename, expanduser, isdir, isfile, join, normpath,
                      split as path_split)
 from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME, SEARCH_PATH)
-from .. import CondaError
+                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME,
+                        SEARCH_PATH, SafetyChecks)
+from .. import __version__ as CONDA_VERSION, CondaError
 from .._vendor.appdirs import user_data_dir
-from .._vendor.auxlib.collection import first, frozendict
+from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
-from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types, text_type
+from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
 from ..common.path import expand
+from ..common.platform import linux_get_libc_version
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
-from ..exceptions import CondaEnvironmentNotFoundError, CondaValueError
 
 try:
     from cytoolz.itertoolz import concat, concatv, unique
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, concatv, unique
 
 log = getLogger(__name__)
-
-try:
-    import cio_test  # NOQA
-except ImportError:
-    log.info("No cio_test package found.")
 
 _platform_map = {
     'linux2': 'linux',
@@ -54,11 +50,30 @@ _arch_names = {
     64: 'x86_64',
 }
 
+user_rc_path = abspath(expanduser('~/.condarc'))
+sys_rc_path = join(sys.prefix, '.condarc')
+
 
 def channel_alias_validation(value):
     if value and not has_scheme(value):
         return "channel_alias value '%s' must have scheme/protocol." % value
     return True
+
+
+def default_python_default():
+    ver = sys.version_info
+    return '%d.%d' % (ver.major, ver.minor)
+
+
+def default_python_validation(value):
+    if value and len(value) == 3 and value[1] == '.':
+        try:
+            value = float(value)
+            if 2.0 <= value < 4.0:
+                return True
+        except ValueError:  # pragma: no cover
+            pass
+    return "default_python value '%s' not of the form '[23].[0-9]'" % value
 
 
 def ssl_verify_validation(value):
@@ -76,21 +91,29 @@ class Context(Configuration):
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
-    concurrent = PrimitiveParameter(False)
+    concurrent = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
-    default_python = PrimitiveParameter('%d.%d' % sys.version_info[:2],
-                                        element_type=string_types + (NoneType,))
+    default_python = PrimitiveParameter(default_python_default(),
+                                        element_type=string_types + (NoneType,),
+                                        validation=default_python_validation)
     disallow = SequenceParameter(string_types)
+    download_only = PrimitiveParameter(False)
+    enable_private_envs = PrimitiveParameter(False)
     force_32bit = PrimitiveParameter(False)
+    max_shlvl = PrimitiveParameter(2)
     non_admin_enabled = PrimitiveParameter(True)
+
+    # Safety & Security
+    safety_checks = PrimitiveParameter(SafetyChecks.warn)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
-    pinned_packages = SequenceParameter(string_types, string_delimiter='/')  # TODO: consider a different string delimiter  # NOQA
+
+    pinned_packages = SequenceParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
-    skip_safety_checks = PrimitiveParameter(False)
+    use_index_cache = PrimitiveParameter(False)
 
-    _root_dir = PrimitiveParameter("", aliases=('root_dir',))
+    _root_prefix = PrimitiveParameter("", aliases=('root_dir', 'root_prefix'))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
                                    string_delimiter=os.pathsep)
     _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
@@ -116,37 +139,46 @@ class Context(Configuration):
     remote_max_retries = PrimitiveParameter(3)
 
     add_anaconda_token = PrimitiveParameter(True, aliases=('add_binstar_token',))
+
+    # #############################
+    # channels
+    # #############################
+    allow_non_channel_urls = PrimitiveParameter(True)
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
-    allow_non_channel_urls = PrimitiveParameter(True)
-
-    # channels
+    channel_priority = PrimitiveParameter(True)
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',))  # channel for args.channel
-    _migrated_channel_aliases = SequenceParameter(string_types,
-                                                  aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
+    _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
+    _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
                                           aliases=('default_channels',))
-    _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
+    _migrated_channel_aliases = SequenceParameter(string_types,
+                                                  aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
     migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
-    _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
+    override_channels_enabled = PrimitiveParameter(True)
+    show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
+    whitelist_channels = SequenceParameter(string_types)
 
-    # command line
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
-    always_yes = PrimitiveParameter(False, aliases=('yes',))
-    channel_priority = PrimitiveParameter(True)
+    always_yes = PrimitiveParameter(None, aliases=('yes',), element_type=(bool, NoneType))
     debug = PrimitiveParameter(False)
     dry_run = PrimitiveParameter(False)
+    error_upload_url = PrimitiveParameter(ERROR_UPLOAD_URL)
     force = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
+    no_dependencies = PrimitiveParameter(False, aliases=('no_deps',))
     offline = PrimitiveParameter(False)
+    only_dependencies = PrimitiveParameter(False, aliases=('only_deps',))
     quiet = PrimitiveParameter(False)
+    prune = PrimitiveParameter(False)
+    ignore_pinned = PrimitiveParameter(False)
+    report_errors = PrimitiveParameter(None, element_type=(bool, NoneType))
     shortcuts = PrimitiveParameter(True)
-    show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
-    update_dependencies = PrimitiveParameter(True, aliases=('update_deps',))
-    verbosity = PrimitiveParameter(0, aliases=('verbose',), element_type=int)
+    update_dependencies = PrimitiveParameter(False, aliases=('update_deps',))
+    _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
 
     # conda_build
     bld_path = PrimitiveParameter('')
@@ -201,6 +233,10 @@ class Context(Configuration):
             return expand('~/conda-bld')
 
     @property
+    def local_build_root(self):
+        return self.croot
+
+    @property
     def src_cache(self):
         path = join(self.croot, 'src_cache')
         conda_bld_ensure_dir(path)
@@ -231,6 +267,10 @@ class Context(Configuration):
             return m
         else:
             return _arch_names[self.bits]
+
+    @property
+    def conda_private(self):
+        return conda_in_private_env()
 
     @property
     def platform(self):
@@ -264,16 +304,6 @@ class Context(Configuration):
             return 8 * tuple.__itemsize__
 
     @property
-    def local_build_root(self):
-        # TODO: import from conda_build, and fall back to something incredibly simple
-        if self.bld_path:
-            return expand(self.bld_path)
-        elif self.root_writable:
-            return join(self.conda_prefix, 'conda-bld')
-        else:
-            return expand('~/conda-bld')
-
-    @property
     def root_dir(self):
         # root_dir is an alias for root_prefix, we prefer the name "root_prefix"
         # because it is more consistent with other names
@@ -284,7 +314,7 @@ class Context(Configuration):
         from ..gateways.disk.test import prefix_is_writable
         try:
             return prefix_is_writable(self.root_prefix)
-        except CondaError:
+        except CondaError:  # pragma: no cover
             # With pyinstaller, conda code can sometimes be called even though sys.prefix isn't
             # a conda environment with a conda-meta/ directory.  In this case, it's safe to return
             # False, because conda shouldn't itself be mutating that environment. See #6243
@@ -335,13 +365,11 @@ class Context(Configuration):
             return expand(join('~', '.conda'))
 
     @property
-    def private_envs_json_path(self):
-        return join(self.root_prefix, "conda-meta", "private_envs")
-
-    @property
     def default_prefix(self):
+        if self.active_prefix:
+            return self.active_prefix
         _default_env = os.getenv('CONDA_DEFAULT_ENV')
-        if _default_env in (None, ROOT_ENV_NAME):
+        if _default_env in (None, ROOT_ENV_NAME, 'root'):
             return self.root_prefix
         elif os.sep in _default_env:
             return abspath(_default_env)
@@ -353,30 +381,49 @@ class Context(Configuration):
         return join(self.envs_dirs[0], _default_env)
 
     @property
-    def prefix(self):
-        return get_prefix(self, self._argparse_args, False)
+    def active_prefix(self):
+        return os.getenv('CONDA_PREFIX')
 
     @property
-    def prefix_w_legacy_search(self):
-        return get_prefix(self, self._argparse_args, True)
+    def shlvl(self):
+        return int(os.getenv('CONDA_SHLVL', -1))
 
     @property
-    def clone_src(self):
-        assert self._argparse_args.clone is not None
-        return locate_prefix_by_name(self, self._argparse_args.clone)
+    def aggressive_update_packages(self):
+        from ..models.match_spec import MatchSpec
+        return (
+            MatchSpec('ca-certificates', optional=True),
+            MatchSpec('certifi', optional=True),
+            MatchSpec('openssl', optional=True),
+        )
 
     @property
-    def conda_in_root(self):
-        return not conda_in_private_env()
+    def deps_modifier(self):
+        from ..core.solve import DepsModifier
+        if self.update_dependencies and self.only_dependencies:
+            return DepsModifier.UPDATE_DEPS_ONLY_DEPS
+        elif self.update_dependencies:
+            return DepsModifier.UPDATE_DEPS
+        elif self.only_dependencies:
+            return DepsModifier.ONLY_DEPS
+        elif self.no_dependencies:
+            return DepsModifier.NO_DEPS
+        elif self._argparse_args and 'all' in self._argparse_args and self._argparse_args.all:
+            return DepsModifier.UPDATE_ALL
+        else:
+            return None
 
     @property
-    def conda_private(self):
-        return conda_in_private_env()
+    def target_prefix(self):
+        # used for the prefix that is the target of the command currently being executed
+        # different from the active prefix, which is sometimes given by -p or -n command line flags
+        from ..core.envs_manager import determine_target_prefix
+        return determine_target_prefix(self)
 
     @property
     def root_prefix(self):
-        if self._root_dir:
-            return abspath(expanduser(self._root_dir))
+        if self._root_prefix:
+            return abspath(expanduser(self._root_prefix))
         elif conda_in_private_env():
             return normpath(join(self.conda_prefix, '..', '..'))
         else:
@@ -384,7 +431,7 @@ class Context(Configuration):
 
     @property
     def conda_prefix(self):
-        return sys.prefix
+        return normpath(sys.prefix)
 
     @memoizedproperty
     def channel_alias(self):
@@ -401,7 +448,7 @@ class Context(Configuration):
 
     @property
     def prefix_specified(self):
-        return (self._argparse_args.get("prefix") is not None and
+        return (self._argparse_args.get("prefix") is not None or
                 self._argparse_args.get("name") is not None)
 
     @memoizedproperty
@@ -453,13 +500,29 @@ class Context(Configuration):
 
     @property
     def channels(self):
+        if (self._argparse_args and 'override_channels' in self._argparse_args
+                and self._argparse_args['override_channels']):
+            if not self.override_channels_enabled:
+                from ..exceptions import OperationNotAllowed
+                raise OperationNotAllowed(dals("""
+                Overriding channels has been disabled.
+                """))
+            elif not (self._argparse_args and 'channel' in self._argparse_args
+                      and self._argparse_args['channel']):
+                from ..exceptions import CommandArgumentError
+                raise CommandArgumentError(dals("""
+                At least one -c / --channel flag must be supplied when using --override-channels.
+                """))
+            else:
+                return self._argparse_args['channel']
+
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and 'channel' in self._argparse_args:
             # TODO: it's args.channel right now, not channels
             argparse_channels = tuple(self._argparse_args['channel'] or ())
             if argparse_channels and argparse_channels == self._channels:
                 return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
-        return self._channels
+        return self._channels or ()
 
     def get_descriptions(self):
         return get_help_dict()
@@ -473,10 +536,16 @@ class Context(Configuration):
             'debug',
             'default_python',
             'dry_run',
+            'enable_private_envs',
+            'error_upload_url',  # should remain undocumented
             'force_32bit',
+            'ignore_pinned',
+            'max_shlvl',
             'migrated_custom_channels',
-            'root_dir',
-            'skip_safety_checks',
+            'no_dependencies',
+            'only_dependencies',
+            'prune',
+            'root_prefix',
             'subdir',
             'subdirs',
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
@@ -491,6 +560,14 @@ class Context(Configuration):
         # backward compatibility for conda-build
         return self.anaconda_upload
 
+    @property
+    def user_agent(self):
+        return _get_user_agent(self.platform)
+
+    @property
+    def verbosity(self):
+        return 2 if self.debug else self._verbosity
+
 
 def conda_in_private_env():
     # conda is located in its own private environment named '_conda_'
@@ -502,6 +579,7 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, APP_NAME, argparse_args)
     from ..models.channel import Channel
     Channel._reset_state()
+    # need to import here to avoid circular dependency
     return context
 
 
@@ -605,9 +683,19 @@ def get_help_dict():
         'default_channels': dals("""
             The list of channel names and/or urls used for the 'defaults' multichannel.
             """),
+        # 'default_python': dals("""
+        #     specifies the default major & minor version of Python to be used when
+        #     building packages with conda-build. Also used to determine the major
+        #     version of Python (2/3) to be used in new environments. Defaults to
+        #     the version used by conda itself.
+        #     """),
         'disallow': dals("""
             Package specifications to disallow installing. The default is to allow
             all packages.
+            """),
+        'download_only': dals("""
+            Solve an environment and ensure package caches are populated, but exit
+            prior to unlinking and linking packages into the prefix
             """),
         'envs_dirs': dals("""
             The list of directories to search for named environments. When creating a new
@@ -619,6 +707,11 @@ def get_help_dict():
             potentially breaking environments. Also re-installs the package, even if the
             package is already installed. Implies --no-deps.
             """),
+        # 'force_32bit': dals("""
+        #     CONDA_FORCE_32BIT should only be used when running conda-build (in order
+        #     to build 32-bit packages on a 64-bit system).  We don't want to mention it
+        #     in the documentation, because it can mess up a lot of things.
+        #     """),
         'json': dals("""
             Ensure all output written to stdout is structured json.
             """),
@@ -638,6 +731,9 @@ def get_help_dict():
             """),
         'offline': dals("""
             Restrict conda to cached download content and file:// based urls.
+            """),
+        'override_channels_enabled': dals("""
+            Permit use of the --overide-channels command-line flag.
             """),
         'path_conflict': dals("""
             The method by which conda handle's conflicting/overlapping paths during a
@@ -677,9 +773,18 @@ def get_help_dict():
             read timeout is the number of seconds conda will wait for the server to send
             a response.
             """),
+        'report_errors': dals("""
+            Opt in, or opt out, of automatic error reporting to core maintainers. Error
+            reports are anonymous, with only the error stack trace and information given
+            by `conda info` being sent.
+            """),
         'rollback_enabled': dals("""
             Should any error occur during an unlink/link transaction, revert any disk
             mutations made to that point in the transaction.
+            """),
+        'safety_checks': dals("""
+            Enforce available safety guarantees during package installation.
+            The value must be one of 'enabled', 'warn', or 'disabled'.
             """),
         'shortcuts': dals("""
             Allow packages to create OS-specific shortcuts (e.g. in the Windows Start
@@ -700,6 +805,9 @@ def get_help_dict():
             A list of features that are tracked by default. An entry here is similar to
             adding an entry to the create_default_packages list.
             """),
+        'use_index_cache': dals("""
+            Use cache of channel index files, even if it has expired.
+            """),
         'use_pip': dals("""
             Include non-conda-installed python packages with conda list. This does not
             affect any conda command or functionality other than the output of the
@@ -708,74 +816,64 @@ def get_help_dict():
         'verbosity': dals("""
             Sets output log level. 0 is warn. 1 is info. 2 is debug. 3 is trace.
             """),
+        'whitelist_channels': dals("""
+            The exclusive list of channels allowed to be used on the system. Use of any
+            other channels will result in an error. If conda-build channels are to be
+            allowed, along with the --use-local command line flag, be sure to include the
+            'local' channel in the list. If the list is empty or left undefined, no
+            channel exclusions will be enforced.
+            """)
     })
 
 
-def get_prefix(ctx, args, search=True):
-    """Get the prefix to operate in
+@memoize
+def _get_user_agent(context_platform):
+    import platform
+    try:
+        from requests import __version__ as REQUESTS_VERSION
+    except ImportError:  # pragma: no cover
+        try:
+            from pip._vendor.requests import __version__ as REQUESTS_VERSION
+        except ImportError:
+            REQUESTS_VERSION = "unknown"
 
-    Args:
-        ctx: the context of conda
-        args: the argparse args from the command line
-        search: whether search for prefix
+    _user_agent = ("conda/{conda_ver} "
+                   "requests/{requests_ver} "
+                   "{python}/{py_ver} "
+                   "{system}/{kernel} {dist}/{ver}")
 
-    Returns: the prefix
-    Raises: CondaEnvironmentNotFoundError if the prefix is invalid
-    """
-    if getattr(args, 'name', None):
-        if '/' in args.name:
-            raise CondaValueError("'/' not allowed in environment name: %s" %
-                                  args.name, getattr(args, 'json', False))
-        if args.name == ROOT_ENV_NAME:
-            return ctx.root_dir
-        if search:
-            return locate_prefix_by_name(ctx, args.name)
-        else:
-            # need first writable envs_dir
-            envs_dir = first(ctx.envs_dirs, envs_dir_has_writable_pkg_cache)
-            if not envs_dir:
-                raise CondaError("No writable package envs directories found in\n"
-                                 "%s" % text_type(context.envs_dirs))
-            return join(envs_dir, args.name)
-    elif getattr(args, 'prefix', None):
-        return abspath(expanduser(args.prefix))
+    libc_family, libc_ver = linux_get_libc_version()
+    if context_platform == 'linux':
+        from .._vendor.distro import linux_distribution
+        distinfo = linux_distribution(full_distribution_name=False)
+        dist, ver = distinfo[0], distinfo[1]
+    elif context_platform == 'osx':
+        dist = 'OSX'
+        ver = platform.mac_ver()[0]
     else:
-        return ctx.default_prefix
+        dist = platform.system()
+        ver = platform.version()
+
+    user_agent = _user_agent.format(conda_ver=CONDA_VERSION,
+                                    requests_ver=REQUESTS_VERSION,
+                                    python=platform.python_implementation(),
+                                    py_ver=platform.python_version(),
+                                    system=platform.system(), kernel=platform.release(),
+                                    dist=dist, ver=ver)
+    if libc_ver:
+        user_agent += " {}/{}".format(libc_family, libc_ver)
+    return user_agent
 
 
-def envs_dir_has_writable_pkg_cache(envs_dir):
-    from ..core.package_cache import PackageCache
-    return PackageCache(join(dirname(envs_dir), 'pkgs')).is_writable
-
-
-def locate_prefix_by_name(ctx, name):
-    """ Find the location of a prefix given a conda env name.
-
-    Args:
-        ctx (Context): the context object
-        name (str): the name of prefix to find
-
-    Returns:
-        str: the location of the prefix found, or CondaValueError will raise if not found
-
-    Raises:
-        CondaValueError: when no prefix is found
-    """
-    if name == ROOT_ENV_NAME:
-        return ctx.root_dir
-
-    # look for a directory named `name` in all envs_dirs AND in CWD
-    for envs_dir in concatv(ctx.envs_dirs, (os.getcwd(),)):
-        prefix = join(envs_dir, name)
-        if isdir(prefix):
-            return prefix
-
-    raise CondaEnvironmentNotFoundError(name)
+# backward compatibility for conda-build
+def get_prefix(ctx, args, search=True):
+    from ..core.envs_manager import determine_target_prefix
+    return determine_target_prefix(ctx or context, args)
 
 
 try:
     context = Context(SEARCH_PATH, APP_NAME, None)
-except LoadError as e:
+except LoadError as e:  # pragma: no cover
     print(e, file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit
     sys.exit(1)

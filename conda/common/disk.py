@@ -13,7 +13,7 @@ def conda_bld_ensure_dir(path):
     if not isdir(path):
         try:
             makedirs(path)
-        except OSError:
+        except OSError:  # pragma: no cover
             pass
 
 

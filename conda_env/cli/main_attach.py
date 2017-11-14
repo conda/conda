@@ -1,10 +1,14 @@
 from argparse import RawDescriptionHelpFormatter
-from ..utils.notebooks import Notebook
-from conda.cli import common
+
+from conda.cli.conda_argparse import add_parser_json
+
+from .common import get_prefix
 from ..env import from_environment
-# conda env import
-from conda_env.cli.common import get_prefix
+from ..utils.notebooks import Notebook
+
 description = """
+WARNING: This command is deprecated in conda 4.4 and scheduled for removal in conda 4.5.
+
 Embeds information describing your conda environment
 into the notebook metadata
 """
@@ -63,11 +67,12 @@ def configure_parser(sub_parsers):
         action='store',
         default=None
     )
-    common.add_parser_json(p)
+    add_parser_json(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
+    print("WARNING: conda env attach is deprecated and will be removed as part of conda 4.5.")
 
     if args.prefix is None:
         prefix = get_prefix(args)

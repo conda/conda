@@ -3,51 +3,56 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
-import json
 from logging import getLogger
-from os.path import dirname, join
+from os.path import basename, dirname, getsize, join
 from random import random
 import re
 from time import sleep
+from uuid import uuid4
 
-from .linked_data import delete_linked_data, get_python_version_for_prefix, load_linked_data
+from .linked_data import PrefixData
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
+from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..common.compat import iteritems, on_win, range
+from ..common.compat import iteritems, on_win, range, text_type
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
-                           parse_entry_point_def, preferred_env_to_prefix, pyc_path, url_to_path,
-                           win_path_ok)
-from ..common.url import path_to_url, unquote
-from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
-from ..gateways.disk.create import (compile_pyc, create_hard_link_or_copy, create_link,
-                                    create_private_envs_meta, create_private_pkg_entry_point,
-                                    create_unix_python_entry_point,
-                                    create_windows_python_entry_point, extract_tarball,
-                                    make_menu, write_linked_package_record)
-from ..gateways.disk.delete import remove_private_envs_meta, rm_rf, try_rmdir_all_empty
-from ..gateways.disk.read import compute_md5sum, isfile, islink, lexists
+                           parse_entry_point_def,
+                           pyc_path, url_to_path, win_path_ok)
+from ..common.url import has_platform, path_to_url, unquote
+from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError
+from ..gateways.connection.download import download
+from ..gateways.disk.create import (compile_pyc, copy, create_hard_link_or_copy,
+                                    create_link, create_python_entry_point, extract_tarball,
+                                    make_menu, write_as_json_to_file)
+from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
+from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
+                                  read_index_json)
 from ..gateways.disk.update import backoff_rename, touch
-from ..gateways.download import download
-from ..models.dist import Dist
-from ..models.enums import LinkType, NoarchType, PathType
-from ..models.index_record import IndexRecord, Link
+from ..history import History
+from ..models.channel import Channel
+from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType
+from ..models.index_record import Link, PackageRecord, PathDataV1, PathsData
+from ..models.leased_path_entry import LeasedPathEntry
+from ..models.match_spec import MatchSpec
+from ..models.package_cache_record import PackageCacheRecord
+from ..models.prefix_record import PrefixRecord
 
 try:
-    from cytoolz.itertoolz import concatv
-except ImportError:
-    from .._vendor.toolz.itertoolz import concatv  # NOQA
+    from cytoolz.itertoolz import concat, concatv
+except ImportError:  # pragma: no cover
+    from .._vendor.toolz.itertoolz import concat, concatv  # NOQA
 
 log = getLogger(__name__)
-
 
 REPR_IGNORE_KWARGS = (
     'transaction_context',
     'package_info',
     'hold_path',
 )
+
 
 @with_metaclass(ABCMeta)
 class PathAction(object):
@@ -104,6 +109,43 @@ class PrefixPathAction(PathAction):
             return None
 
 
+@with_metaclass(ABCMeta)
+class EnvsDirectoryPathAction(PathAction):
+    def __init__(self, transaction_context, target_prefix):
+        self.transaction_context = transaction_context
+        self.target_prefix = target_prefix
+
+        from .envs_manager import EnvsDirectory
+        self._ed_path = EnvsDirectory.get_envs_directory_for_prefix(self.target_prefix)
+
+        self._execute_successful = False
+
+    def verify(self):
+        from .envs_manager import EnvsDirectory
+        ed = EnvsDirectory(self.envs_dir_path)
+        ed.raise_if_not_writable()
+        self._verified = True
+
+    @abstractmethod
+    def execute(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def reverse(self):
+        raise NotImplementedError()
+
+    def cleanup(self):
+        pass
+
+    @property
+    def envs_dir_path(self):
+        return self._ed_path
+
+    @property
+    def target_full_path(self):
+        raise NotImplementedError()
+
+
 # ######################################################
 #  Creation of Paths within a Prefix
 # ######################################################
@@ -134,17 +176,47 @@ class CreateInPrefixPathAction(PrefixPathAction):
         return join(prfx, win_path_ok(shrt_pth)) if prfx and shrt_pth else None
 
 
+# @with_metaclass(ABCMeta)
+# class CreateLeasedPathAction(CreateInPrefixPathAction):
+#     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
+#                  target_prefix, target_short_path):
+#         super(CreateLeasedPathAction, self).__init__(transaction_context, package_info,
+#                                                      source_prefix, source_short_path,
+#                                                      target_prefix, target_short_path)
+#         self.leased_path_entry = LeasedPathEntry(
+#             _path=target_short_path,
+#             target_path=self.source_full_path,
+#             target_prefix=source_prefix,
+#             leased_path=self.target_full_path,
+#             package_name=package_info.index_json_record.name,
+#             leased_path_type=self.leased_path_type,
+#         )
+#         self._execute_successful = False
+#
+#     def reverse(self):
+#         if self._execute_successful:
+#             log.trace("reversing leased path creation %s", self.target_full_path)
+#             rm_rf(self.target_full_path)
+#
+#     @abstractproperty
+#     def leased_path_type(self):
+#         raise NotImplementedError()
+
+
 class LinkPathAction(CreateInPrefixPathAction):
 
     @classmethod
     def create_file_link_actions(cls, transaction_context, package_info, target_prefix,
                                  requested_link_type):
-        def get_prefix_replace(path_info):
-            if path_info.prefix_placeholder:
+        def get_prefix_replace(source_path_data):
+            if source_path_data.path_type == PathType.softlink:
                 link_type = LinkType.copy
-                prefix_placehoder = path_info.prefix_placeholder
-                file_mode = path_info.file_mode
-            elif path_info.no_link or path_info.path_type == PathType.softlink:
+                prefix_placehoder, file_mode = '', None
+            elif source_path_data.prefix_placeholder:
+                link_type = LinkType.copy
+                prefix_placehoder = source_path_data.prefix_placeholder
+                file_mode = source_path_data.file_mode
+            elif source_path_data.no_link:
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = '', None
             else:
@@ -153,31 +225,32 @@ class LinkPathAction(CreateInPrefixPathAction):
 
             return link_type, prefix_placehoder, file_mode
 
-        def make_file_link_action(source_path_info):
+        def make_file_link_action(source_path_data):
             # TODO: this inner function is still kind of a mess
             noarch = package_info.index_json_record.noarch
             if noarch == NoarchType.python:
                 sp_dir = transaction_context['target_site_packages_short_path']
-                target_short_path = get_python_noarch_target_path(source_path_info.path, sp_dir)
+                target_short_path = get_python_noarch_target_path(source_path_data.path, sp_dir)
             elif noarch is None or noarch == NoarchType.generic:
-                target_short_path = source_path_info.path
+                target_short_path = source_path_data.path
             else:
                 raise CondaUpgradeError(dals("""
                 The current version of conda is too old to install this package.
                 Please update conda."""))
 
-            link_type, placeholder, fmode = get_prefix_replace(source_path_info)
+            link_type, placeholder, fmode = get_prefix_replace(source_path_data)
 
             if placeholder:
                 return PrefixReplaceLinkAction(transaction_context, package_info,
                                                package_info.extracted_package_dir,
-                                               source_path_info.path,
+                                               source_path_data.path,
                                                target_prefix, target_short_path,
-                                               placeholder, fmode)
+                                               placeholder, fmode, source_path_data)
             else:
                 return LinkPathAction(transaction_context, package_info,
-                                      package_info.extracted_package_dir, source_path_info.path,
-                                      target_prefix, target_short_path, link_type)
+                                      package_info.extracted_package_dir, source_path_data.path,
+                                      target_prefix, target_short_path,
+                                      link_type, source_path_data)
         return tuple(make_file_link_action(spi) for spi in package_info.paths_data.paths)
 
     @classmethod
@@ -186,7 +259,7 @@ class LinkPathAction(CreateInPrefixPathAction):
         leaf_directories = get_leaf_directories(axn.target_short_path for axn in file_link_actions)
         return tuple(
             cls(transaction_context, package_info, None, None,
-                target_prefix, directory_short_path, LinkType.directory)
+                target_prefix, directory_short_path, LinkType.directory, None)
             for directory_short_path in leaf_directories
         )
 
@@ -198,26 +271,33 @@ class LinkPathAction(CreateInPrefixPathAction):
         source_short_path = 'Scripts/conda.exe'
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = "Scripts/%s.exe" % command
+        source_path_data = PathDataV1(
+            _path=target_short_path,
+            path_type=PathType.windows_python_entry_point_exe,
+        )
         return cls(transaction_context, package_info, source_directory,
                    source_short_path, target_prefix, target_short_path,
-                   requested_link_type)
+                   requested_link_type, source_path_data)
 
     def __init__(self, transaction_context, package_info,
                  extracted_package_dir, source_short_path,
-                 target_prefix, target_short_path, link_type):
+                 target_prefix, target_short_path, link_type, source_path_data):
         super(LinkPathAction, self).__init__(transaction_context, package_info,
                                              extracted_package_dir, source_short_path,
                                              target_prefix, target_short_path)
         self.link_type = link_type
         self._execute_successful = False
+        self.source_path_data = source_path_data
+        self.prefix_path_data = None
 
     def verify(self):
-        # TODO: consider checking hashsums
-        if self.link_type != LinkType.directory and not lexists(self.source_full_path):
+        if self.link_type != LinkType.directory and not lexists(self.source_full_path):  # pragma: no cover  # NOQA
             # This backoff loop is added because of some weird race condition conda-build
             # experiences. Would be nice at some point to get to the bottom of why it happens.
 
+            # sum(((2 ** n) + random()) * 0.1 for n in range(2))
             # with max_retries = 2, max total time ~= 0.4 sec
+            # with max_retries = 3, max total time ~= 0.8 sec
             # with max_retries = 6, max total time ~= 6.5 sec
             count = self.transaction_context.get('_verify_backoff_count', 0)
             max_retries = 6 if count < 4 else 3
@@ -237,6 +317,80 @@ class LinkPathAction(CreateInPrefixPathAction):
                 """ % (self.package_info.index_json_record.name,
                        self.package_info.extracted_package_dir,
                        self.source_short_path)))
+
+        source_path_data = self.source_path_data
+        try:
+            source_path_type = source_path_data.path_type
+        except AttributeError:
+            source_path_type = None
+        if source_path_type in PathType.basic_types:
+            # this let's us keep the non-generic path types like windows_python_entry_point_exe
+            source_path_type = None
+
+        if self.link_type == LinkType.directory:
+            self.prefix_path_data = None
+        elif self.link_type == LinkType.softlink:
+            self.prefix_path_data = PathDataV1.from_objects(
+                self.source_path_data,
+                path_type=source_path_type or PathType.softlink,
+            )
+        elif self.link_type == LinkType.copy and source_path_data.path_type == PathType.softlink:
+            self.prefix_path_data = PathDataV1.from_objects(
+                self.source_path_data,
+                path_type=source_path_type or PathType.softlink,
+            )
+
+        elif source_path_data.path_type == PathType.hardlink:
+            try:
+                reported_sha256 = source_path_data.sha256
+            except AttributeError:
+                reported_sha256 = None
+            source_sha256 = compute_sha256sum(self.source_full_path)
+            if reported_sha256 and reported_sha256 != source_sha256:
+                return SafetyError(dals("""
+                The package for %s located at %s
+                appears to be corrupted. The path '%s'
+                has a sha256 mismatch.
+                  reported sha256: %s
+                  actual sha256: %s
+                """ % (self.package_info.index_json_record.name,
+                       self.package_info.extracted_package_dir,
+                       self.source_short_path,
+                       reported_sha256,
+                       source_sha256,
+                       )))
+
+            try:
+                reported_size_in_bytes = source_path_data.size_in_bytes
+            except AttributeError:
+                reported_size_in_bytes = None
+            if reported_size_in_bytes:
+                source_size_in_bytes = getsize(self.source_full_path)
+                if reported_size_in_bytes != source_size_in_bytes:
+                    return SafetyError(dals("""
+                    The package for %s located at %s
+                    appears to be corrupted. The path '%s'
+                    has an incorrect size.
+                      reported size: %s bytes
+                      actual size: %s bytes
+                    """ % (self.package_info.index_json_record.name,
+                           self.package_info.extracted_package_dir,
+                           self.source_short_path,
+                           reported_size_in_bytes,
+                           source_size_in_bytes,
+                           )))
+
+            self.prefix_path_data = PathDataV1.from_objects(
+                source_path_data,
+                sha256=reported_sha256,
+                sha256_in_prefix=reported_sha256,
+                path_type=source_path_type or PathType.hardlink,
+            )
+        elif source_path_data.path_type == PathType.windows_python_entry_point_exe:
+            self.prefix_path_data = source_path_data
+        else:
+            raise NotImplementedError()
+
         self._verified = True
 
     def execute(self):
@@ -258,48 +412,59 @@ class PrefixReplaceLinkAction(LinkPathAction):
 
     def __init__(self, transaction_context, package_info,
                  extracted_package_dir, source_short_path,
-                 target_prefix, target_short_path, prefix_placeholder, file_mode):
+                 target_prefix, target_short_path,
+                 prefix_placeholder, file_mode, source_path_data):
         super(PrefixReplaceLinkAction, self).__init__(transaction_context, package_info,
                                                       extracted_package_dir, source_short_path,
                                                       target_prefix, target_short_path,
-                                                      LinkType.copy)
+                                                      LinkType.copy, source_path_data)
         self.prefix_placeholder = prefix_placeholder
         self.file_mode = file_mode
+        self.intermediate_path = None
 
     def verify(self):
-        if not (self.prefix_placeholder or self.file_mode):
-            return CondaVerificationError(dals("""
-            The package for %s located at %s
-            appears to be corrupted. For the file at path %s
-            a prefix_placeholder and file_mode must be specified. Instead got values
-            of '%s' and '%s'.
-            """ % (self.package_info.index_json_record.name,
-                   self.package_info.extracted_package_dir,
-                   self.source_short_path, self.prefix_placeholder, self.file_mode)))
-        if not isfile(self.source_full_path):
-            return CondaVerificationError(dals("""
-            The package for %s located at %s
-            appears to be corrupted. The path '%s'
-            specified in the package manifest is not a file.
-            """ % (self.package_info.index_json_record.name,
-                   self.package_info.extracted_package_dir,
-                   self.source_short_path)))
-        self._verified = True
+        validation_error = super(PrefixReplaceLinkAction, self).verify()
+        if validation_error:
+            return validation_error
 
-    def execute(self):
-        super(PrefixReplaceLinkAction, self).execute()
         if islink(self.source_full_path):
             log.trace("ignoring prefix update for symlink with source path %s",
                       self.source_full_path)
-            return
+            # return
+            assert False, "I don't think this is the right place to ignore this"
+
+        self.intermediate_path = join(self.transaction_context['temp_dir'], text_type(uuid4()))
+
+        log.trace("copying %s => %s", self.source_full_path, self.intermediate_path)
+        create_link(self.source_full_path, self.intermediate_path, LinkType.copy)
 
         try:
             log.trace("rewriting prefixes in %s", self.target_full_path)
-            update_prefix(self.target_full_path, self.target_prefix, self.prefix_placeholder,
+            update_prefix(self.intermediate_path, self.target_prefix, self.prefix_placeholder,
                           self.file_mode)
         except _PaddingError:
             raise PaddingError(self.target_full_path, self.prefix_placeholder,
                                len(self.prefix_placeholder))
+
+        sha256_in_prefix = compute_sha256sum(self.intermediate_path)
+
+        self.prefix_path_data = PathDataV1.from_objects(
+            self.prefix_path_data,
+            file_mode=self.file_mode,
+            path_type=PathType.hardlink,
+            prefix_placeholder=self.prefix_placeholder,
+            sha256_in_prefix=sha256_in_prefix,
+        )
+
+        self._verified = True
+
+    def execute(self):
+        if not self._verified:
+            self.verify()
+        source_path = self.intermediate_path or self.source_full_path
+        log.trace("linking %s => %s", source_path, self.target_full_path)
+        create_link(source_path, self.target_full_path, LinkType.hardlink)
+        self._execute_successful = True
 
 
 class MakeMenuAction(CreateInPrefixPathAction):
@@ -374,6 +539,10 @@ class CompilePycAction(CreateInPrefixPathAction):
         super(CompilePycAction, self).__init__(transaction_context, package_info,
                                                target_prefix, source_short_path,
                                                target_prefix, target_short_path)
+        self.prefix_path_data = PathDataV1(
+            _path=self.target_short_path,
+            path_type=PathType.pyc_file,
+        )
         self._execute_successful = False
 
     def execute(self):
@@ -430,18 +599,29 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                                                            target_prefix, target_short_path)
         self.module = module
         self.func = func
+
+        if on_win:
+            path_type = PathType.windows_python_entry_point_script
+        else:
+            path_type = PathType.unix_python_entry_point
+        self.prefix_path_data = PathDataV1(
+            _path=self.target_short_path,
+            path_type=path_type,
+        )
+
         self._execute_successful = False
 
     def execute(self):
         log.trace("creating python entry point %s", self.target_full_path)
         if on_win:
-            create_windows_python_entry_point(self.target_full_path, self.module, self.func)
+            python_full_path = None
         else:
             target_python_version = self.transaction_context['target_python_version']
             python_short_path = get_python_short_path(target_python_version)
             python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
-            create_unix_python_entry_point(self.target_full_path, python_full_path,
-                                           self.module, self.func)
+
+        create_python_entry_point(self.target_full_path, python_full_path,
+                                  self.module, self.func)
         self._execute_successful = True
 
     def reverse(self):
@@ -450,140 +630,345 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CreateApplicationEntryPointAction(CreateInPrefixPathAction):
+class CreateApplicationEntryPointWindowsExeAction(LinkPathAction):
 
     @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-        if target_prefix == package_info.repodata_record.preferred_env != context.root_prefix:
-            def package_executable_short_paths():
-                exe_paths = (package_info.package_metadata
-                             and package_info.package_metadata.preferred_env
-                             and package_info.package_metadata.preferred_env.executable_paths
-                             or ())
-                for axn in exe_paths:
-                    yield axn.target_short_path
-
-            private_env_prefix = preferred_env_to_prefix(
-                package_info.repodata_record.preferred_env,
-                context.root_prefix, context.envs_dirs
-            )
-            assert private_env_prefix == target_prefix, (private_env_prefix, target_prefix)
-
-            # target_prefix here is not the same as target_prefix for the larger transaction
-            return tuple(
-                cls(transaction_context, package_info, private_env_prefix, executable_short_path,
-                    context.root_prefix, executable_short_path)
-                for executable_short_path in package_executable_short_paths()
-            )
-        else:
-            return ()
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
+                       exe_path):
+        source_directory = context.conda_prefix
+        source_short_path = 'Scripts/conda.exe'
+        target_short_path = exe_path
+        return cls(transaction_context, package_info, source_directory,
+                   source_short_path, target_prefix, target_short_path, requested_link_type)
 
     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
-                 target_prefix, target_short_path):
-        super(CreateApplicationEntryPointAction, self).__init__(transaction_context, package_info,
-                                                                source_prefix, source_short_path,
-                                                                target_prefix, target_short_path)
-        self._execute_successful = False
+                 target_prefix, target_short_path, requested_link_type):
+        super(CreateApplicationEntryPointWindowsExeAction, self).__init__(
+            transaction_context, package_info, source_prefix, source_short_path,
+            target_prefix, target_short_path, requested_link_type,
+        )
+        self.leased_path_entry = LeasedPathEntry(
+            _path=target_short_path,
+            target_path=self.source_full_path,
+            target_prefix=source_prefix,
+            leased_path=self.target_full_path,
+            package_name=package_info.index_json_record.name,
+            leased_path_type=self.leased_path_type,
+        )
 
-    def execute(self):
-        log.trace("creating application entry point %s => %s",
-                  self.source_full_path, self.target_full_path)
-        if self.source_prefix == context.conda_prefix:
-            # this could blow up for the special case of application entry points in conda's
-            #   private environment
-            # in that case, probably should use the python version from transaction_context
-            conda_python_version = self.transaction_context['target_python_version']
-        else:
-            conda_python_version = get_python_version_for_prefix(context.conda_prefix)
-        conda_python_short_path = get_python_short_path(conda_python_version)
-        conda_python_full_path = join(context.conda_prefix, win_path_ok(conda_python_short_path))
-        create_private_pkg_entry_point(self.source_full_path, self.target_full_path,
-                                       conda_python_full_path)
-        self._execute_successful = True
-
-    def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing application entry point creation %s", self.target_full_path)
-            rm_rf(self.target_full_path)
+    @property
+    def leased_path_type(self):
+        return LeasedPathType.application_entry_point_windows_exe
 
 
-class CreateLinkedPackageRecordAction(CreateInPrefixPathAction):
+# class CreateApplicationEntryPointAction(CreateLeasedPathAction):
+#
+#     @classmethod
+#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):  # NOQA
+#         preferred_env = package_info.repodata_record.preferred_env
+#         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
+#             exe_paths = (package_info.package_metadata
+#                          and package_info.package_metadata.preferred_env
+#                          and package_info.package_metadata.preferred_env.executable_paths
+#                          or ())
+#
+#             # target_prefix for the instantiated path action is the root prefix, not the same
+#             #   as target_prefix for the larger transaction
+#             assert is_private_env_path(target_prefix)
+#             root_prefix = dirname(dirname(target_prefix))
+#
+#             if on_win:
+#                 def make_app_entry_point_axns(exe_path):
+#                     assert exe_path.endswith(('.exe', '.bat'))
+#                     target_short_path = exe_path[:-4] + "-script.py"
+#                     yield cls(transaction_context, package_info, target_prefix, exe_path,
+#                               root_prefix, target_short_path)
+#
+#                     yield CreateApplicationEntryPointWindowsExeAction.create_actions(
+#                         transaction_context, package_info, root_prefix,
+#                         LinkType.hardlink, exe_path[:-4] + ".exe"
+#                     )
+#                 return tuple(concat(make_app_entry_point_axns(executable_short_path)
+#                                     for executable_short_path in exe_paths))
+#
+#             else:
+#                 return tuple(
+#                     cls(transaction_context, package_info, target_prefix, executable_short_path,
+#                         root_prefix, executable_short_path)
+#                     for executable_short_path in exe_paths
+#                 )
+#         else:
+#             return ()
+#
+#     def execute(self):
+#         log.trace("creating application entry point %s => %s",
+#                   self.source_full_path, self.target_full_path)
+#         if self.source_prefix == context.conda_prefix:
+#             # this could blow up for the special case of application entry points in conda's
+#             #   private environment
+#             # in that case, probably should use the python version from transaction_context
+#             conda_python_version = self.transaction_context['target_python_version']
+#         else:
+#             conda_python_version = get_python_version_for_prefix(context.conda_prefix)
+#         conda_python_short_path = get_python_short_path(conda_python_version)
+#         conda_python_full_path = join(context.conda_prefix, win_path_ok(conda_python_short_path))
+#         create_application_entry_point(self.source_full_path, self.target_full_path,
+#                                        conda_python_full_path)
+#         self._execute_successful = True
+#
+#     @property
+#     def leased_path_type(self):
+#         return LeasedPathType.application_entry_point
+#
+#
+# class CreateApplicationSoftlinkAction(CreateLeasedPathAction):
+#
+#     @classmethod
+#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):  # NOQA
+#         preferred_env = package_info.repodata_record.preferred_env
+#         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
+#             softlink_paths = (package_info.package_metadata
+#                               and package_info.package_metadata.preferred_env
+#                               and package_info.package_metadata.preferred_env.softlink_paths
+#                               or ())
+#
+#             # target_prefix for the instantiated path action is the root prefix, not the same
+#             #   as target_prefix for the larger transaction
+#             assert is_private_env_path(target_prefix)
+#             root_prefix = dirname(dirname(target_prefix))
+#             softlink_supported_test_file = join(target_prefix, PREFIX_MAGIC_FILE)
+#
+#             def make_softlink_exe_axn(softlink_short_path):
+#                 if not on_win:  # pragma: win no cover
+#                     root_short_path = softlink_short_path
+#                     softlink_method = 'softlink'
+#                 else:  # pragma: unix no cover
+#                     windows_pathext = os.getenv('PATHEXT', '').lower().split(';')
+#                     path_root, path_ext = splitext(softlink_short_path)
+#
+#                     if softlink_supported(softlink_supported_test_file, root_prefix):
+#                         root_short_path = softlink_short_path
+#                         softlink_method = 'softlink'
+#                     elif path_ext.lower() in windows_pathext:
+#                         root_short_path = splitext(softlink_short_path)[0] + '.bat'
+#                         softlink_method = 'fake_exe_softlink'
+#                     else:
+#                         root_short_path = softlink_short_path
+#                         softlink_method = 'softlink_or_fail_ok'
+#
+#                 return cls(transaction_context, package_info, target_prefix, softlink_short_path,
+#                            root_prefix, root_short_path, softlink_method)
+#
+#             return tuple(make_softlink_exe_axn(softlink_short_path)
+#                          for softlink_short_path in softlink_paths)
+#
+#         else:
+#             return ()
+#
+#     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
+#                  target_prefix, target_short_path, softlink_method):
+#         super(CreateApplicationSoftlinkAction, self).__init__(transaction_context, package_info,
+#                                                               source_prefix, source_short_path,
+#                                                               target_prefix, target_short_path)
+#         self.softlink_method = softlink_method
+#
+#     def execute(self):
+#         log.trace("creating application softlink via %s %s => %s",
+#                   self.softlink_method, self.source_full_path, self.target_full_path)
+#         getattr(self, self.softlink_method)()
+#         self._execute_successful = True
+#
+#     def softlink(self):
+#         symlink(self.source_full_path, self.target_full_path)
+#         assert islink(self.target_full_path)
+#
+#     def fake_exe_softlink(self):  # pragma: unix no cover
+#         create_fake_executable_softlink(self.source_full_path, self.target_full_path)
+#
+#     def softlink_or_fail_ok(self):  # pragma: unix no cover
+#         try:
+#             symlink(self.source_full_path, self.target_full_path)
+#         except (IOError, OSError) as e:
+#             log.trace('%r', e)
+#
+#     @property
+#     def leased_path_type(self):
+#         return LeasedPathType.application_softlink
+
+
+class CreatePrefixRecordAction(CreateInPrefixPathAction):
     # this is the action that creates a packages json file in the conda-meta/ directory
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
-                       all_target_short_paths):
-        # 'all_target_short_paths' is especially significant here, because it is the record
-        #   of the paths that will be removed when the package is unlinked
+                       requested_spec, all_link_path_actions):
 
-        link = Link(source=package_info.extracted_package_dir, type=requested_link_type)
-        linked_package_record = IndexRecord.from_objects(package_info.repodata_record,
-                                                         package_info.index_json_record,
-                                                         files=all_target_short_paths,
-                                                         link=link,
-                                                         url=package_info.url)
-
-        target_short_path = 'conda-meta/' + Dist(package_info).to_filename('.json')
+        extracted_package_dir = package_info.extracted_package_dir
+        target_short_path = 'conda-meta/%s.json' % basename(extracted_package_dir)
         return cls(transaction_context, package_info, target_prefix, target_short_path,
-                   linked_package_record),
+                   requested_link_type, requested_spec, all_link_path_actions),
 
     def __init__(self, transaction_context, package_info, target_prefix, target_short_path,
-                 linked_package_record):
-        super(CreateLinkedPackageRecordAction, self).__init__(transaction_context, package_info,
-                                                              None, None, target_prefix,
-                                                              target_short_path)
-        self.linked_package_record = linked_package_record
-        self._linked_data_loaded = False
+                 requested_link_type, requested_spec, all_link_path_actions):
+        super(CreatePrefixRecordAction, self).__init__(transaction_context, package_info,
+                                                       None, None, target_prefix,
+                                                       target_short_path)
+        self.requested_link_type = requested_link_type
+        self.requested_spec = requested_spec
+        self.all_link_path_actions = all_link_path_actions
 
     def execute(self):
+        link = Link(
+            source=self.package_info.extracted_package_dir,
+            type=self.requested_link_type,
+        )
+        extracted_package_dir = self.package_info.extracted_package_dir
+        package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
+        # TODO: don't make above assumption; put package_tarball_full_path in package_info
+
+        files = (x.target_short_path for x in self.all_link_path_actions if x)
+
+        paths_data = PathsData(
+            paths_version=1,
+            paths=(x.prefix_path_data for x in self.all_link_path_actions
+                   if x and x.prefix_path_data),
+        )
+
+        self.prefix_record = PrefixRecord.from_objects(
+            self.package_info.repodata_record,
+            self.package_info.index_json_record,
+            self.package_info.package_metadata,
+            requested_spec=text_type(self.requested_spec),
+            paths_data=paths_data,
+            files=files,
+            link=link,
+            url=self.package_info.url,
+            extracted_package_dir=extracted_package_dir,
+            package_tarball_full_path=package_tarball_full_path,
+        )
+
         log.trace("creating linked package record %s", self.target_full_path)
-        write_linked_package_record(self.target_prefix, self.linked_package_record)
-        load_linked_data(self.target_prefix, Dist(self.package_info.repodata_record).dist_name,
-                         self.linked_package_record)
-        self._linked_data_loaded = True
+        PrefixData(self.target_prefix).insert(self.prefix_record)
 
     def reverse(self):
         log.trace("reversing linked package record creation %s", self.target_full_path)
-        if self._linked_data_loaded:
-            delete_linked_data(self.target_prefix, Dist(self.package_info.repodata_record),
-                               delete=False)
-        rm_rf(self.target_full_path)
+        # TODO: be careful about failure here, and being too strict
+        PrefixData(self.target_prefix).remove(self.package_info.index_json_record.name)
 
 
-class CreatePrivateEnvMetaAction(CreateInPrefixPathAction):
+class UpdateHistoryAction(CreateInPrefixPathAction):
 
     @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type):
-        if target_prefix == package_info.repodata_record.preferred_env != context.root_prefix:
-            return cls(transaction_context, package_info, target_prefix),
-        else:
-            return ()
+    def create_actions(cls, transaction_context, target_prefix, remove_specs, update_specs):
+        target_short_path = join('conda-meta', 'history')
+        return cls(transaction_context, target_prefix, target_short_path,
+                   remove_specs, update_specs),
 
-    def __init__(self, transaction_context, package_info, private_env_prefix):
-        # source is the private env (which is the target of the overall transaction)
-        # the target of this action is context.root_prefix/conda-meta/private_envs
-        source_prefix = private_env_prefix
-        target_short_path = 'conda-meta/private_envs'
-        self.private_env_prefix = private_env_prefix
-        super(CreatePrivateEnvMetaAction, self).__init__(transaction_context, package_info,
-                                                         source_prefix, None,
-                                                         context.root_prefix, target_short_path)
-        self._execute_successful = False
+    def __init__(self, transaction_context, target_prefix, target_short_path, remove_specs,
+                 update_specs):
+        super(UpdateHistoryAction, self).__init__(transaction_context, None, None, None,
+                                                  target_prefix, target_short_path)
+        self.remove_specs = remove_specs
+        self.update_specs = update_specs
+
+        self.hold_path = self.target_full_path + '.c~'
 
     def execute(self):
-        log.trace("creating private env entry for '%s' in %s",
-                  self.package_info.repodata_record.name, self.target_full_path)
-        # TODO: need to capture old env entry if it was there, so that it can be reversed
-        name = "%s-%s" % (self.package_info.repodata_record.name,
-                          self.package_info.repodata_record.version)
-        create_private_envs_meta(name, context.root_prefix, self.target_prefix)
+        log.trace("updating environment history %s", self.target_full_path)
+
+        if lexists(self.target_full_path):
+            copy(self.target_full_path, self.hold_path)
+
+        h = History(self.target_prefix)
+        h.update()
+        h.write_specs(self.remove_specs, self.update_specs)
+
+    def reverse(self):
+        if lexists(self.hold_path):
+            log.trace("moving %s => %s", self.hold_path, self.target_full_path)
+            backoff_rename(self.hold_path, self.target_full_path, force=True)
+
+    def cleanup(self):
+        rm_rf(self.hold_path)
+
+
+class RegisterEnvironmentLocationAction(EnvsDirectoryPathAction):
+
+    def __init__(self, transaction_context, target_prefix):
+        super(RegisterEnvironmentLocationAction, self).__init__(transaction_context, target_prefix)
+
+    def execute(self):
+        log.trace("registering environment in catalog %s", self.target_prefix)
+
+        # touches env prefix entry in catalog.json
+        from .envs_manager import EnvsDirectory
+        ed = EnvsDirectory(self.envs_dir_path)
+
+        self.envs_dir_state = ed._get_state()
+        ed.register_env(self.target_prefix)
+        ed.write_to_disk()
         self._execute_successful = True
 
     def reverse(self):
         if self._execute_successful:
-            log.trace("reversing private env entry for '%s' in %s",
-                      self.package_info.repodata_record.name, self.target_full_path)
-            remove_private_envs_meta(self.package_info.repodata_record.name)
+            log.trace("reversing environment registration in catalog for %s", self.target_prefix)
+            from .envs_manager import EnvsDirectory
+            ed = EnvsDirectory(self.envs_dir_path)
+            ed._set_state(self.envs_dir_state)
+            ed.write_to_disk()
+
+
+# class RegisterPrivateEnvAction(EnvsDirectoryPathAction):
+#
+#     @classmethod
+#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_spec,
+#                        leased_paths):
+#         preferred_env = package_info.repodata_record.preferred_env
+#         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
+#             return cls(transaction_context, package_info, context.root_prefix, preferred_env,
+#                        requested_spec, leased_paths),
+#         else:
+#             return ()
+#
+#     def __init__(self, transaction_context, package_info, root_prefix, env_name, requested_spec,
+#                  leased_paths):
+#         self.root_prefix = root_prefix
+#         self.env_name = ensure_pad(env_name)
+#         target_prefix = join(self.root_prefix, 'envs', self.env_name)
+#         super(RegisterPrivateEnvAction, self).__init__(transaction_context, target_prefix)
+#
+#         self.package_name = package_info.index_json_record.name
+#         self.requested_spec = requested_spec
+#         self.leased_paths = leased_paths
+#
+#         fn = basename(package_info.extracted_package_dir) + '.json'
+#         self.conda_meta_path = join(self.target_prefix, 'conda-meta', fn)
+#
+#     def execute(self):
+#         log.trace("registering private env for %s", self.target_prefix)
+#
+#         # touches env prefix entry in catalog.json
+#         # updates leased_paths
+#         from .envs_manager import EnvsDirectory
+#         ed = EnvsDirectory(self.envs_dir_path)
+#
+#         self.envs_dir_state = ed._get_state()
+#
+#         for leased_path_entry in self.leased_paths:
+#             ed.add_leased_path(leased_path_entry)
+#
+#         ed.add_preferred_env_package(self.env_name, self.package_name, self.conda_meta_path,
+#                                      self.requested_spec)
+#         ed.write_to_disk()
+#         self._execute_successful = True
+#
+#     def reverse(self):
+#         if self._execute_successful:
+#             log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)  # NOQA
+#             from .envs_manager import EnvsDirectory
+#             ed = EnvsDirectory(self.envs_dir_path)
+#             ed._set_state(self.envs_dir_state)
+#             ed.write_to_disk()
 
 
 # ######################################################
@@ -668,57 +1053,112 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
 
     def execute(self):
         super(RemoveLinkedPackageRecordAction, self).execute()
-        delete_linked_data(self.target_prefix, Dist(self.linked_package_data),
-                           delete=False)
+        PrefixData(self.target_prefix).remove(self.linked_package_data.name)
 
     def reverse(self):
         super(RemoveLinkedPackageRecordAction, self).reverse()
-        with open(self.target_full_path, 'r') as fh:
-            meta_record = IndexRecord(**json.loads(fh.read()))
-        log.trace("reloading cache entry %s", self.target_full_path)
-        load_linked_data(self.target_prefix,
-                         Dist(self.linked_package_data).dist_name,
-                         meta_record)
+        PrefixData(self.target_prefix)._load_single_record(self.target_full_path)
 
 
-class RemovePrivateEnvMetaAction(UnlinkPathAction):
-    def __init__(self, transaction_context, linked_package_data, target_prefix):
-        target_short_path = "conda-meta/private_envs"
-        super(RemovePrivateEnvMetaAction, self).__init__(transaction_context, linked_package_data,
-                                                         target_prefix, target_short_path)
+class UnregisterEnvironmentLocationAction(EnvsDirectoryPathAction):
 
     def execute(self):
-        log.trace("removing private env '%s' from %s", self.linked_package_data.name,
-                  self.target_full_path)
-        remove_private_envs_meta(self.linked_package_data.name)
+        log.trace("unregistering environment in catalog %s", self.target_prefix)
+
+        # touches env prefix entry in catalog.json
+        from .envs_manager import EnvsDirectory
+        ed = EnvsDirectory(self.envs_dir_path)
+
+        self.envs_dir_state = ed._get_state()
+        ed.unregister_env(self.target_prefix)
+        ed.write_to_disk()
+        self._execute_successful = True
 
     def reverse(self):
-        log.trace("adding back private env '%s' to %s", self.linked_package_data.name,
-                  self.target_full_path)
-        name = "%s-%s" % (self.package_info.repodata_record.name,
-                          self.package_info.repodata_record.version)
-        create_private_envs_meta(name, context.root_prefix, self.target_prefix)
+        if self._execute_successful:
+            log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)
+            from .envs_manager import EnvsDirectory
+            ed = EnvsDirectory(self.envs_dir_path)
+            ed._set_state(self.envs_dir_state)
+            ed.write_to_disk()
+
+
+# class UnregisterPrivateEnvAction(EnvsDirectoryPathAction):
+#
+#     @classmethod
+#     def create_actions(cls, transaction_context, linked_package_data, target_prefix):
+#         preferred_env = ensure_pad(linked_package_data.preferred_env)
+#         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
+#             package_name = linked_package_data.name
+#
+#             from .envs_manager import EnvsDirectory
+#             envs_directory_path = EnvsDirectory.get_envs_directory_for_prefix(target_prefix)
+#             ed = EnvsDirectory(envs_directory_path)
+#
+#             ed.get_leased_path_entries_for_package(package_name)
+#
+#             leased_path_entries = ed.get_leased_path_entries_for_package(package_name)
+#             leased_paths_to_remove = tuple(lpe._path for lpe in leased_path_entries)
+#             unlink_leased_path_actions = (UnlinkPathAction(transaction_context, None,
+#                                                            context.root_prefix, lp)
+#                                           for lp in leased_paths_to_remove)
+#
+#             unregister_private_env_actions = cls(transaction_context, context.root_prefix,
+#                                                  package_name),
+#
+#             return concatv(unlink_leased_path_actions, unregister_private_env_actions)
+#
+#         else:
+#             return ()
+#
+#     def __init__(self, transaction_context, root_prefix, package_name):
+#         super(UnregisterPrivateEnvAction, self).__init__(transaction_context, root_prefix)
+#         self.root_prefix = root_prefix
+#         self.package_name = package_name
+#
+#     def execute(self):
+#         log.trace("unregistering private env for %s", self.package_name)
+#
+#         from .envs_manager import EnvsDirectory
+#         ed = EnvsDirectory(self.envs_dir_path)
+#
+#         self.envs_dir_state = ed._get_state()
+#
+#         ed.remove_preferred_env_package(self.package_name)
+#
+#         ed.write_to_disk()
+#         self._execute_successful = True
+#
+#     def reverse(self):
+#         if self._execute_successful:
+#             log.trace("reversing environment unregistration in catalog for %s",
+#                       self.target_prefix)
+#             from .envs_manager import EnvsDirectory
+#             ed = EnvsDirectory(self.envs_dir_path)
+#             ed._set_state(self.envs_dir_state)
+#             ed.write_to_disk()
 
 
 # ######################################################
 #  Fetch / Extract Actions
 # ######################################################
 
-
 class CacheUrlAction(PathAction):
 
-    def __init__(self, url, target_pkgs_dir, target_package_basename, md5sum=None):
+    def __init__(self, url, target_pkgs_dir, target_package_basename,
+                 md5sum=None, expected_size_in_bytes=None):
         self.url = url
         self.target_pkgs_dir = target_pkgs_dir
         self.target_package_basename = target_package_basename
         self.md5sum = md5sum
+        self.expected_size_in_bytes = expected_size_in_bytes
         self.hold_path = self.target_full_path + '.c~'
 
     def verify(self):
         assert '::' not in self.url
         self._verified = True
 
-    def execute(self):
+    def execute(self, progress_update_callback=None):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the PackageCache class to CacheUrlAction __init__
         from .package_cache import PackageCache
@@ -746,9 +1186,9 @@ class CacheUrlAction(PathAction):
                 # the package is already in a cache, so it came from a remote url somewhere;
                 #   make sure that remote url is the most recent url in the
                 #   writable cache urls.txt
-                origin_url = source_package_cache.urls_data.get_url(self.target_package_basename)
-                if origin_url and Dist(origin_url).is_channel:
-                    target_package_cache.urls_data.add_url(origin_url)
+                origin_url = source_package_cache._urls_data.get_url(self.target_package_basename)
+                if origin_url and has_platform(origin_url, context.known_subdirs):
+                    target_package_cache._urls_data.add_url(origin_url)
             else:
                 # so our tarball source isn't a package cache, but that doesn't mean it's not
                 #   in another package cache somewhere
@@ -756,22 +1196,36 @@ class CacheUrlAction(PathAction):
                 #   record that url as the remote source url in urls.txt
                 # we do the search part of this operation before the create_link so that we
                 #   don't md5sum-match the file created by 'create_link'
+                # there is no point in looking for the tarball in the cache that we are writing
+                #   this file into because we have already removed the previous file if there was
+                #   any. This also makes sure that we ignore the md5sum of a possible extracted
+                #   directory that might exist in this cache because we are going to overwrite it
+                #   anyway when we extract the tarball.
                 source_md5sum = compute_md5sum(source_path)
-                pc_entry = PackageCache.tarball_file_in_cache(source_path, source_md5sum)
-                origin_url = pc_entry.get_urls_txt_value() if pc_entry else None
+                exclude_caches = self.target_pkgs_dir,
+                pc_entry = PackageCache.tarball_file_in_cache(source_path, source_md5sum,
+                                                              exclude_caches=exclude_caches)
+
+                if pc_entry:
+                    origin_url = target_package_cache._urls_data.get_url(
+                        pc_entry.extracted_package_dir
+                    )
+                else:
+                    origin_url = None
 
                 # copy the tarball to the writable cache
                 create_link(source_path, self.target_full_path, link_type=LinkType.copy,
                             force=context.force)
 
-                if origin_url and Dist(origin_url).is_channel:
-                    target_package_cache.urls_data.add_url(origin_url)
+                if origin_url and has_platform(origin_url, context.known_subdirs):
+                    target_package_cache._urls_data.add_url(origin_url)
                 else:
-                    target_package_cache.urls_data.add_url(self.url)
+                    target_package_cache._urls_data.add_url(self.url)
 
         else:
-            download(self.url, self.target_full_path, self.md5sum)
-            target_package_cache.urls_data.add_url(self.url)
+            download(self.url, self.target_full_path, self.md5sum,
+                     progress_update_callback=progress_update_callback)
+            target_package_cache._urls_data.add_url(self.url)
 
     def reverse(self):
         if lexists(self.hold_path):
@@ -791,19 +1245,22 @@ class CacheUrlAction(PathAction):
 
 class ExtractPackageAction(PathAction):
 
-    def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname):
+    def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname,
+                 record_or_spec, md5sum):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
         self.hold_path = self.target_full_path + '.c~'
+        self.record_or_spec = record_or_spec
+        self.md5sum = md5sum
 
     def verify(self):
         self._verified = True
 
-    def execute(self):
+    def execute(self, progress_update_callback=None):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
-        from .package_cache import PackageCache, PackageCacheEntry
+        from .package_cache import PackageCache
         log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
         if lexists(self.hold_path):
@@ -821,14 +1278,37 @@ class ExtractPackageAction(PathAction):
                     rm_rf(self.target_full_path)
                 else:
                     raise
-        extract_tarball(self.source_full_path, self.target_full_path)
+
+        extract_tarball(self.source_full_path, self.target_full_path,
+                        progress_update_callback=progress_update_callback)
+
+        index_json_record = read_index_json(self.target_full_path)
+
+        if isinstance(self.record_or_spec, MatchSpec):
+            url = self.record_or_spec.get_raw_value('url')
+            assert url
+            channel = Channel(url) if has_platform(url, context.known_subdirs) else Channel(None)
+            fn = basename(url)
+            md5 = self.md5sum or compute_md5sum(self.source_full_path)
+            repodata_record = PackageRecord.from_objects(index_json_record, url=url,
+                                                         channel=channel, fn=fn, md5=md5)
+        else:
+            repodata_record = PackageRecord.from_objects(self.record_or_spec, index_json_record)
+
+        repodata_record_path = join(self.target_full_path, 'info', 'repodata_record.json')
+        write_as_json_to_file(repodata_record_path, repodata_record)
 
         target_package_cache = PackageCache(self.target_pkgs_dir)
+        package_cache_record = PackageCacheRecord.from_objects(
+            repodata_record,
+            package_tarball_full_path=self.source_full_path,
+            extracted_package_dir=self.target_full_path,
+        )
+        target_package_cache.insert(package_cache_record)
 
-        recorded_url = target_package_cache.urls_data.get_url(self.source_full_path)
-        dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
-        package_cache_entry = PackageCacheEntry.make_legacy(self.target_pkgs_dir, dist)
-        target_package_cache[package_cache_entry.dist] = package_cache_entry
+        # dist = Dist(recorded_url) if recorded_url else Dist(path_to_url(self.source_full_path))
+        # package_cache_entry = PackageCacheRecord.make_legacy(self.target_pkgs_dir, dist)
+        # target_package_cache[package_cache_entry.dist] = package_cache_entry
 
     def reverse(self):
         rm_rf(self.target_full_path)

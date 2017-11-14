@@ -1,8 +1,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from ast import literal_eval
 import errno
-import json
 import logging
+from operator import itemgetter
 import os
 from os.path import isdir, isfile, join
 import re
@@ -11,10 +12,18 @@ import time
 import warnings
 
 from .base.constants import DEFAULTS_CHANNEL_NAME
-from .common.compat import ensure_text_type, open
-from .core.linked_data import linked
+from .common.compat import ensure_text_type, iteritems, open, text_type
+from .core.linked_data import PrefixData, linked
 from .exceptions import CondaFileIOError, CondaHistoryError
+from .gateways.disk.update import touch
 from .models.dist import Dist
+from .resolve import MatchSpec
+
+try:
+    from cytoolz.itertoolz import groupby
+except ImportError:  # pragma: no cover
+    from ._vendor.toolz.itertoolz import groupby  # NOQA
+
 
 log = logging.getLogger(__name__)
 
@@ -69,26 +78,23 @@ class History(object):
         self.path = join(self.meta_dir, 'history')
 
     def __enter__(self):
-        self.update('enter')
+        self.init_log_file()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.update('exit')
+        self.update()
 
-    def init_log_file(self, force=False):
-        if not force and isfile(self.path):
-            return
-        self.write_dists(linked(self.prefix))
+    def init_log_file(self):
+        touch(self.path, True)
 
     def file_is_empty(self):
         return os.stat(self.path).st_size == 0
 
-    def update(self, enter_or_exit=''):
+    def update(self):
         """
         update the history file (creating a new one if necessary)
         """
         try:
-            self.init_log_file()
             try:
                 last = set(self.get_state())
             except CondaHistoryError as e:
@@ -96,12 +102,6 @@ class History(object):
                               CondaHistoryWarning)
                 return
             curr = set(map(str, linked(self.prefix)))
-            if last == curr:
-                # print a head when a blank env is first created to preserve history
-                if enter_or_exit == 'exit' and self.file_is_empty():
-                    with open(self.path, 'a') as fo:
-                        write_head(fo)
-                return
             self.write_changes(last, curr)
         except IOError as e:
             if e.errno == errno.EACCES:
@@ -129,7 +129,7 @@ class History(object):
                 res.append((m.group(1), set(), []))
             elif line.startswith('#'):
                 res[-1][2].append(line)
-            else:
+            elif len(res) > 0:
                 res[-1][1].add(line)
         return res
 
@@ -144,7 +144,7 @@ class History(object):
         """
         res = []
         com_pat = re.compile(r'#\s*cmd:\s*(.+)')
-        spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)')
+        spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)?')
         for dt, unused_cont, comments in self.parse():
             item = {'date': dt}
             for line in comments:
@@ -158,10 +158,40 @@ class History(object):
                 if m:
                     action, specs = m.groups()
                     item['action'] = action
-                    item['specs'] = json.loads(specs.replace("'", '"'))
+                    specs = specs or ""
+                    if specs.startswith('['):
+                        specs = literal_eval(specs)
+                    elif '[' not in specs:
+                        specs = specs.split(',')
+                    specs = [spec for spec in specs if not spec.endswith('@')]
+                    if specs and action in ('update', 'install', 'create'):
+                        item['update_specs'] = item['specs'] = specs
+                    elif specs and action in ('remove', 'uninstall'):
+                        item['remove_specs'] = item['specs'] = specs
+
             if 'cmd' in item:
                 res.append(item)
+            dists = groupby(itemgetter(0), unused_cont)
+            item['unlink_dists'] = dists.get('-', ())
+            item['link_dists'] = dists.get('+', ())
         return res
+
+    def get_requested_specs_map(self):
+        # keys are package names and values are specs
+        spec_map = {}
+        for request in self.get_user_requests():
+            remove_specs = (MatchSpec(spec) for spec in request.get('remove_specs', ()))
+            for spec in remove_specs:
+                spec_map.pop(spec.name, None)
+            update_specs = (MatchSpec(spec) for spec in request.get('update_specs', ()))
+            spec_map.update(((s.name, s) for s in update_specs))
+
+        # Conda hasn't always been good about recording when specs have been removed from
+        # environments.  If the package isn't installed in the current environment, then we
+        # shouldn't try to force it here.
+        prefix_recs = tuple(PrefixData(self.prefix).iter_records())
+        return dict((name, spec) for name, spec in iteritems(spec_map)
+                    if any(spec.match(dist) for dist in prefix_recs))
 
     def construct_states(self):
         """
@@ -250,16 +280,9 @@ class History(object):
             result.append(event)
         return result
 
-    def write_dists(self, dists):
+    def write_changes(self, last_state, current_state):
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
-        with open(self.path, 'w') as fo:
-            if dists:
-                write_head(fo)
-                for dist in sorted(dists):
-                    fo.write('%s\n' % dist)
-
-    def write_changes(self, last_state, current_state):
         with open(self.path, 'a') as fo:
             write_head(fo)
             for fn in sorted(last_state - current_state):
@@ -267,9 +290,20 @@ class History(object):
             for fn in sorted(current_state - last_state):
                 fo.write('+%s\n' % fn)
 
+    def write_specs(self, remove_specs=(), update_specs=()):
+        remove_specs = [text_type(MatchSpec(s)) for s in remove_specs]
+        update_specs = [text_type(MatchSpec(s)) for s in update_specs]
+        if update_specs or remove_specs:
+            with open(self.path, 'a') as fh:
+                if remove_specs:
+                    fh.write("# remove specs: %s\n" % remove_specs)
+                if update_specs:
+                    fh.write("# update specs: %s\n" % update_specs)
+
 
 if __name__ == '__main__':
     from pprint import pprint
     # Don't use in context manager mode---it augments the history every time
     h = History(sys.prefix)
     pprint(h.get_user_requests())
+    print(h.get_requested_specs())

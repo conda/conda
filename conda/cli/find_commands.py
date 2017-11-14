@@ -6,8 +6,8 @@ import re
 import sys
 import sysconfig
 
+from .._vendor.auxlib.decorators import memoize
 from ..common.compat import on_win
-from ..utils import memoized
 
 
 def find_executable(executable, include_others=True):
@@ -42,7 +42,7 @@ def find_executable(executable, include_others=True):
     return None
 
 
-@memoized
+@memoize
 def find_commands(include_others=True):
 
     if include_others:
@@ -73,4 +73,4 @@ def find_commands(include_others=True):
             m = pat.match(fn)
             if m:
                 res.add(m.group(1))
-    return sorted(res)
+    return tuple(sorted(res))

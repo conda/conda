@@ -6,10 +6,12 @@ import sys
 import textwrap
 
 from conda.cli import common, install as cli_install
+from conda.gateways.disk.delete import rm_rf, delete_trash
+from conda._vendor.auxlib.path import expand
+from conda.cli import install as cli_install
+from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
 from conda.gateways.disk.delete import rm_rf
 from conda.misc import touch_nonadmin
-from conda.plan import is_root_prefix
-
 from .common import get_prefix
 from .. import exceptions, specs
 from ..installers.base import InvalidInstaller, get_installer
@@ -45,7 +47,7 @@ def configure_parser(sub_parsers):
     )
 
     # Add name and prefix args
-    common.add_parser_prefix(p)
+    add_parser_prefix(p)
 
     p.add_argument(
         '-q', '--quiet',
@@ -66,15 +68,16 @@ def configure_parser(sub_parsers):
         action='store_true',
         default=False,
     )
-    common.add_parser_json(p)
+    add_parser_json(p)
     p.set_defaults(func=execute)
 
 
 def execute(args, parser):
+    from conda.base.context import context
     name = args.remote_definition or args.name
 
     try:
-        spec = specs.detect(name=name, filename=args.file,
+        spec = specs.detect(name=name, filename=expand(args.file),
                             directory=os.getcwd())
         env = spec.environment
 
@@ -88,7 +91,7 @@ def execute(args, parser):
 
     prefix = get_prefix(args, search=False)
 
-    if args.force and not is_root_prefix(prefix) and os.path.exists(prefix):
+    if args.force and prefix != context.root_prefix and os.path.exists(prefix):
         rm_rf(prefix)
     cli_install.check_prefix(prefix, json=args.json)
 
@@ -96,11 +99,10 @@ def execute(args, parser):
     # common.ensure_override_channels_requires_channel(args)
     # channel_urls = args.channel or ()
 
-    # special case for empty environment
-    if not env.dependencies:
-        from conda.install import symlink_conda
-        from conda.base.context import context
-        symlink_conda(prefix, context.root_dir)
+    # # special case for empty environment
+    # if not env.dependencies:
+    #     from conda.install import symlink_conda
+    #     symlink_conda(prefix, context.root_dir)
 
     for installer_type, pkg_specs in env.dependencies.items():
         try:
@@ -119,5 +121,7 @@ def execute(args, parser):
             return -1
 
     touch_nonadmin(prefix)
+    delete_trash()
     if not args.json:
         print(cli_install.print_activate(args.name if args.name else prefix))
+    cli_install.print_activate(args.name if args.name else prefix)

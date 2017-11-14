@@ -4,8 +4,7 @@ import collections
 import operator
 from functools import partial
 from random import Random
-from .compatibility import (map, filterfalse, zip, zip_longest, iteritems,
-                            filter)
+from .compatibility import map, filterfalse, zip, zip_longest, iteritems, filter
 from .utils import no_default
 
 
@@ -113,59 +112,108 @@ def merge_sorted(*seqs, **kwargs):
     >>> list(merge_sorted([2, 3], [1, 3], key=lambda x: x // 3))
     [2, 1, 3, 3]
     """
+    if len(seqs) == 0:
+        return iter([])
+    elif len(seqs) == 1:
+        return iter(seqs[0])
+
     key = kwargs.get('key', None)
     if key is None:
-        # heapq.merge does what we do below except by val instead of key(val)
-        return heapq.merge(*seqs)
+        return _merge_sorted_binary(seqs)
     else:
-        return _merge_sorted_key(seqs, key)
+        return _merge_sorted_binary_key(seqs, key)
 
 
-def _merge_sorted_key(seqs, key):
-    # The commented code below shows an alternative (slower) implementation
-    # to apply a key function for sorting.
-    #
-    # mapper = lambda i, item: (key(item), i, item)
-    # keyiters = [map(partial(mapper, i), itr) for i, itr in
-    #             enumerate(seqs)]
-    # return (item for (item_key, i, item) in heapq.merge(*keyiters))
+def _merge_sorted_binary(seqs):
+    mid = len(seqs) // 2
+    L1 = seqs[:mid]
+    if len(L1) == 1:
+        seq1 = iter(L1[0])
+    else:
+        seq1 = _merge_sorted_binary(L1)
+    L2 = seqs[mid:]
+    if len(L2) == 1:
+        seq2 = iter(L2[0])
+    else:
+        seq2 = _merge_sorted_binary(L2)
 
-    # binary heap as a priority queue
-    pq = []
+    try:
+        val2 = next(seq2)
+    except StopIteration:
+        for val1 in seq1:
+            yield val1
+        return
 
-    # Initial population
-    for itnum, it in enumerate(map(iter, seqs)):
-        try:
-            item = next(it)
-            pq.append([key(item), itnum, item, it])
-        except StopIteration:
-            pass
-    heapq.heapify(pq)
-
-    # Repeatedly yield and then repopulate from the same iterator
-    heapreplace = heapq.heapreplace
-    heappop = heapq.heappop
-    while len(pq) > 1:
-        try:
-            while True:
-                # raises IndexError when pq is empty
-                _, itnum, item, it = s = pq[0]
-                yield item
-                item = next(it)  # raises StopIteration when exhausted
-                s[0] = key(item)
-                s[2] = item
-                heapreplace(pq, s)  # restore heap condition
-        except StopIteration:
-            heappop(pq)  # remove empty iterator
-    if pq:
-        # Much faster when only a single iterable remains
-        _, itnum, item, it = pq[0]
-        yield item
-        for item in it:
-            yield item
+    for val1 in seq1:
+        if val2 < val1:
+            yield val2
+            for val2 in seq2:
+                if val2 < val1:
+                    yield val2
+                else:
+                    yield val1
+                    break
+            else:
+                break
+        else:
+            yield val1
+    else:
+        yield val2
+        for val2 in seq2:
+            yield val2
+        return
+    yield val1
+    for val1 in seq1:
+        yield val1
 
 
-def interleave(seqs, pass_exceptions=()):
+def _merge_sorted_binary_key(seqs, key):
+    mid = len(seqs) // 2
+    L1 = seqs[:mid]
+    if len(L1) == 1:
+        seq1 = iter(L1[0])
+    else:
+        seq1 = _merge_sorted_binary_key(L1, key)
+    L2 = seqs[mid:]
+    if len(L2) == 1:
+        seq2 = iter(L2[0])
+    else:
+        seq2 = _merge_sorted_binary_key(L2, key)
+
+    try:
+        val2 = next(seq2)
+    except StopIteration:
+        for val1 in seq1:
+            yield val1
+        return
+    key2 = key(val2)
+
+    for val1 in seq1:
+        key1 = key(val1)
+        if key2 < key1:
+            yield val2
+            for val2 in seq2:
+                key2 = key(val2)
+                if key2 < key1:
+                    yield val2
+                else:
+                    yield val1
+                    break
+            else:
+                break
+        else:
+            yield val1
+    else:
+        yield val2
+        for val2 in seq2:
+            yield val2
+        return
+    yield val1
+    for val1 in seq1:
+        yield val1
+
+
+def interleave(seqs):
     """ Interleave a sequence of sequences
 
     >>> list(interleave([[1, 2], [3, 4]]))
@@ -178,16 +226,15 @@ def interleave(seqs, pass_exceptions=()):
 
     Returns a lazy iterator
     """
-    iters = map(iter, seqs)
-    while iters:
-        newiters = []
-        for itr in iters:
-            try:
+    iters = itertools.cycle(map(iter, seqs))
+    while True:
+        try:
+            for itr in iters:
                 yield next(itr)
-                newiters.append(itr)
-            except (StopIteration,) + tuple(pass_exceptions):
-                pass
-        iters = newiters
+            return
+        except StopIteration:
+            predicate = partial(operator.is_not, itr)
+            iters = itertools.cycle(itertools.takewhile(predicate, iters))
 
 
 def unique(seq, key=None):
@@ -423,7 +470,7 @@ def concat(seqs):
     An infinite sequence will prevent the rest of the arguments from
     being included.
 
-    We use chain.from_iterable rather than chain(*seqs) so that seqs
+    We use chain.from_iterable rather than ``chain(*seqs)`` so that seqs
     can be a generator.
 
     >>> list(concat([[], [1], [2, 3]]))
@@ -463,9 +510,7 @@ def cons(el, seq):
     >>> list(cons(1, [2, 3]))
     [1, 2, 3]
     """
-    yield el
-    for s in seq:
-        yield s
+    return itertools.chain([el], seq)
 
 
 def interpose(el, seq):
@@ -617,16 +662,8 @@ def sliding_window(n, seq):
     >>> list(map(mean, sliding_window(2, [1, 2, 3, 4])))
     [1.5, 2.5, 3.5]
     """
-    it = iter(seq)
-    # An efficient FIFO data structure with maximum length
-    d = collections.deque(itertools.islice(it, n), n)
-    if len(d) != n:
-        raise StopIteration()
-    d_append = d.append
-    for item in it:
-        yield tuple(d)
-        d_append(item)
-    yield tuple(d)
+    return zip(*(collections.deque(itertools.islice(it, i), 0) or it
+               for i, it in enumerate(itertools.tee(seq, n))))
 
 
 no_pad = '__no__pad__'
@@ -673,7 +710,10 @@ def partition_all(n, seq):
     """
     args = [iter(seq)] * n
     it = zip_longest(*args, fillvalue=no_pad)
-    prev = next(it)
+    try:
+        prev = next(it)
+    except StopIteration:
+        return
     for item in it:
         yield prev
         prev = item
@@ -706,8 +746,7 @@ def pluck(ind, seqs, default=no_default):
 
     This is equivalent to running `map(curried.get(ind), seqs)`
 
-    ``ind`` can be either a single string/index or a sequence of
-    strings/indices.
+    ``ind`` can be either a single string/index or a list of strings/indices.
     ``seqs`` should be sequence containing sequences or dicts.
 
     e.g.

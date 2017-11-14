@@ -17,7 +17,3 @@ Modules prohibited from importing ``conda.base`` are:
 
 All other ``conda`` modules may import from ``conda.base``.
 """
-from __future__ import absolute_import, division, print_function
-from logging import getLogger
-
-log = getLogger(__name__)

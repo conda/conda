@@ -6,10 +6,10 @@ from itertools import chain
 from logging import getLogger
 from os import X_OK, access, chmod, lstat, walk
 from os.path import isdir, isfile, join
-from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISLNK, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
+from stat import S_IEXEC, S_IMODE, S_ISDIR, S_ISREG, S_IWRITE, S_IXGRP, S_IXOTH, S_IXUSR
 
 from . import MAX_TRIES, exp_backoff_fn
-from .link import lchmod
+from .link import islink, lchmod
 from ...common.compat import on_win
 
 log = getLogger(__name__)
@@ -20,10 +20,10 @@ def make_writable(path):
         mode = lstat(path).st_mode
         if S_ISDIR(mode):
             chmod(path, S_IMODE(mode) | S_IWRITE | S_IEXEC)
+        elif islink(path):
+            lchmod(path, S_IMODE(mode) | S_IWRITE)
         elif S_ISREG(mode):
             chmod(path, S_IMODE(mode) | S_IWRITE)
-        elif S_ISLNK(mode):
-            lchmod(path, S_IMODE(mode) | S_IWRITE)
         else:
             log.debug("path cannot be made writable: %s", path)
         return True

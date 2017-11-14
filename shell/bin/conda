@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+# WARNING: Not a real conda entry point.  Do not use other than for tests.
+from os.path import abspath, join
+import sys
+
+_conda_root = abspath(join(__file__, '..', '..', '..'))
+
+if __name__ == '__main__':
+    sys.path.insert(0, _conda_root)
+    from conda.cli import main
+    sys.exit(main())

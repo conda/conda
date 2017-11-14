@@ -1,103 +1,23 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import Hashable
-from functools import partial
 import logging
-import os
 from os.path import dirname
 import re
-import subprocess
 import sys
-import threading
 
+from ._vendor.auxlib.decorators import memoize
 from .common.compat import on_win
+from .common.path import win_path_to_unix
 from .common.url import path_to_url
-from .gateways.disk.read import compute_md5sum
 
 log = logging.getLogger(__name__)
 
-
-class memoized(object):
-    """Decorator. Caches a function's return value each time it is called.
-    If called later with the same arguments, the cached value is returned
-    (not reevaluated).
-    """
-    def __init__(self, func):
-        self.func = func
-        self.cache = {}
-        self.lock = threading.Lock()
-
-    def __call__(self, *args, **kw):
-        newargs = []
-        for arg in args:
-            if isinstance(arg, list):
-                newargs.append(tuple(arg))
-            elif not isinstance(arg, Hashable):
-                # uncacheable. a list, for instance.
-                # better to not cache than blow up.
-                return self.func(*args, **kw)
-            else:
-                newargs.append(arg)
-        newargs = tuple(newargs)
-        key = (newargs, frozenset(sorted(kw.items())))
-        with self.lock:
-            if key in self.cache:
-                return self.cache[key]
-            else:
-                value = self.func(*args, **kw)
-                self.cache[key] = value
-                return value
-
-
-# For instance methods only
-class memoize(object):  # 577452
-    def __init__(self, func):
-        self.func = func
-
-    def __get__(self, obj, objtype=None):
-        if obj is None:
-            return self.func
-        return partial(self, obj)
-
-    def __call__(self, *args, **kw):
-        obj = args[0]
-        try:
-            cache = obj.__cache
-        except AttributeError:
-            cache = obj.__cache = {}
-        key = (self.func, args[1:], frozenset(sorted(kw.items())))
-        try:
-            res = cache[key]
-        except KeyError:
-            res = cache[key] = self.func(*args, **kw)
-        return res
+# in conda/exports.py
+memoized = memoize
 
 
 def path_identity(path):
     """Used as a dummy path converter where no conversion necessary"""
-    return path
-
-
-def win_path_to_unix(path, root_prefix=""):
-    # If the user wishes to drive conda from MSYS2 itself while also having
-    # msys2 packages in their environment this allows the path conversion to
-    # happen relative to the actual shell. The onus is on the user to set
-    # CYGPATH to e.g. /usr/bin/cygpath.exe (this will be translated to e.g.
-    # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
-    cygpath = os.environ.get('CYGPATH', 'cygpath.exe')
-    if not path:
-        return ''
-    try:
-        path = subprocess.check_output([cygpath, '-up', path]).decode('ascii').split('\n')[0]
-    except Exception as e:
-        log.debug('%r' % e, exc_info=True)
-        # Convert a path or ;-separated string of paths into a unix representation
-        # Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-        def _translation(found_path):  # NOQA
-            found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
-            return root_prefix + "/" + found
-        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
-        path = re.sub(path_re, _translation, path).replace(";/", ":/")
     return path
 
 
@@ -138,6 +58,16 @@ def translate_stream(stream, translator):
 def human_bytes(n):
     """
     Return the number of bytes n in more human readable form.
+
+    Examples:
+        >>> human_bytes(42)
+        '42 B'
+        >>> human_bytes(1042)
+        '1 KB'
+        >>> human_bytes(10004242)
+        '9.5 MB'
+        >>> human_bytes(100000004242)
+        '93.13 GB'
     """
     if n < 1024:
         return '%d B' % n
@@ -166,7 +96,7 @@ unix_shell_base = dict(
                        pathsep=":",
                        printdefaultenv='echo $CONDA_DEFAULT_ENV',
                        printpath="echo $PATH",
-                       printps1='echo $PS1',
+                       printps1='echo $CONDA_PROMPT_MODIFIER',
                        promptvar='PS1',
                        sep="/",
                        set_var='export ',
@@ -182,7 +112,8 @@ msys2_shell_base = dict(
                         unix_shell_base,
                         path_from=unix_path_to_win,
                         path_to=win_path_to_unix,
-                        binpath="/Scripts/",  # mind the trailing slash.
+                        binpath="/bin/",  # mind the trailing slash.
+                        printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
 )
 
 if on_win:
@@ -261,24 +192,35 @@ else:
     shells = {
         "bash": dict(
             unix_shell_base, exe="bash",
-                    ),
+        ),
+        "dash": dict(
+            unix_shell_base, exe="dash",
+            source_setup=".",
+        ),
         "zsh": dict(
             unix_shell_base, exe="zsh",
-                   ),
+        ),
         "fish": dict(
             unix_shell_base, exe="fish",
             pathsep=" ",
-                    ),
+        ),
     }
 
+
+# ##########################################
 # put back because of conda build
+# ##########################################
+
 urlpath = url_path = path_to_url
-md5_file = compute_md5sum
-
-import hashlib  # NOQA
 
 
-def hashsum_file(path, mode='md5'):
+def md5_file(path):  # pragma: no cover
+    from .gateways.disk.read import compute_md5sum
+    return compute_md5sum(path)
+
+
+def hashsum_file(path, mode='md5'):  # pragma: no cover
+    import hashlib
     h = hashlib.new(mode)
     with open(path, 'rb') as fi:
         while True:
@@ -289,7 +231,7 @@ def hashsum_file(path, mode='md5'):
     return h.hexdigest()
 
 
-@memoized
+@memoize
 def sys_prefix_unfollowed():
     """Since conda is installed into non-root environments as a symlink only
     and because sys.prefix follows symlinks, this function can be used to

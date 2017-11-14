@@ -1,7 +1,11 @@
 from __future__ import absolute_import, print_function
-from argparse import RawDescriptionHelpFormatter, Namespace
 
-from conda.cli import common
+from argparse import Namespace, RawDescriptionHelpFormatter
+
+from os.path import isdir
+
+from conda.cli.conda_argparse import (add_parser_json, add_parser_prefix, add_parser_quiet,
+                                      add_parser_yes)
 
 _help = "Remove an environment"
 _description = _help + """
@@ -28,10 +32,10 @@ def configure_parser(sub_parsers):
         epilog=_example,
     )
 
-    common.add_parser_prefix(p)
-    common.add_parser_json(p)
-    common.add_parser_quiet(p)
-    common.add_parser_yes(p)
+    add_parser_prefix(p)
+    add_parser_json(p)
+    add_parser_quiet(p)
+    add_parser_yes(p)
 
     p.set_defaults(func=execute)
 
@@ -43,4 +47,13 @@ def execute(args, parser):
         'all': True, 'channel': None, 'features': None,
         'override_channels': None, 'use_local': None, 'use_cache': None,
         'offline': None, 'force': None, 'pinned': None})
-    conda.cli.main_remove.execute(Namespace(**args), parser)
+    args = Namespace(**args)
+    from conda.base.constants import SEARCH_PATH
+    from conda.base.context import context
+    context.__init__(SEARCH_PATH, 'conda', args)
+
+    if not isdir(context.target_prefix):
+        from conda.exceptions import EnvironmentLocationNotFound
+        raise EnvironmentLocationNotFound(context.target_prefix)
+
+    conda.cli.main_remove.execute(args, parser)

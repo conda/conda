@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
-from conda.cli import common
-from conda import plan
-from conda.exceptions import LockError, CondaSystemExit, CondaHTTPError
-from conda.api import get_index
-from conda.common.compat import text_type
-from conda.models.channel import prioritize_channels
+from os.path import basename
+
+from conda._vendor.boltons.setutils import IndexedSet
+from conda.base.context import context
+from conda.core.solve import Solver
+from conda.models.channel import Channel, prioritize_channels
 
 
-def install(prefix, specs, args, env, prune=False):
+def install(prefix, specs, args, env, *_, **kwargs):
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
     new_specs = []
@@ -24,21 +24,17 @@ def install(prefix, specs, args, env, prune=False):
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
     channel_urls = channel_urls + [chan for chan in env.channels if chan != 'nodefaults']
-    index = get_index(channel_urls=channel_urls,
-                      prepend='nodefaults' not in env.channels,
-                      prefix=prefix)
+    if 'nodefaults' not in env.channels:
+        channel_urls.extend(context.channels)
     _channel_priority_map = prioritize_channels(channel_urls)
-    action_set = plan.install_actions_list(prefix, index, specs, prune=prune,
-                                           channel_priority_map=_channel_priority_map)
 
-    with common.json_progress_bars(json=args.json and not args.quiet):
-        for actions in action_set:
-            try:
-                plan.execute_actions(actions, index, verbose=not args.quiet)
-            except RuntimeError as e:
-                if len(e.args) > 0 and "LOCKERROR" in e.args[0]:
-                    raise LockError('Already locked: %s' % text_type(e))
-                else:
-                    raise CondaHTTPError('CondaHTTPError: %s' % e)
-            except SystemExit as e:
-                raise CondaSystemExit('Exiting', e)
+    channel_names = IndexedSet(Channel(url).canonical_name for url in _channel_priority_map)
+    channels = IndexedSet(Channel(cn) for cn in channel_names)
+    subdirs = IndexedSet(basename(url) for url in _channel_priority_map)
+
+    solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
+    unlink_link_transaction = solver.solve_for_transaction(prune=getattr(args, 'prune', False))
+
+    pfe = unlink_link_transaction.get_pfe()
+    pfe.execute()
+    unlink_link_transaction.execute()
