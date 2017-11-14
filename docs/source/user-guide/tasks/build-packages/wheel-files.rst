@@ -2,9 +2,9 @@
 Using wheel files with conda
 ============================
 
-Users sometimes have software in a
-`Python wheel file <https://pythonwheels.com/>`_ and wish to use it with conda
-or install it in a conda environment. There are three ways to do this.
+If you have software in a `Python wheel file <https://pythonwheels.com/>`_ and
+want to use it with conda or install it in a conda environment, there are three
+ways.
 
 The best way is to obtain the source code for the software and build a conda
 package from the source and not from a wheel. This helps ensure that the new
@@ -17,7 +17,7 @@ Building a conda package from the wheel file also has the advantage that any
 clobbering is more likely to happen at build time and not runtime.
 
 The third way is to use pip to install a wheel file into a conda environment.
-Some conda users do use this option safely. The first two ways are still the
+Some conda users have used this option safely. The first two ways are still the
 safest and most reliable.
 
 
@@ -43,3 +43,8 @@ possible, install dependencies with conda and not pip.
 
 We strongly recommend using the ``--no-deps`` option in the ``pip install``
 command.
+
+If you run ``pip install`` without the ``--no-deps`` option, pip will often
+install dependencies in your conda recipe and those dependencies will become
+part of your package. This wastes space in the package and increases the
+risk of file overlap, file clobbering, and broken packages.
