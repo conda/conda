@@ -6,7 +6,7 @@ import sys
 import textwrap
 
 from conda.cli import common, install as cli_install
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf, delete_trash
 from conda.misc import touch_nonadmin
 from conda.plan import is_root_prefix
 
@@ -119,5 +119,6 @@ def execute(args, parser):
             return -1
 
     touch_nonadmin(prefix)
+    delete_trash()
     if not args.json:
         print(cli_install.print_activate(args.name if args.name else prefix))
