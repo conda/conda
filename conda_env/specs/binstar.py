@@ -1,12 +1,14 @@
 import re
-from conda.resolve import normalized_version
+
+from conda.models.version import normalized_version
 from .. import env
 from ..exceptions import EnvironmentFileNotDownloaded
+
 try:
     from binstar_client import errors
-    from binstar_client.utils import get_binstar
+    from binstar_client.utils import get_server_api
 except ImportError:
-    get_binstar = None
+    get_server_api = None
 
 ENVIRONMENT_TYPE = 'env'
 # TODO: isolate binstar related code into conda_env.utils.binstar
@@ -31,12 +33,20 @@ class BinstarSpec(object):
     def __init__(self, name=None, **kwargs):
         self.name = name
         self.quiet = False
-        if get_binstar is not None:
-            self.binstar = get_binstar()
+        if get_server_api is not None:
+            self.binstar = get_server_api()
         else:
             self.binstar = None
 
     def can_handle(self):
+        result = self._can_handle()
+        if result:
+            print("WARNING: Binstar environments are deprecated and scheduled to be "
+                  "removed in conda 4.5. See conda issue #5843 at "
+                  "https://github.com/conda/conda/pull/5843 for more information.")
+        return result
+
+    def _can_handle(self):
         """
         Validates loader can process environment definition.
         :return: True or False

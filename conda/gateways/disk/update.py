@@ -3,11 +3,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os import rename as os_rename, utime
-from os.path import dirname, isdir, lexists
+from os.path import dirname, isdir
 import re
 
-from . import exp_backoff_fn
+from . import exp_backoff_fn, mkdir_p
 from .delete import rm_rf
+from .link import lexists
 from ...common.path import expand
 
 log = getLogger(__name__)
@@ -53,7 +54,7 @@ def backoff_rename(source_path, destination_path, force=False):
     exp_backoff_fn(rename, source_path, destination_path, force)
 
 
-def touch(path):
+def touch(path, mkdir=False):
     # returns
     #   True if the file did not exist but was created
     #   False if the file already existed
@@ -64,7 +65,11 @@ def touch(path):
         utime(path, None)
         return True
     else:
-        assert isdir(dirname(path))
+        dirpath = dirname(path)
+        if not isdir(dirpath) and mkdir:
+            mkdir_p(dirpath)
+        else:
+            assert isdir(dirname(path))
         try:
             fh = open(path, 'a')
         except:

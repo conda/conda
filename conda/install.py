@@ -1,6 +1,3 @@
-# (c) 2012-2014 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 """ This module contains:
@@ -38,7 +35,6 @@ from .core.package_cache import rm_fetched  # NOQA
 rm_fetched = rm_fetched
 
 log = logging.getLogger(__name__)
-stdoutlog = logging.getLogger('stdoutlog')
 
 # backwards compatibility for conda-build
 prefix_placeholder = PREFIX_PLACEHOLDER
@@ -50,7 +46,7 @@ def package_cache():
     return package_cache()
 
 
-if on_win:
+if on_win:  # pragma: no cover
     def win_conda_bat_redirect(src, dst, shell):
         """Special function for Windows XP where the `CreateSymbolicLink`
         function is not available.
@@ -97,7 +93,7 @@ if on_win:
 
 
 # Should this be an API function?
-def symlink_conda(prefix, root_dir, shell=None):
+def symlink_conda(prefix, root_dir, shell=None):  # pragma: no cover
     # do not symlink root env - this clobbers activate incorrectly.
     # prefix should always be longer than, or outside the root dir.
     if normcase(normpath(prefix)) in normcase(normpath(root_dir)):
@@ -113,7 +109,7 @@ def symlink_conda(prefix, root_dir, shell=None):
     symlink_conda_hlp(prefix, root_dir, where, symlink_fn)
 
 
-def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):
+def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
     scripts = ["conda", "activate", "deactivate"]
     prefix_where = join(prefix, where)
     if not isdir(prefix_where):

@@ -36,6 +36,8 @@ class TestImportAllConda(unittest.TestCase):
                 continue
             elif fname.startswith('windows') and not on_win:
                 continue
+            elif fname == 'distro.py':
+                continue
             # Import
             modname = module_prefix + '.' + fname.split('.')[0]
             print('importing', modname)

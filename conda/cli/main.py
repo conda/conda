@@ -1,6 +1,3 @@
-# (c) Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 """conda is a tool for managing environments and packages.
@@ -34,110 +31,53 @@ Additional help for each command can be accessed by using:
 
     conda <command> -h
 """
-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import importlib
 import sys
-from argparse import SUPPRESS
-from logging import CRITICAL, DEBUG, getLogger
 
-from .. import __version__
-
-log = getLogger(__name__)
+PARSER = None
 
 
 def generate_parser():
-    from ..cli import conda_argparse
-    p = conda_argparse.ArgumentParser(
-        description='conda is a tool for managing and deploying applications,'
-                    ' environments and packages.',
-    )
-    p.add_argument(
-        '-V', '--version',
-        action='version',
-        version='conda %s' % __version__,
-        help="Show the conda version number and exit."
-    )
-    p.add_argument(
-        "--debug",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        "--json",
-        action="store_true",
-        help=SUPPRESS,
-    )
-    sub_parsers = p.add_subparsers(
-        metavar='command',
-        dest='cmd',
-    )
-    # http://bugs.python.org/issue9253
-    # http://stackoverflow.com/a/18283730/1599393
-    sub_parsers.required = True
-
-    return p, sub_parsers
+    # Generally using `global` is an anti-pattern.  But it's the lightest-weight way to memoize
+    # or do a singleton.  I'd normally use the `@memoize` decorator here, but I don't want
+    # to copy in the code or take the import hit.
+    global PARSER
+    if PARSER is not None:
+        return PARSER
+    from .conda_argparse import generate_parser
+    PARSER = generate_parser()
+    return PARSER
 
 
 def init_loggers(context=None):
-    from ..console import setup_verbose_handlers
-    setup_verbose_handlers()
-
-    from ..gateways.logging import initialize_logging, set_all_logger_level, set_verbosity
+    from logging import CRITICAL, getLogger
+    from ..gateways.logging import initialize_logging, set_verbosity
     initialize_logging()
     if context and context.json:
         # Silence logging info to avoid interfering with JSON output
-        for logger in ('print', 'dotupdate', 'stdoutlog', 'stderrlog'):
+        for logger in ('conda.stdout.verbose', 'conda.stdoutlog', 'conda.stderrlog'):
             getLogger(logger).setLevel(CRITICAL + 1)
 
-    if context and context.debug:
-        set_all_logger_level(DEBUG)
-    elif context and context.verbosity:
+    if context and context.verbosity:
         set_verbosity(context.verbosity)
-        log.debug("verbosity set to %s", context.verbosity)
 
 
 def _main(*args):
+    from .conda_argparse import do_call
     from ..base.constants import SEARCH_PATH
     from ..base.context import context
 
     if len(args) == 1:
         args = args + ('-h',)
 
-    p, sub_parsers = generate_parser()
-
-    main_modules = ["info", "help", "list", "search", "create", "install", "update",
-                    "remove", "config", "clean", "package"]
-    modules = ["conda.cli.main_"+suffix for suffix in main_modules]
-    for module in modules:
-        imported = importlib.import_module(module)
-        imported.configure_parser(sub_parsers)
-        if "update" in module:
-            imported.configure_parser(sub_parsers, name='upgrade')
-        if "remove" in module:
-            imported.configure_parser(sub_parsers, name='uninstall')
-
-    from .find_commands import find_commands
-
-    def completer(prefix, **kwargs):
-        return [i for i in list(sub_parsers.choices) + find_commands()
-                if i.startswith(prefix)]
-
-    # when using sys.argv, first argument is generally conda or __main__.py.  Ignore it.
-    if (any(sname in args[0] for sname in ('conda', 'conda.exe', '__main__.py', 'conda-script.py'))
-        and (args[1] in list(sub_parsers.choices.keys()) + find_commands()
-             or args[1].startswith('-'))):
-        log.debug("Ignoring first argument (%s), as it is not a subcommand", args[0])
-        args = args[1:]
-
-    sub_parsers.completer = completer
-    args = p.parse_args(args)
+    p = generate_parser()
+    args = p.parse_args(args[1:])
 
     context.__init__(SEARCH_PATH, 'conda', args)
     init_loggers(context)
 
-    exit_code = args.func(args, p)
+    exit_code = do_call(args, p)
     if isinstance(exit_code, int):
         return exit_code
 
@@ -151,7 +91,10 @@ def _ensure_text_type(value):
         # In this case assume already text_type and do nothing
         return value
     except UnicodeDecodeError:
-        from requests.packages.chardet import detect
+        try:
+            from requests.packages.chardet import detect
+        except ImportError:  # pragma: no cover
+            from pip._vendor.requests.packages.chardet import detect
         encoding = detect(value).get('encoding') or 'utf-8'
         return value.decode(encoding)
 
@@ -162,11 +105,13 @@ def main(*args):
 
     args = tuple(_ensure_text_type(s) for s in args)
 
-    log.debug("conda.cli.main called with %s", args)
     if len(args) > 1:
         try:
             argv1 = args[1].strip()
-            if argv1.startswith('..'):
+            if argv1.startswith('shell.'):
+                from ..activate import main as activator_main
+                return activator_main()
+            elif argv1.startswith('..'):
                 import conda.cli.activate as activate
                 activate.main()
                 return
@@ -183,4 +128,4 @@ def main(*args):
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

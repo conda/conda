@@ -4,7 +4,7 @@ import operator
 from operator import attrgetter
 from textwrap import dedent
 
-from .compatibility import PY3, PY33, PY34, PYPY
+from .compatibility import PY3, PY33, PY34, PYPY, import_module
 from .utils import no_default
 
 
@@ -169,7 +169,7 @@ class curry(object):
 
     See Also:
         toolz.curried - namespace of curried functions
-                        http://toolz.readthedocs.org/en/latest/curry.html
+                        https://toolz.readthedocs.io/en/latest/curry.html
     """
     def __init__(self, *args, **kwargs):
         if not args:
@@ -200,6 +200,8 @@ class curry(object):
 
         self.__doc__ = getattr(func, '__doc__', None)
         self.__name__ = getattr(func, '__name__', '<curry>')
+        self.__module__ = getattr(func, '__module__', None)
+        self.__qualname__ = getattr(func, '__qualname__', None)
         self._sigspec = None
         self._has_unknown_args = None
 
@@ -321,17 +323,49 @@ class curry(object):
             return self
         return curry(self, instance)
 
-    # pickle protocol because functools.partial objects can't be pickled
-    def __getstate__(self):
-        # dictoolz.keyfilter, I miss you!
-        userdict = tuple((k, v) for k, v in self.__dict__.items()
-                         if k != '_partial')
-        return self.func, self.args, self.keywords, userdict
+    def __reduce__(self):
+        func = self.func
+        modname = getattr(func, '__module__', None)
+        qualname = getattr(func, '__qualname__', None)
+        if qualname is None:  # pragma: py3 no cover
+            qualname = getattr(func, '__name__', None)
+        is_decorated = None
+        if modname and qualname:
+            attrs = []
+            obj = import_module(modname)
+            for attr in qualname.split('.'):
+                if isinstance(obj, curry):  # pragma: py2 no cover
+                    attrs.append('func')
+                    obj = obj.func
+                obj = getattr(obj, attr, None)
+                if obj is None:
+                    break
+                attrs.append(attr)
+            if isinstance(obj, curry) and obj.func is func:
+                is_decorated = obj is self
+                qualname = '.'.join(attrs)
+                func = '%s:%s' % (modname, qualname)
 
-    def __setstate__(self, state):
-        func, args, kwargs, userdict = state
-        self.__init__(func, *args, **(kwargs or {}))
-        self.__dict__.update(userdict)
+        # functools.partial objects can't be pickled
+        userdict = tuple((k, v) for k, v in self.__dict__.items()
+                         if k not in ('_partial', '_sigspec'))
+        state = (type(self), func, self.args, self.keywords, userdict,
+                 is_decorated)
+        return (_restore_curry, state)
+
+
+def _restore_curry(cls, func, args, kwargs, userdict, is_decorated):
+    if isinstance(func, str):
+        modname, qualname = func.rsplit(':', 1)
+        obj = import_module(modname)
+        for attr in qualname.split('.'):
+            obj = getattr(obj, attr)
+        if is_decorated:
+            return obj
+        func = obj.func
+    obj = cls(func, *args, **(kwargs or {}))
+    obj.__dict__.update(userdict)
+    return obj
 
 
 @curry
@@ -601,13 +635,13 @@ def flip(func, a, b):
     This function is curried.
 
     >>> def div(a, b):
-    ...     return a / b
+    ...     return a // b
     ...
-    >>> flip(div, 2, 1)
-    0.5
+    >>> flip(div, 2, 6)
+    3
     >>> div_by_two = flip(div, 2)
     >>> div_by_two(4)
-    2.0
+    2
 
     This is particularly useful for built in functions and functions defined
     in C extensions that accept positional only arguments. For example:

@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function
 from collections import Hashable
 from types import GeneratorType
 
-from .compat import wraps
+from ._vendor.six import wraps
 
 # TODO: spend time filling out functionality and make these more robust
 

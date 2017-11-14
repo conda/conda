@@ -2,9 +2,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import reduce
+from logging import getLogger
 import os
-from os.path import basename, dirname, join, split, splitext, expandvars, expanduser, abspath
+from os.path import (abspath, basename, dirname, expanduser, expandvars, join, normpath, split,
+                     splitext)
 import re
+import subprocess
 
 from .compat import on_win, string_types
 from .. import CondaError
@@ -14,16 +17,17 @@ try:
     # Python 3
     from urllib.parse import unquote, urlsplit
     from urllib.request import url2pathname
-except ImportError:
+except ImportError:  # pragma: no cover
     # Python 2
     from urllib import unquote, url2pathname  # NOQA
     from urlparse import urlsplit  # NOQA
 
 try:
     from cytoolz.itertoolz import accumulate, concat, take
-except ImportError:
+except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import accumulate, concat, take
 
+log = getLogger(__name__)
 
 PATH_MATCH_REGEX = (
     r"\./"              # ./
@@ -40,6 +44,20 @@ def is_path(value):
     if '://' in value:
         return False
     return re.match(PATH_MATCH_REGEX, value)
+
+
+def expand(path):
+    return abspath(expanduser(expandvars(path)))
+
+
+def paths_equal(path1, path2):
+    """
+    Examples:
+        >>> paths_equal('/a/b/c', '/a/b/c/d/..')
+        True
+
+    """
+    return normpath(abspath(path1)) == normpath(abspath(path2))
 
 
 @memoize
@@ -186,40 +204,34 @@ def win_path_backout(path):
 
 
 def ensure_pad(name, pad="_"):
-    return "%s%s%s" % (pad, name.strip(pad), pad)
-
-
-def preferred_env_to_prefix(preferred_env, root_dir, envs_dirs):
-    if preferred_env is None:
-        return root_dir
-    else:
-        return '/'.join((envs_dirs[0], ensure_pad(preferred_env, '_')))
-
-
-def prefix_to_env_name(prefix, root_prefix):
-    if prefix == root_prefix:
-        return None
-    split_env = win_path_backout(prefix).split("/")
-    return split_env[-1]
+    return name and "%s%s%s" % (pad, name.strip(pad), pad)
 
 
 def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
     # type: (str, str, str) -> bool
     if preferred_env is None:
-        return True
+        return False
+
+    # check if prefix is within root_prefix/envs
     prefix_dir = dirname(prefix)
     if prefix_dir != join(root_dir, 'envs'):
         return False
+
     prefix_name = basename(prefix)
     padded_preferred_env = ensure_pad(preferred_env)
     return prefix_name == padded_preferred_env
 
 
-def is_private_env(env):
-    if env is not None:
-        env_name = basename(env)
-        if env_name.startswith("_") and env_name.endswith("_"):
-            return True
+def is_private_env_name(env_name):
+    return env_name and env_name[0] == env_name[-1] == "_"
+
+
+def is_private_env_path(env_path):
+    if env_path is not None:
+        envs_directory, env_name = split(env_path)
+        if basename(envs_directory) != "envs":
+            return False
+        return is_private_env_name(env_name)
     return False
 
 
@@ -243,5 +255,24 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
         return source_short_path
 
 
-def expand(path):
-    return abspath(expanduser(expandvars(path)))
+def win_path_to_unix(path, root_prefix=""):
+    # If the user wishes to drive conda from MSYS2 itself while also having
+    # msys2 packages in their environment this allows the path conversion to
+    # happen relative to the actual shell. The onus is on the user to set
+    # CYGPATH to e.g. /usr/bin/cygpath.exe (this will be translated to e.g.
+    # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
+    if not path:
+        return ''
+    cygpath = os.environ.get('CYGPATH', 'cygpath.exe')
+    try:
+        path = subprocess.check_output([cygpath, '-up', path]).decode('ascii').split('\n')[0]
+    except Exception as e:
+        log.debug('%r' % e, exc_info=True)
+        # Convert a path or ;-separated string of paths into a unix representation
+        # Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
+        def _translation(found_path):  # NOQA
+            found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
+            return root_prefix + "/" + found
+        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
+        path = re.sub(path_re, _translation, path).replace(";/", ":/")
+    return path

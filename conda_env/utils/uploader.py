@@ -3,10 +3,10 @@ import time
 from collections import namedtuple
 from .. import exceptions
 try:
-    from binstar_client.utils import get_binstar
+    from binstar_client.utils import get_server_api
     from binstar_client import errors
 except ImportError:
-    get_binstar = None
+    get_server_api = None
 
 
 ENVIRONMENT_TYPE = 'env'
@@ -20,7 +20,7 @@ def is_installed():
     is Binstar-cli installed?
     :return: True/False
     """
-    return get_binstar is not None
+    return get_server_api is not None
 
 
 class Uploader(object):
@@ -56,7 +56,7 @@ class Uploader(object):
     @property
     def binstar(self):
         if self._binstar is None:
-            self._binstar = get_binstar()
+            self._binstar = get_server_api()
         return self._binstar
 
     @property

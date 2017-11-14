@@ -75,23 +75,20 @@ from re import compile
 from shlex import split
 from subprocess import CalledProcessError, Popen, PIPE
 from fnmatch import fnmatchcase
+from distutils.command.build_py import build_py
+from distutils.command.sdist import sdist
 from distutils.util import convert_path
 
 try:
-    from setuptools.command.build_py import build_py
-    from setuptools.command.sdist import sdist
     from setuptools.command.test import test as TestCommand
 except ImportError:
-    from distutils.command.build_py import build_py
-    from distutils.command.sdist import sdist
-
     TestCommand = object
 
 log = getLogger(__name__)
 
 Response = namedtuple('Response', ['stdout', 'stderr', 'rc'])
 GIT_DESCRIBE_REGEX = compile(r"(?:[_-a-zA-Z]*)"
-                             r"(?P<version>\d+\.\d+\.\d+)"
+                             r"(?P<version>[a-zA-Z0-9.]+)"
                              r"(?:-(?P<post>\d+)-g(?P<hash>[0-9a-f]{7,}))$")
 
 
@@ -258,3 +255,10 @@ def find_packages(where='.', exclude=()):
     for pat in list(exclude) + ['ez_setup', 'distribute_setup']:
         out = [item for item in out if not fnmatchcase(item, pat)]
     return out
+
+
+if __name__ == "__main__":
+    # rewrite __init__.py in target_dir
+    target_dir = abspath(sys.argv[1])
+    version = get_version(join(target_dir, "__init__.py"))
+    write_version_into_init(target_dir, version)

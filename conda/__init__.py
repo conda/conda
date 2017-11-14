@@ -1,6 +1,3 @@
-# (c) 2012-2016 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 """OS-agnostic, system-level binary package manager."""
@@ -35,6 +32,8 @@ CONDA_PACKAGE_ROOT = dirname(__file__)
 
 
 class CondaError(Exception):
+    return_code = 1
+
     def __init__(self, message, caused_by=None, **kwargs):
         self.message = message
         self._kwargs = kwargs
@@ -94,7 +93,7 @@ class CondaMultiError(CondaError):
 
 
 class CondaExitZero(CondaError):
-    pass
+    return_code = 0
 
 
 ACTIVE_SUBPROCESSES = set()

@@ -4,7 +4,8 @@ from argparse import RawDescriptionHelpFormatter
 import os
 import textwrap
 
-from conda.cli.common import add_parser_json, add_parser_prefix
+from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
+
 # conda env import
 from .common import get_prefix
 from ..env import from_environment

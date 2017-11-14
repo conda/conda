@@ -2,26 +2,26 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-
-from conda.base.constants import PathConflict
-from conda.common.path import win_path_backout
+from os.path import join
 from tempfile import gettempdir
+from unittest import TestCase
 
 import pytest
+
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concat
+from conda.base.constants import PathConflict
 from conda.base.context import context, reset_context
 from conda.common.compat import odict
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var
+from conda.common.path import expand, win_path_backout
 from conda.common.url import join_url, path_to_url
-from conda.common.yaml import yaml_load
+from conda.common.serialize import yaml_load
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.models.channel import Channel
 from conda.utils import on_win
-from os.path import basename, dirname, join
-from unittest import TestCase
 
 
 class ContextCustomRcTests(TestCase):
@@ -174,8 +174,6 @@ class ContextCustomRcTests(TestCase):
 
     def test_conda_build_root_dir(self):
         assert context.conda_build['root-dir'] == "/some/test/path"
-        from conda.config import rc
-        assert rc.get('conda-build')['root-dir'] == "/some/test/path"
 
     def test_clobber_enum(self):
         with env_var("CONDA_PATH_CONFLICT", 'prevent', reset_context):
@@ -187,6 +185,17 @@ class ContextCustomRcTests(TestCase):
         for name in paramter_names:
             pprint(context.describe_parameter(name))
 
+    def test_local_build_root_custom_rc(self):
+        assert context.local_build_root == "C:\\some\\test\\path" if on_win else "/some/test/path"
+
+        test_path_1 = join(os.getcwd(), 'test_path_1')
+        with env_var("CONDA_CROOT", test_path_1, reset_context):
+            assert context.local_build_root == test_path_1
+
+        test_path_2 = join(os.getcwd(), 'test_path_2')
+        with env_var("CONDA_BLD_PATH", test_path_2, reset_context):
+            assert context.local_build_root == test_path_2
+
 
 class ContextDefaultRcTests(TestCase):
 
@@ -196,3 +205,9 @@ class ContextDefaultRcTests(TestCase):
         subdirs = ('linux-highest', 'linux-64', 'noarch')
         with env_var('CONDA_SUBDIRS', ','.join(subdirs), reset_context):
             assert context.subdirs == subdirs
+
+    def test_local_build_root_default_rc(self):
+        if context.root_writable:
+            assert context.local_build_root == join(context.root_prefix, 'conda-bld')
+        else:
+            assert context.local_build_root == expand('~/conda-bld')

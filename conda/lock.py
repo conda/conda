@@ -1,6 +1,3 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 
@@ -37,8 +34,8 @@ If you are sure that conda is not running, remove it and try again.
 You can also use: $ conda clean --lock
 """
 
-stdoutlog = logging.getLogger('stdoutlog')
 log = logging.getLogger(__name__)
+stdoutlog = logging.getLogger('conda.stdoutlog')
 
 def touch(file_name, times=None):
     """ Touch function like touch in Unix shell
