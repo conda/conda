@@ -142,15 +142,29 @@ channels, see :doc:`manage-channels`.
 Installing non-conda packages
 =============================
 
-If a package is not available from conda or Anaconda.org,
-you may be able to find and install the package with another
-package manager like pip.
+If a package is not available from conda or Anaconda.org, you may be able to
+find and install the package with another package manager like pip.
 
-NOTE: Both pip and conda are included in Anaconda and Miniconda,
-so you do not need to install them separately.
+NOTE: Both pip and conda are included in Anaconda and Miniconda, so you do not
+need to install them separately.
 
-NOTE: Conda environments replace virtualenv, so there is no need
-to activate a virtualenv before using pip.
+NOTE: Conda environments replace virtualenv, so there is no need to activate a
+virtualenv before using pip.
+
+It is possible to have pip installed outside a conda environment or inside a
+conda environment.
+
+To gain the benefits of conda integration, be sure to install pip inside the
+currently active conda environment, and then install packages with that
+instance of pip. The command ``conda list`` shows packages installed this way,
+with a label showing that they were installed with pip.
+
+You can install pip in the current conda environment with the command
+``conda install pip``, as discussed in :ref:`pip-in-env`.
+
+If there are instances of pip installed both inside and outside the current
+conda environment, the instance of pip installed inside the current conda
+environment is used.
 
 To install a non-conda package:
 
@@ -170,6 +184,9 @@ To install a non-conda package:
    .. code::
 
       conda list
+
+   If the package is not shown, install pip as described in :ref:`pip-in-env`
+   and try these commands again.
 
 
 Installing commercial packages
