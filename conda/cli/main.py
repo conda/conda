@@ -71,20 +71,6 @@ def _main(*args):
     p = generate_parser()
     args = p.parse_args(args[1:])
 
-    func_name = args.func.rsplit('.', 1)[-1]
-    if func_name in ('create', 'install', 'update', 'remove', 'uninstall', 'upgrade'):
-        if args.prefix:
-            os.environ['CONDA_PREFIX'] = args.prefix
-        elif args.name:
-            # Currently, usage of the '-n' flag is inefficient, with all configuration files
-            # being loaded/re-loaded at least three times.
-            from ..base.context import locate_prefix_by_name
-            from ..exceptions import EnvironmentNameNotFound
-            try:
-                os.environ['CONDA_PREFIX'] = locate_prefix_by_name(args.name)
-            except EnvironmentNameNotFound:
-                pass  # It's ok here for the prefix to not yet exist. No logger yet configured.
-
     from ..base.context import context
     context.__init__(argparse_args=args)
     init_loggers(context)

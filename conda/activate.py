@@ -8,7 +8,7 @@ import re
 import sys
 from tempfile import NamedTemporaryFile
 
-from .base.context import ROOT_ENV_NAME, context
+from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 
 try:
     from cytoolz.itertoolz import concatv, drop
@@ -204,8 +204,7 @@ class Activator(object):
         elif env_name_or_prefix in (ROOT_ENV_NAME, 'root'):
             prefix = context.root_prefix
         else:
-            from .core.envs_manager import EnvsDirectory
-            prefix = EnvsDirectory.locate_prefix_by_name(env_name_or_prefix)
+            prefix = locate_prefix_by_name(env_name_or_prefix)
         prefix = normpath(prefix)
 
         # query environment

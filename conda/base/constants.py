@@ -120,5 +120,5 @@ class PathConflict(Enum):
 
 # Magic files for permissions determination
 PACKAGE_CACHE_MAGIC_FILE = 'urls.txt'
-ENVS_DIR_MAGIC_FILE = 'catalog.json'
+ENVS_DIR_MAGIC_FILE = 'environments.txt'
 PREFIX_MAGIC_FILE = join('conda-meta', 'history')

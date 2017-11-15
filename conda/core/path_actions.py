@@ -900,22 +900,12 @@ class RegisterEnvironmentLocationAction(EnvsDirectoryPathAction):
     def execute(self):
         log.trace("registering environment in catalog %s", self.target_prefix)
 
-        # touches env prefix entry in catalog.json
         from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.envs_dir_path)
-
-        self.envs_dir_state = ed._get_state()
-        ed.register_env(self.target_prefix)
-        ed.write_to_disk()
+        EnvsDirectory(self.envs_dir_path).register_env(self.target_prefix)
         self._execute_successful = True
 
     def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing environment registration in catalog for %s", self.target_prefix)
-            from .envs_manager import EnvsDirectory
-            ed = EnvsDirectory(self.envs_dir_path)
-            ed._set_state(self.envs_dir_state)
-            ed.write_to_disk()
+        pass
 
 
 # class RegisterPrivateEnvAction(EnvsDirectoryPathAction):
@@ -1065,22 +1055,19 @@ class UnregisterEnvironmentLocationAction(EnvsDirectoryPathAction):
     def execute(self):
         log.trace("unregistering environment in catalog %s", self.target_prefix)
 
-        # touches env prefix entry in catalog.json
         from .envs_manager import EnvsDirectory
         ed = EnvsDirectory(self.envs_dir_path)
-
-        self.envs_dir_state = ed._get_state()
         ed.unregister_env(self.target_prefix)
-        ed.write_to_disk()
         self._execute_successful = True
 
     def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)
-            from .envs_manager import EnvsDirectory
-            ed = EnvsDirectory(self.envs_dir_path)
-            ed._set_state(self.envs_dir_state)
-            ed.write_to_disk()
+        pass
+        # if self._execute_successful:
+        #     log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)
+        #     from .envs_manager import EnvsDirectory
+        #     ed = EnvsDirectory(self.envs_dir_path)
+        #     ed._set_state(self.envs_dir_state)
+        #     ed.write_to_disk()
 
 
 # class UnregisterPrivateEnvAction(EnvsDirectoryPathAction):

@@ -190,6 +190,22 @@ class Context(Configuration):
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:
             search_path = SEARCH_PATH
+
+        if argparse_args:
+            # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
+            # configuration can be properly loaded from those locations
+
+            func_name = ('func' in argparse_args and argparse_args.func or '').rsplit('.', 1)[-1]
+            if func_name in ('create', 'install', 'update', 'remove', 'uninstall', 'upgrade'):
+                if 'prefix' in argparse_args and argparse_args.prefix:
+                    os.environ['CONDA_PREFIX'] = argparse_args.prefix
+                elif 'name' in argparse_args and argparse_args.name:
+                    # Currently, usage of the '-n' flag is inefficient, with all configuration
+                    # files being loaded/re-loaded at least three times.
+                    target_prefix = determine_target_prefix(context, argparse_args)
+                    if target_prefix != context.root_prefix:
+                        os.environ['CONDA_PREFIX'] = determine_target_prefix(context, argparse_args)
+
         super(Context, self).__init__(search_path=search_path, app_name=APP_NAME,
                                       argparse_args=argparse_args)
 
@@ -428,7 +444,6 @@ class Context(Configuration):
     def target_prefix(self):
         # used for the prefix that is the target of the command currently being executed
         # different from the active prefix, which is sometimes given by -p or -n command line flags
-        from ..core.envs_manager import determine_target_prefix
         return determine_target_prefix(self)
 
     @memoizedproperty
@@ -883,7 +898,7 @@ def locate_prefix_by_name(name, envs_dirs=None):
         return context.root_prefix
     if envs_dirs is None:
         envs_dirs = context.envs_dirs
-    for envs_dir in concatv(envs_dirs, (os.getcwd(),)):
+    for envs_dir in envs_dirs:
         if not isdir(envs_dir):
             continue
         prefix = join(envs_dir, name)
@@ -894,14 +909,54 @@ def locate_prefix_by_name(name, envs_dirs=None):
     raise EnvironmentNameNotFound(name)
 
 
+def determine_target_prefix(ctx, args=None):
+    """Get the prefix to operate in.  The prefix may not yet exist.
+
+    Args:
+        ctx: the context of conda
+        args: the argparse args from the command line
+
+    Returns: the prefix
+    Raises: CondaEnvironmentNotFoundError if the prefix is invalid
+    """
+
+    argparse_args = args or ctx._argparse_args
+    try:
+        prefix_name = argparse_args.name
+    except AttributeError:
+        prefix_name = None
+    try:
+        prefix_path = argparse_args.prefix
+    except AttributeError:
+        prefix_path = None
+
+    if prefix_name is None and prefix_path is None:
+        return ctx.default_prefix
+    elif prefix_path is not None:
+        return expand(prefix_path)
+    else:
+        if '/' in prefix_name:
+            from ..exceptions import CondaValueError
+            raise CondaValueError("'/' not allowed in environment name: %s" %
+                                  prefix_name)
+        if prefix_name in (ROOT_ENV_NAME, 'root'):
+            return ctx.root_prefix
+        else:
+            from ..exceptions import EnvironmentNameNotFound
+            try:
+                return locate_prefix_by_name(prefix_name)
+            except EnvironmentNameNotFound:
+                from ..core.envs_manager import EnvsDirectory
+                return join(EnvsDirectory.first_writable().envs_dir, prefix_name)
+
+
 # backward compatibility for conda-build
 def get_prefix(ctx, args, search=True):
-    from ..core.envs_manager import determine_target_prefix
     return determine_target_prefix(ctx or context, args)
 
 
 try:
-    context = Context(SEARCH_PATH, None)
+    context = Context((), None)
 except LoadError as e:  # pragma: no cover
     print(e, file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit
