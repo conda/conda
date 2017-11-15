@@ -335,8 +335,8 @@ class Context(Configuration):
     def root_writable(self):
         # rather than using conda.gateways.disk.test.prefix_is_writable
         # let's shortcut and assume the root prefix exists
-        path = self.root_prefix
-        if isfile(join(path, PREFIX_MAGIC_FILE)):
+        path = join(self.root_prefix, PREFIX_MAGIC_FILE)
+        if isfile(path):
             try:
                 fh = open(path, 'a+')
             except (IOError, OSError) as e:

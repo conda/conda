@@ -157,7 +157,6 @@ class EnvsDirectory(object):
         self._clean_environments_txt(location)
 
     def _clean_environments_txt(self, remove_location=None):
-        assert self.is_writable
         environments_txt_lines = list(yield_lines(self.catalog_file))
 
         try:
@@ -169,15 +168,16 @@ class EnvsDirectory(object):
             pass
 
         real_prefixes = tuple(p for p in environments_txt_lines if self.is_conda_environment(p))
-        with open(self.catalog_file, 'w') as fh:
-            fh.write('\n'.join(real_prefixes))
+        if self.is_writable:
+            with open(self.catalog_file, 'w') as fh:
+                fh.write('\n'.join(real_prefixes))
+        return real_prefixes
 
     def list_envs(self):
-        self._clean_environments_txt()
         for path in listdir(self.envs_dir):
             if self.is_conda_environment(join(self.envs_dir, path)):
                 yield path
-        for path in yield_lines(self.catalog_file):
+        for path in self._clean_environments_txt():
             yield path
         if self.is_conda_environment(self.root_dir):
             yield self.root_dir
