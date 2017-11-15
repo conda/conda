@@ -14,11 +14,6 @@ from ..gateways.disk.create import create_envs_directory
 from ..gateways.disk.read import yield_lines
 from ..gateways.disk.test import file_path_is_writable
 
-try:
-    from cytoolz.itertoolz import concatv
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concatv
-
 log = getLogger(__name__)
 
 
@@ -159,20 +154,39 @@ class EnvsDirectory(object):
                     #   then don't unregister
                     return
 
-        location = normpath(location)
+        self._clean_environments_txt(location)
+
+    def _clean_environments_txt(self, remove_location=None):
+        assert self.is_writable
         environments_txt_lines = list(yield_lines(self.catalog_file))
 
         try:
+            location = normpath(remove_location or '')
             idx = environments_txt_lines.index(location)
+            del environments_txt_lines[idx]
         except ValueError:
-            # location wasn't recorded; so there's nothing to do
-            return
+            # remove_location was not in list.  No problem, just move on.
+            pass
 
-        assert self.is_writable
-        del environments_txt_lines[idx]
-
-        # while we're writing the file back to disk, we'll also take the opportunity to ensure
-        # the paths we're writing are actually conda environments
         real_prefixes = tuple(p for p in environments_txt_lines if self.is_conda_environment(p))
         with open(self.catalog_file, 'w') as fh:
             fh.write('\n'.join(real_prefixes))
+
+    def list_envs(self):
+        self._clean_environments_txt()
+        for path in listdir(self.envs_dir):
+            if self.is_conda_environment(join(self.envs_dir, path)):
+                yield path
+        for path in yield_lines(self.catalog_file):
+            yield path
+        if self.is_conda_environment(self.root_dir):
+            yield self.root_dir
+
+    @classmethod
+    def list_all_envs(cls, envs_dirs=None):
+        if envs_dirs is None:
+            envs_dirs = context.envs_dirs
+        all_envs = set()
+        for envs_dir in envs_dirs:
+            all_envs.update(cls(envs_dir).list_envs())
+        return sorted(all_envs)

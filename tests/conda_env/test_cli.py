@@ -14,7 +14,7 @@ from conda.cli.main import generate_parser
 from conda.common.io import captured
 from conda.exceptions import EnvironmentLocationNotFound
 from conda.install import rm_rf
-from conda_env.cli.main import create_parser
+from conda_env.cli.main import create_parser, do_call as do_call_conda_env
 from conda_env.exceptions import SpecNotFound
 from conda_env.yaml import load as yaml_load
 
@@ -85,7 +85,7 @@ def run_env_command(command, prefix, *arguments):
     context._set_argparse_args(args)
 
     with captured() as c:
-        args.func(args, p)
+        do_call_conda_env(args, p)
 
     return c.stdout, c.stderr
 

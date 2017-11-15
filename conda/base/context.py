@@ -9,9 +9,9 @@ from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME,
-                        SEARCH_PATH, SafetyChecks, PREFIX_MAGIC_FILE)
-from .. import __version__ as CONDA_VERSION, CondaError
+                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks)
+from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
@@ -194,7 +194,6 @@ class Context(Configuration):
         if argparse_args:
             # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
             # configuration can be properly loaded from those locations
-
             func_name = ('func' in argparse_args and argparse_args.func or '').rsplit('.', 1)[-1]
             if func_name in ('create', 'install', 'update', 'remove', 'uninstall', 'upgrade'):
                 if 'prefix' in argparse_args and argparse_args.prefix:
@@ -204,7 +203,8 @@ class Context(Configuration):
                     # files being loaded/re-loaded at least three times.
                     target_prefix = determine_target_prefix(context, argparse_args)
                     if target_prefix != context.root_prefix:
-                        os.environ['CONDA_PREFIX'] = determine_target_prefix(context, argparse_args)
+                        os.environ['CONDA_PREFIX'] = determine_target_prefix(context,
+                                                                             argparse_args)
 
         super(Context, self).__init__(search_path=search_path, app_name=APP_NAME,
                                       argparse_args=argparse_args)
@@ -892,7 +892,9 @@ def _get_user_agent(context_platform):
 
 
 def locate_prefix_by_name(name, envs_dirs=None):
-    """Find the location of a prefix given a conda env name."""
+    """Find the location of a prefix given a conda env name.  If the location does not exist, an
+    error is raised.
+    """
     assert name
     if name in (ROOT_ENV_NAME, 'root'):
         return context.root_prefix

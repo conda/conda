@@ -67,7 +67,7 @@ def configure_parser(sub_parsers):
         default=False,
     )
     add_parser_json(p)
-    p.set_defaults(func=execute)
+    p.set_defaults(func='.main_create.execute')
 
 
 def execute(args, parser):

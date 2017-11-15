@@ -1062,12 +1062,6 @@ class UnregisterEnvironmentLocationAction(EnvsDirectoryPathAction):
 
     def reverse(self):
         pass
-        # if self._execute_successful:
-        #     log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)
-        #     from .envs_manager import EnvsDirectory
-        #     ed = EnvsDirectory(self.envs_dir_path)
-        #     ed._set_state(self.envs_dir_state)
-        #     ed.write_to_disk()
 
 
 # class UnregisterPrivateEnvAction(EnvsDirectoryPathAction):

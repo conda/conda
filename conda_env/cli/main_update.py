@@ -60,7 +60,7 @@ def configure_parser(sub_parsers):
         nargs='?'
     )
     add_parser_json(p)
-    p.set_defaults(func=execute)
+    p.set_defaults(func='.main_update.execute')
 
 
 def execute(args, parser):

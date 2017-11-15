@@ -25,7 +25,7 @@ def configure_parser(sub_parsers):
 
     add_parser_json(list_parser)
 
-    list_parser.set_defaults(func=execute)
+    list_parser.set_defaults(func='.main_list.execute')
 
 
 def execute(args, parser):
