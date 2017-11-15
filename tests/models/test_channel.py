@@ -824,7 +824,7 @@ class UrlChannelTests(TestCase):
                     "https://some.url/ch_name",
                     "file:///some/place/on/my/machine",)
         with env_var("CONDA_CHANNELS", ','.join(channels)):
-            new_context = Context((), APP_NAME)
+            new_context = Context(())
             assert new_context.channels == (
                 "file://\\\\network_share\\shared_folder\\path\\conda",
                 "https://some.url/ch_name",

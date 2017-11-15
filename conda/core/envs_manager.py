@@ -84,7 +84,18 @@ class EnvsDirectory(object):
         self.root_dir = dirname(envs_dir)
         self.catalog_file = join(envs_dir, ENVS_DIR_MAGIC_FILE)
 
-        self._init_dir()
+        # self._init_dir()
+
+
+
+
+
+
+
+
+
+
+
 
     def _init_dir(self):
         self._envs_dir_data = self._read_raw_data()

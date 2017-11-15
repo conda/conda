@@ -33,6 +33,7 @@ Additional help for each command can be accessed by using:
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
 import sys
 
 PARSER = None
@@ -64,19 +65,31 @@ def init_loggers(context=None):
 
 
 def _main(*args):
-    from .conda_argparse import do_call
-    from ..base.constants import SEARCH_PATH
-    from ..base.context import context
-
     if len(args) == 1:
         args = args + ('-h',)
 
     p = generate_parser()
     args = p.parse_args(args[1:])
 
-    context.__init__(SEARCH_PATH, 'conda', args)
+    func_name = args.func.rsplit('.', 1)[-1]
+    if func_name in ('create', 'install', 'update', 'remove', 'uninstall', 'upgrade'):
+        if args.prefix:
+            os.environ['CONDA_PREFIX'] = args.prefix
+        elif args.name:
+            # Currently, usage of the '-n' flag is inefficient, with all configuration files
+            # being loaded/re-loaded at least three times.
+            from ..base.context import locate_prefix_by_name
+            from ..exceptions import EnvironmentNameNotFound
+            try:
+                os.environ['CONDA_PREFIX'] = locate_prefix_by_name(args.name)
+            except EnvironmentNameNotFound:
+                pass  # It's ok here for the prefix to not yet exist. No logger yet configured.
+
+    from ..base.context import context
+    context.__init__(argparse_args=args)
     init_loggers(context)
 
+    from .conda_argparse import do_call
     exit_code = do_call(args, p)
     if isinstance(exit_code, int):
         return exit_code

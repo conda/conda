@@ -40,6 +40,7 @@ def file_path_is_writable(path):
         return access(path, W_OK)
 
 
+@memoize
 def prefix_is_writable(prefix):
     """
     Strategy:

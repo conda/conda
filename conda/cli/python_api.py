@@ -82,7 +82,6 @@ def run_command(command, *arguments, **kwargs):
     args.yes = True  # always skip user confirmation, force setting context.always_yes
     context.__init__(
         search_path=configuration_search_path,
-        app_name=APP_NAME,
         argparse_args=args,
     )
     log.debug("executing command >>>  conda %s", command_line)

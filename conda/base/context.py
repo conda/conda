@@ -10,7 +10,7 @@ import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
                         ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME,
-                        SEARCH_PATH, SafetyChecks)
+                        SEARCH_PATH, SafetyChecks, PREFIX_MAGIC_FILE)
 from .. import __version__ as CONDA_VERSION, CondaError
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -187,6 +187,12 @@ class Context(Configuration):
     _croot = PrimitiveParameter('', aliases=('croot',))
     conda_build = MapParameter(string_types, aliases=('conda-build',))
 
+    def __init__(self, search_path=None, argparse_args=None):
+        if search_path is None:
+            search_path = SEARCH_PATH
+        super(Context, self).__init__(search_path=search_path, app_name=APP_NAME,
+                                      argparse_args=argparse_args)
+
     def post_build_validation(self):
         errors = []
         if self.client_ssl_cert_key and not self.client_ssl_cert:
@@ -311,14 +317,19 @@ class Context(Configuration):
 
     @property
     def root_writable(self):
-        from ..gateways.disk.test import prefix_is_writable
-        try:
-            return prefix_is_writable(self.root_prefix)
-        except CondaError:  # pragma: no cover
-            # With pyinstaller, conda code can sometimes be called even though sys.prefix isn't
-            # a conda environment with a conda-meta/ directory.  In this case, it's safe to return
-            # False, because conda shouldn't itself be mutating that environment. See #6243
-            return False
+        # rather than using conda.gateways.disk.test.prefix_is_writable
+        # let's shortcut and assume the root prefix exists
+        path = self.root_prefix
+        if isfile(join(path, PREFIX_MAGIC_FILE)):
+            try:
+                fh = open(path, 'a+')
+            except (IOError, OSError) as e:
+                log.debug(e)
+                return False
+            else:
+                fh.close()
+                return True
+        return False
 
     @property
     def envs_dirs(self):
@@ -420,7 +431,7 @@ class Context(Configuration):
         from ..core.envs_manager import determine_target_prefix
         return determine_target_prefix(self)
 
-    @property
+    @memoizedproperty
     def root_prefix(self):
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))
@@ -576,7 +587,7 @@ def conda_in_private_env():
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
-    context.__init__(search_path, APP_NAME, argparse_args)
+    context.__init__(search_path, argparse_args)
     from ..models.channel import Channel
     Channel._reset_state()
     # need to import here to avoid circular dependency
@@ -865,6 +876,24 @@ def _get_user_agent(context_platform):
     return user_agent
 
 
+def locate_prefix_by_name(name, envs_dirs=None):
+    """Find the location of a prefix given a conda env name."""
+    assert name
+    if name in (ROOT_ENV_NAME, 'root'):
+        return context.root_prefix
+    if envs_dirs is None:
+        envs_dirs = context.envs_dirs
+    for envs_dir in concatv(envs_dirs, (os.getcwd(),)):
+        if not isdir(envs_dir):
+            continue
+        prefix = join(envs_dir, name)
+        if isdir(prefix):
+            return prefix
+
+    from ..exceptions import EnvironmentNameNotFound
+    raise EnvironmentNameNotFound(name)
+
+
 # backward compatibility for conda-build
 def get_prefix(ctx, args, search=True):
     from ..core.envs_manager import determine_target_prefix
@@ -872,7 +901,7 @@ def get_prefix(ctx, args, search=True):
 
 
 try:
-    context = Context(SEARCH_PATH, APP_NAME, None)
+    context = Context(SEARCH_PATH, None)
 except LoadError as e:  # pragma: no cover
     print(e, file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit
