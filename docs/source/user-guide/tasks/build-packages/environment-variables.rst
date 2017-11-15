@@ -282,6 +282,11 @@ NOTE: Inheriting environment variables can make it difficult for
 others to reproduce binaries from source with your recipe. Use
 this feature with caution or avoid it.
 
+NOTE: If you split your build and test phases with ``--no-test`` and ``--test``,
+you need to ensure that the environment variables present at build time and test
+time match. If you do not, the package hashes may use different values, and your
+package may not be testable, because the hashes will differ.
+
 
 .. _build-envs:
 
