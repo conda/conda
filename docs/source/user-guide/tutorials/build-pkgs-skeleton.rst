@@ -373,7 +373,7 @@ For cases where this is not possible, conda-build versions 3.0.31 and higher
 have an option that disables SSL certificate verification and allows this
 traffic to continue:
 
-:doc:`../configuration/disable-ssl-verification.rst`
+:doc:`../configuration/disable-ssl-verification`
 
 
 .. _`help1`:
