@@ -355,6 +355,27 @@ You may also try using the ``--recursive`` flag with
 packages, even those that are already available to conda install.
 
 
+.. _`working_around_proxies`:
+
+Working Around MITM Proxies
+===========================
+
+Some corporate environments use proxy services that use Man-In-The-Middle
+(MITM) attacks to sniff encrypted traffic. These services can interfere with
+SSL connections such as those used by conda and pip to download packages from
+repositories such as PyPI.
+
+If you encounter this interference, you should set up the proxy service's
+certificates so that the ``requests`` package used by conda can recognize and
+use the certificates.
+
+For cases where this is not possible, conda-build versions 3.0.31 and higher
+have an option that disables SSL certificate verification and allows this
+traffic to continue:
+
+:doc:`../configuration/disable-ssl-verification.rst`
+
+
 .. _`help1`:
 
 More information

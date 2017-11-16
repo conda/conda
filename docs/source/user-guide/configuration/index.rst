@@ -10,3 +10,4 @@ Configuration
    admin-multi-user-install
    enable-tab-completion
    use-winxp-with-proxy
+   disable-ssl-verification
