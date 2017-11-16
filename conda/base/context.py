@@ -200,7 +200,7 @@ class Context(Configuration):
                     os.environ['CONDA_PREFIX'] = argparse_args.prefix
                 elif 'name' in argparse_args and argparse_args.name:
                     # Currently, usage of the '-n' flag is inefficient, with all configuration
-                    # files being loaded/re-loaded at least three times.
+                    # files being loaded/re-loaded at least two times.
                     target_prefix = determine_target_prefix(context, argparse_args)
                     if target_prefix != context.root_prefix:
                         os.environ['CONDA_PREFIX'] = determine_target_prefix(context,
