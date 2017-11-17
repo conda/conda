@@ -157,8 +157,10 @@ class EnvsDirectory(object):
         self._clean_environments_txt(location)
 
     def _clean_environments_txt(self, remove_location=None):
-        environments_txt_lines = list(yield_lines(self.catalog_file))
+        if not isfile(self.catalog_file):
+            return ()
 
+        environments_txt_lines = list(yield_lines(self.catalog_file))
         try:
             location = normpath(remove_location or '')
             idx = environments_txt_lines.index(location)
@@ -174,9 +176,10 @@ class EnvsDirectory(object):
         return real_prefixes
 
     def list_envs(self):
-        for path in listdir(self.envs_dir):
-            if self.is_conda_environment(join(self.envs_dir, path)):
-                yield path
+        if isdir(self.envs_dir):
+            for path in listdir(self.envs_dir):
+                if self.is_conda_environment(join(self.envs_dir, path)):
+                    yield path
         for path in self._clean_environments_txt():
             yield path
         if self.is_conda_environment(self.root_dir):
