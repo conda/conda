@@ -26,22 +26,21 @@ The .travis.yml file
 
 The following code sample shows how to modify the ``.travis.yml``
 file to use `Miniconda <https://conda.io/miniconda.html>`_ for a
-project that supports Python 2.6, 2.7, 3.3 and 3.4:
+project that supports Python 2.7, 3.5 and 3.6:
 
 .. code-block:: yaml
 
    language: python
    python:
      # We don't actually use the Travis Python, but this keeps it organized.
-     - "2.6"
      - "2.7"
-     - "3.3"
-     - "3.4"
+     - "3.5"
+     - "3.6"
    install:
      - sudo apt-get update
      # We do this conditionally because it saves us some downloading if the
      # version is the same.
-     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" || "$TRAVIS_PYTHON_VERSION" == "2.6" ]]; then
+     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
          wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
        else
          wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
