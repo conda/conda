@@ -35,6 +35,13 @@ Installing on Linux
 
 .. _install-linux-silent:
 
+Using with fish shell
+=========================
+
+To use conda with fish shell, add the following line in your ``fish.config`` file::
+
+  source (conda info --root)/etc/fish/conf.d/conda.fish
+
 Installing in silent mode
 =========================
 
