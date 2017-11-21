@@ -74,7 +74,7 @@ class History(object):
 
     def __init__(self, prefix):
         self.prefix = prefix
-        self.meta_dir = join(prefix, 'conda-meta')
+        self.meta_dir = join(prefix.dest, 'conda-meta')
         self.path = join(self.meta_dir, 'history')
 
     def __enter__(self):

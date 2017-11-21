@@ -37,8 +37,13 @@ class PrefixDataType(type):
 class PrefixData(object):
     _cache_ = {}
 
-    def __init__(self, prefix_path):
-        self.prefix_path = prefix_path
+    def __init__(self, prefix):
+        from ..base.context import TargetPrefix
+        if isinstance(prefix, TargetPrefix):
+            self.prefix_path = prefix.dest
+        else:
+            self.prefix_path = prefix
+
         self.__prefix_records = None
 
     def load(self):

@@ -494,7 +494,7 @@ class Solver(object):
 
 def get_pinned_specs(prefix):
     """Find pinned specs from file and return a tuple of MatchSpec."""
-    pinfile = join(prefix, 'conda-meta', 'pinned')
+    pinfile = join(prefix.dest, 'conda-meta', 'pinned')
     if exists(pinfile):
         with open(pinfile) as f:
             from_file = (i for i in f.read().strip().splitlines()

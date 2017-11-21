@@ -505,6 +505,14 @@ def configure_parser_create(sub_parsers):
         action="store_true",
         help='Ignore create_default_packages in the .condarc file.',
     )
+    p.add_argument(
+        "--dest-dir",
+        dest='target_dest',
+        action="store",
+        default=None,
+        help="Path to the install destination, default is to use the prefix.",
+        metavar="PATH",
+    )
     p.set_defaults(func='.main_create.execute')
 
 
