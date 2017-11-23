@@ -157,11 +157,10 @@ useful for air gap and enterprise installations:
 
 .. code-block:: yaml
 
-  channels:
+  default_channels:
     - <anaconda_dot_org_username>
     - http://some.custom/channel
     - file:///some/local/directory
-    - defaults
 
 Update conda automatically (auto_update_conda)
 ----------------------------------------------
