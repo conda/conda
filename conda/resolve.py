@@ -902,6 +902,17 @@ class Resolve(object):
             solution, obj3 = C.minimize(eq_req_v, solution)
             log.debug('Initial package channel/version metric: %d/%d', obj3a, obj3)
 
+            # Track features: minimize feature count
+            eq_feature_count = r2.generate_feature_count(C)
+            solution, obj1 = C.minimize(eq_feature_count, solution)
+            log.debug('Track feature count: %d', obj1)
+
+            # Featured packages: maximize featured package count
+            eq_feature_metric, ftotal = r2.generate_feature_metric(C)
+            solution, obj2 = C.minimize(eq_feature_metric, solution)
+            obj2 = ftotal - obj2
+            log.debug('Package feature count: %d', obj2)
+
             # Requested packages: maximize builds
             solution, obj4 = C.minimize(eq_req_b, solution)
             log.debug('Initial package build metric: %d', obj4)
@@ -918,17 +929,6 @@ class Resolve(object):
             solution, obj6 = C.minimize(eq_b, solution)
             log.debug('Additional package channel/version/build metrics: %d/%d/%d',
                       obj5a, obj5, obj6)
-
-            # Track features: minimize feature count
-            eq_feature_count = r2.generate_feature_count(C)
-            solution, obj1 = C.minimize(eq_feature_count, solution)
-            log.debug('Track feature count: %d', obj1)
-
-            # Featured packages: maximize featured package count
-            eq_feature_metric, ftotal = r2.generate_feature_metric(C)
-            solution, obj2 = C.minimize(eq_feature_metric, solution)
-            obj2 = ftotal - obj2
-            log.debug('Package feature count: %d', obj2)
 
             # Maximize timestamps
             eq_t.update(eq_req_t)
