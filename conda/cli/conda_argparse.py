@@ -769,11 +769,12 @@ def configure_parser_remove(sub_parsers, name='remove'):
         action="store_true",
         help="%s all packages, i.e., the entire environment." % name.capitalize(),
     )
-    p.add_argument(
-        "--features",
-        action="store_true",
-        help="%s features (instead of packages)." % name.capitalize(),
-    )
+    # # Note: previously used for key-value feature interface in pre releases of conda 4.4
+    # p.add_argument(
+    #     "--features",
+    #     action="store_true",
+    #     help="%s features (instead of packages)." % name.capitalize(),
+    # )
 
     # TODO: --features currently sorta still work. But super sloppy.
 

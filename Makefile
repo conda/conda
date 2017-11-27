@@ -74,7 +74,7 @@ unit: clean
 
 
 integration: clean pytest-version
-	$(PYTEST) $(ADD_COV) -m "not installed"
+	$(PYTEST) $(ADD_COV) -m "integration and not installed"
 
 
 test-installed:

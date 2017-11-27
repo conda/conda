@@ -3,7 +3,6 @@ Helpers for the tests
 """
 from __future__ import absolute_import, division, print_function
 
-from collections import defaultdict
 from contextlib import contextmanager
 import json
 import os
@@ -19,7 +18,7 @@ from conda._vendor.auxlib.decorators import memoize
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
-from conda.core.repodata import SubdirData, make_feature_record
+from conda.core.repodata import SubdirData, make_feature_record_legacy
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import lexists
 from conda.gateways.logging import initialize_logging
@@ -142,19 +141,29 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
         index[dist] = rec
 
 
-def add_feature_records(index):
-    all_features = defaultdict(set)
+# def add_feature_records_key_value(index):
+#     all_features = defaultdict(set)
+#     for rec in itervalues(index):
+#         for k, v in iteritems(rec.requires_features):
+#             all_features[k].add(v)
+#         for k, v in iteritems(rec.provides_features):
+#             all_features[k].add(v)
+#
+#     for feature_name, feature_values in iteritems(all_features):
+#         for feature_value in feature_values:
+#             rec = make_feature_record(feature_name, feature_value)
+#             index[Dist(rec)] = rec
+
+
+def add_feature_records_legacy(index):
+    all_features = set()
     for rec in itervalues(index):
-        for k, v in iteritems(rec.requires_features):
-            all_features[k].add(v)
-        for k, v in iteritems(rec.provides_features):
-            all_features[k].add(v)
+        if rec.track_features:
+            all_features.update(rec.track_features)
 
-    for feature_name, feature_values in iteritems(all_features):
-        for feature_value in feature_values:
-            rec = make_feature_record(feature_name, feature_value)
-            index[Dist(rec)] = rec
-
+    for feature_name in all_features:
+        rec = make_feature_record_legacy(feature_name)
+        index[Dist(rec)] = rec
 
 @memoize
 def get_index_r_1():
@@ -177,7 +186,7 @@ def get_index_r_1():
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
     index = {Dist(prec): prec for prec in sd._package_records}
-    add_feature_records(index)
+    add_feature_records_legacy(index)
     r = Resolve(index, channels=(channel,))
     return index, r
 

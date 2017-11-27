@@ -20,6 +20,11 @@ from conda.models.version import VersionSpec
 
 blas_value = 'accelerate' if context.subdir == 'osx-64' else 'openblas'
 
+
+def m(string):
+    return text_type(MatchSpec(string))
+
+
 def DPkg(s, **kwargs):
     d = Dist(s)
     return IndexRecord(
@@ -87,7 +92,7 @@ class MatchSpecTests(TestCase):
 
     def test_no_name_match_spec(self):
         ms = MatchSpec(track_features="mkl")
-        assert str(ms) == "*[provides_features='blas=mkl']"
+        assert str(ms) == '*[track_features=mkl]'
 
     def test_to_filename(self):
         m1 = MatchSpec(fn='foo-1.7-52.tar.bz2')
@@ -150,9 +155,6 @@ class MatchSpecTests(TestCase):
     #     assert g._to_string() == "foo1 >=1.3[build_number=2]"
 
     def test_canonical_string_forms(self):
-        def m(string):
-            return text_type(MatchSpec(string))
-
         assert m("numpy") == "numpy"
 
         assert m("numpy=1.7") == "numpy=1.7"
@@ -198,11 +200,6 @@ class MatchSpecTests(TestCase):
         assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "defaults/linux-32::numpy"
         assert m("numpy[channel=https://repo.continuum.io/pkgs/free/linux-32]") == "defaults/linux-32::numpy"
 
-        assert m("numpy[build=py3*_2, track_features=mkl]") == "numpy[build=py3*_2,provides_features='blas=mkl']"
-        assert m("numpy[build=py3*_2, track_features='mkl debug']") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
-        assert m("numpy[track_features='mkl,debug', build=py3*_2]") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
-        assert m("numpy[track_features='mkl,debug' build=py3*_2]") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
-
         assert m("numpy=1.10=py38_0") == "numpy==1.10=py38_0"
         assert m("numpy==1.10=py38_0") == "numpy==1.10=py38_0"
         assert m("numpy[version=1.10 build=py38_0]") == "numpy==1.10=py38_0"
@@ -213,15 +210,22 @@ class MatchSpecTests(TestCase):
         # assert m("numpy-1.10-py38_0[channel=defaults]") == "defaults::numpy==1.10=py38_0"
         # assert m("*/win-32::numpy-1.10-py38_0[channel=defaults]") == "defaults/win-32::numpy==1.10=py38_0"
 
+    @pytest.mark.skip(reason="key-value features interface has been disabled in conda 4.4")
+    def test_key_value_features_canonical_string_forms(self):
+        assert m("numpy[build=py3*_2, track_features=mkl]") == "numpy[build=py3*_2,provides_features='blas=mkl']"
+        assert m("numpy[build=py3*_2, track_features='mkl debug']") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
+        assert m("numpy[track_features='mkl,debug', build=py3*_2]") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
+        assert m("numpy[track_features='mkl,debug' build=py3*_2]") == "numpy[build=py3*_2,provides_features='blas=mkl debug=true']"
+
         assert m('numpy[features="mkl debug" build_number=2]') == "numpy[build_number=2,provides_features='blas=mkl debug=true']"
 
+    def test_legacy_features_canonical_string_forms(self):
+        assert m("mkl@") == "*[track_features=mkl]"
 
-
+        # assert m("@mkl") == "*[features=mkl]"
+        assert text_type(MatchSpec(features="mkl")) == "*[features=mkl]"
 
     def test_tarball_match_specs(self):
-        def m(string):
-            return text_type(MatchSpec(string))
-
         url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
         assert m(url) == "conda-canary/linux-64::conda==4.3.21.post699+1dab973=py36h4a561cd_0"
         assert m("conda-canary/linux-64::conda==4.3.21.post699+1dab973=py36h4a561cd_0") == "conda-canary/linux-64::conda==4.3.21.post699+1dab973=py36h4a561cd_0"
@@ -362,7 +366,8 @@ class MatchSpecTests(TestCase):
         assert ms.get_exact_value('build') == '0'
         assert ms._to_filename_do_not_use() == 'zlib-1.2.7-0.tar.bz2'
 
-    def test_features_match(self):
+    @pytest.mark.skip(reason="key-value features interface disabled in conda 4.4")
+    def test_key_value_features_match(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
         a = MatchSpec(features='test')
         assert text_type(a) == "*[provides_features='test=true']"
