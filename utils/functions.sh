@@ -247,7 +247,7 @@ install_conda_dev() {
     else
         $PYTHON_EXE setup.py develop
         make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
-        make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
+        make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda_env.cli.main import main"
     fi
 
     # install_conda_shell_scripts "$prefix" "$src_dir"

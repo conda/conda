@@ -7,9 +7,9 @@
 
 ----------------------------------------
 
-.. image:: https://img.shields.io/travis/conda/conda/4.4.x.svg?maxAge=900&label=Linux%20%26%20MacOS
-    :target: https://travis-ci.org/conda/conda
-    :alt: Linux & MacOS tests (Travis)
+.. image:: https://img.shields.io/circleci/project/github/conda/conda/4.4.x.svg?maxAge=900&label=Unix
+    :target: https://circleci.com/gh/conda/workflows/conda/tree/4.4.x
+    :alt: Unix tests (CircleCI)
 
 .. image:: https://img.shields.io/appveyor/ci/ContinuumAnalyticsFOSS/conda/4.4.x.svg?maxAge=900&label=Windows
     :target: https://ci.appveyor.com/project/ContinuumAnalyticsFOSS/conda
