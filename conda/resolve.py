@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import namedtuple, defaultdict
 from itertools import chain
 import logging
 import re
@@ -133,6 +134,17 @@ class MatchSpec(object):
                 args.append('target='+self.target)
             res = '%s (%s)' % (res, ','.join(args))
         return res
+
+
+VersionKey = namedtuple("VersionKey", [
+    "valid",
+    "channel_or_version_0",
+    "channel_or_version_1",
+    "features",
+    "build_number",
+    "timestamp",
+    "build_string",
+])
 
 
 class Resolve(object):
@@ -528,11 +540,15 @@ class Resolve(object):
         cpri = rec.get('priority', 1)
         valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
         ver = normalized_version(rec.get('version', ''))
+        features = self.features(dist)
+        # `-len(features)` to prioritize build with fewer required features
+        # `hash(frozenset(features))` to distinguish different feature-requiring varieties
+        ft = (-len(features), hash(frozenset(features)))
         bld = rec.get('build_number', 0)
         bs = rec.get('build')
         ts = rec.get('timestamp', 0)
-        return ((valid, -cpri, ver, bld, ts, bs) if context.channel_priority else
-                (valid, ver, -cpri, bld, ts, bs))
+        return (VersionKey(valid, -cpri, ver, ft, bld, ts, bs) if context.channel_priority else
+                VersionKey(valid, ver, -cpri, ft, bld, ts, bs))
 
     def features(self, dist):
         return set(self.index[dist].get('features', '').split())
@@ -636,7 +652,7 @@ class Resolve(object):
     def generate_package_count(self, C, missing):
         return {self.push_MatchSpec(C, nm): 1 for nm in missing}
 
-    def generate_version_metrics(self, C, specs, include0=False):
+    def generate_version_metrics(self, C, specs, include0=False, split_by_features=False):
         # each of these are weights saying how well packages match the specs
         #    format for each: a C.minimize() objective: Dict[varname, coeff]
         eqc = {}  # channel
@@ -656,40 +672,48 @@ class Resolve(object):
                         rec.append(dist)
 
         for name, targets in iteritems(sdict):
-            pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
-            pkey = None
-            # keep in mind that pkgs is already sorted according to version_key (a tuple,
-            #    so composite sort key).  Later entries in the list are, by definition,
-            #    greater in some way, so simply comparing with != suffices.
-            for version_key, dist in pkgs:
-                if targets and any(dist == t for t in targets):
-                    continue
-                if pkey is None:
-                    ic = iv = ib = it = 0
-                # valid package, channel priority
-                elif pkey[0] != version_key[0] or pkey[1] != version_key[1]:
-                    ic += 1
-                    iv = ib = it = 0
-                # version
-                elif pkey[2] != version_key[2]:
-                    iv += 1
-                    ib = it = 0
-                # build number
-                elif pkey[3] != version_key[3]:
-                    ib += 1
-                    it = 0
-                elif pkey[4] != version_key[4]:
-                    it += 1
+            a_pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
+            f_pkgs = defaultdict(list)
+            if split_by_features:
+                for version_key, dist in a_pkgs:
+                    f_pkgs[version_key.features].append((version_key, dist))
+            else:
+                f_pkgs[None] = a_pkgs
+            for pkgs in f_pkgs.values():
+                pkey = None
+                # keep in mind that pkgs is already sorted according to version_key (a tuple,
+                #    so composite sort key).  Later entries in the list are, by definition,
+                #    greater in some way, so simply comparing with != suffices.
+                for version_key, dist in pkgs:
+                    if targets and any(dist == t for t in targets):
+                        continue
+                    if pkey is None:
+                        ic = iv = ib = it = 0
+                    # valid package, channel priority
+                    elif (pkey.valid != version_key.valid or
+                          pkey.channel_or_version_0 != version_key.channel_or_version_0):
+                        ic += 1
+                        iv = ib = it = 0
+                    # version
+                    elif pkey.channel_or_version_1 != version_key.channel_or_version_1:
+                        iv += 1
+                        ib = it = 0
+                    # build number
+                    elif pkey.build_number != version_key.build_number:
+                        ib += 1
+                        it = 0
+                    elif pkey.timestamp != version_key.timestamp:
+                        it += 1
 
-                if ic or include0:
-                    eqc[dist.full_name] = ic
-                if iv or include0:
-                    eqv[dist.full_name] = iv
-                if ib or include0:
-                    eqb[dist.full_name] = ib
-                if it or include0:
-                    eqt[dist.full_name] = it
-                pkey = version_key
+                    if ic or include0:
+                        eqc[dist.full_name] = ic
+                    if iv or include0:
+                        eqv[dist.full_name] = iv
+                    if ib or include0:
+                        eqb[dist.full_name] = ib
+                    if it or include0:
+                        eqt[dist.full_name] = it
+                    pkey = version_key
 
         return eqc, eqv, eqb, eqt
 
@@ -895,6 +919,26 @@ class Resolve(object):
             eq_optional_c = r2.generate_removal_count(C, speco)
             solution, obj7 = C.minimize(eq_optional_c, solution)
             log.debug('Package removal metric: %d', obj7)
+
+            # Requested packages (split by features): maximize versions
+            eq_req_c_f, eq_req_v_f, eq_req_b_f, eq_req_t_f = (
+                r2.generate_version_metrics(C, specr, split_by_features=True))
+            solution, obj3a_f = C.minimize(eq_req_c_f, solution)
+            solution, obj3_f = C.minimize(eq_req_v_f, solution)
+            log.debug('Initial package channel/version metric (feature split): %d/%d',
+                      obj3a_f, obj3_f)
+            # Requested packages (split by features): maximize builds
+            solution, obj4_f = C.minimize(eq_req_b_f, solution)
+            log.debug('Initial package build metric (feature split): %d', obj4_f)
+
+            # Remaining packages (split by features): maximize versions, then builds
+            eq_c_f, eq_v_f, eq_b_f, eq_t_f = (
+                r2.generate_version_metrics(C, speca, split_by_features=True))
+            solution, obj5a_f = C.minimize(eq_c_f, solution)
+            solution, obj5_f = C.minimize(eq_v_f, solution)
+            solution, obj6_f = C.minimize(eq_b_f, solution)
+            log.debug('Additional package channel/version/build metrics (feature split): %d/%d/%d',
+                      obj5a_f, obj5_f, obj6_f)
 
             # Requested packages: maximize versions
             eq_req_c, eq_req_v, eq_req_b, eq_req_t = r2.generate_version_metrics(C, specr)
