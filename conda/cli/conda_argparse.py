@@ -122,14 +122,13 @@ class ArgumentParser(ArgumentParserBase):
             else:
                 argument = None
             if argument and argument.dest == "cmd":
-                m = re.compile(r"invalid choice: u?'([\w\-]+)'").match(exc.message)
+                m = re.match(r"invalid choice: '(\w+)'", exc.message)
                 if m:
                     cmd = m.group(1)
                     executable = find_executable('conda-' + cmd)
                     if not executable:
                         from ..exceptions import CommandNotFoundError
                         raise CommandNotFoundError(cmd)
-
                     args = [find_executable('conda-' + cmd)]
                     args.extend(sys.argv[2:])
                     os.execv(args[0], args)
@@ -140,10 +139,13 @@ class ArgumentParser(ArgumentParserBase):
         super(ArgumentParser, self).print_help()
 
         if sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
-            print(dedent("""
-            other commands, such as "conda build", are available when additional conda
-            packages (e.g. conda-build) are installed
-            """))
+            from .find_commands import find_commands
+            other_commands = find_commands()
+            if other_commands:
+                builder = ['']
+                builder.append("conda commands available from other packages:")
+                builder.extend('  %s' % cmd for cmd in sorted(other_commands))
+                print('\n'.join(builder))
 
 
 class NullCountAction(_CountAction):
