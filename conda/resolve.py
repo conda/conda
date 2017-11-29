@@ -157,10 +157,6 @@ class Resolve(object):
             if ms.get_exact_value('track_features'):
                 feature_names = ms.get_exact_value('track_features')
                 feats.update(feature_names)
-            # elif ms.get_exact_value('provides_features'):
-            #     kv_features = ("%s=%s" % (k, v)
-            #                    for k, v in iteritems(ms.get_exact_value('provides_features')))
-            #     feats.update(kv_features)
             elif ms.name[-1] == '@':
                 # TODO: remove
                 feats.add(ms.name[:-1])
@@ -368,11 +364,6 @@ class Resolve(object):
         if res is None:
             if ms.get_exact_value('name'):
                 res = self.groups.get(ms.name, [])
-            # elif ms.get_exact_value('provides_features'):
-            #     kv_features = ("%s=%s" % (k, v) for k, v in
-            #                    iteritems(ms.get_exact_value('provides_features')) or ())
-            #     res = list(chain.from_iterable(self.trackers[kvf]
-            #                                    for kvf in kv_features if kvf in self.trackers))
             elif ms.get_exact_value('track_features'):
                 feature_names = ms.get_exact_value('track_features')
                 res = list(chain.from_iterable(self.trackers[feature_name]
@@ -390,10 +381,6 @@ class Resolve(object):
         if deps is None:
             rec = self.index[dist]
             deps = [MatchSpec(d) for d in rec.combined_depends]
-            # provides_features_specs = tuple(MatchSpec(provides_features={k: v}) for k, v
-            #                                 in iteritems(self.index[dist].requires_features))
-            # if provides_features_specs:
-            #     deps.extend(provides_features_specs)
             deps.extend(MatchSpec(track_features=feat) for feat in self.index[dist].features)
             self.ms_depends_[dist] = deps
         return deps
@@ -487,7 +474,6 @@ class Resolve(object):
 
         simple = spec._is_single()
         nm = spec.get_exact_value('name')
-        # tf = spec.get_exact_value('provides_features')
         tf = spec.get_exact_value('track_features')
 
         if nm:
@@ -495,7 +481,6 @@ class Resolve(object):
         elif tf:
             assert len(tf) == 1
             k = next(iter(tf))
-            # tgroup = libs = self.trackers.get("%s=%s" % (k, tf[k]), [])
             tgroup = libs = self.trackers.get(k, [])
         else:
             tgroup = libs = self.index.keys()
@@ -537,14 +522,6 @@ class Resolve(object):
             for ms in self.ms_depends(dist):
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
-        # # NOTE: used for key-value features only
-        # tracker_groups = groupby(lambda x: x.split('=', 1)[0], self.trackers)
-        # for tracker_name, values in iteritems(tracker_groups):
-        #     if len(values) > 1:
-        #         C.Require(C.AtMostOne, tuple(
-        #             self.push_MatchSpec(C, MatchSpec(provides_features=feat)) for feat in values
-        #         ))
-
         log.debug("gen_clauses returning with clause count: %s", len(C.clauses))
         return C
 
@@ -566,7 +543,6 @@ class Resolve(object):
         eq = {}  # a C.minimize() objective: Dict[varname, coeff]
         total = 0
         for name, group in iteritems(self.groups):
-            # nf = [len(self.index[dist].requires_features) for dist in group]
             nf = [len(self.index[dist].features) for dist in group]
             maxf = max(nf)
             eq.update({dist.full_name: maxf-fc for dist, fc in zip(group, nf) if fc < maxf})

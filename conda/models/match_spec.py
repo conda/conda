@@ -166,8 +166,6 @@ class MatchSpec(object):
         'version',
         'build',
         'build_number',
-        # 'requires_features',
-        # 'provides_features',
         'track_features',
         'features',
         'url',
@@ -671,55 +669,6 @@ class SplitStrMatch(MatchInterface):
         return self._raw_value
 
 
-# class KeyValueFeatureMatch(MatchInterface):
-#     __slots__ = '_raw_value',
-#
-#     def __init__(self, value):
-#         super(KeyValueFeatureMatch, self).__init__(self._convert(value))
-#
-#     def _convert(self, value):
-#         if not value:
-#             return frozendict()
-#         elif isinstance(value, Mapping):
-#             return frozendict(value)
-#
-#         if isinstance(value, string_types):
-#             result_map = {}
-#             for val in value.replace(' ', ',').split(','):
-#                 k, v = translate_feature_str(val)
-#                 result_map[k] = v
-#         else:
-#             assert isiterable(value), type(value)
-#             result_map = {}
-#             for val in value:
-#                 k, v = translate_feature_str(val)
-#                 result_map[k] = v
-#         return frozendict(result_map)
-#
-#     def match(self, other):
-#         if not isinstance(other, Mapping):
-#             other = self._convert(other)
-#         return all(v == other.get(k) for k, v in iteritems(self._raw_value))
-#
-#     def __repr__(self):
-#         return "{%s}" % ', '.join("'%s': '%s'" % (k, self._raw_value[k])
-#                                   for k in sorted(self._raw_value))
-#
-#     def __str__(self):
-#         # this space delimiting makes me nauseous
-#         return ' '.join("%s=%s" % (k, self._raw_value[k]) for k in sorted(self._raw_value))
-#
-#     def __eq__(self, other):
-#         return isinstance(other, self.__class__) and self._raw_value == other._raw_value
-#
-#     def __hash__(self):
-#         return hash(self._raw_value)
-#
-#     @property
-#     def exact_value(self):
-#         return self._raw_value
-
-
 class LegacyFeatureMatch(MatchInterface):
     __slots__ = '_raw_value',
 
@@ -845,8 +794,6 @@ class LowerStrMatch(StrMatch):
 
 _implementors = {
     'name': LowerStrMatch,
-    # 'provides_features': KeyValueFeatureMatch,
-    # 'requires_features': KeyValueFeatureMatch,
     'track_features': LegacyFeatureMatch,
     'features': LegacyFeatureMatch,
     'version': VersionSpec,

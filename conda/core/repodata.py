@@ -110,16 +110,9 @@ class SubdirData(object):
                 for prec in self._names_index[package_name]:
                     if param.match(prec):
                         yield prec
-            # elif param.get_exact_value('provides_features'):
-            #     provides_features = param.get_exact_value('provides_features')
-            #     candidates = concat(self._provides_features_index["%s=%s" % ftr_pair]
-            #                         for ftr_pair in iteritems(provides_features))
-            #     for prec in candidates:
-            #         if param.match(prec):
-            #             yield prec
             elif param.get_exact_value('track_features'):
-                track_features = param.get_exact_value('provides_features') or ()
-                candidates = concat(self._provides_features_index[feature_name]
+                track_features = param.get_exact_value('track') or ()
+                candidates = concat(self._track_features_index[feature_name]
                                     for feature_name in track_features)
                 for prec in candidates:
                     if param.match(prec):
@@ -157,8 +150,6 @@ class SubdirData(object):
         self._internal_state = _internal_state
         self._package_records = _internal_state['_package_records']
         self._names_index = _internal_state['_names_index']
-        # self._provides_features_index = _internal_state['_provides_features_index']
-        # self._requires_features_index = _internal_state['_requires_features_index']
         self._track_features_index = _internal_state['_track_features_index']
         self._loaded = True
         return self
@@ -175,8 +166,6 @@ class SubdirData(object):
                 return {
                     '_package_records': (),
                     '_names_index': defaultdict(list),
-                    # '_provides_features_index': defaultdict(list),
-                    # '_requires_features_index': defaultdict(list),
                     '_track_features_index': defaultdict(list),
                 }
             else:
@@ -306,8 +295,6 @@ class SubdirData(object):
 
         self._package_records = _package_records = []
         self._names_index = _names_index = defaultdict(list)
-        # self._provides_features_index = _provides_features_index = defaultdict(list)
-        # self._requires_features_index = _requires_features_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
         _internal_state = {
@@ -318,8 +305,6 @@ class SubdirData(object):
 
             '_package_records': _package_records,
             '_names_index': _names_index,
-            # '_provides_features_index': _provides_features_index,
-            # '_requires_features_index': _requires_features_index,
             '_track_features_index': _track_features_index,
 
             '_etag': json_obj.get('_etag'),
@@ -350,10 +335,6 @@ class SubdirData(object):
 
             _package_records.append(package_record)
             _names_index[package_record.name].append(package_record)
-            # for ftr_name, ftr_value in iteritems(package_record.provides_features):
-            #     _provides_features_index["%s=%s" % (ftr_name, ftr_value)].append(package_record)
-            # for ftr_name, ftr_value in iteritems(package_record.requires_features):
-            #     _requires_features_index["%s=%s" % (ftr_name, ftr_value)].append(package_record)
             for ftr_name in package_record.track_features:
                 _track_features_index[ftr_name].append(package_record)
 

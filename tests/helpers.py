@@ -141,20 +141,6 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
         index[dist] = rec
 
 
-# def add_feature_records_key_value(index):
-#     all_features = defaultdict(set)
-#     for rec in itervalues(index):
-#         for k, v in iteritems(rec.requires_features):
-#             all_features[k].add(v)
-#         for k, v in iteritems(rec.provides_features):
-#             all_features[k].add(v)
-#
-#     for feature_name, feature_values in iteritems(all_features):
-#         for feature_value in feature_values:
-#             rec = make_feature_record(feature_name, feature_value)
-#             index[Dist(rec)] = rec
-
-
 def add_feature_records_legacy(index):
     all_features = set()
     for rec in itervalues(index):
