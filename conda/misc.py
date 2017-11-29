@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 import os
-from os.path import abspath, dirname, exists, expanduser, isdir, isfile, join, relpath
+from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 import re
 import shutil
 import sys
@@ -152,17 +152,6 @@ def touch_nonadmin(prefix):
             os.makedirs(prefix)
         with open(join(prefix, '.nonadmin'), 'w') as fo:
             fo.write('')
-
-
-def append_env(prefix):
-    dir_path = abspath(expanduser('~/.conda'))
-    try:
-        if not isdir(dir_path):
-            os.mkdir(dir_path)
-        with open(join(dir_path, 'environments.txt'), 'a') as f:
-            f.write('%s\n' % prefix)
-    except (IOError, OSError):
-        pass
 
 
 def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):

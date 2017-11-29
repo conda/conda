@@ -1,5 +1,6 @@
 import json
 import os
+from os.path import join
 from shlex import split
 import tempfile
 import unittest
@@ -8,10 +9,10 @@ import pytest
 
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
-from conda.cli.common import list_prefixes
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser
 from conda.common.io import captured
+from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import EnvironmentLocationNotFound
 from conda.install import rm_rf
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
@@ -134,11 +135,13 @@ class IntegrationTests(unittest.TestCase):
         rm_rf("environment.yml")
         if env_is_created(test_env_name_1):
             run_env_command(Commands.ENV_REMOVE, test_env_name_1)
+        rm_rf(join(context.root_prefix, 'envs', test_env_name_1))
 
     def tearDown(self):
         rm_rf("environment.yml")
         if env_is_created(test_env_name_1):
             run_env_command(Commands.ENV_REMOVE, test_env_name_1)
+        rm_rf(join(context.root_prefix, 'envs', test_env_name_1))
 
     def test_conda_env_create_no_file(self):
         '''
@@ -149,7 +152,6 @@ class IntegrationTests(unittest.TestCase):
             run_env_command(Commands.ENV_CREATE, None)
         except Exception as e:
             self.assertIsInstance(e, SpecNotFound)
-
 
     def test_create_valid_env(self):
         '''
@@ -198,7 +200,7 @@ def env_is_created(env_name):
     """
     from os.path import basename
 
-    for prefix in list_prefixes():
+    for prefix in list_all_known_prefixes():
         name = (ROOT_ENV_NAME if prefix == context.root_dir else
                 basename(prefix))
         if name == env_name:
@@ -217,14 +219,12 @@ class NewIntegrationTests(unittest.TestCase):
     """
 
     def setUp(self):
-        if env_is_created(test_env_name_2):
-            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
-            self.assertFalse(env_is_created(test_env_name_2))
+        rm_rf(join(context.root_prefix, 'envs', test_env_name_2))
+        rm_rf(join(context.root_prefix, 'envs', test_env_name_3))
 
     def tearDown(self):
-        if env_is_created(test_env_name_2):
-            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
-            self.assertFalse(env_is_created(test_env_name_2))
+        rm_rf(join(context.root_prefix, 'envs', test_env_name_2))
+        rm_rf(join(context.root_prefix, 'envs', test_env_name_3))
 
     def test_create_remove_env(self):
         """
@@ -234,12 +234,11 @@ class NewIntegrationTests(unittest.TestCase):
         run_conda_command(Commands.CREATE, test_env_name_3)
         self.assertTrue(env_is_created(test_env_name_3))
 
-        with pytest.raises(EnvironmentLocationNotFound) as execinfo:
-            run_env_command(Commands.ENV_REMOVE, 'does-not-exist')
-
         run_env_command(Commands.ENV_REMOVE, test_env_name_3)
         self.assertFalse(env_is_created(test_env_name_3))
 
+        with pytest.raises(EnvironmentLocationNotFound) as execinfo:
+            run_env_command(Commands.ENV_REMOVE, 'does-not-exist')
 
     def test_env_export(self):
         """

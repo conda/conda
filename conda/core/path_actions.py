@@ -10,6 +10,7 @@ import re
 from time import sleep
 from uuid import uuid4
 
+from .envs_manager import USER_ENVIRONMENTS_TXT_FILE, register_env, unregister_env
 from .linked_data import PrefixData
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
@@ -107,43 +108,6 @@ class PrefixPathAction(PathAction):
             return join(trgt, win_path_ok(shrt_pth))
         else:
             return None
-
-
-@with_metaclass(ABCMeta)
-class EnvsDirectoryPathAction(PathAction):
-    def __init__(self, transaction_context, target_prefix):
-        self.transaction_context = transaction_context
-        self.target_prefix = target_prefix
-
-        from .envs_manager import EnvsDirectory
-        self._ed_path = EnvsDirectory.get_envs_directory_for_prefix(self.target_prefix)
-
-        self._execute_successful = False
-
-    def verify(self):
-        from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.envs_dir_path)
-        ed.raise_if_not_writable()
-        self._verified = True
-
-    @abstractmethod
-    def execute(self):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def reverse(self):
-        raise NotImplementedError()
-
-    def cleanup(self):
-        pass
-
-    @property
-    def envs_dir_path(self):
-        return self._ed_path
-
-    @property
-    def target_full_path(self):
-        raise NotImplementedError()
 
 
 # ######################################################
@@ -892,20 +856,33 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
         rm_rf(self.hold_path)
 
 
-class RegisterEnvironmentLocationAction(EnvsDirectoryPathAction):
+class RegisterEnvironmentLocationAction(PathAction):
 
     def __init__(self, transaction_context, target_prefix):
-        super(RegisterEnvironmentLocationAction, self).__init__(transaction_context, target_prefix)
+        self.transaction_context = transaction_context
+        self.target_prefix = target_prefix
+
+        self._execute_successful = False
+
+    def verify(self):
+        touch(USER_ENVIRONMENTS_TXT_FILE, mkdir=True, sudo_safe=True)
+        self._verified = True
 
     def execute(self):
         log.trace("registering environment in catalog %s", self.target_prefix)
 
-        from .envs_manager import EnvsDirectory
-        EnvsDirectory(self.envs_dir_path).register_env(self.target_prefix)
+        register_env(self.target_prefix)
         self._execute_successful = True
 
     def reverse(self):
         pass
+
+    def cleanup(self):
+        pass
+
+    @property
+    def target_full_path(self):
+        raise NotImplementedError()
 
 
 # class RegisterPrivateEnvAction(EnvsDirectoryPathAction):
@@ -1050,18 +1027,32 @@ class RemoveLinkedPackageRecordAction(UnlinkPathAction):
         PrefixData(self.target_prefix)._load_single_record(self.target_full_path)
 
 
-class UnregisterEnvironmentLocationAction(EnvsDirectoryPathAction):
+class UnregisterEnvironmentLocationAction(PathAction):
+
+    def __init__(self, transaction_context, target_prefix):
+        self.transaction_context = transaction_context
+        self.target_prefix = target_prefix
+
+        self._execute_successful = False
+
+    def verify(self):
+        self._verified = True
 
     def execute(self):
         log.trace("unregistering environment in catalog %s", self.target_prefix)
 
-        from .envs_manager import EnvsDirectory
-        ed = EnvsDirectory(self.envs_dir_path)
-        ed.unregister_env(self.target_prefix)
+        unregister_env(self.target_prefix)
         self._execute_successful = True
 
     def reverse(self):
         pass
+
+    def cleanup(self):
+        pass
+
+    @property
+    def target_full_path(self):
+        raise NotImplementedError()
 
 
 # class UnregisterPrivateEnvAction(EnvsDirectoryPathAction):

@@ -8,6 +8,7 @@ from unittest import TestCase
 
 import pytest
 
+from conda._vendor.auxlib.collection import AttrDict
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concat
 from conda.base.constants import PathConflict
@@ -18,10 +19,15 @@ from conda.common.io import env_var
 from conda.common.path import expand, win_path_backout
 from conda.common.url import join_url, path_to_url
 from conda.common.serialize import yaml_load
-from conda.gateways.disk.create import mkdir_p
+from conda.core.package_cache import PackageCache
+from conda.gateways.disk.create import mkdir_p, create_package_cache_directory
 from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.permissions import make_read_only
+from conda.gateways.disk.update import touch
 from conda.models.channel import Channel
 from conda.utils import on_win
+
+from ..helpers import tempdir
 
 
 class ContextCustomRcTests(TestCase):
@@ -195,6 +201,35 @@ class ContextCustomRcTests(TestCase):
         test_path_2 = join(os.getcwd(), 'test_path_2')
         with env_var("CONDA_BLD_PATH", test_path_2, reset_context):
             assert context.local_build_root == test_path_2
+
+    def test_default_target_is_root_prefix(self):
+        assert context.target_prefix == context.root_prefix
+
+    def test_target_prefix(self):
+        with tempdir() as prefix:
+            mkdir_p(join(prefix, 'first', 'envs'))
+            mkdir_p(join(prefix, 'second', 'envs'))
+            create_package_cache_directory(join(prefix, 'first', 'pkgs'))
+            create_package_cache_directory(join(prefix, 'second', 'pkgs'))
+            envs_dirs = (join(prefix, 'first', 'envs'), join(prefix, 'second', 'envs'))
+            with env_var('CONDA_ENVS_DIRS', os.pathsep.join(envs_dirs), reset_context):
+
+                # with both dirs writable, choose first
+                reset_context((), argparse_args=AttrDict(name='blarg', func='create'))
+                assert context.target_prefix == join(envs_dirs[0], 'blarg')
+
+                # with first dir read-only, choose second
+                PackageCache._cache_.clear()
+                make_read_only(join(prefix, 'first', 'pkgs', 'urls.txt'))
+                reset_context((), argparse_args=AttrDict(name='blarg', func='create'))
+                assert context.target_prefix == join(envs_dirs[1], 'blarg')
+
+                # if first dir is read-only but environment exists, choose first
+                PackageCache._cache_.clear()
+                mkdir_p(join(envs_dirs[0], 'blarg'))
+                touch(join(envs_dirs[0], 'blarg', 'history'))
+                reset_context((), argparse_args=AttrDict(name='blarg', func='create'))
+                assert context.target_prefix == join(envs_dirs[0], 'blarg')
 
 
 class ContextDefaultRcTests(TestCase):

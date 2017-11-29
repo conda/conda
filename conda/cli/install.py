@@ -14,16 +14,15 @@ from . import common
 from .common import check_non_admin
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
-from ..base.context import context
+from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
-from ..core.envs_manager import EnvsDirectory
 from ..core.index import calculate_channel_urls, get_index
 from ..core.solve import Solver
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotFoundError, DryRunExit,
                           EnvironmentLocationNotFound, PackagesNotFoundError,
                           TooManyArgumentsError, UnsatisfiableError)
-from ..misc import append_env, clone_env, explicit, touch_nonadmin
+from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..plan import (revert_actions)
 from ..resolve import ResolvePackageNotFound
@@ -58,7 +57,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
             raise DirectoryNotFoundError(src_arg)
     else:
         assert context._argparse_args.clone is not None
-        src_prefix = EnvsDirectory.locate_prefix_by_name(context._argparse_args.clone)
+        src_prefix = locate_prefix_by_name(context._argparse_args.clone)
 
     if not json:
         print("Source:      %s" % src_prefix)
@@ -196,7 +195,6 @@ def install(args, parser, command='install'):
                                         'did not expect any arguments for --clone')
 
         clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
-        append_env(prefix)
         touch_nonadmin(prefix)
         print_activate(args.name if args.name else prefix)
         return
@@ -276,7 +274,6 @@ def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args,
         raise CondaSystemExit('Exiting', e)
 
     if newenv:
-        append_env(prefix)
         touch_nonadmin(prefix)
         print_activate(args.name if args.name else prefix)
 

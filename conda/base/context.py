@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import (abspath, basename, expanduser, isdir, isfile, join, normpath,
+from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
                      split as path_split)
 from platform import machine
 import sys
@@ -948,8 +948,20 @@ def determine_target_prefix(ctx, args=None):
             try:
                 return locate_prefix_by_name(prefix_name)
             except EnvironmentNameNotFound:
-                from ..core.envs_manager import EnvsDirectory
-                return join(EnvsDirectory.first_writable().envs_dir, prefix_name)
+                return join(_first_writable_envs_dir(), prefix_name)
+
+
+def _first_writable_envs_dir():
+    # Starting in conda 4.3, we use the writability test on '..../pkgs/url.txt' to determine
+    # writability of '..../envs'.
+    from ..core.package_cache import PackageCache
+    for envs_dir in context.envs_dirs:
+        pkgs_dir = join(dirname(envs_dir), 'pkgs')
+        if PackageCache(pkgs_dir).is_writable:
+            return envs_dir
+
+    from ..exceptions import NotWritableError
+    raise NotWritableError(context.envs_dirs[0])
 
 
 # backward compatibility for conda-build

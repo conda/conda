@@ -21,7 +21,7 @@ from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
 from ..base.context import conda_in_private_env, context, sys_rc_path, user_rc_path
 from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.url import mask_anaconda_token
-from ..core.envs_manager import EnvsDirectory
+from ..core.envs_manager import env_name
 from ..core.repodata import query_all
 from ..models.channel import all_channel_urls, offline_keep
 from ..models.match_spec import MatchSpec
@@ -157,7 +157,7 @@ def get_info_dict(system=False):
         if isfile(user_netrc):
             netrc_file = user_netrc
 
-    active_prefix_name = EnvsDirectory.env_name(context.active_prefix)
+    active_prefix_name = env_name(context.active_prefix)
 
     info_dict = dict(
         platform=context.subdir,
@@ -308,6 +308,8 @@ def execute(args, parser):
         print(get_main_info_str(info_dict))
 
     if args.envs:
+        from ..core.envs_manager import list_all_known_prefixes
+        info_dict['envs'] = list_all_known_prefixes()
         handle_envs_list(info_dict['envs'], not context.json)
 
     if args.system:

@@ -167,13 +167,7 @@ def stdout_json_success(success=True, **kwargs):
     stdout_json(result)
 
 
-def list_prefixes():
-    # Lists all the prefixes that conda knows about.
-    from conda.core.envs_manager import EnvsDirectory
-    return EnvsDirectory.list_all_envs()
-
-
-def handle_envs_list(acc, output=True):
+def handle_envs_list(known_conda_prefixes, output=True):
 
     if output:
         print("# conda environments:")
@@ -187,10 +181,8 @@ def handle_envs_list(acc, output=True):
         if output:
             print(fmt % (name, default, prefix))
 
-    for prefix in list_prefixes():
+    for prefix in known_conda_prefixes:
         disp_env(prefix)
-        if prefix != context.root_prefix:
-            acc.append(prefix)
 
     if output:
         print()

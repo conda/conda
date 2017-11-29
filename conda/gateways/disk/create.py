@@ -19,10 +19,10 @@ from .update import touch
 from ..subprocess import subprocess_call
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
-from ...base.constants import ENVS_DIR_MAGIC_FILE, PACKAGE_CACHE_MAGIC_FILE
+from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import ensure_binary, on_win
-from ...common.path import ensure_pad, win_path_double_escape, win_path_ok
+from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
 from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
 from ...models.enums import FileMode, LinkType
@@ -315,27 +315,12 @@ def create_package_cache_directory(pkgs_dir):
     # returns False if package cache directory cannot be created
     try:
         log.trace("creating package cache directory '%s'", pkgs_dir)
-        mkdir_p(pkgs_dir)
-        touch(join(pkgs_dir, 'urls'))
-        touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
+        sudo_safe = expand(pkgs_dir).startswith(expand('~'))
+        touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE), mkdir=True, sudo_safe=sudo_safe)
+        touch(join(pkgs_dir, 'urls'), sudo_safe=sudo_safe)
     except (IOError, OSError) as e:
         if e.errno in (EACCES, EPERM):
             log.trace("cannot create package cache directory '%s'", pkgs_dir)
-            return False
-        else:
-            raise
-    return True
-
-
-def create_envs_directory(envs_dir):
-    # returns False if envs directory cannot be created
-    try:
-        log.trace("creating envs directory '%s'", envs_dir)
-        mkdir_p(envs_dir)
-        touch(join(envs_dir, ENVS_DIR_MAGIC_FILE))
-    except (IOError, OSError) as e:
-        if e.errno in (EACCES, EPERM):
-            log.trace("cannot create envs directory '%s'", envs_dir)
             return False
         else:
             raise
