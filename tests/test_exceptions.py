@@ -338,7 +338,8 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == "CommandNotFoundError: 'instate'"
+        assert c.stderr.strip() == ("CommandNotFoundError: Error: No command 'conda instate'.\n"
+                                    "Did you mean 'conda install'?")
 
     def test_CommandNotFoundError_conda_build(self):
         cmd = "build"
@@ -359,35 +360,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == ("CommandNotFoundError: You need to install conda-build in order to\n" \
-                                    "use the 'conda build' command.")
-
-    def test_CommandNotFoundError_activate(self):
-        cmd = "activate"
-        exc = CommandNotFoundError(cmd)
-
-        with env_var("CONDA_JSON", "yes", reset_context):
-            with captured() as c:
-                conda_exception_handler(_raise_helper, exc)
-
-        json_obj = json.loads(c.stdout)
-        assert not c.stderr
-        assert json_obj['exception_type'] == "<class 'conda.exceptions.CommandNotFoundError'>"
-        assert json_obj['message'] == text_type(exc)
-        assert json_obj['error'] == repr(exc)
-
-        with env_var("CONDA_JSON", "no", reset_context):
-            with captured() as c:
-                conda_exception_handler(_raise_helper, exc)
-
-        assert not c.stdout
-
-        if on_win:
-            message = "CommandNotFoundError: 'activate'"
-        else:
-            message = ("CommandNotFoundError: 'activate is not a conda command.\n"
-                       "Did you mean 'source activate'?")
-        assert c.stderr.strip() == message
+        assert c.stderr.strip() == ("CommandNotFoundError: To use 'conda build', install conda-build.")
 
     @patch('requests.post', side_effect=(
             AttrDict(headers=AttrDict(Location='somewhere.else'), status_code=302,
