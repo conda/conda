@@ -112,7 +112,6 @@ class ArgumentParser(ArgumentParserBase):
     def error(self, message):
         import re
         from .find_commands import find_executable
-
         exc = sys.exc_info()[1]
         if exc:
             # this is incredibly lame, but argparse stupidly does not expose
@@ -122,16 +121,20 @@ class ArgumentParser(ArgumentParserBase):
             else:
                 argument = None
             if argument and argument.dest == "cmd":
-                m = re.match(r"invalid choice: u?'(\w+)'", exc.message)
+                m = re.match(r"invalid choice: u?'(\w*?)'", exc.message)
                 if m:
                     cmd = m.group(1)
-                    executable = find_executable('conda-' + cmd)
-                    if not executable:
-                        from ..exceptions import CommandNotFoundError
-                        raise CommandNotFoundError(cmd)
-                    args = [find_executable('conda-' + cmd)]
-                    args.extend(sys.argv[2:])
-                    os.execv(args[0], args)
+                    if not cmd:
+                        self.print_help()
+                        sys.exit(0)
+                    else:
+                        executable = find_executable('conda-' + cmd)
+                        if not executable:
+                            from ..exceptions import CommandNotFoundError
+                            raise CommandNotFoundError(cmd)
+                        args = [find_executable('conda-' + cmd)]
+                        args.extend(sys.argv[2:])
+                        os.execv(args[0], args)
 
         super(ArgumentParser, self).error(message)
 
