@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 from os.path import basename, expanduser, isdir, isfile, join
 import re
-from subprocess import CalledProcessError, check_output
 import sys
 import sysconfig
 
