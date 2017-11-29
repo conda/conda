@@ -43,6 +43,13 @@ _conda_hashr() {
 
 
 _conda_activate() {
+    if [ -n "${CONDA_PS1_BACKUP:+x}" ]; then
+        # Handle transition from shell activated with conda <= 4.3 to a subsequent activation
+        # after conda updated to >= 4.4. See issue #6173.
+        export PS1="$CONDA_PS1_BACKUP"
+        unset CONDA_PS1_BACKUP
+    fi
+
     local ask_conda
     ask_conda="$($_CONDA_EXE shell.posix activate "$@")" || return $?
     eval "$ask_conda"
