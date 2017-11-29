@@ -119,9 +119,10 @@ def main(*args):
                 from ..exceptions import CommandNotFoundError
                 raise CommandNotFoundError(argv1)
         except Exception as e:
-            from ..exceptions import handle_exception
+            _, exc_val, exc_tb = sys.exc_info()
             init_loggers()
-            return handle_exception(e)
+            from ..exceptions import ExceptionHandler
+            return ExceptionHandler().handle_exception(exc_val, exc_tb)
 
     from ..exceptions import conda_exception_handler
     return conda_exception_handler(_main, *args)
