@@ -6,7 +6,7 @@ import json
 from logging import getLogger
 import os
 import sys
-from traceback import format_exception_only, format_exception
+from traceback import format_exception, format_exception_only
 
 from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
@@ -170,6 +170,10 @@ class SharedLinkPathClobberError(ClobberError):
 
 class CommandNotFoundError(CondaError):
     def __init__(self, command):
+        activate_commands = {
+            'activate',
+            'deactivate',
+        }
         conda_commands = {
             'clean',
             'config',
@@ -195,13 +199,46 @@ class CommandNotFoundError(CondaError):
             'render',
             'skeleton',
         }
-        if command in build_commands:
+        if command in activate_commands:
+            from .base.context import context
+            builder = ["Your shell has not been properly configured to use 'conda %(command)s'."]
+            builder.append(dals("""
+            If your shell is Bash or a Bourne variant, enable conda for the current user with
+
+                $ echo ". %(root_prefix)s/etc/profile.d/conda.sh" >> ~/%(config_file)s
+
+            or, for all users, enable conda with
+
+                $ sudo ln -s %(root_prefix)s/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+
+            The options above will permanently enable the 'conda' command, but they do NOT
+            put conda's base (root) environment on PATH.  To do so, run
+
+                $ conda activate
+
+            in your terminal, or to put the base environment on PATH permanently, run
+
+                $ echo "conda activate" >> ~/%(config_file)s
+
+            Previous to conda 4.4, the recommended way to activate conda was to modify PATH in
+            your ~/.%(config_file)s file.  You should manually remove the line that looks like
+
+                export PATH="%(root_prefix)s/bin:$PATH"
+
+            ^^^ The above line should NO LONGER be in your ~/%(config_file)s file! ^^^
+            """) % {
+                'root_prefix': context.root_prefix,
+                'macos_fix': " ''" if sys.platform == 'darwin' else "",
+                'config_file': '.bash_profile' if sys.platform == 'darwin' else '.bashrc',
+            })
+            message = '\n'.join(builder)
+        elif command in build_commands:
             message = "To use 'conda %(command)s', install conda-build."
         else:
             from difflib import get_close_matches
             from .cli.find_commands import find_commands
             message = "No command 'conda %(command)s'."
-            choices = conda_commands | build_commands | set(find_commands())
+            choices = activate_commands | conda_commands | build_commands | set(find_commands())
             close = get_close_matches(command, choices)
             if close:
                 message += "\nDid you mean 'conda %s'?" % close[0]
