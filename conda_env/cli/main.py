@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 
-from conda.base.constants import SEARCH_PATH
 from conda.base.context import context
 from conda.cli.conda_argparse import ArgumentParser
 from conda.cli.main import init_loggers
@@ -67,13 +66,22 @@ def create_parser():
     return p
 
 
+def do_call(args, parser):
+    relative_mod, func_name = args.func.rsplit('.', 1)
+    # func_name should always be 'execute'
+    from importlib import import_module
+    module = import_module(relative_mod, __name__.rsplit('.', 1)[0])
+    exit_code = getattr(module, func_name)(args, parser)
+    return exit_code
+
+
 def main():
     initialize_logging()
     parser = create_parser()
     args = parser.parse_args()
-    context.__init__(SEARCH_PATH, 'conda', args)
+    context.__init__(argparse_args=args)
     init_loggers(context)
-    return conda_exception_handler(args.func, args, parser)
+    return conda_exception_handler(do_call, args, parser)
 
 
 if __name__ == '__main__':

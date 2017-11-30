@@ -40,6 +40,7 @@ def file_path_is_writable(path):
         return access(path, W_OK)
 
 
+@memoize
 def prefix_is_writable(prefix):
     """
     Strategy:
@@ -130,3 +131,7 @@ def softlink_supported(source_file, dest_dir):
         return False
     finally:
         rm_rf(test_path)
+
+
+def is_conda_environment(prefix):
+    return isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE))

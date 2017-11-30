@@ -14,7 +14,7 @@ import warnings
 from conda.base.constants import SafetyChecks
 from .linked_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
 from .package_cache import PackageCache
-from .path_actions import (CompilePycAction, CreatePrefixRecordAction, CreateNonadminAction,
+from .path_actions import (CompilePycAction, CreateNonadminAction, CreatePrefixRecordAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
                            RemoveMenuAction, UnlinkPathAction, UnregisterEnvironmentLocationAction,
@@ -33,7 +33,7 @@ from ..exceptions import (KnownPackageClobberError, LinkError, RemoveError,
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
-from ..gateways.disk.test import hardlink_supported, softlink_supported
+from ..gateways.disk.test import hardlink_supported, is_conda_environment, softlink_supported
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..resolve import MatchSpec
@@ -161,8 +161,11 @@ class UnlinkLinkTransaction(object):
 
     @property
     def nothing_to_do(self):
-        return not any((stp.unlink_precs or stp.link_precs)
-                       for stp in itervalues(self.prefix_setups))
+        return (
+            not any((stp.unlink_precs or stp.link_precs) for stp in itervalues(self.prefix_setups))
+            and all(is_conda_environment(stp.target_prefix)
+                    for stp in itervalues(self.prefix_setups))
+        )
 
     def get_pfe(self):
         from .package_cache import ProgressiveFetchExtract
@@ -287,7 +290,7 @@ class UnlinkLinkTransaction(object):
         history_actions = UpdateHistoryAction.create_actions(
             transaction_context, target_prefix, remove_specs, update_specs,
         )
-        if link_action_groups:
+        if link_action_groups or not (unlink_action_groups and link_action_groups):
             register_actions = RegisterEnvironmentLocationAction(transaction_context,
                                                                  target_prefix),
         else:

@@ -97,7 +97,12 @@ _conda_reactivate() {
 
 
 conda() {
-    local cmd="$1" && shift
+    if [ "$#" -ge 1 ]; then
+        local cmd="$1"
+        shift
+    else
+        local cmd=""
+    fi
     case "$cmd" in
         activate)
             _conda_activate "$@"

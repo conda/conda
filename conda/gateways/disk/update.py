@@ -2,13 +2,15 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
+import os
 from os import rename as os_rename, utime
 from os.path import dirname, isdir
 import re
 
-from . import exp_backoff_fn, mkdir_p
+from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
 from .delete import rm_rf
 from .link import lexists
+from ...common.compat import on_win
 from ...common.path import expand
 
 log = getLogger(__name__)
@@ -54,11 +56,12 @@ def backoff_rename(source_path, destination_path, force=False):
     exp_backoff_fn(rename, source_path, destination_path, force)
 
 
-def touch(path, mkdir=False):
-    # returns
+def touch(path, mkdir=False, sudo_safe=False):
+    # sudo_safe: use any time `path` is within the user's home directory
+    # returns:
     #   True if the file did not exist but was created
     #   False if the file already existed
-    # raises permissions errors such as EPERM and EACCES
+    # raises: permissions errors such as EPERM and EACCES
     path = expand(path)
     log.trace("touching path %s", path)
     if lexists(path):
@@ -67,7 +70,10 @@ def touch(path, mkdir=False):
     else:
         dirpath = dirname(path)
         if not isdir(dirpath) and mkdir:
-            mkdir_p(dirpath)
+            if sudo_safe:
+                mkdir_p_sudo_safe(dirpath)
+            else:
+                mkdir_p(dirpath)
         else:
             assert isdir(dirname(path))
         try:
@@ -76,4 +82,9 @@ def touch(path, mkdir=False):
             raise
         else:
             fh.close()
+            if sudo_safe and not on_win and os.environ.get('SUDO_UID') is not None:
+                uid = int(os.environ['SUDO_UID'])
+                gid = int(os.environ.get('SUDO_GID', -1))
+                log.trace("chowning %s:%s %s", uid, gid, path)
+                os.chown(path, uid, gid)
             return False

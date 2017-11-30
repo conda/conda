@@ -40,6 +40,19 @@ def make_writable(path):
             raise
 
 
+def make_read_only(path):
+    mode = lstat(path).st_mode
+    if S_ISDIR(mode):
+        chmod(path, S_IMODE(mode) & ~S_IWRITE)
+    elif islink(path):
+        lchmod(path, S_IMODE(mode) & ~S_IWRITE)
+    elif S_ISREG(mode):
+        chmod(path, S_IMODE(mode) & ~S_IWRITE)
+    else:
+        log.debug("path cannot be made read only: %s", path)
+    return True
+
+
 def recursive_make_writable(path, max_tries=MAX_TRIES):
     # The need for this function was pointed out at
     #   https://github.com/conda/conda/issues/3266#issuecomment-239241915

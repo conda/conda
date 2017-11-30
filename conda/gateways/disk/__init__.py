@@ -3,8 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import EACCES, EEXIST, ENOENT, ENOTEMPTY, EPERM, errorcode
 from logging import getLogger
-from os import makedirs
-from os.path import basename, isdir
+import os
+from os import makedirs, mkdir
+from os.path import basename, isdir, dirname
 import sys
 from time import sleep
 
@@ -63,3 +64,18 @@ def mkdir_p(path):
             return path
         else:
             raise
+
+
+def mkdir_p_sudo_safe(path):
+    if isdir(path):
+        return
+    base_dir = dirname(path)
+    if not isdir(base_dir):
+        mkdir_p_sudo_safe(base_dir)
+    log.trace('making directory %s', path)
+    mkdir(path)
+    if not on_win and os.environ.get('SUDO_UID') is not None:
+        uid = int(os.environ['SUDO_UID'])
+        gid = int(os.environ.get('SUDO_GID', -1))
+        log.trace("chowning %s:%s %s", uid, gid, path)
+        os.chown(path, uid, gid)

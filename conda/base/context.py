@@ -3,15 +3,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import (abspath, basename, expanduser, isdir, isfile, join, normpath,
+from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
                      split as path_split)
 from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PathConflict, ROOT_ENV_NAME,
-                        SEARCH_PATH, SafetyChecks)
-from .. import __version__ as CONDA_VERSION, CondaError
+                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks)
+from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
@@ -187,6 +187,28 @@ class Context(Configuration):
     _croot = PrimitiveParameter('', aliases=('croot',))
     conda_build = MapParameter(string_types, aliases=('conda-build',))
 
+    def __init__(self, search_path=None, argparse_args=None):
+        if search_path is None:
+            search_path = SEARCH_PATH
+
+        if argparse_args:
+            # This block of code sets CONDA_PREFIX based on '-n' and '-p' flags, so that
+            # configuration can be properly loaded from those locations
+            func_name = ('func' in argparse_args and argparse_args.func or '').rsplit('.', 1)[-1]
+            if func_name in ('create', 'install', 'update', 'remove', 'uninstall', 'upgrade'):
+                if 'prefix' in argparse_args and argparse_args.prefix:
+                    os.environ['CONDA_PREFIX'] = argparse_args.prefix
+                elif 'name' in argparse_args and argparse_args.name:
+                    # Currently, usage of the '-n' flag is inefficient, with all configuration
+                    # files being loaded/re-loaded at least two times.
+                    target_prefix = determine_target_prefix(context, argparse_args)
+                    if target_prefix != context.root_prefix:
+                        os.environ['CONDA_PREFIX'] = determine_target_prefix(context,
+                                                                             argparse_args)
+
+        super(Context, self).__init__(search_path=search_path, app_name=APP_NAME,
+                                      argparse_args=argparse_args)
+
     def post_build_validation(self):
         errors = []
         if self.client_ssl_cert_key and not self.client_ssl_cert:
@@ -311,14 +333,19 @@ class Context(Configuration):
 
     @property
     def root_writable(self):
-        from ..gateways.disk.test import prefix_is_writable
-        try:
-            return prefix_is_writable(self.root_prefix)
-        except CondaError:  # pragma: no cover
-            # With pyinstaller, conda code can sometimes be called even though sys.prefix isn't
-            # a conda environment with a conda-meta/ directory.  In this case, it's safe to return
-            # False, because conda shouldn't itself be mutating that environment. See #6243
-            return False
+        # rather than using conda.gateways.disk.test.prefix_is_writable
+        # let's shortcut and assume the root prefix exists
+        path = join(self.root_prefix, PREFIX_MAGIC_FILE)
+        if isfile(path):
+            try:
+                fh = open(path, 'a+')
+            except (IOError, OSError) as e:
+                log.debug(e)
+                return False
+            else:
+                fh.close()
+                return True
+        return False
 
     @property
     def envs_dirs(self):
@@ -417,10 +444,9 @@ class Context(Configuration):
     def target_prefix(self):
         # used for the prefix that is the target of the command currently being executed
         # different from the active prefix, which is sometimes given by -p or -n command line flags
-        from ..core.envs_manager import determine_target_prefix
         return determine_target_prefix(self)
 
-    @property
+    @memoizedproperty
     def root_prefix(self):
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))
@@ -576,7 +602,7 @@ def conda_in_private_env():
 
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
-    context.__init__(search_path, APP_NAME, argparse_args)
+    context.__init__(search_path, argparse_args)
     from ..models.channel import Channel
     Channel._reset_state()
     # need to import here to avoid circular dependency
@@ -865,14 +891,86 @@ def _get_user_agent(context_platform):
     return user_agent
 
 
+def locate_prefix_by_name(name, envs_dirs=None):
+    """Find the location of a prefix given a conda env name.  If the location does not exist, an
+    error is raised.
+    """
+    assert name
+    if name in (ROOT_ENV_NAME, 'root'):
+        return context.root_prefix
+    if envs_dirs is None:
+        envs_dirs = context.envs_dirs
+    for envs_dir in envs_dirs:
+        if not isdir(envs_dir):
+            continue
+        prefix = join(envs_dir, name)
+        if isdir(prefix):
+            return prefix
+
+    from ..exceptions import EnvironmentNameNotFound
+    raise EnvironmentNameNotFound(name)
+
+
+def determine_target_prefix(ctx, args=None):
+    """Get the prefix to operate in.  The prefix may not yet exist.
+
+    Args:
+        ctx: the context of conda
+        args: the argparse args from the command line
+
+    Returns: the prefix
+    Raises: CondaEnvironmentNotFoundError if the prefix is invalid
+    """
+
+    argparse_args = args or ctx._argparse_args
+    try:
+        prefix_name = argparse_args.name
+    except AttributeError:
+        prefix_name = None
+    try:
+        prefix_path = argparse_args.prefix
+    except AttributeError:
+        prefix_path = None
+
+    if prefix_name is None and prefix_path is None:
+        return ctx.default_prefix
+    elif prefix_path is not None:
+        return expand(prefix_path)
+    else:
+        if '/' in prefix_name:
+            from ..exceptions import CondaValueError
+            raise CondaValueError("'/' not allowed in environment name: %s" %
+                                  prefix_name)
+        if prefix_name in (ROOT_ENV_NAME, 'root'):
+            return ctx.root_prefix
+        else:
+            from ..exceptions import EnvironmentNameNotFound
+            try:
+                return locate_prefix_by_name(prefix_name)
+            except EnvironmentNameNotFound:
+                return join(_first_writable_envs_dir(), prefix_name)
+
+
+def _first_writable_envs_dir():
+    # Starting in conda 4.3, we use the writability test on '..../pkgs/url.txt' to determine
+    # writability of '..../envs'.
+    from ..core.package_cache import PackageCache
+    for envs_dir in context.envs_dirs:
+        pkgs_dir = join(dirname(envs_dir), 'pkgs')
+        if PackageCache(pkgs_dir).is_writable:
+            return envs_dir
+
+    from ..exceptions import NotWritableError
+    raise NotWritableError(context.envs_dirs[0])
+
+
 # backward compatibility for conda-build
 def get_prefix(ctx, args, search=True):
-    from ..core.envs_manager import determine_target_prefix
     return determine_target_prefix(ctx or context, args)
 
 
 try:
-    context = Context(SEARCH_PATH, APP_NAME, None)
+    context = Context((), None)
 except LoadError as e:  # pragma: no cover
     print(e, file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit

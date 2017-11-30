@@ -2,6 +2,7 @@ from argparse import RawDescriptionHelpFormatter
 
 from conda.cli import common
 from conda.cli.conda_argparse import add_parser_json
+from conda.core.envs_manager import list_all_known_prefixes
 
 description = """
 List the Conda environments
@@ -25,11 +26,11 @@ def configure_parser(sub_parsers):
 
     add_parser_json(list_parser)
 
-    list_parser.set_defaults(func=execute)
+    list_parser.set_defaults(func='.main_list.execute')
 
 
 def execute(args, parser):
-    info_dict = {'envs': []}
+    info_dict = {'envs': list_all_known_prefixes()}
     common.handle_envs_list(info_dict['envs'], not args.json)
 
     if args.json:

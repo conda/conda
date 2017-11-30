@@ -22,6 +22,7 @@ import pytest
 from conda.install import on_win
 from conda_env.cli.main_create import configure_parser as create_configure_parser
 from conda_env.cli.main_update import configure_parser as update_configure_parser
+from conda_env.cli.main import do_call as do_call_conda_env
 from conda.core.linked_data import linked
 
 from . import utils
@@ -70,7 +71,7 @@ def run_command(command, env_name, *arguments):
     command_line = "{0} -n {1} -f {2}".format(command, env_name, " ".join(arguments))
 
     args = p.parse_args(split(command_line))
-    args.func(args, p)
+    do_call_conda_env(args, p)
 
 
 @contextmanager

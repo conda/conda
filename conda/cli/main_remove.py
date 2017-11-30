@@ -12,11 +12,11 @@ from .common import check_non_admin, confirm_yn, specs_from_args, stdout_json
 from .install import handle_txn
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys
-from ..core.envs_manager import EnvsDirectory
 from ..core.linked_data import linked_data
 from ..core.solve import Solver
 from ..exceptions import CondaEnvironmentError, CondaValueError
 from ..gateways.disk.delete import delete_trash, rm_rf
+from ..gateways.disk.test import is_conda_environment
 from ..instructions import PREFIX
 from ..plan import (add_unlink)
 
@@ -39,7 +39,7 @@ def execute(args, parser):
         # full environment removal was requested, but environment doesn't exist anyway
         return 0
 
-    if not EnvsDirectory.is_conda_environment(prefix):
+    if not is_conda_environment(prefix):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
 

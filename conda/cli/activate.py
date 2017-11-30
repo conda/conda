@@ -48,8 +48,8 @@ activate' from PATH. """)
 
 
 def locate_prefix_by_name(ctx, name):
-    from ..core.envs_manager import EnvsDirectory
-    return EnvsDirectory.locate_prefix_by_name(name, ctx.envs_dirs)
+    from ..base.context import locate_prefix_by_name
+    return locate_prefix_by_name(name, ctx.envs_dirs)
 
 
 def prefix_from_arg(arg, shell):
