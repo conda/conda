@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os import listdir
+from os import listdir, os
 from os.path import dirname, isdir, isfile, join, normpath, split as path_split
 
 from ..base.constants import ROOT_ENV_NAME
@@ -81,7 +81,11 @@ def list_all_known_prefixes():
                 all_env_paths.update(_clean_environments_txt(environments_txt_file))
     else:
         from pwd import getpwall
-        for home_dir in tuple(pwentry.pw_dir for pwentry in getpwall()) or expand('~'):
+        if os.geteuid() == 0:
+            search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (expand('~'),)
+        else:
+            search_dirs = (expand('~'),)
+        for home_dir in search_dirs:
             environments_txt_file = join(home_dir, '.conda', 'environments.txt')
             if isfile(environments_txt_file):
                 all_env_paths.update(_clean_environments_txt(environments_txt_file))
