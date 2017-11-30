@@ -36,7 +36,7 @@ def execute(args, parser):
         channels_urls = tuple(calculate_channel_urls(
             channel_urls=context.channels,
             prepend=not args.override_channels,
-            platform=None,
+            platform=subdirs[0],
             use_local=args.use_local,
         ))
         from ..exceptions import PackagesNotFoundError
