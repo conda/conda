@@ -26,7 +26,7 @@ class TestSolve(unittest.TestCase):
         for dist in dists:
             if dist.quad[0] in names:
                 record = index[dist]
-                assert record.requires_features['blas'] == 'mkl'
+                assert 'mkl' in record.features
 
     # def test_explicit0(self):
     #     self.assertEqual(r.explicit([]), [])
@@ -79,7 +79,7 @@ class TestSolve(unittest.TestCase):
               'zlib-1.2.7-0.tar.bz2']])
 
     def test_iopro_mkl(self):
-        installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(provides_features='mkl')], returnall=True)
+        installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')], returnall=True)
         installed = [[dist.to_filename() for dist in psol] for psol in installed]
 
         self.assertEqual(installed,
@@ -96,17 +96,17 @@ class TestSolve(unittest.TestCase):
               'zlib-1.2.7-0.tar.bz2']])
 
     def test_mkl(self):
-        a = r.install(['mkl 11*', MatchSpec(provides_features='mkl')])
+        a = r.install(['mkl 11*', MatchSpec(track_features='mkl')])
         b = r.install(['mkl'])
         assert a == b
 
     def test_accelerate(self):
         self.assertEqual(
             r.install(['accelerate']),
-            r.install(['accelerate', MatchSpec(provides_features='mkl')]))
+            r.install(['accelerate', MatchSpec(track_features='mkl')]))
 
     def test_scipy_mkl(self):
-        dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(provides_features='mkl')])
+        dists = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')])
         self.assert_have_mkl(dists, ('numpy', 'scipy'))
         self.assertTrue(Dist('channel-1::scipy-0.12.0-np17py27_p0.tar.bz2') in dists)
 
@@ -132,7 +132,7 @@ def test_pseudo_boolean():
         'zlib-1.2.7-0.tar.bz2',
     ]]]
 
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(provides_features='mkl')], returnall=True) == [[
+    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')], returnall=True) == [[
         Dist(add_defaults_if_no_channel(fn)) for fn in [
         'iopro-1.4.3-np15py27_p0.tar.bz2',
         'mkl-rt-11.0-p0.tar.bz2',
@@ -173,20 +173,6 @@ def test_generate_eq_1():
     eqt = {Dist(key).to_filename(): value for key, value in iteritems(eqt)}
     assert eqc == {}
     assert eqv == {
-        'accelerate-1.0.0-np15py26_p0.tar.bz2': 2,
-        'accelerate-1.0.0-np15py27_p0.tar.bz2': 2,
-        'accelerate-1.0.0-np16py26_p0.tar.bz2': 2,
-        'accelerate-1.0.0-np16py27_p0.tar.bz2': 2,
-        'accelerate-1.0.0-np17py26_p0.tar.bz2': 2,
-        'accelerate-1.0.0-np17py27_p0.tar.bz2': 2,
-        'accelerate-1.0.0-np17py33_p0.tar.bz2': 2,
-        'accelerate-1.0.1-np15py26_p0.tar.bz2': 1,
-        'accelerate-1.0.1-np15py27_p0.tar.bz2': 1,
-        'accelerate-1.0.1-np16py26_p0.tar.bz2': 1,
-        'accelerate-1.0.1-np16py27_p0.tar.bz2': 1,
-        'accelerate-1.0.1-np17py26_p0.tar.bz2': 1,
-        'accelerate-1.0.1-np17py27_p0.tar.bz2': 1,
-        'accelerate-1.0.1-np17py33_p0.tar.bz2': 1,
         'anaconda-1.4.0-np15py26_0.tar.bz2': 1,
         'anaconda-1.4.0-np15py27_0.tar.bz2': 1,
         'anaconda-1.4.0-np16py26_0.tar.bz2': 1,
@@ -237,60 +223,13 @@ def test_generate_eq_1():
         'matplotlib-1.2.0-np17py26_1.tar.bz2': 1,
         'matplotlib-1.2.0-np17py27_1.tar.bz2': 1,
         'matplotlib-1.2.0-np17py33_1.tar.bz2': 1,
-        'mkl-10.3-0.tar.bz2': 1,
-        'mkl-10.3-p1.tar.bz2': 1,
-        'mkl-10.3-p2.tar.bz2': 1,
         'nose-1.2.1-py26_0.tar.bz2': 1,
         'nose-1.2.1-py27_0.tar.bz2': 1,
         'nose-1.2.1-py33_0.tar.bz2': 1,
-        'numba-0.7.0-np16py26_1.tar.bz2': 2,
-        'numba-0.7.0-np16py27_1.tar.bz2': 2,
-        'numba-0.7.0-np17py26_1.tar.bz2': 2,
-        'numba-0.7.0-np17py27_1.tar.bz2': 2,
-        'numba-0.7.1-np16py26_0.tar.bz2': 1,
-        'numba-0.7.1-np16py27_0.tar.bz2': 1,
-        'numba-0.7.1-np17py26_0.tar.bz2': 1,
-        'numba-0.7.1-np17py27_0.tar.bz2': 1,
-        'numbapro-0.10.0-np16py26_p0.tar.bz2': 2,
-        'numbapro-0.10.0-np16py27_p0.tar.bz2': 2,
-        'numbapro-0.10.0-np17py26_p0.tar.bz2': 2,
-        'numbapro-0.10.0-np17py27_p0.tar.bz2': 2,
-        'numbapro-0.10.1-np16py26_p0.tar.bz2': 1,
-        'numbapro-0.10.1-np16py27_p0.tar.bz2': 1,
-        'numbapro-0.10.1-np17py26_p0.tar.bz2': 1,
-        'numbapro-0.10.1-np17py27_p0.tar.bz2': 1,
-        'numexpr-2.0.1-np16py26_1.tar.bz2': 1,
-        'numexpr-2.0.1-np16py26_2.tar.bz2': 1,
-        'numexpr-2.0.1-np16py26_3.tar.bz2': 1,
-        'numexpr-2.0.1-np16py26_ce0.tar.bz2': 1,
-        'numexpr-2.0.1-np16py26_p1.tar.bz2': 1,
-        'numexpr-2.0.1-np16py26_p2.tar.bz2': 1,
-        'numexpr-2.0.1-np16py26_p3.tar.bz2': 1,
-        'numexpr-2.0.1-np16py26_pro0.tar.bz2': 1,
-        'numexpr-2.0.1-np16py27_1.tar.bz2': 1,
-        'numexpr-2.0.1-np16py27_2.tar.bz2': 1,
-        'numexpr-2.0.1-np16py27_3.tar.bz2': 1,
-        'numexpr-2.0.1-np16py27_ce0.tar.bz2': 1,
-        'numexpr-2.0.1-np16py27_p1.tar.bz2': 1,
-        'numexpr-2.0.1-np16py27_p2.tar.bz2': 1,
-        'numexpr-2.0.1-np16py27_p3.tar.bz2': 1,
-        'numexpr-2.0.1-np16py27_pro0.tar.bz2': 1,
-        'numexpr-2.0.1-np17py26_1.tar.bz2': 1,
-        'numexpr-2.0.1-np17py26_2.tar.bz2': 1,
-        'numexpr-2.0.1-np17py26_3.tar.bz2': 1,
-        'numexpr-2.0.1-np17py26_ce0.tar.bz2': 1,
-        'numexpr-2.0.1-np17py26_p1.tar.bz2': 1,
-        'numexpr-2.0.1-np17py26_p2.tar.bz2': 1,
-        'numexpr-2.0.1-np17py26_p3.tar.bz2': 1,
-        'numexpr-2.0.1-np17py26_pro0.tar.bz2': 1,
-        'numexpr-2.0.1-np17py27_1.tar.bz2': 1,
-        'numexpr-2.0.1-np17py27_2.tar.bz2': 1,
-        'numexpr-2.0.1-np17py27_3.tar.bz2': 1,
-        'numexpr-2.0.1-np17py27_ce0.tar.bz2': 1,
-        'numexpr-2.0.1-np17py27_p1.tar.bz2': 1,
-        'numexpr-2.0.1-np17py27_p2.tar.bz2': 1,
-        'numexpr-2.0.1-np17py27_p3.tar.bz2': 1,
-        'numexpr-2.0.1-np17py27_pro0.tar.bz2': 1,
+        'numba-0.7.0-np16py26_1.tar.bz2': 1,
+        'numba-0.7.0-np16py27_1.tar.bz2': 1,
+        'numba-0.7.0-np17py26_1.tar.bz2': 1,
+        'numba-0.7.0-np17py27_1.tar.bz2': 1,
         'numpy-1.5.1-py26_3.tar.bz2': 3,
         'numpy-1.5.1-py27_3.tar.bz2': 3,
         'numpy-1.6.2-py26_3.tar.bz2': 2,
@@ -342,30 +281,12 @@ def test_generate_eq_1():
         'requests-0.13.9-py26_0.tar.bz2': 1,
         'requests-0.13.9-py27_0.tar.bz2': 1,
         'requests-0.13.9-py33_0.tar.bz2': 1,
-        'scikit-learn-0.13-np15py26_0.tar.bz2': 1,
         'scikit-learn-0.13-np15py26_1.tar.bz2': 1,
-        'scikit-learn-0.13-np15py26_p0.tar.bz2': 1,
-        'scikit-learn-0.13-np15py26_p1.tar.bz2': 1,
-        'scikit-learn-0.13-np15py27_0.tar.bz2': 1,
         'scikit-learn-0.13-np15py27_1.tar.bz2': 1,
-        'scikit-learn-0.13-np15py27_p0.tar.bz2': 1,
-        'scikit-learn-0.13-np15py27_p1.tar.bz2': 1,
-        'scikit-learn-0.13-np16py26_0.tar.bz2': 1,
         'scikit-learn-0.13-np16py26_1.tar.bz2': 1,
-        'scikit-learn-0.13-np16py26_p0.tar.bz2': 1,
-        'scikit-learn-0.13-np16py26_p1.tar.bz2': 1,
-        'scikit-learn-0.13-np16py27_0.tar.bz2': 1,
         'scikit-learn-0.13-np16py27_1.tar.bz2': 1,
-        'scikit-learn-0.13-np16py27_p0.tar.bz2': 1,
-        'scikit-learn-0.13-np16py27_p1.tar.bz2': 1,
-        'scikit-learn-0.13-np17py26_0.tar.bz2': 1,
         'scikit-learn-0.13-np17py26_1.tar.bz2': 1,
-        'scikit-learn-0.13-np17py26_p0.tar.bz2': 1,
-        'scikit-learn-0.13-np17py26_p1.tar.bz2': 1,
-        'scikit-learn-0.13-np17py27_0.tar.bz2': 1,
         'scikit-learn-0.13-np17py27_1.tar.bz2': 1,
-        'scikit-learn-0.13-np17py27_p0.tar.bz2': 1,
-        'scikit-learn-0.13-np17py27_p1.tar.bz2': 1,
         'scipy-0.11.0-np15py26_3.tar.bz2': 1,
         'scipy-0.11.0-np15py27_3.tar.bz2': 1,
         'scipy-0.11.0-np16py26_3.tar.bz2': 1,
@@ -402,15 +323,6 @@ def test_generate_eq_1():
         'gevent_zeromq-0.2.5-py26_1.tar.bz2': 1,
         'gevent_zeromq-0.2.5-py27_1.tar.bz2': 1,
         'libnetcdf-4.2.1.1-0.tar.bz2': 1,
-        'mkl-10.3-0.tar.bz2': 2,
-        'mkl-10.3-p1.tar.bz2': 1,
-        'mkl-11.0-np15py26_p0.tar.bz2': 1,
-        'mkl-11.0-np15py27_p0.tar.bz2': 1,
-        'mkl-11.0-np16py26_p0.tar.bz2': 1,
-        'mkl-11.0-np16py27_p0.tar.bz2': 1,
-        'mkl-11.0-np17py26_p0.tar.bz2': 1,
-        'mkl-11.0-np17py27_p0.tar.bz2': 1,
-        'mkl-11.0-np17py33_p0.tar.bz2': 1,
         'numexpr-2.0.1-np16py26_1.tar.bz2': 2,
         'numexpr-2.0.1-np16py26_2.tar.bz2': 1,
         'numexpr-2.0.1-np16py26_ce0.tar.bz2': 3,
@@ -454,18 +366,6 @@ def test_generate_eq_1():
         'scikit-image-0.8.2-np17py26_0.tar.bz2': 1,
         'scikit-image-0.8.2-np17py27_0.tar.bz2': 1,
         'scikit-image-0.8.2-np17py33_0.tar.bz2': 1,
-        'scikit-learn-0.13-np15py26_0.tar.bz2': 1,
-        'scikit-learn-0.13-np15py26_p0.tar.bz2': 1,
-        'scikit-learn-0.13-np15py27_0.tar.bz2': 1,
-        'scikit-learn-0.13-np15py27_p0.tar.bz2': 1,
-        'scikit-learn-0.13-np16py26_0.tar.bz2': 1,
-        'scikit-learn-0.13-np16py26_p0.tar.bz2': 1,
-        'scikit-learn-0.13-np16py27_0.tar.bz2': 1,
-        'scikit-learn-0.13-np16py27_p0.tar.bz2': 1,
-        'scikit-learn-0.13-np17py26_0.tar.bz2': 1,
-        'scikit-learn-0.13-np17py26_p0.tar.bz2': 1,
-        'scikit-learn-0.13-np17py27_0.tar.bz2': 1,
-        'scikit-learn-0.13-np17py27_p0.tar.bz2': 1,
         'sphinx-1.1.3-py26_2.tar.bz2': 1,
         'sphinx-1.1.3-py27_2.tar.bz2': 1,
         'sphinx-1.1.3-py33_2.tar.bz2': 1,
@@ -480,7 +380,6 @@ def test_generate_eq_1():
         'theano-0.5.0-np16py27_0.tar.bz2': 1,
         'theano-0.5.0-np17py26_0.tar.bz2': 1,
         'theano-0.5.0-np17py27_0.tar.bz2': 1,
-        'wiserf-1.1-np17py27_0.tar.bz2': 1,
         'zeromq-2.2.0-0.tar.bz2': 1,
     }
 
@@ -954,7 +853,7 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]]]
 
-    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(provides_features='mkl')],
+    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(track_features='mkl')],
         returnall=True) == [[Dist(add_defaults_if_no_channel(fname)) for fname in [
             'mkl-rt-11.0-p0.tar.bz2',           # This,
             'numpy-1.6.2-py26_p4.tar.bz2',      # this,
@@ -1034,7 +933,7 @@ def test_no_features():
             'zlib-1.2.7-0.tar.bz2',
             ]]]
 
-    assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(provides_features='mkl')],
+    assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(track_features='mkl')],
         returnall=True)[0] == [[Dist(add_defaults_if_no_channel(fname)) for fname in [
             'dateutil-2.1-py27_1.tar.bz2',
             'mkl-rt-11.0-p0.tar.bz2',           # This
@@ -1315,40 +1214,9 @@ def test_channel_priority_2():
         eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {str(Dist(key)): value for key, value in iteritems(eqc)}
         assert eqc == {
-            'channel-1::accelerate-1.0.0-np16py27_p0': 2,
-            'channel-1::accelerate-1.0.0-np17py27_p0': 2,
-            'channel-1::accelerate-1.0.1-np16py27_p0': 1,
-            'channel-1::accelerate-1.0.1-np17py27_p0': 1,
-            'channel-1::bitarray-0.8.0-py27_0': 1,
             'channel-1::dateutil-1.5-py27_0': 1,
-            'channel-1::llvmpy-0.11.1-py27_0': 1,
-            'channel-1::mkl-10.3-0': 1,
-            'channel-1::mkl-10.3-p1': 1,
-            'channel-1::mkl-10.3-p2': 1,
             'channel-1::nose-1.1.2-py27_0': 2,
             'channel-1::nose-1.2.1-py27_0': 1,
-            'channel-1::numba-0.7.1-np16py27_0': 1,
-            'channel-1::numba-0.7.1-np17py27_0': 1,
-            'channel-1::numbapro-0.10.0-np16py27_p0': 2,
-            'channel-1::numbapro-0.10.0-np17py27_p0': 2,
-            'channel-1::numbapro-0.10.1-np16py27_p0': 1,
-            'channel-1::numbapro-0.10.1-np17py27_p0': 1,
-            'channel-1::numexpr-2.0.1-np16py27_1': 1,
-            'channel-1::numexpr-2.0.1-np16py27_2': 1,
-            'channel-1::numexpr-2.0.1-np16py27_3': 1,
-            'channel-1::numexpr-2.0.1-np16py27_ce0': 1,
-            'channel-1::numexpr-2.0.1-np16py27_p1': 1,
-            'channel-1::numexpr-2.0.1-np16py27_p2': 1,
-            'channel-1::numexpr-2.0.1-np16py27_p3': 1,
-            'channel-1::numexpr-2.0.1-np16py27_pro0': 1,
-            'channel-1::numexpr-2.0.1-np17py27_1': 1,
-            'channel-1::numexpr-2.0.1-np17py27_2': 1,
-            'channel-1::numexpr-2.0.1-np17py27_3': 1,
-            'channel-1::numexpr-2.0.1-np17py27_ce0': 1,
-            'channel-1::numexpr-2.0.1-np17py27_p1': 1,
-            'channel-1::numexpr-2.0.1-np17py27_p2': 1,
-            'channel-1::numexpr-2.0.1-np17py27_p3': 1,
-            'channel-1::numexpr-2.0.1-np17py27_pro0': 1,
             'channel-1::numpy-1.6.2-py27_1': 4,
             'channel-1::numpy-1.6.2-py27_3': 4,
             'channel-1::numpy-1.6.2-py27_4': 4,
@@ -1384,14 +1252,6 @@ def test_channel_priority_2():
             'channel-1::python-2.7.5-0': 8,
             'channel-1::pytz-2012d-py27_0': 2,
             'channel-1::pytz-2012j-py27_0': 1,
-            'channel-1::scikit-learn-0.13-np16py27_0': 1,
-            'channel-1::scikit-learn-0.13-np16py27_1': 1,
-            'channel-1::scikit-learn-0.13-np16py27_p0': 1,
-            'channel-1::scikit-learn-0.13-np16py27_p1': 1,
-            'channel-1::scikit-learn-0.13-np17py27_0': 1,
-            'channel-1::scikit-learn-0.13-np17py27_1': 1,
-            'channel-1::scikit-learn-0.13-np17py27_p0': 1,
-            'channel-1::scikit-learn-0.13-np17py27_p1': 1,
             'channel-1::scipy-0.11.0-np16py27_2': 1,
             'channel-1::scipy-0.11.0-np16py27_3': 1,
             'channel-1::scipy-0.11.0-np16py27_ce1': 1,

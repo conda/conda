@@ -771,24 +771,6 @@ def configure_parser_remove(sub_parsers, name='remove'):
         action="store_true",
         help="%s all packages, i.e., the entire environment." % name.capitalize(),
     )
-    p.add_argument(
-        "--features",
-        action="store_true",
-        help="%s features (instead of packages)." % name.capitalize(),
-    )
-
-    # TODO: --features currently sorta still work. But super sloppy.
-
-    # p.add_argument(
-    #     '--feature',
-    #     metavar='FEATURE_NAME=FEATURE_VALUE',
-    #     dest='features',
-    #     action="append",
-    #     help="Feature to remove in the conda environment. "
-    #          "The value must be a key-value pair separated by an equal sign e.g. blas=nomkl. "
-    #          "Can be used multiple times. "
-    #          "Equivalent to a MatchSpec specifying a single 'provides_features'.",
-    # )
 
     p.add_argument(
         "--force",

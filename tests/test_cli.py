@@ -97,6 +97,7 @@ class TestJson(unittest.TestCase):
     def test_search_1(self):
         self.assertIsInstance(capture_json_with_argv('conda search ipython --json'), dict)
 
+    @pytest.mark.integration
     def test_search_2(self):
         from tests.test_create import make_temp_env
         from tests.test_create import run_command
@@ -107,6 +108,7 @@ class TestJson(unittest.TestCase):
 
             assert "nose                       1.3.4                    py34_0  defaults" in result
 
+    @pytest.mark.integration
     def test_search_3(self):
         from tests.test_create import make_temp_env
         from tests.test_create import run_command

@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from concurrent.futures import as_completed
 from itertools import chain
 from logging import getLogger
-
-from concurrent.futures import as_completed
 
 from .linked_data import linked_data
 from .package_cache import PackageCache
@@ -14,7 +13,6 @@ from ..base.context import context
 from ..common.compat import iteritems, itervalues
 from ..common.io import backdown_thread_pool
 from ..exceptions import OperationNotAllowed
-from ..models import translate_feature_str
 from ..models.channel import Channel, all_channel_urls
 from ..models.dist import Dist
 from ..models.index_record import EMPTY_LINK
@@ -120,7 +118,7 @@ def _supplement_index_with_cache(index):
 
 def _supplement_index_with_features(index, features=()):
     for feature in chain(context.track_features, features):
-        rec = make_feature_record(*translate_feature_str(feature))
+        rec = make_feature_record(feature)
         index[Dist(rec)] = rec
 
 
@@ -165,9 +163,9 @@ def get_reduced_index(prefix, channels, subdirs, specs):
 
         records = IndexedSet()
         collected_names = set()
-        collected_provides_features = set()
+        collected_track_features = set()
         pending_names = set()
-        pending_provides_features = set()
+        pending_track_features = set()
 
         def query_all(spec):
             futures = (executor.submit(sd.query, spec) for sd in subdir_datas)
@@ -177,25 +175,23 @@ def get_reduced_index(prefix, channels, subdirs, specs):
             name = spec.get_raw_value('name')
             if name and name not in collected_names:
                 pending_names.add(name)
-            provides_features = spec.get_raw_value('provides_features')
-            if provides_features:
-                for ftr_name, ftr_value in iteritems(provides_features):
-                    kv_feature = "%s=%s" % (ftr_name, ftr_value)
-                    if kv_feature not in collected_provides_features:
-                        pending_provides_features.add(kv_feature)
+            track_features = spec.get_raw_value('track_features')
+            if track_features:
+                for ftr_name in track_features:
+                    if ftr_name not in collected_track_features:
+                        pending_track_features.add(ftr_name)
 
         def push_record(record):
             for _spec in record.combined_depends:
                 push_spec(_spec)
-            if record.provides_features:
-                for ftr_name, ftr_value in iteritems(record.provides_features):
-                    kv_feature = "%s=%s" % (ftr_name, ftr_value)
-                    push_spec(MatchSpec(provides_features=kv_feature))
+            if record.track_features:
+                for ftr_name in record.track_features:
+                    push_spec(MatchSpec(track_features=ftr_name))
 
         for spec in specs:
             push_spec(spec)
 
-        while pending_names or pending_provides_features:
+        while pending_names or pending_track_features:
             while pending_names:
                 name = pending_names.pop()
                 collected_names.add(name)
@@ -205,10 +201,10 @@ def get_reduced_index(prefix, channels, subdirs, specs):
                     push_record(record)
                 records.update(new_records)
 
-            while pending_provides_features:
-                kv_feature = pending_provides_features.pop()
-                collected_provides_features.add(kv_feature)
-                spec = MatchSpec(provides_features=kv_feature)
+            while pending_track_features:
+                feature_name = pending_track_features.pop()
+                collected_track_features.add(feature_name)
+                spec = MatchSpec(track_features=feature_name)
                 new_records = query_all(spec)
                 for record in new_records:
                     push_record(record)
@@ -229,14 +225,10 @@ def get_reduced_index(prefix, channels, subdirs, specs):
         # add feature records for the solver
         known_features = set()
         for rec in itervalues(reduced_index):
-            known_features.update("%s=%s" % (k, v) for k, v in concatv(
-                iteritems(rec.provides_features),
-                iteritems(rec.requires_features),
-            ))
-        known_features.update("%s=%s" % translate_feature_str(ftr)
-                              for ftr in context.track_features)
+            known_features.update(concatv(rec.track_features, rec.features))
+        known_features.update(context.track_features)
         for ftr_str in known_features:
-            rec = make_feature_record(*ftr_str.split('=', 1))
+            rec = make_feature_record(ftr_str)
             reduced_index[Dist(rec)] = rec
 
         return reduced_index

@@ -158,9 +158,9 @@ class Solver(object):
             # SAT for spec removal determination, we can use the DAG and simple tree traversal
             # if we're careful about how we handle features. We still invoke sat via `r.solve()`
             # later.
-            _provides_fts_specs = (spec for spec in specs_to_remove if 'provides_features' in spec)
-            feature_names = set(concat(spec.get_raw_value('provides_features')
-                                       for spec in _provides_fts_specs))
+            _track_fts_specs = (spec for spec in specs_to_remove if 'track_features' in spec)
+            feature_names = set(concat(spec.get_raw_value('track_features')
+                                       for spec in _track_fts_specs))
             dag = PrefixDag((index[dist] for dist in solution), itervalues(specs_map))
 
             removed_records = []
@@ -174,10 +174,10 @@ class Solver(object):
             for rec in removed_records:
                 # We keep specs (minus the feature part) for the non provides_features packages
                 # if they're in the history specs.  Otherwise, we pop them from the specs_map.
-                rec_has_a_feature = set(rec.requires_features or ()) & feature_names
+                rec_has_a_feature = set(rec.features or ()) & feature_names
                 if rec_has_a_feature and rec.name in specs_from_history_map:
                     spec = specs_map.get(rec.name, MatchSpec(rec.name))
-                    spec._match_components.pop('requires_features', None)
+                    spec._match_components.pop('features', None)
                     specs_map[spec.name] = spec
                 else:
                     specs_map.pop(rec.name, None)

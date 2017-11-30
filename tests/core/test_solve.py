@@ -722,7 +722,7 @@ def test_install_uninstall_features_1():
         assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
     # now remove the mkl feature
-    specs_to_remove = MatchSpec(provides_features="mkl"),
+    specs_to_remove = MatchSpec(track_features="mkl"),
     history_specs = MatchSpec("python=2.7"), MatchSpec("numpy 1.6.*")
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_2,
                     history_specs=history_specs) as solver:
