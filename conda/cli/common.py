@@ -298,6 +298,13 @@ def add_parser_install(p):
         help="Don't update dependencies (default: %s)." % (not context.update_dependencies,),
     )
     p.add_argument(
+        "--alt-features",
+        action="store_true",
+        default=NULL,
+        help="Prioritize package version and build number maximization over "
+             "feature optimization (default: %s). " % (context.alt_features,),
+    )  # TODO: Use a more expressive name? Rephrase help text to be more user-friendly.
+    p.add_argument(
         "--channel-priority", "--channel-pri", "--chan-pri",
         action="store_true",
         dest="channel_priority",

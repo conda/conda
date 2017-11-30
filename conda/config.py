@@ -50,6 +50,7 @@ rc_bool_keys = [
     'show_channel_urls',
     'allow_other_channels',
     'update_dependencies',
+    'alt_features',
     'channel_priority',
     'shortcuts',
 ]

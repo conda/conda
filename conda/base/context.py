@@ -136,6 +136,7 @@ class Context(Configuration):
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
     always_yes = PrimitiveParameter(False, aliases=('yes',))
+    alt_features = PrimitiveParameter(False)
     channel_priority = PrimitiveParameter(True)
     debug = PrimitiveParameter(False)
     dry_run = PrimitiveParameter(False)
@@ -531,6 +532,9 @@ def get_help_dict():
             this setting, specifying that certain files should never be soft-linked (see the
             no_link option in the build recipe documentation).
             """),
+        'alt_features': dals("""
+            Prioritize package version and build number maximization over feature optimization.
+            """),  # TODO: Use a more expressive name? Rephrase help text to be more user-friendly.
         'always_copy': dals("""
             Register a preference that files be copied into a prefix during install rather
             than hard-linked.

@@ -540,10 +540,13 @@ class Resolve(object):
         cpri = rec.get('priority', 1)
         valid = 1 if cpri < MAX_CHANNEL_PRIORITY else 0
         ver = normalized_version(rec.get('version', ''))
-        features = self.features(dist)
-        # `-len(features)` to prioritize build with fewer required features
-        # `hash(frozenset(features))` to distinguish different feature-requiring varieties
-        ft = (-len(features), hash(frozenset(features)))
+        if context.alt_features:
+            features = self.features(dist)
+            # `-len(features)` to prioritize build with fewer required features
+            # `hash(frozenset(features))` to distinguish different feature-requiring varieties
+            ft = (-len(features), hash(frozenset(features)))
+        else:
+            ft = None
         bld = rec.get('build_number', 0)
         bs = rec.get('build')
         ts = rec.get('timestamp', 0)
@@ -920,25 +923,26 @@ class Resolve(object):
             solution, obj7 = C.minimize(eq_optional_c, solution)
             log.debug('Package removal metric: %d', obj7)
 
-            # Requested packages (split by features): maximize versions
-            eq_req_c_f, eq_req_v_f, eq_req_b_f, eq_req_t_f = (
-                r2.generate_version_metrics(C, specr, split_by_features=True))
-            solution, obj3a_f = C.minimize(eq_req_c_f, solution)
-            solution, obj3_f = C.minimize(eq_req_v_f, solution)
-            log.debug('Initial package channel/version metric (feature split): %d/%d',
-                      obj3a_f, obj3_f)
-            # Requested packages (split by features): maximize builds
-            solution, obj4_f = C.minimize(eq_req_b_f, solution)
-            log.debug('Initial package build metric (feature split): %d', obj4_f)
+            if context.alt_features:
+                # Requested packages (split by features): maximize versions
+                eq_req_c_f, eq_req_v_f, eq_req_b_f, eq_req_t_f = (
+                    r2.generate_version_metrics(C, specr, split_by_features=True))
+                solution, obj3a_f = C.minimize(eq_req_c_f, solution)
+                solution, obj3_f = C.minimize(eq_req_v_f, solution)
+                log.debug('Initial package channel/version metric (feature split): %d/%d',
+                          obj3a_f, obj3_f)
+                # Requested packages (split by features): maximize builds
+                solution, obj4_f = C.minimize(eq_req_b_f, solution)
+                log.debug('Initial package build metric (feature split): %d', obj4_f)
 
-            # Remaining packages (split by features): maximize versions, then builds
-            eq_c_f, eq_v_f, eq_b_f, eq_t_f = (
-                r2.generate_version_metrics(C, speca, split_by_features=True))
-            solution, obj5a_f = C.minimize(eq_c_f, solution)
-            solution, obj5_f = C.minimize(eq_v_f, solution)
-            solution, obj6_f = C.minimize(eq_b_f, solution)
-            log.debug('Additional package channel/version/build metrics (feature split): %d/%d/%d',
-                      obj5a_f, obj5_f, obj6_f)
+                # Remaining packages (split by features): maximize versions, then builds
+                eq_c_f, eq_v_f, eq_b_f, eq_t_f = (
+                    r2.generate_version_metrics(C, speca, split_by_features=True))
+                solution, obj5a_f = C.minimize(eq_c_f, solution)
+                solution, obj5_f = C.minimize(eq_v_f, solution)
+                solution, obj6_f = C.minimize(eq_b_f, solution)
+                log.debug('Additional package channel/version/build metrics (feature split): '
+                          '%d/%d/%d', obj5a_f, obj5_f, obj6_f)
 
             # Requested packages: maximize versions
             eq_req_c, eq_req_v, eq_req_b, eq_req_t = r2.generate_version_metrics(C, specr)
