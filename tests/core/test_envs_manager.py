@@ -46,6 +46,7 @@ class EnvsManagerUnitTests(TestCase):
         touch(join(gascon_location, PREFIX_MAGIC_FILE), mkdir=True)
         assert gascon_location not in list_all_known_prefixes()
 
+        touch(USER_ENVIRONMENTS_TXT_FILE, mkdir=True, sudo_safe=True)
         register_env(gascon_location)
         assert gascon_location in yield_lines(USER_ENVIRONMENTS_TXT_FILE)
         assert len(tuple(x for x in yield_lines(USER_ENVIRONMENTS_TXT_FILE) if paths_equal(gascon_location, x))) == 1

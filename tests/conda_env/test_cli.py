@@ -135,13 +135,11 @@ class IntegrationTests(unittest.TestCase):
         rm_rf("environment.yml")
         if env_is_created(test_env_name_1):
             run_env_command(Commands.ENV_REMOVE, test_env_name_1)
-        rm_rf(join(context.root_prefix, 'envs', test_env_name_1))
 
     def tearDown(self):
         rm_rf("environment.yml")
         if env_is_created(test_env_name_1):
             run_env_command(Commands.ENV_REMOVE, test_env_name_1)
-        rm_rf(join(context.root_prefix, 'envs', test_env_name_1))
 
     def test_conda_env_create_no_file(self):
         '''
@@ -219,12 +217,16 @@ class NewIntegrationTests(unittest.TestCase):
     """
 
     def setUp(self):
-        rm_rf(join(context.root_prefix, 'envs', test_env_name_2))
-        rm_rf(join(context.root_prefix, 'envs', test_env_name_3))
+        if env_is_created(test_env_name_2):
+            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+        if env_is_created(test_env_name_3):
+            run_env_command(Commands.ENV_REMOVE, test_env_name_3)
 
     def tearDown(self):
-        rm_rf(join(context.root_prefix, 'envs', test_env_name_2))
-        rm_rf(join(context.root_prefix, 'envs', test_env_name_3))
+        if env_is_created(test_env_name_2):
+            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+        if env_is_created(test_env_name_3):
+            run_env_command(Commands.ENV_REMOVE, test_env_name_3)
 
     def test_create_remove_env(self):
         """

@@ -163,7 +163,8 @@ class UnlinkLinkTransaction(object):
     def nothing_to_do(self):
         return (
             not any((stp.unlink_precs or stp.link_precs) for stp in itervalues(self.prefix_setups))
-            and all(is_conda_environment(stp.target_prefix) for stp in itervalues(self.prefix_setups))
+            and all(is_conda_environment(stp.target_prefix)
+                    for stp in itervalues(self.prefix_setups))
         )
 
     def get_pfe(self):
