@@ -944,11 +944,12 @@ class Resolve(object):
                 log.debug('Additional package channel/version/build metrics (feature split): '
                           '%d/%d/%d', obj5a_f, obj5_f, obj6_f)
 
-            # Requested packages: maximize versions
             eq_req_c, eq_req_v, eq_req_b, eq_req_t = r2.generate_version_metrics(C, specr)
-            solution, obj3a = C.minimize(eq_req_c, solution)
-            solution, obj3 = C.minimize(eq_req_v, solution)
-            log.debug('Initial package channel/version metric: %d/%d', obj3a, obj3)
+            if not context.alt_features:
+                # Requested packages: maximize versions
+                solution, obj3a = C.minimize(eq_req_c, solution)
+                solution, obj3 = C.minimize(eq_req_v, solution)
+                log.debug('Initial package channel/version metric: %d/%d', obj3a, obj3)
 
             # Track features: minimize feature count
             eq_feature_count = r2.generate_feature_count(C)
@@ -961,22 +962,24 @@ class Resolve(object):
             obj2 = ftotal - obj2
             log.debug('Package feature count: %d', obj2)
 
-            # Requested packages: maximize builds
-            solution, obj4 = C.minimize(eq_req_b, solution)
-            log.debug('Initial package build metric: %d', obj4)
+            if not context.alt_features:
+                # Requested packages: maximize builds
+                solution, obj4 = C.minimize(eq_req_b, solution)
+                log.debug('Initial package build metric: %d', obj4)
 
             # Dependencies: minimize the number of packages that need upgrading
             eq_u = r2.generate_update_count(C, speca)
             solution, obj50 = C.minimize(eq_u, solution)
             log.debug('Dependency update count: %d', obj50)
 
-            # Remaining packages: maximize versions, then builds
             eq_c, eq_v, eq_b, eq_t = r2.generate_version_metrics(C, speca)
-            solution, obj5a = C.minimize(eq_c, solution)
-            solution, obj5 = C.minimize(eq_v, solution)
-            solution, obj6 = C.minimize(eq_b, solution)
-            log.debug('Additional package channel/version/build metrics: %d/%d/%d',
-                      obj5a, obj5, obj6)
+            if not context.alt_features:
+                # Remaining packages: maximize versions, then builds
+                solution, obj5a = C.minimize(eq_c, solution)
+                solution, obj5 = C.minimize(eq_v, solution)
+                solution, obj6 = C.minimize(eq_b, solution)
+                log.debug('Additional package channel/version/build metrics: %d/%d/%d',
+                          obj5a, obj5, obj6)
 
             # Maximize timestamps
             eq_t.update(eq_req_t)
