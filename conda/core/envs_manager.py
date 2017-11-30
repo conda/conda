@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from os import listdir, os
+from os import listdir
 from os.path import dirname, isdir, isfile, join, normpath, split as path_split
 
 from ..base.constants import ROOT_ENV_NAME
@@ -80,8 +80,9 @@ def list_all_known_prefixes():
             if isfile(environments_txt_file):
                 all_env_paths.update(_clean_environments_txt(environments_txt_file))
     else:
+        from os import geteuid
         from pwd import getpwall
-        if os.geteuid() == 0:
+        if geteuid() == 0:
             search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (expand('~'),)
         else:
             search_dirs = (expand('~'),)
