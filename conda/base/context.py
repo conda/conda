@@ -483,6 +483,7 @@ class Context(Configuration):
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
 # I don't think this documentation is correct any longer. # NOQA
             'update_dependencies',
+            'alt_features',  # TODO: Use a more expressive name!
         )
         return tuple(p for p in super(Context, self).list_parameters()
                      if p not in UNLISTED_PARAMETERS)
@@ -532,9 +533,9 @@ def get_help_dict():
             this setting, specifying that certain files should never be soft-linked (see the
             no_link option in the build recipe documentation).
             """),
-        'alt_features': dals("""
-            Prioritize package version and build number maximization over feature optimization.
-            """),  # TODO: Use a more expressive name? Rephrase help text to be more user-friendly.
+        # 'alt_features': dals("""
+        #     Prioritize package version and build number maximization over feature optimization.
+        #     """),  # TODO: Use a more expressive name! Rephrase help to be more user-friendly.
         'always_copy': dals("""
             Register a preference that files be copied into a prefix during install rather
             than hard-linked.
