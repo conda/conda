@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from enum import Enum
 from genericpath import exists
 from logging import DEBUG, getLogger
 from os.path import join
-
-from enum import Enum
 
 from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -15,7 +14,7 @@ from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
 from ..common.constants import NULL
 from ..common.io import spinner
-from ..common.path import paths_equal
+from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import PackagesNotFoundError
 from ..gateways.logging import TRACE
 from ..history import History
@@ -234,6 +233,16 @@ class Solver(object):
         if deps_modifier == DepsModifier.UPDATE_ALL:
             specs_map = {pkg_name: MatchSpec(spec.name, optional=spec.optional)
                          for pkg_name, spec in iteritems(specs_map)}
+
+        # As a business rule, we never want to update python beyond the current minor version,
+        # unless that's requested explicitly by the user (which we actively discourage).
+        if 'python' in specs_map:
+            python_prefix_rec = prefix_data.get('python')
+            if python_prefix_rec:
+                python_spec = specs_map['python']
+                if not python_spec.get('version'):
+                    pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
+                    specs_map['python'] = MatchSpec(python_spec, version=pinned_version)
 
         # For the aggressive_update_packages configuration parameter, we strip any target
         # that's been set.
