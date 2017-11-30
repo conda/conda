@@ -585,25 +585,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         raise CondaIndexError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
 
 
-def make_feature_record_key_value(feature_name, feature_value):
-    # necessary for the SAT solver to do the right thing with features
-    pkg_name = "%s=%s@" % (feature_name, feature_value)
-    return IndexRecord(
-        name=pkg_name,
-        version='0',
-        build='0',
-        channel='@',
-        subdir=context.subdir,
-        md5="12345678901234567890123456789012",
-        provides_features={
-            feature_name: feature_value,
-        },
-        build_number=0,
-        fn=pkg_name,
-    )
-
-
-def make_feature_record_legacy(feature_name):
+def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
     pkg_name = "%s@" % feature_name
     return IndexRecord(

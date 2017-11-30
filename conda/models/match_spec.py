@@ -342,8 +342,6 @@ class MatchSpec(object):
         def _make(field_name, value):
             if field_name not in IndexRecord.__fields__:
                 raise CondaValueError('Cannot match on field %s' % (field_name,))
-            # elif field_name == 'track_features':
-            #     field_name = 'provides_features'
             elif isinstance(value, string_types):
                 value = text_type(value)
 
@@ -669,11 +667,11 @@ class SplitStrMatch(MatchInterface):
         return self._raw_value
 
 
-class LegacyFeatureMatch(MatchInterface):
+class FeatureMatch(MatchInterface):
     __slots__ = '_raw_value',
 
     def __init__(self, value):
-        super(LegacyFeatureMatch, self).__init__(self._convert(value))
+        super(FeatureMatch, self).__init__(self._convert(value))
 
     def _convert(self, value):
         if isinstance(value, frozenset):
@@ -794,8 +792,8 @@ class LowerStrMatch(StrMatch):
 
 _implementors = {
     'name': LowerStrMatch,
-    'track_features': LegacyFeatureMatch,
-    'features': LegacyFeatureMatch,
+    'track_features': FeatureMatch,
+    'features': FeatureMatch,
     'version': VersionSpec,
     'build_number': BuildNumberMatch,
     'channel': ChannelMatch,

@@ -7,7 +7,7 @@ from logging import getLogger
 
 from .linked_data import linked_data
 from .package_cache import PackageCache
-from .repodata import SubdirData, make_feature_record_legacy
+from .repodata import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues
@@ -118,7 +118,7 @@ def _supplement_index_with_cache(index):
 
 def _supplement_index_with_features(index, features=()):
     for feature in chain(context.track_features, features):
-        rec = make_feature_record_legacy(feature)
+        rec = make_feature_record(feature)
         index[Dist(rec)] = rec
 
 
@@ -228,7 +228,7 @@ def get_reduced_index(prefix, channels, subdirs, specs):
             known_features.update(concatv(rec.track_features, rec.features))
         known_features.update(context.track_features)
         for ftr_str in known_features:
-            rec = make_feature_record_legacy(ftr_str)
+            rec = make_feature_record(ftr_str)
             reduced_index[Dist(rec)] = rec
 
         return reduced_index

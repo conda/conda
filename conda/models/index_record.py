@@ -88,15 +88,15 @@ class Link(DictSafeMixin, Entity):
 EMPTY_LINK = Link(source='')
 
 
-class _LegacyFeaturesField(ListField):
+class _FeaturesField(ListField):
 
     def __init__(self, **kwargs):
-        super(_LegacyFeaturesField, self).__init__(string_types, **kwargs)
+        super(_FeaturesField, self).__init__(string_types, **kwargs)
 
     def box(self, instance, instance_type, val):
         if isinstance(val, string_types):
             val = val.replace(' ', ',').split(',')
-        return super(_LegacyFeaturesField, self).box(instance, instance_type, val)
+        return super(_FeaturesField, self).box(instance, instance_type, val)
 
     def dump(self, instance, instance_type, val):
         if isiterable(val):
@@ -248,14 +248,8 @@ class IndexJsonRecord(BasePackageRef):
     depends = ListField(string_types, default=())
     constrains = ListField(string_types, default=())
 
-    # track_features is being depracated and replaced with provides_features
-    # NOTE: it's important that track_features comes before provides_features here
-    track_features = _LegacyFeaturesField(required=False, default=(), default_in_dump=False)
-    # provides_features = ProvidesFeaturesField(required=False, default=frozendict(),
-    #                                           default_in_dump=False)
-    features = _LegacyFeaturesField(required=False, default=(), default_in_dump=False)
-    # requires_features = RequiresFeaturesField(required=False, default=frozendict(),
-    #                                           default_in_dump=False)
+    track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
+    features = _FeaturesField(required=False, default=(), default_in_dump=False)
 
     subdir = SubdirField()
     # package_type = EnumField(NoarchType, required=False)  # previously noarch

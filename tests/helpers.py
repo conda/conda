@@ -18,7 +18,7 @@ from conda._vendor.auxlib.decorators import memoize
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
-from conda.core.repodata import SubdirData, make_feature_record_legacy
+from conda.core.repodata import SubdirData, make_feature_record
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import lexists
 from conda.gateways.logging import initialize_logging
@@ -148,7 +148,7 @@ def add_feature_records_legacy(index):
             all_features.update(rec.track_features)
 
     for feature_name in all_features:
-        rec = make_feature_record_legacy(feature_name)
+        rec = make_feature_record(feature_name)
         index[Dist(rec)] = rec
 
 @memoize
