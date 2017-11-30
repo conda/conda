@@ -1277,6 +1277,7 @@ class IntegrationTests(TestCase):
                             del result.headers[header]
                     return result
 
+                SubdirData._cache_.clear()
                 mock_method.side_effect = side_effect
                 stdout, stderr = run_command(Commands.INFO, prefix, "flask --json")
                 assert mock_method.called

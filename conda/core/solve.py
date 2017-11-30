@@ -5,10 +5,14 @@ from enum import Enum
 from genericpath import exists
 from logging import DEBUG, getLogger
 from os.path import join
+import sys
+from textwrap import dedent
 
 from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .linked_data import PrefixData
+from .repodata import query_all
+from .. import __version__ as CONDA_VERSION
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
@@ -22,6 +26,7 @@ from ..models.channel import Channel
 from ..models.dag import PrefixDag
 from ..models.dist import Dist
 from ..models.match_spec import MatchSpec
+from ..models.version import VersionOrder
 from ..resolve import Resolve, dashlist
 
 try:
@@ -450,7 +455,27 @@ class Solver(object):
                                   self.specs_to_remove, self.specs_to_add)
                 # TODO: Only explicitly requested remove and update specs are being included in
                 #   History right now. Do we need to include other categories from the solve?
-                return UnlinkLinkTransaction(stp)
+
+        conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
+        if not any(conda_newer_spec.match(prec) for prec in link_precs):
+            conda_newer_records = sorted(query_all(self.channels, self.subdirs, conda_newer_spec),
+                                         key=lambda x: VersionOrder(x.version))
+            if conda_newer_records:
+                latest_version = conda_newer_records[-1].version
+                sys.stderr.write(dedent("""
+
+                ==> WARNING: A newer version of conda exists. <==
+                  current version: %s
+                  latest version: %s
+
+                Please update conda by running
+
+                    $ conda update -n base conda
+
+
+                """) % (CONDA_VERSION, latest_version))
+
+        return UnlinkLinkTransaction(stp)
 
     def _prepare(self, prepared_specs):
         # All of this _prepare() method is hidden away down here. Someday we may want to further
