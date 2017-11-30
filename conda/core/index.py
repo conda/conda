@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from concurrent.futures import as_completed
 from itertools import chain
 from logging import getLogger
-
-from concurrent.futures import as_completed
 
 from .linked_data import linked_data
 from .package_cache import PackageCache
@@ -21,11 +20,12 @@ from ..models.index_record import EMPTY_LINK
 from ..models.match_spec import MatchSpec
 from ..models.package_cache_record import PackageCacheRecord
 from ..models.prefix_record import PrefixRecord
+from ..resolve import dashlist
 
 try:
-    from cytoolz.itertoolz import concat, concatv, take
+    from cytoolz.itertoolz import concat, concatv, groupby, take
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, take  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby, take  # NOQA
 
 log = getLogger(__name__)
 
@@ -161,6 +161,13 @@ def get_reduced_index(prefix, channels, subdirs, specs):
     with backdown_thread_pool() as executor:
 
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
+        if context.offline:
+            grouped_urls = groupby(lambda url: url.startswith('file://'), channel_urls)
+            ignored_urls = grouped_urls.get(False, ())
+            if ignored_urls:
+                log.info("Ignoring the following channel urls because mode is offline.%s",
+                         dashlist(ignored_urls))
+            channel_urls = IndexedSet(grouped_urls.get(True, ()))
         subdir_datas = tuple(SubdirData(Channel(url)) for url in channel_urls)
 
         records = IndexedSet()
