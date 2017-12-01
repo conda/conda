@@ -76,18 +76,6 @@
   With conda 4.4, `conda activate` and `conda deactivate` are now the preferred commands for activating and deactivating environments.  You'll find they are much more snappy than the `source activate` and `source deactivate` commands from previous conda versions.  The `conda activate` command also has advantages of (1) being universal across all OSes, shells, and platforms, and (2) not having path collisions with scripts from other packages like python virtualenv's activate script.
 
 
-* **key-value features**: Conda has long supported the concept of "features" to empower users to customize the specific flavors of certain packages that end up in environments.  The `mkl` and `nomkl` features are the most used in the `defaults` channel, along with the `vc9`, `vc10`, and `vc14` features on Windows.  With conda 4.4, features transition from being binary "present" or "not present" to being "present with value" or "not present."  The `nomkl` features will now be displayed as `blas=accelerate` on macOR or `blas=openblas` on other platforms, and similarly for the `vc=9`, `vc=10`, and `vc=14` features.  An environment can only have one variant of a given feature active at a time.  Conda users will start to see features in many more contexts.  Look for a `gpu=cuda8.0` feature in the near future, and possibly even a `python=pypy2.7` feature showing up as well.
-
-  In implementing these key-value features, conda has added two new keywords to repodata. The feature concept was previously supported with `track_features` and `features` keys that roughly corresponded respectively to the new, more descriptive, `provides_features` and `requires_features`.  The old keys are left for backward compatibility, and if the new keys are not provided in repodata, conda will actively do the translation.  In contrast to the old keys being a space-delimited string of feature names, the new keys are both maps of key-value pairs.
-
-  While users can manipulate features within an environment using the new MatchSpec language enhancements, there's a new `--feature` command line flag to simplify the interaction.  The commands
-
-      conda install scipy --feature blas=openblas
-      conda install scipy[features='blas=openblas']
-
-  are equivalent.
-
-
 * **errors posted to core maintainers**: In previous versions of conda, unexpected errors resulted in a request for users to consider posting the error as a new issue on conda's github issue tracker.  In conda 4.4, we've implemented a system for users to opt-in to sending that same error report via an HTTP POST request directly to the core maintainers.
 
   When an unexpected error is encountered, users are prompted with the error report followed by a `[y/N]` input. Users can elect to send the report, with 'no' being the default response.  Users can also permanently opt-in or opt-out, thereby skipping the prompt altogether, using the boolean `report_errors` configuration parameter.
@@ -133,7 +121,6 @@
 * resolve #5530 add ability for users to choose to post unexpected errors to core maintainers (#5531, #5571, #5585)
 * Solver, UI, History, and Other (#5546, #5583, #5740)
 * improve 'conda search' to leverage new MatchSpec query language (#5597)
-* key-value features (#5645)
 * filter out unwritable package caches from conda clean command (#4620)
 * envs_manager, requested spec history, declarative solve, and private env tests (#4676, #5114, #5094, #5145, #5492)
 * make python entry point format match pip entry points (#5010)
@@ -167,6 +154,7 @@
 * clean up parser imports (4.4.0rc2) (#5844)
 * resolve #5983 add --download-only flag to create, install, and update (4.4.0rc2) (#5988)
 * add ca-certificates and certifi to aggressive_update_packages default (4.4.0rc2) (#5994)
+* use environments.txt to list all known environments (4.4.0rc2) (#6313)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -196,6 +184,13 @@
 * fix #5811 change safety_checks default to 'warn' for conda 4.4 (4.4.0rc1) (#5824)
 * fix #5825 --json output format (4.4.0rc1) (#5831)
 * fix force_reinstall for case when packages aren't actually installed (4.4.0rc1) (#5836)
+* fix #5680 empty pip subsection error in environment.yml (4.4.0rc2) (#6275)
+* fix #5852 bad tokens from history crash conda installs (4.4.0rc2) (#6076)
+* fix #5827 no error message on invalid command (4.4.0rc2) (#6352)
+* fix exception handler for 'conda activate' (4.4.0rc2) (#6365)
+* fix #6173 double prompt immediately after conda 4.4 upgrade (4.4.0rc2) (#6351)
+* fix #6181 keep existing pythons pinned to minor version (4.4.0rc2) (#6363)
+* fix #6201 incorrect subdir shown for conda search when package not found (4.4.0rc2) (#6367)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
@@ -217,6 +212,8 @@
 * update conda 4.4 bld.bat windows recipe (#5573)
 * remove last remnant of CondaEnvRuntimeError (#5643)
 * fix typo (4.4.0rc2) (#6043)
+* replace Travis-CI with CircleCI (4.4.0rc2) (#6345)
+* key-value features (#5645); reverted in 4.4.0rc2 (#6347)
 
 
 ## 4.3.31 (unreleased)

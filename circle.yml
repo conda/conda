@@ -6,6 +6,7 @@ defaults: &defaults
   working_directory: ~/conda
   docker:
     - image: condatest/linux-64-python-3.6
+      # Dockerfile at https://github.com/conda/conda-docker/blob/master/condatest/linux-64-python3.6/Dockerfile
 
 remove_conda: &remove_conda
   name: remove conda
@@ -33,12 +34,21 @@ main_test: &main_test
         name: unit tests
         command: |
           /opt/conda/bin/python utils/setup-testing.py --version
-          ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
+          /opt/conda/bin/python -m conda info
+          export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
+          export TEST_PLATFORM=$(/opt/conda/bin/python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
+          export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+          ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
           /opt/conda/bin/py.test $ADD_COV -m "not integration and not installed"
+        # PYTHON_MAJOR_VERSION and TEST_PLATFORM are used by coverage via setup.cfg
     - run:
         name: integration tests
         command: |
-          /opt/conda/bin/py.test $ADD_COV -m "integration and not installed" -v
+          export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
+          export TEST_PLATFORM=$(/opt/conda/bin/python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
+          export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+          ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
+          /opt/conda/bin/py.test $ADD_COV --cov-append -m "integration and not installed" -v
     - run:
         name: upload codecov
         command: /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
