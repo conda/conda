@@ -18,10 +18,10 @@ The directory that Anaconda or Miniconda was installed into.
 
 EXAMPLES:
 
-.. code-block:: none
+.. code-block:: shell
 
-   /opt/Anaconda
-   C:\Anaconda
+   /opt/Anaconda  #Linux
+   C:\Anaconda    #Windows
 
 */pkgs*
 
