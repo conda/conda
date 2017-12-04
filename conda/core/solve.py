@@ -8,7 +8,7 @@ from os.path import join
 
 from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
-from .linked_data import PrefixData, linked_data
+from .linked_data import PrefixData
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
@@ -389,7 +389,11 @@ class Solver(object):
 
         """
         final_precs = self.solve_final_state(deps_modifier, prune, ignore_pinned, force_remove)
-        previous_records = IndexedSet(itervalues(linked_data(self.prefix)))
+        previous_records = IndexedSet(self._index[d] for d in self._r.dependency_sort(
+            {prefix_rec.name: Dist(prefix_rec)
+             for prefix_rec in PrefixData(self.prefix).iter_records()}
+        ))
+
         unlink_precs = previous_records - final_precs
         link_precs = final_precs - previous_records
 
@@ -406,6 +410,9 @@ class Solver(object):
         # TODO: force_reinstall might not yet be fully implemented in :meth:`solve_final_state`,
         #       at least as described in the docstring.
 
+        unlink_precs = IndexedSet(reversed(sorted(unlink_precs,
+                                                  key=lambda x: previous_records.index(x))))
+        link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
         return unlink_precs, link_precs
 
     def solve_for_transaction(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
