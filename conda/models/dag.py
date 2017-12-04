@@ -132,7 +132,7 @@ class PrefixDag(object):
                 yield record
         yield self.remove(node)
 
-    def dot_repr(self, title=None):
+    def dot_repr(self, title=None):  # pragma: no cover
         # graphviz DOT graph description language
 
         builder = ['digraph g {']
@@ -164,10 +164,10 @@ class PrefixDag(object):
         builder.append('}')
         return '\n'.join(builder)
 
-    def format_url(self):
+    def format_url(self):  # pragma: no cover
         return "https://condaviz.glitch.me/%s" % url_quote(self.dot_repr())
 
-    def request_svg(self):
+    def request_svg(self):  # pragma: no cover
         from tempfile import NamedTemporaryFile
         import requests
         from ..common.compat import ensure_binary
@@ -179,7 +179,7 @@ class PrefixDag(object):
         print("saved to: %s" % fh.name, file=sys.stderr)
         return fh.name
 
-    def open_url(self):
+    def open_url(self):  # pragma: no cover
         import webbrowser
         from ..common.url import path_to_url
         location = self.request_svg()
