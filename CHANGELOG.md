@@ -1,5 +1,8 @@
 ## 4.3.31 (unreleased)
 
+### Improvements
+* add delete_trash to conda_env create (#6299)
+
 ### Bug Fixes
 * fix #6023 assertion error for temp file (#6154)
 * fix #6220 --no-builds flag for 'conda env export' (#6221)
