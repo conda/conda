@@ -498,6 +498,28 @@ class IntegrationTests(TestCase):
             assert not isfile(join(prefix, py_file))
             assert not isfile(join(prefix, pyc_file))
 
+    def test_noarch_python_package_reinstall_on_pyver_change(self):
+        with make_temp_env("-c conda-test itsdangerous python=3") as prefix:
+            py_ver = get_python_version_for_prefix(prefix)
+            assert py_ver.startswith('3')
+            sp_dir = get_python_site_packages_short_path(py_ver)
+            py_file = sp_dir + "/itsdangerous.py"
+            pyc_file_py3 = pyc_path(py_file, py_ver)
+            assert isfile(join(prefix, py_file))
+            assert isfile(join(prefix, pyc_file_py3))
+
+            run_command(Commands.INSTALL, prefix, "python=2")
+            assert not isfile(join(prefix, pyc_file_py3))  # python3 pyc file should be gone
+
+            py_ver = get_python_version_for_prefix(prefix)
+            assert py_ver.startswith('2')
+            sp_dir = get_python_site_packages_short_path(py_ver)
+            py_file = sp_dir + "/itsdangerous.py"
+            pyc_file_py2 = pyc_path(py_file, py_ver)
+
+            assert isfile(join(prefix, py_file))
+            assert isfile(join(prefix, pyc_file_py2))
+
     def test_noarch_generic_package(self):
         with make_temp_env("-c conda-test font-ttf-inconsolata") as prefix:
             assert isfile(join(prefix, 'fonts', 'Inconsolata-Regular.ttf'))

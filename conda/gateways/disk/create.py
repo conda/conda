@@ -296,16 +296,20 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
 
     command = '"%s" -Wi -m py_compile "%s"' % (python_exe_full_path, py_full_path)
     log.trace(command)
-    subprocess_call(command, raise_on_error=False)
+    result = subprocess_call(command, raise_on_error=False)
 
     if not isfile(pyc_full_path):
         message = dals("""
         pyc file failed to compile successfully
-          python_exe_full_path: %()s\n
-          py_full_path: %()s\n
-          pyc_full_path: %()s\n
+          python_exe_full_path: %s
+          py_full_path: %s
+          pyc_full_path: %s
+          compile rc: %s
+          compile stdout: %s
+          compile stderr: %s
         """)
-        log.info(message, python_exe_full_path, py_full_path, pyc_full_path)
+        log.info(message, python_exe_full_path, py_full_path, pyc_full_path,
+                 result.rc, result.stdout, result.stderr)
         return None
 
     return pyc_full_path

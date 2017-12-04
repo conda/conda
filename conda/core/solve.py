@@ -21,6 +21,7 @@ from ..history import History
 from ..models.channel import Channel
 from ..models.dag import PrefixDag
 from ..models.dist import Dist
+from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..resolve import Resolve, dashlist
 
@@ -397,6 +398,8 @@ class Solver(object):
         unlink_precs = previous_records - final_precs
         link_precs = final_precs - previous_records
 
+        # If force_reinstall is enabled, make sure any package in specs_to_add is unlinked then
+        # re-linked
         if force_reinstall:
             for spec in self.specs_to_add:
                 prec = next((rec for rec in final_precs if spec.match(rec)), None)
@@ -405,10 +408,19 @@ class Solver(object):
                 if prec in previous_records:
                     unlink_precs.add(prec)
 
-        # TODO: add back 'noarch: python' to unlink and link if python version changes
-        # TODO: get the sort order correct for unlink_records
-        # TODO: force_reinstall might not yet be fully implemented in :meth:`solve_final_state`,
-        #       at least as described in the docstring.
+        # add back 'noarch: python' packages to unlink and link if python version changes
+        python_spec = MatchSpec('python')
+        previous_python = next((rec for rec in previous_records if python_spec.match(rec)), None)
+        final_python = next((rec for rec in final_precs if python_spec.match(rec)), None)
+        if previous_python and final_python:
+            previous_py_version = get_major_minor_version(previous_python.version)
+            final_py_version = get_major_minor_version(final_python.version)
+            if previous_py_version != final_py_version:
+                for prec in final_precs:
+                    if prec.noarch == NoarchType.python:
+                        link_precs.add(prec)
+                        if prec in previous_records:
+                            unlink_precs.add(prec)
 
         unlink_precs = IndexedSet(reversed(sorted(unlink_precs,
                                                   key=lambda x: previous_records.index(x))))
