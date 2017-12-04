@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from enum import Enum
 from genericpath import exists
 from logging import DEBUG, getLogger
 from os.path import join
-
-from enum import Enum
 
 from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -15,7 +14,7 @@ from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
 from ..common.constants import NULL
 from ..common.io import spinner
-from ..common.path import paths_equal
+from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import PackagesNotFoundError
 from ..gateways.logging import TRACE
 from ..history import History
@@ -159,9 +158,9 @@ class Solver(object):
             # SAT for spec removal determination, we can use the DAG and simple tree traversal
             # if we're careful about how we handle features. We still invoke sat via `r.solve()`
             # later.
-            _provides_fts_specs = (spec for spec in specs_to_remove if 'provides_features' in spec)
-            feature_names = set(concat(spec.get_raw_value('provides_features')
-                                       for spec in _provides_fts_specs))
+            _track_fts_specs = (spec for spec in specs_to_remove if 'track_features' in spec)
+            feature_names = set(concat(spec.get_raw_value('track_features')
+                                       for spec in _track_fts_specs))
             dag = PrefixDag((index[dist] for dist in solution), itervalues(specs_map))
 
             removed_records = []
@@ -175,10 +174,10 @@ class Solver(object):
             for rec in removed_records:
                 # We keep specs (minus the feature part) for the non provides_features packages
                 # if they're in the history specs.  Otherwise, we pop them from the specs_map.
-                rec_has_a_feature = set(rec.requires_features or ()) & feature_names
+                rec_has_a_feature = set(rec.features or ()) & feature_names
                 if rec_has_a_feature and rec.name in specs_from_history_map:
                     spec = specs_map.get(rec.name, MatchSpec(rec.name))
-                    spec._match_components.pop('requires_features', None)
+                    spec._match_components.pop('features', None)
                     specs_map[spec.name] = spec
                 else:
                     specs_map.pop(rec.name, None)
@@ -234,6 +233,16 @@ class Solver(object):
         if deps_modifier == DepsModifier.UPDATE_ALL:
             specs_map = {pkg_name: MatchSpec(spec.name, optional=spec.optional)
                          for pkg_name, spec in iteritems(specs_map)}
+
+        # As a business rule, we never want to update python beyond the current minor version,
+        # unless that's requested explicitly by the user (which we actively discourage).
+        if 'python' in specs_map:
+            python_prefix_rec = prefix_data.get('python')
+            if python_prefix_rec:
+                python_spec = specs_map['python']
+                if not python_spec.get('version'):
+                    pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
+                    specs_map['python'] = MatchSpec(python_spec, version=pinned_version)
 
         # For the aggressive_update_packages configuration parameter, we strip any target
         # that's been set.
@@ -449,13 +458,12 @@ class Solver(object):
             self._r = Resolve(self._index, channels=self.channels)
         else:
             # add in required channels that aren't explicitly given in the channels list
+            # For correctness, we should probably add to additional_channels any channel that
+            #  is given by PrefixData(self.prefix).all_subdir_urls().  However that causes
+            #  usability problems with bad / expired tokens.
+
             additional_channels = set()
-            # # TODO: probably necessary for correctness, but causes major issues with expired
-            # # tokens and channels that no longer exist
-            # additional_channels.update(
-            #     Channel(subdir_url) for subdir_url in PrefixData(self.prefix).all_subdir_urls()
-            # )
-            for spec in concatv(self.specs_to_remove, self.specs_to_add):
+            for spec in self.specs_to_add:
                 # TODO: correct handling for subdir isn't yet done
                 channel = spec.get_exact_value('channel')
                 if channel:

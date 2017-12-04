@@ -65,7 +65,7 @@ def configure_parser(sub_parsers):
         required=False,
         help='Do not include channel names with package names.')
     add_parser_json(p)
-    p.set_defaults(func=execute)
+    p.set_defaults(func='.main_export.execute')
 
 
 # TODO Make this aware of channels that were used to install packages

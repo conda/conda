@@ -6,7 +6,7 @@ from shlex import split
 
 from .conda_argparse import do_call
 from .main import generate_parser
-from ..base.constants import APP_NAME, SEARCH_PATH
+from ..base.constants import SEARCH_PATH
 from ..base.context import context
 from ..common.io import CaptureTarget, argv, captured
 from ..common.path import win_path_double_escape
@@ -82,7 +82,6 @@ def run_command(command, *arguments, **kwargs):
     args.yes = True  # always skip user confirmation, force setting context.always_yes
     context.__init__(
         search_path=configuration_search_path,
-        app_name=APP_NAME,
         argparse_args=args,
     )
     log.debug("executing command >>>  conda %s", command_line)

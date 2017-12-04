@@ -64,19 +64,17 @@ def init_loggers(context=None):
 
 
 def _main(*args):
-    from .conda_argparse import do_call
-    from ..base.constants import SEARCH_PATH
-    from ..base.context import context
-
     if len(args) == 1:
         args = args + ('-h',)
 
     p = generate_parser()
     args = p.parse_args(args[1:])
 
-    context.__init__(SEARCH_PATH, 'conda', args)
+    from ..base.context import context
+    context.__init__(argparse_args=args)
     init_loggers(context)
 
+    from .conda_argparse import do_call
     exit_code = do_call(args, p)
     if isinstance(exit_code, int):
         return exit_code
@@ -119,9 +117,10 @@ def main(*args):
                 from ..exceptions import CommandNotFoundError
                 raise CommandNotFoundError(argv1)
         except Exception as e:
-            from ..exceptions import handle_exception
+            _, exc_val, exc_tb = sys.exc_info()
             init_loggers()
-            return handle_exception(e)
+            from ..exceptions import ExceptionHandler
+            return ExceptionHandler().handle_exception(exc_val, exc_tb)
 
     from ..exceptions import conda_exception_handler
     return conda_exception_handler(_main, *args)

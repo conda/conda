@@ -8,7 +8,7 @@ from weakref import WeakSet, proxy
 
 from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
-from ..common.compat import iteritems, itervalues
+from ..common.compat import itervalues
 from ..common.url import quote as url_quote
 
 try:
@@ -64,8 +64,8 @@ class PrefixDag(object):
 
         # if spec is a provides_features spec, then we also need to remove packages that match
         # those features
-        for feature_name, feature_val in iteritems(spec.get_raw_value('provides_features') or {}):
-            feature_spec = MatchSpec(requires_features={feature_name: feature_val})
+        for feature_name in spec.get_raw_value('track_features') or ():
+            feature_spec = MatchSpec(features=feature_name)
             while True:
                 for node in self.nodes:
                     if feature_spec.match(node.record):

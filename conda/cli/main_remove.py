@@ -12,14 +12,13 @@ from .common import check_non_admin, confirm_yn, specs_from_args, stdout_json
 from .install import handle_txn
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys
-from ..core.envs_manager import EnvsDirectory
 from ..core.linked_data import linked_data
 from ..core.solve import Solver
 from ..exceptions import CondaEnvironmentError, CondaValueError
 from ..gateways.disk.delete import delete_trash, rm_rf
+from ..gateways.disk.test import is_conda_environment
 from ..instructions import PREFIX
 from ..plan import (add_unlink)
-from ..resolve import MatchSpec
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +39,7 @@ def execute(args, parser):
         # full environment removal was requested, but environment doesn't exist anyway
         return 0
 
-    if not EnvsDirectory.is_conda_environment(prefix):
+    if not is_conda_environment(prefix):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
 
@@ -73,14 +72,9 @@ def execute(args, parser):
         return
 
     else:
-        if args.features:
-            specs = tuple(MatchSpec(track_features=f) for f in set(args.package_names))
-            channel_urls = context.channels
-            subdirs = context.subdirs
-        else:
-            specs = specs_from_args(args.package_names)
-            channel_urls = ()
-            subdirs = ()
+        specs = specs_from_args(args.package_names)
+        channel_urls = ()
+        subdirs = ()
         solver = Solver(prefix, channel_urls, subdirs, specs_to_remove=specs)
         txn = solver.solve_for_transaction(force_remove=args.force)
         pfe = txn.get_pfe()

@@ -170,6 +170,21 @@ class SharedLinkPathClobberError(ClobberError):
 
 class CommandNotFoundError(CondaError):
     def __init__(self, command):
+        conda_commands = {
+            'clean',
+            'config',
+            'create',
+            'help',
+            'info',
+            'install',
+            'list',
+            'package',
+            'remove',
+            'search',
+            'uninstall',
+            'update',
+            'upgrade',
+        }
         build_commands = {
             'build',
             'convert',
@@ -180,22 +195,19 @@ class CommandNotFoundError(CondaError):
             'render',
             'skeleton',
         }
-        needs_source = {
-            'activate',
-            'deactivate'
-        }
         if command in build_commands:
-            message = dals("""
-            You need to install conda-build in order to
-            use the 'conda %(command)s' command.
-            """)
-        elif command in needs_source and not on_win:
-            message = dals("""
-            '%(command)s is not a conda command.
-            Did you mean 'source %(command)s'?
-            """)
+            message = "To use 'conda %(command)s', install conda-build."
         else:
-            message = "'%(command)s'"
+            from difflib import get_close_matches
+            from .cli.find_commands import find_commands
+            message = "Error: No command 'conda %(command)s'."
+            choices = conda_commands | build_commands | set(find_commands())
+            close = get_close_matches(command, choices)
+            if close:
+                message += "\nDid you mean 'conda %s'?" % close[0]
+        from .base.context import context
+        from .cli.main import init_loggers
+        init_loggers(context)
         super(CommandNotFoundError, self).__init__(message, command=command)
 
 

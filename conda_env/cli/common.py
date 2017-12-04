@@ -16,7 +16,7 @@ def stdout_json(d):
 
 
 def get_prefix(args, search=True):
-    from conda.core.envs_manager import determine_target_prefix
+    from conda.base.context import determine_target_prefix
     return determine_target_prefix(context, args)
 
 

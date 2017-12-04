@@ -898,13 +898,13 @@ class IntegrationTests(TestCase):
             run_command(Commands.UPDATE, prefix, "--all")
             assert package_is_installed(prefix, "itsdangerous-0.23")
             # assert not package_is_installed(prefix, "python-3.5")  # should be python-3.6, but it's not because of add_defaults_to_specs
-            assert not package_is_installed(prefix, "python-2.7")  # add_defaults_to_specs is right now removed for python pinning, TODO: discuss
+            assert package_is_installed(prefix, "python-2.7")
 
             assert not package_is_installed(prefix, "pytz-2015.7")
             assert package_is_installed(prefix, "pytz-")
 
             run_command(Commands.UPDATE, prefix, "--all --no-pin")
-            assert not package_is_installed(prefix, "python-2.7")
+            assert package_is_installed(prefix, "python-2.7")
             assert not package_is_installed(prefix, "itsdangerous-0.23")
 
     def test_package_optional_pinning(self):

@@ -6,7 +6,6 @@ from collections import Mapping
 from os.path import basename
 import re
 
-from . import translate_feature_str
 from .channel import Channel, MultiChannel
 from .dist import Dist
 from .index_record import IndexRecord, PackageRef
@@ -167,8 +166,8 @@ class MatchSpec(object):
         'version',
         'build',
         'build_number',
-        'requires_features',
-        'provides_features',
+        'track_features',
+        'features',
         'url',
         'md5',
     )
@@ -176,9 +175,6 @@ class MatchSpec(object):
     def __init__(self, optional=False, target=None, **kwargs):
         self.optional = optional
         self.target = target
-        if 'features' in kwargs:
-            if 'provides_features' not in kwargs:
-                kwargs['provides_features'] = kwargs.pop('features')
         self._match_components = self._build_components(**kwargs)
 
     def get_exact_value(self, field_name):
@@ -346,8 +342,6 @@ class MatchSpec(object):
         def _make(field_name, value):
             if field_name not in IndexRecord.__fields__:
                 raise CondaValueError('Cannot match on field %s' % (field_name,))
-            elif field_name == 'track_features':
-                field_name = 'provides_features'
             elif isinstance(value, string_types):
                 value = text_type(value)
 
@@ -460,12 +454,10 @@ def _parse_channel(channel_val):
 def _parse_spec_str(spec_str):
     # pre-step for ugly backward compat
     if spec_str.endswith('@'):
-        k, v = translate_feature_str(spec_str)
+        feature_name = spec_str[:-1]
         return {
             'name': '*',
-            'provides_features': {
-                k: v,
-            },
+            'track_features': (feature_name,),
         }
 
     # Step 1. strip '#' comment
@@ -682,36 +674,24 @@ class FeatureMatch(MatchInterface):
         super(FeatureMatch, self).__init__(self._convert(value))
 
     def _convert(self, value):
-        if not value:
-            return frozendict()
-        elif isinstance(value, Mapping):
-            return frozendict(value)
-
-        if isinstance(value, string_types):
-            result_map = {}
-            for val in value.replace(' ', ',').split(','):
-                k, v = translate_feature_str(val)
-                result_map[k] = v
+        if isinstance(value, frozenset):
+            return value
+        elif not value:
+            return frozenset()
+        elif isinstance(value, string_types):
+            return frozenset(value.replace(' ', ',').split(','))
         else:
-            assert isiterable(value), type(value)
-            result_map = {}
-            for val in value:
-                k, v = translate_feature_str(val)
-                result_map[k] = v
-        return frozendict(result_map)
+            return frozenset(value)
 
     def match(self, other):
-        if not isinstance(other, Mapping):
-            other = self._convert(other)
-        return all(v == other.get(k) for k, v in iteritems(self._raw_value))
+        other = self._convert(other)
+        return self._raw_value == other
 
     def __repr__(self):
-        return "{%s}" % ', '.join("'%s': '%s'" % (k, self._raw_value[k])
-                                  for k in sorted(self._raw_value))
+        return "[%s]" % ', '.join("'%s'" % k for k in sorted(self._raw_value))
 
     def __str__(self):
-        # this space delimiting makes me nauseous
-        return ' '.join("%s=%s" % (k, self._raw_value[k]) for k in sorted(self._raw_value))
+        return ' '.join(sorted(self._raw_value))
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self._raw_value == other._raw_value
@@ -812,8 +792,8 @@ class LowerStrMatch(StrMatch):
 
 _implementors = {
     'name': LowerStrMatch,
-    'provides_features': FeatureMatch,
-    'requires_features': FeatureMatch,
+    'track_features': FeatureMatch,
+    'features': FeatureMatch,
     'version': VersionSpec,
     'build_number': BuildNumberMatch,
     'channel': ChannelMatch,

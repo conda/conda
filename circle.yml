@@ -1,18 +1,195 @@
-machine:
-  timezone:
-    Etc/UTC
+# The Docker images used here are
+#  - condatest/linux-64-python-3.6  [https://github.com/conda/conda-docker/blob/master/condatest/linux-64-python3.6/Dockerfile]
+#  - condatest/linux-64-python-2.7  [https://github.com/conda/conda-docker/blob/master/condatest/linux-64-python2.7/Dockerfile]
+
+defaults: &defaults
+  working_directory: ~/conda
+  docker:
+    - image: condatest/linux-64-python-3.6
+      # Dockerfile at https://github.com/conda/conda-docker/blob/master/condatest/linux-64-python3.6/Dockerfile
+
+remove_conda: &remove_conda
+  name: remove conda
+  command: |
+    prefix=/opt/conda
+    BIN_DIR=bin
+    PYTHON_EXE="$prefix/$BIN_DIR/python"
+    site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
+    sudo /opt/conda/bin/conda config --system --set auto_update_conda false
+    sudo rm -rf \
+       $prefix/$BIN_DIR/activate* \
+       $prefix/$BIN_DIR/conda* \
+       $prefix/$BIN_DIR/deactivate* \
+       $prefix/etc/profile.d/conda.sh \
+       $prefix/conda-meta/conda-*.json \
+       $site_packages/conda*
+
+
+main_test: &main_test
+  <<: *defaults
+  steps:
+    - run: *remove_conda
+    - checkout
+    - run:
+        name: unit tests
+        command: |
+          /opt/conda/bin/python utils/setup-testing.py --version
+          /opt/conda/bin/python -m conda info
+          export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
+          export TEST_PLATFORM=$(/opt/conda/bin/python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
+          export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+          ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
+          /opt/conda/bin/py.test $ADD_COV -m "not integration and not installed"
+        # PYTHON_MAJOR_VERSION and TEST_PLATFORM are used by coverage via setup.cfg
+    - run:
+        name: integration tests
+        command: |
+          export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
+          export TEST_PLATFORM=$(/opt/conda/bin/python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
+          export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+          ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
+          /opt/conda/bin/py.test $ADD_COV --cov-append -m "integration and not installed" -v
+    - run:
+        name: upload codecov
+        command: /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
+
+
+conda_build_test: &conda_build_test
+  <<: *defaults
   environment:
-    PYTHON_VERSION: 3.6
+    CONDA_BUILD: master
+    CONDABUILD_SKIP: >
+      not xattr
+      and not skeleton_pypi
+      and not perl-cpan-Moo
+      and not test_expand_globs
+      and not test_build_expands_wildcards
+      and not numpy_build_run
+  steps:
+    - run: *remove_conda
+    - checkout
+    - run:
+        name: install conda full
+        command: |
+          sudo su root -c ". utils/functions.sh && install_conda_shell_scripts /opt/conda ."
+          sudo su root -c ". utils/functions.sh && make_conda_entrypoint /opt/conda/bin/conda /opt/conda/bin/python ~circleci/conda 'from conda.cli import main'"
+          sudo su root -c ". utils/functions.sh && make_conda_entrypoint /opt/conda/bin/conda-env /opt/conda/bin/python ~circleci/conda 'from conda_env.cli.main import main'"
+          site_packages=$(/opt/conda/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
+          sudo su -c "echo /home/circleci/conda > $site_packages/conda.pth"
+          sudo /opt/conda/bin/conda install -yq conda-verify
+    - run:
+        name: checkout conda-build
+        command: |
+          cb_branch="${CONDA_BUILD:-master}"
+          git clone -b $cb_branch --depth 750 https://github.com/conda/conda-build.git ~/conda-build
+          cd ~/conda-build
+          sudo /opt/conda/bin/pip install --no-deps -U .
+          git clone https://github.com/conda/conda_build_test_recipe.git ~/conda_build_test_recipe
+          /opt/conda/bin/conda info
+          sudo chown -R $(id -nu):$(id -ng) /opt/conda  # conda-build tests assume writable root prefix
+          rm ~/.gitconfig
+        # circleci image by default has
+        # $ cat ~/.gitconfig
+        # [url "ssh://git@github.com"]
+        #     insteadOf = https://github.com
+        # This messes up conda-build tests
 
-dependencies:
-  pre:
-    - sudo apt-get update; sudo apt-get install zsh
-  cache_directories:
-    - "~/miniconda/pkgs"
-    - "~/.cache/pip"
-  override:
-    - source utils/functions.sh && set -e && run_setup
+    - run:
+        name: conda-build tests [parallel]
+        environment:
+          CONDABUILD_SKIP: >
+            not xattr
+            and not skeleton_pypi
+            and not test_expand_globs
+            and not test_build_expands_wildcards
+            and not numpy
+            and not test_intradependencies
+            and not perl-cpan-Moo
+          # skeleton_pypi skipped because of changes to PyPI API
+          # expand_globs and build_expands_wildcards fail on circleci because of list ordering discrepancies
+          # skipping numpy tests so circleci images don't need numpy (and mkl) installed
+          # test_intradependencies started failing after pkgs/main release it seems
+          # skipping perl-cpan-Moo because of changes in cpan API
+        command: |
+          echo "safety_checks: disabled" >> ~/.condarc
+          . /opt/conda/etc/profile.d/conda.sh
+          conda activate root
+          conda info
+          cd ~/conda-build
+          env | sort
+          py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP" || true
 
-test:
-  override:
-    - source utils/functions.sh && set -e && run_tests && conda_activate_test
+    - run:
+        name: conda-build tests [serial]
+        environment:
+          CONDABUILD_SKIP: >
+            not perl-cpan-Moo
+            and not env_creation_with_short_prefix_does_not_deadlock
+          # skipping perl-cpan-Moo because of changes in cpan API
+          # env_creation_with_short_prefix_does_not_deadlock: error is prefix is too long
+        command: |
+          . /opt/conda/etc/profile.d/conda.sh
+          conda activate root
+          conda info
+          cd ~/conda-build
+          env | sort
+          py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP" || true
+
+
+activate_tests: &activate_tests
+  <<: *defaults
+  steps:
+    - run: *remove_conda
+    - checkout
+    - run:
+        name: setup
+        command: |
+          /opt/conda/bin/python -m conda._vendor.auxlib.packaging conda
+          /opt/conda/bin/python -c "import conda; print(conda.__version__)"
+          /opt/conda/bin/python -m conda info
+    - run:
+        name: activate tests
+        command: |
+          ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
+          /opt/conda/bin/py.test $ADD_COV -m "installed" -v --shell=bash --shell=zsh
+
+
+flake8: &flake8
+  <<: *defaults
+  steps:
+    - checkout
+    - run: /opt/conda/bin/flake8 --statistics
+
+
+jobs:
+  main test py36:
+    <<: *main_test
+    docker:
+      - image: condatest/linux-64-python-3.6
+  main test py27:
+    <<: *main_test
+    docker:
+      - image: condatest/linux-64-python-2.7
+  conda build 3.0:
+    <<: *conda_build_test
+    environment:
+      - CONDA_BUILD: 3.0.21
+  conda build 2.1:
+    <<: *conda_build_test
+    environment:
+      - CONDA_BUILD: 2.1.17
+  activate tests: *activate_tests
+  flake8: *flake8
+
+
+version: 2
+workflows:
+  version: 2
+  conda tests:
+    jobs:
+      - main test py36
+      - main test py27
+      - conda build 3.0
+      - conda build 2.1
+      - activate tests
+      - flake8

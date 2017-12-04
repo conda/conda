@@ -122,14 +122,13 @@ class ArgumentParser(ArgumentParserBase):
             else:
                 argument = None
             if argument and argument.dest == "cmd":
-                m = re.compile(r"invalid choice: u?'([\w\-]+)'").match(exc.message)
+                m = re.match(r"invalid choice: u?'(\w+)'", exc.message)
                 if m:
                     cmd = m.group(1)
                     executable = find_executable('conda-' + cmd)
                     if not executable:
                         from ..exceptions import CommandNotFoundError
                         raise CommandNotFoundError(cmd)
-
                     args = [find_executable('conda-' + cmd)]
                     args.extend(sys.argv[2:])
                     os.execv(args[0], args)
@@ -140,10 +139,13 @@ class ArgumentParser(ArgumentParserBase):
         super(ArgumentParser, self).print_help()
 
         if sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
-            print(dedent("""
-            other commands, such as "conda build", are available when additional conda
-            packages (e.g. conda-build) are installed
-            """))
+            from .find_commands import find_commands
+            other_commands = find_commands()
+            if other_commands:
+                builder = ['']
+                builder.append("conda commands available from other packages:")
+                builder.extend('  %s' % cmd for cmd in sorted(other_commands))
+                print('\n'.join(builder))
 
 
 class NullCountAction(_CountAction):
@@ -769,24 +771,6 @@ def configure_parser_remove(sub_parsers, name='remove'):
         action="store_true",
         help="%s all packages, i.e., the entire environment." % name.capitalize(),
     )
-    p.add_argument(
-        "--features",
-        action="store_true",
-        help="%s features (instead of packages)." % name.capitalize(),
-    )
-
-    # TODO: --features currently sorta still work. But super sloppy.
-
-    # p.add_argument(
-    #     '--feature',
-    #     metavar='FEATURE_NAME=FEATURE_VALUE',
-    #     dest='features',
-    #     action="append",
-    #     help="Feature to remove in the conda environment. "
-    #          "The value must be a key-value pair separated by an equal sign e.g. blas=nomkl. "
-    #          "Can be used multiple times. "
-    #          "Equivalent to a MatchSpec specifying a single 'provides_features'.",
-    # )
 
     p.add_argument(
         "--force",

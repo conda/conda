@@ -51,7 +51,7 @@ except ImportError:  # pragma: no cover
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderrlog')
 
-REPODATA_PICKLE_VERSION = 16
+REPODATA_PICKLE_VERSION = 17
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
 
@@ -110,10 +110,10 @@ class SubdirData(object):
                 for prec in self._names_index[package_name]:
                     if param.match(prec):
                         yield prec
-            elif param.get_exact_value('provides_features'):
-                provides_features = param.get_exact_value('provides_features')
-                candidates = concat(self._provides_features_index["%s=%s" % ftr_pair]
-                                    for ftr_pair in iteritems(provides_features))
+            elif param.get_exact_value('track_features'):
+                track_features = param.get_exact_value('track') or ()
+                candidates = concat(self._track_features_index[feature_name]
+                                    for feature_name in track_features)
                 for prec in candidates:
                     if param.match(prec):
                         yield prec
@@ -150,8 +150,7 @@ class SubdirData(object):
         self._internal_state = _internal_state
         self._package_records = _internal_state['_package_records']
         self._names_index = _internal_state['_names_index']
-        self._provides_features_index = _internal_state['_provides_features_index']
-        self._requires_features_index = _internal_state['_requires_features_index']
+        self._track_features_index = _internal_state['_track_features_index']
         self._loaded = True
         return self
 
@@ -167,8 +166,7 @@ class SubdirData(object):
                 return {
                     '_package_records': (),
                     '_names_index': defaultdict(list),
-                    '_provides_features_index': defaultdict(list),
-                    '_requires_features_index': defaultdict(list),
+                    '_track_features_index': defaultdict(list),
                 }
             else:
                 mod_etag_headers = {}
@@ -297,8 +295,7 @@ class SubdirData(object):
 
         self._package_records = _package_records = []
         self._names_index = _names_index = defaultdict(list)
-        self._provides_features_index = _provides_features_index = defaultdict(list)
-        self._requires_features_index = _requires_features_index = defaultdict(list)
+        self._track_features_index = _track_features_index = defaultdict(list)
 
         _internal_state = {
             'channel': self.channel,
@@ -308,8 +305,7 @@ class SubdirData(object):
 
             '_package_records': _package_records,
             '_names_index': _names_index,
-            '_provides_features_index': _provides_features_index,
-            '_requires_features_index': _requires_features_index,
+            '_track_features_index': _track_features_index,
 
             '_etag': json_obj.get('_etag'),
             '_mod': json_obj.get('_mod'),
@@ -339,10 +335,8 @@ class SubdirData(object):
 
             _package_records.append(package_record)
             _names_index[package_record.name].append(package_record)
-            for ftr_name, ftr_value in iteritems(package_record.provides_features):
-                _provides_features_index["%s=%s" % (ftr_name, ftr_value)].append(package_record)
-            for ftr_name, ftr_value in iteritems(package_record.requires_features):
-                _requires_features_index["%s=%s" % (ftr_name, ftr_value)].append(package_record)
+            for ftr_name in package_record.track_features:
+                _track_features_index[ftr_name].append(package_record)
 
         self._internal_state = _internal_state
         return _internal_state
@@ -591,9 +585,9 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         raise CondaIndexError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
 
 
-def make_feature_record(feature_name, feature_value):
+def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
-    pkg_name = "%s=%s@" % (feature_name, feature_value)
+    pkg_name = "%s@" % feature_name
     return IndexRecord(
         name=pkg_name,
         version='0',
@@ -601,9 +595,7 @@ def make_feature_record(feature_name, feature_value):
         channel='@',
         subdir=context.subdir,
         md5="12345678901234567890123456789012",
-        provides_features={
-            feature_name: feature_value,
-        },
+        track_features=(feature_name,),
         build_number=0,
         fn=pkg_name,
     )

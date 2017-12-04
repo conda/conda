@@ -27,6 +27,13 @@
 
 
 :DO_ACTIVATE
+@IF "%CONDA_PS1_BACKUP%"=="" GOTO FIXUP43
+    @REM Handle transition from shell activated with conda 4.3 to a subsequent activation
+    @REM after conda updated to 4.4. See issue #6173.
+    @SET "PROMPT=%CONDA_PS1_BACKUP%"
+    @SET CONDA_PS1_BACKUP=
+:FIXUP43
+
 @FOR /F "delims=" %%i IN ('@CALL %_CONDA_EXE% shell.cmd.exe activate %*') DO @SET "_TEMP_SCRIPT_PATH=%%i"
 @IF "%_TEMP_SCRIPT_PATH%"=="" GOTO :ErrorEnd
 @IF "%CONDA_PROMPT_MODIFIER%" == "" GOTO skip_prompt_set_activate

@@ -11,9 +11,9 @@ from .common import disp_features, stdout_json
 from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import text_type
-from ..core.envs_manager import EnvsDirectory
 from ..core.linked_data import is_linked, linked, linked_data
 from ..egg_info import get_egg_info
+from ..gateways.disk.test import is_conda_environment
 from ..history import History
 
 log = logging.getLogger(__name__)
@@ -112,7 +112,7 @@ def print_explicit(prefix, add_md5=False):
 
 def execute(args, parser):
     prefix = context.target_prefix
-    if not EnvsDirectory.is_conda_environment(prefix):
+    if not is_conda_environment(prefix):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
 

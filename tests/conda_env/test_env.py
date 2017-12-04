@@ -90,7 +90,7 @@ class EnvironmentTestCase(unittest.TestCase):
             dependencies=['nltk', {'pip': ['foo', 'bar']}]
         )
         expected = OrderedDict([
-            ('conda', ['nltk']),
+            ('conda', ['nltk', 'pip']),
             ('pip', ['foo', 'bar'])
         ])
         self.assertEqual(e.dependencies, expected)
