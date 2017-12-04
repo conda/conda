@@ -428,12 +428,15 @@ EXAMPLE:
 Disable updating of dependencies (update_dependencies)
 ------------------------------------------------------
 
-By default, ``conda install`` updates the given package and all
-its dependencies to the latest versions.
+By default, ``conda install`` updates the given package to the
+latest version, and installs any dependencies necessary for
+that package. However if dependencies that satisfy the package's
+requirements are already installed, conda will not update those
+packages to the latest version.
 
-If you prefer to update only the packages given explicitly at
-the command line and avoid updating existing installed packages
-as much as possible, set update_dependencies to ``True``:
+In this case, if you would prefer that conda update all dependencies
+to the latest version that is compatible with the environment,
+set update_dependencies to ``True``:
 
 .. code-block:: yaml
 
@@ -445,10 +448,6 @@ conversely, this may prevent packages given at the command line
 from being updated to their latest versions. You can always
 specify versions at the command line to force conda to install a
 given version, such as ``conda install numpy=1.9.3``.
-
-You can enable and disable this option
-at the command line with the ``--update-dependencies`` and
-``--no-update-dependencies`` flags.
 
 To avoid updating only specific packages in an environment, a
 better option may be to pin them. For more information, see
