@@ -104,6 +104,7 @@ class Context(Configuration):
     non_admin_enabled = PrimitiveParameter(True)
 
     # Safety & Security
+    _aggressive_update_packages = SequenceParameter(string_types)
     safety_checks = PrimitiveParameter(SafetyChecks.warn)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
 
@@ -418,11 +419,14 @@ class Context(Configuration):
     @property
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
-        return (
-            MatchSpec('ca-certificates', optional=True),
-            MatchSpec('certifi', optional=True),
-            MatchSpec('openssl', optional=True),
-        )
+        if self._aggressive_update_packages:
+            return tuple(MatchSpec(s, optional=True) for s in self._aggressive_update_packages)
+        else:
+            return (
+                MatchSpec('ca-certificates', optional=True),
+                MatchSpec('certifi', optional=True),
+                MatchSpec('openssl', optional=True),
+            )
 
     @property
     def deps_modifier(self):
@@ -622,6 +626,10 @@ def get_help_dict():
         'add_pip_as_python_dependency': dals("""
             Add pip, wheel and setuptools as dependencies of python. This ensures pip,
             wheel and setuptools will always be installed any time python is installed.
+            """),
+        'aggressive_update_packages': dals("""
+            A list of packages that, if installed, are always updated to the latest possible
+            version.
             """),
         'allow_non_channel_urls': dals("""
             Warn, but do not fail, when conda detects a channel url is not a valid channel.
