@@ -14,4 +14,3 @@ set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=1
 bash -lc ". utils/functions.sh && install_conda_full"
 if errorlevel 1 exit 1
-
