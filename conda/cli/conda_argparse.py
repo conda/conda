@@ -141,7 +141,7 @@ class ArgumentParser(ArgumentParserBase):
     def print_help(self):
         super(ArgumentParser, self).print_help()
 
-        if sys.argv[1:] in ([], ['help'], ['-h'], ['--help']):
+        if sys.argv[1:] in ([], [''], ['help'], ['-h'], ['--help']):
             from .find_commands import find_commands
             other_commands = find_commands()
             if other_commands:
