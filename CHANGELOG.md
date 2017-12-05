@@ -21,7 +21,7 @@ For system-wide conda installs, to make the `conda` command available to all use
 
     $ sudo ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
 
-This will make the `conda` comamnd itself available to all users, but conda's base (root) environment will *not* be activated by default.  Users will still need to run `conda activate base` to put the base environment on PATH and gain to the executables in the base environment.
+This will make the `conda` comamnd itself available to all users, but conda's base (root) environment will *not* be activated by default.  Users will still need to run `conda activate base` to put the base environment on PATH and gain access to the executables in the base environment.
 
 After updating to conda 4.4, we also recommend pinning conda to a specific channel.  For example, executing the command
 
@@ -100,7 +100,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 
       conda config --add aggressive_update_packages defaults::pyopenssl --system
 
-  would ensure that solves on all environments system-wide always enforce using the latest version of `pyopenssl` from the `defaults` channel.
+  would ensure that, system-wide, solves on all environments enforce using the latest version of `pyopenssl` from the `defaults` channel.
 
       conda config --add pinned_packages python=2.7 --env
 
@@ -168,6 +168,8 @@ will make sure that whenever conda is installed or changed in an environment, th
 * resolve #5983 add --download-only flag to create, install, and update (4.4.0rc2) (#5988)
 * add ca-certificates and certifi to aggressive_update_packages default (4.4.0rc2) (#5994)
 * use environments.txt to list all known environments (4.4.0rc2) (#6313)
+* resolve #5417 ensure unlink order is correctly sorted (4.4.0) (#6364)
+* resolve #5370 index is only prefix and cache in --offline mode (4.4.0) (#6371)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
