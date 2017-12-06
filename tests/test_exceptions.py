@@ -338,7 +338,7 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == ("CommandNotFoundError: Error: No command 'conda instate'.\n"
+        assert c.stderr.strip() == ("CommandNotFoundError: No command 'conda instate'.\n"
                                     "Did you mean 'conda install'?")
 
     def test_CommandNotFoundError_conda_build(self):

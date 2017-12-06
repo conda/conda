@@ -200,7 +200,7 @@ class CommandNotFoundError(CondaError):
         else:
             from difflib import get_close_matches
             from .cli.find_commands import find_commands
-            message = "Error: No command 'conda %(command)s'."
+            message = "No command 'conda %(command)s'."
             choices = conda_commands | build_commands | set(find_commands())
             close = get_close_matches(command, choices)
             if close:
