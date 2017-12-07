@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import ENOENT
 from logging import getLogger
 from os.path import basename, join
 
 from .index_record import PackageRecord
-from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.auxlib.entity import StringField
 from ..exceptions import PathNotFoundError
 
@@ -49,27 +47,6 @@ class PackageCacheRecord(PackageRecord):
     @property
     def tarball_basename(self):
         return basename(self.package_tarball_full_path)
-
-    @property
-    def package_cache_writable(self):
-        from ..core.package_cache import PackageCache
-        return PackageCache(self.pkgs_dir).is_writable
-
-    def get_urls_txt_value(self):
-        from ..core.package_cache import PackageCache
-        return PackageCache(self.pkgs_dir)._urls_data.get_url(self.package_tarball_full_path)
-
-    @memoizemethod
-    def _get_repodata_record(self):
-        epd = self.extracted_package_dir
-
-        try:
-            from ..gateways.disk.read import read_repodata_json
-            return read_repodata_json(epd)
-        except (IOError, OSError) as ex:
-            if ex.errno == ENOENT:
-                return None
-            raise  # pragma: no cover
 
     def _calculate_md5sum(self):
         memoized_md5 = getattr(self, '_memoized_md5', None)

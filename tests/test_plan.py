@@ -18,8 +18,8 @@ import conda.instructions as inst
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
 from conda.models.match_spec import MatchSpec
-from conda.plan import display_actions
-import conda.plan as plan
+from conda.plan import display_actions, add_unlink, add_defaults_to_specs
+from conda.exports import _update_old_plan as update_old_plan, execute_plan
 from .decorators import skip_if_no_mock
 from .gateways.disk.test_permissions import tempdir
 from .helpers import captured, get_index_r_1, mock, tempdir
@@ -58,6 +58,7 @@ class add_unlink_TestCase(unittest.TestCase):
 
     @contextmanager
     def mock_platform(self, windows=False):
+        from conda import plan
         with mock.patch.object(plan, "sys") as sys:
             sys.platform = "win32" if windows else "not win32"
             yield sys
@@ -67,7 +68,7 @@ class add_unlink_TestCase(unittest.TestCase):
         actions = {}
         dist = Dist.from_string(self.generate_random_dist())
         with self.mock_platform(windows=False):
-            plan.add_unlink(actions, dist)
+            add_unlink(actions, dist)
         self.assertIn(inst.UNLINK, actions)
         self.assertEqual(actions[inst.UNLINK], [dist, ])
 
@@ -76,7 +77,7 @@ class add_unlink_TestCase(unittest.TestCase):
         actions = {inst.UNLINK: [{"foo": "bar"}]}
         dist = Dist.from_string(self.generate_random_dist())
         with self.mock_platform(windows=False):
-            plan.add_unlink(actions, dist)
+            add_unlink(actions, dist)
         self.assertEqual(2, len(actions[inst.UNLINK]))
 
 
@@ -85,7 +86,7 @@ class TestAddDeaultsToSpec(unittest.TestCase):
 
     def check(self, specs, added):
         new_specs = list(specs + added)
-        plan.add_defaults_to_specs(r, self.linked, specs)
+        add_defaults_to_specs(r, self.linked, specs)
         specs = [s.split(' (')[0] for s in specs]
         self.assertEqual(specs, new_specs)
 
@@ -923,13 +924,13 @@ class TestDeprecatedExecutePlan(unittest.TestCase):
 
     def test_update_old_plan(self):
         old_plan = ['# plan', 'INSTRUCTION arg']
-        new_plan = plan.update_old_plan(old_plan)
+        new_plan = update_old_plan(old_plan)
 
         expected = [('INSTRUCTION', 'arg')]
         self.assertEqual(new_plan, expected)
 
         with self.assertRaises(CondaError):
-            plan.update_old_plan(['INVALID'])
+            update_old_plan(['INVALID'])
 
     def test_execute_plan(self):
         initial_commands = inst.commands
@@ -946,7 +947,7 @@ class TestDeprecatedExecutePlan(unittest.TestCase):
 
         old_plan = ['# plan', 'INSTRUCTION arg']
 
-        plan.execute_plan(old_plan)
+        execute_plan(old_plan)
 
         self.assertTrue(INSTRUCTION_CMD.called)
         self.assertEqual(INSTRUCTION_CMD.arg, 'arg')
