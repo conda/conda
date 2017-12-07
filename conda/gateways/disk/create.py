@@ -7,7 +7,7 @@ from logging import getLogger
 import os
 from os import X_OK, access
 from os.path import basename, dirname, isdir, isfile, join, splitext
-from shutil import copy as shutil_copy, copystat
+from shutil import copyfileobj, copystat
 import sys
 import tarfile
 
@@ -238,7 +238,17 @@ def copy(src, dst):
 
 def _do_copy(src, dst):
     log.trace("copying %s => %s", src, dst)
-    shutil_copy(src, dst)
+    # src and dst are always files. So we can bypass some check that
+    # shutil.copy do. Also do shutil.copy uselessly call
+    # shutil.copymode, that is a subset of copystat we do just after.
+
+    # Same size as used by Linux cp command line to speed it up.
+    # Python default it to 16k.
+    length = 4 * 1024 * 1024
+    with open(src, 'rb') as fsrc:
+        with open(dst, 'wb') as fdst:
+            copyfileobj(fsrc, fdst, length)
+
     try:
         copystat(src, dst)
     except (IOError, OSError) as e:  # pragma: no cover
