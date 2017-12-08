@@ -221,7 +221,7 @@ class CommandNotFoundError(CondaError):
                 $ echo "conda activate" >> ~/%(config_file)s
 
             Previous to conda 4.4, the recommended way to activate conda was to modify PATH in
-            your ~/.%(config_file)s file.  You should manually remove the line that looks like
+            your ~/%(config_file)s file.  You should manually remove the line that looks like
 
                 export PATH="%(root_prefix)s/bin:$PATH"
 
