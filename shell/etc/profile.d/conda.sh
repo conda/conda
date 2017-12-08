@@ -9,14 +9,8 @@ _conda_set_vars() {
     elif [ -n "${POSH_VERSION:+x}" ]; then
         _CONDA_SHELL_FLAVOR=posh
     else
-        # https://unix.stackexchange.com/a/120138/92065
-        local _q="$(ps -p$$ -o cmd="",comm="",fname="" 2>/dev/null | sed 's/^-//' | grep -oE '\w+' | head -n1)"
-        if [ "$_q" = dash ]; then
-            _CONDA_SHELL_FLAVOR=dash
-        else
-            (>&2 echo "Unrecognized shell: $_q")
-            return 1
-        fi
+        # default to dash; if we run into a problem here, please raise an issue
+        _CONDA_SHELL_FLAVOR=dash
     fi
 
     if [ -z "${_CONDA_EXE+x}" ]; then
