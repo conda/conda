@@ -238,16 +238,16 @@ def copy(src, dst):
 
 def _do_copy(src, dst):
     log.trace("copying %s => %s", src, dst)
-    # src and dst are always files. So we can bypass some check that
-    # shutil.copy do. Also do shutil.copy uselessly call
-    # shutil.copymode, that is a subset of copystat we do just after.
+    # src and dst are always files. So we can bypass some checks that shutil.copy does.
+    # Also shutil.copy calls shutil.copymode, which we can skip because we are explicitly
+    # calling copystat.
 
-    # Same size as used by Linux cp command line to speed it up.
-    # Python default it to 16k.
-    length = 4 * 1024 * 1024
+    # Same size as used by Linux cp command (has performance advantage).
+    # Python's default is 16k.
+    buffer_size = 4194304  # 4 * 1024 * 1024  == 4 MB
     with open(src, 'rb') as fsrc:
         with open(dst, 'wb') as fdst:
-            copyfileobj(fsrc, fdst, length)
+            copyfileobj(fsrc, fdst, buffer_size)
 
     try:
         copystat(src, dst)
