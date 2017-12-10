@@ -21,6 +21,7 @@ from ..history import History
 from ..models.channel import Channel
 from ..models.dag import PrefixDag
 from ..models.dist import Dist
+from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..resolve import Resolve, dashlist
 
@@ -397,18 +398,28 @@ class Solver(object):
         unlink_precs = previous_records - final_precs
         link_precs = final_precs - previous_records
 
+        def _add_to_unlink_and_link(rec):
+            link_precs.add(rec)
+            if prec in previous_records:
+                unlink_precs.add(rec)
+
+        # If force_reinstall is enabled, make sure any package in specs_to_add is unlinked then
+        # re-linked
         if force_reinstall:
             for spec in self.specs_to_add:
                 prec = next((rec for rec in final_precs if spec.match(rec)), None)
                 assert prec
-                link_precs.add(prec)
-                if prec in previous_records:
-                    unlink_precs.add(prec)
+                _add_to_unlink_and_link(prec)
 
-        # TODO: add back 'noarch: python' to unlink and link if python version changes
-        # TODO: get the sort order correct for unlink_records
-        # TODO: force_reinstall might not yet be fully implemented in :meth:`solve_final_state`,
-        #       at least as described in the docstring.
+        # add back 'noarch: python' packages to unlink and link if python version changes
+        python_spec = MatchSpec('python')
+        prev_python = next((rec for rec in previous_records if python_spec.match(rec)), None)
+        curr_python = next((rec for rec in final_precs if python_spec.match(rec)), None)
+        gmm = get_major_minor_version
+        if prev_python and curr_python and gmm(prev_python.version) != gmm(curr_python.version):
+            noarch_python_precs = (p for p in final_precs if p.noarch == NoarchType.python)
+            for prec in noarch_python_precs:
+                _add_to_unlink_and_link(prec)
 
         unlink_precs = IndexedSet(reversed(sorted(unlink_precs,
                                                   key=lambda x: previous_records.index(x))))
