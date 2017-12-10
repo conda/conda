@@ -199,6 +199,7 @@ class CommandNotFoundError(CondaError):
             'render',
             'skeleton',
         }
+        # TODO: Point users to a page at conda-docs, which explains this context in more detail
         if command in activate_commands:
             from .base.context import context
             builder = ["Your shell has not been properly configured to use 'conda %(command)s'."]
