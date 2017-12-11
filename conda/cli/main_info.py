@@ -218,6 +218,21 @@ def get_info_dict(system=False):
     return info_dict
 
 
+def get_env_vars_str(info_dict):
+    from textwrap import wrap
+    builder = []
+    builder.append("%23s:" % "environment variables")
+    env_vars = info_dict.get('env_vars', {})
+    for key in sorted(env_vars):
+        value = wrap(env_vars[key])
+        first_line = value[0]
+        other_lines = value[1:] if len(value) > 1 else ()
+        builder.append("%25s=%s" % (key, first_line))
+        for val in other_lines:
+            builder.append(' ' * 26 + val)
+    return '\n'.join(builder)
+
+
 def get_main_info_str(info_dict):
     for key in 'pkgs_dirs', 'envs_dirs', 'channels', 'config_files':
         info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])

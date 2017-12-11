@@ -818,8 +818,9 @@ class ExceptionHandler(object):
                                    for line in error_report['traceback'].splitlines())
             message_builder.append('')
             if error_report['conda_info']:
-                from .cli.main_info import get_main_info_str
+                from .cli.main_info import get_env_vars_str, get_main_info_str
                 try:
+                    message_builder.append(get_env_vars_str(error_report['conda_info']))
                     message_builder.append(get_main_info_str(error_report['conda_info']))
                 except Exception as e:
                     message_builder.append('conda info could not be constructed.')
@@ -860,10 +861,11 @@ class ExceptionHandler(object):
         return ask_for_upload, do_upload
 
     def ask_for_upload(self):
-        message_builder = []
-        message_builder.append(
-            "Would you like conda to send this report to the core maintainers?"
-        )
+        message_builder = [
+            "If submitted, this report will be used by core maintainers to improve",
+            "future releases of conda.",
+            "Would you like conda to send this report to the core maintainers?",
+        ]
         message_builder.append(
             "[y/N]: "
         )
