@@ -195,33 +195,25 @@ def get_info_dict(system=False):
         info_dict['UID'] = os.geteuid()
         info_dict['GID'] = os.getegid()
 
-    if system:
-        evars = {
-            'CIO_TEST',
-            'CONDA_DEFAULT_ENV',
-            'CONDA_ENVS_PATH',
-            'DYLD_LIBRARY_PATH',
-            'FTP_PROXY',
-            'HTTP_PROXY',
-            'HTTPS_PROXY',
-            'LD_LIBRARY_PATH',
-            'PATH',
-            'PYTHONHOME',
-            'PYTHONPATH',
-            'REQUESTS_CA_BUNDLE',
-            'SSL_CERT_FILE',
-        }
+    evars = {
+        'CIO_TEST',
+        'REQUESTS_CA_BUNDLE',
+        'SSL_CERT_FILE',
+    }
 
-        evars.update(v for v in os.environ if v.startswith('CONDA_'))
-        evars.update(v for v in os.environ if v.startswith('conda_'))
+    # add all relevant env vars, e.g. startswith('CONDA') or endswith('PATH')
+    evars.update(v for v in os.environ if v.upper().startswith('CONDA'))
+    evars.update(v for v in os.environ if v.upper().startswith('PYTHON'))
+    evars.update(v for v in os.environ if v.upper().endswith('PROXY'))
+    evars.update(v for v in os.environ if v.upper().endswith('PATH'))
 
-        info_dict.update({
-            'sys.version': sys.version,
-            'sys.prefix': sys.prefix,
-            'sys.executable': sys.executable,
-            'site_dirs': get_user_site(),
-            'env_vars': {ev: os.getenv(ev, os.getenv(ev.lower(), '<not set>')) for ev in evars},
-        })
+    info_dict.update({
+        'sys.version': sys.version,
+        'sys.prefix': sys.prefix,
+        'sys.executable': sys.executable,
+        'site_dirs': get_user_site(),
+        'env_vars': {ev: os.getenv(ev, os.getenv(ev.lower(), '<not set>')) for ev in evars},
+    })
 
     return info_dict
 
