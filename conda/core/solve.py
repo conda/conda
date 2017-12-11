@@ -456,24 +456,27 @@ class Solver(object):
                 # TODO: Only explicitly requested remove and update specs are being included in
                 #   History right now. Do we need to include other categories from the solve?
 
-        conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
-        if not any(conda_newer_spec.match(prec) for prec in link_precs):
-            conda_newer_records = sorted(query_all(self.channels, self.subdirs, conda_newer_spec),
-                                         key=lambda x: VersionOrder(x.version))
-            if conda_newer_records:
-                latest_version = conda_newer_records[-1].version
-                sys.stderr.write(dedent("""
+        if context.notify_outdated_conda:
+            conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
+            if not any(conda_newer_spec.match(prec) for prec in link_precs):
+                conda_newer_records = sorted(
+                    query_all(self.channels, self.subdirs, conda_newer_spec),
+                    key=lambda x: VersionOrder(x.version)
+                )
+                if conda_newer_records:
+                    latest_version = conda_newer_records[-1].version
+                    sys.stderr.write(dedent("""
 
-                ==> WARNING: A newer version of conda exists. <==
-                  current version: %s
-                  latest version: %s
+                    ==> WARNING: A newer version of conda exists. <==
+                      current version: %s
+                      latest version: %s
 
-                Please update conda by running
+                    Please update conda by running
 
-                    $ conda update -n base conda
+                        $ conda update -n base conda
 
 
-                """) % (CONDA_VERSION, latest_version))
+                    """) % (CONDA_VERSION, latest_version))
 
         return UnlinkLinkTransaction(stp)
 

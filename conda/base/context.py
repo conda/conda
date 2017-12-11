@@ -89,6 +89,7 @@ class Context(Configuration):
     add_pip_as_python_dependency = PrimitiveParameter(True)
     allow_softlinks = PrimitiveParameter(False)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
+    notify_outdated_conda = PrimitiveParameter(True)
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
     concurrent = PrimitiveParameter(True)
@@ -754,6 +755,10 @@ def get_help_dict():
         'non_admin_enabled': dals("""
             Allows completion of conda's create, install, update, and remove operations, for
             non-privileged (non-root or non-administrator) users.
+            """),
+        'notify_outdated_conda': dals("""
+            Notify if a newer version of conda is detected during a create, install, update,
+            or remove operation.
             """),
         'offline': dals("""
             Restrict conda to cached download content and file:// based urls.
