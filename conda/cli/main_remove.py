@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 
 def execute(args, parser):
 
-    if not (args.all or args.package_names or args.features):
+    if not (args.all or args.package_names):
         raise CondaValueError('no package names supplied,\n'
                               '       try "conda remove -h" for more details')
 
