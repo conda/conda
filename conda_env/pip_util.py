@@ -8,6 +8,7 @@ from __future__ import absolute_import, print_function
 import json
 import os
 from os.path import isfile, join
+import re
 import subprocess
 import sys
 
@@ -87,6 +88,17 @@ def installed(prefix, output=True):
             kwargs['path'] = path
         yield PipPackage(**kwargs)
 
+# canonicalize_{regex,name} inherited from packaging/utils.py
+# Used under BSD license
+
+
+_canonicalize_regex = re.compile(r"[-_.]+")
+
+
+def _canonicalize_name(name):
+    # This is taken from PEP 503.
+    return _canonicalize_regex.sub("-", name).lower()
+
 
 def add_pip_installed(prefix, installed_pkgs, json=None, output=True):
     # Defer to json for backwards compatibility
@@ -96,8 +108,12 @@ def add_pip_installed(prefix, installed_pkgs, json=None, output=True):
     # TODO Refactor so installed is a real list of objects/dicts
     #      instead of strings allowing for direct comparison
     # split :: to get rid of channel info
-    conda_names = {d.quad[0] for d in installed_pkgs}
+
+    # canonicalize names for pip comparison
+    # because pip normalizes `foo_bar` to `foo-bar`
+    conda_names = {_canonicalize_name(d.quad[0]) for d in installed_pkgs}
     for pip_pkg in installed(prefix, output=output):
-        if pip_pkg['name'] in conda_names and 'path' not in pip_pkg:
+        pip_name = _canonicalize_name(pip_pkg['name'])
+        if pip_name in conda_names and 'path' not in pip_pkg:
             continue
         installed_pkgs.add(str(pip_pkg))
