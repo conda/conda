@@ -4,9 +4,10 @@ Using Microsoft R Open with conda
 
 NOTE: December 12, 2017 update: The packages in the MRO channel were last
 updated in 2016 and are now deprecated. They have been copied to
-https://repo.continuum.io/pkgs/mro-archive and will be removed from their
-current channel at https://anaconda.org/mro in about one week. Soon after that
-the new versions of the MRO packages will be posted.
+https://repo.continuum.io/pkgs/mro-archive and in about one week they will be
+removed from their current locations at https://repo.continuum.io/pkgs/mro/ and
+https://anaconda.org/mro . Soon after that the new versions of the MRO packages
+will be posted.
 
 .. contents::
    :local:
