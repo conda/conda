@@ -349,10 +349,8 @@ class MatchSpec(object):
                 matcher = value
             elif field_name in _implementors:
                 matcher = _implementors[field_name](value)
-            elif text_type(value):
-                matcher = StrMatch(value)
             else:
-                raise NotImplementedError()
+                matcher = StrMatch(text_type(value))
 
             return field_name, matcher
 
