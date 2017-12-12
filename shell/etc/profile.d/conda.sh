@@ -24,6 +24,9 @@ _conda_set_vars() {
         fi
     fi
 
+    # PS1 needs to be passed to subprocesses. Exporting it here fixes issues
+    # that could come up later.
+    export PS1
 }
 
 
@@ -48,21 +51,6 @@ _conda_activate() {
     ask_conda="$($_CONDA_EXE shell.posix activate "$@")" || return $?
     eval "$ask_conda"
 
-    case "$_CONDA_SHELL_FLAVOR" in
-        dash)
-            if [ "$(echo "${PS1-}" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
-                PS1='$CONDA_PROMPT_MODIFIER\[\]'"$PS1"
-            fi
-            ;;
-        *)
-            if [ -z "${PS1+x}" ] || [ "${PS1:0:22}" != '$CONDA_PROMPT_MODIFIER' ]; then
-                # the extra \[\] is because the prompt fails for some reason if there's no
-                # character after the end of the environment variable name
-                PS1='$CONDA_PROMPT_MODIFIER\[\]'"${PS1-}"
-            fi
-            ;;
-    esac
-
     _conda_hashr
 }
 
@@ -70,13 +58,6 @@ _conda_deactivate() {
     local ask_conda
     ask_conda="$($_CONDA_EXE shell.posix deactivate "$@")" || return $?
     eval "$ask_conda"
-
-    if [ -z "${CONDA_PREFIX+x}" ]; then
-        case "$_CONDA_SHELL_FLAVOR" in
-            dash) PS1=$(echo "${PS1-}" | awk '{ string=substr($0, 27); print string; }') ;;
-            *) [ -n "${PS1:+x}" ] && [ "${PS1:0:22}" = '$CONDA_PROMPT_MODIFIER' ] && PS1=${PS1:26} ;;
-        esac
-    fi
 
     _conda_hashr
 }
