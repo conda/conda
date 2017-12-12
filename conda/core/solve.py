@@ -5,10 +5,14 @@ from enum import Enum
 from genericpath import exists
 from logging import DEBUG, getLogger
 from os.path import join
+import sys
+from textwrap import dedent
 
 from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
-from .linked_data import PrefixData, linked_data
+from .linked_data import PrefixData
+from .repodata import query_all
+from .. import __version__ as CONDA_VERSION
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
@@ -21,7 +25,9 @@ from ..history import History
 from ..models.channel import Channel
 from ..models.dag import PrefixDag
 from ..models.dist import Dist
+from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
+from ..models.version import VersionOrder
 from ..resolve import Resolve, dashlist
 
 try:
@@ -389,23 +395,40 @@ class Solver(object):
 
         """
         final_precs = self.solve_final_state(deps_modifier, prune, ignore_pinned, force_remove)
-        previous_records = IndexedSet(itervalues(linked_data(self.prefix)))
+        previous_records = IndexedSet(self._index[d] for d in self._r.dependency_sort(
+            {prefix_rec.name: Dist(prefix_rec)
+             for prefix_rec in PrefixData(self.prefix).iter_records()}
+        ))
+
         unlink_precs = previous_records - final_precs
         link_precs = final_precs - previous_records
 
+        def _add_to_unlink_and_link(rec):
+            link_precs.add(rec)
+            if prec in previous_records:
+                unlink_precs.add(rec)
+
+        # If force_reinstall is enabled, make sure any package in specs_to_add is unlinked then
+        # re-linked
         if force_reinstall:
             for spec in self.specs_to_add:
                 prec = next((rec for rec in final_precs if spec.match(rec)), None)
                 assert prec
-                link_precs.add(prec)
-                if prec in previous_records:
-                    unlink_precs.add(prec)
+                _add_to_unlink_and_link(prec)
 
-        # TODO: add back 'noarch: python' to unlink and link if python version changes
-        # TODO: get the sort order correct for unlink_records
-        # TODO: force_reinstall might not yet be fully implemented in :meth:`solve_final_state`,
-        #       at least as described in the docstring.
+        # add back 'noarch: python' packages to unlink and link if python version changes
+        python_spec = MatchSpec('python')
+        prev_python = next((rec for rec in previous_records if python_spec.match(rec)), None)
+        curr_python = next((rec for rec in final_precs if python_spec.match(rec)), None)
+        gmm = get_major_minor_version
+        if prev_python and curr_python and gmm(prev_python.version) != gmm(curr_python.version):
+            noarch_python_precs = (p for p in final_precs if p.noarch == NoarchType.python)
+            for prec in noarch_python_precs:
+                _add_to_unlink_and_link(prec)
 
+        unlink_precs = IndexedSet(reversed(sorted(unlink_precs,
+                                                  key=lambda x: previous_records.index(x))))
+        link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
         return unlink_precs, link_precs
 
     def solve_for_transaction(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
@@ -443,7 +466,30 @@ class Solver(object):
                                   self.specs_to_remove, self.specs_to_add)
                 # TODO: Only explicitly requested remove and update specs are being included in
                 #   History right now. Do we need to include other categories from the solve?
-                return UnlinkLinkTransaction(stp)
+
+        if context.notify_outdated_conda:
+            conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
+            if not any(conda_newer_spec.match(prec) for prec in link_precs):
+                conda_newer_records = sorted(
+                    query_all(self.channels, self.subdirs, conda_newer_spec),
+                    key=lambda x: VersionOrder(x.version)
+                )
+                if conda_newer_records:
+                    latest_version = conda_newer_records[-1].version
+                    sys.stderr.write(dedent("""
+
+                    ==> WARNING: A newer version of conda exists. <==
+                      current version: %s
+                      latest version: %s
+
+                    Please update conda by running
+
+                        $ conda update -n base conda
+
+
+                    """) % (CONDA_VERSION, latest_version))
+
+        return UnlinkLinkTransaction(stp)
 
     def _prepare(self, prepared_specs):
         # All of this _prepare() method is hidden away down here. Someday we may want to further

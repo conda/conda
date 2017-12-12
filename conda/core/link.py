@@ -509,8 +509,9 @@ class UnlinkLinkTransaction(object):
         axn_idx, action, is_unlink = 0, None, axngroup.type == 'unlink'
         prec = axngroup.pkg_data
 
-        if not isdir(join(target_prefix, 'conda-meta')):
-            mkdir_p(join(target_prefix, 'conda-meta'))
+        conda_meta_dir = join(target_prefix, 'conda-meta')
+        if not isdir(conda_meta_dir):
+            mkdir_p(conda_meta_dir)
 
         try:
             if axngroup.type == 'unlink':

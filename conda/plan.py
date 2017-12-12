@@ -11,24 +11,20 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath, basename, isdir
+from os.path import abspath
 import sys
 
-from conda.core.index import _supplement_index_with_prefix
-from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
-from .common.compat import on_win, itervalues, text_type
+from .common.compat import itervalues, text_type
+from .core.index import _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
-from .core.package_cache import ProgressiveFetchExtract
-from .core.solve import Solver, get_pinned_specs
-from .exceptions import ArgumentError, CondaIndexError, RemoveError
+from .core.solve import get_pinned_specs
+from .exceptions import CondaIndexError, RemoveError
 from .history import History
-from .instructions import (ACTION_CODES, CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
-                           PRINT, PROGRESS, PROGRESSIVEFETCHEXTRACT, PROGRESS_COMMANDS,
-                           RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK,
-                           UNLINKLINKTRANSACTION, execute_instructions)
+from .instructions import (CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
+                           RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK)
 from .models.channel import Channel
 from .models.dist import Dist
 from .models.enums import LinkType
@@ -257,121 +253,11 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
     print()
 
 
-def nothing_to_do(actions):
-    for op in ACTION_CODES:
-        if actions.get(op):
-            return False
-    return True
-
-
 def add_unlink(actions, dist):
     assert isinstance(dist, Dist)
     if UNLINK not in actions:
         actions[UNLINK] = []
     actions[UNLINK].append(dist)
-
-
-def handle_menuinst(unlink_dists, link_dists):
-    if not on_win:
-        return unlink_dists, link_dists
-
-    # Always link/unlink menuinst first/last on windows in case a subsequent
-    # package tries to import it to create/remove a shortcut
-
-    # unlink
-    menuinst_idx = next((q for q, d in enumerate(unlink_dists) if d.name == 'menuinst'), None)
-    if menuinst_idx is not None:
-        unlink_dists = tuple(concatv(
-            unlink_dists[:menuinst_idx],
-            unlink_dists[menuinst_idx+1:],
-            unlink_dists[menuinst_idx:menuinst_idx+1],
-        ))
-
-    # link
-    menuinst_idx = next((q for q, d in enumerate(link_dists) if d.name == 'menuinst'), None)
-    if menuinst_idx is not None:
-        link_dists = tuple(concatv(
-            link_dists[menuinst_idx:menuinst_idx+1],
-            link_dists[:menuinst_idx],
-            link_dists[menuinst_idx+1:],
-        ))
-
-    return unlink_dists, link_dists
-
-
-def inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):
-    # this is only used for conda-build at this point
-    first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)
-    if first_unlink_link_idx >= 0:
-        grouped_instructions = groupby(lambda x: x[0], plan)
-        unlink_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(UNLINK, ()))
-        link_dists = tuple(Dist(d[1]) for d in grouped_instructions.get(LINK, ()))
-        unlink_dists, link_dists = handle_menuinst(unlink_dists, link_dists)
-
-        if isdir(prefix):
-            unlink_precs = tuple(index[d] for d in unlink_dists)
-        else:
-            # there's nothing to unlink in an environment that doesn't exist
-            # this is a hack for what appears to be a logic error in conda-build
-            # caught in tests/test_subpackages.py::test_subpackage_recipes[python_test_dep]
-            unlink_precs = ()
-        link_precs = tuple(index[d] for d in link_dists)
-
-        pfe = ProgressiveFetchExtract(link_precs)
-        pfe.prepare()
-
-        stp = PrefixSetup(prefix, unlink_precs, link_precs, (), specs)
-        plan.insert(first_unlink_link_idx, (UNLINKLINKTRANSACTION, UnlinkLinkTransaction(stp)))
-        plan.insert(first_unlink_link_idx, (PROGRESSIVEFETCHEXTRACT, pfe))
-    elif axn in ('INSTALL', 'CREATE'):
-        plan.insert(0, (UNLINKLINKTRANSACTION, (prefix, (), (), (), specs)))
-
-    return plan
-
-
-def plan_from_actions(actions, index):
-    if 'op_order' in actions and actions['op_order']:
-        op_order = actions['op_order']
-    else:
-        op_order = ACTION_CODES
-
-    assert PREFIX in actions and actions[PREFIX]
-    prefix = actions[PREFIX]
-    plan = [('PREFIX', '%s' % prefix)]
-
-    unlink_link_transaction = actions.get('UNLINKLINKTRANSACTION')
-    if unlink_link_transaction:
-        raise RuntimeError()
-        # progressive_fetch_extract = actions.get('PROGRESSIVEFETCHEXTRACT')
-        # if progressive_fetch_extract:
-        #     plan.append((PROGRESSIVEFETCHEXTRACT, progressive_fetch_extract))
-        # plan.append((UNLINKLINKTRANSACTION, unlink_link_transaction))
-        # return plan
-
-    axn = actions.get('ACTION') or None
-    specs = actions.get('SPECS', [])
-
-    log.debug("Adding plans for operations: {0}".format(op_order))
-    for op in op_order:
-        if op not in actions:
-            log.trace("action {0} not in actions".format(op))
-            continue
-        if not actions[op]:
-            log.trace("action {0} has None value".format(op))
-            continue
-        if '_' not in op:
-            plan.append((PRINT, '%sing packages ...' % op.capitalize()))
-        elif op.startswith('RM_'):
-            plan.append((PRINT, 'Pruning %s packages from the cache ...' % op[3:].lower()))
-        if op in PROGRESS_COMMANDS:
-            plan.append((PROGRESS, '%d' % len(actions[op])))
-        for arg in actions[op]:
-            log.debug("appending value {0} for action {1}".format(arg, op))
-            plan.append((op, arg))
-
-    plan = inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs)
-
-    return plan
 
 
 # force_linked_actions has now been folded into this function, and is enabled by
@@ -392,149 +278,11 @@ def ensure_linked_actions(dists, prefix, index=None, force=False,
     return actions
 
 
-def get_blank_actions(prefix):
-    actions = defaultdict(list)
-    actions[PREFIX] = prefix
-    actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,
-                           RM_EXTRACTED, EXTRACT,
-                           UNLINK, LINK, SYMLINK_CONDA)
-    return actions
-
-
 # -------------------------------------------------------------------
 
 
 def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
     return
-    # # TODO: This should use the pinning mechanism. But don't change the API because cas uses it
-    # if r.explicit(specs) or is_private_env_path(prefix):
-    #     return
-    # log.debug('H0 specs=%r' % specs)
-    # # names_linked = {r.package_name(d): d for d in linked if d in r.index}
-    # mspecs = list(map(MatchSpec, specs))
-    #
-    # for name, def_ver in [('python', context.default_python or None),
-    #                       # Default version required, but only used for Python
-    #                       ('lua', None)]:
-    #     if any(s.name == name and not s.is_simple() for s in mspecs):
-    #         # if any of the specifications mention the Python/Numpy version,
-    #         # we don't need to add the default spec
-    #         log.debug('H1 %s' % name)
-    #         continue
-    #
-    #     depends_on = {s for s in mspecs if r.depends_on(s, name)}
-    #     any_depends_on = bool(depends_on)
-    #     log.debug('H2 %s %s' % (name, any_depends_on))
-    #
-    #     if not any_depends_on:
-    #         # if nothing depends on Python/Numpy AND the Python/Numpy is not
-    #         # specified, we don't need to add the default spec
-    #         log.debug('H2A %s' % name)
-    #         continue
-    #
-    #     if any(s.exact_field('build') for s in depends_on):
-    #         # If something depends on Python/Numpy, but the spec is very
-    #         # explicit, we also don't need to add the default spec
-    #         log.debug('H2B %s' % name)
-    #         continue
-    #
-    #     # if name in names_linked:
-    #     #     # if Python/Numpy is already linked, we add that instead of the default
-    #     #     log.debug('H3 %s' % name)
-    #     #     dist = Dist(names_linked[name])
-    #     #     info = r.index[dist]
-    #     #     ver = '.'.join(info['version'].split('.', 2)[:2])
-    #     #     spec = '%s %s* (target=%s)' % (info['name'], ver, dist)
-    #     #     specs.append(spec)
-    #     #     continue
-    #
-    #     if name == 'python' and def_ver and def_ver.startswith('3.'):
-    #         # Don't include Python 3 in the specs if this is the Python 3
-    #         # version of conda.
-    #         continue
-    #
-    #     if def_ver is not None:
-    #         specs.append('%s %s*' % (name, def_ver))
-    # log.debug('HF specs=%r' % specs)
-
-
-def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
-                    pinned=True, update_deps=True, prune=False,
-                    channel_priority_map=None, is_update=False,
-                    minimal_hint=False):  # pragma: no cover
-    # this is for conda-build
-    if channel_priority_map:
-        channel_names = IndexedSet(Channel(url).canonical_name for url in channel_priority_map)
-        channels = IndexedSet(Channel(cn) for cn in channel_names)
-        subdirs = IndexedSet(basename(url) for url in channel_priority_map)
-    else:
-        channels = subdirs = None
-
-    specs = tuple(MatchSpec(spec) for spec in specs)
-
-    from .core.linked_data import PrefixData
-    PrefixData._cache_.clear()
-
-    solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
-    if index:
-        solver._index = index
-    txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
-    prefix_setup = txn.prefix_setups[prefix]
-    actions = get_blank_actions(prefix)
-    actions['UNLINK'].extend(Dist(prec) for prec in prefix_setup.unlink_precs)
-    actions['LINK'].extend(Dist(prec) for prec in prefix_setup.link_precs)
-    return actions
-
-
-# def augment_specs(prefix, specs, pinned=True):
-#     """
-#     Include additional specs for conda and (optionally) pinned packages.
-#
-#     Parameters
-#     ----------
-#     prefix : str
-#         Environment prefix.
-#     specs : list of MatchSpec
-#         List of package specifications to augment.
-#     pinned : bool, optional
-#         Optionally include pinned specs for the current environment.
-#
-#     Returns
-#     -------
-#     augmented_specs : list of MatchSpec
-#        List of augmented package specifications.
-#     """
-#     specs = list(specs)
-#
-#     # Get conda-meta/pinned
-#     if pinned:
-#         pinned_specs = get_pinned_specs(prefix)
-#         log.debug("Pinned specs=%s", pinned_specs)
-#         specs.extend(pinned_specs)
-#
-#     # Support aggressive auto-update conda
-#     #   Only add a conda spec if conda and conda-env are not in the specs.
-#     #   Also skip this step if we're offline.
-#     root_only_specs_str = ('conda', 'conda-env')
-#     conda_in_specs_str = any(spec for spec in specs if spec.name in root_only_specs_str)
-#
-#     if abspath(prefix) == context.root_prefix:
-#         if context.auto_update_conda and not context.offline and not conda_in_specs_str:
-#             specs.append(MatchSpec('conda'))
-#             specs.append(MatchSpec('conda-env'))
-#     elif basename(prefix).startswith('_'):
-#         # Anything (including conda) can be installed into environments
-#         # starting with '_', mainly to allow conda-build to build conda
-#         pass
-#     elif conda_in_specs_str:
-#         raise InstallError("Error: 'conda' can only be installed into the "
-#                            "root environment")
-#
-#     # Support track_features config parameter
-#     if context.track_features:
-#         specs.extend(x + '@' for x in context.track_features)
-#
-#     return tuple(specs)
 
 
 def _remove_actions(prefix, specs, index, force=False, pinned=True):
@@ -642,36 +390,6 @@ def revert_actions(prefix, revision=-1, index=None):
 
 
 # ---------------------------- EXECUTION --------------------------
-
-def execute_actions(actions, index, verbose=False):
-    plan = plan_from_actions(actions, index)
-    execute_instructions(plan, index, verbose)
-
-
-def update_old_plan(old_plan):
-    """
-    Update an old plan object to work with
-    `conda.instructions.execute_instructions`
-    """
-    plan = []
-    for line in old_plan:
-        if line.startswith('#'):
-            continue
-        if ' ' not in line:
-            raise ArgumentError("The instruction '%s' takes at least"
-                                " one argument" % line)
-
-        instruction, arg = line.split(' ', 1)
-        plan.append((instruction, arg))
-    return plan
-
-
-def execute_plan(old_plan, index=None, verbose=False):
-    """
-    Deprecated: This should `conda.instructions.execute_instructions` instead
-    """
-    plan = update_old_plan(old_plan)
-    execute_instructions(plan, index, verbose)
 
 
 if __name__ == '__main__':

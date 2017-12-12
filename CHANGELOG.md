@@ -21,7 +21,7 @@ For system-wide conda installs, to make the `conda` command available to all use
 
     $ sudo ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
 
-This will make the `conda` comamnd itself available to all users, but conda's base (root) environment will *not* be activated by default.  Users will still need to run `conda activate base` to put the base environment on PATH and gain to the executables in the base environment.
+This will make the `conda` comamnd itself available to all users, but conda's base (root) environment will *not* be activated by default.  Users will still need to run `conda activate base` to put the base environment on PATH and gain access to the executables in the base environment.
 
 After updating to conda 4.4, we also recommend pinning conda to a specific channel.  For example, executing the command
 
@@ -100,7 +100,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 
       conda config --add aggressive_update_packages defaults::pyopenssl --system
 
-  would ensure that solves on all environments system-wide always enforce using the latest version of `pyopenssl` from the `defaults` channel.
+  would ensure that, system-wide, solves on all environments enforce using the latest version of `pyopenssl` from the `defaults` channel.
 
       conda config --add pinned_packages python=2.7 --env
 
@@ -168,6 +168,14 @@ will make sure that whenever conda is installed or changed in an environment, th
 * resolve #5983 add --download-only flag to create, install, and update (4.4.0rc2) (#5988)
 * add ca-certificates and certifi to aggressive_update_packages default (4.4.0rc2) (#5994)
 * use environments.txt to list all known environments (4.4.0rc2) (#6313)
+* resolve #5417 ensure unlink order is correctly sorted (4.4.0) (#6364)
+* resolve #5370 index is only prefix and cache in --offline mode (4.4.0) (#6371)
+* reduce redundant sys call during file copying (4.4.0rc3) (#6421)
+* enable aggressive_update_packages (4.4.0rc3) (#6392)
+* default conda.sh to dash if otherwise can't detect (4.4.0rc3) (#6414)
+* canonicalize package names when comparing with pip (4.4.0rc3) (#6438)
+* add target prefix override configuration parameter (4.4.0rc3) (#6413)
+* resolve #6194 warn when conda is outdated (4.4.0rc3) (#6370)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -204,6 +212,10 @@ will make sure that whenever conda is installed or changed in an environment, th
 * fix #6173 double prompt immediately after conda 4.4 upgrade (4.4.0rc2) (#6351)
 * fix #6181 keep existing pythons pinned to minor version (4.4.0rc2) (#6363)
 * fix #6201 incorrect subdir shown for conda search when package not found (4.4.0rc2) (#6367)
+* fix #6045 help message and zsh shift (4.4.0rc3) (#6368)
+* fix noarch python package resintall (4.4.0rc3) (#6394)
+* fix #6366 shell activation message (4.4.0rc3) (#6369)
+* fix #6429 AttributeError on 'conda remove' (4.4.0rc3) (#6434)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
@@ -227,6 +239,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 * fix typo (4.4.0rc2) (#6043)
 * replace Travis-CI with CircleCI (4.4.0rc2) (#6345)
 * key-value features (#5645); reverted in 4.4.0rc2 (#6347)
+* resolve #6431 always add env_vars to info_dict (4.4.0rc3) (#6436)
 
 
 ## 4.3.31 (unreleased)

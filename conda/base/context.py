@@ -89,6 +89,7 @@ class Context(Configuration):
     add_pip_as_python_dependency = PrimitiveParameter(True)
     allow_softlinks = PrimitiveParameter(False)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
+    notify_outdated_conda = PrimitiveParameter(True)
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
     concurrent = PrimitiveParameter(True)
@@ -104,6 +105,7 @@ class Context(Configuration):
     non_admin_enabled = PrimitiveParameter(True)
 
     # Safety & Security
+    _aggressive_update_packages = SequenceParameter(string_types)
     safety_checks = PrimitiveParameter(SafetyChecks.warn)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
 
@@ -179,6 +181,8 @@ class Context(Configuration):
     shortcuts = PrimitiveParameter(True)
     update_dependencies = PrimitiveParameter(False, aliases=('update_deps',))
     _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
+
+    target_prefix_override = PrimitiveParameter('')
 
     # conda_build
     bld_path = PrimitiveParameter('')
@@ -418,11 +422,14 @@ class Context(Configuration):
     @property
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
-        return (
-            MatchSpec('ca-certificates', optional=True),
-            MatchSpec('certifi', optional=True),
-            MatchSpec('openssl', optional=True),
-        )
+        if self._aggressive_update_packages:
+            return tuple(MatchSpec(s, optional=True) for s in self._aggressive_update_packages)
+        else:
+            return (
+                MatchSpec('ca-certificates', optional=True),
+                MatchSpec('certifi', optional=True),
+                MatchSpec('openssl', optional=True),
+            )
 
     @property
     def deps_modifier(self):
@@ -576,6 +583,7 @@ class Context(Configuration):
             'subdirs',
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
 # I don't think this documentation is correct any longer. # NOQA
+            'target_prefix_override',  # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
             'update_dependencies',
         )
         return tuple(p for p in super(Context, self).list_parameters()
@@ -622,6 +630,10 @@ def get_help_dict():
         'add_pip_as_python_dependency': dals("""
             Add pip, wheel and setuptools as dependencies of python. This ensures pip,
             wheel and setuptools will always be installed any time python is installed.
+            """),
+        'aggressive_update_packages': dals("""
+            A list of packages that, if installed, are always updated to the latest possible
+            version.
             """),
         'allow_non_channel_urls': dals("""
             Warn, but do not fail, when conda detects a channel url is not a valid channel.
@@ -755,6 +767,10 @@ def get_help_dict():
             Allows completion of conda's create, install, update, and remove operations, for
             non-privileged (non-root or non-administrator) users.
             """),
+        'notify_outdated_conda': dals("""
+            Notify if a newer version of conda is detected during a create, install, update,
+            or remove operation.
+            """),
         'offline': dals("""
             Restrict conda to cached download content and file:// based urls.
             """),
@@ -871,7 +887,11 @@ def _get_user_agent(context_platform):
     libc_family, libc_ver = linux_get_libc_version()
     if context_platform == 'linux':
         from .._vendor.distro import linux_distribution
-        distinfo = linux_distribution(full_distribution_name=False)
+        try:
+            distinfo = linux_distribution(full_distribution_name=False)
+        except Exception as e:
+            log.debug('%r', e, exc_info=True)
+            distinfo = ('Linux', 'unknown')
         dist, ver = distinfo[0], distinfo[1]
     elif context_platform == 'osx':
         dist = 'OSX'

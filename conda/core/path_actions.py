@@ -404,7 +404,9 @@ class PrefixReplaceLinkAction(LinkPathAction):
 
         try:
             log.trace("rewriting prefixes in %s", self.target_full_path)
-            update_prefix(self.intermediate_path, self.target_prefix, self.prefix_placeholder,
+            update_prefix(self.intermediate_path,
+                          context.target_prefix_override or self.target_prefix,
+                          self.prefix_placeholder,
                           self.file_mode)
         except _PaddingError:
             raise PaddingError(self.target_full_path, self.prefix_placeholder,

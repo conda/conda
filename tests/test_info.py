@@ -31,12 +31,8 @@ def test_info():
     conda_info_s_out, conda_info_s_err, rc = run_command(Commands.INFO, '-s')
     assert_equals(conda_info_s_err, '')
     for name in ['sys.version', 'sys.prefix', 'sys.executable', 'conda location',
-                 'conda-build', 'CONDA_DEFAULT_ENV', 'PATH', 'PYTHONPATH']:
+                 'conda-build', 'PATH']:
         assert_in(name, conda_info_s_out)
-    if context.platform == 'linux':
-        assert_in('LD_LIBRARY_PATH', conda_info_s_out)
-    if context.platform == 'osx':
-        assert_in('DYLD_LIBRARY_PATH', conda_info_s_out)
 
     conda_info_all_out, conda_info_all_err, rc = run_command(Commands.INFO, '--all')
     assert_equals(conda_info_all_err, '')

@@ -7,7 +7,7 @@ from logging import getLogger
 import os
 from os import X_OK, access
 from os.path import basename, dirname, isdir, isfile, join, splitext
-from shutil import copy as shutil_copy, copystat
+from shutil import copyfileobj, copystat
 import sys
 import tarfile
 
@@ -238,7 +238,17 @@ def copy(src, dst):
 
 def _do_copy(src, dst):
     log.trace("copying %s => %s", src, dst)
-    shutil_copy(src, dst)
+    # src and dst are always files. So we can bypass some checks that shutil.copy does.
+    # Also shutil.copy calls shutil.copymode, which we can skip because we are explicitly
+    # calling copystat.
+
+    # Same size as used by Linux cp command (has performance advantage).
+    # Python's default is 16k.
+    buffer_size = 4194304  # 4 * 1024 * 1024  == 4 MB
+    with open(src, 'rb') as fsrc:
+        with open(dst, 'wb') as fdst:
+            copyfileobj(fsrc, fdst, buffer_size)
+
     try:
         copystat(src, dst)
     except (IOError, OSError) as e:  # pragma: no cover
@@ -296,16 +306,20 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
 
     command = '"%s" -Wi -m py_compile "%s"' % (python_exe_full_path, py_full_path)
     log.trace(command)
-    subprocess_call(command, raise_on_error=False)
+    result = subprocess_call(command, raise_on_error=False)
 
     if not isfile(pyc_full_path):
         message = dals("""
         pyc file failed to compile successfully
-          python_exe_full_path: %()s\n
-          py_full_path: %()s\n
-          pyc_full_path: %()s\n
+          python_exe_full_path: %s
+          py_full_path: %s
+          pyc_full_path: %s
+          compile rc: %s
+          compile stdout: %s
+          compile stderr: %s
         """)
-        log.info(message, python_exe_full_path, py_full_path, pyc_full_path)
+        log.info(message, python_exe_full_path, py_full_path, pyc_full_path,
+                 result.rc, result.stdout, result.stderr)
         return None
 
     return pyc_full_path

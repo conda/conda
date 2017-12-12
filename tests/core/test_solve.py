@@ -170,49 +170,49 @@ def test_prune_1():
     specs_to_remove = MatchSpec("numbapro"),
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
-        final_state_2 = solver.solve_final_state(prune=False)
+        unlink_precs, link_precs = solver.solve_for_diff(prune=False)
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
-        order = (
-            'channel-1::libnvvm-1.0-p0',
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::llvm-3.2-0',
-            'channel-1::mkl-rt-11.0-p0',
-            'channel-1::python-2.7.3-7',
-            'channel-1::bitarray-0.8.1-py27_0',
-            'channel-1::llvmpy-0.11.2-py27_0',
-            'channel-1::meta-0.4.2.dev-py27_0',
-            'channel-1::mkl-service-1.0.0-py27_p0',
-            'channel-1::numpy-1.6.2-py27_p4',
-            'channel-1::numba-0.8.1-np16py27_0',
-            'channel-1::numexpr-2.1-np16py27_p0',
-            'channel-1::scipy-0.12.0-np16py27_p0',
-            'channel-1::scikit-learn-0.13.1-np16py27_p0',
-            'channel-1::mkl-11.0-np16py27_p0',
+        print([Dist(rec).full_name for rec in unlink_precs])
+        unlink_order = (
+            'channel-1::accelerate-1.1.0-np16py27_p0',
+            'channel-1::numbapro-0.11.0-np16py27_p0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert tuple(unlink_precs) == tuple(solver._index[Dist(d)] for d in unlink_order)
+
+        print([Dist(rec).full_name for rec in link_precs])
+        link_order = ()
+        assert tuple(link_precs) == tuple(solver._index[Dist(d)] for d in link_order)
 
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
-        final_state_2 = solver.solve_final_state(prune=True)
+        unlink_precs, link_precs = solver.solve_for_diff(prune=True)
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
-        order = (
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::python-2.7.3-7',
+        print([Dist(rec).full_name for rec in unlink_precs])
+        unlink_order = (
+            'channel-1::accelerate-1.1.0-np16py27_p0',
+            'channel-1::mkl-11.0-np16py27_p0',
+            'channel-1::scikit-learn-0.13.1-np16py27_p0',
+            'channel-1::numbapro-0.11.0-np16py27_p0',
+            'channel-1::scipy-0.12.0-np16py27_p0',
+            'channel-1::numexpr-2.1-np16py27_p0',
+            'channel-1::numba-0.8.1-np16py27_0',
+            'channel-1::numpy-1.6.2-py27_p4',
+            'channel-1::mkl-service-1.0.0-py27_p0',
+            'channel-1::meta-0.4.2.dev-py27_0',
+            'channel-1::llvmpy-0.11.2-py27_0',
+            'channel-1::bitarray-0.8.1-py27_0',
+            'channel-1::mkl-rt-11.0-p0',
+            'channel-1::llvm-3.2-0',
+            'channel-1::libnvvm-1.0-p0',
+        )
+        assert tuple(unlink_precs) == tuple(solver._index[Dist(d)] for d in unlink_order)
+
+        print([Dist(rec).full_name for rec in link_precs])
+        link_order = (
             'channel-1::numpy-1.6.2-py27_4',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert tuple(link_precs) == tuple(solver._index[Dist(d)] for d in link_order)
+
 
 
 def test_force_remove_1():

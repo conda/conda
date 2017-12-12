@@ -3,7 +3,8 @@ from logging import getLogger, Handler, DEBUG
 import os
 
 from conda import instructions
-from conda.instructions import execute_instructions, commands
+from conda.exports import execute_instructions
+from conda.instructions import commands
 from conda.exceptions import CondaFileIOError
 
 try:
