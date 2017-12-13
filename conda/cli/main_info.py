@@ -16,7 +16,7 @@ import re
 import sys
 from textwrap import dedent
 
-from .common import handle_envs_list, stdout_json
+from .common import print_envs_list, stdout_json
 from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
 from ..base.context import conda_in_private_env, context, sys_rc_path, user_rc_path
 from ..common.compat import iteritems, itervalues, on_win, text_type
@@ -302,7 +302,7 @@ def execute(args, parser):
     if args.envs:
         from ..core.envs_manager import list_all_known_prefixes
         info_dict['envs'] = list_all_known_prefixes()
-        handle_envs_list(info_dict['envs'], not context.json)
+        print_envs_list(info_dict['envs'], not context.json)
 
     if args.system:
         if not context.json:
