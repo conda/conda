@@ -18,8 +18,8 @@ import conda.instructions as inst
 from conda.models.dist import Dist
 from conda.models.index_record import IndexRecord
 from conda.models.match_spec import MatchSpec
-from conda.plan import display_actions, add_unlink, add_defaults_to_specs
-from conda.exports import _update_old_plan as update_old_plan, execute_plan
+from conda.plan import display_actions, add_unlink, add_defaults_to_specs, _update_old_plan as update_old_plan
+from conda.exports import execute_plan
 from .decorators import skip_if_no_mock
 from .gateways.disk.test_permissions import tempdir
 from .helpers import captured, get_index_r_1, mock, tempdir
