@@ -191,14 +191,8 @@ class Activator(object):
             yield self.run_script_tmpl % script
 
     def build_activate(self, env_name_or_prefix):
-        test_path = expand(env_name_or_prefix)
-        if isdir(test_path):
-            prefix = test_path
-            if not isdir(join(prefix, 'conda-meta')):
-                from .exceptions import EnvironmentLocationNotFound
-                raise EnvironmentLocationNotFound(prefix)
-        elif re.search(r'\\|/', env_name_or_prefix):
-            prefix = env_name_or_prefix
+        if re.search(r'\\|/', env_name_or_prefix):
+            prefix = expand(env_name_or_prefix)
             if not isdir(join(prefix, 'conda-meta')):
                 from .exceptions import EnvironmentLocationNotFound
                 raise EnvironmentLocationNotFound(prefix)
