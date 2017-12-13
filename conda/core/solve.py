@@ -298,7 +298,6 @@ class Solver(object):
         if log.isEnabledFor(DEBUG):
             log.debug("final specs to add: %s",
                       dashlist(sorted(text_type(s) for s in final_environment_specs)))
-        pre_solution = solution
         solution = r.solve(tuple(final_environment_specs))  # return value is List[dist]
 
         # add back inconsistent packages to solution
@@ -312,13 +311,25 @@ class Solver(object):
         # Special case handling for various DepsModifer flags. Maybe this block could be pulled
         # out into its own non-public helper method?
         if deps_modifier == DepsModifier.NO_DEPS:
-            # In the NO_DEPS case we're just filtering out packages from the solution.
-            dont_add_packages = []
-            new_packages = set(solution) - set(pre_solution)
-            for dist in new_packages:
-                if not any(spec.match(index[dist]) for spec in specs_to_add):
-                    dont_add_packages.append(dist)
-            solution = tuple(rec for rec in solution if rec not in dont_add_packages)
+            # In the NO_DEPS case, we need to start with the original list of packages in the
+            # environment, and then only modify packages that match specs_to_add or
+            # specs_to_remove.
+            _no_deps_solution = IndexedSet(Dist(rec) for rec in prefix_data.iter_records())
+            only_remove_these = set(dist
+                                    for spec in specs_to_remove
+                                    for dist in _no_deps_solution
+                                    if spec.match(index[dist]))
+            _no_deps_solution -= only_remove_these
+
+            only_add_these = set(dist
+                                 for spec in specs_to_add
+                                 for dist in solution
+                                 if spec.match(index[dist]))
+            remove_before_adding_back = set(dist.name for dist in only_add_these)
+            _no_deps_solution = IndexedSet(dist for dist in _no_deps_solution
+                                           if dist.name not in remove_before_adding_back)
+            _no_deps_solution |= only_add_these
+            solution = _no_deps_solution
         elif deps_modifier == DepsModifier.ONLY_DEPS:
             # Using a special instance of the DAG to remove leaf nodes that match the original
             # specs_to_add.  It's important to only remove leaf nodes, because a typical use
