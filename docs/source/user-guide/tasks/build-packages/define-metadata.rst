@@ -867,14 +867,6 @@ Run test script
 The script ``run_test.sh``---or ``.bat``, ``.py`` or
 ``.pl``---is run automatically if it is part of the recipe.
 
-.. code-block:: bash
-
-   test:
-     run_test.sh
-     run_test.bat
-     run_test.py
-     run_test.pl
-
 NOTE: Python .py and Perl .pl scripts are valid only
 as part of Python and Perl packages, respectively.
 
