@@ -134,4 +134,4 @@ def softlink_supported(source_file, dest_dir):
 
 
 def is_conda_environment(prefix):
-    return isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE))
+    return isfile(join(prefix, PREFIX_MAGIC_FILE))

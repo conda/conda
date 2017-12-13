@@ -90,6 +90,14 @@ def list_all_known_prefixes():
             environments_txt_file = join(home_dir, '.conda', 'environments.txt')
             if isfile(environments_txt_file):
                 all_env_paths.update(_clean_environments_txt(environments_txt_file))
+
+    # in case environments.txt files aren't complete, also add all known conda environments in
+    # all envs_dirs
+    envs_dirs = (envs_dir for envs_dir in context.envs_dirs if isdir(envs_dir))
+    all_env_paths.update(path for path in (
+        join(envs_dir, name) for envs_dir in envs_dirs for name in listdir(envs_dir)
+    ) if path not in all_env_paths and is_conda_environment(path))
+
     all_env_paths.add(context.root_prefix)
     return sorted(all_env_paths)
 
