@@ -12,7 +12,8 @@ from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .linked_data import PrefixData
 from .repodata import query_all
-from .. import __version__ as CONDA_VERSION
+from .. import CondaError, __version__ as CONDA_VERSION
+from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
@@ -219,7 +220,14 @@ class Solver(object):
         for pkg_name, spec in iteritems(specs_map):
             matches_for_spec = tuple(dist for dist in solution if spec.match(index[dist]))
             if matches_for_spec:
-                assert len(matches_for_spec) == 1
+                if len(matches_for_spec) != 1:
+                    raise CondaError(dals("""
+                    Conda encountered an error with your environment.  Please report an issue
+                    at https://github.com/conda/conda/issues/new.  In your report, please include
+                    the output of 'conda info' and 'conda list' for the active environment, along
+                    with the command you invoked that resulted in this error.
+                      matches_for_spec: %s
+                    """) % matches_for_spec)
                 target_dist = matches_for_spec[0]
                 if deps_modifier == DepsModifier.FREEZE_INSTALLED:
                     new_spec = MatchSpec(index[target_dist])
