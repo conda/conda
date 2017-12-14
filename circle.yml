@@ -33,6 +33,7 @@ main_test: &main_test
     - run:
         name: unit tests
         command: |
+          echo "local_repodata_ttl: 1800" >> ~/.condarc
           /opt/conda/bin/python utils/setup-testing.py --version
           /opt/conda/bin/python -m conda info
           export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
@@ -112,6 +113,7 @@ conda_build_test: &conda_build_test
           # skipping perl-cpan-Moo because of changes in cpan API
         command: |
           echo "safety_checks: disabled" >> ~/.condarc
+          echo "local_repodata_ttl: 1800" >> ~/.condarc
           . /opt/conda/etc/profile.d/conda.sh
           conda activate root
           conda info
