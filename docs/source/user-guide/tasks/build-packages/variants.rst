@@ -295,7 +295,7 @@ Variant input files are yaml files.  Search order for these files is the followi
 
 1. a file named ``conda_build_config.yaml`` in the user's HOME folder
 2. an arbitrarily named file specified as the value for the
-   ``conda_build_config`` key in your .condarc file
+   ``conda_build/config_file`` key in your .condarc file
 3. a file named ``conda_build_config.yaml`` in the same folder as ``meta.yaml``
    with your recipe
 4. Any additional files specified on the command line with the
