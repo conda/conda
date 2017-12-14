@@ -49,6 +49,7 @@ main_test: &main_test
           export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
           ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
           /opt/conda/bin/py.test $ADD_COV --cov-append -m "integration and not installed" -v
+          /opt/conda/bin/python -m conda.common.io
     - run:
         name: upload codecov
         command: /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
@@ -134,6 +135,7 @@ conda_build_test: &conda_build_test
           cd ~/conda-build
           env | sort
           py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP" || true
+          /opt/conda/bin/python -m conda.common.io
 
 
 activate_tests: &activate_tests
