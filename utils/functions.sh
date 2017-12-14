@@ -261,6 +261,7 @@ run_setup() {
 run_tests() {
     set -e
     set -x
+    export CONDA_INSTRUMENTATION_ENABLED=true
     env | sort
 
 
@@ -270,6 +271,7 @@ run_tests() {
         set_test_vars
         conda_build_smoke_test
         conda_build_unit_test
+        $PYTHON_EXE -m conda.common.io
     else
         set_test_vars
         conda_main_test
@@ -277,6 +279,7 @@ run_tests() {
             conda_activate_test
         fi
         $INSTALL_PREFIX/bin/codecov --env PYTHON_VERSION
+        $PYTHON_EXE -m conda.common.io
     fi
 
     set +e

@@ -7,6 +7,7 @@ import re
 from .base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, string_types
+from .common.io import time_recorder
 from .exceptions import CondaValueError, ResolvePackageNotFound, UnsatisfiableError
 from .logic import Clauses, minimal_unsatisfiable_subset
 from .models.dist import Dist
@@ -849,6 +850,7 @@ class Resolve(object):
         self.restore_bad(pkgs, preserve)
         return pkgs
 
+    @time_recorder("resolve_solve")
     def solve(self, specs, returnall=False):
         # type: (List[str], bool) -> List[Dist]
         try:

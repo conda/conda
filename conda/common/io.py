@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import defaultdict
 from contextlib import contextmanager
+from functools import wraps
+import json
 import logging
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os import chdir, getcwd
+from os.path import join, isfile
 import sys
+from time import time
 
 from .compat import StringIO
+from .path import expand
 from .._vendor.auxlib.logz import NullHandler
 
 log = getLogger(__name__)
@@ -156,3 +162,63 @@ def attach_stderr_handler(level=WARN, logger_name=None, propagate=False, formatt
         logr.addHandler(new_stderr_handler)
         logr.setLevel(level)
         logr.propagate = propagate
+
+
+class ContextDecorator(object):
+    def __call__(self, f):
+        @wraps(f)
+        def decorated(*args, **kwds):
+            with self:
+                return f(*args, **kwds)
+        return decorated
+
+
+class time_recorder(ContextDecorator):  # pragma: no cover
+    start_time = None
+
+    def __init__(self, entry_name):
+        self.entry_name = entry_name
+
+    def __enter__(self):
+        if os.environ.get('CONDA_INSTRUMENTATION_ENABLED'):
+            self.start_time = time()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.start_time:
+            end_time = time()
+            run_time = end_time - self.start_time
+            record_file = expand(join('~', '.conda', 'instrumentation-record.csv'))
+            with open(record_file, 'a') as fh:
+                fh.write("%s,%s\n" % (self.entry_name, run_time))
+
+
+def print_instrumentation_data():  # pragma: no cover
+    record_file = expand(join('~', '.conda', 'instrumentation-record.csv'))
+
+    grouped_data = defaultdict(list)
+    final_data = {}
+
+    if not isfile(record_file):
+        return
+
+    with open(record_file) as fh:
+        for line in fh:
+            entry_name, total_time = line.strip().split(',')
+            grouped_data[entry_name].append(float(total_time))
+
+    for entry_name in sorted(grouped_data):
+        all_times = grouped_data[entry_name]
+        counts = len(all_times)
+        total_time = sum(all_times)
+        average_time = total_time / counts
+        final_data[entry_name] = {
+            'counts': counts,
+            'total_time': total_time,
+            'average_time': average_time,
+        }
+
+    print(json.dumps(final_data, sort_keys=True, indent=2, separators=(',', ': ')))
+
+
+if __name__ == "__main__":
+    print_instrumentation_data()
