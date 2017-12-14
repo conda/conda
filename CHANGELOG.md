@@ -1,4 +1,4 @@
-## 4.3.31 (unreleased)
+## 4.3.31 (2017-12-14)
 
 ### Improvements
 * add delete_trash to conda_env create (#6299)
