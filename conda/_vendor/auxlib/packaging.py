@@ -79,11 +79,6 @@ from distutils.command.build_py import build_py
 from distutils.command.sdist import sdist
 from distutils.util import convert_path
 
-try:
-    from setuptools.command.test import test as TestCommand
-except ImportError:
-    TestCommand = object
-
 log = getLogger(__name__)
 
 Response = namedtuple('Response', ['stdout', 'stderr', 'rc'])
@@ -211,32 +206,6 @@ class SDistCommand(sdist):
         target_dir = join(base_dir, self.distribution.metadata.name)
         write_version_into_init(target_dir, self.distribution.metadata.version)
         write_version_file(target_dir, self.distribution.metadata.version)
-
-
-class Tox(TestCommand):
-    # TODO: Make this class inherit from distutils instead of setuptools
-    user_options = [('tox-args=', 'a', "Arguments to pass to tox")]
-
-    def initialize_options(self):
-        TestCommand.initialize_options(self)
-        self.tox_args = None
-
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = []
-        self.test_suite = True
-
-    def run_tests(self):
-        # import here, because outside the eggs aren't loaded
-        from tox import cmdline
-        from shlex import split
-        args = self.tox_args
-        if args:
-            args = split(self.tox_args)
-        else:
-            args = ''
-        errno = cmdline(args=args)
-        sys.exit(errno)
 
 
 # swiped from setuptools
