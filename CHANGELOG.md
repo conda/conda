@@ -176,6 +176,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 * canonicalize package names when comparing with pip (4.4.0rc3) (#6438)
 * add target prefix override configuration parameter (4.4.0rc3) (#6413)
 * resolve #6194 warn when conda is outdated (4.4.0rc3) (#6370)
+* add information to displayed error report (4.4.0rc3) (#6437)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -216,6 +217,10 @@ will make sure that whenever conda is installed or changed in an environment, th
 * fix noarch python package resintall (4.4.0rc3) (#6394)
 * fix #6366 shell activation message (4.4.0rc3) (#6369)
 * fix #6429 AttributeError on 'conda remove' (4.4.0rc3) (#6434)
+* fix #6449 problems with 'conda info --envs' (#6451)
+* add debug exception for #6430 (4.4.0rc3) (#6435)
+* fix #6441 NotImplementedError on 'conda list' (4.4.0rc3) (#6442)
+* fix #6445 scale back directory activation in PWD (4.4.0rc3) (#6447)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
