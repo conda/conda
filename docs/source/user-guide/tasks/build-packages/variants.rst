@@ -306,6 +306,11 @@ Variant input files are yaml files.  Search order for these files is the followi
 Values in files found later in this search order will overwrite and replace the
 values from earlier files.
 
+NOTE: The key ``conda_build/config_file`` is a nested value::
+
+    conda_build:
+      config_file: some/path/to/file
+
 
 Using variants with the conda-build API
 ---------------------------------------
