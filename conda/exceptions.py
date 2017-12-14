@@ -820,6 +820,7 @@ class ExceptionHandler(object):
             if error_report['conda_info']:
                 from .cli.main_info import get_env_vars_str, get_main_info_str
                 try:
+                    # TODO: Sanitize env vars to remove secrets (e.g credentials for PROXY)
                     message_builder.append(get_env_vars_str(error_report['conda_info']))
                     message_builder.append(get_main_info_str(error_report['conda_info']))
                 except Exception as e:
