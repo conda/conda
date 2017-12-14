@@ -33,9 +33,10 @@ main_test: &main_test
     - run:
         name: unit tests
         command: |
+          echo "local_repodata_ttl: 1800" >> ~/.condarc
+          mkdir -p ~/.conda
           /opt/conda/bin/python utils/setup-testing.py --version
           /opt/conda/bin/python -m conda info
-          mkdir -p ~/.conda
           export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
           export TEST_PLATFORM=$(/opt/conda/bin/python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
           export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
@@ -114,6 +115,7 @@ conda_build_test: &conda_build_test
           # skipping perl-cpan-Moo because of changes in cpan API
         command: |
           echo "safety_checks: disabled" >> ~/.condarc
+          echo "local_repodata_ttl: 1800" >> ~/.condarc
           mkdir -p ~/.conda
           . /opt/conda/etc/profile.d/conda.sh
           conda activate root
