@@ -14,6 +14,7 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from ..base.context import context
 from ..common.compat import text_type
+from ..common.io import time_recorder
 from ..connection import CondaSession
 from ..exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
                           MD5MismatchError, maybe_raise)
@@ -51,6 +52,7 @@ def disable_ssl_verify_warning():
         warnings.simplefilter('ignore', InsecureRequestWarning)
 
 
+@time_recorder("download")
 def download(url, target_full_path, md5sum):
     content_length = None
 

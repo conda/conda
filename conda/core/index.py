@@ -10,6 +10,7 @@ from .repodata import collect_all_repodata
 from ..base.constants import MAX_CHANNEL_PRIORITY
 from ..base.context import context
 from ..common.compat import iteritems, itervalues
+from ..common.io import time_recorder
 from ..gateways.disk.read import read_index_json
 from ..models.channel import prioritize_channels
 from ..models.dist import Dist
@@ -83,6 +84,7 @@ def get_channel_priority_map(channel_urls=(), prepend=True, platform=None, use_l
     return channel_priority_map
 
 
+@time_recorder("get_index")
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None):
     """

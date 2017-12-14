@@ -261,15 +261,16 @@ run_setup() {
 run_tests() {
     set -e
     set -x
-    export CONDA_INSTRUMENTATION_ENABLED=true
     env | sort
 
+    export CONDA_INSTRUMENTATION_ENABLED=true
+    mkdir -p $HOME/.conda
 
     if [[ $FLAKE8 == true ]]; then
         flake8 --statistics
     elif [[ -n $CONDA_BUILD ]]; then
         set_test_vars
-        conda_build_smoke_test
+        # conda_build_smoke_test
         conda_build_unit_test
         $PYTHON_EXE -m conda.common.io
     else
