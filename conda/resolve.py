@@ -2,11 +2,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from itertools import chain
-from logging import getLogger, DEBUG
+from logging import DEBUG, getLogger
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, string_types, text_type
+from .common.io import time_recorder
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
 from .exceptions import ResolvePackageNotFound, UnsatisfiableError
@@ -817,6 +818,7 @@ class Resolve(object):
         self.restore_bad(pkgs, preserve)
         return pkgs
 
+    @time_recorder("resolve_solve")
     def solve(self, specs, returnall=False, _remove=False):
         # type: (List[str], bool) -> List[Dist]
         if log.isEnabledFor(DEBUG):

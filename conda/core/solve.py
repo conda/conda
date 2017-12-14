@@ -18,7 +18,7 @@ from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
 from ..common.constants import NULL
-from ..common.io import spinner
+from ..common.io import spinner, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import PackagesNotFoundError
 from ..gateways.logging import TRACE
@@ -87,6 +87,7 @@ class Solver(object):
         self._r = None
         self._prepared = False
 
+    @time_recorder("full_solve")
     def solve_final_state(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
                           force_remove=NULL):
         """Gives the final, solved state of the environment.
