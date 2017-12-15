@@ -34,7 +34,7 @@ TEST_PREFIX = '/a/test/c/prefix'
 
 @contextmanager
 def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_ = {}
+    PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -47,7 +47,7 @@ def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_s
 
 @contextmanager
 def get_solver_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_ = {}
+    PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -60,7 +60,7 @@ def get_solver_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
 
 @contextmanager
 def get_solver_3(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_ = {}
+    PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -73,7 +73,7 @@ def get_solver_3(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
 
 @contextmanager
 def get_solver_4(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_ = {}
+    PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
@@ -86,7 +86,7 @@ def get_solver_4(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
 
 @contextmanager
 def get_solver_aggregate_1(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_ = {}
+    PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}

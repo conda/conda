@@ -98,6 +98,16 @@ conda_build_test: &conda_build_test
         # This messes up conda-build tests
 
     - run:
+        name: configure and prepopulate cache
+        command: |
+          echo "safety_checks: disabled" >> ~/.condarc
+          echo "local_repodata_ttl: 1800" >> ~/.condarc
+          mkdir -p ~/.conda
+          . /opt/conda/etc/profile.d/conda.sh
+          conda create -n blarg -yq --download-only python=2.7
+          conda create -n blarg -yq --download-only python=3.6
+
+    - run:
         name: conda-build tests [parallel]
         environment:
           CONDABUILD_SKIP: >
@@ -114,15 +124,12 @@ conda_build_test: &conda_build_test
           # test_intradependencies started failing after pkgs/main release it seems
           # skipping perl-cpan-Moo because of changes in cpan API
         command: |
-          echo "safety_checks: disabled" >> ~/.condarc
-          echo "local_repodata_ttl: 1800" >> ~/.condarc
-          mkdir -p ~/.conda
           . /opt/conda/etc/profile.d/conda.sh
           conda activate root
           conda info
           cd ~/conda-build
           env | sort
-          py.test --basetemp /tmp/cb -v --durations=20 -n 3 -m "not serial" tests -k "$CONDABUILD_SKIP" || true
+          py.test --basetemp /tmp/cb -v --durations=20 -n 3 -m "not serial" tests -k "$CONDABUILD_SKIP"
 
     - run:
         name: conda-build tests [serial]
@@ -138,7 +145,7 @@ conda_build_test: &conda_build_test
           conda info
           cd ~/conda-build
           env | sort
-          py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP" || true
+          py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP"
           /opt/conda/bin/python -m conda.common.io
 
 
