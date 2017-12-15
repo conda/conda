@@ -96,15 +96,16 @@ conda_build_test: &conda_build_test
         # [url "ssh://git@github.com"]
         #     insteadOf = https://github.com
         # This messes up conda-build tests
-
     - run:
-        name: configure and prepopulate cache
+        name: configure and pre-populate cache
+        # pre-populating the package cache helps avoid race conditions for testing in parallel
         command: |
           echo "safety_checks: disabled" >> ~/.condarc
           echo "local_repodata_ttl: 1800" >> ~/.condarc
           mkdir -p ~/.conda
           . /opt/conda/etc/profile.d/conda.sh
           conda create -n blarg -yq --download-only python=2.7
+          conda create -n blarg -yq --download-only python=3.4
           conda create -n blarg -yq --download-only python=3.6
           conda create -n blarg -yq --download-only libpng=1.6.17
 

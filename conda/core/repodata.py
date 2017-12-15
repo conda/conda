@@ -14,7 +14,6 @@ from os import makedirs
 from os.path import dirname, isdir, join, splitext
 import re
 from textwrap import dedent
-from threading import local
 from time import time
 import warnings
 

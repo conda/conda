@@ -6,7 +6,6 @@ from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, join
 from tarfile import ReadError
-from threading import local
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler

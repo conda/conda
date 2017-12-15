@@ -4,7 +4,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from glob import glob
 from logging import getLogger
 from os.path import join, lexists
-from threading import local
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
