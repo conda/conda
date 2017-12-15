@@ -122,7 +122,7 @@ conda_build_test: &conda_build_test
           conda info
           cd ~/conda-build
           env | sort
-          py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP" || true
+          py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "not serial" tests -k "$CONDABUILD_SKIP" || true
 
     - run:
         name: conda-build tests [serial]
