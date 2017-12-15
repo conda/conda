@@ -1,10 +1,11 @@
 # necessary because conda symlinks
-unlink $PREFIX/bin/conda
-unlink $PREFIX/bin/activate
-unlink $PREFIX/bin/deactivate
+if [ -L $PREFIX/bin/conda ]; then
+    unlink $PREFIX/bin/conda
+    unlink $PREFIX/bin/activate
+    unlink $PREFIX/bin/deactivate
+fi
 
 $PYTHON conda.recipe/setup.py install
-$PYTHON conda.recipe/setup.py --version > __conda_version__.txt
 
 #cat <<- EOF > $PREFIX/bin/conda
 ##!$PYTHON -O
