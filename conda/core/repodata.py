@@ -92,12 +92,12 @@ class SubdirDataType(type):
         cache_key = channel.url(with_credentials=True)
         if not cache_key.startswith('file://') and cache_key in SubdirData._cache_:
             return SubdirData._cache_[cache_key]
-        elif cache_key in SubdirData._cache_:
-            # means cache_key startswith 'file://'
-            cached_instance = SubdirData._cache_[cache_key]
-            mtime = getmtime(join(url_to_path(cached_instance.url_w_subdir), 'repodata.json'))
-            if cached_instance._internal_state['_mod'] == formatdate(mtime, usegmt=True):
-                return cached_instance
+        # elif cache_key in SubdirData._cache_:
+        #     # means cache_key startswith 'file://'
+        #     cached_instance = SubdirData._cache_[cache_key]
+        #     mtime = getmtime(join(url_to_path(cached_instance.url_w_subdir), 'repodata.json'))
+        #     if cached_instance._internal_state['_mod'] == formatdate(mtime, usegmt=True):
+        #         return cached_instance
 
         subdir_data_instance = super(SubdirDataType, cls).__call__(channel)
         SubdirData._cache_[cache_key] = subdir_data_instance
