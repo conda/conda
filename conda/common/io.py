@@ -9,13 +9,15 @@ import logging
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os import chdir, getcwd
-from os.path import join, isfile
+from os.path import dirname, isdir, isfile, join
 import sys
 from time import time
 
 from .compat import StringIO
 from .path import expand
+from .._vendor.auxlib.decorators import memoizemethod
 from .._vendor.auxlib.logz import NullHandler
+from .._vendor.auxlib.type_coercion import boolify
 
 log = getLogger(__name__)
 
@@ -175,21 +177,28 @@ class ContextDecorator(object):
 
 class time_recorder(ContextDecorator):  # pragma: no cover
     start_time = None
+    record_file = expand(join('~', '.conda', 'instrumentation-record.csv'))
 
     def __init__(self, entry_name):
         self.entry_name = entry_name
 
     def __enter__(self):
-        if os.environ.get('CONDA_INSTRUMENTATION_ENABLED'):
+        enabled = os.environ.get('CONDA_INSTRUMENTATION_ENABLED')
+        if enabled and boolify(enabled):
             self.start_time = time()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.start_time:
             end_time = time()
             run_time = end_time - self.start_time
-            record_file = expand(join('~', '.conda', 'instrumentation-record.csv'))
-            with open(record_file, 'a') as fh:
+            self._ensure_dir()
+            with open(self.record_file, 'a') as fh:
                 fh.write("%s,%s\n" % (self.entry_name, run_time))
+
+    @memoizemethod
+    def _ensure_dir(self):
+        if not isdir(dirname(self.record_file)):
+            os.makedirs(dirname(self.record_file))
 
 
 def print_instrumentation_data():  # pragma: no cover
