@@ -200,10 +200,10 @@ def make_temp_channel(packages):
             tar_new_path = join(subchan, fname)
             copyfile(tar_old_path, tar_new_path)
 
-        with bz2.BZ2File(join(subchan, 'repodata.json.bz2'), 'w') as f:
-            f.write(json.dumps(repodata, cls=EntityEncoder).encode('utf-8'))
-        with bz2.BZ2File(join(noarch_dir, 'repodata.json.bz2'), 'w') as f:
-            f.write(json.dumps({}, cls=EntityEncoder).encode('utf-8'))
+        with open(join(subchan, 'repodata.json'), 'w') as f:
+            f.write(json.dumps(repodata, cls=EntityEncoder))
+        with open(join(noarch_dir, 'repodata.json'), 'w') as f:
+            f.write(json.dumps({}, cls=EntityEncoder))
 
         yield channel
 

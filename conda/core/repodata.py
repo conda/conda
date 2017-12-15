@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import bz2
 from collections import defaultdict
 from contextlib import closing
+from email.utils import formatdate
 from errno import ENODEV
 from genericpath import getmtime, isfile
 import hashlib
@@ -24,6 +25,7 @@ from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, text_type,
                              with_metaclass)
+from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache import PackageCache
 from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError
@@ -90,10 +92,16 @@ class SubdirDataType(type):
         cache_key = channel.url(with_credentials=True)
         if not cache_key.startswith('file://') and cache_key in SubdirData._cache_:
             return SubdirData._cache_[cache_key]
-        else:
-            subdir_data_instance = super(SubdirDataType, cls).__call__(channel)
-            SubdirData._cache_[cache_key] = subdir_data_instance
-            return subdir_data_instance
+        elif cache_key in SubdirData._cache_:
+            # means cache_key startswith 'file://'
+            cached_instance = SubdirData._cache_[cache_key]
+            mtime = getmtime(join(url_to_path(cached_instance.url_w_subdir), 'repodata.json'))
+            if cached_instance._internal_state['_mod'] == formatdate(mtime, usegmt=True):
+                return cached_instance
+
+        subdir_data_instance = super(SubdirDataType, cls).__call__(channel)
+        SubdirData._cache_[cache_key] = subdir_data_instance
+        return subdir_data_instance
 
 
 @with_metaclass(SubdirDataType)
@@ -382,7 +390,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
     if mod_stamp:
         headers["If-Modified-Since"] = mod_stamp
 
-    if 'repo.continuum.io' in url or url.startswith("file://"):
+    if 'repo.continuum.io' in url:
         filename = 'repodata.json.bz2'
         headers['Accept-Encoding'] = 'identity'
     else:
