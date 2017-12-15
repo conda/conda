@@ -190,7 +190,7 @@ conda_build_smoke_test() {
     local prefix=${1:-$INSTALL_PREFIX}
 
     $prefix/bin/conda config --add channels conda-canary
-    $prefix/bin/conda build conda.recipe
+    $prefix/bin/conda build conda.recipe --no-activate
 }
 
 
@@ -270,7 +270,7 @@ run_tests() {
         flake8 --statistics
     elif [[ -n $CONDA_BUILD ]]; then
         set_test_vars
-        # conda_build_smoke_test
+        conda_build_smoke_test
         conda_build_unit_test
         $PYTHON_EXE -m conda.common.io
     else
