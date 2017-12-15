@@ -84,11 +84,6 @@ def query_all(channels, subdirs, package_ref_or_match_spec):
 
 class SubdirDataType(type):
 
-    def __init__(cls, name, bases, attrs):
-        super(SubdirDataType, cls).__init__(name, bases, attrs)
-        cls._local_ = local()
-        cls._local_._cache_ = {}
-
     def __call__(cls, channel):
         assert channel.subdir
         assert not channel.package_filename
@@ -101,13 +96,10 @@ class SubdirDataType(type):
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
 
-    @property
-    def _cache_(cls):
-        return cls._local_._cache_
-
 
 @with_metaclass(SubdirDataType)
 class SubdirData(object):
+    _cache_ = {}
 
     def query(self, package_ref_or_match_spec):
         if not self._loaded:

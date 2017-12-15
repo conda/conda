@@ -106,6 +106,7 @@ conda_build_test: &conda_build_test
           . /opt/conda/etc/profile.d/conda.sh
           conda create -n blarg -yq --download-only python=2.7
           conda create -n blarg -yq --download-only python=3.6
+          conda create -n blarg -yq --download-only libpng=1.6.17
 
     - run:
         name: conda-build tests [parallel]
