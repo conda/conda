@@ -221,6 +221,8 @@ will make sure that whenever conda is installed or changed in an environment, th
 * add debug exception for #6430 (4.4.0rc3) (#6435)
 * fix #6441 NotImplementedError on 'conda list' (4.4.0rc3) (#6442)
 * fix #6445 scale back directory activation in PWD (4.4.0rc3) (#6447)
+* fix #6283 no-deps for conda update case (4.4.0rc3) (#6448)
+* fix #6419 set PS1 in python code (4.4.0rc3) (#6446)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
