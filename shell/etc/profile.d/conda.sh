@@ -24,6 +24,13 @@ _conda_set_vars() {
         fi
     fi
 
+    # We're not allowing PS1 to be unbound. It must at least be set.
+    # However, we're not exporting it, which can cause problems when starting a second shell
+    # via a first shell (i.e. starting zsh from bash).
+    if [ -z "${PS1+x}" ]; then
+        PS1=
+    fi
+
 }
 
 
@@ -40,50 +47,28 @@ _conda_activate() {
     if [ -n "${CONDA_PS1_BACKUP:+x}" ]; then
         # Handle transition from shell activated with conda <= 4.3 to a subsequent activation
         # after conda updated to >= 4.4. See issue #6173.
-        export PS1="$CONDA_PS1_BACKUP"
+        PS1="$CONDA_PS1_BACKUP"
         unset CONDA_PS1_BACKUP
     fi
 
     local ask_conda
-    ask_conda="$($_CONDA_EXE shell.posix activate "$@")" || return $?
+    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix activate "$@")" || return $?
     eval "$ask_conda"
-
-    case "$_CONDA_SHELL_FLAVOR" in
-        dash)
-            if [ "$(echo "${PS1-}" | awk '{ string=substr($0, 1, 22); print string; }')" != '$CONDA_PROMPT_MODIFIER' ]; then
-                PS1='$CONDA_PROMPT_MODIFIER\[\]'"$PS1"
-            fi
-            ;;
-        *)
-            if [ -z "${PS1+x}" ] || [ "${PS1:0:22}" != '$CONDA_PROMPT_MODIFIER' ]; then
-                # the extra \[\] is because the prompt fails for some reason if there's no
-                # character after the end of the environment variable name
-                PS1='$CONDA_PROMPT_MODIFIER\[\]'"${PS1-}"
-            fi
-            ;;
-    esac
 
     _conda_hashr
 }
 
 _conda_deactivate() {
     local ask_conda
-    ask_conda="$($_CONDA_EXE shell.posix deactivate "$@")" || return $?
+    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix deactivate "$@")" || return $?
     eval "$ask_conda"
-
-    if [ -z "${CONDA_PREFIX+x}" ]; then
-        case "$_CONDA_SHELL_FLAVOR" in
-            dash) PS1=$(echo "${PS1-}" | awk '{ string=substr($0, 27); print string; }') ;;
-            *) [ -n "${PS1:+x}" ] && [ "${PS1:0:22}" = '$CONDA_PROMPT_MODIFIER' ] && PS1=${PS1:26} ;;
-        esac
-    fi
 
     _conda_hashr
 }
 
 _conda_reactivate() {
     local ask_conda
-    ask_conda="$($_CONDA_EXE shell.posix reactivate "$@")" || return $?
+    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix reactivate "$@")" || return $?
     eval "$ask_conda"
 
     _conda_hashr
