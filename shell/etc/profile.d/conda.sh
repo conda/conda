@@ -24,9 +24,13 @@ _conda_set_vars() {
         fi
     fi
 
-    # PS1 needs to be passed to subprocesses. Exporting it here fixes issues
-    # that could come up later.
-    export PS1
+    # We're not allowing PS1 to be unbound. It must at least be set.
+    # However, we're not exporting it, which can cause problems when starting a second shell
+    # via a first shell (i.e. starting zsh from bash).
+    if [ -z "${PS1+x}" ]; then
+        PS1=
+    fi
+
 }
 
 
@@ -43,12 +47,12 @@ _conda_activate() {
     if [ -n "${CONDA_PS1_BACKUP:+x}" ]; then
         # Handle transition from shell activated with conda <= 4.3 to a subsequent activation
         # after conda updated to >= 4.4. See issue #6173.
-        export PS1="$CONDA_PS1_BACKUP"
+        PS1="$CONDA_PS1_BACKUP"
         unset CONDA_PS1_BACKUP
     fi
 
     local ask_conda
-    ask_conda="$($_CONDA_EXE shell.posix activate "$@")" || return $?
+    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix activate "$@")" || return $?
     eval "$ask_conda"
 
     _conda_hashr
@@ -56,7 +60,7 @@ _conda_activate() {
 
 _conda_deactivate() {
     local ask_conda
-    ask_conda="$($_CONDA_EXE shell.posix deactivate "$@")" || return $?
+    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix deactivate "$@")" || return $?
     eval "$ask_conda"
 
     _conda_hashr
@@ -64,7 +68,7 @@ _conda_deactivate() {
 
 _conda_reactivate() {
     local ask_conda
-    ask_conda="$($_CONDA_EXE shell.posix reactivate "$@")" || return $?
+    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix reactivate "$@")" || return $?
     eval "$ask_conda"
 
     _conda_hashr
