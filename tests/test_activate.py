@@ -60,7 +60,7 @@ class ActivatorUnitTests(TestCase):
             assert activator._prompt_modifier(ROOT_ENV_NAME) == '(%s) ' % ROOT_ENV_NAME
 
             instructions = activator.build_activate("root")
-            assert instructions['set_vars']['CONDA_PROMPT_MODIFIER'] == '(%s) ' % ROOT_ENV_NAME
+            assert instructions['export_vars']['CONDA_PROMPT_MODIFIER'] == '(%s) ' % ROOT_ENV_NAME
 
     def test_PS1_no_changeps1(self):
         with env_var("CONDA_CHANGEPS1", "no", reset_context):
@@ -68,7 +68,7 @@ class ActivatorUnitTests(TestCase):
             assert activator._prompt_modifier('root') == ''
 
             instructions = activator.build_activate("root")
-            assert instructions['set_vars']['CONDA_PROMPT_MODIFIER'] == ''
+            assert instructions['export_vars']['CONDA_PROMPT_MODIFIER'] == ''
 
     def test_add_prefix_to_path(self):
         activator = Activator('posix')
@@ -157,7 +157,7 @@ class ActivatorUnitTests(TestCase):
 
                     assert builder['unset_vars'] == ()
 
-                    set_vars = {
+                    export_vars = {
                         'CONDA_PYTHON_EXE': activator.path_conversion(sys.executable),
                         'PATH': new_path,
                         'CONDA_PREFIX': td,
@@ -166,7 +166,7 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
                         'PS1': ps1,
                     }
-                    assert builder['set_vars'] == set_vars
+                    assert builder['export_vars'] == export_vars
                     assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                     assert builder['deactivate_scripts'] == ()
 
@@ -190,7 +190,7 @@ class ActivatorUnitTests(TestCase):
 
                     assert builder['unset_vars'] == ()
 
-                    set_vars = {
+                    export_vars = {
                         'PATH': new_path,
                         'CONDA_PREFIX': td,
                         'CONDA_PREFIX_1': old_prefix,
@@ -199,7 +199,7 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
                         'PS1': ps1,
                     }
-                    assert builder['set_vars'] == set_vars
+                    assert builder['export_vars'] == export_vars
                     assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                     assert builder['deactivate_scripts'] == ()
 
@@ -229,14 +229,14 @@ class ActivatorUnitTests(TestCase):
 
                     assert builder['unset_vars'] == ()
 
-                    set_vars = {
+                    export_vars = {
                         'PATH': new_path,
                         'CONDA_PREFIX': td,
                         'CONDA_DEFAULT_ENV': td,
                         'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
                         'PS1': ps1,
                     }
-                    assert builder['set_vars'] == set_vars
+                    assert builder['export_vars'] == export_vars
                     assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                     assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
@@ -261,13 +261,13 @@ class ActivatorUnitTests(TestCase):
                     activator = Activator('posix')
                     builder = activator.build_activate(td)
 
-                    set_vars = {
+                    export_vars = {
                         'CONDA_PROMPT_MODIFIER': "(%s) " % td,
                         'CONDA_SHLVL': 1,
                     }
 
                     assert builder['unset_vars'] == ()
-                    assert builder['set_vars'] == set_vars
+                    assert builder['export_vars'] == export_vars
                     assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                     assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
@@ -301,7 +301,7 @@ class ActivatorUnitTests(TestCase):
                         conda_prompt_modifier = "(%s) " % old_prefix
                         ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
 
-                        set_vars = {
+                        export_vars = {
                             'PATH': new_path,
                             'CONDA_SHLVL': 1,
                             'CONDA_PREFIX': old_prefix,
@@ -309,7 +309,7 @@ class ActivatorUnitTests(TestCase):
                             'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
                             'PS1': ps1,
                         }
-                        assert builder['set_vars'] == set_vars
+                        assert builder['export_vars'] == export_vars
                         assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                         assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
@@ -336,7 +336,7 @@ class ActivatorUnitTests(TestCase):
                     )
 
                     new_path = activator.pathsep_join(activator.path_conversion(original_path))
-                    assert builder['set_vars'] == {
+                    assert builder['export_vars'] == {
                         'PATH': new_path,
                         'CONDA_SHLVL': 0,
                         'PS1': os.environ.get('PS1', ''),
@@ -554,13 +554,13 @@ class ShellWrapperUnitTests(TestCase):
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         assert activate_data == dals("""
-        setenv CONDA_DEFAULT_ENV "%(native_prefix)s"
-        setenv CONDA_PREFIX "%(native_prefix)s"
-        setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) "
-        setenv CONDA_PYTHON_EXE "%(sys_executable)s"
-        setenv CONDA_SHLVL "1"
-        setenv PATH "%(new_path)s"
-        source "%(activate1)s"
+        setenv CONDA_DEFAULT_ENV "%(native_prefix)s";
+        setenv CONDA_PREFIX "%(native_prefix)s";
+        setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
+        setenv CONDA_PYTHON_EXE "%(sys_executable)s";
+        setenv CONDA_SHLVL "1";
+        setenv PATH "%(new_path)s";
+        source "%(activate1)s";
         """) % {
             'converted_prefix': activator.path_conversion(self.prefix),
             'native_prefix': self.prefix,
@@ -581,10 +581,10 @@ class ShellWrapperUnitTests(TestCase):
             reactivate_data = c.stdout
 
             assert reactivate_data == dals("""
-            setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) "
-            setenv CONDA_SHLVL "1"
-            source "%(deactivate1)s"
-            source "%(activate1)s"
+            setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
+            setenv CONDA_SHLVL "1";
+            source "%(deactivate1)s";
+            source "%(activate1)s";
             """) % {
                 'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.csh')),
                 'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.csh')),
@@ -599,13 +599,13 @@ class ShellWrapperUnitTests(TestCase):
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             assert deactivate_data == dals("""
-            unset CONDA_DEFAULT_ENV
-            unset CONDA_PREFIX
-            unset CONDA_PROMPT_MODIFIER
-            unset CONDA_PYTHON_EXE
-            setenv CONDA_SHLVL "0"
-            setenv PATH "%(new_path)s"
-            source "%(deactivate1)s"
+            unset CONDA_DEFAULT_ENV;
+            unset CONDA_PREFIX;
+            unset CONDA_PROMPT_MODIFIER;
+            unset CONDA_PYTHON_EXE;
+            setenv CONDA_SHLVL "0";
+            setenv PATH "%(new_path)s";
+            source "%(deactivate1)s";
             """) % {
                 'new_path': new_path,
                 'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.csh')),

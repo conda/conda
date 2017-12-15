@@ -28,7 +28,7 @@ class Activator(object):
     #
     # All core logic is in build_activate() or build_deactivate(), and is independent of
     # shell type.  Each returns a map containing the keys:
-    #   set_vars
+    #   export_vars
     #   unset_var
     #   activate_scripts
     #   deactivate_scripts
@@ -52,7 +52,7 @@ class Activator(object):
             self.command_join = '\n'
 
             self.unset_var_tmpl = 'unset %s'
-            self.set_var_tmpl = "export %s='%s'"
+            self.export_var_tmpl = "export %s='%s'"
             self.run_script_tmpl = '. "%s"'
 
         elif shell == 'csh':
@@ -64,7 +64,7 @@ class Activator(object):
             self.command_join = ';\n'
 
             self.unset_var_tmpl = 'unset %s'
-            self.set_var_tmpl = 'setenv %s "%s"'
+            self.export_var_tmpl = 'setenv %s "%s"'
             self.run_script_tmpl = 'source "%s"'
 
         elif shell == 'xonsh':
@@ -76,7 +76,7 @@ class Activator(object):
             self.command_join = '\n'
 
             self.unset_var_tmpl = 'del $%s'
-            self.set_var_tmpl = "$%s = '%s'"
+            self.export_var_tmpl = "$%s = '%s'"
             self.run_script_tmpl = 'source "%s"'
 
         elif shell == 'cmd.exe':
@@ -88,7 +88,7 @@ class Activator(object):
             self.command_join = '\n'
 
             self.unset_var_tmpl = '@SET %s='
-            self.set_var_tmpl = '@SET "%s=%s"'
+            self.export_var_tmpl = '@SET "%s=%s"'
             self.run_script_tmpl = '@CALL "%s"'
 
         elif shell == 'fish':
@@ -100,7 +100,7 @@ class Activator(object):
             self.command_join = '\n'
 
             self.unset_var_tmpl = 'set -e %s'
-            self.set_var_tmpl = 'set -gx %s "%s"'
+            self.export_var_tmpl = 'set -gx %s "%s"'
             self.run_script_tmpl = 'source "%s"'
 
         elif shell == 'powershell':
@@ -112,7 +112,7 @@ class Activator(object):
             self.command_join = '\n'
 
             self.unset_var_tmpl = 'Remove-Variable %s'
-            self.set_var_tmpl = '$env:%s = "%s"'
+            self.export_var_tmpl = '$env:%s = "%s"'
             self.run_script_tmpl = '. "%s"'
 
         else:
@@ -187,8 +187,8 @@ class Activator(object):
         for key in sorted(cmds_dict.get('unset_vars', ())):
             yield self.unset_var_tmpl % key
 
-        for key, value in sorted(iteritems(cmds_dict.get('set_vars', {}))):
-            yield self.set_var_tmpl % (key, value)
+        for key, value in sorted(iteritems(cmds_dict.get('export_vars', {}))):
+            yield self.export_var_tmpl % (key, value)
 
         for script in cmds_dict.get('deactivate_scripts', ()):
             yield self.run_script_tmpl % script
@@ -227,7 +227,7 @@ class Activator(object):
         assert 0 <= old_conda_shlvl <= max_shlvl
         if old_conda_shlvl == 0:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
-            set_vars = {
+            export_vars = {
                 'CONDA_PYTHON_EXE': self.path_conversion(sys.executable),
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
@@ -238,7 +238,7 @@ class Activator(object):
             deactivate_scripts = ()
         elif old_conda_shlvl == max_shlvl:
             new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix))
-            set_vars = {
+            export_vars = {
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
                 'CONDA_DEFAULT_ENV': conda_default_env,
@@ -247,7 +247,7 @@ class Activator(object):
             deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
         else:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
-            set_vars = {
+            export_vars = {
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
                 'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
@@ -257,11 +257,11 @@ class Activator(object):
             }
             deactivate_scripts = ()
 
-        self._update_prompt(set_vars, conda_prompt_modifier)
+        self._update_prompt(export_vars, conda_prompt_modifier)
 
         return {
             'unset_vars': (),
-            'set_vars': set_vars,
+            'export_vars': export_vars,
             'deactivate_scripts': deactivate_scripts,
             'activate_scripts': activate_scripts,
         }
@@ -272,7 +272,7 @@ class Activator(object):
         if old_conda_shlvl <= 0:
             return {
                 'unset_vars': (),
-                'set_vars': {},
+                'export_vars': {},
                 'deactivate_scripts': (),
                 'activate_scripts': (),
             }
@@ -292,7 +292,7 @@ class Activator(object):
                 'CONDA_PYTHON_EXE',
                 'CONDA_PROMPT_MODIFIER',
             )
-            set_vars = {
+            export_vars = {
                 'PATH': new_path,
                 'CONDA_SHLVL': new_conda_shlvl,
             }
@@ -305,7 +305,7 @@ class Activator(object):
             unset_vars = (
                 'CONDA_PREFIX_%d' % new_conda_shlvl,
             )
-            set_vars = {
+            export_vars = {
                 'PATH': new_path,
                 'CONDA_SHLVL': new_conda_shlvl,
                 'CONDA_PREFIX': new_prefix,
@@ -314,11 +314,11 @@ class Activator(object):
             }
             activate_scripts = self._get_activate_scripts(new_prefix)
 
-        self._update_prompt(set_vars, conda_prompt_modifier)
+        self._update_prompt(export_vars, conda_prompt_modifier)
 
         return {
             'unset_vars': unset_vars,
-            'set_vars': set_vars,
+            'export_vars': export_vars,
             'deactivate_scripts': deactivate_scripts,
             'activate_scripts': activate_scripts,
         }
@@ -330,7 +330,7 @@ class Activator(object):
             # no active environment, so cannot reactivate; do nothing
             return {
                 'unset_vars': (),
-                'set_vars': {},
+                'export_vars': {},
                 'deactivate_scripts': (),
                 'activate_scripts': (),
             }
@@ -338,7 +338,7 @@ class Activator(object):
         # environment variables are set only to aid transition from conda 4.3 to conda 4.4
         return {
             'unset_vars': (),
-            'set_vars': {
+            'export_vars': {
                 'CONDA_SHLVL': conda_shlvl,
                 'CONDA_PROMPT_MODIFIER': self._prompt_modifier(conda_default_env),
             },
@@ -404,7 +404,7 @@ class Activator(object):
                 path_list.insert(idx, join(new_prefix, 'bin'))
         return self.path_conversion(path_list)
 
-    def _update_prompt(self, set_vars, conda_prompt_modifier):
+    def _update_prompt(self, export_vars, conda_prompt_modifier):
         if not context.changeps1:
             return
 
@@ -413,8 +413,16 @@ class Activator(object):
             current_prompt_modifier = os.environ.get('CONDA_PROMPT_MODIFIER')
             if current_prompt_modifier:
                 ps1 = re.sub(re.escape(current_prompt_modifier), r'', ps1)
-            set_vars.update({
+            export_vars.update({
                 'PS1': conda_prompt_modifier + ps1,
+            })
+        elif self.shell == 'csh':
+            prompt = os.environ.get('prompt', '')
+            current_prompt_modifier = os.environ.get('CONDA_PROMPT_MODIFIER')
+            if current_prompt_modifier:
+                prompt = re.sub(re.escape(current_prompt_modifier), r'', prompt)
+            export_vars.update({
+                'prompt': conda_prompt_modifier + prompt,
             })
 
     def _default_env(self, prefix):
