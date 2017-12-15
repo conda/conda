@@ -886,6 +886,14 @@ class InteractiveShell(object):
             'init_command': 'source shell/etc/fish/conf.d/conda.fish',
             'print_env_var': 'echo $%s',
         },
+        'powershell': {
+            'activator': 'powershell',
+            'init_command': None,
+            'print_env_var': '@echo %%%s%%',
+        },
+        'pwsh': {
+            'base_shell': 'powershell',
+        }
     }
 
     def __init__(self, shell_name):
@@ -902,7 +910,8 @@ class InteractiveShell(object):
 
         cwd = os.getcwd()
         env = os.environ.copy()
-        joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
+        os_pathsep_joiners = {'fish', 'pwsh'}
+        joiner = os.pathsep.join if self.shell_name in os_pathsep_joiners else self.activator.pathsep_join
         env['PATH'] = joiner(self.activator.path_conversion(concatv(
             self.activator._get_path_dirs(join(cwd, 'conda', 'shell')),
             (dirname(sys.executable),),
@@ -948,6 +957,8 @@ class InteractiveShell(object):
 def which(executable):
     from distutils.spawn import find_executable
     return find_executable(executable)
+
+POWERSHELL_EXE_NAME = 'powershell' if on_win else 'pwsh'
 
 
 @pytest.mark.integration
@@ -1111,6 +1122,16 @@ class ShellWrapperIntegrationTests(TestCase):
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
     def test_cmd_exe_activate_error(self):
         with InteractiveShell('cmd.exe') as shell:
+            shell.sendline("conda activate environment-not-found-doesnt-exist")
+            shell.expect('Could not find conda environment: environment-not-found-doesnt-exist')
+            shell.assert_env_var('errorlevel', '1\r')
+
+            shell.sendline("conda activate -h blah blah")
+            shell.expect('help requested for activate')
+
+    @pytest.mark.skipif(not which(POWERSHELL_EXE_NAME), reason='powershell not installed')
+    def test_powershell_activate_error(self):
+        with InteractiveShell(POWERSHELL_EXE_NAME) as shell:
             shell.sendline("conda activate environment-not-found-doesnt-exist")
             shell.expect('Could not find conda environment: environment-not-found-doesnt-exist')
             shell.assert_env_var('errorlevel', '1\r')
