@@ -162,6 +162,11 @@ class SubdirData(object):
         self._loaded = True
         return self
 
+    def iter_records(self):
+        if not self._loaded:
+            self.load()
+        return iter(self._package_records)
+
     def _load(self):
         try:
             mtime = getmtime(self.cache_path_json)
@@ -613,7 +618,7 @@ def collect_all_repodata_as_index(use_cache, channel_urls):
     index = {}
     for url in channel_urls:
         sd = SubdirData(Channel(url))
-        index.update((Dist(prec), prec) for prec in sd.load()._package_records)
+        index.update((Dist(prec), prec) for prec in sd.iter_records())
     return index
 
 
