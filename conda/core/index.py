@@ -160,6 +160,8 @@ def get_reduced_index(prefix, channels, subdirs, specs):
     with backdown_thread_pool() as executor:
 
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
+        check_whitelist(channel_urls)
+
         if context.offline:
             grouped_urls = groupby(lambda url: url.startswith('file://'), channel_urls)
             ignored_urls = grouped_urls.get(False, ())
