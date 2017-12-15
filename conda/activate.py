@@ -49,6 +49,7 @@ class Activator(object):
             self.script_extension = '.sh'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
             self.shift_args = 0
+            self.command_join = '\n'
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = "export %s='%s'"
@@ -60,6 +61,7 @@ class Activator(object):
             self.script_extension = '.csh'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
             self.shift_args = 0
+            self.command_join = ';\n'
 
             self.unset_var_tmpl = 'unset %s'
             self.set_var_tmpl = 'setenv %s "%s"'
@@ -71,6 +73,7 @@ class Activator(object):
             self.script_extension = '.xsh'
             self.tempfile_extension = '.xsh'
             self.shift_args = 0
+            self.command_join = '\n'
 
             self.unset_var_tmpl = 'del $%s'
             self.set_var_tmpl = "$%s = '%s'"
@@ -82,6 +85,7 @@ class Activator(object):
             self.script_extension = '.bat'
             self.tempfile_extension = '.bat'
             self.shift_args = 1
+            self.command_join = '\n'
 
             self.unset_var_tmpl = '@SET %s='
             self.set_var_tmpl = '@SET "%s=%s"'
@@ -93,6 +97,7 @@ class Activator(object):
             self.script_extension = '.fish'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
             self.shift_args = 0
+            self.command_join = '\n'
 
             self.unset_var_tmpl = 'set -e %s'
             self.set_var_tmpl = 'set -gx %s "%s"'
@@ -104,6 +109,7 @@ class Activator(object):
             self.script_extension = '.ps1'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
             self.shift_args = 0
+            self.command_join = '\n'
 
             self.unset_var_tmpl = 'Remove-Variable %s'
             self.set_var_tmpl = '$env:%s = "%s"'
@@ -115,10 +121,10 @@ class Activator(object):
     def _finalize(self, commands, ext):
         commands = concatv(commands, ('',))  # add terminating newline
         if ext is None:
-            return '\n'.join(commands)
+            return self.command_join.join(commands)
         elif ext:
             with NamedTemporaryFile(suffix=ext, delete=False) as tf:
-                tf.write(ensure_binary('\n'.join(commands)))
+                tf.write(ensure_binary(self.command_join.join(commands)))
             return tf.name
         else:
             raise NotImplementedError()
