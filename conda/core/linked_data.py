@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from glob import glob
 from logging import getLogger
 from os.path import join, lexists
+from threading import local
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
@@ -22,6 +23,12 @@ log = getLogger(__name__)
 
 class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
+
+    def __init__(cls, name, bases, attrs):
+        super(PrefixDataType, cls).__init__(name, bases, attrs)
+        cls._local_ = local()
+        cls._local_._cache_ = {}
+
     def __call__(cls, prefix_path):
         if prefix_path in PrefixData._cache_:
             return PrefixData._cache_[prefix_path]
@@ -31,6 +38,10 @@ class PrefixDataType(type):
             prefix_data_instance = super(PrefixDataType, cls).__call__(prefix_path)
             PrefixData._cache_[prefix_path] = prefix_data_instance
             return prefix_data_instance
+
+    @property
+    def _cache_(cls):
+        return cls._local_._cache_
 
 
 @with_metaclass(PrefixDataType)

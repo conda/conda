@@ -6,6 +6,7 @@ from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, join
 from tarfile import ReadError
+from threading import local
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
@@ -43,6 +44,11 @@ class PackageCacheType(type):
     This metaclass does basic caching of PackageCache instance objects.
     """
 
+    def __init__(cls, name, bases, attrs):
+        super(PackageCacheType, cls).__init__(name, bases, attrs)
+        cls._local_ = local()
+        cls._local_._cache_ = {}
+
     def __call__(cls, pkgs_dir):
         if isinstance(pkgs_dir, PackageCache):
             return pkgs_dir
@@ -52,6 +58,10 @@ class PackageCacheType(type):
             package_cache_instance = super(PackageCacheType, cls).__call__(pkgs_dir)
             PackageCache._cache_[pkgs_dir] = package_cache_instance
             return package_cache_instance
+
+    @property
+    def _cache_(cls):
+        return cls._local_._cache_
 
 
 @with_metaclass(PackageCacheType)

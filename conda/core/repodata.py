@@ -4,7 +4,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import bz2
 from collections import defaultdict
 from contextlib import closing
-from email.utils import formatdate
 from errno import ENODEV
 from genericpath import getmtime, isfile
 import hashlib
@@ -15,6 +14,7 @@ from os import makedirs
 from os.path import dirname, isdir, join, splitext
 import re
 from textwrap import dedent
+from threading import local
 from time import time
 import warnings
 
@@ -25,7 +25,6 @@ from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, text_type,
                              with_metaclass)
-from ..common.path import url_to_path
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache import PackageCache
 from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError
@@ -85,6 +84,11 @@ def query_all(channels, subdirs, package_ref_or_match_spec):
 
 class SubdirDataType(type):
 
+    def __init__(cls, name, bases, attrs):
+        super(SubdirDataType, cls).__init__(name, bases, attrs)
+        cls._local_ = local()
+        cls._local_._cache_ = {}
+
     def __call__(cls, channel):
         assert channel.subdir
         assert not channel.package_filename
@@ -92,21 +96,18 @@ class SubdirDataType(type):
         cache_key = channel.url(with_credentials=True)
         if not cache_key.startswith('file://') and cache_key in SubdirData._cache_:
             return SubdirData._cache_[cache_key]
-        # elif cache_key in SubdirData._cache_:
-        #     # means cache_key startswith 'file://'
-        #     cached_instance = SubdirData._cache_[cache_key]
-        #     mtime = getmtime(join(url_to_path(cached_instance.url_w_subdir), 'repodata.json'))
-        #     if cached_instance._internal_state['_mod'] == formatdate(mtime, usegmt=True):
-        #         return cached_instance
 
         subdir_data_instance = super(SubdirDataType, cls).__call__(channel)
         SubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
 
+    @property
+    def _cache_(cls):
+        return cls._local_._cache_
+
 
 @with_metaclass(SubdirDataType)
 class SubdirData(object):
-    _cache_ = {}
 
     def query(self, package_ref_or_match_spec):
         if not self._loaded:
