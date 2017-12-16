@@ -987,7 +987,8 @@ def add_parser_create_install_update(p):
     p.add_argument(
         "--no-deps",
         action="store_true",
-        help="Do not install dependencies.",
+        help="Do not install, update, remove, or change dependencies. This WILL lead "
+             "to broken environments and inconsistent behavior. Use at your own risk.",
     )
     p.add_argument(
         "--only-deps",

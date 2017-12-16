@@ -221,6 +221,8 @@ will make sure that whenever conda is installed or changed in an environment, th
 * add debug exception for #6430 (4.4.0rc3) (#6435)
 * fix #6441 NotImplementedError on 'conda list' (4.4.0rc3) (#6442)
 * fix #6445 scale back directory activation in PWD (4.4.0rc3) (#6447)
+* fix #6283 no-deps for conda update case (4.4.0rc3) (#6448)
+* fix #6419 set PS1 in python code (4.4.0rc3) (#6446)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
@@ -247,7 +249,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 * resolve #6431 always add env_vars to info_dict (4.4.0rc3) (#6436)
 
 
-## 4.3.31 (unreleased)
+## 4.3.31 (2017-12-15)
 
 ### Improvements
 * add delete_trash to conda_env create (#6299)
@@ -260,6 +262,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 ### Non-User-Facing Changes
 * fix two failing integration tests after anaconda.org API change (#6182)
 * resolve #6243 mark root as not writable when sys.prefix is not a conda environment (#6274)
+* add timing instrumentation (#6458)
 
 
 ## 4.3.30 (2017-10-17)

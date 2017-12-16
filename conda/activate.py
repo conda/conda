@@ -51,7 +51,7 @@ class Activator(object):
             self.shift_args = 0
 
             self.unset_var_tmpl = 'unset %s'
-            self.set_var_tmpl = 'export %s="%s"'
+            self.set_var_tmpl = "export %s='%s'"
             self.run_script_tmpl = '. "%s"'
 
         elif shell == 'csh':
@@ -73,7 +73,7 @@ class Activator(object):
             self.shift_args = 0
 
             self.unset_var_tmpl = 'del $%s'
-            self.set_var_tmpl = '$%s = "%s"'
+            self.set_var_tmpl = "$%s = '%s'"
             self.run_script_tmpl = 'source "%s"'
 
         elif shell == 'cmd.exe':
@@ -251,6 +251,8 @@ class Activator(object):
             }
             deactivate_scripts = ()
 
+        self._update_prompt(set_vars, conda_prompt_modifier)
+
         return {
             'unset_vars': (),
             'set_vars': set_vars,
@@ -277,6 +279,7 @@ class Activator(object):
         assert old_conda_shlvl > 0
         if old_conda_shlvl == 1:
             # TODO: warn conda floor
+            conda_prompt_modifier = ''
             unset_vars = (
                 'CONDA_PREFIX',
                 'CONDA_DEFAULT_ENV',
@@ -304,6 +307,8 @@ class Activator(object):
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
             activate_scripts = self._get_activate_scripts(new_prefix)
+
+        self._update_prompt(set_vars, conda_prompt_modifier)
 
         return {
             'unset_vars': unset_vars,
@@ -392,6 +397,19 @@ class Activator(object):
             if new_prefix is not None:
                 path_list.insert(idx, join(new_prefix, 'bin'))
         return self.path_conversion(path_list)
+
+    def _update_prompt(self, set_vars, conda_prompt_modifier):
+        if not context.changeps1:
+            return
+
+        if self.shell == 'posix':
+            ps1 = os.environ.get('PS1', '')
+            current_prompt_modifier = os.environ.get('CONDA_PROMPT_MODIFIER')
+            if current_prompt_modifier:
+                ps1 = re.sub(re.escape(current_prompt_modifier), r'', ps1)
+            set_vars.update({
+                'PS1': conda_prompt_modifier + ps1,
+            })
 
     def _default_env(self, prefix):
         if prefix == context.root_prefix:
