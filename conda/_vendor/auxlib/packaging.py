@@ -77,6 +77,7 @@ from os.path import abspath, dirname, expanduser, isdir, isfile, join
 from re import compile
 from shlex import split
 from subprocess import CalledProcessError, PIPE, Popen
+import sys
 
 log = getLogger(__name__)
 

@@ -857,7 +857,7 @@ class InteractiveShell(object):
         'posix': {
             'activator': 'posix',
             'init_command': 'set -u && . shell/etc/profile.d/conda.sh',
-            'print_env_var': 'echo $%s',
+            'print_env_var': 'echo "$%s"',
         },
         'bash': {
             'base_shell': 'posix',  # inheritance implemented in __init__
@@ -876,7 +876,10 @@ class InteractiveShell(object):
         'csh': {
             'activator': 'csh',
             'init_command': 'source shell/etc/csh/login.d/conda.csh',
-            'print_env_var': 'echo $%s',
+            'print_env_var': 'echo "$%s"',
+        },
+        'tcsh': {
+            'base_shell': 'csh',
         },
     }
 
@@ -1003,27 +1006,33 @@ class ShellWrapperIntegrationTests(TestCase):
         with InteractiveShell('zsh') as shell:
             self.basic_posix(shell)
 
+    def basic_csh(self, shell):
+        shell.assert_env_var('CONDA_SHLVL', '0')
+        shell.sendline('conda activate root')
+        # shell.assert_env_var('prompt', '(base).*')  # TODO: re-enable at some point
+        # shell.assert_env_var('CONDA_SHLVL', '1')
+        shell.sendline('conda activate "%s"' % self.prefix)
+        shell.assert_env_var('CONDA_SHLVL', '2')
+        shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
+        shell.sendline('conda deactivate')
+        shell.assert_env_var('CONDA_SHLVL', '1')
+        shell.sendline('conda deactivate')
+        shell.assert_env_var('CONDA_SHLVL', '0')
+
+        assert 'CONDA_PROMPT_MODIFIER' not in str(shell.p.after)
+
+        shell.sendline('conda deactivate')
+        shell.assert_env_var('CONDA_SHLVL', '0')
+
     @pytest.mark.skipif(not which('csh'), reason='csh not installed')
     def test_csh_basic_integration(self):
         with InteractiveShell('csh') as shell:
-            shell.assert_env_var('CONDA_SHLVL', '0')
-            shell.sendline('conda activate root')
-            shell.assert_env_var('prompt', '(base).*')
-            shell.assert_env_var('CONDA_SHLVL', '1')
-            shell.sendline('conda activate "%s"' % self.prefix)
-            shell.assert_env_var('CONDA_SHLVL', '2')
-            shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
-            shell.sendline('conda deactivate')
-            shell.assert_env_var('CONDA_SHLVL', '1')
-            shell.sendline('conda deactivate')
-            shell.assert_env_var('CONDA_SHLVL', '0')
+            self.basic_csh(shell)
 
-            shell.sendline(shell.print_env_var % 'prompt')
-            shell.expect('.*\n')
-            assert 'CONDA_PROMPT_MODIFIER' not in str(shell.p.after)
-
-            shell.sendline('conda deactivate')
-            shell.assert_env_var('CONDA_SHLVL', '0')
+    @pytest.mark.skipif(not which('tcsh'), reason='tcsh not installed')
+    def test_tcsh_basic_integration(self):
+        with InteractiveShell('tcsh') as shell:
+            self.basic_csh(shell)
 
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
     def test_cmd_exe_basic_integration(self):
