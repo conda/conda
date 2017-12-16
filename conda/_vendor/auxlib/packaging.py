@@ -64,20 +64,19 @@ setup(
 
 
 """
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
-import sys
 from collections import namedtuple
-from logging import getLogger
-from os import getenv, remove, listdir
-from os.path import abspath, dirname, expanduser, isdir, isfile, join
-from re import compile
-from shlex import split
-from subprocess import CalledProcessError, Popen, PIPE
-from fnmatch import fnmatchcase
 from distutils.command.build_py import build_py
 from distutils.command.sdist import sdist
 from distutils.util import convert_path
+from fnmatch import fnmatchcase
+from logging import getLogger
+from os import getenv, listdir, remove
+from os.path import abspath, dirname, expanduser, isdir, isfile, join
+from re import compile
+from shlex import split
+from subprocess import CalledProcessError, PIPE, Popen
 
 log = getLogger(__name__)
 

@@ -24,7 +24,7 @@ from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win
-from ..common.io import spinner
+from ..common.io import spinner, time_recorder
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
@@ -191,6 +191,7 @@ class UnlinkLinkTransaction(object):
 
         self._prepared = True
 
+    @time_recorder("unlink_link_prepare_and_verify")
     def verify(self):
         if not self._prepared:
             self.prepare()
@@ -462,7 +463,7 @@ class UnlinkLinkTransaction(object):
 
     @classmethod
     def _execute(cls, all_action_groups):
-        with signal_handler(conda_signal_handler):
+        with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             pkg_idx = 0
             try:
                 with spinner("Executing transaction", not context.verbosity and not context.quiet,

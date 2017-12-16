@@ -17,6 +17,7 @@ import sys
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
 from .common.compat import itervalues, text_type
+from .common.io import time_recorder
 from .core.index import _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
@@ -391,6 +392,7 @@ def revert_actions(prefix, revision=-1, index=None):
 
 # ---------------------------- Backwards compat for conda-build --------------------------
 
+@time_recorder("execute_actions")
 def execute_actions(actions, index, verbose=False):  # pragma: no cover
     plan = _plan_from_actions(actions, index)
     execute_instructions(plan, index, verbose)
@@ -509,6 +511,7 @@ def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
     return unlink_dists, link_dists
 
 
+@time_recorder("install_actions")
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False,
@@ -554,6 +557,7 @@ def get_blank_actions(prefix):  # pragma: no cover
     return actions
 
 
+@time_recorder("execute_plan")
 def execute_plan(old_plan, index=None, verbose=False):  # pragma: no cover
     """
     Deprecated: This should `conda.instructions.execute_instructions` instead
