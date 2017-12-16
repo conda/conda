@@ -9,11 +9,10 @@
 if (! $?_CONDA_EXE) then
   set _CONDA_EXE="${PWD}/shell/bin/conda"
 else
-  if ("$_CONDA_EXE" == "")  then
+  if ("$_CONDA_EXE" == "") then
       set _CONDA_EXE="${PWD}/shell/bin/conda"
   endif
 endif
-
 
 if (`alias conda` == "") then
     alias conda source $PWD/shell/etc/csh/login.d/conda.csh
@@ -24,19 +23,20 @@ if (`alias conda` == "") then
 else
     switch ( $1 )
         case "activate":
-            eval `prompt="$prompt" $_CONDA_EXE shell.csh activate $argv[2-]`
+            eval `$_CONDA_EXE shell.csh activate "$2" $argv[3-]`
             rehash
             breaksw
         case "deactivate":
-            eval `prompt="$prompt" $_CONDA_EXE shell.csh deactivate $argv[2-]`
+            eval `$_CONDA_EXE shell.csh deactivate "$2" $argv[3-]`
             rehash
             breaksw
         case "install" | "update" | "uninstall" | "remove":
             $_CONDA_EXE $argv[1-]
-            eval `prompt="$prompt" $_CONDA_EXE shell.csh reactivate`
+            eval `$_CONDA_EXE shell.csh reactivate`
             rehash
             breaksw
         default:
+            echo "$prompt"
             $_CONDA_EXE $argv[1-]
             breaksw
     endsw
