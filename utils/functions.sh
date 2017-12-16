@@ -190,7 +190,7 @@ conda_build_smoke_test() {
     local prefix=${1:-$INSTALL_PREFIX}
 
     $prefix/bin/conda config --add channels conda-canary
-    $prefix/bin/conda build conda.recipe
+    $prefix/bin/conda build conda.recipe --no-activate
 }
 
 
@@ -263,6 +263,8 @@ run_tests() {
     set -x
     env | sort
 
+    export CONDA_INSTRUMENTATION_ENABLED=true
+    mkdir -p $HOME/.conda
 
     if [[ $FLAKE8 == true ]]; then
         flake8 --statistics
@@ -270,6 +272,7 @@ run_tests() {
         set_test_vars
         conda_build_smoke_test
         conda_build_unit_test
+        $PYTHON_EXE -m conda.common.io
     else
         set_test_vars
         conda_main_test
@@ -277,6 +280,7 @@ run_tests() {
             conda_activate_test
         fi
         $INSTALL_PREFIX/bin/codecov --env PYTHON_VERSION
+        $PYTHON_EXE -m conda.common.io
     fi
 
     set +e

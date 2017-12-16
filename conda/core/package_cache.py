@@ -13,6 +13,7 @@ from .._vendor.auxlib.decorators import memoizemethod
 from ..base.constants import CONDA_TARBALL_EXTENSION, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys, itervalues, text_type, with_metaclass
+from ..common.io import time_recorder
 from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
@@ -459,6 +460,7 @@ class ProgressiveFetchExtract(object):
 
         self._prepared = False
 
+    @time_recorder("fetch_extract_prepare")
     def prepare(self):
         if self._prepared:
             return
@@ -487,7 +489,7 @@ class ProgressiveFetchExtract(object):
             self.prepare()
 
         assert not context.dry_run
-        with signal_handler(conda_signal_handler):
+        with signal_handler(conda_signal_handler), time_recorder("fetch_extract_execute"):
             for action in concatv(self.cache_actions, self.extract_actions):
                 self._execute_action(action)
 

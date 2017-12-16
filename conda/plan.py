@@ -21,6 +21,7 @@ from .base.context import context
 from .cli import common
 from .cli.common import pkg_if_in_private_env, prefix_if_in_private_env
 from .common.compat import odict, on_win
+from .common.io import time_recorder
 from .common.path import (is_private_env, preferred_env_matches_prefix,
                           preferred_env_to_prefix, prefix_to_env_name)
 from .core.index import _supplement_index_with_prefix
@@ -442,6 +443,7 @@ SpecForEnv = namedtuple('DistForEnv', ['env', 'spec'])
 SpecsForPrefix = namedtuple('DistsForPrefix', ['prefix', 'specs', 'r'])
 
 
+@time_recorder("install_actions")
 def install_actions(prefix, index, specs, force=False, only_names=None, always_copy=False,
                     pinned=True, minimal_hint=False, update_deps=True, prune=False,
                     channel_priority_map=None, is_update=False):  # pragma: no cover
@@ -462,6 +464,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
     return actions
 
 
+@time_recorder("install_actions_list")
 def install_actions_list(prefix, index, specs, force=False, only_names=None, always_copy=False,
                          pinned=True, minimal_hint=False, update_deps=True, prune=False,
                          channel_priority_map=None, is_update=False):
@@ -822,6 +825,7 @@ def revert_actions(prefix, revision=-1, index=None):
 
 # ---------------------------- EXECUTION --------------------------
 
+@time_recorder("execute_actions")
 def execute_actions(actions, index, verbose=False):
     plan = plan_from_actions(actions, index)
     with History(actions[PREFIX]):
@@ -846,6 +850,7 @@ def update_old_plan(old_plan):
     return plan
 
 
+@time_recorder("execute_plan")
 def execute_plan(old_plan, index=None, verbose=False):
     """
     Deprecated: This should `conda.instructions.execute_instructions` instead
