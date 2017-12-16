@@ -1,4 +1,4 @@
-## 4.3.31 (2017-12-14)
+## 4.3.31 (2017-12-15)
 
 ### Improvements
 * add delete_trash to conda_env create (#6299)
@@ -11,6 +11,7 @@
 ### Non-User-Facing Changes
 * fix two failing integration tests after anaconda.org API change (#6182)
 * resolve #6243 mark root as not writable when sys.prefix is not a conda environment (#6274)
+* add timing instrumentation (#6458)
 
 
 ## 4.3.30 (2017-10-17)
