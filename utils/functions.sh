@@ -209,6 +209,7 @@ install_conda_shell_scripts() {
     mkdir -p "$prefix/etc/csh/login.d/"
     rm -f "$prefix/etc/csh/login.d/conda.csh"
     echo "setenv _CONDA_EXE \"$conda_exe\"" > "$prefix/etc/csh/login.d/conda.csh"
+    echo "setenv _CONDA_ROOT \"$prefix\"" >> "$prefix/etc/csh/login.d/conda.csh"
     cat "$src_dir/shell/etc/csh/login.d/conda.csh" >> "$prefix/etc/csh/login.d/conda.csh"
 
 }

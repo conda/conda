@@ -15,7 +15,11 @@ else
 endif
 
 if (`alias conda` == "") then
-    alias conda source $PWD/shell/etc/csh/login.d/conda.csh
+    if ($?_CONDA_ROOT) then
+        alias conda source $_CONDA_ROOT/etc/csh/login.d/conda.csh
+    else
+        alias conda source $PWD/shell/etc/csh/login.d/conda.csh
+    endif
     setenv CONDA_SHLVL 0
     if (! $?prompt) then
         set prompt=""
