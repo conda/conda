@@ -856,7 +856,7 @@ class InteractiveShell(object):
     shells = {
         'posix': {
             'activator': 'posix',
-            'init_command': 'set -u && . shell/etc/profile.d/conda.sh',
+            'init_command': 'set -u && . conda/shell/etc/profile.d/conda.sh',
             'print_env_var': 'echo "$%s"',
         },
         'bash': {
@@ -875,7 +875,7 @@ class InteractiveShell(object):
         },
         'csh': {
             'activator': 'csh',
-            'init_command': 'source shell/etc/profile.d/conda.csh',
+            'init_command': 'source conda/shell/etc/profile.d/conda.csh',
             'print_env_var': 'echo "$%s"',
         },
         'tcsh': {
@@ -898,7 +898,7 @@ class InteractiveShell(object):
         cwd = os.getcwd()
         env = os.environ.copy()
         env['PATH'] = self.activator.pathsep_join(self.activator.path_conversion(concatv(
-            self.activator._get_path_dirs(join(cwd, 'shell')),
+            self.activator._get_path_dirs(join(cwd, 'conda', 'shell')),
             (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
         )))

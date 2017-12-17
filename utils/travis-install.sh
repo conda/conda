@@ -75,7 +75,7 @@ osx_setup() {
         git clone "https://github.com/yyuu/pyenv.git" "${HOME}/.pyenv"
     fi
     PYENV_ROOT="${HOME}/.pyenv"
-    PATH=$(./shell/envvar_cleanup.bash "$PYENV_ROOT/bin:$PATH" -d)
+    PATH=$(./conda/shell/envvar_cleanup.bash "$PYENV_ROOT/bin:$PATH" -d)
     export PATH
     eval "$(pyenv init -)"
 
@@ -280,7 +280,7 @@ env | sort
 # probably related to the PATH variable, here we use envvar_cleanup.bash  #
 # to remove duplicates from the path variable before trying to run the    #
 # tests                                                                   #
-PATH=$(./shell/envvar_cleanup.bash "$PATH" -d)
+PATH=$(./conda/shell/envvar_cleanup.bash "$PATH" -d)
 export PATH
 
 # remove any stray CONDARC                                                #
