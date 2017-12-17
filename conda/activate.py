@@ -173,9 +173,9 @@ class Activator(object):
             from .exceptions import ArgumentError
             raise ArgumentError("invalid command '%s'" % command)
         elif command == 'activate' and len(remainder_args) > 1:
-            print(sys.argv, file=sys.stderr)
             from .exceptions import ArgumentError
-            raise ArgumentError('activate does not accept more than one argument:\n%s')
+            raise ArgumentError('activate does not accept more than one argument:\n'
+                                + str(sys.argv))
         elif command != 'activate' and remainder_args:
             from .exceptions import ArgumentError
             raise ArgumentError('%s does not accept arguments\nremainder_args: %s'
