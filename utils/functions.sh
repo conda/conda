@@ -206,6 +206,12 @@ install_conda_shell_scripts() {
     echo "_CONDA_EXE = \"$CONDA_EXE\"" > "$sp_dir/xonsh/conda.xsh"
     cat "$src_dir/shell/conda.xsh" >> "$sp_dir/xonsh/conda.xsh"
 
+    mkdir -p "$prefix/etc/profile.d/"
+    rm -f "$prefix/etc/profile.d/conda.csh"
+    echo "setenv _CONDA_EXE \"$conda_exe\"" > "$prefix/etc/profile.d/conda.csh"
+    echo "setenv _CONDA_ROOT \"$prefix\"" >> "$prefix/etc/profile.d/conda.csh"
+    cat "$src_dir/shell/etc/profile.d/conda.csh" >> "$prefix/etc/profile.d/conda.csh"
+
 }
 
 
