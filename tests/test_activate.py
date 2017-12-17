@@ -875,7 +875,7 @@ class InteractiveShell(object):
         },
         'csh': {
             'activator': 'csh',
-            'init_command': 'source shell/etc/csh/login.d/conda.csh',
+            'init_command': 'source shell/etc/profile.d/conda.csh',
             'print_env_var': 'echo "$%s"',
         },
         'tcsh': {
