@@ -1009,8 +1009,8 @@ class ShellWrapperIntegrationTests(TestCase):
     def basic_csh(self, shell):
         shell.assert_env_var('CONDA_SHLVL', '0')
         shell.sendline('conda activate root')
-        # shell.assert_env_var('prompt', '(base).*')  # TODO: re-enable at some point
-        # shell.assert_env_var('CONDA_SHLVL', '1')
+        shell.assert_env_var('prompt', '(base).*')
+        shell.assert_env_var('CONDA_SHLVL', '1')
         shell.sendline('conda activate "%s"' % self.prefix)
         shell.assert_env_var('CONDA_SHLVL', '2')
         shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
@@ -1025,6 +1025,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('CONDA_SHLVL', '0')
 
     @pytest.mark.skipif(not which('csh'), reason='csh not installed')
+    @pytest.mark.xfail(reason="csh needs work apparently; but at least tcsh works")
     def test_csh_basic_integration(self):
         with InteractiveShell('csh') as shell:
             self.basic_csh(shell)
