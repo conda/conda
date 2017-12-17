@@ -721,13 +721,13 @@ class ShellWrapperUnitTests(TestCase):
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         assert activate_data == dals("""
-        set -gx CONDA_DEFAULT_ENV "%(native_prefix)s"
-        set -gx CONDA_PREFIX "%(native_prefix)s"
-        set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) "
-        set -gx CONDA_PYTHON_EXE "%(sys_executable)s"
-        set -gx CONDA_SHLVL "1"
-        set -gx PATH "%(new_path)s"
-        source "%(activate1)s"
+        set -gx CONDA_DEFAULT_ENV "%(native_prefix)s";
+        set -gx CONDA_PREFIX "%(native_prefix)s";
+        set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
+        set -gx CONDA_PYTHON_EXE "%(sys_executable)s";
+        set -gx CONDA_SHLVL "1";
+        set -gx PATH "%(new_path)s";
+        source "%(activate1)s";
         """) % {
             'converted_prefix': activator.path_conversion(self.prefix),
             'native_prefix': self.prefix,
@@ -748,10 +748,10 @@ class ShellWrapperUnitTests(TestCase):
             reactivate_data = c.stdout
 
             assert reactivate_data == dals("""
-            set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) "
-            set -gx CONDA_SHLVL "1"
-            source "%(deactivate1)s"
-            source "%(activate1)s"
+            set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
+            set -gx CONDA_SHLVL "1";
+            source "%(deactivate1)s";
+            source "%(activate1)s";
             """) % {
                 'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.fish')),
                 'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.fish')),
@@ -766,13 +766,13 @@ class ShellWrapperUnitTests(TestCase):
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             assert deactivate_data == dals("""
-            set -e CONDA_DEFAULT_ENV
-            set -e CONDA_PREFIX
-            set -e CONDA_PROMPT_MODIFIER
-            set -e CONDA_PYTHON_EXE
-            set -gx CONDA_SHLVL "0"
-            set -gx PATH "%(new_path)s"
-            source "%(deactivate1)s"
+            set -e CONDA_DEFAULT_ENV;
+            set -e CONDA_PREFIX;
+            set -e CONDA_PROMPT_MODIFIER;
+            set -e CONDA_PYTHON_EXE;
+            set -gx CONDA_SHLVL "0";
+            set -gx PATH "%(new_path)s";
+            source "%(deactivate1)s";
             """) % {
                 'new_path': new_path,
                 'deactivate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'deactivate.d', 'deactivate1.fish')),
@@ -881,6 +881,11 @@ class InteractiveShell(object):
         'tcsh': {
             'base_shell': 'csh',
         },
+        'fish': {
+            'activator': 'fish',
+            'init_command': 'source shell/etc/fish/conf.d/conda.fish',
+            'print_env_var': 'echo $%s',
+        },
     }
 
     def __init__(self, shell_name):
@@ -897,7 +902,8 @@ class InteractiveShell(object):
 
         cwd = os.getcwd()
         env = os.environ.copy()
-        env['PATH'] = self.activator.pathsep_join(self.activator.path_conversion(concatv(
+        joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
+        env['PATH'] = joiner(self.activator.path_conversion(concatv(
             self.activator._get_path_dirs(join(cwd, 'conda', 'shell')),
             (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
@@ -1034,6 +1040,32 @@ class ShellWrapperIntegrationTests(TestCase):
     def test_tcsh_basic_integration(self):
         with InteractiveShell('tcsh') as shell:
             self.basic_csh(shell)
+
+    @pytest.mark.skipif(not which('fish'), reason='fish not installed')
+    @pytest.mark.xfail(reason="fish and pexpect don't seem to work together?")
+    def test_fish_basic_integration(self):
+        with InteractiveShell('fish') as shell:
+            shell.sendline('env | sort')
+            # We should be seeing environment variable output to terminal with this line, but
+            # we aren't.  Haven't experienced this problem yet with any other shell...
+
+            shell.assert_env_var('CONDA_SHLVL', '0')
+            shell.sendline('conda activate root')
+            shell.assert_env_var('CONDA_SHLVL', '1')
+            shell.sendline('conda activate "%s"' % self.prefix)
+            shell.assert_env_var('CONDA_SHLVL', '2')
+            shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '1')
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '0')
+
+            shell.sendline(shell.print_env_var % 'PS1')
+            shell.expect('.*\n')
+            assert 'CONDA_PROMPT_MODIFIER' not in str(shell.p.after)
+
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '0')
 
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
     def test_cmd_exe_basic_integration(self):
