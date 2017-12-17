@@ -175,10 +175,10 @@ class Activator(object):
         elif command == 'activate' and len(remainder_args) > 1:
             from .exceptions import ArgumentError
             raise ArgumentError('activate does not accept more than one argument:\n'
-                                + str(remainder_args))
+                                + str(remainder_args) + '\n')
         elif command != 'activate' and remainder_args:
             from .exceptions import ArgumentError
-            raise ArgumentError('%s does not accept arguments\nremainder_args: %s'
+            raise ArgumentError('%s does not accept arguments\nremainder_args: %s\n'
                                 % (command, remainder_args))
 
         if command == 'activate':
