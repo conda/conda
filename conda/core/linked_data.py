@@ -22,6 +22,7 @@ log = getLogger(__name__)
 
 class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
+
     def __call__(cls, prefix_path):
         if prefix_path in PrefixData._cache_:
             return PrefixData._cache_[prefix_path]

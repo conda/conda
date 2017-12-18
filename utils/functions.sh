@@ -417,15 +417,18 @@ run_tests() {
         # conda_build_smoke_test
         if ! [ -n "$ON_WIN" ]; then
             conda_build_test
+            $PYTHON_EXE -m conda.common.io
         fi
     elif [ -n "$SHELL_INTEGRATION" ]; then
         conda_unit_test
         conda_activate_test
         # $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags activate --required
+        $PYTHON_EXE -m conda.common.io
     else
         conda_unit_test
         conda_integration_test
         $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags integration --required
+        $PYTHON_EXE -m conda.common.io
     fi
 }
 
