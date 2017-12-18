@@ -31,30 +31,42 @@ main_test: &main_test
     - run: *remove_conda
     - checkout
     - run:
+        name: configure and pre-populate cache
+        # pre-populating the package cache helps avoid race conditions for testing in parallel
+        command: |
+          cd ~/conda
+          mkdir -p ~/.conda
+          echo "local_repodata_ttl: 1800" >> ~/.condarc
+          export PATH="/opt/conda/bin:$PATH"
+          . conda/shell/etc/profile.d/conda.sh
+          conda info
+          conda create -n blarg -yq --download-only python pytz flask
+          conda create -n blarg -yq --download-only python=2 pytz flask
+    - run:
         name: unit tests
         command: |
-          echo "local_repodata_ttl: 1800" >> ~/.condarc
-          mkdir -p ~/.conda
-          /opt/conda/bin/python utils/setup-testing.py --version
-          /opt/conda/bin/python -m conda info
+          cd ~/conda
           export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
           export TEST_PLATFORM=$(/opt/conda/bin/python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
           export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
           ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
-          /opt/conda/bin/py.test $ADD_COV -m "not integration and not installed"
+          /opt/conda/bin/py.test $ADD_COV conda tests -m "not integration and not installed" -n 2
         # PYTHON_MAJOR_VERSION and TEST_PLATFORM are used by coverage via setup.cfg
     - run:
         name: integration tests
         command: |
+          cd ~/conda
           export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
           export TEST_PLATFORM=$(/opt/conda/bin/python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
           export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
           ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
-          /opt/conda/bin/py.test $ADD_COV --cov-append -m "integration and not installed" -v
+          /opt/conda/bin/py.test $ADD_COV conda tests --cov-append -m "integration and not installed" -v -n 3
           /opt/conda/bin/python -m conda.common.io
     - run:
         name: upload codecov
-        command: /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
+        command: |
+          cd ~/conda
+          /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
 
 
 conda_build_test: &conda_build_test
@@ -162,12 +174,14 @@ activate_tests: &activate_tests
     - run:
         name: setup
         command: |
+          cd ~/conda
           /opt/conda/bin/python -m conda._vendor.auxlib.packaging conda
           /opt/conda/bin/python -c "import conda; print(conda.__version__)"
           /opt/conda/bin/python -m conda info
     - run:
         name: activate tests
         command: |
+          cd ~/conda
           ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
           /opt/conda/bin/py.test $ADD_COV -m "installed" -v --shell=bash --shell=zsh
 
