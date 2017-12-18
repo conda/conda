@@ -75,7 +75,7 @@ def get_egg_info(prefix, all_pkgs=False):
     """
     installed_pkgs = linked_data(prefix)
     sp_dir = get_site_packages_dir(installed_pkgs)
-    if sp_dir is None:
+    if sp_dir is None or not isdir(join(prefix, sp_dir)):
         return set()
 
     conda_files = set()
