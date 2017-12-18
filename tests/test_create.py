@@ -1397,7 +1397,6 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, 'openssl --offline')
                 assert not pkgs_dir_has_tarball('openssl-')
 
-    @pytest.mark.serial
     def test_clean_tarballs_and_packages(self):
         with make_temp_package_cache() as pkgs_dir:
             with make_temp_env("flask") as prefix:
