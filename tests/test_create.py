@@ -577,7 +577,7 @@ class IntegrationTests(TestCase):
 
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
-        with make_temp_env("python=3.6 pip") as prefix:
+        with make_temp_env("python pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
@@ -894,9 +894,10 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.SEARCH, prefix, "rpy2", "--json")
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
 
+    @pytest.mark.serial
     def test_clone_offline_multichannel_with_untracked(self):
         with make_temp_env("python=3.5") as prefix:
-            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/free")
+            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/main")
             run_command(Commands.CONFIG, prefix, "--remove channels defaults")
 
             run_command(Commands.INSTALL, prefix, "-c conda-test flask")
@@ -932,11 +933,11 @@ class IntegrationTests(TestCase):
     def test_package_optional_pinning(self):
         with make_temp_env("") as prefix:
             run_command(Commands.CONFIG, prefix,
-                        "--add pinned_packages", "python=3.6.1=2")
+                        "--add pinned_packages", "python=2.7")
             run_command(Commands.INSTALL, prefix, "openssl")
             assert not package_is_installed(prefix, "python")
             run_command(Commands.INSTALL, prefix, "flask")
-            assert package_is_installed(prefix, "python-3.6.1")
+            assert package_is_installed(prefix, "python-2.7")
 
     def test_update_deps_flag_absent(self):
         with make_temp_env("python=2 itsdangerous=0.23") as prefix:

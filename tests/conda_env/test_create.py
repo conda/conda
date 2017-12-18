@@ -99,6 +99,7 @@ def assert_package_is_installed(prefix, package, exact=False, pip=False):
 
 
 @pytest.mark.integration
+@pytest.mark.serial
 class IntegrationTests(TestCase):
 
     def setUp(self):

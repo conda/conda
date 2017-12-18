@@ -339,7 +339,10 @@ conda_unit_test() {
 
 
 conda_integration_test() {
-    $PYTEST_EXE conda tests $ADD_COV --cov-append -m "integration and not installed" -v
+    $PYTHON_EXE -m conda create -n blarg -yq --download-only python pytz flask
+    $PYTHON_EXE -m conda create -n blarg -yq --download-only python=2 pytz flask
+    $PYTEST_EXE conda tests $ADD_COV --cov-append -m "integration and not installed and not serial" -v -n 2
+    $PYTEST_EXE conda tests $ADD_COV --cov-append -m "integration and not installed and serial" -v
 }
 
 

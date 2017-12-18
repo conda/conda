@@ -129,6 +129,7 @@ def remove_env_file(filename='environment.yml'):
 
 
 @pytest.mark.integration
+@pytest.mark.serial
 class IntegrationTests(unittest.TestCase):
 
     def setUp(self):
@@ -208,6 +209,7 @@ def env_is_created(env_name):
 
 
 @pytest.mark.integration
+@pytest.mark.serial
 class NewIntegrationTests(unittest.TestCase):
     """
         This is integration test for conda env

@@ -4,6 +4,7 @@ mock
 pytest
 pytest-cov
 pytest-timeout
+pytest-xdist
 radon
 responses
 anaconda-client
