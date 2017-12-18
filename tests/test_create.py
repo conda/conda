@@ -1262,6 +1262,7 @@ class IntegrationTests(TestCase):
         finally:
             rmtree(prefix, ignore_errors=True)
 
+    @pytest.mark.serial
     def test_clean_index_cache(self):
         prefix = ''
 
@@ -1275,6 +1276,7 @@ class IntegrationTests(TestCase):
         run_command(Commands.CLEAN, prefix, "--index-cache")
         assert not glob(join(index_cache_dir, "*.json"))
 
+    @pytest.mark.serial
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
         from conda.core.repodata import SubdirData
@@ -1395,6 +1397,7 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, 'openssl --offline')
                 assert not pkgs_dir_has_tarball('openssl-')
 
+    @pytest.mark.serial
     def test_clean_tarballs_and_packages(self):
         with make_temp_package_cache() as pkgs_dir:
             with make_temp_env("flask") as prefix:
@@ -1423,6 +1426,7 @@ class IntegrationTests(TestCase):
             pkgs_dir_dirs = [d for d in pkgs_dir_contents if isdir(d)]
             assert not any(basename(d).startswith('flask-') for d in pkgs_dir_dirs)
 
+    @pytest.mark.serial
     def test_clean_source_cache(self):
         cache_dirs = {
             'source cache': text_type(context.src_cache),
