@@ -3,7 +3,7 @@
 from os.path import abspath, join
 import sys
 
-_conda_root = abspath(join(__file__, '..', '..', '..'))
+_conda_root = abspath(join(__file__, '..', '..', '..', '..'))
 
 if __name__ == '__main__':
     sys.path.insert(0, _conda_root)

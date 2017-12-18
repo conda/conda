@@ -105,13 +105,13 @@ def _format_vars(shell):
 
     if on_win:
         new_path_parts = tuple(
-            _get_prefix_paths(join(dirname(CONDA_PACKAGE_ROOT), 'shell'))
+            _get_prefix_paths(join(dirname(CONDA_PACKAGE_ROOT), 'conda', 'shell'))
         ) + tuple(
             _get_prefix_paths(sys.prefix)
         )
     else:
         new_path_parts = (
-            join(dirname(CONDA_PACKAGE_ROOT), 'shell', 'bin'),
+            join(dirname(CONDA_PACKAGE_ROOT), 'conda', 'shell', 'bin'),
             dirname(sys.executable),
         )
 
@@ -157,7 +157,7 @@ def _format_vars(shell):
         'source': shelldict['source_setup'],
         'binpath': shelldict['binpath'],
         'shell_suffix': shelldict['shell_suffix'],
-        'syspath': join(dirname(CONDA_PACKAGE_ROOT), 'shell'),
+        'syspath': join(dirname(CONDA_PACKAGE_ROOT), 'conda', 'shell'),
         'command_setup': command_setup,
         'base_path': base_path,
 }
