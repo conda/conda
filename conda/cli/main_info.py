@@ -22,7 +22,7 @@ from ..base.context import conda_in_private_env, context, sys_rc_path, user_rc_p
 from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.url import mask_anaconda_token
 from ..core.envs_manager import env_name
-from ..core.repodata import query_all
+from ..core.repodata import SubdirData
 from ..models.channel import all_channel_urls, offline_keep
 from ..models.match_spec import MatchSpec
 from ..utils import human_bytes
@@ -92,7 +92,7 @@ def print_package_info(packages):
     results = {}
     for package in packages:
         spec = MatchSpec(package)
-        results[package] = tuple(query_all(context.channels, context.subdirs, spec))
+        results[package] = tuple(SubdirData.query_all(context.channels, context.subdirs, spec))
 
     if context.json:
         stdout_json({package: results[package] for package in packages})

@@ -9,7 +9,7 @@ import json
 from json import loads as json_loads
 from logging import DEBUG, INFO, getLogger
 import os
-from os.path import basename, dirname, exists, isdir, isfile, join, lexists, relpath
+from os.path import basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 from random import sample
 import re
 from shlex import split
@@ -60,7 +60,7 @@ except ImportError:
 
 log = getLogger(__name__)
 TRACE, DEBUG, INFO = TRACE, DEBUG, INFO  # these are so the imports aren't cleared, but it's easy to switch back and forth
-TEST_LOG_LEVEL = DEBUG
+TEST_LOG_LEVEL = TRACE
 stderr_log_level(TEST_LOG_LEVEL, 'conda')
 stderr_log_level(TEST_LOG_LEVEL, 'requests')
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
@@ -368,17 +368,6 @@ class IntegrationTests(TestCase):
             assert message1 not in stderr
             assert message2 not in stderr
             assert package_is_installed(prefix, "spiffy-test-app-0.5")
-
-    @pytest.mark.xfail(strict=True)
-    def test_non_root_conda(self):
-        with make_temp_env("python=3.5") as prefix:
-            self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'conda')
-            assert not package_is_installed(prefix, 'conda')
-
-            self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
-            # conda.exceptions.InstallError: Install error: Error: the following specs depend on
-            # 'conda' and can only be installed into the root environment: constructor
-            assert not package_is_installed(prefix, 'constructor')
 
     def test_json_create_install_update_remove(self):
         # regression test for #5384
@@ -692,6 +681,14 @@ class IntegrationTests(TestCase):
 
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
+
+    @pytest.mark.skipif(on_win, reason="windows usually doesn't support symlinks out-of-the box")
+    @patch('conda.gateways.disk.test.hardlink_supported', return_value=False)
+    def test_allow_softlinks(self, hardlink_supported_mock):
+        with env_var("CONDA_ALLOW_SOFTLINKS", "true", reset_context):
+            with make_temp_env("pip") as prefix:
+                assert islink(join(prefix, get_python_site_packages_short_path(
+                    get_python_version_for_prefix(prefix)), 'pip', '__init__.py'))
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
     @pytest.mark.skipif(datetime.now() < datetime(2018, 11, 21), reason="fix features in conda 4.4")

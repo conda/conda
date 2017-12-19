@@ -9,7 +9,7 @@ from ..base.context import context
 from ..cli.common import stdout_json
 from ..common.io import spinner
 from ..compat import text_type
-from ..core.repodata import query_all
+from ..core.repodata import SubdirData
 from ..models.match_spec import MatchSpec
 from ..models.version import VersionOrder
 from ..resolve import dashlist
@@ -29,7 +29,7 @@ def execute(args, parser):
         spec_channel = spec.get_exact_value('channel')
         channel_urls = (spec_channel,) if spec_channel else context.channels
 
-        matches = sorted(query_all(channel_urls, subdirs, spec),
+        matches = sorted(SubdirData.query_all(channel_urls, subdirs, spec),
                          key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
     if not matches:
