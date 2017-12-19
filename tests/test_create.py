@@ -60,7 +60,7 @@ except ImportError:
 
 log = getLogger(__name__)
 TRACE, DEBUG, INFO = TRACE, DEBUG, INFO  # these are so the imports aren't cleared, but it's easy to switch back and forth
-TEST_LOG_LEVEL = TRACE
+TEST_LOG_LEVEL = DEBUG
 stderr_log_level(TEST_LOG_LEVEL, 'conda')
 stderr_log_level(TEST_LOG_LEVEL, 'requests')
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
@@ -683,12 +683,14 @@ class IntegrationTests(TestCase):
             assert not exists(prefix)
 
     @pytest.mark.skipif(on_win, reason="windows usually doesn't support symlinks out-of-the box")
-    @patch('conda.gateways.disk.test.hardlink_supported', return_value=False)
+    @patch('conda.core.link.hardlink_supported', side_effect=lambda x, y: False)
     def test_allow_softlinks(self, hardlink_supported_mock):
+        hardlink_supported_mock._result_cache.clear()
         with env_var("CONDA_ALLOW_SOFTLINKS", "true", reset_context):
             with make_temp_env("pip") as prefix:
                 assert islink(join(prefix, get_python_site_packages_short_path(
                     get_python_version_for_prefix(prefix)), 'pip', '__init__.py'))
+        hardlink_supported_mock._result_cache.clear()
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
     @pytest.mark.skipif(datetime.now() < datetime(2018, 11, 21), reason="fix features in conda 4.4")

@@ -986,7 +986,7 @@ def _first_writable_envs_dir():
 
 
 # backward compatibility for conda-build
-def get_prefix(ctx, args, search=True):
+def get_prefix(ctx, args, search=True):  # pragma: no cover
     return determine_target_prefix(ctx or context, args)
 
 

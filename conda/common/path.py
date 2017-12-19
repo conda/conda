@@ -4,8 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from functools import reduce
 from logging import getLogger
 import os
-from os.path import (abspath, basename, dirname, expanduser, expandvars, join, normpath, split,
-                     splitext)
+from os.path import abspath, basename, expanduser, expandvars, join, normpath, split, splitext
 import re
 import subprocess
 
@@ -207,7 +206,7 @@ def ensure_pad(name, pad="_"):
     """
 
     Examples:
-        >>> ensure_pad(conda)
+        >>> ensure_pad('conda')
         '_conda_'
 
     """
