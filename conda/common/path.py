@@ -68,7 +68,7 @@ def url_to_path(url):
     """
     if is_path(url):
         return url
-    if not url.startswith("file://"):
+    if not url.startswith("file://"):  # pragma: no cover
         raise CondaError("You can only turn absolute file: urls into paths (not %s)" % url)
     _, netloc, path, _, _ = urlsplit(url)
     path = unquote(path)
@@ -204,29 +204,39 @@ def win_path_backout(path):
 
 
 def ensure_pad(name, pad="_"):
+    """
+
+    Examples:
+        >>> ensure_pad(conda)
+        '_conda_'
+
+    """
     return name and "%s%s%s" % (pad, name.strip(pad), pad)
 
 
-def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
-    # type: (str, str, str) -> bool
-    if preferred_env is None:
-        return False
-
-    # check if prefix is within root_prefix/envs
-    prefix_dir = dirname(prefix)
-    if prefix_dir != join(root_dir, 'envs'):
-        return False
-
-    prefix_name = basename(prefix)
-    padded_preferred_env = ensure_pad(preferred_env)
-    return prefix_name == padded_preferred_env
-
-
 def is_private_env_name(env_name):
+    """
+
+    Examples:
+        >>> is_private_env_name("_conda")
+        False
+        >>> is_private_env_name("_conda_")
+        True
+
+    """
     return env_name and env_name[0] == env_name[-1] == "_"
 
 
 def is_private_env_path(env_path):
+    """
+
+    Examples:
+        >>> is_private_env_path('/some/path/to/envs/_conda_')
+        True
+        >>> is_private_env_path('/not/an/envs_dir/_conda_')
+        False
+
+    """
     if env_path is not None:
         envs_directory, env_name = split(env_path)
         if basename(envs_directory) != "envs":
