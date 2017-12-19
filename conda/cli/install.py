@@ -155,7 +155,6 @@ def install(args, parser, command='install'):
             default_pkg_name = default_pkg.replace(' ', '=').split('=', 1)[0]
             if default_pkg_name not in args_packages_names:
                 args_packages.append(default_pkg)
-    args_packages.extend(text_type(MatchSpec(provides_features=ft)) for ft in args.features or ())
 
     index_args = {
         'use_cache': args.use_index_cache,

@@ -799,6 +799,11 @@ def configure_parser_remove(sub_parsers, name='remove'):
         nargs='*',
         help="Package names to %s from the environment." % name,
     )
+    p.add_argument(
+        "--features",
+        action="store_true",
+        help="%s features (instead of packages)." % name.capitalize(),
+    )
     p.set_defaults(func='.main_remove.execute')
 
 
@@ -1056,16 +1061,6 @@ def add_parser_create_install_update(p):
         action="store",
         nargs='*',
         help="Packages to install or update in the conda environment.",
-    )
-    p.add_argument(
-        '--feature',
-        metavar='FEATURE_NAME=FEATURE_VALUE',
-        dest='features',
-        action="append",
-        help="Feature to add or update in the conda environment. "
-             "The value must be a key-value pair separated by an equal sign e.g. blas=nomkl. "
-             "Can be used multiple times. "
-             "Equivalent to a MatchSpec specifying a single 'provides_features'.",
     )
     p.add_argument(
         "--download-only",
