@@ -23,7 +23,6 @@ from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSy
                           EnvironmentLocationNotFound, PackagesNotFoundError,
                           TooManyArgumentsError, UnsatisfiableError)
 from ..misc import clone_env, explicit, touch_nonadmin
-from ..models.match_spec import MatchSpec
 from ..plan import (revert_actions)
 from ..resolve import ResolvePackageNotFound
 
