@@ -559,6 +559,7 @@ class IntegrationTests(TestCase):
             assert stderr == ''
             self.assertIsInstance(stdout, str)
 
+    @pytest.mark.serial
     def test_list_with_pip_egg(self):
         from conda.exports import rm_rf as _rm_rf
         with make_temp_env("python=3.5 pip") as prefix:
@@ -707,6 +708,7 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'nomkl')
             assert_package_is_installed(prefix, 'mkl')
 
+    @pytest.mark.serial
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
