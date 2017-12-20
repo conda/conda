@@ -92,7 +92,6 @@ class Context(Configuration):
     notify_outdated_conda = PrimitiveParameter(True)
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
-    concurrent = PrimitiveParameter(True)
     create_default_packages = SequenceParameter(string_types)
     default_python = PrimitiveParameter(default_python_default(),
                                         element_type=string_types + (NoneType,),
@@ -563,7 +562,6 @@ class Context(Configuration):
     def list_parameters(self):
         UNLISTED_PARAMETERS = (
             'bld_path',
-            'concurrent',
             'conda_build',
             'croot',
             'debug',
@@ -988,7 +986,7 @@ def _first_writable_envs_dir():
 
 
 # backward compatibility for conda-build
-def get_prefix(ctx, args, search=True):
+def get_prefix(ctx, args, search=True):  # pragma: no cover
     return determine_target_prefix(ctx or context, args)
 
 

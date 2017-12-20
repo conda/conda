@@ -205,11 +205,15 @@ class PackageCache(object):
     @property
     def _package_cache_records(self):
         # don't actually populate _package_cache_records until we need it
-        return self.__package_cache_records or self.load() or self.__package_cache_records
+        if self.__package_cache_records is None:
+            self.load()
+        return self.__package_cache_records
 
     @property
     def is_writable(self):
-        return self.__is_writable or self._check_writable()
+        if self.__is_writable is None:
+            return self._check_writable()
+        return self.__is_writable
 
     def _check_writable(self):
         if isdir(self.pkgs_dir):
@@ -217,7 +221,6 @@ class PackageCache(object):
         else:
             log.trace("package cache directory '%s' does not exist", self.pkgs_dir)
             i_wri = create_package_cache_directory(self.pkgs_dir)
-            rm_rf(self.pkgs_dir)
         log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         self.__is_writable = i_wri
         return i_wri

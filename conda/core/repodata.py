@@ -55,32 +55,6 @@ REPODATA_PICKLE_VERSION = 18
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
 
-def query_all(channels, subdirs, package_ref_or_match_spec):
-    channel_urls = all_channel_urls(channels, subdirs=subdirs)
-
-    result = executor = None
-    if context.concurrent:
-        try:
-            from concurrent.futures import ThreadPoolExecutor, as_completed
-            executor = ThreadPoolExecutor(10)
-            futures = (executor.submit(
-                SubdirData(Channel(url)).query, package_ref_or_match_spec
-            ) for url in channel_urls)
-            result = tuple(concat(future.result() for future in as_completed(futures)))
-        except (ImportError, RuntimeError) as e:
-            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-            # RuntimeError is thrown if number of threads are limited by OS
-            log.debug(repr(e))
-    if executor:
-        executor.shutdown(wait=True)
-
-    if result is None:
-        subdir_datas = (SubdirData(Channel(url)) for url in channel_urls)
-        result = tuple(concat(sd.query(package_ref_or_match_spec) for sd in subdir_datas))
-
-    return result
-
-
 class SubdirDataType(type):
 
     def __call__(cls, channel):
@@ -99,6 +73,26 @@ class SubdirDataType(type):
 @with_metaclass(SubdirDataType)
 class SubdirData(object):
     _cache_ = {}
+
+    @staticmethod
+    def query_all(channels, subdirs, package_ref_or_match_spec):
+        channel_urls = all_channel_urls(channels, subdirs=subdirs)
+
+        executor = None
+        try:
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            executor = ThreadPoolExecutor(10)
+            futures = (executor.submit(
+                SubdirData(Channel(url)).query, package_ref_or_match_spec
+            ) for url in channel_urls)
+            return tuple(concat(future.result() for future in as_completed(futures)))
+        except RuntimeError as e:  # pragma: no cover
+            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
+            # RuntimeError is thrown if number of threads are limited by OS
+            raise
+        finally:
+            if executor:
+                executor.shutdown(wait=True)
 
     def query(self, package_ref_or_match_spec):
         if not self._loaded:

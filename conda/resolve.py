@@ -6,7 +6,7 @@ from logging import DEBUG, getLogger
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, string_types, text_type
+from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
@@ -387,22 +387,6 @@ class Resolve(object):
             self.ms_depends_[dist] = deps
         return deps
 
-    def depends_on(self, spec, target):
-        touched = set()
-        if isinstance(target, string_types):
-            target = (target,)
-
-        def depends_on_(spec):
-            if spec.name in target:
-                return True
-            if spec.name in touched:
-                return False
-            touched.add(spec.name)
-            return any(depends_on_(ms)
-                       for fn in self.find_matches(spec)
-                       for ms in self.ms_depends(fn))
-        return depends_on_(MatchSpec(spec))
-
     def version_key(self, dist, vtype=None):
         rec = self.index[dist]
         channel = rec.channel
@@ -442,12 +426,8 @@ class Resolve(object):
     def package_name(self, dist):
         return self.package_quad(dist)[0]
 
-    def get_pkgs(self, ms, emptyok=False):
+    def get_pkgs(self, ms, emptyok=False):  # pragma: no cover
         # legacy method for conda-build
-        # TODO: remove in conda 4.4
-        return self.get_dists_for_spec(ms, emptyok)
-
-    def get_dists_for_spec(self, ms, emptyok=False):
         ms = MatchSpec(ms)
         dists = self.find_matches(ms)
         if not dists and not emptyok:

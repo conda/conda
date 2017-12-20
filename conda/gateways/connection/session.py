@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
-from threading import Lock, local
+from threading import local
 
 from . import (AuthBase, BaseAdapter, HTTPAdapter, Session, _basic_auth_str,
                extract_cookies_to_jar, get_auth_from_url, get_netrc_auth)
@@ -92,27 +92,6 @@ class CondaSession(Session):
             self.cert = context.client_ssl_cert
 
 
-class SingleThreadCondaSession(CondaSession):
-    # according to http://stackoverflow.com/questions/18188044/is-the-session-object-from-pythons-requests-library-thread-safe  # NOQA
-    # request's Session isn't thread-safe for us
-
-    _session = None
-    _mutex = Lock()
-
-    def __init__(self):
-        super(SingleThreadCondaSession, self).__init__()
-
-    def __enter__(self):
-        session = SingleThreadCondaSession._session
-        if session is None:
-            session = SingleThreadCondaSession._session = self
-        SingleThreadCondaSession._mutex.acquire()
-        return session
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        SingleThreadCondaSession._mutex.release()
-
-
 class CondaHttpAuth(AuthBase):
     # TODO: make this class thread-safe by adding some of the requests.auth.HTTPDigestAuth() code
 
@@ -151,7 +130,7 @@ class CondaHttpAuth(AuthBase):
         return url
 
     @staticmethod
-    def handle_407(response, **kwargs):
+    def handle_407(response, **kwargs):  # pragma: no cover
         """
         Prompts the user for the proxy username and password and modifies the
         proxy in the session object to include it.

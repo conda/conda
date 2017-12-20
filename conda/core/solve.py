@@ -11,7 +11,7 @@ from textwrap import dedent
 from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .linked_data import PrefixData
-from .repodata import query_all
+from .repodata import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
@@ -510,7 +510,7 @@ class Solver(object):
             conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
             if not any(conda_newer_spec.match(prec) for prec in link_precs):
                 conda_newer_records = sorted(
-                    query_all(self.channels, self.subdirs, conda_newer_spec),
+                    SubdirData.query_all(self.channels, self.subdirs, conda_newer_spec),
                     key=lambda x: VersionOrder(x.version)
                 )
                 if conda_newer_records:
