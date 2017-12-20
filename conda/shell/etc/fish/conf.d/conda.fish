@@ -87,11 +87,13 @@ end
 
 # Faster but less tested (?)
 function __fish_conda_commands
-  command echo -e "activate\ndeactivate" ;and ls --color=none (conda info --root)/bin/conda-* | sed -r 's/^.*conda-([a-z]+)/\1/'
+  string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_*.py
+  echo activate
+  echo deactivate
 end
 
 function __fish_conda_envs
-  command echo root ;and ls -1 --color=none (conda info --root)/envs/
+  basename -a $_CONDA_ROOT/envs/*/
 end
 
 function __fish_conda_packages
