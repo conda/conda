@@ -1,6 +1,5 @@
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
@@ -18,6 +17,7 @@ from ..exceptions import CondaEnvironmentError, CondaValueError
 from ..gateways.disk.delete import delete_trash, rm_rf
 from ..gateways.disk.test import is_conda_environment
 from ..instructions import PREFIX
+from ..models.match_spec import MatchSpec
 from ..plan import (add_unlink)
 
 log = logging.getLogger(__name__)
@@ -72,7 +72,10 @@ def execute(args, parser):
         return
 
     else:
-        specs = specs_from_args(args.package_names)
+        if args.features:
+            specs = tuple(MatchSpec(track_features=f) for f in set(args.package_names))
+        else:
+            specs = specs_from_args(args.package_names)
         channel_urls = ()
         subdirs = ()
         solver = Solver(prefix, channel_urls, subdirs, specs_to_remove=specs)

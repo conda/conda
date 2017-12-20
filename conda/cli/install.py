@@ -23,7 +23,6 @@ from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSy
                           EnvironmentLocationNotFound, PackagesNotFoundError,
                           TooManyArgumentsError, UnsatisfiableError)
 from ..misc import clone_env, explicit, touch_nonadmin
-from ..models.match_spec import MatchSpec
 from ..plan import (revert_actions)
 from ..resolve import ResolvePackageNotFound
 
@@ -155,7 +154,6 @@ def install(args, parser, command='install'):
             default_pkg_name = default_pkg.replace(' ', '=').split('=', 1)[0]
             if default_pkg_name not in args_packages_names:
                 args_packages.append(default_pkg)
-    args_packages.extend(text_type(MatchSpec(provides_features=ft)) for ft in args.features or ())
 
     index_args = {
         'use_cache': args.use_index_cache,
