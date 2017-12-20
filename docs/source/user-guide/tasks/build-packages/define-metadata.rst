@@ -730,14 +730,33 @@ thought of as "build tools" - things that run on the native platform, but output
 results for the target platform. For example, a cross-compiler that runs on
 linux-64, but targets linux-armv7.
 
-When building on the native platform for the native platform, build and host
-sections are merged. When building for a non-native platform, the host
-requirements are installed into a separate prefix from the build requirements.
 The PREFIX environment variable points to the host prefix.  With respect to
 activation during builds, both the host and build environments are activated.
 The build prefix is activated before the host prefix, so that the host prefix
 has priority over the build prefix. Executables that don't exist in the host
 prefix should be found in the build prefix.
+
+As of conda-build 3.1.4, the build and host prefixes are always separate when
+both are defined, or when ``{{ compiler() }}`` jinja2 functions are used. The
+only time that build and host are merged is when the host section is absent, and
+no ``{{ compiler() }}`` jinja2 functions are used in meta.yaml. Because these
+are separate, you may see some build failures when migrating your recipes. For
+example, let's say you have a recipe to build a python extension. If you add the
+compiler jinja2 functions to the build section, but you do not move your python
+dependency from the build section to the host section, your recipe will fail. It
+will fail because the host environment is where new files are detected, but
+because you have python only in the build environment, your extension will be
+installed into the build environment. No files will be detected. Also, variables
+such as PYTHON will not be defined when python is not installed into the host
+environment.
+
+**TL;DR**: If you use the new ``{{ compiler() }}`` jinja2 to utilize our new
+compilers, you also must move anything that is not strictly a build tool into
+your host dependencies. This includes python, python libraries, and any shared
+libraries that you need to link against in your build. Examples of build tools
+include any {{ compiler() }}, make, autoconf, perl (for running scripts, not
+installing perl software), python (for running scripts, not for installing
+software).
 
 Run
 ---
