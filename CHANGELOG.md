@@ -1,4 +1,4 @@
-## 4.4.0 (unreleased)
+## 4.4.0 (2017-12-20)
 
 ### Recommended change to enable conda in your shell
 
@@ -177,6 +177,10 @@ will make sure that whenever conda is installed or changed in an environment, th
 * add target prefix override configuration parameter (4.4.0rc3) (#6413)
 * resolve #6194 warn when conda is outdated (4.4.0rc3) (#6370)
 * add information to displayed error report (4.4.0rc3) (#6437)
+* csh wrapper (4.4.0) (#6463)
+* resolve #5158 --override-channels (4.4.0) (#6467)
+* fish update for conda 4.4 (4.4.0) (#6475, #6502)
+* skip an unnecessary environments.txt rewrite (4.4.0) (#6495)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -223,6 +227,9 @@ will make sure that whenever conda is installed or changed in an environment, th
 * fix #6445 scale back directory activation in PWD (4.4.0rc3) (#6447)
 * fix #6283 no-deps for conda update case (4.4.0rc3) (#6448)
 * fix #6419 set PS1 in python code (4.4.0rc3) (#6446)
+* fix #6466 sp_dir doesn't exist (#6470)
+* fix #6350 --update-all removes too many packages (4.4.0) (#6491)
+* fix #6057 unlink-link order for python noarch packages on windows 4.4.x (4.4.0) (#6494)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
@@ -245,8 +252,10 @@ will make sure that whenever conda is installed or changed in an environment, th
 * remove last remnant of CondaEnvRuntimeError (#5643)
 * fix typo (4.4.0rc2) (#6043)
 * replace Travis-CI with CircleCI (4.4.0rc2) (#6345)
-* key-value features (#5645); reverted in 4.4.0rc2 (#6347)
+* key-value features (#5645); reverted in 4.4.0rc2 (#6347, #6492)
 * resolve #6431 always add env_vars to info_dict (4.4.0rc3) (#6436)
+* move shell inside conda directory (4.4.0) (#6479)
+* remove dead code (4.4.0) (#6489)
 
 
 ## 4.3.31 (2017-12-15)
