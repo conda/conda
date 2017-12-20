@@ -13,8 +13,10 @@ from ..common.url import quote as url_quote
 
 try:
     from cytoolz.functoolz import excepts
+    from cytoolz.itertoolz import concatv
 except ImportError:
     from .._vendor.toolz.functoolz import excepts  # NOQA
+    from .._vendor.toolz.itertoolz import concatv  # NOQA
 
 log = getLogger(__name__)
 
@@ -35,6 +37,8 @@ class PrefixDag(object):
         for spec in specs:
             self.add_spec(spec)
 
+        self.nodes = self.get_nodes_ordered_from_roots()
+
     def get_node_by_name(self, name):
         return next((node for node in self.nodes if node.record.name == name), None)
 
@@ -46,7 +50,6 @@ class PrefixDag(object):
 
     def remove_spec(self, spec):
         removed = []
-        self.nodes = self.get_nodes_ordered_from_roots()
 
         while True:
             # This while True pattern is needed because when we remove nodes, we break the view
@@ -77,21 +80,26 @@ class PrefixDag(object):
         return removed
 
     def get_nodes_ordered_from_roots(self):
-        """
-        Returns:
-            A deterministically sorted breadth-first ordering of nodes, starting from root nodes.
-            Orphan nodes are prepended to the breadth-first ordering.
-        """
         name_key = lambda node: node.record.name
         ordered = IndexedSet(sorted((node for node in self.nodes if node.is_orphan), key=name_key))
         queue = deque(sorted((node for node in self.nodes if node.is_root), key=name_key))
         while queue:
+            # Can node be added?
+            # Are all parents already added?
+            # If all parent nodes are already in the result, add the node to the result and
+            #   add all the node's children to the queue.
+            # Otherwise, put the node on the end of the queue
             node = queue.popleft()
-            ordered.add(node)
-            queue.extend(node for node in sorted(node.required_children, key=name_key)
-                         if node not in ordered)
-            queue.extend(node for node in sorted(node.optional_children, key=name_key)
-                         if node not in ordered)
+            parents = concatv(node.required_parents, node.optional_parents)
+            if all(parent in ordered for parent in parents):
+                ordered.add(node)
+                queue.extend(node for node in sorted(node.required_children, key=name_key)
+                             if node not in ordered)
+                queue.extend(node for node in sorted(node.optional_children, key=name_key)
+                             if node not in ordered)
+            else:
+                queue.append(node)
+
         return list(ordered)
 
     def get_nodes_ordered_from_leaves(self):
@@ -105,32 +113,35 @@ class PrefixDag(object):
         queue = deque(sorted((node for node in self.nodes if node.is_leaf), key=name_key))
         while queue:
             node = queue.popleft()
-            ordered.add(node)
-            queue.extend(node for node in sorted(node.required_parents, key=name_key)
-                         if node not in ordered)
-            queue.extend(node for node in sorted(node.optional_parents, key=name_key)
-                         if node not in ordered)
+            children = concatv(node.required_children, node.optional_children)
+            if all(child in ordered for child in children):
+                ordered.add(node)
+                queue.extend(node for node in sorted(node.required_parents, key=name_key)
+                             if node not in ordered)
+                queue.extend(node for node in sorted(node.optional_parents, key=name_key)
+                             if node not in ordered)
+            else:
+                queue.append(node)
         return list(ordered)
 
-    def order_nodes_leaves_last(self, nodes):
-        name_key = lambda node: node.record.name
-        ordered = IndexedSet(sorted((node for node in nodes if node.is_orphan), key=name_key))
-        queue = deque(sorted((node for node in nodes if node.is_leaf), key=name_key))
-        while queue:
-            node = queue.popleft()
-            ordered.add(node)
-            queue.extend(node for node in sorted(node.required_children, key=name_key)
-                         if node not in ordered)
-            queue.extend(node for node in sorted(node.optional_children, key=name_key)
-                         if node not in ordered)
-        return list(ordered)
+    def order_nodes_from_roots(self, nodes):
+        """
+        Returns:
+            A deterministically sorted breadth-first ordering of nodes, starting from root nodes.
+            Orphan nodes are prepended to the breadth-first ordering.
+        """
+        return list(sorted(nodes, key=lambda n: self.nodes.index(n)))
 
     def remove_node_and_children(self, node):
-        nodes = self.order_nodes_leaves_last(node.all_descendants())
+        # yields records for the removed nodes
+        nodes = self.order_nodes_from_roots(node.all_descendants())
         for child in nodes:
             for record in self.remove_node_and_children(child):
-                yield record
-        yield self.remove(node)
+                if record:
+                    yield record
+        record = self.remove(node)
+        if record:
+            yield record
 
     def dot_repr(self, title=None):  # pragma: no cover
         # graphviz DOT graph description language
@@ -224,18 +235,19 @@ class PrefixDag(object):
             num_nodes_post = len(self.nodes)
 
     def remove(self, node):
-        for parent in node.required_parents:
-            parent.required_children.remove(node)
-        for parent in node.optional_parents:
-            parent.optional_children.remove(node)
-        for child in node.required_children:
-            child.required_parents.remove(node)
-        for child in node.optional_children:
-            child.optional_parents.remove(node)
-        for spec in node.specs:
-            self.spec_matches[spec].remove(node)
-        self.nodes.remove(node)
-        return node.record
+        if node in self.nodes:
+            for parent in node.required_parents:
+                parent.required_children.remove(node)
+            for parent in node.optional_parents:
+                parent.optional_children.remove(node)
+            for child in node.required_children:
+                child.required_parents.remove(node)
+            for child in node.optional_children:
+                child.optional_parents.remove(node)
+            for spec in node.specs:
+                self.spec_matches[spec].remove(node)
+            self.nodes.remove(node)
+            return node.record
 
     def remove_leaf_nodes_with_specs(self):
         leaves = tuple(self.leaves)
@@ -285,24 +297,24 @@ class Node(object):
         return other.record.name in self._depends
 
     def all_descendants(self):
-        def _all_descendants():
-            for child in self.required_children:
-                for gchild in child.required_children:
-                    yield gchild
-                yield child
-        return tuple(_all_descendants())
+        descendents = IndexedSet()
+        queue = deque(concatv(self.required_children, self.optional_children))
+        while queue:
+            node = queue.popleft()
+            descendents.add(node)
+            queue.extend(child for child in concatv(node.required_children, node.optional_children)
+                         if child not in descendents)
+        return descendents
 
     def all_ascendants(self):
-        def _all_descendants():
-            for parent in self.required_parents:
-                for gparent in parent.required_parents:
-                    yield gparent
-                yield parent
-            for parent in self.optional_parents:
-                for gparent in parent.optional_parents:
-                    yield gparent
-                yield parent
-        return tuple(_all_descendants())
+        ascendants = IndexedSet()
+        queue = deque(concatv(self.required_parents, self.optional_parents))
+        while queue:
+            node = queue.popleft()
+            ascendants.add(node)
+            queue.extend(parent for parent in concatv(node.required_parents, node.optional_parents)
+                         if parent not in ascendants)
+        return ascendants
 
     has_children = property(lambda self: self.required_children or self.optional_children)
     has_parents = property(lambda self: self.required_parents or self.optional_parents)
