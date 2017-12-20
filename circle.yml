@@ -180,24 +180,24 @@ flake8: &flake8
 
 
 jobs:
-  main test py36:
+  py36 main tests:
     <<: *main_test
     docker:
       - image: condatest/linux-64-python-3.6
     environment:
       - CONDA_INSTRUMENTATION_ENABLED: true
-  main test py27:
+  py27 main tests:
     <<: *main_test
     docker:
       - image: condatest/linux-64-python-2.7
     environment:
       - CONDA_INSTRUMENTATION_ENABLED: true
-  conda build 3.0:
+  3.0 conda-build:
     <<: *conda_build_test
     environment:
       - CONDA_BUILD: 3.0.21
       - CONDA_INSTRUMENTATION_ENABLED: true
-  conda build 2.1:
+  2.1 conda-build:
     <<: *conda_build_test
     environment:
       - CONDA_BUILD: 2.1.17
@@ -212,9 +212,9 @@ workflows:
   version: 2
   conda tests:
     jobs:
-      - main test py36
-      - main test py27
-      - conda build 3.0
-      - conda build 2.1
+      - py36 main tests
+      - py27 main tests
+      - 3.0 conda-build
+      - 2.1 conda-build
       - activate tests
       - flake8
