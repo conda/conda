@@ -2,16 +2,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from itertools import chain
-from logging import getLogger, DEBUG
+from logging import DEBUG, getLogger
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
 from .base.context import context
-from .common.compat import iteritems, iterkeys, itervalues, odict, string_types, text_type
+from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
+from .common.io import time_recorder
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
 from .exceptions import ResolvePackageNotFound, UnsatisfiableError
 from .models.channel import Channel, MultiChannel
 from .models.dist import Dist
+from .models.enums import NoarchType
 from .models.index_record import PackageRef
 from .models.match_spec import MatchSpec
 from .models.version import VersionOrder
@@ -385,22 +387,6 @@ class Resolve(object):
             self.ms_depends_[dist] = deps
         return deps
 
-    def depends_on(self, spec, target):
-        touched = set()
-        if isinstance(target, string_types):
-            target = (target,)
-
-        def depends_on_(spec):
-            if spec.name in target:
-                return True
-            if spec.name in touched:
-                return False
-            touched.add(spec.name)
-            return any(depends_on_(ms)
-                       for fn in self.find_matches(spec)
-                       for ms in self.ms_depends(fn))
-        return depends_on_(MatchSpec(spec))
-
     def version_key(self, dist, vtype=None):
         rec = self.index[dist]
         channel = rec.channel
@@ -440,12 +426,8 @@ class Resolve(object):
     def package_name(self, dist):
         return self.package_quad(dist)[0]
 
-    def get_pkgs(self, ms, emptyok=False):
+    def get_pkgs(self, ms, emptyok=False):  # pragma: no cover
         # legacy method for conda-build
-        # TODO: remove in conda 4.4
-        return self.get_dists_for_spec(ms, emptyok)
-
-    def get_dists_for_spec(self, ms, emptyok=False):
         ms = MatchSpec(ms)
         dists = self.find_matches(ms)
         if not dists and not emptyok:
@@ -619,11 +601,29 @@ class Resolve(object):
         # type: (Dict[package_name, Dist]) -> List[Dist]
         assert isinstance(must_have, dict)
 
-        digraph = {}
-        for key, dist in iteritems(must_have):
+        digraph = {}  # Dict[package_name, Set[dependent_package_names]]
+        for package_name, dist in iteritems(must_have):
             if dist in self.index:
-                depends = set(ms.name for ms in self.ms_depends(dist))
-                digraph[key] = depends
+                digraph[package_name] = set(ms.name for ms in self.ms_depends(dist))
+
+        # There are currently at least three special cases to be aware of.
+        # 1. The `toposort()` function, called below, contains special case code to remove
+        #    any circular dependency between python and pip.
+        # 2. conda/plan.py has special case code for menuinst
+        #       Always link/unlink menuinst first/last on windows in case a subsequent
+        #       package tries to import it to create/remove a shortcut
+        # 3. On windows, python noarch packages need an implicit dependency on conda added, if
+        #    conda is in the list of packages for the environment.  Python noarch packages
+        #    that have entry points use conda's own conda.exe python entry point binary. If conda
+        #    is going to be updated during an operation, the unlink / link order matters.
+        #    See issue #6057.
+
+        if on_win and 'conda' in digraph:
+            for package_name, dist in iteritems(must_have):
+                record = self.index.get(dist)
+                if hasattr(record, 'noarch') and record.noarch == NoarchType.python:
+                    digraph[package_name].add('conda')
+
         sorted_keys = toposort(digraph)
         must_have = must_have.copy()
         # Take all of the items in the sorted keys
@@ -817,6 +817,7 @@ class Resolve(object):
         self.restore_bad(pkgs, preserve)
         return pkgs
 
+    @time_recorder("resolve_solve")
     def solve(self, specs, returnall=False, _remove=False):
         # type: (List[str], bool) -> List[Dist]
         if log.isEnabledFor(DEBUG):

@@ -16,13 +16,13 @@ import re
 import sys
 from textwrap import dedent
 
-from .common import handle_envs_list, stdout_json
+from .common import print_envs_list, stdout_json
 from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
 from ..base.context import conda_in_private_env, context, sys_rc_path, user_rc_path
 from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.url import mask_anaconda_token
 from ..core.envs_manager import env_name
-from ..core.repodata import query_all
+from ..core.repodata import SubdirData
 from ..models.channel import all_channel_urls, offline_keep
 from ..models.match_spec import MatchSpec
 from ..utils import human_bytes
@@ -92,7 +92,7 @@ def print_package_info(packages):
     results = {}
     for package in packages:
         spec = MatchSpec(package)
-        results[package] = tuple(query_all(context.channels, context.subdirs, spec))
+        results[package] = tuple(SubdirData.query_all(context.channels, context.subdirs, spec))
 
     if context.json:
         stdout_json({package: results[package] for package in packages})
@@ -218,6 +218,21 @@ def get_info_dict(system=False):
     return info_dict
 
 
+def get_env_vars_str(info_dict):
+    from textwrap import wrap
+    builder = []
+    builder.append("%23s:" % "environment variables")
+    env_vars = info_dict.get('env_vars', {})
+    for key in sorted(env_vars):
+        value = wrap(env_vars[key])
+        first_line = value[0]
+        other_lines = value[1:] if len(value) > 1 else ()
+        builder.append("%25s=%s" % (key, first_line))
+        for val in other_lines:
+            builder.append(' ' * 26 + val)
+    return '\n'.join(builder)
+
+
 def get_main_info_str(info_dict):
     for key in 'pkgs_dirs', 'envs_dirs', 'channels', 'config_files':
         info_dict['_' + key] = ('\n' + 26 * ' ').join(info_dict[key])
@@ -302,7 +317,7 @@ def execute(args, parser):
     if args.envs:
         from ..core.envs_manager import list_all_known_prefixes
         info_dict['envs'] = list_all_known_prefixes()
-        handle_envs_list(info_dict['envs'], not context.json)
+        print_envs_list(info_dict['envs'], not context.json)
 
     if args.system:
         if not context.json:

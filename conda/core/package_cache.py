@@ -14,7 +14,7 @@ from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, text_type, with_metaclass
 from ..common.constants import NULL
-from ..common.io import ProgressBar
+from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
@@ -205,11 +205,15 @@ class PackageCache(object):
     @property
     def _package_cache_records(self):
         # don't actually populate _package_cache_records until we need it
-        return self.__package_cache_records or self.load() or self.__package_cache_records
+        if self.__package_cache_records is None:
+            self.load()
+        return self.__package_cache_records
 
     @property
     def is_writable(self):
-        return self.__is_writable or self._check_writable()
+        if self.__is_writable is None:
+            return self._check_writable()
+        return self.__is_writable
 
     def _check_writable(self):
         if isdir(self.pkgs_dir):
@@ -217,7 +221,6 @@ class PackageCache(object):
         else:
             log.trace("package cache directory '%s' does not exist", self.pkgs_dir)
             i_wri = create_package_cache_directory(self.pkgs_dir)
-            rm_rf(self.pkgs_dir)
         log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         self.__is_writable = i_wri
         return i_wri
@@ -496,6 +499,7 @@ class ProgressiveFetchExtract(object):
 
         self._prepared = False
 
+    @time_recorder("fetch_extract_prepare")
     def prepare(self):
         if self._prepared:
             return
@@ -534,7 +538,7 @@ class ProgressiveFetchExtract(object):
                       '\n    '.join(text_type(ea) for ea in self.extract_actions))
 
         exceptions = []
-        with signal_handler(conda_signal_handler):
+        with signal_handler(conda_signal_handler), time_recorder("fetch_extract_execute"):
             for prec_or_spec, prec_actions in iteritems(self.paired_actions):
                 exc = self._execute_actions(prec_or_spec, prec_actions)
                 if exc:

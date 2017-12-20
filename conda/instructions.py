@@ -45,7 +45,7 @@ def PREFIX_CMD(state, prefix):
     state['prefix'] = prefix
 
 
-def PRINT_CMD(state, arg):
+def PRINT_CMD(state, arg):  # pragma: no cover
     if arg.startswith(('Unlinking packages', 'Linking packages')):
         return
     getLogger('conda.stdout.verbose').info(arg)
@@ -59,12 +59,12 @@ def EXTRACT_CMD(state, arg):
     raise NotImplementedError()
 
 
-def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
+def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):  # pragma: no cover
     assert isinstance(progressive_fetch_extract, ProgressiveFetchExtract)
     progressive_fetch_extract.execute()
 
 
-def UNLINKLINKTRANSACTION_CMD(state, arg):
+def UNLINKLINKTRANSACTION_CMD(state, arg):  # pragma: no cover
     unlink_link_transaction = arg
     assert isinstance(unlink_link_transaction, UnlinkLinkTransaction)
     unlink_link_transaction.execute()

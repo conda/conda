@@ -31,7 +31,7 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     info_dict = {'envs': list_all_known_prefixes()}
-    common.handle_envs_list(info_dict['envs'], not args.json)
+    common.print_envs_list(info_dict['envs'], not args.json)
 
     if args.json:
         common.stdout_json(info_dict)

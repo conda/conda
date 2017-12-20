@@ -11,7 +11,7 @@ from .repodata import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues
-from ..common.io import backdown_thread_pool
+from ..common.io import backdown_thread_pool, time_recorder
 from ..exceptions import OperationNotAllowed
 from ..models.channel import Channel, all_channel_urls
 from ..models.dist import Dist
@@ -44,6 +44,7 @@ def check_whitelist(channel_urls):
                                           % (bad_channel.location, bad_channel.canonical_name))
 
 
+@time_recorder("get_index")
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None):
     """
@@ -160,6 +161,8 @@ def get_reduced_index(prefix, channels, subdirs, specs):
     with backdown_thread_pool() as executor:
 
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
+        check_whitelist(channel_urls)
+
         if context.offline:
             grouped_urls = groupby(lambda url: url.startswith('file://'), channel_urls)
             ignored_urls = grouped_urls.get(False, ())

@@ -9,7 +9,7 @@ import json
 from json import loads as json_loads
 from logging import DEBUG, INFO, getLogger
 import os
-from os.path import basename, dirname, exists, isdir, isfile, join, lexists, relpath
+from os.path import basename, dirname, exists, isdir, isfile, join, lexists, relpath, islink
 from random import sample
 import re
 from shlex import split
@@ -200,10 +200,10 @@ def make_temp_channel(packages):
             tar_new_path = join(subchan, fname)
             copyfile(tar_old_path, tar_new_path)
 
-        with bz2.BZ2File(join(subchan, 'repodata.json.bz2'), 'w') as f:
-            f.write(json.dumps(repodata, cls=EntityEncoder).encode('utf-8'))
-        with bz2.BZ2File(join(noarch_dir, 'repodata.json.bz2'), 'w') as f:
-            f.write(json.dumps({}, cls=EntityEncoder).encode('utf-8'))
+        with open(join(subchan, 'repodata.json'), 'w') as f:
+            f.write(json.dumps(repodata, cls=EntityEncoder))
+        with open(join(noarch_dir, 'repodata.json'), 'w') as f:
+            f.write(json.dumps({}, cls=EntityEncoder))
 
         yield channel
 
@@ -368,17 +368,6 @@ class IntegrationTests(TestCase):
             assert message1 not in stderr
             assert message2 not in stderr
             assert package_is_installed(prefix, "spiffy-test-app-0.5")
-
-    @pytest.mark.xfail(strict=True)
-    def test_non_root_conda(self):
-        with make_temp_env("python=3.5") as prefix:
-            self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'conda')
-            assert not package_is_installed(prefix, 'conda')
-
-            self.assertRaises(CondaError, run_command, Commands.INSTALL, prefix, 'constructor=1.0')
-            # conda.exceptions.InstallError: Install error: Error: the following specs depend on
-            # 'conda' and can only be installed into the root environment: constructor
-            assert not package_is_installed(prefix, 'constructor')
 
     def test_json_create_install_update_remove(self):
         # regression test for #5384
@@ -693,8 +682,17 @@ class IntegrationTests(TestCase):
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
 
+    @pytest.mark.skipif(on_win, reason="windows usually doesn't support symlinks out-of-the box")
+    @patch('conda.core.link.hardlink_supported', side_effect=lambda x, y: False)
+    def test_allow_softlinks(self, hardlink_supported_mock):
+        hardlink_supported_mock._result_cache.clear()
+        with env_var("CONDA_ALLOW_SOFTLINKS", "true", reset_context):
+            with make_temp_env("pip") as prefix:
+                assert islink(join(prefix, get_python_site_packages_short_path(
+                    get_python_version_for_prefix(prefix)), 'pip', '__init__.py'))
+        hardlink_supported_mock._result_cache.clear()
+
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 11, 21), reason="fix features in conda 4.4")
     def test_remove_features(self):
         with make_temp_env("python=2 numpy nomkl") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
@@ -768,7 +766,6 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous')
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 11, 21), reason="fix features in conda 4.4")
     def test_install_features(self):
         with make_temp_env("python=2 numpy nomkl") as prefix:
             numpy_details = get_conda_list_tuple(prefix, "numpy")

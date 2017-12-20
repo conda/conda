@@ -1,12 +1,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from os.path import basename
+from os.path import basename, dirname
 import re
 import sys
 
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
+from ..common.path import paths_equal
 from ..models.match_spec import MatchSpec
 
 
@@ -116,7 +117,7 @@ def spec_from_line(line):
 
 
 def specs_from_url(url, json=False):
-    from conda.gateways.connection.download import TmpDownload
+    from ..gateways.connection.download import TmpDownload
 
     explicit = False
     with TmpDownload(url, verbose=False) as path:
@@ -167,7 +168,7 @@ def stdout_json_success(success=True, **kwargs):
     stdout_json(result)
 
 
-def handle_envs_list(known_conda_prefixes, output=True):
+def print_envs_list(known_conda_prefixes, output=True):
 
     if output:
         print("# conda environments:")
@@ -176,8 +177,12 @@ def handle_envs_list(known_conda_prefixes, output=True):
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
         default = '*' if prefix == context.default_prefix else ' '
-        name = (ROOT_ENV_NAME if prefix == context.root_prefix else
-                basename(prefix))
+        if prefix == context.root_prefix:
+            name = ROOT_ENV_NAME
+        elif any(paths_equal(envs_dir, dirname(prefix)) for envs_dir in context.envs_dirs):
+            name = basename(prefix)
+        else:
+            name = ''
         if output:
             print(fmt % (name, default, prefix))
 

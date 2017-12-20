@@ -11,8 +11,9 @@ from textwrap import dedent
 from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .linked_data import PrefixData
-from .repodata import query_all
-from .. import __version__ as CONDA_VERSION
+from .repodata import SubdirData
+from .. import CondaError, __version__ as CONDA_VERSION
+from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
@@ -142,20 +143,34 @@ class Solver(object):
         # `solution` and `specs_map` are mutated throughout this method
         prefix_data = PrefixData(self.prefix)
         solution = tuple(Dist(d) for d in prefix_data.iter_records())
+        specs_from_history_map = History(self.prefix).get_requested_specs_map()
         if prune or deps_modifier == DepsModifier.UPDATE_ALL:
-            # start with empty specs map for UPDATE_ALL because we're optimizing the update
-            # only for specs the user has requested; it's ok to remove dependencies
+            # Start with empty specs map for UPDATE_ALL because we're optimizing the update
+            # only for specs the user has requested; it's ok to remove dependencies.
             specs_map = odict()
+
+            # However, because of https://github.com/conda/constructor/issues/138, we need
+            # to hard-code keeping conda, conda-build, and anaconda, if they're already in
+            # the environment.
+            solution_pkg_names = set(d.name for d in solution)
+            ensure_these = (pkg_name for pkg_name in {
+                'anaconda', 'conda', 'conda-build',
+            } if pkg_name not in specs_from_history_map and pkg_name in solution_pkg_names)
+            for pkg_name in ensure_these:
+                specs_from_history_map[pkg_name] = MatchSpec(pkg_name)
         else:
             specs_map = odict((d.name, MatchSpec(d.name)) for d in solution)
 
         # add in historically-requested specs
-        specs_from_history_map = History(self.prefix).get_requested_specs_map()
         specs_map.update(specs_from_history_map)
 
         # let's pretend for now that this is the right place to build the index
-        prepared_specs = tuple(concatv(specs_to_remove, specs_to_add,
-                                       itervalues(specs_from_history_map)))
+        prepared_specs = set(concatv(
+            specs_to_remove,
+            specs_to_add,
+            itervalues(specs_from_history_map),
+        ))
+
         index, r = self._prepare(prepared_specs)
 
         if specs_to_remove:
@@ -219,7 +234,14 @@ class Solver(object):
         for pkg_name, spec in iteritems(specs_map):
             matches_for_spec = tuple(dist for dist in solution if spec.match(index[dist]))
             if matches_for_spec:
-                assert len(matches_for_spec) == 1
+                if len(matches_for_spec) != 1:
+                    raise CondaError(dals("""
+                    Conda encountered an error with your environment.  Please report an issue
+                    at https://github.com/conda/conda/issues/new.  In your report, please include
+                    the output of 'conda info' and 'conda list' for the active environment, along
+                    with the command you invoked that resulted in this error.
+                      matches_for_spec: %s
+                    """) % matches_for_spec)
                 target_dist = matches_for_spec[0]
                 if deps_modifier == DepsModifier.FREEZE_INSTALLED:
                     new_spec = MatchSpec(index[target_dist])
@@ -239,6 +261,12 @@ class Solver(object):
         if deps_modifier == DepsModifier.UPDATE_ALL:
             specs_map = {pkg_name: MatchSpec(spec.name, optional=spec.optional)
                          for pkg_name, spec in iteritems(specs_map)}
+            # The anaconda spec is a special case here, because of the 'custom' version.
+            # Because of https://github.com/conda/conda/issues/6350, and until we implement
+            # something like https://github.com/ContinuumIO/anaconda-issues/issues/4298, I think
+            # this is the best we're going to do.
+            if 'anaconda' in specs_map:
+                specs_map['anaconda'] = MatchSpec('anaconda>1')
 
         # As a business rule, we never want to update python beyond the current minor version,
         # unless that's requested explicitly by the user (which we actively discourage).
@@ -298,7 +326,6 @@ class Solver(object):
         if log.isEnabledFor(DEBUG):
             log.debug("final specs to add: %s",
                       dashlist(sorted(text_type(s) for s in final_environment_specs)))
-        pre_solution = solution
         solution = r.solve(tuple(final_environment_specs))  # return value is List[dist]
 
         # add back inconsistent packages to solution
@@ -312,13 +339,25 @@ class Solver(object):
         # Special case handling for various DepsModifer flags. Maybe this block could be pulled
         # out into its own non-public helper method?
         if deps_modifier == DepsModifier.NO_DEPS:
-            # In the NO_DEPS case we're just filtering out packages from the solution.
-            dont_add_packages = []
-            new_packages = set(solution) - set(pre_solution)
-            for dist in new_packages:
-                if not any(spec.match(index[dist]) for spec in specs_to_add):
-                    dont_add_packages.append(dist)
-            solution = tuple(rec for rec in solution if rec not in dont_add_packages)
+            # In the NO_DEPS case, we need to start with the original list of packages in the
+            # environment, and then only modify packages that match specs_to_add or
+            # specs_to_remove.
+            _no_deps_solution = IndexedSet(Dist(rec) for rec in prefix_data.iter_records())
+            only_remove_these = set(dist
+                                    for spec in specs_to_remove
+                                    for dist in _no_deps_solution
+                                    if spec.match(index[dist]))
+            _no_deps_solution -= only_remove_these
+
+            only_add_these = set(dist
+                                 for spec in specs_to_add
+                                 for dist in solution
+                                 if spec.match(index[dist]))
+            remove_before_adding_back = set(dist.name for dist in only_add_these)
+            _no_deps_solution = IndexedSet(dist for dist in _no_deps_solution
+                                           if dist.name not in remove_before_adding_back)
+            _no_deps_solution |= only_add_these
+            solution = _no_deps_solution
         elif deps_modifier == DepsModifier.ONLY_DEPS:
             # Using a special instance of the DAG to remove leaf nodes that match the original
             # specs_to_add.  It's important to only remove leaf nodes, because a typical use
@@ -471,7 +510,7 @@ class Solver(object):
             conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
             if not any(conda_newer_spec.match(prec) for prec in link_precs):
                 conda_newer_records = sorted(
-                    query_all(self.channels, self.subdirs, conda_newer_spec),
+                    SubdirData.query_all(self.channels, self.subdirs, conda_newer_spec),
                     key=lambda x: VersionOrder(x.version)
                 )
                 if conda_newer_records:

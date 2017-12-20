@@ -7,14 +7,12 @@ from os.path import basename, dirname, isdir, isfile, join
 from uuid import uuid4
 
 from .create import create_link
-from .delete import rm_rf, try_rmdir_all_empty
+from .delete import rm_rf
 from .link import islink, lexists
-from .read import find_first_existing
-from .update import touch
 from ..._vendor.auxlib.decorators import memoize
 from ...base.constants import PREFIX_MAGIC_FILE
 from ...common.compat import text_type
-from ...common.path import expand, get_python_short_path
+from ...common.path import expand
 from ...models.enums import LinkType
 
 log = getLogger(__name__)
@@ -38,53 +36,6 @@ def file_path_is_writable(path):
     else:
         # TODO: probably won't work well on Windows
         return access(path, W_OK)
-
-
-@memoize
-def prefix_is_writable(prefix):
-    """
-    Strategy:
-      We use specific key files, not directory permissions, to determine the ownership of a prefix.
-      (1) With conda constructor 1.5.4 and Anaconda and miniconda installers after 4.3, any prefix
-          created by conda or a conda installer should have a `conda-meta/history` file.
-      (2) If there is no `conda-meta/history` file, we look for a `conda-meta/conda-*.json` file,
-          which exists for installers 4.3 and earlier.
-      (3) If that doesn't exist, the prefix is probably one created by conda constructor that
-          doesn't have conda installed in it.  In this case, we look for the first
-          `conda-meta/*.json` file.
-      (4) If that doesn't exist, then the current execution context is probably using a python
-          interpreter that really isn't associated with a conda prefix.  We'll look at ownership
-          of the python interpreter itself.
-
-    """
-    if isdir(prefix):
-        test_path = find_first_existing(
-            join(prefix, PREFIX_MAGIC_FILE),  # (1)
-            join(prefix, 'conda-meta', 'conda-*.json'),  # (2)
-            join(prefix, 'conda-meta', '*.json'),  # (3)
-            join(prefix, get_python_short_path('*')),  # (4)
-        )
-        log.debug("testing write access for prefix '%s' using path '%s'", prefix, test_path)
-        if test_path:
-            return file_path_is_writable(test_path)
-        else:
-            # try creating the magic file, but then clean up after ourselves
-            try:
-                touch(PREFIX_MAGIC_FILE, True)
-            except (IOError, OSError) as e:
-                return False
-            else:
-                return True
-            finally:
-                try:
-                    rm_rf(PREFIX_MAGIC_FILE)
-                    try_rmdir_all_empty(dirname(PREFIX_MAGIC_FILE))
-                except (IOError, OSError) as e:
-                    log.trace('%r', e)
-    else:
-        # TODO: probably won't work well on Windows
-        log.debug("testing write access for prefix '%s' using prefix directory", prefix)
-        return access(prefix, W_OK)
 
 
 @memoize
@@ -134,4 +85,4 @@ def softlink_supported(source_file, dest_dir):
 
 
 def is_conda_environment(prefix):
-    return isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE))
+    return isfile(join(prefix, PREFIX_MAGIC_FILE))
