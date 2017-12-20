@@ -143,20 +143,34 @@ class Solver(object):
         # `solution` and `specs_map` are mutated throughout this method
         prefix_data = PrefixData(self.prefix)
         solution = tuple(Dist(d) for d in prefix_data.iter_records())
+        specs_from_history_map = History(self.prefix).get_requested_specs_map()
         if prune or deps_modifier == DepsModifier.UPDATE_ALL:
-            # start with empty specs map for UPDATE_ALL because we're optimizing the update
-            # only for specs the user has requested; it's ok to remove dependencies
+            # Start with empty specs map for UPDATE_ALL because we're optimizing the update
+            # only for specs the user has requested; it's ok to remove dependencies.
             specs_map = odict()
+
+            # However, because of https://github.com/conda/constructor/issues/138, we need
+            # to hard-code keeping conda, conda-build, and anaconda, if they're already in
+            # the environment.
+            solution_pkg_names = set(d.name for d in solution)
+            ensure_these = (pkg_name for pkg_name in {
+                'anaconda', 'conda', 'conda-build',
+            } if pkg_name not in specs_from_history_map and pkg_name in solution_pkg_names)
+            for pkg_name in ensure_these:
+                specs_from_history_map[pkg_name] = MatchSpec(pkg_name)
         else:
             specs_map = odict((d.name, MatchSpec(d.name)) for d in solution)
 
         # add in historically-requested specs
-        specs_from_history_map = History(self.prefix).get_requested_specs_map()
         specs_map.update(specs_from_history_map)
 
         # let's pretend for now that this is the right place to build the index
-        prepared_specs = tuple(concatv(specs_to_remove, specs_to_add,
-                                       itervalues(specs_from_history_map)))
+        prepared_specs = set(concatv(
+            specs_to_remove,
+            specs_to_add,
+            itervalues(specs_from_history_map),
+        ))
+
         index, r = self._prepare(prepared_specs)
 
         if specs_to_remove:
@@ -247,6 +261,12 @@ class Solver(object):
         if deps_modifier == DepsModifier.UPDATE_ALL:
             specs_map = {pkg_name: MatchSpec(spec.name, optional=spec.optional)
                          for pkg_name, spec in iteritems(specs_map)}
+            # The anaconda spec is a special case here, because of the 'custom' version.
+            # Because of https://github.com/conda/conda/issues/6350, and until we implement
+            # something like https://github.com/ContinuumIO/anaconda-issues/issues/4298, I think
+            # this is the best we're going to do.
+            if 'anaconda' in specs_map:
+                specs_map['anaconda'] = MatchSpec('anaconda>1')
 
         # As a business rule, we never want to update python beyond the current minor version,
         # unless that's requested explicitly by the user (which we actively discourage).
