@@ -13,8 +13,9 @@ from conda.base.constants import PREFIX_MAGIC_FILE
 from conda.base.context import context, reset_context
 from conda.common.io import env_var
 from conda.common.path import paths_equal
-from conda.core.envs_manager import list_all_known_prefixes, register_env, USER_ENVIRONMENTS_TXT_FILE, \
-    unregister_env
+from conda.core.envs_manager import list_all_known_prefixes, register_env, \
+    USER_ENVIRONMENTS_TXT_FILE, \
+    unregister_env, _clean_environments_txt
 from conda.gateways.disk import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import yield_lines
@@ -68,3 +69,23 @@ class EnvsManagerUnitTests(TestCase):
             target_prefix = join(os.getcwd(), 'blarg')
             assert context.target_prefix == target_prefix
             assert not isdir(target_prefix)
+
+    def test_rewrite_environments_txt_file(self):
+        mkdir_p(join(self.prefix, 'conda-meta'))
+        touch(join(self.prefix, 'conda-meta', 'history'))
+
+        doesnt_exist = join(self.prefix, 'blarg')
+
+        environments_txt_path = join(self.prefix, 'environments.txt')
+
+        with open(environments_txt_path, 'w') as fh:
+            fh.write(self.prefix + '\n')
+            fh.write(doesnt_exist + '\n')
+
+        cleaned_1 = _clean_environments_txt(environments_txt_path)
+        assert cleaned_1 == (self.prefix,)
+
+        with patch('conda.core.envs_manager._rewrite_environments_txt') as _rewrite_patch:
+            cleaned_2 = _clean_environments_txt(environments_txt_path)
+            assert cleaned_2 == (self.prefix,)
+            assert _rewrite_patch.call_count == 0

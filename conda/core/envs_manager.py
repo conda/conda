@@ -34,32 +34,6 @@ def register_env(location):
         fh.write('\n')
 
 
-def _clean_environments_txt(environments_txt_file, remove_location=None):
-    if not isfile(environments_txt_file):
-        return ()
-
-    environments_txt_lines = list(yield_lines(environments_txt_file))
-    original_environments_txt_hash = hash(tuple(environments_txt_file))
-    try:
-        location = normpath(remove_location or '')
-        idx = environments_txt_lines.index(location)
-        del environments_txt_lines[idx]
-    except ValueError:
-        # remove_location was not in list.  No problem, just move on.
-        pass
-
-    real_prefixes = tuple(p for p in environments_txt_lines if is_conda_environment(p))
-    if hash(real_prefixes) != original_environments_txt_hash:
-        try:
-            with open(environments_txt_file, 'w') as fh:
-                fh.write('\n'.join(real_prefixes))
-                fh.write('\n')
-        except (IOError, OSError) as e:
-            log.info("File not cleaned: %s", environments_txt_file)
-            log.debug('%r', e, exc_info=True)
-    return real_prefixes
-
-
 def unregister_env(location):
     if isdir(location):
         meta_dir = join(location, 'conda-meta')
@@ -114,3 +88,30 @@ def env_name(prefix):
         if paths_equal(envs_dir, maybe_envs_dir):
             return maybe_name
     return prefix
+
+
+def _clean_environments_txt(environments_txt_file, remove_location=None):
+    if not isfile(environments_txt_file):
+        return ()
+
+    if remove_location:
+        remove_location = normpath(remove_location)
+    environments_txt_lines = tuple(yield_lines(environments_txt_file))
+    environments_txt_lines_original_hash = hash(environments_txt_lines)
+    environments_txt_lines = tuple(
+        prefix for prefix in environments_txt_lines
+        if prefix != remove_location and is_conda_environment(prefix)
+    )
+    if hash(environments_txt_lines) != environments_txt_lines_original_hash:
+        _rewrite_environments_txt(environments_txt_file, environments_txt_lines)
+    return environments_txt_lines
+
+
+def _rewrite_environments_txt(environments_txt_file, prefixes):
+    try:
+        with open(environments_txt_file, 'w') as fh:
+            fh.write('\n'.join(prefixes))
+            fh.write('\n')
+    except (IOError, OSError) as e:
+        log.info("File not cleaned: %s", environments_txt_file)
+        log.debug('%r', e, exc_info=True)
