@@ -97,14 +97,13 @@ def _clean_environments_txt(environments_txt_file, remove_location=None):
     if remove_location:
         remove_location = normpath(remove_location)
     environments_txt_lines = tuple(yield_lines(environments_txt_file))
-    environments_txt_lines_original_hash = hash(environments_txt_lines)
-    environments_txt_lines = tuple(
+    environments_txt_lines_cleaned = tuple(
         prefix for prefix in environments_txt_lines
         if prefix != remove_location and is_conda_environment(prefix)
     )
-    if hash(environments_txt_lines) != environments_txt_lines_original_hash:
-        _rewrite_environments_txt(environments_txt_file, environments_txt_lines)
-    return environments_txt_lines
+    if environments_txt_lines_cleaned != environments_txt_lines:
+        _rewrite_environments_txt(environments_txt_file, environments_txt_lines_cleaned)
+    return environments_txt_lines_cleaned
 
 
 def _rewrite_environments_txt(environments_txt_file, prefixes):
