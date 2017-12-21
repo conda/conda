@@ -2,6 +2,8 @@
 Overview
 ========
 
+Conda is an OS-agnostic, system-level binary package manager.
+
 The quickest way to start using conda is to go through the 
 30-minute :doc:`getting-started` guide.
 
