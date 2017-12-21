@@ -11,6 +11,7 @@ from operator import methodcaller
 import sys
 
 on_win = bool(sys.platform == "win32")
+on_mac = bool(sys.platform == "darwin")
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3

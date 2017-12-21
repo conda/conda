@@ -57,6 +57,7 @@ def generate_parser():
     configure_parser_create(sub_parsers)
     configure_parser_help(sub_parsers)
     configure_parser_info(sub_parsers)
+    configure_parser_initialize(sub_parsers)
     configure_parser_install(sub_parsers)
     configure_parser_list(sub_parsers)
     configure_parser_package(sub_parsers)
@@ -510,6 +511,79 @@ def configure_parser_create(sub_parsers):
         help='Ignore create_default_packages in the .condarc file.',
     )
     p.set_defaults(func='.main_create.execute')
+
+
+def configure_parser_initialize(sub_parsers):
+    help = "Initialize conda shell commands. "
+    descr = (help +
+             "")
+
+    example = dedent("""
+    Examples:
+
+        conda initialize
+
+    """)
+    p = sub_parsers.add_parser(
+        'initialize',
+        description=descr,
+        help=help,
+        epilog=example,
+    )
+
+    setup_type_group = p.add_argument_group('setup type')
+    setup_type_group.add_argument(
+        "--user",
+        action="store_true",
+        help="Initialize conda for the current user (default).",
+        default=NULL,
+    )
+    setup_type_group.add_argument(
+        "--system",
+        action="store_true",
+        help="Initialize conda for all users on the system.",
+        default=NULL,
+    )
+
+    shells_group = p.add_argument_group('shells')
+    if on_win:
+        shells_group.add_argument(
+            "--cmd",
+            action="store_true",
+            help="Set up conda for cmd shell (default).",
+            default=NULL,
+            dest="cmd_exe",
+        )
+        # shells_group.add_argument(
+        #     "--powershell",
+        #     action="store_true",
+        #     help="Set up conda for powershell.",
+        #     default=NULL,
+        # )
+    else:
+        shells_group.add_argument(
+            "--bash",
+            action="store_true",
+            help="Set up conda for bash (default).",
+            default=NULL,
+        )
+        shells_group.add_argument(
+            "--zsh",
+            action="store_true",
+            help="Set up conda for zsh.",
+            default=NULL,
+        )
+
+    p.add_argument(
+        "--no-auto-activate",
+        help="Do not automatically activate the base environment on shell startup. "
+             "Instead, only make the 'conda' command available.",
+        action="store_false",
+        default=True,
+        dest='auto_activate',
+    )
+    add_parser_json(p)
+    p.set_defaults(func='.main_initialize.execute')
 
 
 def configure_parser_help(sub_parsers):

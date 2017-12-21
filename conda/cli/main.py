@@ -100,9 +100,6 @@ def main(*args):
                 import conda.cli.activate as activate
                 activate.main()
                 return
-            elif argv1 in ('activate', 'deactivate'):
-                from ..exceptions import CommandNotFoundError
-                raise CommandNotFoundError(argv1)
         except Exception as e:
             _, exc_val, exc_tb = sys.exc_info()
             init_loggers()
@@ -111,6 +108,13 @@ def main(*args):
 
     from ..exceptions import conda_exception_handler
     return conda_exception_handler(_main, *args)
+
+
+def main_not_initialized(*args):
+    print("WARNING: Conda has not been initialized.\n"
+          "To enable full conda functionality, please run 'conda initialize'.\n",
+          file=sys.stderr)
+    return main(*args)
 
 
 if __name__ == '__main__':
