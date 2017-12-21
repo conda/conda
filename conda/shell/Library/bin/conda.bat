@@ -58,7 +58,7 @@
 @GOTO :End
 
 :DO_REACTIVATE
-@FOR /F "delims=" %%i IN ('@CALL %_CONDA_EXE% shell.cmd.exe reactivate %*') DO @SET "_TEMP_SCRIPT_PATH=%%i"
+@FOR /F "delims=" %%i IN ('@CALL %_CONDA_EXE% shell.cmd.exe reactivate') DO @SET "_TEMP_SCRIPT_PATH=%%i"
 @IF "%_TEMP_SCRIPT_PATH%"=="" GOTO :ErrorEnd
 @CALL "%_TEMP_SCRIPT_PATH%"
 @DEL /F /Q "%_TEMP_SCRIPT_PATH%"

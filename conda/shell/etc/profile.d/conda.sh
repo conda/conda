@@ -68,7 +68,7 @@ _conda_deactivate() {
 
 _conda_reactivate() {
     local ask_conda
-    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix reactivate "$@")" || return $?
+    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix reactivate)" || return $?
     eval "$ask_conda"
 
     _conda_hashr
