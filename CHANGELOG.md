@@ -1,3 +1,9 @@
+## 4.4.1 (2017-12-21)
+
+### Bug Fixes
+* fix #6512 reactivate does not accept arguments (#6513)
+
+
 ## 4.4.0 (2017-12-20)
 
 ### Recommended change to enable conda in your shell
