@@ -53,7 +53,7 @@ current user without registering Python as the system's default:
 
 .. code-block:: bat
 
-   start /wait "" Miniconda4-latest-Windows-x86_64.exe/InstallationType=JustMe /RegisterPython=0 /S /D=%UserProfile%\Miniconda3
+   start /wait "" Miniconda4-latest-Windows-x86_64.exe /InstallationType=JustMe /RegisterPython=0 /S /D=%UserProfile%\Miniconda3
 
 
 Updating conda
