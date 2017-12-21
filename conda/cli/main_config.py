@@ -17,7 +17,7 @@ from .common import Completer, add_parser_json, stdout_json_success
 from .. import CondaError
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
-from ..common.compat import isiterable, iteritems, string_types, text_type
+from ..common.compat import isiterable, iteritems, itervalues, string_types, text_type
 from ..common.constants import NULL
 from ..config import (rc_bool_keys, rc_list_keys, rc_other, rc_string_keys, sys_rc_path,
                       user_rc_path)
@@ -264,8 +264,10 @@ def execute_config(args, parser):
                   cls=EntityEncoder))
         else:
             # coerce channels
-            d['custom_channels'] = {k: text_type(v).replace(k, '')  # TODO: the replace here isn't quite right  # NOQA
-                                    for k, v in iteritems(d['custom_channels'])}
+            d['custom_channels'] = {
+                channel.name: "%s://%s" % (channel.scheme, channel.location)
+                for channel in itervalues(d['custom_channels'])
+            }
             # TODO: custom_multichannels needs better formatting
             d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls])
                                          for k, chnls in iteritems(d['custom_multichannels'])}
