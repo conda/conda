@@ -12,7 +12,8 @@ from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, odict, text_type, with_metaclass
+from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, text_type,
+                             with_metaclass)
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, url_to_path
@@ -33,7 +34,6 @@ try:
     from cytoolz.itertoolz import concat, concatv, groupby
 except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
-
 
 log = getLogger(__name__)
 
@@ -272,13 +272,25 @@ class PackageCache(object):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (IOError, OSError):
-            # no info/repodata_record.json exists
+        except (IOError, OSError, JSONDecodeError) as e:
+            # IOError / OSError if info/repodata_record.json doesn't exists
+            # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
+            #   python 2.7 raises ValueError instead of JsonDecodeError
+            #   ValueError("No JSON object could be decoded")
+            log.debug("unable to read %s\n  because %r",
+                      join(extracted_package_dir, 'info', 'repodata_record.json'), e)
+
             # try reading info/index.json
             try:
                 index_json_record = read_index_json(extracted_package_dir)
-            except (IOError, OSError):
-                # info/index.json doesn't exist either
+            except (IOError, OSError, JSONDecodeError) as e:
+                # IOError / OSError if info/index.json doesn't exist
+                # JsonDecodeError if info/index.json is partially extracted or corrupted
+                #   python 2.7 raises ValueError instead of JsonDecodeError
+                #   ValueError("No JSON object could be decoded")
+                log.debug("unable to read %s\n  because",
+                          join(extracted_package_dir, 'info', 'index.json'), e)
+
                 if isdir(extracted_package_dir) and not isfile(package_tarball_full_path):
                     # We have a directory that looks like a conda package, but without
                     # (1) info/repodata_record.json or info/index.json, and (2) a conda package
@@ -295,12 +307,17 @@ class PackageCache(object):
                         index_json_record = read_index_json(extracted_package_dir)
                     else:
                         index_json_record = read_index_json_from_tarball(package_tarball_full_path)
-                except (EOFError, ReadError):
+                except (EOFError, ReadError) as e:
                     # EOFError: Compressed file ended before the end-of-stream marker was reached
                     # tarfile.ReadError: file could not be opened successfully
+                    # We have a corrupted tarball. Remove the tarball so it doesn't affect
+                    # anything, and move on.
+                    log.debug("unable to extract info/index.json from %s\n  because %r",
+                              package_tarball_full_path, e)
                     rm_rf(package_tarball_full_path)
                     return None
 
+            # we were able to read info/index.json, so let's continue
             if isfile(package_tarball_full_path):
                 md5 = compute_md5sum(package_tarball_full_path)
             else:
