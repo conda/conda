@@ -813,10 +813,12 @@ class ExceptionHandler(object):
         else:
             message_builder = []
             message_builder.append('')
-            message_builder.append('`$ %s`' % error_report['command'])
+            message_builder.append('# >>>>>>>>>>>>>>>>>>>>>> ERROR REPORT <<<<<<<<<<<<<<<<<<<<<<')
             message_builder.append('')
             message_builder.extend('    ' + line
                                    for line in error_report['traceback'].splitlines())
+            message_builder.append('')
+            message_builder.append('`$ %s`' % error_report['command'])
             message_builder.append('')
             if error_report['conda_info']:
                 from .cli.main_info import get_env_vars_str, get_main_info_str
