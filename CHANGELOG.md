@@ -1,3 +1,20 @@
+## 4.4.2 (2017-12-22)
+
+### Deprecations/Breaking Changes
+* resolve #6523 don't prune with --update-all (#6524)
+
+### Bug Fixes
+* fix #6508 environments.txt permissions error stack trace (#6511)
+* fix #6522 error message formatted incorrectly (#6525)
+* fix #6516 hold channels over from get_index to install_actions (#6517)
+
+
+## 4.4.1 (2017-12-21)
+
+### Bug Fixes
+* fix #6512 reactivate does not accept arguments (#6513)
+
+
 ## 4.4.0 (2017-12-20)
 
 ### Recommended change to enable conda in your shell

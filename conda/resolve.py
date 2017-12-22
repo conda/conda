@@ -390,7 +390,7 @@ class Resolve(object):
     def version_key(self, dist, vtype=None):
         rec = self.index[dist]
         channel = rec.channel
-        channel_priority = self._channel_priorities_map.get(channel.canonical_name, 1)
+        channel_priority = self._channel_priorities_map.get(channel.name, 1)  # TODO: ask @mcg1969 why the default value is 1 here  # NOQA
         valid = 1 if channel_priority < MAX_CHANNEL_PRIORITY else 0
         version_comparator = VersionOrder(rec.get('version', ''))
         build_number = rec.get('build_number', 0)
@@ -408,7 +408,7 @@ class Resolve(object):
             (Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
             for c in (Channel(c) for c in channels)
         )):
-            channel_name = chn.canonical_name
+            channel_name = chn.name
             if channel_name in priorities_map:
                 continue
             priorities_map[channel_name] = min(priority_counter, MAX_CHANNEL_PRIORITY - 1)
