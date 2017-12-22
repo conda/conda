@@ -984,6 +984,12 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda activate "%s"' % self.prefix)
         shell.assert_env_var('CONDA_SHLVL', '2')
         shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
+
+        shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
+        shell.expect('Executing transaction: ...working... done.*\n', timeout=25)
+        shell.assert_env_var('?', '0', True)
+        # TODO: assert that reactivate worked correctly
+
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '1')
         shell.sendline('conda deactivate')
@@ -1079,6 +1085,12 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline('conda activate "%s"' % self.prefix)
             shell.assert_env_var('CONDA_SHLVL', '2\r')
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
+
+            shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
+            shell.expect('Executing transaction: ...working... done.*\n', timeout=25)
+            shell.assert_env_var('errorlevel', '0', True)
+            # TODO: assert that reactivate worked correctly
+
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '1\r')
             shell.sendline('conda deactivate')

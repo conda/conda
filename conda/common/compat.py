@@ -47,9 +47,11 @@ elif PY2:  # pragma: py3 no cover
 if PY3:  # pragma: py2 no cover
     from io import StringIO
     from itertools import zip_longest
+    from json import JSONDecodeError
 elif PY2:  # pragma: py3 no cover
     from cStringIO import StringIO
     from itertools import izip as zip, izip_longest as zip_longest
+    JSONDecodeError = ValueError
 
 StringIO = StringIO
 zip = zip

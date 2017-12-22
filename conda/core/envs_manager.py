@@ -7,7 +7,7 @@ from os.path import dirname, isdir, isfile, join, normpath, split as path_split
 
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import on_win
+from ..common.compat import ensure_text_type, on_win, open
 from ..common.path import expand, paths_equal
 from ..gateways.disk.read import yield_lines
 from ..gateways.disk.test import is_conda_environment
@@ -30,7 +30,7 @@ def register_env(location):
         return
 
     with open(USER_ENVIRONMENTS_TXT_FILE, 'a') as fh:
-        fh.write(location)
+        fh.write(ensure_text_type(location))
         fh.write('\n')
 
 

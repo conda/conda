@@ -37,7 +37,8 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
         requirements.write('\n'.join(specs))
         requirements.close()
         # pip command line...
-        pip_cmd = pip_args(prefix) + ['install', '-r', requirements.name]
+        args, pip_version = pip_args(prefix)
+        pip_cmd = args + ['install', '-r', requirements.name]
         # ...run it
         process = subprocess.Popen(pip_cmd,
                                    cwd=pip_workdir,
