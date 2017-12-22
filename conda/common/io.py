@@ -5,6 +5,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from enum import Enum
+from errno import EPIPE, ESHUTDOWN
 from functools import wraps
 from itertools import cycle
 import json
@@ -326,11 +327,17 @@ def spinner(message=None, enabled=True, json=False):
             if json:
                 pass
             else:
-                if exception_raised:
-                    sys.stdout.write("failed\n")
-                else:
-                    sys.stdout.write("done\n")
-                sys.stdout.flush()
+                try:
+                    if exception_raised:
+                        sys.stdout.write("failed\n")
+                    else:
+                        sys.stdout.write("done\n")
+                    sys.stdout.flush()
+                except (IOError, OSError) as e:
+                    # Ignore BrokenPipeError and errors related to stdout or stderr being
+                    # closed by a downstream program.
+                    if e.errno not in (EPIPE, ESHUTDOWN):
+                        raise
 
 
 class ProgressBar(object):
@@ -368,12 +375,18 @@ class ProgressBar(object):
         self.update_to(1)
 
     def close(self):
-        if self.json:
-            sys.stdout.write('{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
-                             % self.description)
-            sys.stdout.flush()
-        elif self.enabled:
-            self.pbar.close()
+        try:
+            if self.json:
+                sys.stdout.write('{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
+                                 % self.description)
+                sys.stdout.flush()
+            elif self.enabled:
+                self.pbar.close()
+        except (IOError, OSError) as e:
+            # Ignore BrokenPipeError and errors related to stdout or stderr being
+            # closed by a downstream program.
+            if e.errno not in (EPIPE, ESHUTDOWN):
+                raise
         self.enabled = False
 
 
