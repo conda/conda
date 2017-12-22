@@ -125,7 +125,7 @@ inherited from the shell environment in which you invoke
        file is not a recognized file type---zip, tar, tar.bz2, or
        tar.xz---this is a directory containing a copy of the
        source file.
-   * - STDLIB_DI
+   * - STDLIB_DIR
      - Python standard library location.
 
 Unix-style packages on Windows, which are usually statically
