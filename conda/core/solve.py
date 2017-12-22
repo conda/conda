@@ -265,12 +265,6 @@ class Solver(object):
         if deps_modifier == DepsModifier.UPDATE_ALL:
             specs_map = {pkg_name: MatchSpec(spec.name, optional=spec.optional)
                          for pkg_name, spec in iteritems(specs_map)}
-            # The anaconda spec is a special case here, because of the 'custom' version.
-            # Because of https://github.com/conda/conda/issues/6350, and until we implement
-            # something like https://github.com/ContinuumIO/anaconda-issues/issues/4298, I think
-            # this is the best we're going to do.
-            if 'anaconda' in specs_map:
-                specs_map['anaconda'] = MatchSpec('anaconda>1')
 
         # As a business rule, we never want to update python beyond the current minor version,
         # unless that's requested explicitly by the user (which we actively discourage).
