@@ -75,7 +75,7 @@ def escape_for_winpath(p):
 
 def make_temp_prefix(name=None, create_directory=True):
     tempdir = gettempdir()
-    if PY2:
+    if PY2 and on_win:
         dirpath = str(uuid4())[:8] if name is None else name
     else:
         random_unicode = ''.join(sample(UINCODE_CHARACTERS, len(UINCODE_CHARACTERS)))

@@ -186,6 +186,6 @@ def ensure_unicode(value):
 
 def ensure_fs_path_encoding(value):
     try:
-        return value.decode(FILESYSTEM_ENCODING)
+        return ensure_binary(value).decode(FILESYSTEM_ENCODING)
     except AttributeError:
         return value
