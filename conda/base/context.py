@@ -160,6 +160,7 @@ class Context(Configuration):
     migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
     override_channels_enabled = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
+    use_local = PrimitiveParameter(False)
     whitelist_channels = SequenceParameter(string_types)
 
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
@@ -532,6 +533,7 @@ class Context(Configuration):
 
     @property
     def channels(self):
+        local_add = ('local',) if self.use_local else ()
         if (self._argparse_args and 'override_channels' in self._argparse_args
                 and self._argparse_args['override_channels']):
             if not self.override_channels_enabled:
@@ -546,15 +548,16 @@ class Context(Configuration):
                 At least one -c / --channel flag must be supplied when using --override-channels.
                 """))
             else:
-                return self._argparse_args['channel']
+                return tuple(IndexedSet(concatv(local_add, self._argparse_args['channel'])))
 
         # add 'defaults' channel when necessary if --channel is given via the command line
         if self._argparse_args and 'channel' in self._argparse_args:
             # TODO: it's args.channel right now, not channels
             argparse_channels = tuple(self._argparse_args['channel'] or ())
             if argparse_channels and argparse_channels == self._channels:
-                return argparse_channels + (DEFAULTS_CHANNEL_NAME,)
-        return self._channels or ()
+                return tuple(IndexedSet(concatv(local_add, argparse_channels,
+                                                (DEFAULTS_CHANNEL_NAME,))))
+        return tuple(IndexedSet(concatv(local_add, self._channels)))
 
     def get_descriptions(self):
         return get_help_dict()
@@ -582,6 +585,7 @@ class Context(Configuration):
 # I don't think this documentation is correct any longer. # NOQA
             'target_prefix_override',  # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
             'update_dependencies',
+            'use_local',
         )
         return tuple(p for p in super(Context, self).list_parameters()
                      if p not in UNLISTED_PARAMETERS)
