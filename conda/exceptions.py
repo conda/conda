@@ -591,12 +591,13 @@ class SafetyError(CondaError):
         super(SafetyError, self).__init__(message)
 
 
-class NotWritableError(CondaError):
+class NotWritableError(CondaError, OSError):
 
-    def __init__(self, path):
-        kwargs = {
+    def __init__(self, path, errno, **kwargs):
+        kwargs.update({
             'path': path,
-        }
+            'errno': errno,
+        })
         if on_win:
             message = dals("""
             The current user does not have write permissions to a required path.

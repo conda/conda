@@ -982,7 +982,7 @@ def _first_writable_envs_dir():
             return envs_dir
 
     from ..exceptions import NotWritableError
-    raise NotWritableError(context.envs_dirs[0])
+    raise NotWritableError(context.envs_dirs[0], None)
 
 
 # backward compatibility for conda-build
