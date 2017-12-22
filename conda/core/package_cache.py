@@ -273,8 +273,11 @@ class PackageCache(object):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (IOError, OSError) as e:
-            # no info/repodata_record.json exists
+        except (IOError, OSError, JSONDecodeError, ValueError) as e:
+            # IOError / OSError if info/repodata_record.json doesn't exists
+            # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
+            #   python 2.7 raises ValueError instead of JsonDecodeError
+            #   ValueError("No JSON object could be decoded")
             log.debug("unable to read %s\n  because %r",
                       join(extracted_package_dir, 'info', 'repodata_record.json'), e)
 
@@ -305,9 +308,13 @@ class PackageCache(object):
                         index_json_record = read_index_json(extracted_package_dir)
                     else:
                         index_json_record = read_index_json_from_tarball(package_tarball_full_path)
-                except (EOFError, ReadError):
+                except (EOFError, ReadError) as e:
                     # EOFError: Compressed file ended before the end-of-stream marker was reached
                     # tarfile.ReadError: file could not be opened successfully
+                    # We have a corrupted tarball. Remove the tarball so it doesn't affect
+                    # anything, and move on.
+                    log.debug("unable to extract info/index.json from %s\n  because %r",
+                              package_tarball_full_path, e)
                     rm_rf(package_tarball_full_path)
                     return None
 
