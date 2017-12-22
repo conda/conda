@@ -1,3 +1,19 @@
+## 4.4.3 (2017-12-22)
+
+### Improvements
+* adjust error report message (#6534)
+
+### Bug Fixes
+* fix #6530 package cache JsonDecodeError / ValueError (#6533)
+* fix #6538 BrokenPipeError (#6540)
+* fix #6532 remove anaconda metapackage hack (#6539)
+* fix #6536 'conda env export' for old versions of pip (#6535)
+* fix #6541 py2 and unicode in environments.txt (#6542)
+
+### Non-User-Facing Changes
+* regression tests for #6512 (#6515)
+
+
 ## 4.4.2 (2017-12-22)
 
 ### Deprecations/Breaking Changes
