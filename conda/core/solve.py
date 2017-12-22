@@ -144,7 +144,11 @@ class Solver(object):
         prefix_data = PrefixData(self.prefix)
         solution = tuple(Dist(d) for d in prefix_data.iter_records())
         specs_from_history_map = History(self.prefix).get_requested_specs_map()
-        if prune or deps_modifier == DepsModifier.UPDATE_ALL:
+        if prune:  # or deps_modifier == DepsModifier.UPDATE_ALL  # pending conda/constructor#138
+            # Users are struggling with the prune functionality in --update-all, due to
+            # https://github.com/conda/constructor/issues/138.  Until that issue is resolved,
+            # and for the foreseeable future, it's best to be more conservative with --update-all.
+
             # Start with empty specs map for UPDATE_ALL because we're optimizing the update
             # only for specs the user has requested; it's ok to remove dependencies.
             specs_map = odict()
