@@ -241,7 +241,7 @@ class Solver(object):
                     the output of 'conda info' and 'conda list' for the active environment, along
                     with the command you invoked that resulted in this error.
                       matches_for_spec: %s
-                    """) % matches_for_spec)
+                    """) % dashlist((text_type(s) for s in matches_for_spec), indent=4))
                 target_dist = matches_for_spec[0]
                 if deps_modifier == DepsModifier.FREEZE_INSTALLED:
                     new_spec = MatchSpec(index[target_dist])
