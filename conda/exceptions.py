@@ -613,7 +613,7 @@ class NotWritableError(CondaError, OSError):
             If you feel that permissions on this path are set incorrectly, you can manually
             change them by executing
 
-              $ sudo chmod %(uid)s:%(gid)s %(path)s
+              $ sudo chown %(uid)s:%(gid)s %(path)s
             """)
             import os
             kwargs.update({
