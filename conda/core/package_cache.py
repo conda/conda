@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import reduce
-from json import JSONDecodeError
 from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, join
@@ -13,7 +12,8 @@ from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, odict, text_type, with_metaclass
+from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, text_type,
+                             with_metaclass)
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, url_to_path
@@ -34,7 +34,6 @@ try:
     from cytoolz.itertoolz import concat, concatv, groupby
 except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
-
 
 log = getLogger(__name__)
 
@@ -273,7 +272,7 @@ class PackageCache(object):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (IOError, OSError, JSONDecodeError, ValueError) as e:
+        except (IOError, OSError, JSONDecodeError) as e:
             # IOError / OSError if info/repodata_record.json doesn't exists
             # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
             #   python 2.7 raises ValueError instead of JsonDecodeError
@@ -284,7 +283,7 @@ class PackageCache(object):
             # try reading info/index.json
             try:
                 index_json_record = read_index_json(extracted_package_dir)
-            except (IOError, OSError, JSONDecodeError, ValueError) as e:
+            except (IOError, OSError, JSONDecodeError) as e:
                 # IOError / OSError if info/index.json doesn't exist
                 # JsonDecodeError if info/index.json is partially extracted or corrupted
                 #   python 2.7 raises ValueError instead of JsonDecodeError
