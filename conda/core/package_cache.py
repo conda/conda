@@ -273,16 +273,21 @@ class PackageCache(object):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (IOError, OSError):
+        except (IOError, OSError) as e:
             # no info/repodata_record.json exists
+            log.debug("unable to read %s\n  because %r",
+                      join(extracted_package_dir, 'info', 'repodata_record.json'), e)
+
             # try reading info/index.json
             try:
                 index_json_record = read_index_json(extracted_package_dir)
-            except (IOError, OSError, JSONDecodeError, ValueError):
+            except (IOError, OSError, JSONDecodeError, ValueError) as e:
                 # IOError / OSError if info/index.json doesn't exist
                 # JsonDecodeError if info/index.json is partially extracted or corrupted
                 #   python 2.7 raises ValueError instead of JsonDecodeError
                 #   ValueError("No JSON object could be decoded")
+                log.debug("unable to read %s\n  because",
+                          join(extracted_package_dir, 'info', 'index.json'), e)
 
                 if isdir(extracted_package_dir) and not isfile(package_tarball_full_path):
                     # We have a directory that looks like a conda package, but without
@@ -306,6 +311,7 @@ class PackageCache(object):
                     rm_rf(package_tarball_full_path)
                     return None
 
+            # we were able to read info/index.json, so let's continue
             if isfile(package_tarball_full_path):
                 md5 = compute_md5sum(package_tarball_full_path)
             else:
