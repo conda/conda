@@ -18,7 +18,7 @@ from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context
 from .common.compat import itervalues, text_type
 from .common.io import time_recorder
-from .core.index import _supplement_index_with_prefix
+from .core.index import _supplement_index_with_prefix, LAST_CHANNEL_URLS
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.linked_data import is_linked, linked_data
 from .core.solve import get_pinned_specs
@@ -26,7 +26,7 @@ from .exceptions import CondaIndexError, RemoveError
 from .history import History
 from .instructions import (CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK)
-from .models.channel import Channel
+from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
 from .models.version import normalized_version
@@ -527,7 +527,13 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         channels = IndexedSet(Channel(cn) for cn in channel_names)
         subdirs = IndexedSet(basename(url) for url in channel_priority_map)
     else:
-        channels = subdirs = None
+        if LAST_CHANNEL_URLS:
+            channel_priority_map = prioritize_channels(LAST_CHANNEL_URLS)
+            channel_names = IndexedSet(Channel(url).canonical_name for url in channel_priority_map)
+            channels = IndexedSet(Channel(cn) for cn in channel_names)
+            subdirs = IndexedSet(basename(url) for url in channel_priority_map)
+        else:
+            channels = subdirs = None
 
     specs = tuple(MatchSpec(spec) for spec in specs)
 

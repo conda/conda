@@ -44,6 +44,8 @@ def check_whitelist(channel_urls):
                                           % (bad_channel.location, bad_channel.canonical_name))
 
 
+LAST_CHANNEL_URLS = []
+
 @time_recorder("get_index")
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None):
@@ -58,6 +60,8 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         unknown = True
 
     channel_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
+    del LAST_CHANNEL_URLS[:]
+    LAST_CHANNEL_URLS.extend(channel_urls)
 
     check_whitelist(channel_urls)
 
