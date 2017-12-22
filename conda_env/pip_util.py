@@ -34,9 +34,9 @@ def pip_args(prefix):
         major_ver = pip_version.split('.')[0]
         if int(major_ver) >= 6:
             ret.append('--disable-pip-version-check')
-        return ret
+        return ret, pip_version
     else:
-        return None
+        return None, None
 
 
 class PipPackage(dict):
@@ -51,47 +51,87 @@ class PipPackage(dict):
 
 
 def installed(prefix, output=True):
-    args = pip_args(prefix)
+    args, pip_version = pip_args(prefix)
     if args is None:
         return
 
+    pip_major_version = int(pip_version.split('.', 1)[0])
+
     env = os.environ.copy()
     env[str('PIP_FORMAT')] = str('legacy')
+    args.append('list')
 
-    args += ['list', '--format', 'json']
+    if pip_major_version >= 9:
+        args += ['--format', 'json']
 
     try:
-        s = subprocess.check_output(args, universal_newlines=True, env=env)
+        pip_stdout = subprocess.check_output(args, universal_newlines=True, env=env)
     except Exception:
         # Any error should just be ignored
         if output:
             print("# Warning: subprocess call to pip failed")
         return
-    pkgs = json.loads(s)
 
-    # For every package in pipinst that is not already represented
-    # in installed append a fake name to installed with 'pip'
-    # as the build string
-    for kwargs in pkgs:
-        kwargs['name'] = kwargs['name'].lower()
-        if ', ' in kwargs['version']:
-            # Packages installed with setup.py develop will include a path in
-            # the version. They should be included here, even if they are
-            # installed with conda, as they are preferred over the conda
-            # version. We still include the conda version, though, because it
-            # is still installed.
+    if pip_major_version >= 9:
+        pkgs = json.loads(pip_stdout)
 
-            version, path = kwargs['version'].split(', ')
-            # We do this because the code below uses rsplit('-', 2)
-            version = version.replace('-', ' ')
-            kwargs['version'] = version
-            kwargs['path'] = path
-        yield PipPackage(**kwargs)
+        # For every package in pipinst that is not already represented
+        # in installed append a fake name to installed with 'pip'
+        # as the build string
+        for kwargs in pkgs:
+            kwargs['name'] = kwargs['name'].lower()
+            if ', ' in kwargs['version']:
+                # Packages installed with setup.py develop will include a path in
+                # the version. They should be included here, even if they are
+                # installed with conda, as they are preferred over the conda
+                # version. We still include the conda version, though, because it
+                # is still installed.
+
+                version, path = kwargs['version'].split(', ')
+                # We do this because the code below uses rsplit('-', 2)
+                version = version.replace('-', ' ')
+                kwargs['version'] = version
+                kwargs['path'] = path
+            yield PipPackage(**kwargs)
+    else:
+        # For every package in pipinst that is not already represented
+        # in installed append a fake name to installed with 'pip'
+        # as the build string
+        pat = re.compile('([\w.-]+)\s+\((.+)\)')
+        for line in pip_stdout.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            m = pat.match(line)
+            if m is None:
+                if output:
+                    print('Could not extract name and version from: %r' % line)
+                continue
+            name, version = m.groups()
+            name = name.lower()
+            kwargs = {
+                'name': name,
+                'version': version,
+            }
+            if ', ' in version:
+                # Packages installed with setup.py develop will include a path in
+                # the version. They should be included here, even if they are
+                # installed with conda, as they are preferred over the conda
+                # version. We still include the conda version, though, because it
+                # is still installed.
+
+                version, path = version.split(', ')
+                # We do this because the code below uses rsplit('-', 2)
+                version = version.replace('-', ' ')
+                kwargs.update({
+                    'path': path,
+                    'version': version,
+                })
+            yield PipPackage(**kwargs)
+
 
 # canonicalize_{regex,name} inherited from packaging/utils.py
 # Used under BSD license
-
-
 _canonicalize_regex = re.compile(r"[-_.]+")
 
 
