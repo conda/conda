@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import reduce
+from json import JSONDecodeError
 from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, join
@@ -277,8 +278,12 @@ class PackageCache(object):
             # try reading info/index.json
             try:
                 index_json_record = read_index_json(extracted_package_dir)
-            except (IOError, OSError):
-                # info/index.json doesn't exist either
+            except (IOError, OSError, JSONDecodeError, ValueError):
+                # IOError / OSError if info/index.json doesn't exist
+                # JsonDecodeError if info/index.json is partially extracted or corrupted
+                #   python 2.7 raises ValueError instead of JsonDecodeError
+                #   ValueError("No JSON object could be decoded")
+
                 if isdir(extracted_package_dir) and not isfile(package_tarball_full_path):
                     # We have a directory that looks like a conda package, but without
                     # (1) info/repodata_record.json or info/index.json, and (2) a conda package
