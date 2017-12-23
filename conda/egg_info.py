@@ -29,7 +29,7 @@ def get_site_packages_dir(installed_pkgs):
 
 
 def get_egg_info_files(sp_dir):
-    for fn in os.listdir(sp_dir):
+    for fn in (isdir(sp_dir) and os.listdir(sp_dir) or ()):
         if fn.endswith('.egg-link'):
             with open(join(sp_dir, fn), 'r') as reader:
                 for egg in get_egg_info_files(reader.readline().strip()):
