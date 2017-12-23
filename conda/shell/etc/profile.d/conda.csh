@@ -40,7 +40,6 @@ else
             rehash
             breaksw
         default:
-            echo "$prompt"
             $_CONDA_EXE $argv[1-]
             breaksw
     endsw
