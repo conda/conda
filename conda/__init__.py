@@ -3,12 +3,25 @@
 """OS-agnostic, system-level binary package manager."""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
-from os.path import dirname
 import sys
 
-from ._vendor.auxlib.packaging import get_version
-from .common.compat import iteritems, text_type
+# before any more imports, leave cwd out of sys.path for internal 'conda shell.*' commands
+# see https://github.com/conda/conda/issues/6549
+if len(sys.argv) > 1 and sys.argv[1].startswith('shell.'):
+    try:
+        # The standard first entry in sys.path is an empty string, and os.path.abspath('')
+        # expands to os.getcwd()
+        idx = sys.path.index('')
+    except ValueError:
+        pass
+    else:
+        del sys.path[idx]
+
+import os  # NOQA
+from os.path import dirname  # NOQA
+
+from ._vendor.auxlib.packaging import get_version  # NOQA
+from .common.compat import text_type  # NOQA
 
 __all__ = (
     "__name__", "__version__", "__author__", "__email__", "__license__", "__summary__", "__url__",
@@ -59,6 +72,7 @@ class CondaError(Exception):
             raise
 
     def dump_map(self):
+        from .common.compat import iteritems
         result = dict((k, v) for k, v in iteritems(vars(self)) if not k.startswith('_'))
         result.update(exception_type=text_type(type(self)),
                       exception_name=self.__class__.__name__,
