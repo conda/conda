@@ -304,7 +304,14 @@ class PackageCache(object):
                             # to do is remove it and try extracting.
                             rm_rf(extracted_package_dir)
                         extract_tarball(package_tarball_full_path, extracted_package_dir)
-                        index_json_record = read_index_json(extracted_package_dir)
+                        try:
+                            index_json_record = read_index_json(extracted_package_dir)
+                        except (IOError, OSError, JSONDecodeError):
+                            # At this point, we can assume the package tarball is bad.
+                            # Remove everything and move on.
+                            rm_rf(package_tarball_full_path)
+                            rm_rf(extracted_package_dir)
+                            return None
                     else:
                         index_json_record = read_index_json_from_tarball(package_tarball_full_path)
                 except (EOFError, ReadError) as e:
