@@ -7,7 +7,7 @@ import os
 
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
-from conda.common.serialize import yaml_load
+from conda.common.serialize import yaml_load_standard
 from conda.core.linked_data import linked
 from conda.models.match_spec import MatchSpec
 from conda_env.yaml import dump
@@ -69,7 +69,7 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
 
 def from_yaml(yamlstr, **kwargs):
     """Load and return a ``Environment`` from a given ``yaml string``"""
-    data = yaml_load(yamlstr)
+    data = yaml_load_standard(yamlstr)
     if kwargs is not None:
         for key, value in kwargs.items():
             data[key] = value
