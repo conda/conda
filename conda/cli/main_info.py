@@ -206,6 +206,7 @@ def get_info_dict(system=False):
     evars.update(v for v in os.environ if v.upper().startswith('PYTHON'))
     evars.update(v for v in os.environ if v.upper().endswith('PROXY'))
     evars.update(v for v in os.environ if v.upper().endswith('PATH'))
+    evars.update(v for v in os.environ if v.upper().startswith('SUDO'))
 
     info_dict.update({
         'sys.version': sys.version,
