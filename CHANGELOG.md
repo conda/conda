@@ -1,3 +1,18 @@
+## 4.4.4 (2012-12-24)
+
+### Improvements
+* add SUDO_ env vars to info reports (#6563)
+* add additional information to the #6546 exception (#6551)
+
+### Bug Fixes
+* fix #6548 'conda update' installs packages not in prefix #6550
+* fix #6546 update after creating an empty env (#6568)
+* fix #6557 conda list FileNotFoundError (#6558)
+* fix #6554 package cache FileNotFoundError (#6555)
+* fix #6529 yaml parse error (#6560)
+* fix #6562 repodata_record.json permissions error stack trace (#6564)
+* fix #6520 --use-local flag (#6526)
+
 ## 4.4.3 (2017-12-22)
 
 ### Improvements

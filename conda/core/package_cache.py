@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import EACCES, EPERM
 from functools import reduce
 from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, join
 from tarfile import ReadError
 
+from conda.exceptions import NotWritableError
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
@@ -304,7 +306,14 @@ class PackageCache(object):
                             # to do is remove it and try extracting.
                             rm_rf(extracted_package_dir)
                         extract_tarball(package_tarball_full_path, extracted_package_dir)
-                        index_json_record = read_index_json(extracted_package_dir)
+                        try:
+                            index_json_record = read_index_json(extracted_package_dir)
+                        except (IOError, OSError, JSONDecodeError):
+                            # At this point, we can assume the package tarball is bad.
+                            # Remove everything and move on.
+                            rm_rf(package_tarball_full_path)
+                            rm_rf(extracted_package_dir)
+                            return None
                     else:
                         index_json_record = read_index_json_from_tarball(package_tarball_full_path)
                 except (EOFError, ReadError) as e:
@@ -336,7 +345,13 @@ class PackageCache(object):
             if self.is_writable:
                 repodata_record = PackageRecord.from_objects(package_cache_record)
                 repodata_record_path = join(extracted_package_dir, 'info', 'repodata_record.json')
-                write_as_json_to_file(repodata_record_path, repodata_record)
+                try:
+                    write_as_json_to_file(repodata_record_path, repodata_record)
+                except (IOError, OSError) as e:
+                    if e.errno in (EACCES, EPERM) and isdir(dirname(repodata_record_path)):
+                        raise NotWritableError(repodata_record_path, e.errno, caused_by=e)
+                    else:
+                        raise
 
             return package_cache_record
 

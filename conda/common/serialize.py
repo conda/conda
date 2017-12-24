@@ -64,6 +64,16 @@ def yaml_load_safe(string):
     return yaml.load(string, Loader=yaml.SafeLoader, version="1.2")
 
 
+def yaml_load_standard(string):
+    """Uses the default (unsafe) loader.
+
+    Examples:
+        >>> yaml_load_standard("prefix: !!python/unicode '/Users/darwin/test'")
+        {'prefix': '/Users/darwin/test'}
+    """
+    return yaml.load(string, Loader=yaml.Loader, version="1.2")
+
+
 def yaml_dump(object):
     """dump object to string"""
     return yaml.dump(object, Dumper=yaml.RoundTripDumper,
