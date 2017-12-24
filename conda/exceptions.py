@@ -614,6 +614,8 @@ class NotWritableError(CondaError, OSError):
             change them by executing
 
               $ sudo chown %(uid)s:%(gid)s %(path)s
+
+            In general, it's not advisable to use 'sudo conda'.
             """)
             import os
             kwargs.update({

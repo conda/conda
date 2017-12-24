@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import EACCES, EPERM
 from functools import reduce
 from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, join
 from tarfile import ReadError
 
+from conda.exceptions import NotWritableError
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
@@ -343,7 +345,13 @@ class PackageCache(object):
             if self.is_writable:
                 repodata_record = PackageRecord.from_objects(package_cache_record)
                 repodata_record_path = join(extracted_package_dir, 'info', 'repodata_record.json')
-                write_as_json_to_file(repodata_record_path, repodata_record)
+                try:
+                    write_as_json_to_file(repodata_record_path, repodata_record)
+                except (IOError, OSError) as e:
+                    if e.errno in (EACCES, EPERM) and isdir(dirname(repodata_record_path)):
+                        raise NotWritableError(repodata_record_path, e.errno, caused_by=e)
+                    else:
+                        raise
 
             return package_cache_record
 
