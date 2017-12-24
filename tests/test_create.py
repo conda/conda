@@ -42,7 +42,7 @@ from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
 from conda.core.package_cache import PackageCache
 from conda.core.repodata import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
-    PackagesNotFoundError, RemoveError, conda_exception_handler
+    PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -452,6 +452,15 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python-3')
         finally:
             rmtree(prefix, ignore_errors=True)
+
+    def test_conda_update_package_not_installed(self):
+        with make_temp_env() as prefix:
+            with pytest.raises(PackageNotInstalledError):
+                run_command(Commands.UPDATE, prefix, "sqlite openssl")
+
+            with pytest.raises(CondaError) as conda_error:
+                run_command(Commands.UPDATE, prefix, "conda-forge::*")
+            assert conda_error.value.message.startswith("Invalid spec for 'conda update'")
 
     def test_noarch_python_package_with_entry_points(self):
         with make_temp_env("-c conda-test flask") as prefix:
