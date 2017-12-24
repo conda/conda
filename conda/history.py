@@ -163,7 +163,7 @@ class History(object):
                         specs = literal_eval(specs)
                     elif '[' not in specs:
                         specs = specs.split(',')
-                    specs = [spec for spec in specs if not spec.endswith('@')]
+                    specs = [spec for spec in specs if spec and not spec.endswith('@')]
                     if specs and action in ('update', 'install', 'create'):
                         item['update_specs'] = item['specs'] = specs
                     elif specs and action in ('remove', 'uninstall'):
