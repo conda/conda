@@ -76,7 +76,7 @@ def touch(path, mkdir=False, sudo_safe=False):
     # returns:
     #   True if the file did not exist but was created
     #   False if the file already existed
-    # raises: permissions errors such as EPERM and EACCES
+    # raises: NotWritableError, which is also an OSError having attached errno
     try:
         path = expand(path)
         log.trace("touching path %s", path)

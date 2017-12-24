@@ -238,7 +238,7 @@ class ContextCustomRcTests(TestCase):
 
                 # with first dir read-only, choose second
                 PackageCacheData._cache_.clear()
-                make_read_only(join(prefix, 'first', 'pkgs', 'urls.txt'))
+                make_read_only(join(envs_dirs[0], '.conda_envs_dir_test'))
                 reset_context((), argparse_args=AttrDict(name='blarg', func='create'))
                 assert context.target_prefix == join(envs_dirs[1], 'blarg')
 

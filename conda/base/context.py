@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 from logging import getLogger
 import os
-from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
+from os.path import (abspath, basename, expanduser, isdir, isfile, join, normpath,
                      split as path_split)
 from platform import machine
 import sys
@@ -1145,13 +1145,17 @@ def determine_target_prefix(ctx, args=None):
 
 
 def _first_writable_envs_dir():
-    # Starting in conda 4.3, we use the writability test on '..../pkgs/url.txt' to determine
-    # writability of '..../envs'.
-    from ..core.package_cache_data import PackageCacheData
+    from ..gateways.disk.update import touch
     for envs_dir in context.envs_dirs:
-        pkgs_dir = join(dirname(envs_dir), 'pkgs')
-        if PackageCacheData(pkgs_dir).is_writable:
+        # The magic file being used here could change in the future.  Don't write programs
+        # outside this code base that rely on the presence of this file.
+        envs_dir_magic_file = join(envs_dir, '.conda_envs_dir_test')
+        try:
+            touch(envs_dir_magic_file, mkdir=True, sudo_safe=True)
+            open(envs_dir_magic_file, 'a').close()
             return envs_dir
+        except (IOError, OSError):
+            log.trace("Tried envs_dir but not writable: %s", envs_dir)
 
     from ..exceptions import NotWritableError
     raise NotWritableError(context.envs_dirs[0], None)

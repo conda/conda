@@ -8,10 +8,11 @@ from os import listdir
 from os.path import basename, dirname, join
 from tarfile import ReadError
 
-from conda._vendor.auxlib.decorators import memoizemethod
+from .._vendor.auxlib.decorators import memoizemethod
 
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
+from ..exceptions import NoWritablePkgsDirError, NotWritableError
 from .._vendor.auxlib.collection import first
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
@@ -152,9 +153,7 @@ class PackageCacheData(object):
         writable_caches = tuple(filter(lambda c: c.is_writable,
                                        (cls(pd) for pd in pkgs_dirs)))
         if not writable_caches:
-            # TODO: raise NoWritablePackageCacheError()
-            raise CondaError("No writable package cache directories found in\n"
-                             "%s" % text_type(pkgs_dirs))
+            raise NoWritablePkgsDirError(pkgs_dirs)
         return writable_caches
 
     @classmethod
@@ -236,10 +235,6 @@ class PackageCacheData(object):
         log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         self.__is_writable = i_wri
         return i_wri
-
-    def _ensure_exists(self):
-        if not isfile(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE)):
-            create_package_cache_directory(self.pkgs_dir)
 
     @staticmethod
     def _clean_tarball_path_and_get_md5sum(tarball_path, md5sum=None):
@@ -461,7 +456,6 @@ class ProgressiveFetchExtract(object):
         # otherwise, if we find a match in a non-writable cache, we link it to the first writable
         #   cache, and then extract
         first_writable_cache = PackageCacheData.first_writable()
-        first_writable_cache._ensure_exists()
         pcrec_from_writable_cache = next((
             pcrec for pcrec in concat(pcache.query(pref_or_spec)
                                       for pcache in PackageCacheData.writable_caches())
