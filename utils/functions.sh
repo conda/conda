@@ -160,29 +160,15 @@ install_conda_shell_scripts() {
 
     local prefix=${1:-$INSTALL_PREFIX}
     local src_dir=${2:-${SRC_DIR:-$PWD}}
-
-    mkdir -p "$prefix/etc/profile.d/"
-    rm -f "$prefix/etc/profile.d/conda.sh"
     local conda_exe="$prefix/$BIN_DIR/conda$EXE_EXT"
-    echo "_CONDA_EXE=\"$conda_exe\"" > "$prefix/etc/profile.d/conda.sh"
-    echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/etc/profile.d/conda.sh"
-    cat "$src_dir/conda/shell/etc/profile.d/conda.sh" >> "$prefix/etc/profile.d/conda.sh"
 
-    mkdir -p "$prefix/$BIN_DIR"
-
-    rm -f "$prefix/$BIN_DIR/activate"
-    echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
-    echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/activate"
-    cat "$src_dir/conda/shell/bin/activate" >> "$prefix/$BIN_DIR/activate"
-    chmod +x "$prefix/$BIN_DIR/activate"
-
-    rm -f "$prefix/$BIN_DIR/deactivate"
-    echo "#!/bin/sh" > "$prefix/$BIN_DIR/deactivate"
-    echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/deactivate"
-    cat "$src_dir/conda/shell/bin/deactivate" >> "$prefix/$BIN_DIR/deactivate"
-    chmod +x "$prefix/$BIN_DIR/deactivate"
 
     if [ -n "$ON_WIN" ]; then
+        local win_prefix="$(cygpath --windows \"$prefix\")"
+        local win_conda_exe="$(cygpath --windows \"$conda_exe\")"
+
+        mkdir -p "$prefix/$BIN_DIR"
+
         rm -f "$prefix/$BIN_DIR/activate.bat"
         cp "$src_dir/conda/shell/Scripts/activate.bat" "$prefix/$BIN_DIR/activate.bat"
 
@@ -191,9 +177,48 @@ install_conda_shell_scripts() {
 
         mkdir -p "$prefix/Library/bin"
         rm -f "$prefix/Library/bin/conda.bat"
-        local win_conda_exe="$(cygpath --windows "$conda_exe")"
         echo "@SET \"_CONDA_EXE=$win_conda_exe\"" > "$prefix/Library/bin/conda.bat"
         cat "$src_dir/conda/shell/Library/bin/conda.bat" >> "$prefix/Library/bin/conda.bat"
+
+        rm -f "$prefix/$BIN_DIR/activate"
+        echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
+        echo "_CONDA_ROOT=\"\$(cygpath '$win_prefix')\"" >> "$prefix/$BIN_DIR/activate"
+        cat "$src_dir/conda/shell/bin/activate" >> "$prefix/$BIN_DIR/activate"
+        chmod +x "$prefix/$BIN_DIR/activate"
+
+        rm -f "$prefix/$BIN_DIR/deactivate"
+        echo "#!/bin/sh" > "$prefix/$BIN_DIR/deactivate"
+        echo "_CONDA_ROOT=\"\$(cygpath '$win_prefix')\"" >> "$prefix/$BIN_DIR/activate"
+        cat "$src_dir/conda/shell/bin/deactivate" >> "$prefix/$BIN_DIR/deactivate"
+        chmod +x "$prefix/$BIN_DIR/deactivate"
+
+        mkdir -p "$prefix/etc/profile.d/"
+        rm -f "$prefix/etc/profile.d/conda.sh"
+        echo "_CONDA_EXE=\"\$(cygpath '$win_conda_exe')\"" > "$prefix/etc/profile.d/conda.sh"
+        cat "$src_dir/conda/shell/etc/profile.d/conda.sh" >> "$prefix/etc/profile.d/conda.sh"
+
+
+    else
+        mkdir -p "$prefix/etc/profile.d/"
+        rm -f "$prefix/etc/profile.d/conda.sh"
+        echo "_CONDA_EXE=\"$conda_exe\"" > "$prefix/etc/profile.d/conda.sh"
+        echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/etc/profile.d/conda.sh"
+        cat "$src_dir/conda/shell/etc/profile.d/conda.sh" >> "$prefix/etc/profile.d/conda.sh"
+
+        mkdir -p "$prefix/$BIN_DIR"
+
+        rm -f "$prefix/$BIN_DIR/activate"
+        echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
+        echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/activate"
+        cat "$src_dir/conda/shell/bin/activate" >> "$prefix/$BIN_DIR/activate"
+        chmod +x "$prefix/$BIN_DIR/activate"
+
+        rm -f "$prefix/$BIN_DIR/deactivate"
+        echo "#!/bin/sh" > "$prefix/$BIN_DIR/deactivate"
+        echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/deactivate"
+        cat "$src_dir/conda/shell/bin/deactivate" >> "$prefix/$BIN_DIR/deactivate"
+        chmod +x "$prefix/$BIN_DIR/deactivate"
+
     fi
 
     mkdir -p "$prefix/etc/fish/conf.d/"
