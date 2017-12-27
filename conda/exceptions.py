@@ -170,6 +170,8 @@ class SharedLinkPathClobberError(ClobberError):
 
 
 class CommandNotFoundError(CondaError):
+    return_code = 127  # standard, according to http://tldp.org/LDP/abs/html/exitcodes.html
+
     def __init__(self, command):
         activate_commands = {
             'activate',
