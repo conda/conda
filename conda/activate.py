@@ -266,6 +266,12 @@ class Activator(object):
 
         self._update_prompt(set_vars, conda_prompt_modifier)
 
+        if on_win:
+            import ctypes
+            export_vars.update({
+                "PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),
+            })
+
         return {
             'unset_vars': (),
             'set_vars': set_vars,
