@@ -531,6 +531,12 @@ def configure_parser_initialize(sub_parsers):
         epilog=example,
     )
 
+    p.add_argument(
+        "--dev",
+        action="store_true",
+        help=SUPPRESS,
+    )
+
     setup_type_group = p.add_argument_group('setup type')
     setup_type_group.add_argument(
         "--user",

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from glob import glob
 import json
 from logging import getLogger
 import os
@@ -51,13 +52,53 @@ def initialize(conda_prefix, auto_activate, shells, for_user, for_system):
     print_plan_results(plan)
 
 
+def initialize_dev():
+    # > eval `$(which python) -m conda initialize --dev`
+
+    if not isfile('conda/__init__.py'):
+        print("Current working directory needs to be conda source root.", file=sys.stderr)
+        return 1
+
+    from distutils.sysconfig import get_python_lib
+    site_packages_dir = get_python_lib()
+    remove_conda_sp_dir(site_packages_dir)
+
+    plan = []
+    plan.append({
+        'function': make_conda_pth.__name__,
+        'kwargs': {
+            'target_path': join(site_packages_dir, 'conda.pth'),
+            'conda_source_dir': os.getcwd(),
+        },
+    })
+
+    run_plan(plan)
+    print_plan_results(plan, stream=sys.stderr)
+    print(". conda/shell/etc/profile.d/conda.sh")
+    print("conda activate %s" % sys.prefix)
+
+
 def make_install_plan(conda_prefix):
     plan = []
     _add_executables(plan, conda_prefix)
+    if on_win:
+        plan.append({
+            'function': init_conda_bat.__name__,
+            'kwargs': {
+                'target_path': join(sys.prefix, 'Library', 'bin', 'conda.bat'),
+            },
+        })
     plan.append({
-        'function': init_sh_base.__name__,
+        'function': init_conda_sh.__name__,
         'kwargs': {
             'target_path': join(conda_prefix, 'etc', 'profile.d', 'conda.sh'),
+            'conda_prefix': conda_prefix,
+        },
+    })
+    plan.append({
+        'function': init_conda_fish.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish'),
             'conda_prefix': conda_prefix,
         },
     })
@@ -68,9 +109,17 @@ def make_initialize_plan(conda_prefix, auto_activate, shells, for_user, for_syst
     plan = []
     _add_executables(plan, conda_prefix)
 
+    if 'cmd_exe' in shells:
+        plan.append({
+            'function': init_conda_bat.__name__,
+            'kwargs': {
+                'target_path': join(sys.prefix, 'Library', 'bin', 'conda.bat'),
+            },
+        })
+
     if shells & {'bash', 'zsh'}:
         plan.append({
-            'function': init_sh_base.__name__,
+            'function': init_conda_sh.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'etc', 'profile.d', 'conda.sh'),
                 'conda_prefix': conda_prefix,
@@ -114,6 +163,7 @@ def make_initialize_plan(conda_prefix, auto_activate, shells, for_user, for_syst
                     'auto_activate': auto_activate,
                 },
             })
+
     return plan
 
 
@@ -194,15 +244,15 @@ def run_plan_from_stdin():
     sys.stdout.write(json.dumps(plan))
 
 
-def print_plan_results(plan):
+def print_plan_results(plan, stream=sys.stdout):
     for step in plan:
-        print("%s\n  %s\n" % (step['kwargs']['target_path'], step['result']))
+        print("%s\n  %s\n" % (step['kwargs']['target_path'], step['result']), file=stream)
 
     changed = any(step['result'] == Result.MODIFIED for step in plan)
     if changed:
-        print("\n==> For changes to take effect, close and re-open your current shell. <==\n")
+        print("\n==> For changes to take effect, close and re-open your current shell. <==\n", file=stream)
     else:
-        print("No action taken.")
+        print("No action taken.", file=stream)
 
 
 def make_entry_point(target_path, module, func):
@@ -256,7 +306,7 @@ def make_entry_point_exe(target_path):
     return Result.MODIFIED
 
 
-def init_sh_base(target_path, conda_prefix):
+def init_conda_sh(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
     conda_sh_base_path = target_path
     conda_sh_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')
@@ -389,17 +439,109 @@ def init_sh_system_activate(target_path, auto_activate):
             return Result.NO_CHANGE
 
 
-def init_cmd_exe():
+def init_conda_bat(target_path):
+    # target_path: join(sys.prefix, 'Library', 'bin', 'conda.bat')
+    conda_bat_dst_path = target_path
     conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Library', 'bin', 'conda.bat')
-    conda_bat_dst_path = join(sys.prefix, 'Library', 'bin', 'conda.bat')
 
-    mkdir_p(dirname(conda_bat_dst_path))
-    with open(conda_bat_dst_path, 'w') as fdst:
-        fdst.write('@SET "_CONDA_EXE=%s"\n' % join(sys.prefix, 'Scripts', 'conda.exe'))
-        with open(conda_bat_src_path) as fsrc:
-            fdst.write(fsrc.read())
+    if isfile(conda_bat_dst_path):
+        with open(conda_bat_dst_path) as fh:
+            original_conda_bat = fh.read()
+    else:
+        original_conda_bat = ""
+
+    new_conda_bat = '@SET "_CONDA_EXE=%s"\n' % join(sys.prefix, 'Scripts', 'conda.exe')
+    with open(conda_bat_src_path) as fsrc:
+        new_conda_bat += fsrc.read()
+
+    if new_conda_bat != original_conda_bat:
+        mkdir_p(dirname(conda_bat_dst_path))
+        with open(conda_bat_dst_path, 'w') as fdst:
+            fdst.write(new_conda_bat)
+            return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
 
     # TODO: use menuinst to create shortcuts
+
+
+def init_conda_fish(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish')
+    conda_fish_base_path = target_path
+    conda_fish_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d', 'conda.fish')
+
+    if isfile(conda_fish_base_path):
+        with open(conda_fish_base_path) as fh:
+            original_conda_sh = fh.read()
+    else:
+        original_conda_sh = ""
+
+    if on_win:
+        new_conda_fish = 'set _CONDA_ROOT (cygpath %s)\n' % conda_prefix
+        new_conda_fish += 'set _CONDA_EXE (cygpath %s)\n' % join(conda_prefix, 'Scripts', 'conda.exe')
+    else:
+        new_conda_fish = 'set _CONDA_ROOT "%s"\n' % conda_prefix
+        new_conda_fish += 'set _CONDA_EXE "%s"\n' % join(conda_prefix, 'bin', 'conda')
+
+    with open(conda_fish_src_path) as fsrc:
+        new_conda_fish += fsrc.read()
+
+    if new_conda_fish != original_conda_sh:
+        mkdir_p(dirname(conda_fish_base_path))
+        with open(conda_fish_base_path, 'w') as fdst:
+            fdst.write(new_conda_fish)
+        return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
+
+
+def init_conda_xsh(target_path, conda_prefix):
+    # local sp_dir=$("$PYTHON_EXE" -c "from distutils.sysconfig import get_python_lib as g; print(g())")
+    # mkdir -p "$sp_dir/xonsh"
+    # rm -f "$sp_dir/xonsh/conda.xsh"
+    # echo "_CONDA_EXE = \"$CONDA_EXE\"" > "$sp_dir/xonsh/conda.xsh"
+    # cat "$src_dir/conda/shell/conda.xsh" >> "$sp_dir/xonsh/conda.xsh"
+    pass
+
+
+def remove_conda_sp_dir(site_packages_dir):
+    for path in glob(join(site_packages_dir, "conda*.egg")):
+        print("rm -rf %s" % path, file=sys.stderr)
+        rm_rf(path)
+
+    if isfile(join(site_packages_dir, "conda.egg-link")):
+        print("rm -rf %s" % join(site_packages_dir, "conda.egg-link"))
+        rm_rf(join(site_packages_dir, "conda.egg-link"))
+    if isfile(join(site_packages_dir, "conda")):
+        print("rm -rf %s" % join(site_packages_dir, "conda"))
+        rm_rf(join(site_packages_dir, "conda"))
+    if isfile(join(site_packages_dir, "conda_env")):
+        print("rm -rf %s" % join(site_packages_dir, "conda_env"))
+        rm_rf(join(site_packages_dir, "conda_env"))
+
+
+
+def make_conda_pth(target_path, conda_source_dir):
+    # target_path: join(site_packages_dir, 'conda.pth')
+    conda_pth_path = target_path
+    conda_pth_contents = conda_source_dir
+
+    if isfile(conda_pth_path):
+        with open(conda_pth_path) as fh:
+            conda_pth_contents_old = fh.read()
+    else:
+        conda_pth_contents_old = ""
+
+    if conda_pth_contents_old != conda_pth_contents:
+        with open(conda_pth_path, 'w') as fh:
+            fh.write(conda_pth_contents)
+        return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
+
+
+
+
 
 
 if __name__ == "__main__":

@@ -10,7 +10,10 @@ log = getLogger(__name__)
 
 
 def execute(args, parser):
-    from ..initialize import ALL_SHELLS, initialize
+    from ..initialize import ALL_SHELLS, initialize, initialize_dev
+
+    if args.dev:
+        return initialize_dev()
 
     selected_shells = set(s for s in ALL_SHELLS if getattr(args, s, None))
     if not selected_shells:
