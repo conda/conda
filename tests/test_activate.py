@@ -33,6 +33,13 @@ except ImportError:
 log = getLogger(__name__)
 
 
+if on_win:
+    import ctypes
+    PYTHONIOENCODING = ctypes.cdll.kernel32.GetACP()
+else:
+    PYTHONIOENCODING = None
+
+
 class ActivatorUnitTests(TestCase):
 
     def test_activate_environment_not_found(self):
@@ -274,7 +281,6 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PROMPT_MODIFIER': "(%s) " % td,
                         'CONDA_SHLVL': 1,
                     }
-
                     assert builder['unset_vars'] == ()
                     assert builder['set_vars'] == {}
                     assert builder['export_vars'] == export_vars
@@ -478,6 +484,7 @@ class ShellWrapperUnitTests(TestCase):
                 'ps1': os.environ.get('PS1', ''),
             }
 
+    @pytest.mark.skipif(not on_win, reason="cmd.exe only on Windows")
     def test_cmd_exe_basic(self):
         activator = Activator('cmd.exe')
         self.make_dot_d_files(activator.script_extension)
@@ -500,6 +507,7 @@ class ShellWrapperUnitTests(TestCase):
         @SET "CONDA_PYTHON_EXE=%(sys_executable)s"
         @SET "CONDA_SHLVL=1"
         @SET "PATH=%(new_path)s"
+        @SET "PYTHONIOENCODING=%(PYTHONIOENCODING)s"
         @CALL "%(activate1)s"
         """) % {
             'converted_prefix': activator.path_conversion(self.prefix),
@@ -507,6 +515,7 @@ class ShellWrapperUnitTests(TestCase):
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': activator.path_conversion(sys.executable),
             'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat')),
+            'PYTHONIOENCODING': PYTHONIOENCODING,
         }
 
         with env_vars({

@@ -266,7 +266,7 @@ class Activator(object):
 
         self._update_prompt(set_vars, conda_prompt_modifier)
 
-        if on_win:
+        if on_win and self.shell == 'cmd.exe':
             import ctypes
             export_vars.update({
                 "PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),
