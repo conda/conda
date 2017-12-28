@@ -272,6 +272,12 @@ def configure_parser_info(sub_parsers):
         help='Display base environment path.',
     )
     p.add_argument(
+        '--root',
+        action='store_true',
+        help=SUPRESS,
+        dest='base',
+    )
+    p.add_argument(
         '--unsafe-channels',
         action='store_true',
         help='Display list of channels with tokens exposed.',
