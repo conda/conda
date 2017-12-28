@@ -19,9 +19,6 @@ build:
     - Scripts/deactivate.bat    [win]
     - Scripts/activate          [win]
     - Scripts/deactivate        [win]
-  entry_points:
-    - conda = conda.cli:main
-    - conda-env = conda_env.cli.main:main
 
 requirements:
   build:
