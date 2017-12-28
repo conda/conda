@@ -426,6 +426,10 @@ class Activator(object):
             current_prompt_modifier = os.environ.get('CONDA_PROMPT_MODIFIER')
             if current_prompt_modifier:
                 ps1 = re.sub(re.escape(current_prompt_modifier), r'', ps1)
+            # Because we're using single-quotes to set shell variables, we need to handle the
+            # proper escaping of single quotes that are already part of the string.
+            # Best solution appears to be https://stackoverflow.com/a/1250279
+            ps1 = ps1.replace("'", "'\"'\"'")
             set_vars.update({
                 'PS1': conda_prompt_modifier + ps1,
             })
