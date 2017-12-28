@@ -1,4 +1,4 @@
-## 4.4.4 (2012-12-24)
+## 4.4.4 (2017-12-24)
 
 ### Improvements
 * add SUDO_ env vars to info reports (#6563)
