@@ -84,14 +84,58 @@ def make_install_plan(conda_prefix):
     site_packages_dir = get_python_lib()
 
     plan = []
-    _add_executables(plan, conda_prefix)
+
+    # ######################################
+    # executables
+    # ######################################
+    if on_win:
+        conda_exe_path = join(conda_prefix, 'Scripts', 'conda-script.py')
+        plan.append({
+            'function': make_entry_point_exe.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'Scripts', 'conda.exe'),
+            },
+        })
+        conda_env_exe_path = join(conda_prefix, 'Scripts', 'conda-env-script.py')
+        plan.append({
+            'function': make_entry_point_exe.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'Scripts', 'conda-env.exe'),
+            },
+        })
+    else:
+        conda_exe_path = join(conda_prefix, 'bin', 'conda')
+        conda_env_exe_path = join(conda_prefix, 'bin', 'conda-env')
+
+    plan.append({
+        'function': make_entry_point.__name__,
+        'kwargs': {
+            'target_path': conda_exe_path,
+            'module': 'conda.cli',
+            'func': 'main',
+        },
+    })
+    plan.append({
+        'function': make_entry_point.__name__,
+        'kwargs': {
+            'target_path': conda_env_exe_path,
+            'module': 'conda_env.cli.main',
+            'func': 'main',
+        },
+    })
+
+    # ######################################
+    # shell wrappers
+    # ######################################
     if on_win:
         plan.append({
             'function': init_conda_bat.__name__,
             'kwargs': {
                 'target_path': join(sys.prefix, 'Library', 'bin', 'conda.bat'),
+                'conda_prefix': conda_prefix,
             },
         })
+
     plan.append({
         'function': init_conda_sh.__name__,
         'kwargs': {
@@ -124,26 +168,9 @@ def make_install_plan(conda_prefix):
 
 
 def make_initialize_plan(conda_prefix, auto_activate, shells, for_user, for_system):
-    plan = []
-    _add_executables(plan, conda_prefix)
-
-    if 'cmd_exe' in shells:
-        plan.append({
-            'function': init_conda_bat.__name__,
-            'kwargs': {
-                'target_path': join(sys.prefix, 'Library', 'bin', 'conda.bat'),
-            },
-        })
+    plan = make_install_plan(conda_prefix)
 
     if shells & {'bash', 'zsh'}:
-        plan.append({
-            'function': init_conda_sh.__name__,
-            'kwargs': {
-                'target_path': join(conda_prefix, 'etc', 'profile.d', 'conda.sh'),
-                'conda_prefix': conda_prefix,
-            },
-        })
-
         if 'bash' in shells and for_user:
             bashrc_path = expand(join('~', '.bash_profile' if on_mac else '.bashrc'))
             plan.append({
@@ -185,44 +212,6 @@ def make_initialize_plan(conda_prefix, auto_activate, shells, for_user, for_syst
     return plan
 
 
-def _add_executables(plan, conda_prefix):
-    if on_win:
-        conda_exe_path = join(conda_prefix, 'Scripts', 'conda-script.py')
-        plan.append({
-            'function': make_entry_point_exe.__name__,
-            'kwargs': {
-                'target_path': join(conda_prefix, 'Scripts', 'conda.exe'),
-            },
-        })
-        conda_env_exe_path = join(conda_prefix, 'Scripts', 'conda-env-script.py')
-        plan.append({
-            'function': make_entry_point_exe.__name__,
-            'kwargs': {
-                'target_path': join(conda_prefix, 'Scripts', 'conda-env.exe'),
-            },
-        })
-    else:
-        conda_exe_path = join(conda_prefix, 'bin', 'conda')
-        conda_env_exe_path = join(conda_prefix, 'bin', 'conda-env')
-
-    plan.append({
-        'function': make_entry_point.__name__,
-        'kwargs': {
-            'target_path': conda_exe_path,
-            'module': 'conda.cli',
-            'func': 'main',
-        },
-    })
-    plan.append({
-        'function': make_entry_point.__name__,
-        'kwargs': {
-            'target_path': conda_env_exe_path,
-            'module': 'conda_env.cli.main',
-            'func': 'main',
-        },
-    })
-
-
 def run_plan(plan):
     for step in plan:
         previous_result = step.get('result', None)
@@ -239,12 +228,20 @@ def run_plan(plan):
 def run_plan_elevated(plan):
     if any(step['result'] == Result.NEEDS_SUDO for step in plan):
         stdin = json.dumps(plan)
-        result = subprocess_call(
-            'sudo %s -m conda.core.initialize' % sys.executable,
-            env={},
-            cwd=os.getcwd(),
-            stdin=stdin,
-        )
+        if on_win:
+            # https://github.com/ContinuumIO/menuinst/blob/master/menuinst/windows/win_elevate.py  # no stdin / stdout / stderr pipe support
+            # https://github.com/saltstack/salt-windows-install/blob/master/deps/salt/python/App/Lib/site-packages/win32/Demos/pipes/runproc.py
+            # https://github.com/twonds/twisted/blob/master/twisted/internet/_dumbwin32proc.py
+            # https://stackoverflow.com/a/19982092/2127762
+            # https://www.codeproject.com/Articles/19165/Vista-UAC-The-Definitive-Guide
+            raise NotImplementedError("Windows. Blah. Run as Administrator on your own.")
+        else:
+            result = subprocess_call(
+                'sudo %s -m conda.core.initialize' % sys.executable,
+                env={},
+                cwd=os.getcwd(),
+                stdin=stdin,
+            )
         stderr = result.stderr.strip()
         if stderr:
             sys.stderr.write(stderr)
@@ -457,7 +454,7 @@ def init_sh_system_activate(target_path, auto_activate):
             return Result.NO_CHANGE
 
 
-def init_conda_bat(target_path):
+def init_conda_bat(target_path, conda_prefix):
     # target_path: join(sys.prefix, 'Library', 'bin', 'conda.bat')
     conda_bat_dst_path = target_path
     conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Library', 'bin', 'conda.bat')
@@ -468,7 +465,7 @@ def init_conda_bat(target_path):
     else:
         original_conda_bat = ""
 
-    new_conda_bat = '@SET "_CONDA_EXE=%s"\n' % join(sys.prefix, 'Scripts', 'conda.exe')
+    new_conda_bat = '@SET "_CONDA_EXE=%s"\n' % join(conda_prefix, 'Scripts', 'conda.exe')
     with open(conda_bat_src_path) as fsrc:
         new_conda_bat += fsrc.read()
 

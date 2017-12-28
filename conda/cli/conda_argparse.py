@@ -514,9 +514,8 @@ def configure_parser_create(sub_parsers):
 
 
 def configure_parser_initialize(sub_parsers):
-    help = "Initialize conda shell commands. "
-    descr = (help +
-             "")
+    help = "Initialize conda shell commands. [Experimental]"
+    descr = help
 
     example = dedent("""
     Examples:
