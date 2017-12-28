@@ -274,7 +274,7 @@ def configure_parser_info(sub_parsers):
     p.add_argument(
         '--root',
         action='store_true',
-        help=SUPRESS,
+        help=SUPPRESS,
         dest='base',
     )
     p.add_argument(
