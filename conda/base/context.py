@@ -36,7 +36,7 @@ try:
 except (IOError, OSError) as e:
     if e.errno == ENOENT:
         # FileNotFoundError can occur when cwd has been deleted out from underneath the process.
-        # To resolve #6584, let's go with setting cwd to $HOME, and see how far we get.
+        # To resolve #6584, let's go with setting cwd to sys.prefix, and see how far we get.
         os.chdir(sys.prefix)
     else:
         raise
