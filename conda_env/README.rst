@@ -10,7 +10,7 @@ Provides the `conda env` interface to Conda environments.
 Installing
 ----------
 
-To install `conda env` with conda, run the following command in your root environment:
+To install `conda env` with conda, run the following command in your base environment:
 
 .. code-block:: bash
 

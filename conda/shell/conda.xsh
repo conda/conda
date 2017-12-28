@@ -13,7 +13,7 @@ def _parse_args(args=None):
     p.add_argument('command')
     ns, _ = p.parse_known_args(args)
     if ns.command == 'activate':
-        p.add_argument('env_name_or_prefix', default='root')
+        p.add_argument('env_name_or_prefix', default='base')
     elif ns.command in _REACTIVATE_COMMANDS:
         p.add_argument('-n', '--name')
         p.add_argument('-p', '--prefix')

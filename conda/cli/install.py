@@ -141,7 +141,7 @@ def install(args, parser, command='install'):
     if newenv:
         check_prefix(prefix, json=context.json)
     if context.force_32bit and prefix == context.root_prefix:
-        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in root env")
+        raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
     if isupdate and not (args.file or args.all or args.packages):
         raise CondaValueError("""no package names supplied
 # If you want to update to a newer version of Anaconda, type:
