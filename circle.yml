@@ -89,7 +89,7 @@ conda_build_test: &conda_build_test
           sudo /opt/conda/bin/pip install --no-deps -U .
           git clone https://github.com/conda/conda_build_test_recipe.git ~/conda_build_test_recipe
           /opt/conda/bin/conda info
-          sudo chown -R $(id -nu):$(id -ng) /opt/conda  # conda-build tests assume writable root prefix
+          sudo chown -R $(id -nu):$(id -ng) /opt/conda  # conda-build tests assume writable base prefix
           rm ~/.gitconfig
         # circleci image by default has
         # $ cat ~/.gitconfig
@@ -128,7 +128,7 @@ conda_build_test: &conda_build_test
           # skipping perl-cpan-Moo because of changes in cpan API
         command: |
           . /opt/conda/etc/profile.d/conda.sh
-          conda activate root
+          conda activate base
           conda info
           cd ~/conda-build
           env | sort
@@ -146,7 +146,7 @@ conda_build_test: &conda_build_test
           # env_creation_with_short_prefix_does_not_deadlock: error is prefix is too long
         command: |
           . /opt/conda/etc/profile.d/conda.sh
-          conda activate root
+          conda activate base
           conda info
           cd ~/conda-build
           env | sort

@@ -319,7 +319,7 @@ def _remove_actions(prefix, specs, index, force=False, pinned=True):  # pragma: 
         if (abspath(prefix) == sys.prefix and name == 'conda' and name not in nlinked
                 and not context.force):
             if any(s.split(' ', 1)[0] == 'conda' for s in specs):
-                raise RemoveError("'conda' cannot be removed from the root environment")
+                raise RemoveError("'conda' cannot be removed from the base environment")
             else:
                 raise RemoveError("Error: this 'remove' command cannot be executed because it\n"
                                   "would require removing 'conda' dependencies")

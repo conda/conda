@@ -282,7 +282,7 @@ def get_main_info_str(info_dict):
 
 
 def execute(args, parser):
-    if args.root:
+    if args.base:
         if context.json:
             stdout_json({'root_prefix': context.root_prefix})
         else:

@@ -267,9 +267,15 @@ def configure_parser_info(sub_parsers):
         help="Display information about packages.",
     )
     p.add_argument(
+        '--base',
+        action='store_true',
+        help='Display base environment path.',
+    )
+    p.add_argument(
         '--root',
         action='store_true',
-        help='Display root environment path.',
+        help=SUPPRESS,
+        dest='base',
     )
     p.add_argument(
         '--unsafe-channels',
