@@ -8,9 +8,6 @@
     )
 :skip_conda_exe_dev
 
-@FOR /F "delims=" %%i IN ('@python -c "import ctypes; print(ctypes.cdll.kernel32.GetACP())"') DO @SET "PYTHONIOENCODING=%%i"
-@chcp %PYTHONIOENCODING% > NUL
-
 @IF "%1"=="activate" GOTO :DO_ACTIVATE
 @IF "%1"=="deactivate" GOTO :DO_DEACTIVATE
 
@@ -43,6 +40,9 @@
 @DEL /F /Q "%_TEMP_SCRIPT_PATH%"
 @SET _TEMP_SCRIPT_PATH=
 @SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
+
+@IF NOT "%PYTHONIOENCODING%"=="" @chcp %PYTHONIOENCODING% > NUL
+
 @GOTO :End
 
 :DO_DEACTIVATE
