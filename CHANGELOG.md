@@ -69,7 +69,7 @@ For system-wide conda installs, to make the `conda` command available to all use
 
     $ sudo ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
 
-This will make the `conda` comamnd itself available to all users, but conda's base (root) environment will *not* be activated by default.  Users will still need to run `conda activate base` to put the base environment on PATH and gain access to the executables in the base environment.
+This will make the `conda` command itself available to all users, but conda's base (root) environment will *not* be activated by default.  Users will still need to run `conda activate base` to put the base environment on PATH and gain access to the executables in the base environment.
 
 After updating to conda 4.4, we also recommend pinning conda to a specific channel.  For example, executing the command
 
