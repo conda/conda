@@ -187,6 +187,9 @@ class Activator(object):
         self.command = command
 
     def _yield_commands(self, cmds_dict):
+        for script in cmds_dict.get('deactivate_scripts', ()):
+            yield self.run_script_tmpl % script
+
         for key in sorted(cmds_dict.get('unset_vars', ())):
             yield self.unset_var_tmpl % key
 
@@ -195,9 +198,6 @@ class Activator(object):
 
         for key, value in sorted(iteritems(cmds_dict.get('export_vars', {}))):
             yield self.export_var_tmpl % (key, value)
-
-        for script in cmds_dict.get('deactivate_scripts', ()):
-            yield self.run_script_tmpl % script
 
         for script in cmds_dict.get('activate_scripts', ()):
             yield self.run_script_tmpl % script
