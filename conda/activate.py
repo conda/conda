@@ -187,6 +187,9 @@ class Activator(object):
         self.command = command
 
     def _yield_commands(self, cmds_dict):
+        for script in cmds_dict.get('deactivate_scripts', ()):
+            yield self.run_script_tmpl % script
+
         for key in sorted(cmds_dict.get('unset_vars', ())):
             yield self.unset_var_tmpl % key
 
@@ -195,9 +198,6 @@ class Activator(object):
 
         for key, value in sorted(iteritems(cmds_dict.get('export_vars', {}))):
             yield self.export_var_tmpl % (key, value)
-
-        for script in cmds_dict.get('deactivate_scripts', ()):
-            yield self.run_script_tmpl % script
 
         for script in cmds_dict.get('activate_scripts', ()):
             yield self.run_script_tmpl % script
@@ -265,6 +265,12 @@ class Activator(object):
             deactivate_scripts = ()
 
         self._update_prompt(set_vars, conda_prompt_modifier)
+
+        if on_win and self.shell == 'cmd.exe':
+            import ctypes
+            export_vars.update({
+                "PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),
+            })
 
         return {
             'unset_vars': (),
@@ -426,6 +432,10 @@ class Activator(object):
             current_prompt_modifier = os.environ.get('CONDA_PROMPT_MODIFIER')
             if current_prompt_modifier:
                 ps1 = re.sub(re.escape(current_prompt_modifier), r'', ps1)
+            # Because we're using single-quotes to set shell variables, we need to handle the
+            # proper escaping of single quotes that are already part of the string.
+            # Best solution appears to be https://stackoverflow.com/a/1250279
+            ps1 = ps1.replace("'", "'\"'\"'")
             set_vars.update({
                 'PS1': conda_prompt_modifier + ps1,
             })

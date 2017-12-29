@@ -15,7 +15,7 @@ into the notebook metadata
 
 example = """
 examples:
-    conda env attach -n root notebook.ipynb
+    conda env attach -n base notebook.ipynb
     conda env attach -r user/environment notebook.ipynb
 """
 

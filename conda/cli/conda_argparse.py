@@ -6,6 +6,7 @@ from argparse import (ArgumentParser as ArgumentParserBase, RawDescriptionHelpFo
 from logging import getLogger
 import os
 from os.path import abspath, expanduser, join
+from subprocess import Popen
 import sys
 from textwrap import dedent
 
@@ -133,8 +134,13 @@ class ArgumentParser(ArgumentParserBase):
                             from ..exceptions import CommandNotFoundError
                             raise CommandNotFoundError(cmd)
                         args = [find_executable('conda-' + cmd)]
-                        args.extend(sys.argv[2:])
-                        os.execv(args[0], args)
+                        p = Popen(args)
+                        try:
+                            p.communicate()
+                        except KeyboardInterrupt:
+                            p.wait()
+                        finally:
+                            sys.exit(p.returncode)
 
         super(ArgumentParser, self).error(message)
 
@@ -267,9 +273,15 @@ def configure_parser_info(sub_parsers):
         help="Display information about packages.",
     )
     p.add_argument(
+        '--base',
+        action='store_true',
+        help='Display base environment path.',
+    )
+    p.add_argument(
         '--root',
         action='store_true',
-        help='Display root environment path.',
+        help=SUPPRESS,
+        dest='base',
     )
     p.add_argument(
         '--unsafe-channels',

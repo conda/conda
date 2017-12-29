@@ -82,7 +82,7 @@ Conda installs packages into environments efficiently using `hard links
 environments are space efficient, and take seconds to create.
 
 The default environment, which ``conda`` itself is installed into is called
-``root``.  To create another environment, use the ``conda create``
+``base``.  To create another environment, use the ``conda create``
 command. For instance, to create an environment with the IPython notebook and
 NumPy 1.6, which is older than the version that comes with Anaconda by
 default, you would run
@@ -107,7 +107,7 @@ We can now activate this environment, use
 This puts the bin directory of the ``numpy16`` environment in the front of the
 ``PATH``, and sets it as the default environment for all subsequent conda commands.
 
-To go back to the root environment, use
+To go back to the base environment, use
 
 .. code-block:: bash
 
@@ -188,7 +188,7 @@ so that ``which -a conda`` lists first your miniconda installation.
 If you are worried about breaking your conda installation, you can install a
 separate instance of `Miniconda <http://conda.pydata.org/miniconda.html>`_ and
 work off it. This is also the only way to test conda in both Python 2 and
-Python 3, as conda can only be installed into a root environment.
+Python 3, as conda can only be installed into a base environment.
 
 To run the tests, set up a testing environment by running
 

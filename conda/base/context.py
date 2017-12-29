@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import ENOENT
 from logging import getLogger
 import os
 from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
@@ -29,6 +30,16 @@ try:
     from cytoolz.itertoolz import concat, concatv, unique
 except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, concatv, unique
+
+try:
+    os.getcwd()
+except (IOError, OSError) as e:
+    if e.errno == ENOENT:
+        # FileNotFoundError can occur when cwd has been deleted out from underneath the process.
+        # To resolve #6584, let's go with setting cwd to sys.prefix, and see how far we get.
+        os.chdir(sys.prefix)
+    else:
+        raise
 
 log = getLogger(__name__)
 

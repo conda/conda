@@ -17,7 +17,7 @@ There was an error importing conda.
 
 It appears this was caused by installing conda-env into a conda
 environment.  Like conda, conda-env needs to be installed into your
-root conda/Anaconda environment.
+base conda/Anaconda environment.
 
 Please deactivate your current environment, then re-install conda-env
 using this command:

@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import bz2
 from collections import defaultdict
 from contextlib import closing
-from errno import ENODEV
+from errno import EACCES, ENODEV, EPERM
 from genericpath import getmtime, isfile
 import hashlib
 import json
@@ -26,7 +26,7 @@ from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, te
                              with_metaclass)
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache import PackageCache
-from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError
+from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError, NotWritableError
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)
 from ..gateways.connection.session import CondaSession
@@ -219,8 +219,14 @@ class SubdirData(object):
         else:
             if not isdir(dirname(self.cache_path_json)):
                 mkdir_p(dirname(self.cache_path_json))
-            with open(self.cache_path_json, 'w') as fh:
-                fh.write(raw_repodata_str or '{}')
+            try:
+                with open(self.cache_path_json, 'w') as fh:
+                    fh.write(raw_repodata_str or '{}')
+            except (IOError, OSError) as e:
+                if e.errno in (EACCES, EPERM):
+                    raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
+                else:
+                    raise
             _internal_state = self._process_raw_repodata_str(raw_repodata_str)
             self._internal_state = _internal_state
             self._pickle_me()

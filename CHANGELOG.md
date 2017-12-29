@@ -1,3 +1,17 @@
+## 4.4.5 (2017-12-29)
+
+### Bug Fixes
+* fix #6577, #6580 single quote in PS1 (#6585)
+* fix #6584 os.getcwd() FileNotFound (#6589)
+* fix #6592 deactivate command order (#6602)
+* fix #6579 python not recognized as command (#6588)
+* fix #6572 cached repodata PermissionsError (#6573)
+* change instances of 'root' to 'base' (#6598)
+* fix #6607 use subprocess rather than execv for conda command extensions (#6609)
+* fix #6581 git-bash activation (#6587)
+* fix #6599 space in path to base prefix (#6608)
+
+
 ## 4.4.4 (2017-12-24)
 
 ### Improvements
