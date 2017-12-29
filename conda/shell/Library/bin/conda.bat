@@ -1,12 +1,8 @@
-@REM @SET _CONDA_EXE="%~dp0..\..\Scripts\conda.exe"
-
-@IF NOT "%_CONDA_EXE%" == "" GOTO skip_conda_exe_dev
-    @IF "%CONDA_PYTHON_EXE%" == "" (
-        @SET "_CONDA_EXE=python "%~dp0..\..\bin\conda""
-    ) ELSE (
-        @SET "_CONDA_EXE="%CONDA_PYTHON_EXE%" "%~dp0..\..\bin\conda""
-    )
-:skip_conda_exe_dev
+@IF EXIST "%~dp0..\..\Scripts\conda.exe" (
+    @SET "_CONDA_EXE="%~dp0..\..\Scripts\conda.exe""
+) ELSE (
+    @SET "_CONDA_EXE=python "%~dp0..\..\bin\conda""
+)
 
 @IF "%1"=="activate" GOTO :DO_ACTIVATE
 @IF "%1"=="deactivate" GOTO :DO_DEACTIVATE

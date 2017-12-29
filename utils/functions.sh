@@ -174,8 +174,9 @@ install_conda_shell_scripts() {
 
         mkdir -p "$prefix/Library/bin"
         rm -f "$prefix/Library/bin/conda.bat"
-        echo "@SET \"_CONDA_EXE=$conda_exe\"" > "$prefix/Library/bin/conda.bat"
-        cat "$src_dir/conda/shell/Library/bin/conda.bat" >> "$prefix/Library/bin/conda.bat"
+        # echo "@SET \"_CONDA_EXE=\"$conda_exe\"\"" > "$prefix/Library/bin/conda.bat"
+        # cat "$src_dir/conda/shell/Library/bin/conda.bat" >> "$prefix/Library/bin/conda.bat"
+        cp "$src_dir/conda/shell/Library/bin/conda.bat" "$prefix/Library/bin/conda.bat"
 
         rm -f "$prefix/$BIN_DIR/activate"
         echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
