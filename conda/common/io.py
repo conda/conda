@@ -32,6 +32,39 @@ log = getLogger(__name__)
 _FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s")
 
 
+class ContextDecorator(object):
+    """Base class for a context manager class (implementing __enter__() and __exit__()) that also
+    makes it a decorator.
+    """
+
+    # TODO: figure out how to improve this pattern so e.g. swallow_broken_pipe doesn't have to be instantiated  # NOQA
+
+    def __call__(self, f):
+        @wraps(f)
+        def decorated(*args, **kwds):
+            with self:
+                return f(*args, **kwds)
+        return decorated
+
+
+class SwallowBrokenPipe(ContextDecorator):
+    # Ignore BrokenPipeError and errors related to stdout or stderr being
+    # closed by a downstream program.
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if (exc_val
+                and isinstance(exc_val, EnvironmentError)
+                and getattr(exc_val, 'errno', None)
+                and exc_val.errno in (EPIPE, ESHUTDOWN)):
+            return True
+
+
+swallow_broken_pipe = SwallowBrokenPipe()
+
+
 class CaptureTarget(Enum):
     """Constants used for contextmanager captured.
 
@@ -262,20 +295,35 @@ def timeout(timeout_secs, func, *args, **kwargs):
 
 
 class Spinner(object):
+    """
+    Args:
+        message (str):
+            A message to prefix the spinner with. The string ': ' is automatically appended.
+        enabled (bool):
+            If False, usage is a no-op.
+        json (bool):
+           If True, will not output non-json to stdout.
+
+    """
+
     # spinner_cycle = cycle("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
     spinner_cycle = cycle('/-\\|')
 
-    def __init__(self, enable_spin=True):
+    def __init__(self, message, enabled=True, json=False):
+        self.message = message
+        self.enabled = enabled
+        self.json = json
+
         self._stop_running = Event()
         self._spinner_thread = Thread(target=self._start_spinning)
         self._indicator_length = len(next(self.spinner_cycle)) + 1
         self.fh = sys.stdout
-        self.show_spin = enable_spin and hasattr(self.fh, "isatty") and self.fh.isatty()
+        self.show_spin = enabled and not json and hasattr(self.fh, "isatty") and self.fh.isatty()
 
     def start(self):
         if self.show_spin:
             self._spinner_thread.start()
-        else:
+        elif not self.json:
             self.fh.write("...working... ")
             self.fh.flush()
 
@@ -283,60 +331,37 @@ class Spinner(object):
         if self.show_spin:
             self._stop_running.set()
             self._spinner_thread.join()
+            self.show_spin = False
 
     def _start_spinning(self):
-        while not self._stop_running.is_set():
-            self.fh.write(next(self.spinner_cycle) + ' ')
-            self.fh.flush()
-            sleep(0.10)
-            self.fh.write('\b' * self._indicator_length)
-
-
-@contextmanager
-def spinner(message=None, enabled=True, json=False):
-    """
-    Args:
-        message (str, optional):
-            An optional message to prefix the spinner with.
-            If given, ': ' are automatically added.
-        enabled (bool):
-            If False, usage is a no-op.
-        json (bool):
-           If True, will not output non-json to stdout.
-    """
-    sp = Spinner(enabled)
-    exception_raised = False
-    try:
-        if message:
-            if json:
-                pass
+        try:
+            while not self._stop_running.is_set():
+                self.fh.write(next(self.spinner_cycle) + ' ')
+                self.fh.flush()
+                sleep(0.10)
+                self.fh.write('\b' * self._indicator_length)
+        except EnvironmentError as e:
+            if e.errno in (EPIPE, ESHUTDOWN):
+                self.stop()
             else:
-                sys.stdout.write("%s: " % message)
+                raise
+
+    @swallow_broken_pipe
+    def __enter__(self):
+        if not self.json:
+            sys.stdout.write("%s: " % self.message)
+            sys.stdout.flush()
+        self.start()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+        if not self.json:
+            with swallow_broken_pipe:
+                if exc_type or exc_val:
+                    sys.stdout.write("failed\n")
+                else:
+                    sys.stdout.write("done\n")
                 sys.stdout.flush()
-        if not json:
-            sp.start()
-        yield
-    except:
-        exception_raised = True
-        raise
-    finally:
-        if not json:
-            sp.stop()
-        if message:
-            if json:
-                pass
-            else:
-                try:
-                    if exception_raised:
-                        sys.stdout.write("failed\n")
-                    else:
-                        sys.stdout.write("done\n")
-                    sys.stdout.flush()
-                except (IOError, OSError) as e:
-                    # Ignore BrokenPipeError and errors related to stdout or stderr being
-                    # closed by a downstream program.
-                    if e.errno not in (EPIPE, ESHUTDOWN):
-                        raise
 
 
 class ProgressBar(object):
@@ -361,32 +386,38 @@ class ProgressBar(object):
             pass
         elif enabled:
             bar_format = "{desc}{bar} | {percentage:3.0f}% "
-            self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, total=1)
+            try:
+                self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, total=1)
+            except EnvironmentError as e:
+                if e.errno in (EPIPE, ESHUTDOWN):
+                    self.enabled = False
+                else:
+                    raise
 
     def update_to(self, fraction):
-        if self.json:
-            sys.stdout.write('{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
-                             % (self.description, fraction))
-        elif self.enabled:
-            self.pbar.update(fraction - self.pbar.n)
+        try:
+            if self.json and self.enabled:
+                sys.stdout.write('{"fetch":"%s","finished":false,"maxval":1,"progress":%f}\n\0'
+                                 % (self.description, fraction))
+            elif self.enabled:
+                self.pbar.update(fraction - self.pbar.n)
+        except EnvironmentError as e:
+            if e.errno in (EPIPE, ESHUTDOWN):
+                self.enabled = False
+            else:
+                raise
 
     def finish(self):
         self.update_to(1)
 
+    @swallow_broken_pipe
     def close(self):
-        try:
-            if self.json:
-                sys.stdout.write('{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
-                                 % self.description)
-                sys.stdout.flush()
-            elif self.enabled:
-                self.pbar.close()
-        except (IOError, OSError) as e:
-            # Ignore BrokenPipeError and errors related to stdout or stderr being
-            # closed by a downstream program.
-            if e.errno not in (EPIPE, ESHUTDOWN):
-                raise
-        self.enabled = False
+        if self.enabled and self.json:
+            sys.stdout.write('{"fetch":"%s","finished":true,"maxval":1,"progress":1}\n\0'
+                             % self.description)
+            sys.stdout.flush()
+        elif self.enabled:
+            self.pbar.close()
 
 
 class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
@@ -431,15 +462,6 @@ class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
 
 
 as_completed = as_completed  # anchored here for import by other modules
-
-
-class ContextDecorator(object):
-    def __call__(self, f):
-        @wraps(f)
-        def decorated(*args, **kwds):
-            with self:
-                return f(*args, **kwds)
-        return decorated
 
 
 class time_recorder(ContextDecorator):  # pragma: no cover

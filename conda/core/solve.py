@@ -18,7 +18,7 @@ from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
 from ..common.constants import NULL
-from ..common.io import spinner
+from ..common.io import Spinner
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import PackagesNotFoundError
 from ..gateways.logging import TRACE
@@ -492,7 +492,7 @@ class Solver(object):
             UnlinkLinkTransaction:
 
         """
-        with spinner("Solving environment", not context.verbosity and not context.quiet,
+        with Spinner("Solving environment", not context.verbosity and not context.quiet,
                      context.json):
             if self.prefix == context.root_prefix and context.enable_private_envs:
                 # This path has the ability to generate a multi-prefix transaction. The basic logic
@@ -516,7 +516,7 @@ class Solver(object):
                 )
                 if conda_newer_records:
                     latest_version = conda_newer_records[-1].version
-                    sys.stderr.write(dedent("""
+                    print(dedent("""
 
                     ==> WARNING: A newer version of conda exists. <==
                       current version: %s
@@ -527,7 +527,7 @@ class Solver(object):
                         $ conda update -n base conda
 
 
-                    """) % (CONDA_VERSION, latest_version))
+                    """) % (CONDA_VERSION, latest_version), file=sys.stderr)
 
         return UnlinkLinkTransaction(stp)
 
