@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from datetime import timedelta
+from errno import EPIPE, ESHUTDOWN
 import json
 from logging import getLogger
 import os
@@ -169,6 +170,8 @@ class SharedLinkPathClobberError(ClobberError):
 
 
 class CommandNotFoundError(CondaError):
+    return_code = 127  # standard, according to http://tldp.org/LDP/abs/html/exitcodes.html
+
     def __init__(self, command):
         activate_commands = {
             'activate',
@@ -757,6 +760,11 @@ class ExceptionHandler(object):
             return 1
         elif isinstance(exc_val, SystemExit):
             return exc_val.code
+        elif (isinstance(exc_val, (IOError, OSError))
+              and getattr(exc_val, 'errno', None) in (EPIPE, ESHUTDOWN)):
+            # BrokenPipeError is caused by stdout or stderr being closed by a downstream program.
+            sys.stderr.write("\nBroken pipe.\n")
+            return 1
         else:
             return self.handle_unexpected_exception(exc_val, exc_tb)
 
