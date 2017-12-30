@@ -226,7 +226,7 @@ def get_env_vars_str(info_dict):
     env_vars = info_dict.get('env_vars', {})
     for key in sorted(env_vars):
         value = wrap(env_vars[key])
-        first_line = value[0]
+        first_line = value[0] if len(value) else ""
         other_lines = value[1:] if len(value) > 1 else ()
         builder.append("%25s=%s" % (key, first_line))
         for val in other_lines:

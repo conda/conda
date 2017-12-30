@@ -1,6 +1,8 @@
 import json
 from unittest import TestCase
 
+import sys
+
 from conda import text_type
 from conda._vendor.auxlib.collection import AttrDict
 from conda._vendor.auxlib.ish import dals
@@ -420,6 +422,7 @@ class ExceptionTests(TestCase):
             assert input_mock.call_count == 0
             assert post_mock.call_count == 0
             assert c.stdout == ''
+            print(c.stderr, file=sys.stderr)
             assert "conda version" in c.stderr
 
     @patch('requests.post', return_value=None)
