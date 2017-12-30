@@ -368,8 +368,18 @@ class Activator(object):
     def _get_starting_path_list(self):
         path = os.environ['PATH']
         if on_win:
-            # on Windows, the python interpreter prepends sys.prefix\Library\bin on startup WTF
-            return path.split(os.pathsep)[1:]
+            # on Windows, the Anaconda Python interpreter prepends sys.prefix\Library\bin on startup (to allow users to
+            # avoid using the correct activation procedure; a hack that needs to go away: it doesn't add all the paths)
+            # See: https://github.com/AnacondaRecipes/python-feedstock/blob/master/recipe/0005-Win32-Ensure-Library-bin-is-in-os.environ-PATH.patch  # noqa
+            # But, we now detect if that has happened because:
+            # 1. In future we would like to remove this hack and require real activation.
+            # 2. We should not assume that the Anaconda Python interpreter is being used.
+            psplit = path.split(os.pathsep)
+            library_bin = r"%s\Library\bin" % (sys.prefix)
+            if psplit[0] == library_bin:
+                return psplit[1:]
+            else:
+                return psplit
         else:
             return path.split(os.pathsep)
 
