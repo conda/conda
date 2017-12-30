@@ -376,7 +376,9 @@ class Activator(object):
             #   1. In future we would like to remove this hack and require real activation.
             #   2. We should not assume that the Anaconda Python interpreter is being used.
             path_split = path.split(os.pathsep)
-            if path_split[0] == join(sys.prefix, 'Library', 'bin'):
+            library_bin = r"%s\Library\bin" % (sys.prefix)
+            # ^^^ deliberately the same as: https://github.com/AnacondaRecipes/python-feedstock/blob/8e8aee4e2f4141ecfab082776a00b374c62bb6d6/recipe/0005-Win32-Ensure-Library-bin-is-in-os.environ-PATH.patch#L20  # NOQA
+            if normpath(path_split[0]) == normpath(library_bin):
                 return path_split[1:]
             else:
                 return path_split
