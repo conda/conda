@@ -121,23 +121,19 @@ def make_install_plan(conda_prefix):
     # ######################################
     if on_win:
         conda_exe_path = join(conda_prefix, 'Scripts', 'conda-script.py')
+        conda_env_exe_path = join(conda_prefix, 'Scripts', 'conda-env-script.py')
         plan.append({
             'function': make_entry_point_exe.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'Scripts', 'conda.exe'),
                 'conda_prefix': conda_prefix,
-                'module': 'conda.cli',
-                'func': 'main',
             },
         })
-        conda_env_exe_path = join(conda_prefix, 'Scripts', 'conda-env-script.py')
         plan.append({
             'function': make_entry_point_exe.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'Scripts', 'conda-env.exe'),
                 'conda_prefix': conda_prefix,
-                'module': 'conda_env.cli.main',
-                'func': 'main',
             },
         })
     else:
@@ -348,7 +344,7 @@ def make_entry_point(target_path, conda_prefix, module, func):
         return Result.NO_CHANGE
 
 
-def make_entry_point_exe(target_path):
+def make_entry_point_exe(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Scripts', 'conda.exe')
     exe_path = target_path
     source_exe_path = join(CONDA_PACKAGE_ROOT, 'shell', 'cli-%d.exe' % context.bits)
@@ -356,6 +352,8 @@ def make_entry_point_exe(target_path):
         if compute_md5sum(exe_path) == compute_md5sum(source_exe_path):
             return Result.NO_CHANGE
 
+    if not isdir(dirname(exe_path)):
+        mkdir_p(dirname(exe_path))
     create_hard_link_or_copy(source_exe_path, exe_path)
     return Result.MODIFIED
 

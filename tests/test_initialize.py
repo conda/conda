@@ -3,15 +3,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from distutils.sysconfig import get_python_lib
 from logging import getLogger
-from os.path import join, realpath
+from os.path import join, realpath, isfile
 import sys
 
 from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
+from conda.base.context import context
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win
 from conda.initialize import Result, _get_python_info, init_conda_bat, init_conda_csh, \
-    init_conda_fish, init_conda_sh, init_conda_xsh, make_entry_point, make_install_plan
+    init_conda_fish, init_conda_sh, init_conda_xsh, make_entry_point, make_install_plan, \
+    make_entry_point_exe
 from .helpers import tempdir
 
 try:
@@ -244,4 +246,16 @@ def test_init_conda_bat():
         assert remainder == original_contents
 
         result = init_conda_bat(target_path, conda_prefix)
+        assert result == Result.NO_CHANGE
+
+
+def test_make_entry_point_exe():
+    with tempdir() as conda_prefix:
+        target_path = join(conda_prefix, 'Scripts', 'conda-env.exe')
+        result = make_entry_point_exe(target_path, conda_prefix)
+        assert result == Result.MODIFIED
+
+        assert isfile(target_path)
+
+        result = make_entry_point_exe(target_path, conda_prefix)
         assert result == Result.NO_CHANGE
