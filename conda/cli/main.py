@@ -35,6 +35,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import sys
 
+import os
+
 PARSER = None
 
 
@@ -77,6 +79,17 @@ def _main(*args, **kwargs):
     post_parse_hook = kwargs.pop('post_parse_hook', None)
     if post_parse_hook:
         post_parse_hook(args, p)
+
+    if not os.environ.get('CONDA_SHLVL', None):
+        from .._vendor.auxlib.ish import dals
+        print(dals("""
+        
+        WARNING: Conda may not have been properly initialized.
+        
+        To enable full conda functionality, please run 'conda init'.
+        For additional information, see 'conda init --help'.
+        
+        """), file=sys.stderr)
 
     from .conda_argparse import do_call
     exit_code = do_call(args, p)

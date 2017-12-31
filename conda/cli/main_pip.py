@@ -17,7 +17,7 @@ def pip_installed_post_parse_hook(args, p):
         Conda has not been initialized.
         
         To enable full conda functionality, please run 'conda init'.
-        See `conda init --help` for additional information.
+        For additional information, see 'conda init --help'.
         
         """))
 
