@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from enum import Enum
 import json
 from logging import getLogger
 
-from .compat import PY2, odict
+from .compat import PY2, odict, text_type
 from .._vendor.auxlib.decorators import memoize
 from .._vendor.auxlib.entity import EntityEncoder
 
