@@ -538,10 +538,12 @@ def configure_parser_init(sub_parsers):
 
     epilog = dedent("""
     Key parts of conda's functionality require that it interact directly with the shell 
-    within which conda is being invoked. The 'conda activate' and 'conda deactivate' commands 
+    within which conda is being invoked. The `conda activate` and `conda deactivate` commands 
     specifically are shell-level commands. That is, they affect the state (e.g. environment 
-    variables) of the shell context being interacted with. They're therefore implemented in ways 
-    specific to each shell. Each shell must be configured to make use of them.
+    variables) of the shell context being interacted with. Other core commands, like 
+    `conda create` and `conda install`, also necessarily interact with the shell environment. 
+    They're therefore implemented in ways specific to each shell. Each shell must be configured 
+    to make use of them.
     
     Examples:
         
@@ -559,14 +561,25 @@ def configure_parser_init(sub_parsers):
         
             $ conda init --system
         
-        # Initialize conda in all detected shells for the current user. Additionally, *only*
-        # make the 'conda' command available to the shell, and *do not* automatically activate
-        # the base environment. Executables in the base environment, like python, will not
-        # be available on PATH until running 'conda activate base'.
+        # Initialize conda in all detected shells for the current user. Additionally, make *only*
+        # the 'conda' command available to the shell, and *do not* automatically activate the 
+        # base environment. Executables in the base environment, like python, will not be 
+        # available on PATH until running 'conda activate base'.
         
             $ conda init --no-auto-activate
+        
+        # When executed from a bash shell, ensure that conda is properly installed in the prefix 
+        # for the first python on PATH (e.g. following a `python -m pip install conda`). Make the 
+        # 'conda' command available to the current shell process, and activate the 'base' 
+        # environment. Does not modify `~/.bashrc` for example, so has no effect on future shell
+        # sessions.
+        
+            $ eval `python -m conda init --install-only bash`
 
 
+    IMPORTANT: After running `conda init`, most shells will need to be closed and restarted
+               for changes to take effect.
+    
     """)
     p = sub_parsers.add_parser(
         'init',
