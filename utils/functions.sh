@@ -162,7 +162,7 @@ install_conda_shell_scripts() {
     local src_dir=${2:-${SRC_DIR:-$PWD}}
 
     if [ -n "$ON_WIN" ]; then
-        local conda_exe="$WIN_PREFIX\$BIN_DIR\conda$EXE_EXT"
+        local conda_exe="$WIN_PREFIX\\$BIN_DIR\\conda$EXE_EXT"
 
         mkdir -p "$prefix/$BIN_DIR"
 

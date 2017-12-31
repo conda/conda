@@ -39,8 +39,28 @@ if on_win:
 else:
     PYTHONIOENCODING = None
 
+POP_THESE = (
+    'CONDA_SHLVL',
+    'CONDA_DEFAULT_ENV',
+    'CONDA_PREFIX',
+    'CONDA_PREFIX_0',
+    'CONDA_PREFIX_1',
+    'CONDA_PREFIX_2',
+    'PS1',
+    'prompt',
+)
+
 
 class ActivatorUnitTests(TestCase):
+
+    def setUp(self):
+        self.hold_environ = os.environ.copy()
+        for var in POP_THESE:
+            os.environ.pop(var, None)
+
+    def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self.hold_environ)
 
     def test_activate_environment_not_found(self):
         activator = Activator('posix')
@@ -377,8 +397,14 @@ class ShellWrapperUnitTests(TestCase):
         assert isdir(self.prefix)
         touch(join(self.prefix, 'conda-meta', 'history'))
 
+        self.hold_environ = os.environ.copy()
+        for var in POP_THESE:
+            os.environ.pop(var, None)
+
     def tearDown(self):
         rm_rf(self.prefix)
+        os.environ.clear()
+        os.environ.update(self.hold_environ)
 
     def make_dot_d_files(self, extension):
         mkdir_p(join(self.prefix, 'etc', 'conda', 'activate.d'))

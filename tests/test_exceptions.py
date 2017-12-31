@@ -1,5 +1,10 @@
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import json
 from unittest import TestCase
+
+import sys
 
 from conda import text_type
 from conda._vendor.auxlib.collection import AttrDict
@@ -420,6 +425,7 @@ class ExceptionTests(TestCase):
             assert input_mock.call_count == 0
             assert post_mock.call_count == 0
             assert c.stdout == ''
+            print(c.stderr, file=sys.stderr)
             assert "conda version" in c.stderr
 
     @patch('requests.post', return_value=None)
