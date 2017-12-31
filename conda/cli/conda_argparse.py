@@ -581,6 +581,25 @@ def configure_parser_init(sub_parsers):
                for changes to take effect.
     
     """)
+
+    dev_example = dedent("""
+        # An example for creating an environment to develop on conda's own code. Clone the 
+        # conda repo and install a dedicated miniconda within it. Remove all remnants of 
+        # conda source files in the `site-packages` directory associated with 
+        # `~/conda/devenv/bin/python`. Write a `conda.pth` file in that `site-packages` 
+        # directory pointing to source code in `~/conda`, the current working directory.
+        # Write commands to stdout, suitable for bash `eval`, that sets up the current
+        # shell as a dev environment. 
+            
+            $ git clone git@github.com:conda/conda ~/conda
+            $ curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o ~/Miniconda3-latest-Linux-x86_64.sh
+            $ bash ~/Miniconda3-latest-Linux-x86_64.sh -bfp ~/conda/devenv
+            $ cd ~/conda
+            $ eval `./devenv/bin/python -m conda init --dev bash`
+        
+    
+    """)
+
     p = sub_parsers.add_parser(
         'init',
         description=descr,
