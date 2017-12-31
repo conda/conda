@@ -1,5 +1,3 @@
-# . utils/functions.sh && install_conda_full
-$PYTHON setup.py install
-$PYTHON -c "from conda.core.initialize import install; install('$PREFIX')"
-
-
+python setup.py install --single-version-externally-managed --record record.txt
+rm -rf "$SP_DIR/conda/shell/*.exe"
+conda init --install

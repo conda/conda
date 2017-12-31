@@ -57,7 +57,7 @@ def generate_parser():
     configure_parser_create(sub_parsers)
     configure_parser_help(sub_parsers)
     configure_parser_info(sub_parsers)
-    configure_parser_initialize(sub_parsers)
+    configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)
     configure_parser_list(sub_parsers)
     configure_parser_package(sub_parsers)
@@ -68,6 +68,25 @@ def generate_parser():
     configure_parser_update(sub_parsers, name='upgrade')
 
     return p
+
+
+def generate_pip_parser():
+    p = ArgumentParser(
+        description='conda is a tool for managing and deploying applications,'
+                    ' environments and packages.',
+    )
+    p.add_argument(
+        '-V', '--version',
+        action='version',
+        version='conda %s' % __version__,
+        help="Show the conda version number and exit."
+    )
+    sub_parsers = p.add_subparsers(
+        metavar='command',
+        dest='cmd',
+    )
+    configure_parser_info(sub_parsers)
+    configure_parser_init(sub_parsers)
 
 
 def do_call(args, parser):
@@ -513,18 +532,18 @@ def configure_parser_create(sub_parsers):
     p.set_defaults(func='.main_create.execute')
 
 
-def configure_parser_initialize(sub_parsers):
+def configure_parser_init(sub_parsers):
     help = "Initialize conda shell commands. [Experimental]"
     descr = help
 
     example = dedent("""
     Examples:
 
-        conda initialize
+        conda init
 
     """)
     p = sub_parsers.add_parser(
-        'initialize',
+        'init',
         description=descr,
         help=help,
         epilog=example,
@@ -534,9 +553,16 @@ def configure_parser_initialize(sub_parsers):
         "--dev",
         action="store_true",
         help=SUPPRESS,
+        default=NULL,
     )
 
     setup_type_group = p.add_argument_group('setup type')
+    setup_type_group.add_argument(
+        "--install-only",
+        action="store_true",
+        help=SUPPRESS,
+        default=NULL,
+    )
     setup_type_group.add_argument(
         "--user",
         action="store_true",
@@ -548,6 +574,12 @@ def configure_parser_initialize(sub_parsers):
         action="store_true",
         help="Initialize conda for all users on the system.",
         default=NULL,
+    )
+
+    p.add_argument(
+        'shells',
+        nargs='*',
+        action='append',
     )
 
     shells_group = p.add_argument_group('shells')
@@ -588,7 +620,7 @@ def configure_parser_initialize(sub_parsers):
         dest='auto_activate',
     )
     add_parser_json(p)
-    p.set_defaults(func='.main_initialize.execute')
+    p.set_defaults(func='.main_init.execute')
 
 
 def configure_parser_help(sub_parsers):

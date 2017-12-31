@@ -5,4 +5,4 @@ include README.rst
 include setup.cfg
 include setup.py
 recursive-exclude tests *
-recursive-exclude shell *
+recursive-include conda/shell *

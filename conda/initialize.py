@@ -5,7 +5,8 @@ from glob import glob
 import json
 from logging import getLogger
 import os
-from os.path import dirname, exists, isfile, join
+from os.path import dirname, exists, isfile, join, isdir
+from random import randint
 import re
 import sys
 
@@ -14,7 +15,7 @@ from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
 from .base.context import context
 from .common.compat import on_mac, on_win, string_types
-from .common.path import expand
+from .common.path import expand, get_python_short_path, get_python_site_packages_short_path
 from .gateways.disk.create import create_hard_link_or_copy, create_soft_link_or_copy, mkdir_p
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import lexists
@@ -42,6 +43,7 @@ class Result:
 def install(conda_prefix):
     plan = make_install_plan(conda_prefix)
     run_plan(plan)
+    assert not any(step['result'] == Result.NEEDS_SUDO for step in plan)
     print_plan_results(plan)
 
 
@@ -52,36 +54,65 @@ def initialize(conda_prefix, auto_activate, shells, for_user, for_system):
     print_plan_results(plan)
 
 
-def initialize_dev():
-    # > eval `$(which python) -m conda initialize --dev`
+def _get_python_info(prefix):
+    python_exe = join(prefix, get_python_short_path())
+    result = subprocess_call("%s --version" % python_exe)
+    stdout, stderr = result.stdout.strip(), result.stderr.strip()
+    if stderr:
+        python_version = stderr.split()[1]
+    elif stdout:  # pragma: no cover
+        python_version = stdout.split()[1]
+    else:  # pragma: no cover
+        raise ValueError("No python version information available.")
 
-    from distutils.sysconfig import get_python_lib
-    site_packages_dir = get_python_lib()
+    site_packages_dir = join(prefix, get_python_site_packages_short_path(python_version))
+    return python_exe, python_version, site_packages_dir
 
-    if not isfile('conda/__init__.py'):
-        print("Current working directory needs to be conda source root.", file=sys.stderr)
+
+def initialize_dev(shell, dev_env_prefix=None, conda_source_dir=None):
+    # > eval `$(which python) -m conda init --dev`
+
+    dev_env_prefix = expand(dev_env_prefix or sys.prefix)
+    conda_source_dir = expand(conda_source_dir or os.getcwd())
+
+    python_exe, python_version, site_packages_dir = _get_python_info(dev_env_prefix)
+
+    if not isfile(join(conda_source_dir, 'conda', '__init__.py')):
+        print("Directory is not a conda source root: %s" % conda_source_dir, file=sys.stderr)
         return 1
 
-    remove_conda_sp_dir(site_packages_dir)
-
     plan = []
+    plan.append({
+        'function': remove_conda_in_sp_dir.__name__,
+        'kwargs': {
+            'target_path': site_packages_dir,
+        },
+    })
     plan.append({
         'function': make_conda_pth.__name__,
         'kwargs': {
             'target_path': join(site_packages_dir, 'conda.pth'),
-            'conda_source_dir': os.getcwd(),
+            'conda_source_dir': conda_source_dir,
         },
     })
 
     run_plan(plan)
-    # print_plan_results(plan, stream=sys.stderr)
-    print(". conda/shell/etc/profile.d/conda.sh")
-    print("conda activate %s" % sys.prefix)
+    if shell == "bash":
+        builder = [
+            "export PYTHON_MAJOR_VERSION='%s'" % python_version[0],
+            "export TEST_PLATFORM='%s'" % 'win' if sys.platform.startswith('win') else 'unix',
+            "export PYTHONHASHSEED='%d'" % randint(0,4294967296),
+            "export _CONDA_ROOT='%s'" % conda_source_dir,
+            ". conda/shell/etc/profile.d/conda.sh",
+            "conda activate '%s'" % dev_env_prefix,
+        ]
+        print("\n".join(builder))
+    else:
+        raise NotImplementedError()
 
 
 def make_install_plan(conda_prefix):
-    from distutils.sysconfig import get_python_lib
-    site_packages_dir = get_python_lib()
+    python_exe, python_version, site_packages_dir = _get_python_info(conda_prefix)
 
     plan = []
 
@@ -94,6 +125,9 @@ def make_install_plan(conda_prefix):
             'function': make_entry_point_exe.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'Scripts', 'conda.exe'),
+                'conda_prefix': conda_prefix,
+                'module': 'conda.cli',
+                'func': 'main',
             },
         })
         conda_env_exe_path = join(conda_prefix, 'Scripts', 'conda-env-script.py')
@@ -101,6 +135,9 @@ def make_install_plan(conda_prefix):
             'function': make_entry_point_exe.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'Scripts', 'conda-env.exe'),
+                'conda_prefix': conda_prefix,
+                'module': 'conda_env.cli.main',
+                'func': 'main',
             },
         })
     else:
@@ -111,6 +148,7 @@ def make_install_plan(conda_prefix):
         'function': make_entry_point.__name__,
         'kwargs': {
             'target_path': conda_exe_path,
+            'conda_prefix': conda_prefix,
             'module': 'conda.cli',
             'func': 'main',
         },
@@ -119,6 +157,7 @@ def make_install_plan(conda_prefix):
         'function': make_entry_point.__name__,
         'kwargs': {
             'target_path': conda_env_exe_path,
+            'conda_prefix': conda_prefix,
             'module': 'conda_env.cli.main',
             'func': 'main',
         },
@@ -220,7 +259,7 @@ def run_plan(plan):
         try:
             result = globals()[step['function']](*step.get('args', ()), **step.get('kwargs', {}))
         except (IOError, OSError) as e:
-            log.debug("%s: %r", step['function'], e, exc_info=True)
+            log.error("%s: %r", step['function'], e, exc_info=True)
             result = Result.NEEDS_SUDO
         step['result'] = result
 
@@ -270,7 +309,7 @@ def print_plan_results(plan, stream=sys.stdout):
         print("No action taken.", file=stream)
 
 
-def make_entry_point(target_path, module, func):
+def make_entry_point(target_path, conda_prefix, module, func):
     # target_path: join(conda_prefix, 'bin', 'conda')
     conda_ep_path = target_path
 
@@ -284,7 +323,7 @@ def make_entry_point(target_path, module, func):
         # no shebang needed on windows
         new_ep_content = ""
     else:
-        new_ep_content = "#!" + join(dirname(target_path), 'python')
+        new_ep_content = "#!%s\n" % join(conda_prefix, get_python_short_path())
 
     new_ep_content += dals("""
     # -*- coding: utf-8 -*-
@@ -303,7 +342,7 @@ def make_entry_point(target_path, module, func):
         with open(conda_ep_path, 'w') as fdst:
             fdst.write(new_ep_content)
         if not on_win:
-            make_executable(new_ep_content)
+            make_executable(conda_ep_path)
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
@@ -337,6 +376,7 @@ def init_conda_sh(target_path, conda_prefix):
         new_conda_sh = "_CONDA_EXE=\"$(cygpath '%s')\"\n" % win_conda_exe
     else:
         new_conda_sh = '_CONDA_EXE="%s"\n' % join(conda_prefix, 'bin', 'conda')
+
     with open(conda_sh_src_path) as fsrc:
         new_conda_sh += fsrc.read()
 
@@ -569,21 +609,22 @@ def init_conda_csh(target_path, conda_prefix):
         return Result.NO_CHANGE
 
 
-
-def remove_conda_sp_dir(site_packages_dir):
+def remove_conda_in_sp_dir(target_path):
+    # target_path: site_packages_dir
+    site_packages_dir = target_path
     for path in glob(join(site_packages_dir, "conda*.egg")):
         print("rm -rf %s" % path, file=sys.stderr)
         rm_rf(path)
-
-    if isfile(join(site_packages_dir, "conda.egg-link")):
-        print("rm -rf %s" % join(site_packages_dir, "conda.egg-link"))
-        rm_rf(join(site_packages_dir, "conda.egg-link"))
-    if isfile(join(site_packages_dir, "conda")):
-        print("rm -rf %s" % join(site_packages_dir, "conda"))
-        rm_rf(join(site_packages_dir, "conda"))
-    if isfile(join(site_packages_dir, "conda_env")):
-        print("rm -rf %s" % join(site_packages_dir, "conda_env"))
-        rm_rf(join(site_packages_dir, "conda_env"))
+    others = (
+        "conda",
+        "conda.egg-link",
+        "conda_env",
+    )
+    for other in others:
+        path = join(site_packages_dir, other)
+        if isfile(path):
+            print("rm -rf %s" % path)
+            rm_rf(path)
 
 
 def make_conda_pth(target_path, conda_source_dir):
