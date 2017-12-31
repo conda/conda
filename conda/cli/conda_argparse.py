@@ -533,20 +533,46 @@ def configure_parser_create(sub_parsers):
 
 
 def configure_parser_init(sub_parsers):
-    help = "Initialize conda shell commands. [Experimental]"
+    help = "Initialize conda for shell interaction. [Experimental]"
     descr = help
 
-    example = dedent("""
+    epilog = dedent("""
+    Key parts of conda's functionality require that it interact directly with the shell 
+    within which conda is being invoked. The 'conda activate' and 'conda deactivate' commands 
+    specifically are shell-level commands. That is, they affect the state (e.g. environment 
+    variables) of the shell context being interacted with. They're therefore implemented in ways 
+    specific to each shell. Each shell must be configured to make use of them.
+    
     Examples:
+        
+        # Make the conda command available in all detected shells for the *current user*.
+        # For example, if the bash shell is among those detected on your system, this command
+        # will modify your user's `~/.bashrc` file (`~/.bash_profile` on macOS). In addition to,
+        # the 'conda' command being made available, the 'base' conda environment is automatically
+        # activated (i.e. environment variables set and all executables put on PATH).
+        
+            $ conda init
+        
+        # Make the conda command available to every user on the system. For example, if the bash 
+        # shell is among those detected on your system, a file `/etc/profile.d/conda.sh` will be
+        # created, which will be sourced when your shell is initialized.
+        
+            $ conda init --system
+        
+        # Initialize conda in all detected shells for the current user. Additionally, *only*
+        # make the 'conda' command available to the shell, and *do not* automatically activate
+        # the base environment. Executables in the base environment, like python, will not
+        # be available on PATH until running 'conda activate base'.
+        
+            $ conda init --no-auto-activate
 
-        conda init
 
     """)
     p = sub_parsers.add_parser(
         'init',
         description=descr,
         help=help,
-        epilog=example,
+        epilog=epilog,
     )
 
     p.add_argument(
