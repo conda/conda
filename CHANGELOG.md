@@ -1,3 +1,10 @@
+## 4.4.6 (2017-12-31)
+
+### Bug Fixes
+* fix #6612 do not assume Anaconda Python on Windows nor Library\bin hack (#6615)
+* recipe test improvements and associated bug fixes (#6614)
+
+
 ## 4.4.5 (2017-12-29)
 
 ### Bug Fixes

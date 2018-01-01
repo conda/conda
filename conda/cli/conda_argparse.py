@@ -134,6 +134,7 @@ class ArgumentParser(ArgumentParserBase):
                             from ..exceptions import CommandNotFoundError
                             raise CommandNotFoundError(cmd)
                         args = [find_executable('conda-' + cmd)]
+                        args.extend(sys.argv[2:])
                         p = Popen(args)
                         try:
                             p.communicate()

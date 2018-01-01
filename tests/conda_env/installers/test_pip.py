@@ -24,7 +24,7 @@ class PipInstallerTest(unittest.TestCase):
                 mock.patch('tempfile.NamedTemporaryFile', mock.mock_open()) as mock_namedtemp:
             # Mock
             mock_popen.return_value.returncode = 0
-            mock_pip_args.return_value = ['pip']
+            mock_pip_args.return_value = (['pip'], '9.0.1')
             mock_namedtemp.return_value.write.side_effect = log_write
             mock_namedtemp.return_value.name = 'tmp-file'
             args = mock.Mock()
@@ -44,7 +44,7 @@ class PipInstallerTest(unittest.TestCase):
             popen.return_value.returncode = 22
             with mock.patch.object(pip, 'pip_args') as pip_args:
                 # make sure that installed doesn't bail early
-                pip_args.return_value = ['pip']
+                pip_args.return_value = (['pip'], '9.0.1')
 
                 self.assertRaises(CondaValueError, pip.install,
                                   '/some/prefix', ['foo'], None)
