@@ -526,7 +526,6 @@ class Solver(object):
 
                         $ conda update -n base conda
 
-
                     """) % (CONDA_VERSION, latest_version), file=sys.stderr)
 
         return UnlinkLinkTransaction(stp)
