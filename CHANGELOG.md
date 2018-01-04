@@ -327,6 +327,13 @@ will make sure that whenever conda is installed or changed in an environment, th
 * remove dead code (4.4.0) (#6489)
 
 
+## 4.3.32 (unreleased)
+
+### Bug Fixes
+* fix #6057 unlink-link order for python noarch packages on windows (#6277)
+* fix #6509 custom_channels incorrect in 'conda config --show' (#6510)
+
+
 ## 4.3.31 (2017-12-15)
 
 ### Improvements
