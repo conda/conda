@@ -1145,20 +1145,28 @@ def determine_target_prefix(ctx, args=None):
 
 
 def _first_writable_envs_dir():
-    from ..gateways.disk.update import touch
+    # Calling this function will *create* an envs directory if one does not already
+    # exist. Any caller should intend to *use* that directory for *writing*, not just reading.
     for envs_dir in context.envs_dirs:
         # The magic file being used here could change in the future.  Don't write programs
         # outside this code base that rely on the presence of this file.
+        # This value is duplicated in conda.gateways.disk.create.create_envs_directory().
         envs_dir_magic_file = join(envs_dir, '.conda_envs_dir_test')
-        try:
-            touch(envs_dir_magic_file, mkdir=True, sudo_safe=True)
-            open(envs_dir_magic_file, 'a').close()
-            return envs_dir
-        except (IOError, OSError):
-            log.trace("Tried envs_dir but not writable: %s", envs_dir)
 
-    from ..exceptions import NotWritableError
-    raise NotWritableError(context.envs_dirs[0], None)
+        if isfile(envs_dir_magic_file):
+            try:
+                open(envs_dir_magic_file, 'a').close()
+                return envs_dir
+            except (IOError, OSError):
+                log.trace("Tried envs_dir but not writable: %s", envs_dir)
+        else:
+            from ..gateways.disk.create import create_envs_directory
+            was_created = create_envs_directory(envs_dir)
+            if was_created:
+                return envs_dir
+
+    from ..exceptions import NoWritableEnvsDirError
+    raise NoWritableEnvsDirError(context.envs_dirs)
 
 
 # backward compatibility for conda-build

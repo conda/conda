@@ -79,3 +79,7 @@ def mkdir_p_sudo_safe(path):
         gid = int(os.environ.get('SUDO_GID', -1))
         log.trace("chowning %s:%s %s", uid, gid, path)
         os.chown(path, uid, gid)
+    if not on_win:
+        # set newly-created directory permissions to 02775
+        # https://github.com/conda/conda/issues/6610#issuecomment-354478489
+        os.chmod(path, 0o2775)
