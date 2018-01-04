@@ -50,6 +50,7 @@ class MatchSpecTests(TestCase):
             ('numpy >1.8,<2|==1.7', False),('numpy >1.8,<2|>=1.7.1', True),
             ('numpy >=1.8|1.7*', True),    ('numpy ==1.7', False),
             ('numpy >=1.5,>1.6', True),    ('numpy ==1.7.1', True),
+            ('numpy ==1.7.1.0', True),     ('numpy==1.7.1.0.0', True),
             ('numpy >=1,*.7.*', True),     ('numpy *.7.*,>=1', True),
             ('numpy >=1,*.8.*', False),    ('numpy >=2,*.7.*', False),
             ('numpy 1.6*|1.7*', True),     ('numpy 1.6*|1.8*', False),
@@ -559,6 +560,14 @@ class SpecStrParsingTests(TestCase):
         assert _parse_spec_str("numpy ==1.7") == {
             "name": "numpy",
             "version": "1.7",
+        }
+        assert _parse_spec_str("numpy=1.7") == {
+            "name": "numpy",
+            "version": "1.7*",
+        }
+        assert _parse_spec_str("numpy =1.7") == {
+            "name": "numpy",
+            "version": "1.7*",
         }
 
     def test_parse_hard(self):
