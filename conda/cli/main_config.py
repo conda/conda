@@ -9,9 +9,9 @@ from os.path import isfile, join
 import sys
 from textwrap import wrap
 
-from conda.base.constants import SafetyChecks, PathConflict
 from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
+from ..base.constants import PathConflict, SafetyChecks
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, iteritems, itervalues, string_types, text_type
 from ..common.configuration import pretty_list, pretty_map
@@ -312,7 +312,9 @@ def execute_config(args, parser):
     if not args.get:
 
         # Add representers for enums.
-        # Given import rules, I'm not sure where a better place to do this is?
+        # Because a representer cannot be added for the base Enum class (it must be added for
+        # each specific Enum subclass), and because of import rules), I don't know of a better
+        # location to do this.
         def enum_representer(dumper, data):
             return dumper.represent_str(str(data))
 
