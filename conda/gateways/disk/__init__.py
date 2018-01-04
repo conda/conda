@@ -6,6 +6,7 @@ from logging import getLogger
 import os
 from os import makedirs, mkdir
 from os.path import basename, isdir, dirname
+from random import random
 import sys
 from time import sleep
 
@@ -22,18 +23,17 @@ def exp_backoff_fn(fn, *args, **kwargs):
     if not on_win:
         return fn(*args, **kwargs)
 
-    import random
     # with max_tries = 6, max total time ~= 3.2 sec
     # with max_tries = 7, max total time ~= 6.5 sec
     for n in range(max_tries):
         try:
             result = fn(*args, **kwargs)
-        except (OSError, IOError) as e:
+        except EnvironmentError as e:
             log.trace(repr(e))
             if e.errno in (EPERM, EACCES):
                 if n == max_tries-1:
                     raise
-                sleep_time = ((2 ** n) + random.random()) * 0.1
+                sleep_time = ((2 ** n) + random()) * 0.1
                 caller_frame = sys._getframe(1)
                 log.trace("retrying %s/%s %s() in %g sec",
                           basename(caller_frame.f_code.co_filename),

@@ -17,6 +17,46 @@ from ...common.compat import PY2, on_win, text_type, ensure_binary
 log = getLogger(__name__)
 
 
+class RM_RF_Queue(object):
+
+    def __init__(self):
+        max_workers = 10
+        self.executor = ThreadPoolExecutor(max_workers)
+        self.queue = []
+
+    def submit(self, path):
+        future = self.executor.submit(rm_rf2, path)
+        self.queue.append(future)
+
+    def flush(self):
+        while len(self.queue):
+            future = self.queue.pop(0)
+            future.result()
+
+
+
+def rm_rf2(path):
+    """
+    Completely delete path
+    max_retries is the number of times to retry on failure. The default is 5. This only applies
+    to deleting a directory.
+    """
+    try:
+        path = abspath(path)
+        log.trace("rm_rf %s", path)
+        if isdir(path) and not islink(path):
+            backoff_rmdir(path)
+        elif lexists(path):
+            backoff_unlink(path)
+        else:
+            log.trace("rm_rf failed. Not a link, file, or directory: %s", path)
+        return True
+    finally:
+        if lexists(path):
+            log.info("rm_rf failed for %s", path)
+            return False
+
+
 def rm_rf(path, max_retries=5, trash=True):
     """
     Completely delete path
@@ -107,8 +147,8 @@ def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
     try:
         exp_backoff_fn(lambda f: lexists(f) and _unlink(f), file_or_symlink_path,
                        max_tries=max_tries)
-    except (IOError, OSError) as e:
-        if e.errno not in (ENOENT,):
+    except EnvironmentError as e:
+        if e.errno != ENOENT:
             # errno.ENOENT File not found error / No such file or directory
             raise
 
