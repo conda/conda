@@ -968,6 +968,14 @@ def determine_target_prefix(ctx, args=None):
     except AttributeError:
         prefix_path = None
 
+    if prefix_name is not None and not prefix_name.strip():  # pragma: no cover
+        from ..exceptions import ArgumentError
+        raise ArgumentError("Argument --name requires a value.")
+
+    if prefix_path is not None and not prefix_path.strip():  # pragma: no cover
+        from ..exceptions import ArgumentError
+        raise ArgumentError("Argument --prefix requires a value.")
+
     if prefix_name is None and prefix_path is None:
         return ctx.default_prefix
     elif prefix_path is not None:
