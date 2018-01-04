@@ -13,7 +13,6 @@ from .test_create import Commands, assert_package_is_installed, get_conda_list_t
 @pytest.mark.integration
 class PriorityIntegrationTests(TestCase):
 
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 3, 1), reason="need to get vc-14.1 and vs2017_runtime worked out", strict=True)
     def test_channel_order_channel_priority_true(self):
         with env_var("CONDA_PINNED_PACKAGES", "python=3.5", reset_context):
             with make_temp_env("pycosat==0.6.1") as prefix:
