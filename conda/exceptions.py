@@ -663,9 +663,9 @@ class EncodingError(CondaError):
         A unicode encoding or decoding error has occurred.
         Python 2 is the interpreter under which conda is running in your base environment.
         Replacing your base environment with one built on Python 3 may help resolve this issue.
-        
+
         Error details: %r
-        
+
         """) % caused_by
         super(EncodingError, self).__init__(message, caused_by=caused_by, **kwargs)
 
