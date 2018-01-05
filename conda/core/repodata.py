@@ -10,7 +10,6 @@ import hashlib
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
-from os import makedirs
 from os.path import dirname, isdir, join, splitext
 import re
 from textwrap import dedent
@@ -30,7 +29,7 @@ from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError, 
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)
 from ..gateways.connection.session import CondaSession
-from ..gateways.disk import mkdir_p
+from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
@@ -640,8 +639,5 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
 
 def create_cache_dir():
     cache_dir = join(PackageCache.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
-    try:
-        makedirs(cache_dir)
-    except OSError:
-        pass
+    mkdir_p_sudo_safe(cache_dir)
     return cache_dir
