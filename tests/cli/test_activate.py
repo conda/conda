@@ -137,6 +137,7 @@ def _format_vars(shell):
 {set} CONDARC=
 {set} CONDA_PATH_BACKUP=
 {set} PATH="{new_path}"
+{set} _CONDA_ROOT="{syspath}"
 """
         if 'bash' in shell:
             _command_setup += "set -u\n"
