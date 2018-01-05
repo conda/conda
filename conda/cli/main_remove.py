@@ -11,6 +11,7 @@ from .common import check_non_admin, confirm_yn, specs_from_args, stdout_json
 from .install import handle_txn
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys
+from ..core.envs_manager import unregister_env
 from ..core.linked_data import linked_data
 from ..core.solve import Solver
 from ..exceptions import CondaEnvironmentError, CondaValueError
@@ -63,6 +64,7 @@ def execute(args, parser):
         if not context.json:
             confirm_yn()
         rm_rf(prefix)
+        unregister_env(prefix)
 
         if context.json:
             stdout_json({
