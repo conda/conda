@@ -21,16 +21,17 @@ _conda_set_vars() {
         fi
     fi
 
-    # https://unix.stackexchange.com/questions/4650/determining-path-to-sourced-shell-script/
-    local script_dir
-    case "$_CONDA_SHELL_FLAVOR" in
-        bash) script_dir="$(dirname "${BASH_SOURCE[0]}")";;
-        zsh) script_dir="$(dirname "${(%):-%x}")";;  # http://stackoverflow.com/a/28336473/2127762
-        dash) x=$(lsof -p $$ -Fn0 | tail -1); script_dir="$(dirname "${x#n}")";;
-        *) script_dir="$(cd "$(dirname "$_")" && echo "$PWD")";;
-    esac
-
     if [ -z "${_CONDA_ROOT+x}" ]; then
+        # https://unix.stackexchange.com/questions/4650/determining-path-to-sourced-shell-script/
+        # http://stackoverflow.com/a/28336473/2127762
+        local script_dir
+        case "$_CONDA_SHELL_FLAVOR" in
+            bash) script_dir="$(dirname '${BASH_SOURCE[0]}')" ;;
+            zsh) script_dir="$(dirname '${(%):-%x}')" ;;
+            dash) x=$(lsof -p $$ -Fn0 | tail -1); script_dir="$(dirname '${x#n}')" ;;
+            *) script_dir="$(cd "$(dirname '$_')" && echo "$PWD")" ;;
+        esac
+
         _CONDA_ROOT="$(dirname "$script_dir")"
     fi
 

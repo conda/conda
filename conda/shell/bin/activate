@@ -21,19 +21,6 @@ _conda_set_vars() {
         fi
     fi
 
-    # https://unix.stackexchange.com/questions/4650/determining-path-to-sourced-shell-script/
-    local script_dir
-    case "$_CONDA_SHELL_FLAVOR" in
-        bash) script_dir="$(dirname "${BASH_SOURCE[0]}")";;
-        zsh) script_dir="$(dirname "${(%):-%x}")";;  # http://stackoverflow.com/a/28336473/2127762
-        dash) x=$(lsof -p $$ -Fn0 | tail -1); script_dir="$(dirname "${x#n}")";;
-        *) script_dir="$(cd "$(dirname "$_")" && echo "$PWD")";;
-    esac
-
-    if [ -z "${_CONDA_ROOT+x}" ]; then
-        _CONDA_ROOT="$(dirname "$script_dir")"
-    fi
-
 }
 
 _conda_script_is_sourced() {
@@ -61,5 +48,20 @@ if ! _conda_script_is_sourced; then
 fi
 
 _conda_set_vars
+
+if [ -z ${_CONDA_ROOT+x} ]; then
+    # https://unix.stackexchange.com/questions/4650/determining-path-to-sourced-shell-script/
+    # http://stackoverflow.com/a/28336473/2127762
+    case "$_CONDA_SHELL_FLAVOR" in
+        bash) __conda_script_dir="$(dirname '${BASH_SOURCE[0]}')" ;;
+        zsh) __conda_script_dir="$(dirname '${(%):-%x}')" ;;
+        dash) x=$(lsof -p $$ -Fn0 | tail -1); __conda_script_dir="$(dirname '${x#n}')" ;;
+        *) __conda_script_dir="$(cd "$(dirname '$_')" && echo "$PWD")" ;;
+    esac
+
+    _CONDA_ROOT="$(dirname '$__conda_script_dir')"
+    unset __conda_script_dir
+fi
+
 . "$_CONDA_ROOT/etc/profile.d/conda.sh" || return $?
 _conda_activate "$@"
