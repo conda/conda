@@ -663,7 +663,7 @@ class EncodingError(CondaError):
         A unicode encoding or decoding error has occurred.
         Python 2 is the interpreter under which conda is running in your base environment.
         Replacing your base environment with one having Python 3 may help resolve this issue.
-        If you still have a need for python 2 environments, consider using the 'conda create'
+        If you still have a need for Python 2 environments, consider using the 'conda create'
         and 'conda activate'.  For example:
 
             $ conda create -n py2 python=2
