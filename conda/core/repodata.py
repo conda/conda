@@ -10,7 +10,6 @@ import hashlib
 import json
 from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
-from os import makedirs
 from os.path import dirname, isdir, join, splitext
 import re
 from textwrap import dedent
