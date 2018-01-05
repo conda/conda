@@ -142,7 +142,7 @@ def unique(seq, key=None):
 
 class Environment(object):
     def __init__(self, name=None, filename=None, channels=None,
-                 dependencies=None, prefix=None):
+                 dependencies=None, prefix=None, envvars=None):
         self.name = name
         self.filename = filename
         self.prefix = prefix
