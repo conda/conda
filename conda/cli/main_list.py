@@ -11,7 +11,7 @@ from .common import disp_features, stdout_json
 from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import text_type
-from ..core.linked_data import is_linked, linked, linked_data
+from ..core.linked_data import PrefixData, is_linked, linked, linked_data
 from ..egg_info import get_egg_info
 from ..gateways.disk.test import is_conda_environment
 from ..history import History
@@ -101,12 +101,12 @@ def print_explicit(prefix, add_md5=False):
         raise EnvironmentLocationNotFound(prefix)
     print_export_header(context.subdir)
     print("@EXPLICIT")
-    for meta in sorted(linked_data(prefix).values(), key=lambda x: x['name']):
-        url = meta.get('url')
+    for prefix_record in PrefixData(prefix).iter_records_sorted():
+        url = prefix_record.get('url')
         if not url or url.startswith(UNKNOWN_CHANNEL):
             print('# no URL for: %s' % meta['fn'])
             continue
-        md5 = meta.get('md5')
+        md5 = prefix_record.get('md5')
         print(url + ('#%s' % md5 if add_md5 and md5 else ''))
 
 
