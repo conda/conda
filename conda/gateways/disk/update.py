@@ -9,7 +9,7 @@ from os.path import dirname, isdir
 import re
 
 from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
-from .delete import rm_rf
+from .delete import rm_rf, rm_rf_wait
 from .link import islink, lexists
 from ...common.compat import on_win
 from ...common.path import expand
@@ -55,7 +55,7 @@ def _copy_then_remove(source_path, destination_path):
 
 def rename(source_path, destination_path, force=False):
     if lexists(destination_path) and force:
-        rm_rf(destination_path)
+        rm_rf_wait(destination_path)
     if lexists(source_path):
         log.trace("renaming %s => %s", source_path, destination_path)
         try:

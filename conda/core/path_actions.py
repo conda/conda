@@ -28,7 +28,7 @@ from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_pyc, copy, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
                                     make_menu, write_as_json_to_file)
-from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
+from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty, rm_rf_queued, rm_rf_wait
 from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
                                   read_index_json)
 from ..gateways.disk.update import backoff_rename, touch
@@ -369,7 +369,7 @@ class LinkPathAction(CreateInPrefixPathAction):
             if self.link_type == LinkType.directory:
                 try_rmdir_all_empty(self.target_full_path)
             else:
-                rm_rf(self.target_full_path)
+                rm_rf_queued(self.target_full_path)
 
 
 class PrefixReplaceLinkAction(LinkPathAction):
@@ -480,7 +480,7 @@ class CreateNonadminAction(CreateInPrefixPathAction):
     def reverse(self):
         if self._file_created:
             log.trace("removing nonadmin file %s", self.target_full_path)
-            rm_rf(self.target_full_path)
+            rm_rf_queued(self.target_full_path)
 
 
 class CompilePycAction(CreateInPrefixPathAction):
@@ -526,7 +526,7 @@ class CompilePycAction(CreateInPrefixPathAction):
     def reverse(self):
         if self._execute_successful:
             log.trace("reversing pyc creation %s", self.target_full_path)
-            rm_rf(self.target_full_path)
+            rm_rf_queued(self.target_full_path)
 
 
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
@@ -593,7 +593,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
     def reverse(self):
         if self._execute_successful:
             log.trace("reversing python entry point creation %s", self.target_full_path)
-            rm_rf(self.target_full_path)
+            rm_rf_queued(self.target_full_path)
 
 
 class CreateApplicationEntryPointWindowsExeAction(LinkPathAction):
@@ -855,7 +855,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
             backoff_rename(self.hold_path, self.target_full_path, force=True)
 
     def cleanup(self):
-        rm_rf(self.hold_path)
+        rm_rf_queued(self.hold_path)
 
 
 class RegisterEnvironmentLocationAction(PathAction):
@@ -982,7 +982,7 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
         if self.link_type == LinkType.directory:
             try_rmdir_all_empty(self.target_full_path)
         else:
-            rm_rf(self.holding_full_path)
+            rm_rf_queued(self.holding_full_path)
 
 
 class RemoveMenuAction(RemoveFromPrefixPathAction):
@@ -1141,7 +1141,7 @@ class CacheUrlAction(PathAction):
         log.trace("caching url %s => %s", self.url, self.target_full_path)
 
         if lexists(self.hold_path):
-            rm_rf(self.hold_path)
+            rm_rf_wait(self.hold_path)
 
         if lexists(self.target_full_path):
             if self.url.startswith('file:/') and self.url == path_to_url(self.target_full_path):
@@ -1207,7 +1207,7 @@ class CacheUrlAction(PathAction):
             backoff_rename(self.hold_path, self.target_full_path, force=True)
 
     def cleanup(self):
-        rm_rf(self.hold_path)
+        rm_rf_queued(self.hold_path)
 
     @property
     def target_full_path(self):
@@ -1238,7 +1238,7 @@ class ExtractPackageAction(PathAction):
         log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
         if lexists(self.hold_path):
-            rm_rf(self.hold_path)
+            rm_rf_wait(self.hold_path)
         if lexists(self.target_full_path):
             try:
                 backoff_rename(self.target_full_path, self.hold_path)
@@ -1249,7 +1249,7 @@ class ExtractPackageAction(PathAction):
                     # ignore, but we won't be able to roll back
                     log.debug("Invalid cross-device link on rename %s => %s",
                               self.target_full_path, self.hold_path)
-                    rm_rf(self.target_full_path)
+                    rm_rf_wait(self.target_full_path)
                 else:
                     raise
 
@@ -1285,14 +1285,14 @@ class ExtractPackageAction(PathAction):
         # target_package_cache[package_cache_entry.dist] = package_cache_entry
 
     def reverse(self):
-        rm_rf(self.target_full_path)
+        rm_rf_wait(self.target_full_path)
         if lexists(self.hold_path):
             log.trace("moving %s => %s", self.hold_path, self.target_full_path)
-            rm_rf(self.target_full_path)
+            rm_rf_wait(self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path)
 
     def cleanup(self):
-        rm_rf(self.hold_path)
+        rm_rf_queued(self.hold_path)
 
     @property
     def target_full_path(self):

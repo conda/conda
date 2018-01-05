@@ -38,7 +38,7 @@ def find_tarballs():
 
 def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     from .common import confirm_yn
-    from ..gateways.disk.delete import rm_rf
+    from ..gateways.disk.delete import rm_rf_queued
     from ..utils import human_bytes
 
     if verbose:
@@ -74,7 +74,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
             try:
-                if rm_rf(os.path.join(pkgs_dir, fn)):
+                if rm_rf_queued(os.path.join(pkgs_dir, fn)):
                     if verbose:
                         print("Removed %s" % fn)
                 else:
@@ -141,7 +141,7 @@ def find_pkgs():
 
 def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
     from .common import confirm_yn
-    from ..gateways.disk.delete import rm_rf
+    from ..gateways.disk.delete import rm_rf_queued
     from ..utils import human_bytes
     if verbose:
         for pkgs_dir in pkgs_dirs:
@@ -177,14 +177,14 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
         for pkg in pkgs_dirs[pkgs_dir]:
             if verbose:
                 print("removing %s" % pkg)
-            rm_rf(join(pkgs_dir, pkg))
+            rm_rf_queued(join(pkgs_dir, pkg))
 
 
 def rm_index_cache():
-    from ..gateways.disk.delete import rm_rf
+    from ..gateways.disk.delete import rm_rf_queued
     from ..core.package_cache import PackageCache
     for package_cache in PackageCache.writable_caches():
-        rm_rf(join(package_cache.pkgs_dir, 'cache'))
+        rm_rf_queued(join(package_cache.pkgs_dir, 'cache'))
 
 
 def find_source_cache():
@@ -216,7 +216,7 @@ def find_source_cache():
 
 def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
     from .common import confirm_yn
-    from ..gateways.disk.delete import rm_rf
+    from ..gateways.disk.delete import rm_rf_queued
     from ..utils import human_bytes
 
     verbose = not (context.json or context.quiet)
@@ -242,11 +242,12 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
     for dir in cache_dirs.values():
         if verbose:
             print("Removing %s" % dir)
-        rm_rf(dir)
+        rm_rf_queued(dir)
 
 
 def execute(args, parser):
     from .common import stdout_json
+    from ..gateways.disk.delete import rm_rf_queued
     json_result = {
         'success': True
     }
@@ -285,6 +286,8 @@ def execute(args, parser):
     if args.source_cache or args.all:
         json_result['source_cache'] = find_source_cache()
         rm_source_cache(args, **json_result['source_cache'])
+
+    rm_rf_queued.flush()
 
     if not any((args.lock, args.tarballs, args.index_cache, args.packages,
                 args.source_cache, args.all)):

@@ -30,7 +30,7 @@ from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWa
                                    InvalidSchema, SSLError)
 from ..gateways.connection.session import CondaSession
 from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
-from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.delete import rm_rf_wait
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.dist import Dist
@@ -278,7 +278,7 @@ class SubdirData(object):
                 _pickled_state = pickle.load(fh)
         except Exception as e:
             log.debug("Failed to load pickled repodata.", exc_info=True)
-            rm_rf(self.cache_path_pickle)
+            rm_rf_wait(self.cache_path_pickle)
             return None
 
         def _check_pickled_valid():

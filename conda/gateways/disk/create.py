@@ -12,7 +12,7 @@ import sys
 import tarfile
 
 from . import mkdir_p
-from .delete import rm_rf
+from .delete import rm_rf, rm_rf_wait
 from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
@@ -265,7 +265,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
             if not force:
                 maybe_raise(BasicClobberError(src, dst, context), context)
             log.info("file exists, but clobbering for directory: %r" % dst)
-            rm_rf(dst)
+            rm_rf_wait(dst)
         mkdir_p(dst)
         return
 
@@ -277,7 +277,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         if not force:
             maybe_raise(BasicClobberError(src, dst, context), context)
         log.info("file exists, but clobbering: %r" % dst)
-        rm_rf(dst)
+        rm_rf_wait(dst)
 
     if link_type == LinkType.hardlink:
         if isdir(src):

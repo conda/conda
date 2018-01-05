@@ -7,7 +7,7 @@ from os.path import basename, dirname, isdir, isfile, join
 from uuid import uuid4
 
 from .create import create_link
-from .delete import rm_rf
+from .delete import rm_rf, rm_rf_wait
 from .link import islink, lexists
 from ..._vendor.auxlib.decorators import memoize
 from ...base.constants import PREFIX_MAGIC_FILE
@@ -31,7 +31,7 @@ def file_path_is_writable(path):
         else:
             fh.close()
             if not path_existed:
-                rm_rf(path)
+                rm_rf_wait(path)
             return True
     else:
         # TODO: probably won't work well on Windows
@@ -49,7 +49,7 @@ def hardlink_supported(source_file, dest_dir):
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
     if lexists(test_file):
-        rm_rf(test_file)
+        rm_rf_wait(test_file)
     assert not lexists(test_file), test_file
     try:
         create_link(source_file, test_file, LinkType.hardlink, force=True)
@@ -63,7 +63,7 @@ def hardlink_supported(source_file, dest_dir):
         log.trace("hard link IS NOT supported for %s => %s", source_file, dest_dir)
         return False
     finally:
-        rm_rf(test_file)
+        rm_rf_wait(test_file)
 
 
 @memoize
@@ -81,7 +81,7 @@ def softlink_supported(source_file, dest_dir):
     except (IOError, OSError):
         return False
     finally:
-        rm_rf(test_path)
+        rm_rf_wait(test_path)
 
 
 def is_conda_environment(prefix):

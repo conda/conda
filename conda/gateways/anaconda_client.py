@@ -8,7 +8,7 @@ from logging import getLogger
 from os.path import basename, isdir, isfile, join
 from stat import S_IREAD, S_IWRITE
 
-from .disk.delete import rm_rf
+from .disk.delete import rm_rf, rm_rf_wait
 from .._vendor.appdirs import AppDirs, EnvAppDirs
 from ..common.url import quote_plus, unquote_plus
 
@@ -60,7 +60,7 @@ def set_binstar_token(url, token):
 def remove_binstar_token(url):
     token_dir = _get_binstar_token_directory()
     tokenfile = join(token_dir, '%s.token' % quote_plus(url))
-    rm_rf(tokenfile)
+    rm_rf_wait(tokenfile)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,8 @@ from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
-from ...common.compat import PY2, on_win, text_type, ensure_binary
+from ...common.compat import PY2, ensure_binary, on_win, text_type
+from ...common.io import CondaThreadPoolExecutor
 
 log = getLogger(__name__)
 
@@ -21,11 +22,14 @@ class RM_RF_Queue(object):
 
     def __init__(self):
         max_workers = 10
-        self.executor = ThreadPoolExecutor(max_workers)
+        self.executor = CondaThreadPoolExecutor(max_workers)
         self.queue = []
 
+    def __call__(self, path):
+        self.submit(path)
+
     def submit(self, path):
-        future = self.executor.submit(rm_rf2, path)
+        future = self.executor.submit(rm_rf_wait, path)
         self.queue.append(future)
 
     def flush(self):
@@ -34,8 +38,11 @@ class RM_RF_Queue(object):
             future.result()
 
 
+rm_rf_queued = RM_RF_Queue()
 
-def rm_rf2(path):
+
+
+def rm_rf_wait(path):
     """
     Completely delete path
     max_retries is the number of times to retry on failure. The default is 5. This only applies

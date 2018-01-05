@@ -31,7 +31,7 @@ from ..common.signals import signal_handler
 from ..exceptions import (KnownPackageClobberError, LinkError, RemoveError,
                           SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk import mkdir_p
-from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.delete import rm_rf, rm_rf_queued, rm_rf_wait
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, is_conda_environment, softlink_supported
 from ..gateways.subprocess import subprocess_call
@@ -209,7 +209,7 @@ class UnlinkLinkTransaction(object):
                 try:
                     maybe_raise(CondaMultiError(exceptions), context)
                 except:
-                    rm_rf(self.transaction_context['temp_dir'])
+                    rm_rf_wait(self.transaction_context['temp_dir'])
                     raise
                 log.info(exceptions)
 
@@ -224,7 +224,8 @@ class UnlinkLinkTransaction(object):
         try:
             self._execute(tuple(concat(interleave(itervalues(self.prefix_action_groups)))))
         finally:
-            rm_rf(self.transaction_context['temp_dir'])
+            rm_rf_wait(self.transaction_context['temp_dir'])
+            rm_rf_queued.flush()
 
     @classmethod
     def _prepare(cls, transaction_context, target_prefix, unlink_precs, link_precs,
@@ -531,6 +532,7 @@ class UnlinkLinkTransaction(object):
                            prec,
                            'pre-unlink' if is_unlink else 'pre-link',
                            target_prefix)
+            rm_rf_queued.flush()
             for axn_idx, action in enumerate(axngroup.actions):
                 action.execute()
             if axngroup.type in ('unlink', 'link'):
@@ -802,4 +804,4 @@ def messages(prefix):
                 print(m, file=sys.stderr if context.json else sys.stdout)
                 return m
     finally:
-        rm_rf(path)
+        rm_rf_wait(path)
