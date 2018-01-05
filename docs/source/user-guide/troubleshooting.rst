@@ -659,3 +659,19 @@ Solution
 
 See https://github.com/conda/conda/issues/6096.
 
+
+
+Unicode error after installing Python 2
+=======================================
+
+Example: UnicodeDecodeError: 'ascii' codec can't decode byte 0xd3 in position 1: ordinal not in range(128)
+
+Cause
+-----
+
+Python 2 is incapable of handling unicode properly, especially on Windows. In this case, if any character in your PATH env. var contains anything that is not ASCII then you see this exception.
+
+Solution
+--------
+
+Remove all non-ASCII from PATH or switch to Python 3.
