@@ -665,7 +665,7 @@ class EncodingError(CondaError):
         Replacing your base environment with one having Python 3 may help resolve this issue.
         If you still have a need for python 2 environments, consider using the 'conda create'
         and 'conda activate'.  For example:
-        
+
             $ conda create -n py2 python=2
             $ conda activate py2
 
