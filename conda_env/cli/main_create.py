@@ -98,7 +98,7 @@ def execute(args, parser):
     # channel_urls = args.channel or ()
 
     # # special case for empty environment
-    # if not env.dependencies:
+    # if not env.dependencies and not env.envvars:
     #     from conda.install import symlink_conda
     #     symlink_conda(prefix, context.root_dir)
 
@@ -117,6 +117,26 @@ def execute(args, parser):
                 """).lstrip().format(installer_type)
             )
             return -1
+    if env.envvars is not None:
+        # Force creation of the activation scripts paths.
+        #  Will this work on windows?
+        activate_dir = os.path.join(prefix, 'etc/conda/activate.d')
+        deactivate_dir = os.path.join(prefix, 'etc/conda/deactivate.d')
+        print("Trying to make " + activate_dir)
+        if not os.path.exists(activate_dir):
+            os.makedirs(activate_dir)
+        if not os.path.exists(deactivate_dir):
+            os.makedirs(deactivate_dir)
+        with open(os.path.join(activate_dir, 'yaml_env.sh'), 'w') as afile:
+            print("#!/bin/bash\n\n", file=afile)
+            for envvar in env.envvars:
+                k, v = envvar.split('=')
+                print("export " + k + "=\"" + v + "\"\n", file=afile)
+        with open(os.path.join(deactivate_dir, 'yaml_env.sh'), 'w') as afile:
+            print("#!/bin/bash\n\n", file=afile)
+            for envvar in env.envvars:
+                k, _ = envvar.split('=')
+                print("unset " + k + "\n", file=afile)
 
     touch_nonadmin(prefix)
     delete_trash()

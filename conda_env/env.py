@@ -146,6 +146,7 @@ class Environment(object):
         self.name = name
         self.filename = filename
         self.prefix = prefix
+        self.envvars = envvars
         self.dependencies = Dependencies(dependencies)
 
         if channels is None:
@@ -166,6 +167,8 @@ class Environment(object):
             d['dependencies'] = self.dependencies.raw
         if self.prefix:
             d['prefix'] = self.prefix
+        if self.envvars:
+            d['envvars'] = self.envvars
         return d
 
     def to_yaml(self, stream=None):
