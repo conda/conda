@@ -1,3 +1,20 @@
+## 4.4.7 (2018-01-08)
+
+### Improvements
+* resolve #6650 add upgrade message for unicode errors in python 2 (#6651)
+
+### Bug Fixes
+* fix #6643 difference between '==' and 'exact_match_' (#6647)
+* fix #6620 KeyError(u'CONDA_PREFIX',) (#6652)
+* fix #6661 remove env from environments.txt (#6662)
+* fix #6629 'conda update --name' AssertionError (#6656)
+* fix #6630 repodata AssertionError (#6657)
+* fix #6626 add setuptools as constrained dependency (#6654)
+* fix #6659 conda list explicit should be dependency sorted (#6671)
+* fix #6665 KeyError for channel '<unknown>' (#6668, #6673)
+* fix #6627 AttributeError on 'conda activate' (#6655)
+
+
 ## 4.4.6 (2017-12-31)
 
 ### Bug Fixes
