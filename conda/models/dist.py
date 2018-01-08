@@ -147,7 +147,7 @@ class Dist(Entity):
 
         if channel_override != NULL:
             channel = channel_override
-        if channel is None:
+        if not channel:
             channel = UNKNOWN_CHANNEL
 
         # enforce dist format
