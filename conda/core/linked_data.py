@@ -89,6 +89,13 @@ class PrefixData(object):
     def iter_records(self):
         return itervalues(self._prefix_records)
 
+    def iter_records_sorted(self):
+        from ..resolve import Resolve
+        index = {Dist(rec): rec for rec in self.iter_records()}
+        r = Resolve(index)
+        sorted_dists = r.dependency_sort({d.name: d for d in index})
+        return (index[d] for d in sorted_dists)
+
     def all_subdir_urls(self):
         subdir_urls = set()
         for prefix_record in itervalues(self._prefix_records):

@@ -42,6 +42,7 @@ requirements:
   run_constrained:
     - conda-build >=2.1
     - cytoolz >=0.8.1
+    - setuptools >=36.4
 
 test:
   source_files:

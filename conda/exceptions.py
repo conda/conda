@@ -13,7 +13,7 @@ from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
 from .base.constants import PathConflict, SafetyChecks
-from .common.compat import ensure_text_type, input, iteritems, iterkeys, on_win, string_types
+from .common.compat import ensure_text_type, input, iteritems, iterkeys, on_win, string_types, PY2
 from .common.io import timeout
 from .common.signals import get_signal_name
 from .common.url import maybe_unquote
@@ -656,6 +656,25 @@ class InvalidVersionSpecError(CondaError):
         super(InvalidVersionSpecError, self).__init__(message, invalid_spec=invalid_spec)
 
 
+class EncodingError(CondaError):
+
+    def __init__(self, caused_by, **kwargs):
+        message = dals("""
+        A unicode encoding or decoding error has occurred.
+        Python 2 is the interpreter under which conda is running in your base environment.
+        Replacing your base environment with one having Python 3 may help resolve this issue.
+        If you still have a need for Python 2 environments, consider using 'conda create'
+        and 'conda activate'.  For example:
+
+            $ conda create -n py2 python=2
+            $ conda activate py2
+
+        Error details: %r
+
+        """) % caused_by
+        super(EncodingError, self).__init__(message, caused_by=caused_by, **kwargs)
+
+
 def maybe_raise(error, context):
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)
@@ -752,6 +771,8 @@ class ExceptionHandler(object):
             return 0
         elif isinstance(exc_val, CondaError):
             return self.handle_application_exception(exc_val, exc_tb)
+        elif isinstance(exc_val, UnicodeError) and PY2:
+            return self.handle_application_exception(EncodingError(exc_val), exc_tb)
         elif isinstance(exc_val, KeyboardInterrupt):
             self._print_conda_exception(CondaError("KeyboardInterrupt"), _format_exc())
             return 1

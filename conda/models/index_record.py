@@ -112,7 +112,11 @@ class ChannelField(ComposableField):
         super(ComposableField, self).__init__(required=False, aliases=aliases)
 
     def dump(self, instance, instance_type, val):
-        return val and text_type(val)
+        if val:
+            return text_type(val)
+        else:
+            val = instance.channel  # call __get__
+            return text_type(val)
 
     def __get__(self, instance, instance_type):
         try:

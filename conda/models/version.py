@@ -463,12 +463,17 @@ class VersionSpec(object):
             self.op = VersionOrder.startswith
             self.cmp = VersionOrder(spec.rstrip('*').rstrip('.'))
             self.match = self.veval_match_
+        elif '@' not in spec:
+            self.op = opdict["=="]
+            self.cmp = VersionOrder(spec)
+            self.match = self.veval_match_
         else:
             self.match = self.exact_match_
         return self
 
     def is_exact(self):
-        return self.match == self.exact_match_
+        return (self.match == self.exact_match_
+                or self.match == self.veval_match_ and self.op == op.__eq__)
 
     def __eq__(self, other):
         try:

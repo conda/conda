@@ -283,7 +283,8 @@ class Activator(object):
     def build_deactivate(self):
         # query environment
         old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))
-        if old_conda_shlvl <= 0:
+        old_conda_prefix = os.getenv('CONDA_PREFIX', None)
+        if old_conda_shlvl <= 0 or old_conda_prefix is None:
             return {
                 'unset_vars': (),
                 'set_vars': {},
@@ -291,7 +292,6 @@ class Activator(object):
                 'deactivate_scripts': (),
                 'activate_scripts': (),
             }
-        old_conda_prefix = os.environ['CONDA_PREFIX']
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
         new_conda_shlvl = old_conda_shlvl - 1
@@ -413,24 +413,30 @@ class Activator(object):
         else:
             path_list = list(starting_path_dirs)
         if on_win:  # pragma: unix no cover
-            # windows has a nasty habit of adding extra Library\bin directories
-            prefix_dirs = tuple(self._get_path_dirs(old_prefix))
-            try:
-                first_idx = path_list.index(prefix_dirs[0])
-            except ValueError:
-                first_idx = 0
+            if old_prefix is not None:
+                # windows has a nasty habit of adding extra Library\bin directories
+                prefix_dirs = tuple(self._get_path_dirs(old_prefix))
+                try:
+                    first_idx = path_list.index(prefix_dirs[0])
+                except ValueError:
+                    first_idx = 0
+                else:
+                    last_idx = path_list.index(prefix_dirs[-1])
+                    del path_list[first_idx:last_idx+1]
             else:
-                last_idx = path_list.index(prefix_dirs[-1])
-                del path_list[first_idx:last_idx+1]
+                first_idx = 0
             if new_prefix is not None:
                 path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
         else:
-            try:
-                idx = path_list.index(join(old_prefix, 'bin'))
-            except ValueError:
-                idx = 0
+            if old_prefix is not None:
+                try:
+                    idx = path_list.index(join(old_prefix, 'bin'))
+                except ValueError:
+                    idx = 0
+                else:
+                    del path_list[idx]
             else:
-                del path_list[idx]
+                idx = 0
             if new_prefix is not None:
                 path_list.insert(idx, join(new_prefix, 'bin'))
         return self.path_conversion(path_list)
@@ -548,12 +554,12 @@ def main(argv=None):
     activator_args = argv[2:]
     activator = Activator(shell, activator_args)
     try:
-        sys.stdout.write(activator.execute())
+        print(activator.execute(), end='')
         return 0
     except Exception as e:
         from . import CondaError
         if isinstance(e, CondaError):
-            sys.stderr.write(text_type(e))
+            print(text_type(e), file=sys.stderr)
             return e.return_code
         else:
             raise
