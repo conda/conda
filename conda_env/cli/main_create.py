@@ -119,9 +119,8 @@ def execute(args, parser):
             return -1
     if env.envvars is not None:
         # Force creation of the activation scripts paths.
-        #  Will this work on windows?
-        activate_dir = os.path.join(prefix, 'etc/conda/activate.d')
-        deactivate_dir = os.path.join(prefix, 'etc/conda/deactivate.d')
+        activate_dir = os.path.join(prefix, 'etc', 'conda', 'activate.d')
+        deactivate_dir = os.path.join(prefix, 'etc', 'conda', 'deactivate.d')
         print("Trying to make " + activate_dir)
         if not os.path.exists(activate_dir):
             os.makedirs(activate_dir)
