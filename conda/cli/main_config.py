@@ -12,7 +12,7 @@ from textwrap import wrap
 from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import isiterable, iteritems, string_types, text_type
+from ..common.compat import isiterable, iteritems, itervalues, string_types, text_type
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml_dump, yaml_load
@@ -121,8 +121,10 @@ def execute_config(args, parser):
         else:
             # coerce channels
             if 'custom_channels' in d:
-                d['custom_channels'] = {k: text_type(v).replace(k, '')  # TODO: the replace here isn't quite right  # NOQA
-                                        for k, v in iteritems(d['custom_channels'])}
+                d['custom_channels'] = {
+                    channel.name: "%s://%s" % (channel.scheme, channel.location)
+                    for channel in itervalues(d['custom_channels'])
+                }
             # TODO: custom_multichannels needs better formatting
             if 'custom_multichannels' in d:
                 d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls])
