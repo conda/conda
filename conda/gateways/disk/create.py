@@ -12,7 +12,7 @@ import sys
 import tarfile
 
 from . import mkdir_p
-from .delete import rm_rf, rm_rf_wait
+from .delete import rm_rf_wait
 from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch

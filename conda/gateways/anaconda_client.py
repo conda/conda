@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
-import re
 from glob import glob
 from logging import getLogger
+import os
 from os.path import basename, isdir, isfile, join
+import re
 from stat import S_IREAD, S_IWRITE
 
-from .disk.delete import rm_rf, rm_rf_wait
+from .disk.delete import rm_rf_wait
 from .._vendor.appdirs import AppDirs, EnvAppDirs
 from ..common.url import quote_plus, unquote_plus
 

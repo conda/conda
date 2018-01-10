@@ -7,7 +7,7 @@ from os.path import basename, dirname, isdir, isfile, join
 from uuid import uuid4
 
 from .create import create_link
-from .delete import rm_rf, rm_rf_wait
+from .delete import rm_rf_wait
 from .link import islink, lexists
 from ..._vendor.auxlib.decorators import memoize
 from ...base.constants import PREFIX_MAGIC_FILE

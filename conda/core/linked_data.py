@@ -12,7 +12,7 @@ from ..common.constants import NULL
 from ..common.serialize import json_load
 from ..exceptions import BasicClobberError, CondaDependencyError, maybe_raise
 from ..gateways.disk.create import write_as_json_to_file
-from ..gateways.disk.delete import rm_rf, rm_rf_wait
+from ..gateways.disk.delete import rm_rf_wait
 from ..models.dist import Dist
 from ..models.match_spec import MatchSpec
 from ..models.prefix_record import PrefixRecord

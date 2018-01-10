@@ -28,7 +28,7 @@ from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_pyc, copy, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
                                     make_menu, write_as_json_to_file)
-from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty, rm_rf_queued, rm_rf_wait
+from ..gateways.disk.delete import rm_rf_queued, rm_rf_wait, try_rmdir_all_empty
 from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
                                   read_index_json)
 from ..gateways.disk.update import backoff_rename, touch

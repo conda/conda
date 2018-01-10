@@ -23,7 +23,7 @@ from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..gateways.disk.create import (create_package_cache_directory, extract_tarball,
                                     write_as_json_to_file)
-from ..gateways.disk.delete import rm_rf, rm_rf_wait, rm_rf_queued
+from ..gateways.disk.delete import rm_rf_queued, rm_rf_wait
 from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_index_json,
                                   read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
