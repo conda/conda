@@ -158,6 +158,7 @@ class PathActionsTests(TestCase):
             assert imported_pyc_file.value == 42
 
         axn.reverse()
+        rm_rf_queued.flush()
         assert not isfile(axn.target_full_path)
 
     def test_CreatePythonEntryPointAction_generic(self):
@@ -259,6 +260,7 @@ class PathActionsTests(TestCase):
         assert stat_nlink(axn.target_full_path) == 2
 
         axn.reverse()
+        rm_rf_queued.flush()
         assert not lexists(axn.target_full_path)
 
     def test_simple_LinkPathAction_softlink(self):
@@ -331,6 +333,7 @@ class PathActionsTests(TestCase):
         assert stat_nlink(axn.target_full_path) == 1
 
         axn.reverse()
+        rm_rf_queued.flush()
         assert not lexists(axn.target_full_path)
 
     # @pytest.mark.skipif(on_win, reason="unix-only test")
