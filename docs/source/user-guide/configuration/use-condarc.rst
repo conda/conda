@@ -434,13 +434,13 @@ that package. However if dependencies that satisfy the package's
 requirements are already installed, conda will not update those
 packages to the latest version.
 
-In this case, if you would prefer that conda update all dependencies
-to the latest version that is compatible with the environment,
-set update_dependencies to ``True``:
+If you prefer to update only the packages given explicitly at
+the command line and avoid updating existing installed packages
+as much as possible, set update_dependencies to ``False``:
 
 .. code-block:: yaml
 
-   update_dependencies: True
+   update_dependencies: False
 
 NOTE: Conda still ensures that dependency specifications are
 satisfied. Thus, some dependencies may still be updated or,
