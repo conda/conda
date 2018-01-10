@@ -366,7 +366,7 @@ conda_unit_test() {
 
 
 conda_integration_test() {
-    $PYTEST_EXE $ADD_COV --cov-append -m "integration and not installed" -v
+    $PYTEST_EXE $ADD_COV --cov-append -m "integration and not installed" -v tests/conda_env
 }
 
 
@@ -452,7 +452,7 @@ run_tests() {
         # $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags activate --required
         $PYTHON_EXE -m conda.common.io
     else
-        conda_unit_test
+        # conda_unit_test
         conda_integration_test
         $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags integration --required
         $PYTHON_EXE -m conda.common.io
