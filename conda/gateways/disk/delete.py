@@ -19,10 +19,13 @@ log = getLogger(__name__)
 
 
 class RM_RF_Queue(object):
+    """
+    Remove paths asynchronously.  Must always call `.flush()` to ensure paths
+    are actually removed.
+    """
 
     def __init__(self):
-        max_workers = 10
-        self.executor = ThreadLimitedThreadPoolExecutor(max_workers)
+        self.executor = ThreadLimitedThreadPoolExecutor()
         self.queue = []
 
     def __call__(self, path):
@@ -33,7 +36,7 @@ class RM_RF_Queue(object):
         self.queue.append(future)
 
     def flush(self):
-        while len(self.queue):
+        while self.queue:
             future = self.queue.pop(0)
             future.result()
 
@@ -42,11 +45,7 @@ rm_rf_queued = RM_RF_Queue()
 
 
 def rm_rf_wait(path):
-    """
-    Completely delete path
-    max_retries is the number of times to retry on failure. The default is 5. This only applies
-    to deleting a directory.
-    """
+    """Block until path is deleted."""
     try:
         path = abspath(path)
         log.trace("rm_rf %s", path)
@@ -85,6 +84,8 @@ def rm_rf(path, max_retries=5, trash=True):
                 backoff_unlink(path)
                 return True
             except (OSError, IOError) as e:
+                # There's an rm_rf leak here. If `trash` is False, the leak is obvious.
+                # But `move_path_to_trash()` also fails silently.
                 log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
                 if trash:
                     move_result = move_path_to_trash(path)

@@ -63,6 +63,7 @@ def run_env_command(command, prefix, *arguments):
         prefix: The prefix, for remove and create
         *arguments: The extra arguments
     """
+    rm_rf_queued.flush()
     p = create_parser()
     prefix = escape_for_winpath(prefix)
 
@@ -88,7 +89,7 @@ def run_env_command(command, prefix, *arguments):
 
     with captured() as c:
         do_call_conda_env(args, p)
-
+    rm_rf_queued.flush()
     return c.stdout, c.stderr
 
 
@@ -224,14 +225,12 @@ class NewIntegrationTests(unittest.TestCase):
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
         if env_is_created(test_env_name_3):
             run_env_command(Commands.ENV_REMOVE, test_env_name_3)
-        rm_rf_queued.flush()
 
     def tearDown(self):
         if env_is_created(test_env_name_2):
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
         if env_is_created(test_env_name_3):
             run_env_command(Commands.ENV_REMOVE, test_env_name_3)
-        rm_rf_queued.flush()
 
     def test_create_remove_env(self):
         """
