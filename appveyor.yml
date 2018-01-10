@@ -51,7 +51,8 @@ install:
   - setx PATH "%ANACONDA_PATH%"
   - conda info
   - conda config --set always_yes yes
-  - conda update conda
+  - conda config --set auto_update_conda false
+  - conda install conda=4.3
   - conda install -q psutil ruamel_yaml requests
   # - conda info python
   - python -c "import sys; print(sys.version)"
