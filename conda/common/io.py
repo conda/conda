@@ -2,7 +2,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, _base, as_completed
+from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
@@ -11,7 +12,6 @@ from itertools import cycle
 import json
 import logging
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
-from math import floor
 import os
 from os.path import dirname, isdir, isfile, join
 import signal
@@ -34,7 +34,6 @@ _FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(messa
 
 class CaptureTarget(Enum):
     """Constants used for contextmanager captured.
-
     Used similarily like the constants PIPE, STDOUT for stdlib's subprocess.Popen.
     """
     STRING = -1
@@ -85,18 +84,14 @@ def env_vars(var_map, callback=None):
 @contextmanager
 def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
     """Capture outputs of sys.stdout and sys.stderr.
-
     If stdout is STRING, capture sys.stdout as a string,
     if stdout is None, do not capture sys.stdout, leaving it untouched,
     otherwise redirect sys.stdout to the file-like object given by stdout.
-
     Behave correspondingly for stderr with the exception that if stderr is STDOUT,
     redirect sys.stderr to stdout target and set stderr attribute of yielded object to None.
-
     Args:
         stdout: capture target for sys.stdout, one of STRING, None, or file-like object
         stderr: capture target for sys.stderr, one of STRING, STDOUT, None, or file-like object
-
     Yields:
         CapturedText: has attributes stdout, stderr which are either strings, None or the
             corresponding file-like function argument.
@@ -303,7 +298,6 @@ def spinner(message=None, enabled=True, json=False):
             If False, usage is a no-op.
         json (bool):
            If True, will not output non-json to stdout.
-
     """
     sp = Spinner(enabled)
     exception_raised = False
@@ -390,48 +384,48 @@ class ProgressBar(object):
         self.enabled = False
 
 
-@contextmanager
-def backdown_thread_pool(max_workers=10):
-    """Tries to create an executor with max_workers, but will back down ultimately to a single
-    thread of the OS decides you can't have more than one.
-    """
-    from concurrent.futures import _base  # These "_" imports are gross, but I don't think there's an alternative  # NOQA
-    from concurrent.futures.thread import _WorkItem
+class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
 
-    class CondaThreadPoolExecutor(ThreadPoolExecutor):
+    def __init__(self, max_workers=10):
+        super(ThreadLimitedThreadPoolExecutor, self).__init__(max_workers)
 
-        def submit(self, fn, *args, **kwargs):
-            with self._shutdown_lock:
-                if self._shutdown:
-                    raise RuntimeError('cannot schedule new futures after shutdown')
+    def submit(self, fn, *args, **kwargs):
+        """
+        This is an exact reimplementation of the `submit()` method on the parent class, except
+        with an added `try/except` around `self._adjust_thread_count()`.  So long as there is at
+        least one living thread, this thread pool will not throw an exception if threads cannot
+        be expanded to `max_workers`.
 
-                f = _base.Future()
-                w = _WorkItem(f, fn, args, kwargs)
+        In the implementation, we use "protected" attributes from concurrent.futures (`_base`
+        and `_WorkItem`). Consider vendoring the whole concurrent.futures library
+        as an alternative to these protected imports.
 
-                self._work_queue.put(w)
-                try:
-                    self._adjust_thread_count()
-                except RuntimeError:
-                    # RuntimeError: can't start new thread
-                    # See https://github.com/conda/conda/issues/6624
-                    if len(self._threads) > 0:
-                        # It's ok to not be able to start new threads if we already have at least
-                        # one thread alive.
-                        pass
-                    else:
-                        raise
-                return f
+        https://github.com/agronholm/pythonfutures/blob/3.2.0/concurrent/futures/thread.py#L121-L131  # NOQA
+        https://github.com/python/cpython/blob/v3.6.4/Lib/concurrent/futures/thread.py#L114-L124
+        """
+        with self._shutdown_lock:
+            if self._shutdown:
+                raise RuntimeError('cannot schedule new futures after shutdown')
 
-    try:
-        yield CondaThreadPoolExecutor(max_workers)
-    except RuntimeError as e:  # pragma: no cover
-        # RuntimeError is thrown if number of threads are limited by OS
-        log.debug(repr(e))
-        try:
-            yield CondaThreadPoolExecutor(floor(max_workers / 2))
-        except RuntimeError as e:
-            log.debug(repr(e))
-            yield CondaThreadPoolExecutor(1)
+            f = _base.Future()
+            w = _WorkItem(f, fn, args, kwargs)
+
+            self._work_queue.put(w)
+            try:
+                self._adjust_thread_count()
+            except RuntimeError:
+                # RuntimeError: can't start new thread
+                # See https://github.com/conda/conda/issues/6624
+                if len(self._threads) > 0:
+                    # It's ok to not be able to start new threads if we already have at least
+                    # one thread alive.
+                    pass
+                else:
+                    raise
+            return f
+
+
+as_completed = as_completed  # anchored here for import by other modules
 
 
 class ContextDecorator(object):
@@ -454,6 +448,7 @@ class time_recorder(ContextDecorator):  # pragma: no cover
         enabled = os.environ.get('CONDA_INSTRUMENTATION_ENABLED')
         if enabled and boolify(enabled):
             self.start_time = time()
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.start_time:
