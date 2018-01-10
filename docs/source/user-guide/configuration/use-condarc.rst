@@ -150,10 +150,10 @@ file. See :ref:`channel-alias`.
 Default channels (default_channels)
 -----------------------------------
 
-Normally the default repository is `repo.continuum.io
-<http:repo.continuum.io>`_, but if default_channels is defined,
-it sets the new list of default channels. This is especially
-useful for air gap and enterprise installations:
+Normally the defaults channel points to several channels at the
+`repo.continuum.io <http:repo.continuum.io>`_ repository, but if
+default_channels is defined, it sets the new list of default channels.
+This is especially useful for air gap and enterprise installations:
 
 .. code-block:: yaml
 
