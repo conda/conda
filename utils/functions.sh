@@ -366,7 +366,15 @@ conda_unit_test() {
 
 
 conda_integration_test() {
-    $PYTEST_EXE $ADD_COV --cov-append -m "integration and not installed" -v tests/conda_env
+    $PYTEST_EXE $ADD_COV --cov-append -m "integration and not installed" -v tests/conda_env -x || true
+
+    p1="c:\\conda-root\\envs\\env-1\\DLLs\\pyexpat.pyd"
+    fsutil hardlink list $p1 || true
+    icacls $p1 || true
+
+    p1="c:\\conda-root\\envs\\snowflakes\\DLLs\\pyexpat.pyd"
+    fsutil hardlink list $p1 || true
+    icacls $p1 || true
 }
 
 
