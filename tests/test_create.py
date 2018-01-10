@@ -557,6 +557,7 @@ class IntegrationTests(TestCase):
             assert stderr == ''
             self.assertIsInstance(stdout, str)
 
+    @pytest.mark.skipif(on_win, reason="temporarily disable as part of #6660")
     def test_list_with_pip_egg(self):
         from conda.exports import rm_rf as _rm_rf
         with make_temp_env("python=3.5 pip") as prefix:
@@ -573,6 +574,7 @@ class IntegrationTests(TestCase):
             _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")))
             assert prefix not in PrefixData._cache_
 
+    @pytest.mark.skipif(on_win, reason="temporarily disable as part of #6660")
     def test_list_with_pip_wheel(self):
         from conda.exports import rm_rf as _rm_rf
         with make_temp_env("python=3.6 pip") as prefix:
