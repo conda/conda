@@ -245,6 +245,7 @@ class NewIntegrationTests(unittest.TestCase):
 
         with pytest.raises(EnvironmentLocationNotFound) as execinfo:
             run_env_command(Commands.ENV_REMOVE, 'does-not-exist')
+        rm_rf_queued.flush()
 
     def test_env_export(self):
         """
