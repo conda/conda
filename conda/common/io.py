@@ -34,7 +34,8 @@ _FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(messa
 
 class CaptureTarget(Enum):
     """Constants used for contextmanager captured.
-    Used similarily like the constants PIPE, STDOUT for stdlib's subprocess.Popen.
+
+    Used similarly like the constants PIPE, STDOUT for stdlib's subprocess.Popen.
     """
     STRING = -1
     STDOUT = -2
@@ -84,14 +85,18 @@ def env_vars(var_map, callback=None):
 @contextmanager
 def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
     """Capture outputs of sys.stdout and sys.stderr.
+
     If stdout is STRING, capture sys.stdout as a string,
     if stdout is None, do not capture sys.stdout, leaving it untouched,
     otherwise redirect sys.stdout to the file-like object given by stdout.
+
     Behave correspondingly for stderr with the exception that if stderr is STDOUT,
     redirect sys.stderr to stdout target and set stderr attribute of yielded object to None.
+
     Args:
         stdout: capture target for sys.stdout, one of STRING, None, or file-like object
         stderr: capture target for sys.stderr, one of STRING, STDOUT, None, or file-like object
+
     Yields:
         CapturedText: has attributes stdout, stderr which are either strings, None or the
             corresponding file-like function argument.
