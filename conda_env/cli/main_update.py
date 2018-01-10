@@ -6,6 +6,7 @@ import textwrap
 from conda._vendor.auxlib.path import expand
 from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
+from conda.gateways.disk.delete import rm_rf_queued
 from conda.misc import touch_nonadmin
 from .common import get_prefix
 from .. import exceptions, specs as install_specs
@@ -119,3 +120,4 @@ def execute(args, parser):
 
     touch_nonadmin(prefix)
     cli_install.print_activate(args.name if args.name else prefix)
+    rm_rf_queued.flush()

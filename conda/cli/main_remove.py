@@ -15,7 +15,7 @@ from ..core.envs_manager import unregister_env
 from ..core.linked_data import linked_data
 from ..core.solve import Solver
 from ..exceptions import CondaEnvironmentError, CondaValueError
-from ..gateways.disk.delete import delete_trash, rm_rf_wait
+from ..gateways.disk.delete import delete_trash, rm_rf_queued, rm_rf_wait
 from ..gateways.disk.test import is_conda_environment
 from ..instructions import PREFIX
 from ..models.match_spec import MatchSpec
@@ -63,7 +63,7 @@ def execute(args, parser):
 
         if not context.json:
             confirm_yn()
-        rm_rf_wait(prefix)
+        rm_rf_queued(prefix)
         unregister_env(prefix)
 
         if context.json:
@@ -71,7 +71,6 @@ def execute(args, parser):
                 'success': True,
                 'actions': tuple(x[0] for x in action_groups)
             })
-        return
 
     else:
         if args.features:
@@ -84,6 +83,8 @@ def execute(args, parser):
         txn = solver.solve_for_transaction(force_remove=args.force)
         pfe = txn.get_pfe()
         handle_txn(pfe, txn, prefix, args, False, True)
+
+    rm_rf_queued.flush()
 
     # Keep this code for dev reference until private envs can be re-enabled in
     # Solver.solve_for_transaction

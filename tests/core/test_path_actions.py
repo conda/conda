@@ -232,6 +232,7 @@ class PathActionsTests(TestCase):
             assert src == compute_md5sum(windows_exe_axn.target_full_path)
 
             windows_exe_axn.reverse()
+            rm_rf_queued.flush()
             assert not isfile(windows_exe_axn.target_full_path)
 
     def test_simple_LinkPathAction_hardlink(self):

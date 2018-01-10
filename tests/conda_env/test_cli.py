@@ -14,6 +14,7 @@ from conda.cli.main import generate_parser
 from conda.common.io import captured
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import EnvironmentLocationNotFound
+from conda.gateways.disk.delete import rm_rf_queued
 from conda.install import rm_rf
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
 from conda_env.exceptions import SpecNotFound
@@ -135,11 +136,13 @@ class IntegrationTests(unittest.TestCase):
         rm_rf("environment.yml")
         if env_is_created(test_env_name_1):
             run_env_command(Commands.ENV_REMOVE, test_env_name_1)
+        rm_rf_queued.flush()
 
     def tearDown(self):
         rm_rf("environment.yml")
         if env_is_created(test_env_name_1):
             run_env_command(Commands.ENV_REMOVE, test_env_name_1)
+        rm_rf_queued.flush()
 
     def test_conda_env_create_no_file(self):
         '''
@@ -221,12 +224,14 @@ class NewIntegrationTests(unittest.TestCase):
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
         if env_is_created(test_env_name_3):
             run_env_command(Commands.ENV_REMOVE, test_env_name_3)
+        rm_rf_queued.flush()
 
     def tearDown(self):
         if env_is_created(test_env_name_2):
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
         if env_is_created(test_env_name_3):
             run_env_command(Commands.ENV_REMOVE, test_env_name_3)
+        rm_rf_queued.flush()
 
     def test_create_remove_env(self):
         """
@@ -320,6 +325,7 @@ class NewIntegrationTests(unittest.TestCase):
         # check explicit that we have same file
         check2, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
         self.assertEqual(check1, check2)
+
 
 if __name__ == '__main__':
     unittest.main()
