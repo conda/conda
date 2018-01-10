@@ -743,7 +743,10 @@ class ExceptionHandler(object):
             return func(*args, **kwargs)
         except:
             _, exc_val, exc_tb = sys.exc_info()
-            return self.handle_exception(exc_val, exc_tb)
+            rc = self.handle_exception(exc_val, exc_tb)
+            from .gateways.disk.delete import rm_rf_queued
+            rm_rf_queued.flush()
+            return rc
 
     @property
     def out_stream(self):
@@ -766,8 +769,6 @@ class ExceptionHandler(object):
         return context.error_upload_url
 
     def handle_exception(self, exc_val, exc_tb):
-        from .gateways.disk.delete import rm_rf_queued
-        rm_rf_queued.flush()
         return_code = getattr(exc_val, 'return_code', None)
         if return_code == 0:
             return 0

@@ -209,7 +209,7 @@ class UnlinkLinkTransaction(object):
                 try:
                     maybe_raise(CondaMultiError(exceptions), context)
                 except:
-                    rm_rf_wait(self.transaction_context['temp_dir'])
+                    rm_rf_queued(self.transaction_context['temp_dir'])
                     raise
                 log.info(exceptions)
 
@@ -224,7 +224,7 @@ class UnlinkLinkTransaction(object):
         try:
             self._execute(tuple(concat(interleave(itervalues(self.prefix_action_groups)))))
         finally:
-            rm_rf_wait(self.transaction_context['temp_dir'])
+            rm_rf_queued(self.transaction_context['temp_dir'])
             rm_rf_queued.flush()
 
     @classmethod
@@ -804,4 +804,4 @@ def messages(prefix):
                 print(m, file=sys.stderr if context.json else sys.stdout)
                 return m
     finally:
-        rm_rf_wait(path)
+        rm_rf_queued(path)
