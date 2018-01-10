@@ -2,7 +2,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, _base, as_completed
+from concurrent.futures.thread import _WorkItem
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
@@ -11,7 +12,6 @@ from itertools import cycle
 import json
 import logging
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
-from math import floor
 import os
 from os.path import dirname, isdir, isfile, join
 import signal
@@ -390,12 +390,25 @@ class ProgressBar(object):
         self.enabled = False
 
 
-from concurrent.futures import _base  # These "_" imports are gross, but I don't think there's an alternative  # NOQA
-from concurrent.futures.thread import _WorkItem
+class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
 
-class CondaThreadPoolExecutor(ThreadPoolExecutor):
+    def __init__(self, max_workers=10):
+        super(ThreadLimitedThreadPoolExecutor, self).__init__(max_workers)
 
     def submit(self, fn, *args, **kwargs):
+        """
+        This is an exact reimplementation of the `submit()` method on the parent class, except
+        with an added `try/except` around `self._adjust_thread_count()`.  So long as there is at
+        least one living thread, this thread pool will not throw an exception if threads cannot
+        be expanded to `max_workers`.
+
+        In the implementation, we use "protected" attributes from concurrent.futures (`_base`
+        and `_WorkItem`). Consider vendoring the whole concurrent.futures library
+        as an alternative to these protected imports.
+
+        https://github.com/agronholm/pythonfutures/blob/3.2.0/concurrent/futures/thread.py#L121-L131  # NOQA
+        https://github.com/python/cpython/blob/v3.6.4/Lib/concurrent/futures/thread.py#L114-L124
+        """
         with self._shutdown_lock:
             if self._shutdown:
                 raise RuntimeError('cannot schedule new futures after shutdown')
@@ -418,21 +431,7 @@ class CondaThreadPoolExecutor(ThreadPoolExecutor):
             return f
 
 
-@contextmanager
-def backdown_thread_pool(max_workers=10):
-    """Tries to create an executor with max_workers, but will back down ultimately to a single
-    thread of the OS decides you can't have more than one.
-    """
-    try:
-        yield CondaThreadPoolExecutor(max_workers)
-    except RuntimeError as e:  # pragma: no cover
-        # RuntimeError is thrown if number of threads are limited by OS
-        log.debug(repr(e))
-        try:
-            yield CondaThreadPoolExecutor(floor(max_workers / 2))
-        except RuntimeError as e:
-            log.debug(repr(e))
-            yield CondaThreadPoolExecutor(1)
+as_completed = as_completed  # anchored here for import by other modules
 
 
 class ContextDecorator(object):
@@ -455,6 +454,7 @@ class time_recorder(ContextDecorator):  # pragma: no cover
         enabled = os.environ.get('CONDA_INSTRUMENTATION_ENABLED')
         if enabled and boolify(enabled):
             self.start_time = time()
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.start_time:

@@ -13,7 +13,7 @@ from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
 from ...common.compat import PY2, ensure_binary, on_win, text_type
-from ...common.io import CondaThreadPoolExecutor
+from ...common.io import ThreadLimitedThreadPoolExecutor
 
 log = getLogger(__name__)
 
@@ -22,7 +22,7 @@ class RM_RF_Queue(object):
 
     def __init__(self):
         max_workers = 10
-        self.executor = CondaThreadPoolExecutor(max_workers)
+        self.executor = ThreadLimitedThreadPoolExecutor(max_workers)
         self.queue = []
 
     def __call__(self, path):
@@ -39,7 +39,6 @@ class RM_RF_Queue(object):
 
 
 rm_rf_queued = RM_RF_Queue()
-
 
 
 def rm_rf_wait(path):

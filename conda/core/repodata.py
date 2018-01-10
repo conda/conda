@@ -16,6 +16,7 @@ from textwrap import dedent
 from time import time
 import warnings
 
+from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from .. import CondaError, iteritems
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
@@ -75,23 +76,14 @@ class SubdirData(object):
 
     @staticmethod
     def query_all(channels, subdirs, package_ref_or_match_spec):
+        from .index import check_whitelist  # TODO: fix in-line import
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
-
-        executor = None
-        try:
-            from concurrent.futures import ThreadPoolExecutor, as_completed
-            executor = ThreadPoolExecutor(10)
+        check_whitelist(channel_urls)
+        with ThreadLimitedThreadPoolExecutor() as executor:
             futures = (executor.submit(
                 SubdirData(Channel(url)).query, package_ref_or_match_spec
             ) for url in channel_urls)
             return tuple(concat(future.result() for future in as_completed(futures)))
-        except RuntimeError as e:  # pragma: no cover
-            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-            # RuntimeError is thrown if number of threads are limited by OS
-            raise
-        finally:
-            if executor:
-                executor.shutdown(wait=True)
 
     def query(self, package_ref_or_match_spec):
         if not self._loaded:
