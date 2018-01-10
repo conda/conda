@@ -31,7 +31,7 @@ log = getLogger(__name__)
 #   MAX_TRIES = 6, max total time ~= 6.3 sec    sum(0.1 * 2 ** min((n, 5)) for n in range(6))
 #   MAX_TRIES = 7, max total time ~= 9.5 sec    sum(0.1 * 2 ** min((n, 5)) for n in range(7))
 #   MAX_TRIES = 10, max total time ~= 19.1 sec  sum(0.1 * 2 ** min((n, 5)) for n in range(10))
-MAX_TRIES = 10
+MAX_TRIES = 50
 MAX_SLEEP_CAP = 5  # ~3.2 sec max sleep
 
 
