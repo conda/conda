@@ -462,6 +462,7 @@ class IntegrationTests(TestCase):
                 run_command(Commands.UPDATE, prefix, "conda-forge::*")
             assert conda_error.value.message.startswith("Invalid spec for 'conda update'")
 
+    @pytest.mark.skipif(on_win, reason="temporarily disable as part of #6660")
     def test_noarch_python_package_with_entry_points(self):
         with make_temp_env("-c conda-test flask") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
@@ -481,6 +482,7 @@ class IntegrationTests(TestCase):
             assert not isfile(join(prefix, pyc_file))
             assert not isfile(exe_path)
 
+    @pytest.mark.skipif(on_win, reason="temporarily disable as part of #6660")
     def test_noarch_python_package_without_entry_points(self):
         # regression test for #4546
         with make_temp_env("-c conda-test itsdangerous") as prefix:
@@ -496,6 +498,7 @@ class IntegrationTests(TestCase):
             assert not isfile(join(prefix, py_file))
             assert not isfile(join(prefix, pyc_file))
 
+    @pytest.mark.skipif(on_win, reason="temporarily disable as part of #6660")
     def test_noarch_python_package_reinstall_on_pyver_change(self):
         with make_temp_env("-c conda-test itsdangerous python=3") as prefix:
             py_ver = get_python_version_for_prefix(prefix)
@@ -518,6 +521,7 @@ class IntegrationTests(TestCase):
             assert isfile(join(prefix, py_file))
             assert isfile(join(prefix, pyc_file_py2))
 
+    @pytest.mark.skipif(on_win, reason="temporarily disable as part of #6660")
     def test_noarch_generic_package(self):
         with make_temp_env("-c conda-test font-ttf-inconsolata") as prefix:
             assert isfile(join(prefix, 'fonts', 'Inconsolata-Regular.ttf'))
