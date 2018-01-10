@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EACCES, EEXIST, ENOENT, ENOTEMPTY, EPERM, errorcode
+from errno import EACCES, EEXIST, EIO, ENOENT, ENOTEMPTY, EPERM, errorcode
 from logging import getLogger
 import os
 from os import makedirs, mkdir
-from os.path import basename, isdir, dirname
+from os.path import basename, dirname, isdir
 from random import random
 import sys
 from time import sleep
@@ -14,7 +14,25 @@ from ...common.compat import on_win
 
 log = getLogger(__name__)
 
-MAX_TRIES = 7
+# EACCES:    Permission denied
+# EEXIST:    File exists
+# EIO:       I/O error
+# ENOENT:    No such file or directory
+# ENOTEMPTY: Directory not empty
+# EPERM:     Operation not permitted
+
+# without the time cap:
+#   MAX_TRIES = 5, max total time ~= 3.1 sec
+#   MAX_TRIES = 6, max total time ~= 6.3 sec   sum(0.1 * 2 ** n for n in range(6))
+#   MAX_TRIES = 7, max total time ~= 12.7 sec
+#
+# with MAX_SLEEP_CAP at 5:
+#   MAX_TRIES = 5, max total time ~= 3.1 sec
+#   MAX_TRIES = 6, max total time ~= 6.3 sec    sum(0.1 * 2 ** min((n, 5)) for n in range(6))
+#   MAX_TRIES = 7, max total time ~= 9.5 sec    sum(0.1 * 2 ** min((n, 5)) for n in range(7))
+#   MAX_TRIES = 10, max total time ~= 19.1 sec  sum(0.1 * 2 ** min((n, 5)) for n in range(10))
+MAX_TRIES = 10
+MAX_SLEEP_CAP = 5  # ~3.2 sec max sleep
 
 
 def exp_backoff_fn(fn, *args, **kwargs):
@@ -23,17 +41,15 @@ def exp_backoff_fn(fn, *args, **kwargs):
     if not on_win:
         return fn(*args, **kwargs)
 
-    # with max_tries = 6, max total time ~= 3.2 sec
-    # with max_tries = 7, max total time ~= 6.5 sec
     for n in range(max_tries):
         try:
             result = fn(*args, **kwargs)
         except EnvironmentError as e:
             log.trace(repr(e))
-            if e.errno in (EPERM, EACCES):
+            if e.errno in (EACCES, EPERM, EIO):
                 if n == max_tries-1:
                     raise
-                sleep_time = ((2 ** n) + random()) * 0.1
+                sleep_time = (2 ** min(n, MAX_SLEEP_CAP) + random()) * 0.1
                 caller_frame = sys._getframe(1)
                 log.trace("retrying %s/%s %s() in %g sec",
                           basename(caller_frame.f_code.co_filename),

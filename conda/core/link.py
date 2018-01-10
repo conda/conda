@@ -532,7 +532,6 @@ class UnlinkLinkTransaction(object):
                            prec,
                            'pre-unlink' if is_unlink else 'pre-link',
                            target_prefix)
-            rm_rf_queued.flush()
             for axn_idx, action in enumerate(axngroup.actions):
                 action.execute()
             if axngroup.type in ('unlink', 'link'):
