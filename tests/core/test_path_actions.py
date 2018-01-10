@@ -24,7 +24,7 @@ from conda.common.path import get_bin_directory_short_path, get_python_noarch_ta
 from conda.core.path_actions import CompilePycAction, CreatePythonEntryPointAction, LinkPathAction
 from conda.exceptions import ParseError
 from conda.gateways.disk.create import create_link, mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf, rm_rf_wait, rm_rf_queued
 from conda.gateways.disk.link import islink, stat_nlink
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
@@ -149,7 +149,7 @@ class PathActionsTests(TestCase):
         assert isfile(axn.target_full_path)
 
         # remove the source .py file so we're sure we're importing the pyc file below
-        rm_rf(axn.source_full_path)
+        rm_rf_wait(axn.source_full_path)
         assert not isfile(axn.source_full_path)
 
         if (3,) > sys.version_info >= (3, 5):
@@ -213,6 +213,7 @@ class PathActionsTests(TestCase):
         assert last_line == "sys.exit(%s())" % func
 
         py_ep_axn.reverse()
+        rm_rf_queued.flush()
         assert not isfile(py_ep_axn.target_full_path)
 
         if on_win:
@@ -286,6 +287,7 @@ class PathActionsTests(TestCase):
         assert stat_nlink(axn.target_full_path) == 1
 
         axn.reverse()
+        rm_rf_queued.flush()
         assert not lexists(axn.target_full_path)
         assert lexists(source_full_path)
 
