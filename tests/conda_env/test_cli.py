@@ -11,7 +11,7 @@ import sys
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.cli.conda_argparse import do_call
-from conda.cli.main import generate_parser
+from conda.cli.main import generate_parser, init_loggers
 from conda.common.io import captured, stderr_log_level
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import EnvironmentLocationNotFound
@@ -24,6 +24,7 @@ from conda_env.yaml import load as yaml_load
 
 
 # TODO: Don't merge this block
+init_loggers()
 TEST_LOG_LEVEL = TRACE
 stderr_log_level(TEST_LOG_LEVEL, 'conda')
 stderr_log_level(TEST_LOG_LEVEL, 'requests')
@@ -99,7 +100,7 @@ def run_env_command(command, prefix, *arguments):
     with captured() as c:
         do_call_conda_env(args, p)
     print(c.stderr, file=sys.stderr)
-    print(c.stdout, file=sys.stderr)
+    print(c.stdout, file=sys.stdout)
     rm_rf_queued.flush()
     return c.stdout, c.stderr
 
@@ -129,7 +130,7 @@ def run_conda_command(command, prefix, *arguments):
     with captured() as c:
         do_call(args, p)
     print(c.stderr, file=sys.stderr)
-    print(c.stdout, file=sys.stderr)
+    print(c.stdout, file=sys.stdout)
     return c.stdout, c.stderr
 
 
@@ -154,7 +155,18 @@ class IntegrationTests(unittest.TestCase):
     def tearDown(self):
         rm_rf("environment.yml")
         if env_is_created(test_env_name_1):
-            run_env_command(Commands.ENV_REMOVE, test_env_name_1)
+            try:
+                run_env_command(Commands.ENV_REMOVE, test_env_name_1)
+            except Exception as e:
+                print("%r" % e)
+                if hasattr(e, 'errno'):
+                    print(e.errno)
+                    import errno
+                    print("errno name: %s" % errno.errorcode[e.errno])
+                print(vars(e))
+                print(dir(e))
+                print(type(e))
+                raise
         rm_rf_queued.flush()
 
     def test_conda_env_create_no_file(self):
