@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EACCES, EPERM
+from errno import EACCES, ENOENT, EPERM
 from functools import reduce
 from logging import getLogger
 from os import listdir
@@ -305,7 +305,16 @@ class PackageCache(object):
                             # We have a partially unpacked conda package directory. Best thing
                             # to do is remove it and try extracting.
                             rm_rf(extracted_package_dir)
-                        extract_tarball(package_tarball_full_path, extracted_package_dir)
+                        try:
+                            extract_tarball(package_tarball_full_path, extracted_package_dir)
+                        except EnvironmentError as e:
+                            if e.errno == ENOENT:
+                                # FileNotFoundError(2, 'No such file or directory')
+                                # At this point, we can assume the package tarball is bad.
+                                # Remove everything and move on.
+                                # see https://github.com/conda/conda/issues/6707
+                                rm_rf(package_tarball_full_path)
+                                rm_rf(extracted_package_dir)
                         try:
                             index_json_record = read_index_json(extracted_package_dir)
                         except (IOError, OSError, JSONDecodeError):
