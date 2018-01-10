@@ -48,18 +48,17 @@ def rm_rf_wait(path):
     """Block until path is deleted."""
     try:
         path = abspath(path)
-        log.trace("rm_rf %s", path)
         if isdir(path) and not islink(path):
+            log.trace("rm_rf directory %s", path)
             backoff_rmdir(path)
         elif lexists(path):
+            log.trace("rm_rf path %s", path)
             backoff_unlink(path)
         else:
-            log.trace("rm_rf failed. Not a link, file, or directory: %s", path)
+            log.trace("rm_rf no-op. Not a link, file, or directory: %s", path)
         return True
     finally:
-        if lexists(path):
-            log.info("rm_rf failed for %s", path)
-            return False
+        assert not lexists(path), "rm_rf failed for %s" % path
 
 
 def rm_rf(path, max_retries=5, trash=True):

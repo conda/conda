@@ -31,7 +31,7 @@ from ..common.signals import signal_handler
 from ..exceptions import (KnownPackageClobberError, LinkError, RemoveError,
                           SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk import mkdir_p
-from ..gateways.disk.delete import rm_rf_queued, rm_rf_wait
+from ..gateways.disk.delete import rm_rf_queued
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, is_conda_environment, softlink_supported
 from ..gateways.subprocess import subprocess_call
