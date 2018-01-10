@@ -6,19 +6,28 @@ import tempfile
 import unittest
 
 import pytest
+import sys
 
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser
-from conda.common.io import captured
+from conda.common.io import captured, stderr_log_level
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import EnvironmentLocationNotFound
 from conda.gateways.disk.delete import rm_rf_queued
+from conda.gateways.logging import TRACE
 from conda.install import rm_rf
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
 from conda_env.exceptions import SpecNotFound
 from conda_env.yaml import load as yaml_load
+
+
+# TODO: Don't merge this block
+TEST_LOG_LEVEL = TRACE
+stderr_log_level(TEST_LOG_LEVEL, 'conda')
+stderr_log_level(TEST_LOG_LEVEL, 'requests')
+
 
 environment_1 = '''
 name: env-1
@@ -89,6 +98,8 @@ def run_env_command(command, prefix, *arguments):
 
     with captured() as c:
         do_call_conda_env(args, p)
+    print(c.stderr, file=sys.stderr)
+    print(c.stdout, file=sys.stderr)
     rm_rf_queued.flush()
     return c.stdout, c.stderr
 
@@ -117,7 +128,8 @@ def run_conda_command(command, prefix, *arguments):
     context._set_argparse_args(args)
     with captured() as c:
         do_call(args, p)
-
+    print(c.stderr, file=sys.stderr)
+    print(c.stdout, file=sys.stderr)
     return c.stdout, c.stderr
 
 
