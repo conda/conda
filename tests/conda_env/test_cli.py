@@ -1,4 +1,5 @@
 import json
+from logging import DEBUG
 import os
 from os.path import join
 from shlex import split
@@ -25,12 +26,12 @@ from conda_env.yaml import load as yaml_load
 
 # TODO: Don't merge this block
 init_loggers()
-TEST_LOG_LEVEL = TRACE
+TEST_LOG_LEVEL = DEBUG
 stderr_log_level(TEST_LOG_LEVEL, 'conda')
 stderr_log_level(TEST_LOG_LEVEL, 'conda_env')
 stderr_log_level(TEST_LOG_LEVEL, 'requests')
 from conda.gateways.logging import set_verbosity
-set_verbosity(3)
+set_verbosity(2)
 
 
 environment_1 = '''
@@ -161,18 +162,6 @@ class IntegrationTests(unittest.TestCase):
             try:
                 run_env_command(Commands.ENV_REMOVE, test_env_name_1)
             except Exception as e:
-                import traceback
-                print(traceback.format_exc())
-                print("%r" % e)
-                if hasattr(e, 'errno'):
-                    print(e.errno)
-                    import errno
-                    print("errno name: %s" % errno.errorcode[e.errno])
-                print(vars(e))
-                print(dir(e))
-                print(type(e))
-
-
                 path = 'c:\\conda-root\\envs\\env-1\\DLLs\\pyexpat.pyd'
                 print(os.stat(path, follow_symlinks=False))
                 print(os.stat(path, follow_symlinks=True))
@@ -186,7 +175,24 @@ class IntegrationTests(unittest.TestCase):
                 print()
                 print()
                 print()
-                os.unlink(path)
+
+                try:
+                    os.unlink(path)
+                except Exception as e:
+                    import traceback
+                    print(traceback.format_exc())
+                    print("%r" % e)
+                    if hasattr(e, 'errno'):
+                        print(e.errno)
+                        import errno
+                        print("errno name: %s" % errno.errorcode[e.errno])
+                    print(vars(e))
+                    print(dir(e))
+                    print(type(e))
+
+                    raise
+
+                # ===> we never get here <===
                 print('is file: %s' % os.path.isfile(path))
 
                 raise
