@@ -350,7 +350,10 @@ will make sure that whenever conda is installed or changed in an environment, th
 * remove dead code (4.4.0) (#6489)
 
 
-## 4.3.32 (unreleased)
+## 4.3.32 (2018-01-10)
+
+### Improvements
+* resolve #6711 fall back to copy/unlink for EINVAL, EXDEV rename failures (#6712)
 
 ### Bug Fixes
 * fix #6057 unlink-link order for python noarch packages on windows (#6277)
