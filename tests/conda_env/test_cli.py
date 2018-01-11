@@ -5,6 +5,7 @@ from os.path import join
 from shlex import split
 import tempfile
 import unittest
+from zipfile import ZipFile
 
 import pytest
 import sys
@@ -14,8 +15,10 @@ from conda.base.context import context
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.io import captured, stderr_log_level
+from conda.common.path import expand
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import EnvironmentLocationNotFound
+from conda.gateways.connection.download import download
 from conda.gateways.disk.delete import rm_rf_queued
 from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
@@ -189,12 +192,14 @@ class IntegrationTests(unittest.TestCase):
                 print()
                 print()
 
-                result = subprocess_call('where handle')
-                print(result.stdout, file=sys.stdout)
-                print(result.stderr, file=sys.stderr)
+                download("https://download.sysinternals.com/files/Handle.zip", "handle.zip", "07ad4eed22435653c239245cdef6996a")
+                with ZipFile("handle.zip") as fh:
+                    fh.extractall()
 
+                print("handle.zip extracted")
+                print(os.listdir('.'))
 
-                result = subprocess_call('handle')
+                result = subprocess_call(expand('handle.exe'))
                 print(result.stdout, file=sys.stdout)
                 print(result.stderr, file=sys.stderr)
 
