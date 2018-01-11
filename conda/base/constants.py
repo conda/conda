@@ -66,6 +66,7 @@ RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 DEFAULT_CHANNELS_UNIX = (
     'https://repo.continuum.io/pkgs/main',
     'https://repo.continuum.io/pkgs/free',
+    'https://repo.continuum.io/pkgs/mro',
     'https://repo.continuum.io/pkgs/r',
     'https://repo.continuum.io/pkgs/pro',
 )
@@ -73,6 +74,7 @@ DEFAULT_CHANNELS_UNIX = (
 DEFAULT_CHANNELS_WIN = (
     'https://repo.continuum.io/pkgs/main',
     'https://repo.continuum.io/pkgs/free',
+    'https://repo.continuum.io/pkgs/mro',
     'https://repo.continuum.io/pkgs/r',
     'https://repo.continuum.io/pkgs/pro',
     'https://repo.continuum.io/pkgs/msys2',
