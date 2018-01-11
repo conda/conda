@@ -72,7 +72,8 @@ else:  # pragma: unix no cover
     symlink = win_soft_link
 
 
-if not (on_win and PY2):
+# if not (on_win and PY2):
+if not on_win:
     from os import readlink
     islink = os_islink
     lexists = os_lexists
@@ -406,6 +407,70 @@ else:  # pragma: no cover
         handle_nonzero_success(res)
         handle_nonzero_success(returned_bytes)
         return out_buffer[:returned_bytes.value]
+
+
+    class BY_HANDLE_FILE_INFORMATION(Structure):
+        _fields_ = [
+            ('file_attributes', wintypes.DWORD),
+            ('creation_time', wintypes.FILETIME),
+            ('last_access_time', wintypes.FILETIME),
+            ('last_write_time', wintypes.FILETIME),
+            ('volume_serial_number', wintypes.DWORD),
+            ('file_size_high', wintypes.DWORD),
+            ('file_size_low', wintypes.DWORD),
+            ('number_of_links', wintypes.DWORD),
+            ('file_index_high', wintypes.DWORD),
+            ('file_index_low', wintypes.DWORD),
+        ]
+
+        @property
+        def file_size(self):
+            return (self.file_size_high << 32) + self.file_size_low
+
+        @property
+        def file_index(self):
+            return (self.file_index_high << 32) + self.file_index_low
+
+    GetFileInformationByHandle = windll.kernel32.GetFileInformationByHandle
+    GetFileInformationByHandle.restype = wintypes.BOOL
+    GetFileInformationByHandle.argtypes = (
+        wintypes.HANDLE,
+        POINTER(BY_HANDLE_FILE_INFORMATION),
+    )
+    FILE_READ_ATTRIBUTES = 0x80
+    FILE_ATTRIBUTE_NORMAL = 0x80
+
+    def get_file_info(path):
+        # open the file the same way CPython does in posixmodule.c
+        desired_access = FILE_READ_ATTRIBUTES
+        share_mode = 0
+        security_attributes = None
+        creation_disposition = OPEN_EXISTING
+        flags_and_attributes = (
+                FILE_ATTRIBUTE_NORMAL |
+                FILE_FLAG_BACKUP_SEMANTICS |
+                FILE_FLAG_OPEN_REPARSE_POINT
+        )
+        template_file = None
+
+        handle = CreateFile(
+            path,
+            desired_access,
+            share_mode,
+            security_attributes,
+            creation_disposition,
+            flags_and_attributes,
+            template_file,
+        )
+
+        if handle == INVALID_HANDLE_VALUE:
+            raise WindowsError()
+
+        info = BY_HANDLE_FILE_INFORMATION()
+        res = GetFileInformationByHandle(handle, info)
+        handle_nonzero_success(res)
+
+        return info
 
 
 # work-around for python bug on Windows prior to python 3.2

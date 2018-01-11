@@ -1,7 +1,7 @@
 import json
 from logging import DEBUG
 import os
-from os.path import join
+from os.path import join, normpath
 from shlex import split
 import tempfile
 import unittest
@@ -192,12 +192,22 @@ class IntegrationTests(unittest.TestCase):
                 print()
                 print()
 
+                from conda.gateways.disk.link import get_file_info
+                info = get_file_info(normpath(path))
+                print(info)
+                print(repr(info))
+                print(type(info))
+
                 download("https://download.sysinternals.com/files/Handle.zip", "handle.zip", "07ad4eed22435653c239245cdef6996a")
                 with ZipFile("handle.zip") as fh:
                     fh.extractall()
 
                 print("handle.zip extracted")
                 print(os.listdir('.'))
+
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
                 result = subprocess_call(expand('handle -accepteula'))
                 print(result.stdout, file=sys.stdout)
@@ -207,13 +217,6 @@ class IntegrationTests(unittest.TestCase):
                 print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
                 print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
-                result = subprocess_call(expand('handle'))
-                print(result.stdout, file=sys.stdout)
-                print(result.stderr, file=sys.stderr)
-
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
                 print()
                 print()
