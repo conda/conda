@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import EINVAL, EXDEV
 from logging import getLogger
 from os import rename as os_rename, utime
 from os.path import dirname, isdir, lexists
@@ -8,6 +9,7 @@ import re
 
 from . import exp_backoff_fn
 from .delete import rm_rf
+from .link import islink
 from ...common.path import expand
 
 log = getLogger(__name__)
@@ -39,12 +41,30 @@ def update_file_in_place_as_binary(file_full_path, callback):
             fh.close()
 
 
+def _copy_then_remove(source_path, destination_path):
+    from .create import copy, create_hard_link_or_copy
+    if islink(source_path):
+        copy(source_path, destination_path)
+    else:
+        create_hard_link_or_copy(source_path, destination_path)
+    rm_rf(source_path)
+
+
 def rename(source_path, destination_path, force=False):
     if lexists(destination_path) and force:
         rm_rf(destination_path)
     if lexists(source_path):
         log.trace("renaming %s => %s", source_path, destination_path)
-        os_rename(source_path, destination_path)
+        try:
+            os_rename(source_path, destination_path)
+        except EnvironmentError as e:
+            if e.errno in (EINVAL, EXDEV):
+                # see https://github.com/conda/conda/issues/6711
+                log.trace("Could not rename do to errno [%s]. Falling back to copy/remove.",
+                          e.errno)
+                _copy_then_remove(source_path, destination_path)
+            else:
+                raise
     else:
         log.trace("cannot rename; source path does not exist '%s'", source_path)
 
