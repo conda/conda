@@ -158,6 +158,8 @@ class IntegrationTests(unittest.TestCase):
             try:
                 run_env_command(Commands.ENV_REMOVE, test_env_name_1)
             except Exception as e:
+                import traceback
+                print(traceback.format_exc())
                 print("%r" % e)
                 if hasattr(e, 'errno'):
                     print(e.errno)
@@ -166,6 +168,14 @@ class IntegrationTests(unittest.TestCase):
                 print(vars(e))
                 print(dir(e))
                 print(type(e))
+
+
+                path = 'c:\\conda-root\\envs\\env-1\\DLLs\\pyexpat.pyd'
+                print(os.stat(path, follow_symlinks=False))
+                print(os.stat(path, follow_symlinks=True))
+                os.unlink(path)
+                print('is file: %s' % os.path.isfile(path))
+
                 raise
         rm_rf_queued.flush()
 
