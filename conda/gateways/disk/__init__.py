@@ -20,6 +20,7 @@ log = getLogger(__name__)
 # ENOENT:    No such file or directory
 # ENOTEMPTY: Directory not empty
 # EPERM:     Operation not permitted
+# Windows:   https://msdn.microsoft.com/en-us/library/5814770t.aspx
 
 # without the time cap:
 #   MAX_TRIES = 5, max total time ~= 3.1 sec

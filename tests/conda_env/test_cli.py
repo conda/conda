@@ -173,8 +173,28 @@ class IntegrationTests(unittest.TestCase):
                 print("os.listdir(%s)" % os.path.dirname(path))
                 print(sorted(os.listdir(os.path.dirname(path))))
 
+                import win32api
+                import win32con
+                import win32security
 
-                result = subprocess_call('handle "%s"' % path)
+                print("I am", win32api.GetUserNameEx(win32con.NameSamCompatible))
+
+                sd = win32security.GetFileSecurity(path,
+                                                   win32security.OWNER_SECURITY_INFORMATION)
+                owner_sid = sd.GetSecurityDescriptorOwner()
+                name, domain, _type = win32security.LookupAccountSid(None, owner_sid)
+
+                print("File owned by %s\\%s  type: %s" % (domain, name, _type))
+                print()
+                print()
+                print()
+
+                result = subprocess_call('where handle')
+                print(result.stdout, file=sys.stdout)
+                print(result.stderr, file=sys.stderr)
+
+
+                result = subprocess_call('handle')
                 print(result.stdout, file=sys.stdout)
                 print(result.stderr, file=sys.stderr)
 
@@ -196,21 +216,6 @@ class IntegrationTests(unittest.TestCase):
                     print(dir(e))
                     print(type(e))
 
-                    import win32api
-                    import win32con
-                    import win32security
-
-                    print("I am", win32api.GetUserNameEx(win32con.NameSamCompatible))
-
-                    sd = win32security.GetFileSecurity(path,
-                                                       win32security.OWNER_SECURITY_INFORMATION)
-                    owner_sid = sd.GetSecurityDescriptorOwner()
-                    name, domain, _type = win32security.LookupAccountSid(None, owner_sid)
-
-                    print("File owned by %s\\%s  type: %s" % (domain, name, _type))
-                    print()
-                    print()
-                    print()
 
                     raise
 
