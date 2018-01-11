@@ -18,6 +18,7 @@ from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import EnvironmentLocationNotFound
 from conda.gateways.disk.delete import rm_rf_queued
 from conda.gateways.logging import TRACE
+from conda.gateways.subprocess import subprocess_call
 from conda.install import rm_rf
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
 from conda_env.exceptions import SpecNotFound
@@ -172,6 +173,11 @@ class IntegrationTests(unittest.TestCase):
                 print("os.listdir(%s)" % os.path.dirname(path))
                 print(sorted(os.listdir(os.path.dirname(path))))
 
+
+                result = subprocess_call('handle "%s"' % path)
+                print(result.stdout, file=sys.stdout)
+                print(result.stderr, file=sys.stderr)
+
                 print()
                 print()
                 print()
@@ -189,6 +195,22 @@ class IntegrationTests(unittest.TestCase):
                     print(vars(e))
                     print(dir(e))
                     print(type(e))
+
+                    import win32api
+                    import win32con
+                    import win32security
+
+                    print("I am", win32api.GetUserNameEx(win32con.NameSamCompatible))
+
+                    sd = win32security.GetFileSecurity(path,
+                                                       win32security.OWNER_SECURITY_INFORMATION)
+                    owner_sid = sd.GetSecurityDescriptorOwner()
+                    name, domain, _type = win32security.LookupAccountSid(None, owner_sid)
+
+                    print("File owned by %s\\%s  type: %s" % (domain, name, _type))
+                    print()
+                    print()
+                    print()
 
                     raise
 
