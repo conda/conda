@@ -199,9 +199,21 @@ class IntegrationTests(unittest.TestCase):
                 print("handle.zip extracted")
                 print(os.listdir('.'))
 
-                result = subprocess_call(expand('handle /accepteula'))
+                result = subprocess_call(expand('handle -accepteula'))
                 print(result.stdout, file=sys.stdout)
                 print(result.stderr, file=sys.stderr)
+
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+                result = subprocess_call(expand('handle'))
+                print(result.stdout, file=sys.stdout)
+                print(result.stderr, file=sys.stderr)
+
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
                 print()
                 print()
