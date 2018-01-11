@@ -27,7 +27,10 @@ from conda_env.yaml import load as yaml_load
 init_loggers()
 TEST_LOG_LEVEL = TRACE
 stderr_log_level(TEST_LOG_LEVEL, 'conda')
+stderr_log_level(TEST_LOG_LEVEL, 'conda_env')
 stderr_log_level(TEST_LOG_LEVEL, 'requests')
+from conda.gateways.logging import set_verbosity
+set_verbosity(3)
 
 
 environment_1 = '''
@@ -173,6 +176,16 @@ class IntegrationTests(unittest.TestCase):
                 path = 'c:\\conda-root\\envs\\env-1\\DLLs\\pyexpat.pyd'
                 print(os.stat(path, follow_symlinks=False))
                 print(os.stat(path, follow_symlinks=True))
+
+                print()
+                print()
+                print()
+                print("os.listdir(%s)" % os.path.dirname(path))
+                print(sorted(os.listdir(os.path.dirname(path))))
+
+                print()
+                print()
+                print()
                 os.unlink(path)
                 print('is file: %s' % os.path.isfile(path))
 
