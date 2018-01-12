@@ -229,23 +229,23 @@ class IntegrationTests(unittest.TestCase):
                 # print(type(info))
                 #
                 #
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", file=sys.stderr)
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", file=sys.stderr)
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", file=sys.stderr)
                 download("https://download.sysinternals.com/files/Handle.zip", "handle.zip", "07ad4eed22435653c239245cdef6996a")
                 with ZipFile("handle.zip") as fh:
                     fh.extractall()
 
-                print("handle.zip extracted")
-                print(os.listdir('.'))
+                print("handle.zip extracted", file=sys.stderr)
+                print(os.listdir('.'), file=sys.stderr)
 
                 result = subprocess_call(expand('handle -accepteula'))
-                print(result.stdout)
-                print(result.stderr)
+                print(result.stdout, file=sys.stderr)
+                print(result.stderr, file=sys.stderr)
 
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", file=sys.stderr)
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", file=sys.stderr)
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", file=sys.stderr)
                 #
                 #
                 # print()
@@ -256,15 +256,15 @@ class IntegrationTests(unittest.TestCase):
                     os.unlink(path)
                 except Exception as e:
                     import traceback
-                    print(traceback.format_exc())
-                    print("%r" % e)
+                    print(traceback.format_exc(), file=sys.stderr)
+                    print("%r" % e, file=sys.stderr)
                     if hasattr(e, 'errno'):
-                        print(e.errno)
+                        print(e.errno, file=sys.stderr)
                         import errno
-                        print("errno name: %s" % errno.errorcode[e.errno])
-                    print(vars(e))
-                    print(dir(e))
-                    print(type(e))
+                        print("errno name: %s" % errno.errorcode[e.errno], file=sys.stderr)
+                    print(vars(e), file=sys.stderr)
+                    print(dir(e), file=sys.stderr)
+                    print(type(e), file=sys.stderr)
 
 
                     # remove(path)
@@ -278,24 +278,24 @@ class IntegrationTests(unittest.TestCase):
                     from subprocess import Popen, PIPE
                     p = Popen("dir %s" % os.path.dirname(path), stdout=PIPE, stderr=PIPE, shell=True)
                     stdout, stderr = p.communicate()
-                    print("stdout >> %s" % stdout)
-                    print("stderr >> %s" % stderr)
+                    print("stdout >> %s" % stdout, file=sys.stderr)
+                    print("stderr >> %s" % stderr, file=sys.stderr)
 
                     p = Popen("del %s" % path, stdout=PIPE, stderr=PIPE, shell=True)
                     stdout, stderr = p.communicate()
-                    print("stdout >> %s" % stdout)
-                    print("stderr >> %s" % stderr)
+                    print("stdout >> %s" % stdout, file=sys.stderr)
+                    print("stderr >> %s" % stderr, file=sys.stderr)
 
                     p = Popen("dir %s" % os.path.dirname(path), stdout=PIPE, stderr=PIPE, shell=True)
                     stdout, stderr = p.communicate()
-                    print("stdout >> %s" % stdout)
-                    print("stderr >> %s" % stderr)
+                    print("stdout >> %s" % stdout, file=sys.stderr)
+                    print("stderr >> %s" % stderr, file=sys.stderr)
 
 
                     raise
 
                 # ===> we never get here <===
-                print('is file: %s' % os.path.isfile(path))
+                print('is file: %s' % os.path.isfile(path), file=sys.stderr)
 
                 raise
         rm_rf_queued.flush()
