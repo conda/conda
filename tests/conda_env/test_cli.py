@@ -277,6 +277,22 @@ class IntegrationTests(unittest.TestCase):
                     # shutil.move(path, clobber_path)
                     # os.unlink(clobber_path)
 
+                    from subprocess import Popen, PIPE
+                    p = Popen("dir %s" % os.path.dirname(path), stdout=PIPE, stderr=PIPE, shell=True)
+                    stdout, stderr = p.communicate()
+                    print("stdout >> %s" % stdout)
+                    print("stderr >> %s" % stderr)
+
+                    p = Popen("del %s" % path, stdout=PIPE, stderr=PIPE, shell=True)
+                    stdout, stderr = p.communicate()
+                    print("stdout >> %s" % stdout)
+                    print("stderr >> %s" % stderr)
+
+                    p = Popen("dir %s" % os.path.dirname(path), stdout=PIPE, stderr=PIPE, shell=True)
+                    stdout, stderr = p.communicate()
+                    print("stdout >> %s" % stdout)
+                    print("stderr >> %s" % stderr)
+
 
                     raise
 
