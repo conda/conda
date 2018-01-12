@@ -29,15 +29,7 @@ from conda_env.cli.main import create_parser, do_call as do_call_conda_env
 from conda_env.exceptions import SpecNotFound
 from conda_env.yaml import load as yaml_load
 
-
-# TODO: Don't merge this block
-init_loggers()
 TEST_LOG_LEVEL = DEBUG
-stderr_log_level(TEST_LOG_LEVEL, 'conda')
-stderr_log_level(TEST_LOG_LEVEL, 'conda_env')
-stderr_log_level(TEST_LOG_LEVEL, 'requests')
-from conda.gateways.logging import set_verbosity
-set_verbosity(2)
 
 
 environment_1 = '''
@@ -106,11 +98,14 @@ def run_env_command(command, prefix, *arguments):
 
     args = p.parse_args(split(command_line))
     context._set_argparse_args(args)
-
-    with captured() as c:
-        do_call_conda_env(args, p)
+    init_loggers(context)
+    print("\n\nEXECUTING COMMAND >>> $ conda env %s\n\n" % command_line, file=sys.stderr)
+    with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
+        with stderr_log_level(TEST_LOG_LEVEL, 'conda_env'):
+            with captured() as c:
+                do_call_conda_env(args, p)
     print(c.stderr, file=sys.stderr)
-    print(c.stdout, file=sys.stdout)
+    print(c.stdout, file=sys.stderr)
     rm_rf_queued.flush()
     return c.stdout, c.stderr
 
@@ -207,6 +202,9 @@ class IntegrationTests(unittest.TestCase):
                 # print()
                 # print("os.listdir(%s)" % os.path.dirname(path))
                 # print(sorted(os.listdir(os.path.dirname(path))))
+                #
+                #
+                # http://timgolden.me.uk/python/win32_how_do_i/get-the-owner-of-a-file.html
                 #
                 # import win32api
                 # import win32con

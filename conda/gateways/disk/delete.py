@@ -284,7 +284,7 @@ def rmdir_recursive_windows(dir):
         full_name = os.path.join(dir, name)
         reparse_tag = ffrec[6]
 
-        print("attributes for [%s] [%s] are %s" % (full_name, reparse_tag, hex(file_attr)))
+        log.info("attributes for [%s] [%s] are %s" % (full_name, reparse_tag, hex(file_attr)))
 
         if file_attr & FILE_ATTRIBUTE_DIRECTORY:
             rmdir_recursive_windows(full_name)
@@ -293,7 +293,7 @@ def rmdir_recursive_windows(dir):
             try:
                 DeleteFile('\\\\?\\' + full_name)
             except Exception:
-                print("attributes for [%s] are %s" % (full_name, hex(GetFileAttributesW(full_name))))
+                log.info("attributes for [%s] are %s" % (full_name, hex(GetFileAttributesW(full_name))))
                 raise RuntimeError("Problem for path: %s" % full_name)
     RemoveDirectory('\\\\?\\' + dir)
 
