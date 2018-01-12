@@ -846,7 +846,7 @@ class UrlChannelTests(TestCase):
         subdirs = ('linux-highest', 'linux-64', 'noarch')
 
         def _channel_urls(channels=None):
-            for channel in channels or DEFAULT_CHANNELS:
+            for channel in channels or context.default_channels:
                 channel = Channel(channel)
                 for subdir in subdirs:
                     yield join_url(channel.base_url, subdir)
