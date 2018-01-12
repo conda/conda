@@ -271,11 +271,11 @@ class IntegrationTests(unittest.TestCase):
 
                     # remove(path)
 
-                    clobber_suffix = '.deleteme'
-                    clobber_path = path + clobber_suffix
-                    os.chmod(path, 0o700)
-                    shutil.move(path, clobber_path)
-                    os.unlink(clobber_path)
+                    # clobber_suffix = '.deleteme'
+                    # clobber_path = path + clobber_suffix
+                    # os.chmod(path, 0o700)
+                    # shutil.move(path, clobber_path)
+                    # os.unlink(clobber_path)
 
 
                     raise
