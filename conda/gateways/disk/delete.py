@@ -50,7 +50,7 @@ def rm_rf_wait(path):
     try:
         if isdir(path) and not islink(path):
             log.trace("rm_rf directory %s", path)
-            rmdir_recursive(path)
+            rmtree(path)
         elif lexists(path):
             log.trace("rm_rf path %s", path)
             _do_unlink(path)
@@ -222,11 +222,16 @@ import shutil
 
 if os.name == 'nt':
     from win32file import RemoveDirectory, DeleteFile, \
-        SetFileAttributesW, \
+        SetFileAttributesW, GetFileAttributesW, \
         FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_DIRECTORY
     from win32api import FindFiles
 
 clobber_suffix = '.deleteme'
+
+
+# def print_file_attributes(path):
+#     get_file_attributes = GetFileAttributesW
+#
 
 
 def rmdir_recursive_windows(dir):
@@ -249,7 +254,10 @@ def rmdir_recursive_windows(dir):
             rmdir_recursive_windows(full_name)
         else:
             SetFileAttributesW('\\\\?\\' + full_name, FILE_ATTRIBUTE_NORMAL)
-            DeleteFile('\\\\?\\' + full_name)
+            try:
+                DeleteFile('\\\\?\\' + full_name)
+            except Exception:
+                raise RuntimeError("Problem for path: %s" % full_name)
     RemoveDirectory('\\\\?\\' + dir)
 
 
@@ -342,7 +350,7 @@ def do_clobber(dir, dryrun=False, skip=None):
 
 
 
-if not (on_win and PY2):
+if not on_win:
     rmtree = shutil_rmtree
 else:  # pragma: no cover
     # adapted from http://code.activestate.com/recipes/578849-reimplementation-of-rmtree-supporting-windows-repa/  # NOQA
