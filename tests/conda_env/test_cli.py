@@ -180,6 +180,7 @@ class IntegrationTests(unittest.TestCase):
                 remove_directory = kernel32.RemoveDirectoryW
 
                 def remove(path):
+                    os.chmod(path, 0o700)
                     attributes = get_file_attributes(path)
                     if attributes == -1:
                         success = False
