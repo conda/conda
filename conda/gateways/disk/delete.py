@@ -50,7 +50,7 @@ def rm_rf_wait(path):
     try:
         if isdir(path) and not islink(path):
             log.trace("rm_rf directory %s", path)
-            rmtree(path)
+            rmdir_recursive(path)
         elif lexists(path):
             log.trace("rm_rf path %s", path)
             _do_unlink(path)
@@ -229,9 +229,6 @@ if os.name == 'nt':
 clobber_suffix = '.deleteme'
 
 
-# def print_file_attributes(path):
-#     get_file_attributes = GetFileAttributesW
-#
 
 
 def rmdir_recursive_windows(dir):
@@ -244,11 +241,38 @@ def rmdir_recursive_windows(dir):
     SetFileAttributesW('\\\\?\\' + dir, FILE_ATTRIBUTE_NORMAL)
 
     for ffrec in FindFiles('\\\\?\\' + dir + '\\*.*'):
-        file_attr = ffrec[0]
+        # ffrec is a WIN32_FIND_DATA object
+        # http://docs.activestate.com/activepython/2.5/pywin32/WIN32_FIND_DATA.html
+        # [0] int : attributes
+        #   File Attributes. A combination of the win32com.FILE_ATTRIBUTE_* flags.
+        # [1] PyTime : createTime
+        #   File creation time.
+        # [2] PyTime : accessTime
+        #   File access time.
+        # [3] PyTime : writeTime
+        #   Time of last file write
+        # [4] int : nFileSizeHigh
+        #   high order DWORD of file size.
+        # [5] int : nFileSizeLow
+        #   low order DWORD of file size.
+        # [6] int : reserved0
+        #   Contains reparse tag if path is a reparse point
+        #   https://msdn.microsoft.com/en-us/library/windows/desktop/aa365511(v=vs.85).aspx
+        # [7] int : reserved1
+        #   Reserved.
+        # [8] str/unicode : fileName
+        #   The name of the file.
+        # [9] str/unicode : alternateFilename
+        #   Alternative name of the file, expressed in 8.3 format.
+
         name = ensure_fs_path_encoding(ffrec[8])
         if name == '.' or name == '..':
             continue
+        file_attr = ffrec[0]
         full_name = os.path.join(dir, name)
+        reparse_tag = ffrec[6]
+
+        print("attributes for [%s] [%s] are %s" % (full_name, reparse_tag, hex(file_attr)))
 
         if file_attr & FILE_ATTRIBUTE_DIRECTORY:
             rmdir_recursive_windows(full_name)
@@ -350,7 +374,7 @@ def do_clobber(dir, dryrun=False, skip=None):
 
 
 
-if not on_win:
+if not (on_win and PY2):
     rmtree = shutil_rmtree
 else:  # pragma: no cover
     # adapted from http://code.activestate.com/recipes/578849-reimplementation-of-rmtree-supporting-windows-repa/  # NOQA
