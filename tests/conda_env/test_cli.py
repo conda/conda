@@ -167,60 +167,89 @@ class IntegrationTests(unittest.TestCase):
                 run_env_command(Commands.ENV_REMOVE, test_env_name_1)
             except Exception as e:
                 path = 'c:\\conda-root\\envs\\env-1\\DLLs\\pyexpat.pyd'
-                print(os.stat(path, follow_symlinks=False))
-                print(os.stat(path, follow_symlinks=True))
 
-                print()
-                print()
-                print()
-                print("os.listdir(%s)" % os.path.dirname(path))
-                print(sorted(os.listdir(os.path.dirname(path))))
+                import ctypes
 
-                import win32api
-                import win32con
-                import win32security
+                kernel32 = ctypes.windll.kernel32
+                format_error = ctypes.FormatError
 
-                print("I am", win32api.GetUserNameEx(win32con.NameSamCompatible))
+                create_hard_link = kernel32.CreateHardLinkW
+                create_symbolic_link = kernel32.CreateSymbolicLinkW
+                delete_file = kernel32.DeleteFileW
+                get_file_attributes = kernel32.GetFileAttributesW
+                remove_directory = kernel32.RemoveDirectoryW
 
-                sd = win32security.GetFileSecurity(path,
-                                                   win32security.OWNER_SECURITY_INFORMATION)
-                owner_sid = sd.GetSecurityDescriptorOwner()
-                name, domain, _type = win32security.LookupAccountSid(None, owner_sid)
-
-                print("File owned by %s\\%s  type: %s" % (domain, name, _type))
-                print()
-                print()
-                print()
-
-                from conda.gateways.disk.link import get_file_info
-                info = get_file_info(normpath(path))
-                print(info)
-                print(repr(info))
-                print(type(info))
-
-                download("https://download.sysinternals.com/files/Handle.zip", "handle.zip", "07ad4eed22435653c239245cdef6996a")
-                with ZipFile("handle.zip") as fh:
-                    fh.extractall()
-
-                print("handle.zip extracted")
-                print(os.listdir('.'))
-
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-
-                result = subprocess_call(expand('handle -accepteula'))
-                print(result.stdout, file=sys.stdout)
-                print(result.stderr, file=sys.stderr)
-
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                def remove(path):
+                    attributes = get_file_attributes(path)
+                    if attributes == -1:
+                        success = False
+                    elif (attributes & 0x400) == 0:  # file or directory, not symbolic link
+                        success = delete_file(path) != 0
+                    elif (attributes & 0x010) == 0:  # symbolic link to file
+                        success = delete_file(path) != 0
+                    else:  # symbolic link to directory
+                        success = remove_directory(path) != 0
+                    if success:
+                        return
+                    raise OSError(format_error())
 
 
-                print()
-                print()
-                print()
+
+
+                # print(os.stat(path, follow_symlinks=False))
+                # print(os.stat(path, follow_symlinks=True))
+                #
+                # print()
+                # print()
+                # print()
+                # print("os.listdir(%s)" % os.path.dirname(path))
+                # print(sorted(os.listdir(os.path.dirname(path))))
+                #
+                # import win32api
+                # import win32con
+                # import win32security
+                #
+                # print("I am", win32api.GetUserNameEx(win32con.NameSamCompatible))
+                #
+                # sd = win32security.GetFileSecurity(path,
+                #                                    win32security.OWNER_SECURITY_INFORMATION)
+                # owner_sid = sd.GetSecurityDescriptorOwner()
+                # name, domain, _type = win32security.LookupAccountSid(None, owner_sid)
+                #
+                # print("File owned by %s\\%s  type: %s" % (domain, name, _type))
+                # print()
+                # print()
+                # print()
+                #
+                # from conda.gateways.disk.link import get_file_info
+                # info = get_file_info(normpath(path))
+                # print(info)
+                # print(repr(info))
+                # print(type(info))
+                #
+                # download("https://download.sysinternals.com/files/Handle.zip", "handle.zip", "07ad4eed22435653c239245cdef6996a")
+                # with ZipFile("handle.zip") as fh:
+                #     fh.extractall()
+                #
+                # print("handle.zip extracted")
+                # print(os.listdir('.'))
+                #
+                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                #
+                # result = subprocess_call(expand('handle -accepteula'))
+                # print(result.stdout, file=sys.stdout)
+                # print(result.stderr, file=sys.stderr)
+                #
+                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                #
+                #
+                # print()
+                # print()
+                # print()
 
                 try:
                     os.unlink(path)
@@ -235,6 +264,9 @@ class IntegrationTests(unittest.TestCase):
                     print(vars(e))
                     print(dir(e))
                     print(type(e))
+
+
+                    remove(path)
 
 
                     raise
