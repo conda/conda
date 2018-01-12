@@ -371,13 +371,11 @@ conda_integration_test() {
     p1="c:\\conda-root\\envs\\env-1\\DLLs\\pyexpat.pyd"
     fsutil hardlink list $p1 || true
     icacls $p1 || true
+    ls -al /c/conda-root/envs/env-1/DLLs || true
 
     python -c "import os; os.unlink('c:\\conda-root\\envs\\env-1\\DLLs\\pyexpat.pyd')" || echo "exit status: $?"
     python -c "import os; print(os.path.isfile('c:\\conda-root\\envs\\env-1\\DLLs\\pyexpat.pyd'))" || echo "exit status: $?"
 
-    p1="c:\\conda-root\\envs\\snowflakes\\DLLs\\pyexpat.pyd"
-    fsutil hardlink list $p1 || true
-    icacls $p1 || true
 }
 
 

@@ -77,7 +77,7 @@ def rm_rf(path, max_retries=5, trash=True):
                 move_result = move_path_to_trash(path, preclean=False)
                 if move_result:
                     return True
-            backoff_rmdir(path)
+            rmdir_recursive(path)
         elif lexists(path):
             try:
                 backoff_unlink(path)
@@ -111,7 +111,7 @@ def delete_trash(prefix=None):
             path = join(trash_dir, p)
             try:
                 if isdir(path):
-                    backoff_rmdir(path, max_tries=1)
+                    rmdir_recursive(path, max_tries=1)
                 else:
                     backoff_unlink(path, max_tries=1)
             except (IOError, OSError) as e:
@@ -145,53 +145,111 @@ def move_path_to_trash(path, preclean=True):
         return True
 
 
-def _do_unlink(path):
-    make_writable(path)
-    unlink(path)
+
+
 
 
 def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
-    try:
-        exp_backoff_fn(lambda f: lexists(f) and _do_unlink(f), file_or_symlink_path,
-                       max_tries=max_tries)
-    except EnvironmentError as e:
-        if e.errno != ENOENT:
-            # errno.ENOENT File not found error / No such file or directory
-            raise
+    exp_backoff_fn(_do_unlink, file_or_symlink_path, max_tries=max_tries)
 
 
-def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
-    if not isdir(dirpath):
-        return
+def _do_unlink(path):
+    if on_win:
+        path = ensure_fs_path_encoding(abspath(path))
+        win_path = '\\\\?\\%s' % path
+        if not SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL):
+            error = OSError(FormatError())
+            if error.errno != ENOENT:
+                raise error
+        if not DeleteFileW(win_path):
+            error = OSError(FormatError())
+            if error.errno != ENOENT:
+                raise error
 
-    # shutil.rmtree:
-    #   if onerror is set, it is called to handle the error with arguments (func, path, exc_info)
-    #     where func is os.listdir, os.remove, or os.rmdir;
-    #     path is the argument to that function that caused it to fail; and
-    #     exc_info is a tuple returned by sys.exc_info() ==> (type, value, traceback).
-    def retry(func, path, exc_info):
-        if getattr(exc_info[1], 'errno', None) == ENOENT:
-            return
-        recursive_make_writable(dirname(path), max_tries=max_tries)
-        func(path)
+        # log.info("attributes for [%s] are %s" % (path, hex(GetFileAttributesW(path))))
+        # raise RuntimeError("Problem for path: %s" % path)
 
-    def _rmdir(path):
+    else:
         try:
-            recursive_make_writable(path)
-            exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
-        except (IOError, OSError) as e:
+            make_writable(path)
+            unlink(path)
+        except EnvironmentError as e:
             if e.errno == ENOENT:
-                log.trace("no such file or directory: %s", path)
+                pass
             else:
                 raise
 
-    for root, dirs, files in walk(dirpath, topdown=False):
-        for file in files:
-            backoff_unlink(join(root, file), max_tries=max_tries)
-        for dir in dirs:
-            _rmdir(join(root, dir))
 
-    _rmdir(dirpath)
+def backoff_rmdir(dir_path, max_tries=MAX_TRIES):
+    exp_backoff_fn(_do_rmdir, dir_path, max_tries=max_tries)
+
+
+def _do_rmdir(path):
+    # path must be a directory and empty
+    if on_win:
+        path = ensure_fs_path_encoding(abspath(path))
+        win_path = '\\\\?\\%s' % path
+        if not SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL):
+            error = OSError(FormatError())
+            if error.errno != ENOENT:
+                raise error
+        if not RemoveDirectoryW(win_path):
+            error = OSError(FormatError())
+            if error.errno != ENOENT:
+                raise error
+    else:
+        try:
+            path = abspath(path)
+            make_writable(path)
+            rmdir(path)
+        except EnvironmentError as e:
+            if e.errno == ENOENT:
+                pass
+            else:
+                raise
+
+
+
+
+
+
+
+
+
+
+
+# def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
+#     if not isdir(dirpath):
+#         return
+#
+#     # shutil.rmtree:
+#     #   if onerror is set, it is called to handle the error with arguments (func, path, exc_info)
+#     #     where func is os.listdir, os.remove, or os.rmdir;
+#     #     path is the argument to that function that caused it to fail; and
+#     #     exc_info is a tuple returned by sys.exc_info() ==> (type, value, traceback).
+#     def retry(func, path, exc_info):
+#         if getattr(exc_info[1], 'errno', None) == ENOENT:
+#             return
+#         recursive_make_writable(dirname(path), max_tries=max_tries)
+#         func(path)
+#
+#     def _rmdir(path):
+#         try:
+#             recursive_make_writable(path)
+#             exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
+#         except (IOError, OSError) as e:
+#             if e.errno == ENOENT:
+#                 log.trace("no such file or directory: %s", path)
+#             else:
+#                 raise
+#
+#     for root, dirs, files in walk(dirpath, topdown=False):
+#         for file in files:
+#             backoff_unlink(join(root, file), max_tries=max_tries)
+#         for dir in dirs:
+#             _rmdir(join(root, dir))
+#
+#     _rmdir(dirpath)
 
 
 def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
@@ -221,147 +279,182 @@ import os
 import shutil
 
 if os.name == 'nt':
-    from win32file import RemoveDirectory, DeleteFile, \
+    from win32file import RemoveDirectory, RemoveDirectoryW, DeleteFile, DeleteFileW, \
         SetFileAttributesW, GetFileAttributesW, \
         FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_DIRECTORY
     from win32api import FindFiles
+    from ctypes import FormatError
 
 clobber_suffix = '.deleteme'
 
 
 
 
-def rmdir_recursive_windows(dir):
-    """Windows-specific version of rmdir_recursive that handles
-    path lengths longer than MAX_PATH.
-    """
+def rmdir_recursive(path, max_tries=MAX_TRIES):
+    if on_win:
+        path = ensure_fs_path_encoding(abspath(path))
+        win_path = '\\\\?\\%s' % path
+        file_attr = GetFileAttributesW(win_path)
 
-    dir = os.path.realpath(dir)
-    # Make sure directory is writable
-    SetFileAttributesW('\\\\?\\' + dir, FILE_ATTRIBUTE_NORMAL)
-
-    for ffrec in FindFiles('\\\\?\\' + dir + '\\*.*'):
-        # ffrec is a WIN32_FIND_DATA object
-        # http://docs.activestate.com/activepython/2.5/pywin32/WIN32_FIND_DATA.html
-        # [0] int : attributes
-        #   File Attributes. A combination of the win32com.FILE_ATTRIBUTE_* flags.
-        # [1] PyTime : createTime
-        #   File creation time.
-        # [2] PyTime : accessTime
-        #   File access time.
-        # [3] PyTime : writeTime
-        #   Time of last file write
-        # [4] int : nFileSizeHigh
-        #   high order DWORD of file size.
-        # [5] int : nFileSizeLow
-        #   low order DWORD of file size.
-        # [6] int : reserved0
-        #   Contains reparse tag if path is a reparse point
-        #   https://msdn.microsoft.com/en-us/library/windows/desktop/aa365511(v=vs.85).aspx
-        # [7] int : reserved1
-        #   Reserved.
-        # [8] str/unicode : fileName
-        #   The name of the file.
-        # [9] str/unicode : alternateFilename
-        #   Alternative name of the file, expressed in 8.3 format.
-
-        # FILE_ATTRIBUTE_ARCHIVE
-        # https://stackoverflow.com/a/43895857
-        # On Windows and OS/2, when a file is created or modified, the archive bit is set,
-        # and when the file has been backed up, the archive bit is cleared. Thus, the meaning
-        # of the archive bit is: this file is due for archiving, or: this file has not
-        # been archived.
-        # An incremental backup task may use the archive bit to distinguish which files have
-        # already been backed up, and select only the new or modified files for backup.
-
-        # https://stackoverflow.com/questions/31329394/getfileattributes-returning-file-attribute-archive-for-nonexistent-file
-        # https://superuser.com/questions/554072/why-does-this-file-apparently-not-exist-when-attempting-to-delete-it
-
-        name = ensure_fs_path_encoding(ffrec[8])
-        if name == '.' or name == '..':
-            continue
-        file_attr = ffrec[0]
-        full_name = os.path.join(dir, name)
-        reparse_tag = ffrec[6]
-
-        log.info("attributes for [%s] [%s] are %s" % (full_name, reparse_tag, hex(file_attr)))
-
+        dots = {'.', '..'}
         if file_attr & FILE_ATTRIBUTE_DIRECTORY:
-            rmdir_recursive_windows(full_name)
+            for ffrec in FindFiles(win_path + '\\*.*'):
+                file_name = ensure_fs_path_encoding(ffrec[8])
+                if file_name in dots:
+                    continue
+                file_attr = ffrec[0]
+                reparse_tag = ffrec[6]
+                if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+                    rmdir_recursive(join(path, file_name), max_tries=max_tries)
+                else:
+                    backoff_unlink(join(path, file_name), max_tries=max_tries)
+            backoff_rmdir(path)
         else:
-            SetFileAttributesW('\\\\?\\' + full_name, FILE_ATTRIBUTE_NORMAL)
-            try:
-                DeleteFile('\\\\?\\' + full_name)
-            except Exception:
-                log.info("attributes for [%s] are %s" % (full_name, hex(GetFileAttributesW(full_name))))
-                raise RuntimeError("Problem for path: %s" % full_name)
-    RemoveDirectory('\\\\?\\' + dir)
-
-
-def rmdir_recursive(dir):
-    """This is a replacement for shutil.rmtree that works better under
-    windows. Thanks to Bear at the OSAF for the code.
-    (Borrowed from buildbot.slave.commands)"""
-    if os.name == 'nt':
-        rmdir_recursive_windows(dir)
-        return
-
-    if not os.path.exists(dir):
-        # This handles broken links
-        if os.path.islink(dir):
-            _do_unlink(dir)
-        return
-
-    if os.path.islink(dir):
-        _do_unlink(dir)
-        return
-
-    # Verify the directory is read/write/execute for the current user
-    make_writable(dir)
-
-    for name in os.listdir(dir):
-        full_name = os.path.join(dir, name)
-
-        if os.path.isdir(full_name):
-            rmdir_recursive(full_name)
+            backoff_unlink(path, max_tries=max_tries)
+    else:
+        path = abspath(path)
+        if not lexists(path):
+            return
+        elif isdir(path) and not islink(path):
+            dots = {'.', '..'}
+            for file_name in listdir(path):
+                if file_name in dots:
+                    continue
+                file_path = join(path, file_name)
+                if isdir(file_path) and not islink(file_path):
+                    rmdir_recursive(file_path, max_tries=max_tries)
+                else:
+                    backoff_unlink(file_path, max_tries=max_tries)
+            backoff_rmdir(path, max_tries=max_tries)
         else:
-            _do_unlink(full_name)
-    os.rmdir(dir)
+            backoff_unlink(path, max_tries=max_tries)
+
+    # for ffrec in FindFiles('\\\\?\\' + dir + '\\*.*'):
+    #     # ffrec is a WIN32_FIND_DATA object
+    #     # http://docs.activestate.com/activepython/2.5/pywin32/WIN32_FIND_DATA.html
+    #     # [0] int : attributes
+    #     #   File Attributes. A combination of the win32com.FILE_ATTRIBUTE_* flags.
+    #     # [1] PyTime : createTime
+    #     #   File creation time.
+    #     # [2] PyTime : accessTime
+    #     #   File access time.
+    #     # [3] PyTime : writeTime
+    #     #   Time of last file write
+    #     # [4] int : nFileSizeHigh
+    #     #   high order DWORD of file size.
+    #     # [5] int : nFileSizeLow
+    #     #   low order DWORD of file size.
+    #     # [6] int : reserved0
+    #     #   Contains reparse tag if path is a reparse point
+    #     #   https://msdn.microsoft.com/en-us/library/windows/desktop/aa365511(v=vs.85).aspx
+    #     # [7] int : reserved1
+    #     #   Reserved.
+    #     # [8] str/unicode : fileName
+    #     #   The name of the file.
+    #     # [9] str/unicode : alternateFilename
+    #     #   Alternative name of the file, expressed in 8.3 format.
+    #
+    #     # FILE_ATTRIBUTE_ARCHIVE
+    #     # https://stackoverflow.com/a/43895857
+    #     # On Windows and OS/2, when a file is created or modified, the archive bit is set,
+    #     # and when the file has been backed up, the archive bit is cleared. Thus, the meaning
+    #     # of the archive bit is: this file is due for archiving, or: this file has not
+    #     # been archived.
+    #     # An incremental backup task may use the archive bit to distinguish which files have
+    #     # already been backed up, and select only the new or modified files for backup.
+    #
+    #     # https://stackoverflow.com/questions/31329394/getfileattributes-returning-file-attribute-archive-for-nonexistent-file
+    #     # https://superuser.com/questions/554072/why-does-this-file-apparently-not-exist-when-attempting-to-delete-it
+    #
+    #     name = ensure_fs_path_encoding(ffrec[8])
+    #     if name == '.' or name == '..':
+    #         continue
+    #     file_attr = ffrec[0]
+    #     full_name = os.path.join(dir, name)
+    #     reparse_tag = ffrec[6]
+    #
+    #     log.info("attributes for [%s] [%s] are %s" % (full_name, reparse_tag, hex(file_attr)))
+    #
+    #     if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+    #         rmdir_recursive_windows(full_name)
+    #     else:
+    #         SetFileAttributesW('\\\\?\\' + full_name, FILE_ATTRIBUTE_NORMAL)
+    #         try:
+    #             DeleteFile('\\\\?\\' + full_name)
+    #         except Exception:
+    #             log.info("attributes for [%s] are %s" % (full_name, hex(GetFileAttributesW(full_name))))
+    #             raise RuntimeError("Problem for path: %s" % full_name)
+    # RemoveDirectory('\\\\?\\' + dir)
 
 
-def do_clobber(dir, dryrun=False, skip=None):
-    try:
-        for f in os.listdir(dir):
-            if skip is not None and f in skip:
-                log.info("Skipping %s", f)
-                continue
-            clobber_path = f + clobber_suffix
-            if os.path.isfile(f):
-                log.info("Removing %s", f)
-                if not dryrun:
-                    if os.path.exists(clobber_path):
-                        os.unlink(clobber_path)
-                    # Prevent repeated moving.
-                    if f.endswith(clobber_suffix):
-                        os.unlink(f)
-                    else:
-                        shutil.move(f, clobber_path)
-                        os.unlink(clobber_path)
-            elif os.path.isdir(f):
-                log.info("Removing %s/", f)
-                if not dryrun:
-                    if os.path.exists(clobber_path):
-                        rmdir_recursive(clobber_path)
-                    # Prevent repeated moving.
-                    if f.endswith(clobber_suffix):
-                        rmdir_recursive(f)
-                    else:
-                        shutil.move(f, clobber_path)
-                        rmdir_recursive(clobber_path)
-    except Exception as e:
-        log.error("[clobber failed]: %s", e.message)
-        sys.exit(1)
 
+#
+#
+#
+# def rmdir_recursive(dir):
+#     """This is a replacement for shutil.rmtree that works better under
+#     windows. Thanks to Bear at the OSAF for the code.
+#     (Borrowed from buildbot.slave.commands)"""
+#     if os.name == 'nt':
+#         rmdir_recursive_windows(dir)
+#         return
+#
+#     if not os.path.exists(dir):
+#         # This handles broken links
+#         if os.path.islink(dir):
+#             _do_unlink(dir)
+#         return
+#
+#     if os.path.islink(dir):
+#         _do_unlink(dir)
+#         return
+#
+#     # Verify the directory is read/write/execute for the current user
+#     make_writable(dir)
+#
+#     for name in os.listdir(dir):
+#         full_name = os.path.join(dir, name)
+#
+#         if os.path.isdir(full_name):
+#             rmdir_recursive(full_name)
+#         else:
+#             _do_unlink(full_name)
+#     os.rmdir(dir)
+#
+#
+# def do_clobber(dir, dryrun=False, skip=None):
+#     try:
+#         for f in os.listdir(dir):
+#             if skip is not None and f in skip:
+#                 log.info("Skipping %s", f)
+#                 continue
+#             clobber_path = f + clobber_suffix
+#             if os.path.isfile(f):
+#                 log.info("Removing %s", f)
+#                 if not dryrun:
+#                     if os.path.exists(clobber_path):
+#                         os.unlink(clobber_path)
+#                     # Prevent repeated moving.
+#                     if f.endswith(clobber_suffix):
+#                         os.unlink(f)
+#                     else:
+#                         shutil.move(f, clobber_path)
+#                         os.unlink(clobber_path)
+#             elif os.path.isdir(f):
+#                 log.info("Removing %s/", f)
+#                 if not dryrun:
+#                     if os.path.exists(clobber_path):
+#                         rmdir_recursive(clobber_path)
+#                     # Prevent repeated moving.
+#                     if f.endswith(clobber_suffix):
+#                         rmdir_recursive(f)
+#                     else:
+#                         shutil.move(f, clobber_path)
+#                         rmdir_recursive(clobber_path)
+#     except Exception as e:
+#         log.error("[clobber failed]: %s", e.message)
+#         sys.exit(1)
+#
 
 
 
