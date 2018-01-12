@@ -10,6 +10,8 @@ from zipfile import ZipFile
 import pytest
 import sys
 
+import shutil
+
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
 from conda.cli.conda_argparse import do_call
@@ -267,7 +269,13 @@ class IntegrationTests(unittest.TestCase):
                     print(type(e))
 
 
-                    remove(path)
+                    # remove(path)
+
+                    clobber_suffix = '.deleteme'
+                    clobber_path = path + clobber_suffix
+                    os.chmod(path, 0o700)
+                    shutil.move(path, clobber_path)
+                    os.unlink(clobber_path)
 
 
                     raise
