@@ -228,24 +228,24 @@ class IntegrationTests(unittest.TestCase):
                 # print(repr(info))
                 # print(type(info))
                 #
-                # download("https://download.sysinternals.com/files/Handle.zip", "handle.zip", "07ad4eed22435653c239245cdef6996a")
-                # with ZipFile("handle.zip") as fh:
-                #     fh.extractall()
                 #
-                # print("handle.zip extracted")
-                # print(os.listdir('.'))
-                #
-                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                #
-                # result = subprocess_call(expand('handle -accepteula'))
-                # print(result.stdout, file=sys.stdout)
-                # print(result.stderr, file=sys.stderr)
-                #
-                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                download("https://download.sysinternals.com/files/Handle.zip", "handle.zip", "07ad4eed22435653c239245cdef6996a")
+                with ZipFile("handle.zip") as fh:
+                    fh.extractall()
+
+                print("handle.zip extracted")
+                print(os.listdir('.'))
+
+                result = subprocess_call(expand('handle -accepteula'))
+                print(result.stdout)
+                print(result.stderr)
+
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
                 #
                 #
                 # print()
