@@ -22,7 +22,7 @@ If your issue is a bug report or feature request for:
 
 -->
 
-* **I'm submitting a ... **
+**I'm submitting a...**
   - [ ] bug report
   - [ ] feature request
   - [ ] support request => Please submit support requests to user forums like Stack Overflow.
@@ -41,21 +41,21 @@ If your issue is a bug report or feature request for:
 <!-- What do you think should happen? -->
 
 
-### `conda info`
+##### `conda info`
 <!-- between the ticks below, paste the output of 'conda info' -->
 ```
 
 ```
 
 
-### `conda config --show-sources`
+##### `conda config --show-sources`
 <!-- between the ticks below, paste the output of 'conda config --show-sources' -->
 ```
 
 ```
 
 
-### `conda list --show-channel-urls`
+##### `conda list --show-channel-urls`
 <!-- between the ticks below, paste the output of 'conda list --show-channel-urls' -->
 ```
 
