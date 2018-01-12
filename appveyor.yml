@@ -70,9 +70,9 @@ build: false
 
 test_script:
   - bash -c "source utils/functions.sh && run_tests"
-  - dir c:\\conda-root\\envs\\env-1\\DLLs\\
-  - del c:\\conda-root\\envs\\env-1\\DLLs\\pyexpat.pyd
-  - dir c:\\conda-root\\envs\\env-1\\DLLs\\
+  - dir c:\conda-root\envs\env-1\DLLs
+  - del c:\conda-root\envs\env-1\DLLs\pyexpat.pyd
+  - dir c:\conda-root\envs\env-1\DLLs
 #  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "not integration and not installed"
 #  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "integration and not installed"
 #  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "installed" --shell=cmd.exe --shell=bash.exe
