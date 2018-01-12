@@ -50,7 +50,7 @@ def rm_rf_wait(path):
         path = abspath(path)
         if isdir(path) and not islink(path):
             log.trace("rm_rf directory %s", path)
-            backoff_rmdir(path)
+            do_clobber(path)
         elif lexists(path):
             log.trace("rm_rf path %s", path)
             backoff_unlink(path)
@@ -203,6 +203,152 @@ def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
     except (IOError, OSError) as e:
         # this function only guarantees trying, so we just swallow errors
         log.trace('%r', e)
+
+
+
+
+
+
+
+
+
+
+
+
+
+import os
+import shutil
+
+if os.name == 'nt':
+    from win32file import RemoveDirectory, DeleteFile, \
+        SetFileAttributesW, \
+        FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_DIRECTORY
+    from win32api import FindFiles
+
+clobber_suffix = '.deleteme'
+
+
+def rmdir_recursive_windows(dir):
+    """Windows-specific version of rmdir_recursive that handles
+    path lengths longer than MAX_PATH.
+    """
+
+    dir = os.path.realpath(dir)
+    # Make sure directory is writable
+    SetFileAttributesW('\\\\?\\' + dir, FILE_ATTRIBUTE_NORMAL)
+
+    for ffrec in FindFiles('\\\\?\\' + dir + '\\*.*'):
+        file_attr = ffrec[0]
+        name = ffrec[8].decode(sys.getfilesystemencoding())
+        if name == '.' or name == '..':
+            continue
+        full_name = os.path.join(dir, name)
+
+        if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+            rmdir_recursive_windows(full_name)
+        else:
+            SetFileAttributesW('\\\\?\\' + full_name, FILE_ATTRIBUTE_NORMAL)
+            DeleteFile('\\\\?\\' + full_name)
+    RemoveDirectory('\\\\?\\' + dir)
+
+def rmdir_recursive(dir):
+    """This is a replacement for shutil.rmtree that works better under
+    windows. Thanks to Bear at the OSAF for the code.
+    (Borrowed from buildbot.slave.commands)"""
+    if os.name == 'nt':
+        rmdir_recursive_windows(dir)
+        return
+
+    if not os.path.exists(dir):
+        # This handles broken links
+        if os.path.islink(dir):
+            os.remove(dir)
+        return
+
+    if os.path.islink(dir):
+        os.remove(dir)
+        return
+
+    # Verify the directory is read/write/execute for the current user
+    os.chmod(dir, 0o700)
+
+    for name in os.listdir(dir):
+        full_name = os.path.join(dir, name)
+        # on Windows, if we don't have write permission we can't remove
+        # the file/directory either, so turn that on
+        if os.name == 'nt':
+            if not os.access(full_name, os.W_OK):
+                # I think this is now redundant, but I don't have an NT
+                # machine to test on, so I'm going to leave it in place
+                # -warner
+                os.chmod(full_name, 0o600)
+
+        if os.path.isdir(full_name):
+            rmdir_recursive(full_name)
+        else:
+            # Don't try to chmod links
+            if not os.path.islink(full_name):
+                os.chmod(full_name, 0o700)
+            os.remove(full_name)
+    os.rmdir(dir)
+
+
+def do_clobber(dir, dryrun=False, skip=None):
+    try:
+        for f in os.listdir(dir):
+            if skip is not None and f in skip:
+                log.info("Skipping %s", f)
+                continue
+            clobber_path = f + clobber_suffix
+            if os.path.isfile(f):
+                log.info("Removing %s", f)
+                if not dryrun:
+                    if os.path.exists(clobber_path):
+                        os.unlink(clobber_path)
+                    # Prevent repeated moving.
+                    if f.endswith(clobber_suffix):
+                        os.unlink(f)
+                    else:
+                        shutil.move(f, clobber_path)
+                        os.unlink(clobber_path)
+            elif os.path.isdir(f):
+                log.info("Removing %s/", f)
+                if not dryrun:
+                    if os.path.exists(clobber_path):
+                        rmdir_recursive(clobber_path)
+                    # Prevent repeated moving.
+                    if f.endswith(clobber_suffix):
+                        rmdir_recursive(f)
+                    else:
+                        shutil.move(f, clobber_path)
+                        rmdir_recursive(clobber_path)
+    except Exception as e:
+        log.error("[clobber failed]: %s", e.message)
+        sys.exit(1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 if not (on_win and PY2):
