@@ -515,7 +515,7 @@ class Context(Configuration):
             _default_channels = self._default_channels
         else:
             _default_channels = list(DEFAULT_CHANNELS)
-            if (sys.platform == "darwin" and int(platform.mac_ver()[0].split('.')[1]) < 11
+            if (self.subdir == "osx-64" and int(platform.mac_ver()[0].split('.')[1]) < 11
                     or self.bits == 32):
                 del _default_channels[2]
             if not on_win:
