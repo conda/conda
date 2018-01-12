@@ -265,6 +265,18 @@ def rmdir_recursive_windows(dir):
         # [9] str/unicode : alternateFilename
         #   Alternative name of the file, expressed in 8.3 format.
 
+        # FILE_ATTRIBUTE_ARCHIVE
+        # https://stackoverflow.com/a/43895857
+        # On Windows and OS/2, when a file is created or modified, the archive bit is set,
+        # and when the file has been backed up, the archive bit is cleared. Thus, the meaning
+        # of the archive bit is: this file is due for archiving, or: this file has not
+        # been archived.
+        # An incremental backup task may use the archive bit to distinguish which files have
+        # already been backed up, and select only the new or modified files for backup.
+
+        # https://stackoverflow.com/questions/31329394/getfileattributes-returning-file-attribute-archive-for-nonexistent-file
+        # https://superuser.com/questions/554072/why-does-this-file-apparently-not-exist-when-attempting-to-delete-it
+
         name = ensure_fs_path_encoding(ffrec[8])
         if name == '.' or name == '..':
             continue
@@ -281,6 +293,7 @@ def rmdir_recursive_windows(dir):
             try:
                 DeleteFile('\\\\?\\' + full_name)
             except Exception:
+                print("attributes for [%s] are %s" % (full_name, hex(GetFileAttributesW(full_name))))
                 raise RuntimeError("Problem for path: %s" % full_name)
     RemoveDirectory('\\\\?\\' + dir)
 
