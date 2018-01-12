@@ -12,7 +12,7 @@ from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
-from ...common.compat import PY2, ensure_binary, on_win, text_type
+from ...common.compat import PY2, ensure_binary, on_win, text_type, ensure_fs_path_encoding
 from ...common.io import ThreadLimitedThreadPoolExecutor
 
 log = getLogger(__name__)
@@ -46,8 +46,8 @@ rm_rf_queued = RM_RF_Queue()
 
 def rm_rf_wait(path):
     """Block until path is deleted."""
+    path = abspath(path)
     try:
-        path = abspath(path)
         if isdir(path) and not islink(path):
             log.trace("rm_rf directory %s", path)
             rmdir_recursive(path)
@@ -240,7 +240,7 @@ def rmdir_recursive_windows(dir):
 
     for ffrec in FindFiles('\\\\?\\' + dir + '\\*.*'):
         file_attr = ffrec[0]
-        name = ffrec[8].decode(sys.getfilesystemencoding())
+        name = ensure_fs_path_encoding(ffrec[8])
         if name == '.' or name == '..':
             continue
         full_name = os.path.join(dir, name)
