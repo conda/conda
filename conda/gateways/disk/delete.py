@@ -157,6 +157,8 @@ def _do_unlink(path):
     if on_win:
         path = ensure_fs_path_encoding(abspath(path))
         win_path = '\\\\?\\%s' % path
+        file_attr = GetFileAttributesW(win_path)
+        log.debug("attributes for file [%s] are %s" % (path, hex(file_attr)))
         if not SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL):
             error = OSError(FormatError())
             if error.errno != ENOENT:
@@ -189,11 +191,13 @@ def _do_rmdir(path):
     if on_win:
         path = ensure_fs_path_encoding(abspath(path))
         win_path = '\\\\?\\%s' % path
+        file_attr = GetFileAttributesW(win_path)
+        log.debug("attributes for directory [%s] are %s" % (path, hex(file_attr)))
         if not SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL):
             error = OSError(FormatError())
             if error.errno != ENOENT:
                 raise error
-        if not RemoveDirectoryW(win_path):
+        if not RemoveDirectory(win_path):
             error = OSError(FormatError())
             if error.errno != ENOENT:
                 raise error
@@ -279,7 +283,7 @@ import os
 import shutil
 
 if os.name == 'nt':
-    from win32file import RemoveDirectory, RemoveDirectoryW, DeleteFile, DeleteFileW, \
+    from win32file import RemoveDirectory, DeleteFile, DeleteFileW, \
         SetFileAttributesW, GetFileAttributesW, \
         FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_DIRECTORY
     from win32api import FindFiles
@@ -304,10 +308,12 @@ def rmdir_recursive(path, max_tries=MAX_TRIES):
                     continue
                 file_attr = ffrec[0]
                 reparse_tag = ffrec[6]
+                file_path = join(path, file_name)
+                log.debug("attributes for [%s] [%s] are %s" % (file_path, reparse_tag, hex(file_attr)))
                 if file_attr & FILE_ATTRIBUTE_DIRECTORY:
-                    rmdir_recursive(join(path, file_name), max_tries=max_tries)
+                    rmdir_recursive(file_path, max_tries=max_tries)
                 else:
-                    backoff_unlink(join(path, file_name), max_tries=max_tries)
+                    backoff_unlink(file_path, max_tries=max_tries)
             backoff_rmdir(path)
         else:
             backoff_unlink(path, max_tries=max_tries)
@@ -540,7 +546,9 @@ else:  # pragma: no cover
         # c_void_p is a buggy return type, converting to int, so
         # POINTER(None) == c_void_p is actually written as
         # POINTER(c_void), so it can be treated as a real pointer.
-        _fields_ = [(ensure_binary('dummy'), c_int)]
+        _fields_ = [
+            ('dummy', c_int),
+        ]
 
         def __init__(self, value=None):
             if value is None:
