@@ -34,6 +34,7 @@ If your issue is a bug report or feature request for:
 
 ### Steps to Reproduce
 <!-- If the current behavior is a bug, please provide specific, minimal steps to independently reproduce. -->
+<!-- Please include the exact conda commands that reproduce the issue. -->
 
 
 ### Expected Behavior
