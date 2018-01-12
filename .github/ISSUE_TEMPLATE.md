@@ -5,13 +5,20 @@ This is an issue tracker for conda -- the package manager.  File feature request
 for conda here, as well as bug reports about something conda has messed up.
 
 If your issue is a bug report or feature request for:
-  * a specific conda package from Anaconda: file at https://github.com/ContinuumIO/anaconda-issues
-  * a specific conda package from conda-forge: file at the corresponding feedstock under https://github.com/conda-forge
-  * anaconda.org: please file it https://github.com/Anaconda-Platform/support
-  * repo.continuum.io: file at https://github.com/ContinuumIO/anaconda-issues
-  * commands under 'conda build': file at https://github.com/conda/conda-build
-  * commands under 'conda env': please file it here!
-  * all other conda commands that start with 'conda': please file it here!
+  * a specific conda package from Anaconda:
+      ==> file at https://github.com/ContinuumIO/anaconda-issues
+  * a specific conda package from conda-forge:
+      ==> file at the corresponding feedstock under https://github.com/conda-forge
+  * anaconda.org:
+      ==> file at https://github.com/Anaconda-Platform/support
+  * repo.continuum.io:
+      ==> file at https://github.com/ContinuumIO/anaconda-issues
+  * commands under 'conda build':
+      ==> file at https://github.com/conda/conda-build
+  * commands under 'conda env':
+      ==> please file it here!
+  * all other conda commands that start with 'conda':
+      ==> please file it here!
 
 -->
 
