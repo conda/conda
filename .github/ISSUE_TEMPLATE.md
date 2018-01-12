@@ -9,8 +9,6 @@ If your issue is a bug report or feature request for:
       ==> file at https://github.com/ContinuumIO/anaconda-issues
   * a specific conda package from conda-forge:
       ==> file at the corresponding feedstock under https://github.com/conda-forge
-  * anaconda.org:
-      ==> file at https://github.com/Anaconda-Platform/support
   * repo.continuum.io:
       ==> file at https://github.com/ContinuumIO/anaconda-issues
   * commands under 'conda build':
@@ -25,7 +23,6 @@ If your issue is a bug report or feature request for:
 **I'm submitting a...**
   - [ ] bug report
   - [ ] feature request
-  - [ ] support request => Please submit support requests to user forums like Stack Overflow.
 
 
 ### Current Behavior
