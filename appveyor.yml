@@ -68,6 +68,8 @@ install:
 # Not a .NET project, we build scikit-image in the install step instead
 build: false
 
+image: Visual Studio 2017
+
 test_script:
   - bash -c "source utils/functions.sh && run_tests"
   - dir c:\conda-root\envs\env-1\DLLs
