@@ -50,10 +50,10 @@ def rm_rf_wait(path):
         path = abspath(path)
         if isdir(path) and not islink(path):
             log.trace("rm_rf directory %s", path)
-            do_clobber(path)
+            rmdir_recursive(path)
         elif lexists(path):
             log.trace("rm_rf path %s", path)
-            backoff_unlink(path)
+            _do_unlink(path)
         else:
             log.trace("rm_rf no-op. Not a link, file, or directory: %s", path)
         return True
@@ -145,13 +145,14 @@ def move_path_to_trash(path, preclean=True):
         return True
 
 
-def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
-    def _unlink(path):
-        make_writable(path)
-        unlink(path)
+def _do_unlink(path):
+    make_writable(path)
+    unlink(path)
 
+
+def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
     try:
-        exp_backoff_fn(lambda f: lexists(f) and _unlink(f), file_or_symlink_path,
+        exp_backoff_fn(lambda f: lexists(f) and _do_unlink(f), file_or_symlink_path,
                        max_tries=max_tries)
     except EnvironmentError as e:
         if e.errno != ENOENT:
@@ -251,6 +252,7 @@ def rmdir_recursive_windows(dir):
             DeleteFile('\\\\?\\' + full_name)
     RemoveDirectory('\\\\?\\' + dir)
 
+
 def rmdir_recursive(dir):
     """This is a replacement for shutil.rmtree that works better under
     windows. Thanks to Bear at the OSAF for the code.
@@ -262,34 +264,23 @@ def rmdir_recursive(dir):
     if not os.path.exists(dir):
         # This handles broken links
         if os.path.islink(dir):
-            os.remove(dir)
+            _do_unlink(dir)
         return
 
     if os.path.islink(dir):
-        os.remove(dir)
+        _do_unlink(dir)
         return
 
     # Verify the directory is read/write/execute for the current user
-    os.chmod(dir, 0o700)
+    make_writable(dir)
 
     for name in os.listdir(dir):
         full_name = os.path.join(dir, name)
-        # on Windows, if we don't have write permission we can't remove
-        # the file/directory either, so turn that on
-        if os.name == 'nt':
-            if not os.access(full_name, os.W_OK):
-                # I think this is now redundant, but I don't have an NT
-                # machine to test on, so I'm going to leave it in place
-                # -warner
-                os.chmod(full_name, 0o600)
 
         if os.path.isdir(full_name):
             rmdir_recursive(full_name)
         else:
-            # Don't try to chmod links
-            if not os.path.islink(full_name):
-                os.chmod(full_name, 0o700)
-            os.remove(full_name)
+            _do_unlink(full_name)
     os.rmdir(dir)
 
 
