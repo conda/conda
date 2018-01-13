@@ -536,8 +536,8 @@ else:  # pragma: no cover
             return
 
         if isfile(filepath):
-            rm(unlink, filepath
-               return
+            rm(unlink, filepath)
+            return
 
         for root, dirs, files in walk(filepath):
             visit_dirs(root, dirs)
