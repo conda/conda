@@ -121,6 +121,7 @@ class Context(Configuration):
 
     # Safety & Security
     _aggressive_update_packages = SequenceParameter(string_types,
+                                                    ('ca-certificates', 'certifi', 'openssl'),
                                                     aliases=('aggressive_update_packages',))
     safety_checks = PrimitiveParameter(SafetyChecks.warn)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
@@ -439,14 +440,7 @@ class Context(Configuration):
     @property
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
-        if self._aggressive_update_packages:
-            return tuple(MatchSpec(s, optional=True) for s in self._aggressive_update_packages)
-        else:
-            return (
-                MatchSpec('ca-certificates', optional=True),
-                MatchSpec('certifi', optional=True),
-                MatchSpec('openssl', optional=True),
-            )
+        return tuple(MatchSpec(s, optional=True) for s in self._aggressive_update_packages)
 
     @property
     def deps_modifier(self):
