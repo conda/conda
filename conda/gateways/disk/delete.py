@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import ENOENT
 from logging import getLogger
-from os import listdir, removedirs, rename, unlink, walk
+from os import listdir, removedirs, rename, rmdir, unlink, walk
 from os.path import abspath, dirname, isdir, join
 from shutil import rmtree as shutil_rmtree
 from uuid import uuid4
@@ -50,7 +50,7 @@ def rm_rf_wait(path):
     try:
         if isdir(path) and not islink(path):
             log.trace("rm_rf directory %s", path)
-            rmdir_recursive(path)
+            rmtree(path)
         elif lexists(path):
             log.trace("rm_rf path %s", path)
             _do_unlink(path)
@@ -77,7 +77,7 @@ def rm_rf(path, max_retries=5, trash=True):
                 move_result = move_path_to_trash(path, preclean=False)
                 if move_result:
                     return True
-            rmdir_recursive(path)
+            backoff_rmdir(path)
         elif lexists(path):
             try:
                 backoff_unlink(path)
@@ -111,7 +111,7 @@ def delete_trash(prefix=None):
             path = join(trash_dir, p)
             try:
                 if isdir(path):
-                    rmdir_recursive(path, max_tries=1)
+                    backoff_rmdir(path, max_tries=1)
                 else:
                     backoff_unlink(path, max_tries=1)
             except (IOError, OSError) as e:
@@ -182,8 +182,8 @@ def _do_unlink(path):
                 raise
 
 
-def backoff_rmdir(dir_path, max_tries=MAX_TRIES):
-    exp_backoff_fn(_do_rmdir, dir_path, max_tries=max_tries)
+# def backoff_rmdir(dir_path, max_tries=MAX_TRIES):
+#     exp_backoff_fn(_do_rmdir, dir_path, max_tries=max_tries)
 
 
 def _do_rmdir(path):
@@ -222,38 +222,38 @@ def _do_rmdir(path):
 
 
 
-# def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
-#     if not isdir(dirpath):
-#         return
-#
-#     # shutil.rmtree:
-#     #   if onerror is set, it is called to handle the error with arguments (func, path, exc_info)
-#     #     where func is os.listdir, os.remove, or os.rmdir;
-#     #     path is the argument to that function that caused it to fail; and
-#     #     exc_info is a tuple returned by sys.exc_info() ==> (type, value, traceback).
-#     def retry(func, path, exc_info):
-#         if getattr(exc_info[1], 'errno', None) == ENOENT:
-#             return
-#         recursive_make_writable(dirname(path), max_tries=max_tries)
-#         func(path)
-#
-#     def _rmdir(path):
-#         try:
-#             recursive_make_writable(path)
-#             exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
-#         except (IOError, OSError) as e:
-#             if e.errno == ENOENT:
-#                 log.trace("no such file or directory: %s", path)
-#             else:
-#                 raise
-#
-#     for root, dirs, files in walk(dirpath, topdown=False):
-#         for file in files:
-#             backoff_unlink(join(root, file), max_tries=max_tries)
-#         for dir in dirs:
-#             _rmdir(join(root, dir))
-#
-#     _rmdir(dirpath)
+def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
+    if not isdir(dirpath):
+        return
+
+    # shutil.rmtree:
+    #   if onerror is set, it is called to handle the error with arguments (func, path, exc_info)
+    #     where func is os.listdir, os.remove, or os.rmdir;
+    #     path is the argument to that function that caused it to fail; and
+    #     exc_info is a tuple returned by sys.exc_info() ==> (type, value, traceback).
+    def retry(func, path, exc_info):
+        if getattr(exc_info[1], 'errno', None) == ENOENT:
+            return
+        recursive_make_writable(dirname(path), max_tries=max_tries)
+        func(path)
+
+    def _rmdir(path):
+        try:
+            recursive_make_writable(path)
+            exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
+        except (IOError, OSError) as e:
+            if e.errno == ENOENT:
+                log.trace("no such file or directory: %s", path)
+            else:
+                raise
+
+    for root, dirs, files in walk(dirpath, topdown=False):
+        for file in files:
+            backoff_unlink(join(root, file), max_tries=max_tries)
+        for dir in dirs:
+            _rmdir(join(root, dir))
+
+    _rmdir(dirpath)
 
 
 def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
@@ -486,7 +486,7 @@ def rmdir_recursive(path, max_tries=MAX_TRIES):
 
 
 
-if not (on_win and PY2):
+if not on_win:
     rmtree = shutil_rmtree
 else:  # pragma: no cover
     # adapted from http://code.activestate.com/recipes/578849-reimplementation-of-rmtree-supporting-windows-repa/  # NOQA
@@ -497,7 +497,7 @@ else:  # pragma: no cover
 
     from ctypes import (Structure, byref, WinDLL, c_int, c_ubyte, c_ssize_t, _SimpleCData,
                         cast, sizeof, WinError, POINTER as _POINTER)
-    from ctypes.wintypes import DWORD, INT, LPWSTR, LONG, WORD, BYTE
+    from ctypes.wintypes import DWORD, INT, LPWSTR, LONG, WORD, BYTE, HANDLE
     from os import rmdir
     import sys
 
@@ -573,8 +573,8 @@ else:  # pragma: no cover
 
     # Globals
     NULL = LPVOID()
-    kernel32 = WinDLL(ensure_binary('kernel32'))
-    advapi32 = WinDLL(ensure_binary('advapi32'))
+    kernel32 = WinDLL('kernel32')
+    advapi32 = WinDLL('advapi32')
     _obtained_privileges = []
 
     # Aliases to functions/classes, and utility lambdas
@@ -673,72 +673,76 @@ else:  # pragma: no cover
         def __hash__(self):
             return hash(self._as_parameter_)
 
-    class HANDLE(ULONG_PTR):
-        """
-        Wrapper around the numerical representation of a pointer to
-        add checks for INVALID_HANDLE_VALUE
-        """
-        NULL = None
-        INVALID = None
-
-        def __init__(self, value=None):
-            if value is None:
-                value = 0
-            super(HANDLE, self).__init__(value)
-            self.autoclose = False
-
-        @classmethod
-        def from_param(cls, value):
-            if value is None:
-                return HANDLE(0)
-            elif isinstance(value, _SimpleCData):
-                return value
-            else:
-                return HANDLE(value)
-
-        def close(self):
-            if bool(self):
-                try:
-                    CloseHandle(self)
-                except:
-                    pass
-
-        def __enter__(self):
-            self.autoclose = True
-            return self
-
-        def __exit__(self, exc_typ, exc_val, trace):
-            self.close()
-            return False
-
-        def __del__(self):
-            if hasattr(self, 'autoclose') and self.autoclose:
-                CloseHandle(self)
-
-        def __nonzero__(self):
-            return super(HANDLE, self).__nonzero__() and self.value != HANDLE.INVALID.value
+    # class HANDLE(ULONG_PTR):
+    #     """
+    #     Wrapper around the numerical representation of a pointer to
+    #     add checks for INVALID_HANDLE_VALUE
+    #     """
+    #     NULL = None
+    #     INVALID = None
+    #
+    #     def __init__(self, value=None):
+    #         if value is None:
+    #             value = 0
+    #         super(HANDLE, self).__init__(value)
+    #         self.autoclose = False
+    #
+    #     @classmethod
+    #     def from_param(cls, value):
+    #         if value is None:
+    #             return HANDLE(0)
+    #         elif isinstance(value, _SimpleCData):
+    #             return value
+    #         else:
+    #             return HANDLE(value)
+    #
+    #     def close(self):
+    #         if bool(self):
+    #             try:
+    #                 CloseHandle(self)
+    #             except:
+    #                 pass
+    #
+    #     def __enter__(self):
+    #         self.autoclose = True
+    #         return self
+    #
+    #     def __exit__(self, exc_typ, exc_val, trace):
+    #         self.close()
+    #         return False
+    #
+    #     def __del__(self):
+    #         if hasattr(self, 'autoclose') and self.autoclose:
+    #             CloseHandle(self)
+    #
+    #     def __nonzero__(self):
+    #         return super(HANDLE, self).__nonzero__() and self.value != HANDLE.INVALID.value
 
     class GUID(Structure):
         """ Borrowed small parts of this from the comtypes module. """
         _fields_ = [
-            (ensure_binary('Data1'), DWORD),
-            (ensure_binary('Data2'), WORD),
-            (ensure_binary('Data3'), WORD),
-            (ensure_binary('Data4'), (BYTE * 8)),
+            ('Data1', DWORD),
+            ('Data2', WORD),
+            ('Data3', WORD),
+            ('Data4', (BYTE * 8)),
         ]
 
     # Ctypes Structures
     class LUID(Structure):
         _fields_ = [
-            (ensure_binary('LowPart'), DWORD),
-            (ensure_binary('HighPart'), LONG),
+            ('LowPart', DWORD),
+            ('HighPart', LONG),
         ]
 
     class LUID_AND_ATTRIBUTES(LUID):
-        _fields_ = [(ensure_binary('Attributes'), DWORD)]
+        _fields_ = [
+            ('Attributes', DWORD),
+        ]
 
     class GenericReparseBuffer(Structure):
-        _fields_ = [(ensure_binary('PathBuffer'), UCHAR * MAX_GENERIC_REPARSE_BUFFER)]
+        _fields_ = [
+            ('PathBuffer', UCHAR * MAX_GENERIC_REPARSE_BUFFER),
+        ]
 
     class ReparsePoint(Structure):
         """
@@ -749,11 +753,11 @@ else:  # pragma: no cover
         """
 
         _fields_ = [
-            (ensure_binary('ReparseTag'), DWORD),
-            (ensure_binary('ReparseDataLength'), WORD),
-            (ensure_binary('Reserved'), WORD),
-            (ensure_binary('ReparseGuid'), GUID),
-            (ensure_binary('Buffer'), GenericReparseBuffer)
+            ('ReparseTag', DWORD),
+            ('ReparseDataLength', WORD),
+            ('Reserved', WORD),
+            ('ReparseGuid', GUID),
+            ('Buffer', GenericReparseBuffer)
         ]
 
     # Common uses of HANDLE
@@ -823,8 +827,8 @@ else:  # pragma: no cover
         class TOKEN_PRIVILEGES(Structure):
             # noinspection PyTypeChecker
             _fields_ = [
-                (ensure_binary('PrivilegeCount'), DWORD),
-                (ensure_binary('Privileges'), LUID_AND_ATTRIBUTES * privcount),
+                ('PrivilegeCount', DWORD),
+                ('Privileges', LUID_AND_ATTRIBUTES * privcount),
             ]
 
         with HANDLE() as hToken:
