@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EACCES, EEXIST, EIO, ENOENT, ENOTEMPTY, EPERM, errorcode
+import gc
 from logging import getLogger
 import os
 from os import makedirs, mkdir
@@ -59,6 +60,8 @@ def exp_backoff_fn(fn, *args, **kwargs):
                           fn.__name__,
                           sleep_time)
                 sleep(sleep_time)
+                if n > 3:
+                    gc.collect()
             elif e.errno in (ENOENT, ENOTEMPTY):
                 # errno.ENOENT File not found error / No such file or directory
                 # errno.ENOTEMPTY OSError(41, 'The directory is not empty')

@@ -291,11 +291,14 @@ class IntegrationTests(unittest.TestCase):
                     print("stdout >> %s" % stdout, file=sys.stderr)
                     print("stderr >> %s" % stderr, file=sys.stderr)
 
+                    with open(path) as fh:
+                        contents = fh.read()
+
+                    print(">>> contents of path", file=sys.stderr)
+                    print(contents, file=sys.stderr)
+
 
                     raise
-
-                # ===> we never get here <===
-                print('is file: %s' % os.path.isfile(path), file=sys.stderr)
 
                 raise
         rm_rf_queued.flush()
