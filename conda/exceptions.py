@@ -782,7 +782,7 @@ class ExceptionHandler(object):
         if isinstance(exc_val, UnicodeError) and PY2:
             return self.handle_application_exception(EncodingError(exc_val), exc_tb)
         if isinstance(exc_val, EnvironmentError):
-            if hasattr(exc_val, 'errno') and exc_val.errno == ENOSPC:
+            if getattr(exc_val, 'errno', None) == ENOSPC:
                 return self.handle_application_exception(NoSpaceLeftError(exc_val), exc_tb)
         if isinstance(exc_val, KeyboardInterrupt):
             self._print_conda_exception(CondaError("KeyboardInterrupt"), _format_exc())
