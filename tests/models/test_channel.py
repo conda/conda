@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
+from itertools import chain
 from logging import getLogger
 from tempfile import gettempdir
 from unittest import TestCase
@@ -33,19 +34,9 @@ class DefaultConfigChannelTests(TestCase):
     def setUpClass(cls):
         reset_context()
         cls.platform = context.subdir
-        cls.DEFAULT_URLS = ['https://repo.continuum.io/pkgs/main/%s' % cls.platform,
-                            'https://repo.continuum.io/pkgs/main/noarch',
-                            'https://repo.continuum.io/pkgs/free/%s' % cls.platform,
-                            'https://repo.continuum.io/pkgs/free/noarch',
-                            'https://repo.continuum.io/pkgs/mro/%s' % cls.platform,
-                            'https://repo.continuum.io/pkgs/mro/noarch',
-                            'https://repo.continuum.io/pkgs/r/%s' % cls.platform,
-                            'https://repo.continuum.io/pkgs/r/noarch',
-                            'https://repo.continuum.io/pkgs/pro/%s' % cls.platform,
-                            'https://repo.continuum.io/pkgs/pro/noarch']
-        if on_win:
-            cls.DEFAULT_URLS.extend(['https://repo.continuum.io/pkgs/msys2/%s' % cls.platform,
-                                     'https://repo.continuum.io/pkgs/msys2/noarch'])
+        cls.DEFAULT_URLS = list(chain.from_iterable(
+            (c.urls() for c in context.default_channels)
+        ))
 
     def test_channel_alias_channels(self):
         channel = Channel('binstar/label/dev')
@@ -969,55 +960,73 @@ class OtherChannelParsingTests(TestCase):
 def test_multichannel_priority():
     channels = ['conda-test', 'defaults', 'conda-forge']
     subdirs = ['new-optimized-subdir', 'linux-32', 'noarch']
+
+    base_urls = (
+        (join_url(context.channel_alias.base_url, 'conda-test'),),
+        tuple(str(c) for c in context.default_channels),
+        (join_url(context.channel_alias.base_url, 'conda-forge'),),
+    )
+
+    expected = odict()
+    priority = -1
+    for channel_name, urls in zip(channels, base_urls):
+        for base_url in urls:
+            priority += 1
+            for subdir in subdirs:
+                url = join_url(base_url, subdir)
+                expected[url] = (channel_name, priority)
+
     channel_priority_map = prioritize_channels(channels, with_credentials=True, subdirs=subdirs)
-    if on_win:
-        assert channel_priority_map == OrderedDict([
-            ('https://conda.anaconda.org/conda-test/new-optimized-subdir', ('conda-test', 0)),
-            ('https://conda.anaconda.org/conda-test/linux-32', ('conda-test', 0)),
-            ('https://conda.anaconda.org/conda-test/noarch', ('conda-test', 0)),
-            ('https://repo.continuum.io/pkgs/main/new-optimized-subdir', ('defaults', 1)),
-            ('https://repo.continuum.io/pkgs/main/linux-32', ('defaults', 1)),
-            ('https://repo.continuum.io/pkgs/main/noarch', ('defaults', 1)),
-            ('https://repo.continuum.io/pkgs/free/new-optimized-subdir', ('defaults', 2)),
-            ('https://repo.continuum.io/pkgs/free/linux-32', ('defaults', 2)),
-            ('https://repo.continuum.io/pkgs/free/noarch', ('defaults', 2)),
-            ('https://repo.continuum.io/pkgs/mro/new-optimized-subdir', ('defaults', 3)),
-            ('https://repo.continuum.io/pkgs/mro/linux-32', ('defaults', 3)),
-            ('https://repo.continuum.io/pkgs/mro/noarch', ('defaults', 3)),
-            ('https://repo.continuum.io/pkgs/r/new-optimized-subdir', ('defaults', 4)),
-            ('https://repo.continuum.io/pkgs/r/linux-32', ('defaults', 4)),
-            ('https://repo.continuum.io/pkgs/r/noarch', ('defaults', 4)),
-            ('https://repo.continuum.io/pkgs/pro/new-optimized-subdir', ('defaults', 5)),
-            ('https://repo.continuum.io/pkgs/pro/linux-32', ('defaults', 5)),
-            ('https://repo.continuum.io/pkgs/pro/noarch', ('defaults', 5)),
-            ('https://repo.continuum.io/pkgs/msys2/new-optimized-subdir', ('defaults', 6)),
-            ('https://repo.continuum.io/pkgs/msys2/linux-32', ('defaults', 6)),
-            ('https://repo.continuum.io/pkgs/msys2/noarch', ('defaults', 6)),
-            ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 7)),
-            ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 7)),
-            ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 7)),
-        ])
-    else:
-        assert channel_priority_map == OrderedDict([
-            ('https://conda.anaconda.org/conda-test/new-optimized-subdir', ('conda-test', 0)),
-            ('https://conda.anaconda.org/conda-test/linux-32', ('conda-test', 0)),
-            ('https://conda.anaconda.org/conda-test/noarch', ('conda-test', 0)),
-            ('https://repo.continuum.io/pkgs/main/new-optimized-subdir', ('defaults', 1)),
-            ('https://repo.continuum.io/pkgs/main/linux-32', ('defaults', 1)),
-            ('https://repo.continuum.io/pkgs/main/noarch', ('defaults', 1)),
-            ('https://repo.continuum.io/pkgs/free/new-optimized-subdir', ('defaults', 2)),
-            ('https://repo.continuum.io/pkgs/free/linux-32', ('defaults', 2)),
-            ('https://repo.continuum.io/pkgs/free/noarch', ('defaults', 2)),
-            ('https://repo.continuum.io/pkgs/mro/new-optimized-subdir', ('defaults', 3)),
-            ('https://repo.continuum.io/pkgs/mro/linux-32', ('defaults', 3)),
-            ('https://repo.continuum.io/pkgs/mro/noarch', ('defaults', 3)),
-            ('https://repo.continuum.io/pkgs/r/new-optimized-subdir', ('defaults', 4)),
-            ('https://repo.continuum.io/pkgs/r/linux-32', ('defaults', 4)),
-            ('https://repo.continuum.io/pkgs/r/noarch', ('defaults', 4)),
-            ('https://repo.continuum.io/pkgs/pro/new-optimized-subdir', ('defaults', 5)),
-            ('https://repo.continuum.io/pkgs/pro/linux-32', ('defaults', 5)),
-            ('https://repo.continuum.io/pkgs/pro/noarch', ('defaults', 5)),
-            ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 6)),
-            ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 6)),
-            ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 6)),
-        ])
+    assert expected == channel_priority_map
+
+    # if on_win:
+    #     assert channel_priority_map == OrderedDict([
+    #         ('https://conda.anaconda.org/conda-test/new-optimized-subdir', ('conda-test', 0)),
+    #         ('https://conda.anaconda.org/conda-test/linux-32', ('conda-test', 0)),
+    #         ('https://conda.anaconda.org/conda-test/noarch', ('conda-test', 0)),
+    #         ('https://repo.continuum.io/pkgs/main/new-optimized-subdir', ('defaults', 1)),
+    #         ('https://repo.continuum.io/pkgs/main/linux-32', ('defaults', 1)),
+    #         ('https://repo.continuum.io/pkgs/main/noarch', ('defaults', 1)),
+    #         ('https://repo.continuum.io/pkgs/free/new-optimized-subdir', ('defaults', 2)),
+    #         ('https://repo.continuum.io/pkgs/free/linux-32', ('defaults', 2)),
+    #         ('https://repo.continuum.io/pkgs/free/noarch', ('defaults', 2)),
+    #         ('https://repo.continuum.io/pkgs/mro/new-optimized-subdir', ('defaults', 3)),
+    #         ('https://repo.continuum.io/pkgs/mro/linux-32', ('defaults', 3)),
+    #         ('https://repo.continuum.io/pkgs/mro/noarch', ('defaults', 3)),
+    #         ('https://repo.continuum.io/pkgs/r/new-optimized-subdir', ('defaults', 4)),
+    #         ('https://repo.continuum.io/pkgs/r/linux-32', ('defaults', 4)),
+    #         ('https://repo.continuum.io/pkgs/r/noarch', ('defaults', 4)),
+    #         ('https://repo.continuum.io/pkgs/pro/new-optimized-subdir', ('defaults', 5)),
+    #         ('https://repo.continuum.io/pkgs/pro/linux-32', ('defaults', 5)),
+    #         ('https://repo.continuum.io/pkgs/pro/noarch', ('defaults', 5)),
+    #         ('https://repo.continuum.io/pkgs/msys2/new-optimized-subdir', ('defaults', 6)),
+    #         ('https://repo.continuum.io/pkgs/msys2/linux-32', ('defaults', 6)),
+    #         ('https://repo.continuum.io/pkgs/msys2/noarch', ('defaults', 6)),
+    #         ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 7)),
+    #         ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 7)),
+    #         ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 7)),
+    #     ])
+    # else:
+    #     assert channel_priority_map == OrderedDict([
+    #         ('https://conda.anaconda.org/conda-test/new-optimized-subdir', ('conda-test', 0)),
+    #         ('https://conda.anaconda.org/conda-test/linux-32', ('conda-test', 0)),
+    #         ('https://conda.anaconda.org/conda-test/noarch', ('conda-test', 0)),
+    #         ('https://repo.continuum.io/pkgs/main/new-optimized-subdir', ('defaults', 1)),
+    #         ('https://repo.continuum.io/pkgs/main/linux-32', ('defaults', 1)),
+    #         ('https://repo.continuum.io/pkgs/main/noarch', ('defaults', 1)),
+    #         ('https://repo.continuum.io/pkgs/free/new-optimized-subdir', ('defaults', 2)),
+    #         ('https://repo.continuum.io/pkgs/free/linux-32', ('defaults', 2)),
+    #         ('https://repo.continuum.io/pkgs/free/noarch', ('defaults', 2)),
+    #         ('https://repo.continuum.io/pkgs/mro/new-optimized-subdir', ('defaults', 3)),
+    #         ('https://repo.continuum.io/pkgs/mro/linux-32', ('defaults', 3)),
+    #         ('https://repo.continuum.io/pkgs/mro/noarch', ('defaults', 3)),
+    #         ('https://repo.continuum.io/pkgs/r/new-optimized-subdir', ('defaults', 4)),
+    #         ('https://repo.continuum.io/pkgs/r/linux-32', ('defaults', 4)),
+    #         ('https://repo.continuum.io/pkgs/r/noarch', ('defaults', 4)),
+    #         ('https://repo.continuum.io/pkgs/pro/new-optimized-subdir', ('defaults', 5)),
+    #         ('https://repo.continuum.io/pkgs/pro/linux-32', ('defaults', 5)),
+    #         ('https://repo.continuum.io/pkgs/pro/noarch', ('defaults', 5)),
+    #         ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 6)),
+    #         ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 6)),
+    #         ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 6)),
+    #     ])
