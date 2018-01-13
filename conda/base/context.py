@@ -120,7 +120,8 @@ class Context(Configuration):
     non_admin_enabled = PrimitiveParameter(True)
 
     # Safety & Security
-    _aggressive_update_packages = SequenceParameter(string_types)
+    _aggressive_update_packages = SequenceParameter(string_types,
+                                                    aliases=('aggressive_update_packages',))
     safety_checks = PrimitiveParameter(SafetyChecks.warn)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
 
