@@ -50,10 +50,10 @@ def rm_rf_wait(path):
     try:
         if isdir(path) and not islink(path):
             log.trace("rm_rf directory %s", path)
-            rmtree(path)
+            backoff_rmdir(path)
         elif lexists(path):
             log.trace("rm_rf path %s", path)
-            _do_unlink(path)
+            backoff_unlink(path)
         else:
             log.trace("rm_rf no-op. Not a link, file, or directory: %s", path)
         return True
@@ -159,11 +159,11 @@ def _do_unlink(path):
         win_path = '\\\\?\\%s' % path
         file_attr = GetFileAttributesW(win_path)
         log.debug("attributes for file [%s] are %s" % (path, hex(file_attr)))
-        if not SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL):
+        if 0 == SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL):
             error = OSError(FormatError())
             if error.errno != ENOENT:
                 raise error
-        if not DeleteFileW(win_path):
+        if 0 == DeleteFileW(win_path):
             error = OSError(FormatError())
             if error.errno != ENOENT:
                 raise error
@@ -193,11 +193,11 @@ def _do_rmdir(path):
         win_path = '\\\\?\\%s' % path
         file_attr = GetFileAttributesW(win_path)
         log.debug("attributes for directory [%s] are %s" % (path, hex(file_attr)))
-        if not SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL):
+        if 0 == SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL):
             error = OSError(FormatError())
             if error.errno != ENOENT:
                 raise error
-        if not RemoveDirectory(win_path):
+        if 0 == RemoveDirectory(win_path):
             error = OSError(FormatError())
             if error.errno != ENOENT:
                 raise error
