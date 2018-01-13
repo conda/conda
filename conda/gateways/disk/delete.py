@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 from logging import getLogger
 from os import listdir, removedirs, rename, rmdir, unlink, walk
-from os.path import abspath, dirname, isdir, join
+from os.path import abspath, dirname, isdir, join, isfile
 from shutil import rmtree as shutil_rmtree
 from uuid import uuid4
 
@@ -150,7 +150,7 @@ def move_path_to_trash(path, preclean=True):
 
 
 def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
-    exp_backoff_fn(_do_unlink, file_or_symlink_path, max_tries=max_tries)
+    exp_backoff_fn(rmtree, file_or_symlink_path, max_tries=max_tries)
 
 
 def _do_unlink(path):
@@ -535,9 +535,13 @@ else:  # pragma: no cover
             rm(delete_reparse_point, filepath)
             return
 
+        if isfile(filepath):
+            rm(unlink, filepath
+               return
+
         for root, dirs, files in walk(filepath):
-            visit_files(root, files)
             visit_dirs(root, dirs)
+            visit_files(root, files)
 
         rm(rmdir, filepath)
 
