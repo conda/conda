@@ -31,7 +31,7 @@ If your issue is a bug report or feature request for:
 <!-- What actually happens? -->
 
 
-### Steps to Reproduce
+#### Steps to Reproduce
 <!-- If the current behavior is a bug, please provide specific, minimal steps to independently reproduce.
      Include the exact conda commands that reproduce the issue. -->
 
