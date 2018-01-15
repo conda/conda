@@ -40,6 +40,7 @@ If your issue is a bug report or feature request for:
 <!-- What do you think should happen? -->
 
 
+### Environment Information
 ##### `conda info`
 <!-- between the ticks below, paste the output of 'conda info' -->
 ```
