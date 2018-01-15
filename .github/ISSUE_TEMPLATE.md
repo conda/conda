@@ -28,12 +28,16 @@ If your issue is a bug report or feature request for:
 
 
 ### Current Behavior
-<!-- What actually happens? -->
+<!-- What actually happens?
+     If you want to include console output, please use "Steps to Reproduce" below. -->
 
 
 #### Steps to Reproduce
 <!-- If the current behavior is a bug, please provide specific, minimal steps to independently reproduce.
-     Include the exact conda commands that reproduce the issue. -->
+     Include the exact conda commands that reproduce the issue and their output between the ticks below. -->
+```
+
+```
 
 
 ### Expected Behavior
