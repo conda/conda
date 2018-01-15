@@ -45,22 +45,28 @@ If your issue is a bug report or feature request for:
 
 
 ## Environment Information
-##### `conda info`
+<details open><summary><code>`conda info`</code></summary><p>
 <!-- between the ticks below, paste the output of 'conda info' -->
-```
 
 ```
 
+```
+</p></details>
 
-##### `conda config --show-sources`
+
+<details open><summary><code>`conda config --show-sources`</code></summary><p>
 <!-- between the ticks below, paste the output of 'conda config --show-sources' -->
-```
 
 ```
 
+```
+</p></details>
 
-##### `conda list --show-channel-urls`
+
+<details><summary><code>`conda list --show-channel-urls`</code></summary><p>
 <!-- between the ticks below, paste the output of 'conda list --show-channel-urls' -->
+
 ```
 
 ```
+</p></details>
