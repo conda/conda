@@ -27,12 +27,12 @@ If your issue is a bug report or feature request for:
   - [ ] feature request
 
 
-### Current Behavior
+## Current Behavior
 <!-- What actually happens?
      If you want to include console output, please use "Steps to Reproduce" below. -->
 
 
-#### Steps to Reproduce
+### Steps to Reproduce
 <!-- If the current behavior is a bug, please provide specific, minimal steps to independently reproduce.
      Include the exact conda commands that reproduce the issue and their output between the ticks below. -->
 ```
@@ -40,11 +40,11 @@ If your issue is a bug report or feature request for:
 ```
 
 
-### Expected Behavior
+## Expected Behavior
 <!-- What do you think should happen? -->
 
 
-### Environment Information
+## Environment Information
 ##### `conda info`
 <!-- between the ticks below, paste the output of 'conda info' -->
 ```
