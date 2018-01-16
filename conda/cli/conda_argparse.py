@@ -988,8 +988,7 @@ def add_parser_create_install_update(p):
         '-f', "--force",
         action="store_true",
         default=NULL,
-        help="Force install (even when package already installed), "
-               "implies --no-deps.",
+        help="Force install (even when package already installed).",
     )
     add_parser_pscheck(p)
     # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
