@@ -206,6 +206,7 @@ class EnvRawParameter(RawParameter):
 
     def value(self, parameter_obj):
         if hasattr(parameter_obj, 'string_delimiter'):
+            assert isinstance(self._raw_value, string_types)
             string_delimiter = getattr(parameter_obj, 'string_delimiter')
             # TODO: add stripping of !important, !top, and !bottom
             return tuple(v for v in (
