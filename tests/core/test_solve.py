@@ -830,6 +830,75 @@ def test_auto_update_conda():
             assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
 
+def test_aggressive_update_packages():
+    def solve(prev_state, specs_to_add, order):
+        final_state_1, specs = prev_state
+        specs_to_add = tuple(MatchSpec(spec_str) for spec_str in specs_to_add)
+        with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+            final_state_2 = solver.solve_final_state()
+            print([Dist(rec).full_name for rec in final_state_2])
+            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        concat_specs = specs + specs_to_add
+        return final_state_2, concat_specs
+    # test with "libpng", "cmake": both have multiple versions and no requirements in "channel-1"
+
+    empty_state = ((), ())
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, reset_context):
+        base_state = solve(
+            empty_state, ["libpng=1.2"],
+            [
+                'channel-1::libpng-1.2.50-0',
+            ])
+
+    # has "libpng" restricted to "=1.2" by history_specs
+    state_1 = base_state
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, reset_context):
+        solve(
+            state_1, ["cmake=2.8.9"],
+            [
+                'channel-1::cmake-2.8.9-0',
+                'channel-1::libpng-1.2.50-0',
+            ])
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, reset_context):
+        state_1_2 = solve(
+            state_1, ["cmake=2.8.9"],
+            [
+                'channel-1::cmake-2.8.9-0',
+                'channel-1::libpng-1.2.50-0',
+            ])
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, reset_context):
+        solve(
+            state_1_2, ["cmake>2.8.9"],
+            [
+                'channel-1::cmake-2.8.10.2-0',
+                'channel-1::libpng-1.2.50-0',
+            ])
+
+    # use new history_specs to remove "libpng" version restriction
+    state_2 = (base_state[0], (MatchSpec("libpng"),))
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, reset_context):
+        solve(
+            state_2, ["cmake=2.8.9"],
+            [
+                'channel-1::cmake-2.8.9-0',
+                'channel-1::libpng-1.5.13-1',
+            ])
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, reset_context):
+        state_2_2 = solve(
+            state_2, ["cmake=2.8.9"],
+            [
+                'channel-1::cmake-2.8.9-0',
+                'channel-1::libpng-1.2.50-0',
+            ])
+    with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, reset_context):
+        solve(
+            state_2_2, ["cmake>2.8.9"],
+            [
+                'channel-1::cmake-2.8.10.2-0',
+                'channel-1::libpng-1.5.13-1',
+            ])
+
+
 def test_update_deps_1():
     specs = MatchSpec("python=2"),
     with get_solver(specs) as solver:
