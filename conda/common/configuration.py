@@ -208,12 +208,9 @@ class EnvRawParameter(RawParameter):
         if hasattr(parameter_obj, 'string_delimiter'):
             string_delimiter = getattr(parameter_obj, 'string_delimiter')
             # TODO: add stripping of !important, !top, and !bottom
-            raw_value = self._raw_value
-            if string_delimiter in raw_value:
-                value = [v for v in raw_value.split(string_delimiter) if v]
-            else:
-                value = [raw_value] if raw_value else []
-            return tuple(v.strip() for v in value)
+            return tuple(v for v in (
+                vv.strip() for vv in self._raw_value.split(string_delimiter)
+            ) if v)
         else:
             return self.__important_split_value[0].strip()
 
