@@ -210,9 +210,9 @@ class EnvRawParameter(RawParameter):
             # TODO: add stripping of !important, !top, and !bottom
             raw_value = self._raw_value
             if string_delimiter in raw_value:
-                value = raw_value.split(string_delimiter)
+                value = [v for v in raw_value.split(string_delimiter) if v]
             else:
-                value = [raw_value]
+                value = [raw_value] if raw_value else []
             return tuple(v.strip() for v in value)
         else:
             return self.__important_split_value[0].strip()
