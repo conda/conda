@@ -27,35 +27,46 @@ If your issue is a bug report or feature request for:
   - [ ] feature request
 
 
-### Current Behavior
-<!-- What actually happens? -->
+## Current Behavior
+<!-- What actually happens?
+     If you want to include console output, please use "Steps to Reproduce" below. -->
 
 
 ### Steps to Reproduce
 <!-- If the current behavior is a bug, please provide specific, minimal steps to independently reproduce.
-     Include the exact conda commands that reproduce the issue. -->
+     Include the exact conda commands that reproduce the issue and their output between the ticks below. -->
+```
+
+```
 
 
-### Expected Behavior
+## Expected Behavior
 <!-- What do you think should happen? -->
 
 
-##### `conda info`
+## Environment Information
+<details open><summary><code>`conda info`</code></summary><p>
 <!-- between the ticks below, paste the output of 'conda info' -->
-```
 
 ```
 
+```
+</p></details>
 
-##### `conda config --show-sources`
+
+<details open><summary><code>`conda config --show-sources`</code></summary><p>
 <!-- between the ticks below, paste the output of 'conda config --show-sources' -->
-```
 
 ```
 
+```
+</p></details>
 
-##### `conda list --show-channel-urls`
+
+<details><summary><code>`conda list --show-channel-urls`</code></summary><p>
 <!-- between the ticks below, paste the output of 'conda list --show-channel-urls' -->
+
 ```
 
 ```
+</p></details>
