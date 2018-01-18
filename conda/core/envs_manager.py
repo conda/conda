@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import EACCES
 from logging import getLogger
 from os import listdir
 from os.path import dirname, isdir, isfile, join, normpath, split as path_split
@@ -29,9 +30,17 @@ def register_env(location):
         # Nothing to do. Location is already recorded in a known environments.txt file.
         return
 
-    with open(USER_ENVIRONMENTS_TXT_FILE, 'a') as fh:
-        fh.write(ensure_text_type(location))
-        fh.write('\n')
+    try:
+        with open(USER_ENVIRONMENTS_TXT_FILE, 'a') as fh:
+            fh.write(ensure_text_type(location))
+            fh.write('\n')
+    except EnvironmentError as e:
+        if e.errno == EACCES:
+            log.warn("Unable to register environment. Path not writable.\n"
+                     "  environment location: %s\n"
+                     "  registry file: %s", location, USER_ENVIRONMENTS_TXT_FILE)
+        else:
+            raise
 
 
 def unregister_env(location):
@@ -111,6 +120,6 @@ def _rewrite_environments_txt(environments_txt_file, prefixes):
         with open(environments_txt_file, 'w') as fh:
             fh.write('\n'.join(prefixes))
             fh.write('\n')
-    except (IOError, OSError) as e:
+    except EnvironmentError as e:
         log.info("File not cleaned: %s", environments_txt_file)
         log.debug('%r', e, exc_info=True)
