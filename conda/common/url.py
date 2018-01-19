@@ -7,11 +7,11 @@ from os.path import abspath, expanduser
 import re
 import socket
 
+from .compat import input, on_win
 from .path import split_filename
 from .._vendor.auxlib.decorators import memoize
 from .._vendor.urllib3.exceptions import LocationParseError
 from .._vendor.urllib3.util.url import Url, parse_url
-from ..common.compat import on_win
 
 try:  # pragma: py2 no cover
     # Python 3
@@ -117,7 +117,7 @@ def is_ipv6_address_win_py27(string_ip):
         [False, False]
     """
     # python 2.7 on windows does not have socket.inet_pton
-    return bool(re.match(r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"
+    return bool(re.match(r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"  # NOQA lgtm [py/regex/unmatchable-dollar]
                          r"([\dA-F]{1,4}(\3|:\b)|\2){5}"
                          r"(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|"
                          r"(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z",

@@ -967,7 +967,7 @@ class ExceptionHandler(object):
             )
         elif ask_response is None and ask_for_upload:
             # means timeout was reached for `input`
-            self.out_stream.write('\nTimeout reached. No report sent.\n')
+            self.out_stream.write('\nTimeout reached. No report sent.\n')  # NOQA lgtm [py/unreachable-statement]
 
 
 def conda_exception_handler(func, *args, **kwargs):

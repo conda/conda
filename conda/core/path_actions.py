@@ -34,9 +34,8 @@ from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lex
 from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
 from ..models.channel import Channel
-from ..models.enums import LeasedPathType, LinkType, NoarchType, PathType
+from ..models.enums import LinkType, NoarchType, PathType
 from ..models.index_record import Link, PackageRecord, PathDataV1, PathsData
-from ..models.leased_path_entry import LeasedPathEntry
 from ..models.match_spec import MatchSpec
 from ..models.package_cache_record import PackageCacheRecord
 from ..models.prefix_record import PrefixRecord
@@ -596,35 +595,35 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CreateApplicationEntryPointWindowsExeAction(LinkPathAction):
-
-    @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
-                       exe_path):
-        source_directory = context.conda_prefix
-        source_short_path = 'Scripts/conda.exe'
-        target_short_path = exe_path
-        return cls(transaction_context, package_info, source_directory,
-                   source_short_path, target_prefix, target_short_path, requested_link_type)
-
-    def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
-                 target_prefix, target_short_path, requested_link_type):
-        super(CreateApplicationEntryPointWindowsExeAction, self).__init__(
-            transaction_context, package_info, source_prefix, source_short_path,
-            target_prefix, target_short_path, requested_link_type,
-        )
-        self.leased_path_entry = LeasedPathEntry(
-            _path=target_short_path,
-            target_path=self.source_full_path,
-            target_prefix=source_prefix,
-            leased_path=self.target_full_path,
-            package_name=package_info.index_json_record.name,
-            leased_path_type=self.leased_path_type,
-        )
-
-    @property
-    def leased_path_type(self):
-        return LeasedPathType.application_entry_point_windows_exe
+# class CreateApplicationEntryPointWindowsExeAction(LinkPathAction):
+#
+#     @classmethod
+#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,  # NOQA
+#                        exe_path):
+#         source_directory = context.conda_prefix
+#         source_short_path = 'Scripts/conda.exe'
+#         target_short_path = exe_path
+#         return cls(transaction_context, package_info, source_directory,
+#                    source_short_path, target_prefix, target_short_path, requested_link_type)
+#
+#     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
+#                  target_prefix, target_short_path, requested_link_type):
+#         super(CreateApplicationEntryPointWindowsExeAction, self).__init__(
+#             transaction_context, package_info, source_prefix, source_short_path,
+#             target_prefix, target_short_path, requested_link_type,
+#         )
+#         self.leased_path_entry = LeasedPathEntry(
+#             _path=target_short_path,
+#             target_path=self.source_full_path,
+#             target_prefix=source_prefix,
+#             leased_path=self.target_full_path,
+#             package_name=package_info.index_json_record.name,
+#             leased_path_type=self.leased_path_type,
+#         )
+#
+#     @property
+#     def leased_path_type(self):
+#         return LeasedPathType.application_entry_point_windows_exe
 
 
 # class CreateApplicationEntryPointAction(CreateLeasedPathAction):

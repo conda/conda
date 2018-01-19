@@ -7,4 +7,4 @@ from .._vendor.auxlib import NULL
 # For example, when parsing json, you may need to determine if a json key was given and set
 #   to null, or the key didn't exist at all.  There could be a bit of potential confusion here,
 #   because in python null == None, while here I'm defining NULL to mean 'not defined'.
-NULL = NULL
+NULL = NULL  # lgtm [py/redundant-assignment]

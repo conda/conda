@@ -73,7 +73,7 @@ class CondaMultiError(CondaError):
 
     def __init__(self, errors):
         self.errors = errors
-        super(CondaError, self).__init__(None)
+        super(CondaMultiError, self).__init__(None)
 
     def __repr__(self):
         return '\n'.join(repr(e) for e in self.errors) + '\n'

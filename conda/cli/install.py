@@ -122,7 +122,7 @@ def get_revision(arg, json=False):
     try:
         return int(arg)
     except ValueError:
-        CondaValueError("expected revision number, not: '%s'" % arg, json)
+        raise CondaValueError("expected revision number, not: '%s'" % arg, json)
 
 
 def install(args, parser, command='install'):

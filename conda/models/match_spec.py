@@ -765,7 +765,7 @@ class ChannelMatch(StrMatch):
             else:
                 value = Channel(value)
 
-        super(StrMatch, self).__init__(value)
+        super(StrMatch, self).__init__(value)  # lgtm [py/super-not-enclosing-class]
 
     def match(self, other):
         try:

@@ -221,12 +221,12 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
 
     verbose = not (context.json or context.quiet)
     if warnings:
-        if verbose:
+        if verbose:  # lgtm [py/uninitialized-local-variable]
             for warning in warnings:
                 print(warning, file=sys.stderr)
         return
 
-    if verbose:
+    if verbose:  # lgtm [py/uninitialized-local-variable]
         for cache_type in cache_dirs:
             print("%s (%s)" % (cache_type, cache_dirs[cache_type]))
             print("%-40s %10s" % ("Size:", human_bytes(cache_sizes[cache_type])))

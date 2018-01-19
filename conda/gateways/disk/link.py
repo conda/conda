@@ -39,8 +39,8 @@ else:  # pragma: py2 no cover
 
 if not on_win:  # pragma: win no cover
     from os import link, symlink
-    link = link
-    symlink = symlink
+    link = link  # lgtm [py/redundant-assignment]
+    symlink = symlink  # lgtm [py/redundant-assignment]
 
 else:  # pragma: unix no cover
     from ctypes import windll, wintypes
@@ -76,7 +76,7 @@ if not (on_win and PY2):
     from os import readlink
     islink = os_islink
     lexists = os_lexists
-    readlink = readlink
+    readlink = readlink  # lgtm [py/redundant-assignment]
 
 else:  # pragma: no cover
     from ctypes import (POINTER, Structure, byref, c_uint64, cast, windll,
