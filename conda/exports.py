@@ -86,7 +86,7 @@ get_prefix = get_prefix  # lgtm [py/redundant-assignment]
 
 from ._vendor.auxlib.entity import EntityEncoder # NOQA
 EntityEncoder = EntityEncoder  # lgtm [py/redundant-assignment]
-from .base.constants import DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX
+from .base.constants import DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
 DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX = DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
 get_default_urls = lambda: DEFAULT_CHANNELS
 
