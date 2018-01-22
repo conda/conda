@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EACCES, EPERM
+from errno import EACCES, ELOOP, EPERM
 from io import open
 from logging import getLogger
 import os
@@ -24,7 +24,8 @@ from ...base.context import context
 from ...common.compat import ensure_binary, on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
-from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
+from ...exceptions import (BasicClobberError, CaseInsensitiveFileSystemError, CondaOSError,
+                           maybe_raise)
 from ...models.enums import FileMode, LinkType
 
 log = getLogger(__name__)
@@ -142,7 +143,17 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
                     progress_update_callback(q / num_members)
                 yield member
 
-        t.extractall(path=destination_directory, members=members_with_progress())
+        try:
+            t.extractall(path=destination_directory, members=members_with_progress())
+        except EnvironmentError as e:
+            if e.errno == ELOOP:
+                raise CaseInsensitiveFileSystemError(
+                    package_location=tarball_full_path,
+                    extract_location=destination_directory,
+                    caused_by=e,
+                )
+            else:
+                raise
 
     if sys.platform.startswith('linux') and os.getuid() == 0:
         # When extracting as root, tarfile will by restore ownership
