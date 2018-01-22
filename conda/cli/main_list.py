@@ -51,16 +51,17 @@ def list_packages(prefix, installed, regex=None, format='human',
             # Returns None if no meta-file found (e.g. pip install)
             info = is_linked(prefix, dist)
             if info is None:
-                continue
-            features = set(info.get('features') or ())
-            disp = '%(name)-25s %(version)-15s %(build)15s' % info  # NOQA lgtm [py/percent-format/wrong-arguments]
-            disp += '  %s' % disp_features(features)
-            schannel = info.get('schannel')
-            show_channel_urls = show_channel_urls or context.show_channel_urls
-            if (show_channel_urls or show_channel_urls is None
-                    and schannel != DEFAULTS_CHANNEL_NAME):
-                disp += '  %s' % schannel
-            result.append(disp)
+                result.append('%-25s %-15s %15s' % tuple(dist.quad[:3]))
+            else:
+                features = set(info.get('features') or ())
+                disp = '%(name)-25s %(version)-15s %(build)15s' % info  # NOQA lgtm [py/percent-format/wrong-arguments]
+                disp += '  %s' % disp_features(features)
+                schannel = info.get('schannel')
+                show_channel_urls = show_channel_urls or context.show_channel_urls
+                if (show_channel_urls or show_channel_urls is None
+                        and schannel != DEFAULTS_CHANNEL_NAME):
+                    disp += '  %s' % schannel
+                result.append(disp)
         except (AttributeError, IOError, KeyError, ValueError) as e:
             log.debug("exception for dist %s:\n%r", dist, e)
             result.append('%-25s %-15s %15s' % tuple(dist.quad[:3]))
