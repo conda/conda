@@ -36,9 +36,9 @@ _conda_set_vars() {
 
 _conda_hashr() {
     case "$_CONDA_SHELL_FLAVOR" in
-        zsh) rehash;;
+        zsh) \rehash;;
         posh) ;;
-        *) hash -r;;
+        *) \hash -r;;
     esac
 }
 
@@ -48,12 +48,12 @@ _conda_activate() {
         # Handle transition from shell activated with conda <= 4.3 to a subsequent activation
         # after conda updated to >= 4.4. See issue #6173.
         PS1="$CONDA_PS1_BACKUP"
-        unset CONDA_PS1_BACKUP
+        \unset CONDA_PS1_BACKUP
     fi
 
     local ask_conda
     ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix activate "$@")" || return $?
-    eval "$ask_conda"
+    \eval "$ask_conda"
 
     _conda_hashr
 }
@@ -61,7 +61,7 @@ _conda_activate() {
 _conda_deactivate() {
     local ask_conda
     ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix deactivate "$@")" || return $?
-    eval "$ask_conda"
+    \eval "$ask_conda"
 
     _conda_hashr
 }
@@ -69,7 +69,7 @@ _conda_deactivate() {
 _conda_reactivate() {
     local ask_conda
     ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix reactivate)" || return $?
-    eval "$ask_conda"
+    \eval "$ask_conda"
 
     _conda_hashr
 }
@@ -102,6 +102,6 @@ conda() {
 _conda_set_vars
 
 if [ -z "${CONDA_SHLVL+x}" ]; then
-    export CONDA_SHLVL=0
+    \export CONDA_SHLVL=0
 fi
 
