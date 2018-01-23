@@ -57,10 +57,10 @@ class Activator(object):
             self.shift_args = 0
             self.command_join = '\n'
 
-            self.unset_var_tmpl = 'unset %s'
-            self.export_var_tmpl = "export %s='%s'"
+            self.unset_var_tmpl = '\\unset %s'
+            self.export_var_tmpl = "\\export %s='%s'"
             self.set_var_tmpl = "%s='%s'"
-            self.run_script_tmpl = '. "%s"'
+            self.run_script_tmpl = '\\. "%s"'
 
         elif shell == 'csh':
             self.pathsep_join = ':'.join
