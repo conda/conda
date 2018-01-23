@@ -507,6 +507,10 @@ class Context(Configuration):
         #   - are meant to be prepended with channel_alias
         return self.custom_multichannels[DEFAULTS_CHANNEL_NAME]
 
+    def _mac_ver(self):
+        # platform.mac_ver() returns ('', ('', '', ''), '') on Linux and Windows
+        return platform.mac_ver()[0] or '10.9'  # default to 10.9, the oldest we support
+
     @memoizedproperty
     def custom_multichannels(self):
         from ..models.channel import Channel
@@ -515,11 +519,11 @@ class Context(Configuration):
             _default_channels = self._default_channels
         else:
             _default_channels = list(DEFAULT_CHANNELS)
-            if (self.subdir == "osx-64" and int(platform.mac_ver()[0].split('.')[1]) < 11
+            if (self.subdir == "osx-64" and int(self._mac_ver().split('.')[1]) < 11
                     or self.bits == 32):
-                del _default_channels[2]
+                _default_channels.remove('https://repo.continuum.io/pkgs/mro')
             if not on_win:
-                del _default_channels[-1]
+                _default_channels.remove('https://repo.continuum.io/pkgs/msys2')
 
         reserved_multichannel_urls = odict((
             (DEFAULTS_CHANNEL_NAME, _default_channels),
