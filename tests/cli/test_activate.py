@@ -137,13 +137,18 @@ def _format_vars(shell):
 {set} CONDARC=
 {set} CONDA_PATH_BACKUP=
 {set} PATH="{new_path}"
-{set} _CONDA_ROOT="{syspath}"
+{set} _CONDA_ROOT="{shellpath}"
 """
         if 'bash' in shell:
             _command_setup += "set -u\n"
 
-    command_setup = _command_setup.format(here=dirname(__file__), PYTHONPATH=shelldict['path_to'](PYTHONPATH),
-           set=shelldict["set_var"], new_path=base_path)
+    command_setup = _command_setup.format(
+        here=dirname(__file__),
+        PYTHONPATH=shelldict['path_to'](PYTHONPATH),
+        set=shelldict["set_var"],
+        new_path=base_path,
+        shellpath=join(dirname(CONDA_PACKAGE_ROOT), 'conda', 'shell')
+    )
     if shelldict["shell_suffix"] == '.bat':
         command_setup = "@echo off\n" + command_setup
 
