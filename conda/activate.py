@@ -44,7 +44,11 @@ class Activator(object):
         self._raw_arguments = arguments
 
         if PY2:
-            self.environ = {ensure_unicode(k): ensure_unicode(v) for k, v in iteritems(os.environ)}
+            if on_win:
+                environ = ((k, v.replace('\\', '\\\\')) for k, v in iteritems(os.environ))
+            else:
+                environ = iteritems(os.environ)
+            self.environ = {ensure_unicode(k): ensure_unicode(v) for k, v in environ}
         else:
             self.environ = os.environ.copy()
 
