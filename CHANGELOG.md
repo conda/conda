@@ -2,6 +2,17 @@
 
 ### Improvements
 * allow falsey values for default_python to avoid pinning python (#6682)
+* resolve #6700 add message for no space left on device (#6709)
+* make variable 'sourced' local for posix shells (#6726)
+
+### Bug Fixes
+* fix #6713 allow parenthesis in prefix path for conda.bat (#6722)
+* fix #6684 --force message (#6723)
+* fix #6693 KeyError with '--update-deps' (#6694)
+* fix aggressive_update_packages availability (#6727)
+* fix #6745 don't truncate channel priority map in conda installer (#6746)
+* add workaround for system Python usage by lsb_release (#6769)
+* fix #6624 can't start new thread (#6653)
 
 
 ## 4.4.7 (2018-01-08)
