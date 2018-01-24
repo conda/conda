@@ -43,6 +43,11 @@ class Activator(object):
         self.shell = shell
         self._raw_arguments = arguments
 
+        if PY2:
+            self.environ = {ensure_unicode(k): ensure_unicode(v) for k, v in iteritems(os.environ)}
+        else:
+            self.environ = os.environ.copy()
+
         if shell == 'posix':
             self.pathsep_join = ':'.join
             self.path_conversion = native_path_to_unix
@@ -215,13 +220,13 @@ class Activator(object):
         prefix = normpath(prefix)
 
         # query environment
-        old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))
-        old_conda_prefix = os.getenv('CONDA_PREFIX')
+        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
+        old_conda_prefix = self.environ.get('CONDA_PREFIX')
         max_shlvl = context.max_shlvl
 
         if old_conda_prefix == prefix:
             return self.build_reactivate()
-        if os.getenv('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
+        if self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
             # in this case, user is attempting to activate the previous environment,
             #  i.e. step back down
             return self.build_deactivate()
@@ -282,8 +287,8 @@ class Activator(object):
 
     def build_deactivate(self):
         # query environment
-        old_conda_shlvl = int(os.getenv('CONDA_SHLVL', 0))
-        old_conda_prefix = os.getenv('CONDA_PREFIX', None)
+        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
+        old_conda_prefix = self.environ.get('CONDA_PREFIX', None)
         if old_conda_shlvl <= 0 or old_conda_prefix is None:
             return {
                 'unset_vars': (),
@@ -314,7 +319,7 @@ class Activator(object):
             }
             activate_scripts = ()
         else:
-            new_prefix = os.getenv('CONDA_PREFIX_%d' % new_conda_shlvl)
+            new_prefix = self.environ.get('CONDA_PREFIX_%d' % new_conda_shlvl)
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(conda_default_env)
 
@@ -341,8 +346,8 @@ class Activator(object):
         }
 
     def build_reactivate(self):
-        conda_prefix = os.environ.get('CONDA_PREFIX')
-        conda_shlvl = int(os.environ.get('CONDA_SHLVL', -1))
+        conda_prefix = self.environ.get('CONDA_PREFIX')
+        conda_shlvl = int(self.environ.get('CONDA_SHLVL', -1))
         if not conda_prefix or conda_shlvl < 1:
             # no active environment, so cannot reactivate; do nothing
             return {
@@ -352,7 +357,7 @@ class Activator(object):
                 'deactivate_scripts': (),
                 'activate_scripts': (),
             }
-        conda_default_env = os.environ.get('CONDA_DEFAULT_ENV', self._default_env(conda_prefix))
+        conda_default_env = self.environ.get('CONDA_DEFAULT_ENV', self._default_env(conda_prefix))
         # environment variables are set only to aid transition from conda 4.3 to conda 4.4
         return {
             'unset_vars': (),
@@ -366,7 +371,7 @@ class Activator(object):
         }
 
     def _get_starting_path_list(self):
-        path = os.environ['PATH']
+        path = self.environ['PATH']
         if on_win:
             # On Windows, the Anaconda Python interpreter prepends sys.prefix\Library\bin on
             # startup. It's a hack that allows users to avoid using the correct activation
@@ -446,8 +451,8 @@ class Activator(object):
             return
 
         if self.shell == 'posix':
-            ps1 = os.environ.get('PS1', '')
-            current_prompt_modifier = os.environ.get('CONDA_PROMPT_MODIFIER')
+            ps1 = self.environ.get('PS1', '')
+            current_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER')
             if current_prompt_modifier:
                 ps1 = re.sub(re.escape(current_prompt_modifier), r'', ps1)
             # Because we're using single-quotes to set shell variables, we need to handle the
@@ -458,8 +463,8 @@ class Activator(object):
                 'PS1': conda_prompt_modifier + ps1,
             })
         elif self.shell == 'csh':
-            prompt = os.environ.get('prompt', '')
-            current_prompt_modifier = os.environ.get('CONDA_PROMPT_MODIFIER')
+            prompt = self.environ.get('prompt', '')
+            current_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER')
             if current_prompt_modifier:
                 prompt = re.sub(re.escape(current_prompt_modifier), r'', prompt)
             set_vars.update({
@@ -495,6 +500,15 @@ def ensure_binary(value):
     except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'encode'
         # In this case assume already binary type and do nothing
+        return value
+
+
+def ensure_unicode(value):
+    try:
+        return value.decode('unicode_escape')
+    except AttributeError:  # pragma: no cover
+        # AttributeError: '<>' object has no attribute 'decode'
+        # In this case assume already unicode and do nothing
         return value
 
 
