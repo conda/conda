@@ -45,7 +45,8 @@ class Activator(object):
 
         if PY2:
             if on_win:
-                environ = ((k, v.replace('\\', '\\\\')) for k, v in iteritems(os.environ))
+                environ = ((k, ensure_fs_path_encoding(v.replace('\\', '\\\\')))
+                           for k, v in iteritems(os.environ))
             else:
                 environ = iteritems(os.environ)
             self.environ = {text_type(k): text_type(v) for k, v in environ}
@@ -507,6 +508,13 @@ def ensure_binary(value):
         return value
 
 
+def ensure_fs_path_encoding(value):
+    try:
+        return value.decode(FILESYSTEM_ENCODING)
+    except AttributeError:
+        return value
+
+
 def native_path_to_unix(paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
@@ -541,6 +549,7 @@ def path_identity(paths):
 
 on_win = bool(sys.platform == "win32")
 PY2 = sys.version_info[0] == 2
+FILESYSTEM_ENCODING = sys.getfilesystemencoding()
 if PY2:  # pragma: py3 no cover
     string_types = basestring,  # NOQA
     text_type = unicode  # NOQA
