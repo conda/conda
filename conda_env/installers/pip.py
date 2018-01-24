@@ -38,6 +38,8 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
         requirements.close()
         # pip command line...
         args, pip_version = pip_args(prefix)
+        if args is None:
+            return
         pip_cmd = args + ['install', '-r', requirements.name]
         # ...run it
         process = subprocess.Popen(pip_cmd,
