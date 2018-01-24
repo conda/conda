@@ -35,7 +35,7 @@ _conda_set_vars() {
 
 
 _conda_hashr() {
-    \case "$_CONDA_SHELL_FLAVOR" in
+    case "$_CONDA_SHELL_FLAVOR" in
         zsh) \rehash;;
         posh) ;;
         *) \hash -r;;
@@ -82,7 +82,7 @@ conda() {
     else
         \local cmd=""
     fi
-    \case "$cmd" in
+    case "$cmd" in
         activate)
             _conda_activate "$@"
             ;;
