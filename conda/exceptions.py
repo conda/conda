@@ -574,8 +574,8 @@ class CorruptedEnvironmentError(CondaError):
     def __init__(self, environment_location, corrupted_file, **kwargs):
         message = dals("""
         The target environment has been corrupted. Corrupted environments most commonly
-        occur when the conda process is force-terminated while in an unlink-link 
-        transaction. 
+        occur when the conda process is force-terminated while in an unlink-link
+        transaction.
           environment location: %(environment_location)s
           corrupted file: %(corrupted_file)s
         """)
