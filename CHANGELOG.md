@@ -1,3 +1,9 @@
+## 4.5.0 (unreleased)
+
+### Improvements
+* preserve exit status in fish shell #6760
+
+
 ## 4.4.8 (unreleased)
 
 ### Improvements
