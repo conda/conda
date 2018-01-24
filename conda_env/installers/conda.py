@@ -28,8 +28,7 @@ def install(prefix, specs, args, env, *_, **kwargs):
         channel_urls.extend(context.channels)
     _channel_priority_map = prioritize_channels(channel_urls)
 
-    channel_names = IndexedSet(Channel(url).canonical_name for url in _channel_priority_map)
-    channels = IndexedSet(Channel(cn) for cn in channel_names)
+    channels = IndexedSet(Channel(url) for url in _channel_priority_map)
     subdirs = IndexedSet(basename(url) for url in _channel_priority_map)
 
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)

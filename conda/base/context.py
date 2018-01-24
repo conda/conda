@@ -9,9 +9,10 @@ from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join
 from platform import machine
 import sys
 
-from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS,
-                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
-                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks)
+from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
+                        DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ERROR_UPLOAD_URL,
+                        PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict, ROOT_ENV_NAME,
+                        SEARCH_PATH, SafetyChecks)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -120,7 +121,9 @@ class Context(Configuration):
     non_admin_enabled = PrimitiveParameter(True)
 
     # Safety & Security
-    _aggressive_update_packages = SequenceParameter(string_types)
+    _aggressive_update_packages = SequenceParameter(string_types,
+                                                    DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
+                                                    aliases=('aggressive_update_packages',))
     safety_checks = PrimitiveParameter(SafetyChecks.warn)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
 
@@ -438,14 +441,7 @@ class Context(Configuration):
     @property
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
-        if self._aggressive_update_packages:
-            return tuple(MatchSpec(s, optional=True) for s in self._aggressive_update_packages)
-        else:
-            return (
-                MatchSpec('ca-certificates', optional=True),
-                MatchSpec('certifi', optional=True),
-                MatchSpec('openssl', optional=True),
-            )
+        return tuple(MatchSpec(s, optional=True) for s in self._aggressive_update_packages)
 
     @property
     def deps_modifier(self):

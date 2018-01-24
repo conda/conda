@@ -722,6 +722,28 @@ def test_install_package_with_feature():
     r.install(['mypackage','feature 1.0'])
 
 
+def test_unintentional_feature_downgrade():
+    # See https://github.com/conda/conda/issues/6765
+    # With the bug in place, this bad build of scipy
+    # will be selected for install instead of a later
+    # build of scipy 0.11.0.
+    good_rec = index[Dist('scipy-0.11.0-np17py33_3.tar.bz2')]
+    bad_deps = tuple(d for d in good_rec.depends
+                     if not d.startswith('numpy'))
+    bad_rec = IndexRecord.from_objects(good_rec,
+                  build=good_rec.build.replace('_3','_x0'),
+                  build_number=0, depends=bad_deps,
+                  fn=good_rec.fn.replace('_3','_x0'),
+                  url=good_rec.url.replace('_3','_x0'))
+    bad_dist = Dist(bad_rec)
+    index2 = index.copy()
+    index2[bad_dist] = bad_rec
+    r = Resolve(index2)
+    install = r.install(['scipy 0.11.0'])
+    assert bad_dist not in install
+    assert any(d.name == 'numpy' for d in install)
+
+
 def test_circular_dependencies():
     index2 = index.copy()
     index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{

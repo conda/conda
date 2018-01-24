@@ -1,7 +1,7 @@
 @IF EXIST "%~dp0..\..\Scripts\conda.exe" (
-    @SET "_CONDA_EXE="%~dp0..\..\Scripts\conda.exe""
+    @SET _CONDA_EXE="%~dp0..\..\Scripts\conda.exe"
 ) ELSE (
-    @SET "_CONDA_EXE=python "%~dp0..\..\bin\conda""
+    @SET _CONDA_EXE=python "%~dp0..\..\bin\conda"
 )
 
 @IF "%1"=="activate" GOTO :DO_ACTIVATE

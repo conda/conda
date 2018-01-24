@@ -23,6 +23,7 @@ from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, text_type,
                              with_metaclass)
+from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache import PackageCache
 from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError, NotWritableError
@@ -75,23 +76,14 @@ class SubdirData(object):
 
     @staticmethod
     def query_all(channels, subdirs, package_ref_or_match_spec):
+        from .index import check_whitelist  # TODO: fix in-line import
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
-
-        executor = None
-        try:
-            from concurrent.futures import ThreadPoolExecutor, as_completed
-            executor = ThreadPoolExecutor(10)
+        check_whitelist(channel_urls)
+        with ThreadLimitedThreadPoolExecutor() as executor:
             futures = (executor.submit(
                 SubdirData(Channel(url)).query, package_ref_or_match_spec
             ) for url in channel_urls)
             return tuple(concat(future.result() for future in as_completed(futures)))
-        except RuntimeError as e:  # pragma: no cover
-            # concurrent.futures is only available in Python >= 3.2 or if futures is installed
-            # RuntimeError is thrown if number of threads are limited by OS
-            raise
-        finally:
-            if executor:
-                executor.shutdown(wait=True)
 
     def query(self, package_ref_or_match_spec):
         if not self._loaded:

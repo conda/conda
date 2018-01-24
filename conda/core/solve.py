@@ -380,9 +380,9 @@ class Solver(object):
                     if ascendant_name not in specs_to_add_names:
                         update_names.add(ascendant_name)
             grouped_specs = groupby(lambda s: s.name in update_names, final_environment_specs)
-            new_final_environment_specs = set(grouped_specs[False])
+            new_final_environment_specs = set(grouped_specs.get(False, ()))
             update_specs = set(MatchSpec(spec.name, optional=spec.optional)
-                               for spec in grouped_specs[True])
+                               for spec in grouped_specs.get(True, ()))
             final_environment_specs = new_final_environment_specs | update_specs
             solution = r.solve(final_environment_specs)
 
