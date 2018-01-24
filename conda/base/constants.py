@@ -92,6 +92,12 @@ ROOT_NO_RM = (
     'requests',
 )
 
+DEFAULT_AGGRESSIVE_UPDATE_PACKAGES = (
+    'ca-certificates',
+    'certifi',
+    'openssl',
+)
+
 # Maximum priority, reserved for packages we really want to remove
 MAX_CHANNEL_PRIORITY = 10000
 

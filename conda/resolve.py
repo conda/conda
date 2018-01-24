@@ -527,7 +527,14 @@ class Resolve(object):
         for name, group in iteritems(self.groups):
             nf = [len(self.index[dist].features) for dist in group]
             maxf = max(nf)
-            eq.update({dist.full_name: maxf-fc for dist, fc in zip(group, nf) if fc < maxf})
+            if maxf > 0:
+                eq.update({dist.full_name: maxf-fc for dist, fc in zip(group, nf) if maxf > fc})
+                # This entry causes conda to weight the absence of a package the same
+                # as if a non-featured version were instaslled. If this were not here,
+                # conda will sometimes select an earlier build of a requested package
+                # if doing so can eliminate this package as a dependency.
+                # https://github.com/conda/conda/issues/6765
+                eq['!' + self.push_MatchSpec(C, name)] = maxf
             total += maxf
         return eq, total
 

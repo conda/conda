@@ -25,6 +25,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.update import touch
 from conda.models.channel import Channel
+from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
 from ..helpers import tempdir
@@ -58,6 +59,7 @@ class ContextCustomRcTests(TestCase):
           sftp: ''
           ftps: false
           rsync: 'false'
+        aggressive_update_packages: []
         """)
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
@@ -230,6 +232,13 @@ class ContextCustomRcTests(TestCase):
                 touch(join(envs_dirs[0], 'blarg', 'history'))
                 reset_context((), argparse_args=AttrDict(name='blarg', func='create'))
                 assert context.target_prefix == join(envs_dirs[0], 'blarg')
+
+    def test_aggressive_update_packages(self):
+        assert context.aggressive_update_packages == tuple()
+        specs = ['certifi', 'openssl>=1.1']
+        with env_var('CONDA_AGGRESSIVE_UPDATE_PACKAGES', ','.join(specs), reset_context):
+            assert context.aggressive_update_packages == tuple(
+                MatchSpec(s, optional=True) for s in specs)
 
 
 class ContextDefaultRcTests(TestCase):
