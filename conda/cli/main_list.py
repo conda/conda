@@ -39,6 +39,12 @@ def list_packages(prefix, installed, regex=None, format='human',
                   show_channel_urls=None):
     res = 0
     result = []
+
+    if format == 'human':
+        result.append('# packages in environment at %s:' % prefix)
+        result.append('#')
+        result.append('# %-23s %-15s %15s  Channel' % ("Name", "Version", "Build"))
+
     for dist in get_packages(installed, regex):
         if format == 'canonical':
             result.append(dist)
@@ -73,9 +79,6 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
         raise EnvironmentLocationNotFound(prefix)
 
     if not json:
-        if format == 'human':
-            print('# packages in environment at %s:' % prefix)
-            print('#')
         if format == 'export':
             print_export_header(context.subdir)
 
@@ -92,12 +95,6 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
         stdout_json(output)
 
     else:
-        print('%-25s  %-15s %15s  %-15s' % (
-            "Name",
-            "Version",
-            "Build",
-            "Channel",)
-        )
         print('\n'.join(map(text_type, output)))
 
     return exitcode
