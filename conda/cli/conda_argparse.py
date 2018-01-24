@@ -18,7 +18,8 @@ log = getLogger(__name__)
 
 # duplicated code in the interest of import efficiency
 on_win = bool(sys.platform == "win32")
-escaped_user_rc_path = abspath(expanduser('~/.condarc')).replace("%", "%%")
+user_rc_path = abspath(expanduser('~/.condarc'))
+escaped_user_rc_path = user_rc_path.replace("%", "%%")
 escaped_sys_rc_path = abspath(join(sys.prefix, '.condarc')).replace("%", "%%")
 
 
@@ -376,7 +377,7 @@ def configure_parser_config(sub_parsers):
         help="""Write to the given file. Otherwise writes to the user config file ({user})
 or the file path given by the 'CONDARC' environment variable, if it is set
 (default: %(default)s).""".format(user=escaped_user_rc_path),
-        default=os.environ.get('CONDARC', escaped_user_rc_path)
+        default=os.environ.get('CONDARC', user_rc_path).replace("%", "%%")
     )
 
     # XXX: Does this really have to be mutually exclusive. I think the below
