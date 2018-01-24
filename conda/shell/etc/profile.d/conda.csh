@@ -27,20 +27,50 @@ if (`alias conda` == "") then
 else
     switch ( $1 )
         case "activate":
+            set noglob
             eval `$_CONDA_EXE shell.csh activate "$2" $argv[3-]`
+            unset noglob
             rehash
+            if ( -e "$CONDA_PREFIX/etc/activate.d" ) then
+                set nonomatch=1
+                set conda_autoexec_scripts = ( $CONDA_PREFIX/etc/activate.d/*.csh )
+                if ( -e $conda_autoexec_scripts[1] ) then
+                    foreach script ( $conda_autoexec_scripts )
+                        source "$script"
+                    end
+                endif
+                unset conda_autoexec_scripts
+                unset nonomatch
+            endif
             breaksw
         case "deactivate":
+            set noglob
             eval `$_CONDA_EXE shell.csh deactivate "$2" $argv[3-]`
+            unset noglob
             rehash
+            if ( -e "$CONDA_PREFIX/etc/deactivate.d" ) then
+                set nonomatch=1
+                set conda_autoexec_scripts = ( $CONDA_PREFIX/etc/deactivate.d/*.csh )
+                if ( -e $conda_autoexec_scripts[1] ) then
+                    foreach script ( $conda_autoexec_scripts )
+                        source "$script"
+                    end
+                endif
+                unset conda_autoexec_scripts
+                unset nonomatch
+            endif
             breaksw
         case "install" | "update" | "uninstall" | "remove":
+            set noglob
             $_CONDA_EXE $argv[1-]
             eval `$_CONDA_EXE shell.csh reactivate`
+            unset noglob
             rehash
             breaksw
         default:
+            set noglob
             $_CONDA_EXE $argv[1-]
+            unset noglob
             breaksw
     endsw
 endif
