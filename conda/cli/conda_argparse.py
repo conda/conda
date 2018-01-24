@@ -368,7 +368,7 @@ def configure_parser_config(sub_parsers):
              "" % (
                  os.getenv('CONDA_PREFIX', "<no active environment>").replace("%", "%%"),
                  escaped_user_rc_path,
-        ),
+             ),
     )
     location.add_argument(
         "--file",
