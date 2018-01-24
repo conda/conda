@@ -48,7 +48,7 @@ class Activator(object):
                 environ = ((k, v.replace('\\', '\\\\')) for k, v in iteritems(os.environ))
             else:
                 environ = iteritems(os.environ)
-            self.environ = {ensure_unicode(k): ensure_unicode(v) for k, v in environ}
+            self.environ = {text_type(k): text_type(v) for k, v in environ}
         else:
             self.environ = os.environ.copy()
 
@@ -504,15 +504,6 @@ def ensure_binary(value):
     except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'encode'
         # In this case assume already binary type and do nothing
-        return value
-
-
-def ensure_unicode(value):
-    try:
-        return value.decode('unicode_escape')
-    except AttributeError:  # pragma: no cover
-        # AttributeError: '<>' object has no attribute 'decode'
-        # In this case assume already unicode and do nothing
         return value
 
 
