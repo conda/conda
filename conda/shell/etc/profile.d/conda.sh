@@ -35,7 +35,7 @@ _conda_set_vars() {
 
 
 _conda_hashr() {
-    case "$_CONDA_SHELL_FLAVOR" in
+    \case "$_CONDA_SHELL_FLAVOR" in
         zsh) \rehash;;
         posh) ;;
         *) \hash -r;;
@@ -51,24 +51,24 @@ _conda_activate() {
         \unset CONDA_PS1_BACKUP
     fi
 
-    local ask_conda
-    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix activate "$@")" || return $?
+    \local ask_conda
+    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix activate "$@")" || \return $?
     \eval "$ask_conda"
 
     _conda_hashr
 }
 
 _conda_deactivate() {
-    local ask_conda
-    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix deactivate "$@")" || return $?
+    \local ask_conda
+    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix deactivate "$@")" || \return $?
     \eval "$ask_conda"
 
     _conda_hashr
 }
 
 _conda_reactivate() {
-    local ask_conda
-    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix reactivate)" || return $?
+    \local ask_conda
+    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix reactivate)" || \return $?
     \eval "$ask_conda"
 
     _conda_hashr
@@ -77,12 +77,12 @@ _conda_reactivate() {
 
 conda() {
     if [ "$#" -ge 1 ]; then
-        local cmd="$1"
+        \local cmd="$1"
         shift
     else
-        local cmd=""
+        \local cmd=""
     fi
-    case "$cmd" in
+    \case "$cmd" in
         activate)
             _conda_activate "$@"
             ;;
