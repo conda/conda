@@ -361,6 +361,13 @@ will make sure that whenever conda is installed or changed in an environment, th
 * remove dead code (4.4.0) (#6489)
 
 
+## 4.3.33 (2018-01-24)
+
+### Bug Fixes
+* fix #6718 broken 'conda install --rev' #6719
+* fix #6765 adjust the feature score assigned to packages not installed (#6766)
+
+
 ## 4.3.32 (2018-01-10)
 
 ### Improvements
