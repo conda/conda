@@ -727,7 +727,7 @@ def test_unintentional_feature_downgrade():
     # With the bug in place, this bad build of scipy
     # will be selected for install instead of a later
     # build of scipy 0.11.0.
-    good_rec = index[Dist('scipy-0.11.0-np17py33_3.tar.bz2')]
+    good_rec = index[Dist('channel-1::scipy-0.11.0-np17py33_3.tar.bz2')]
     bad_deps = tuple(d for d in good_rec.depends
                      if not d.startswith('numpy'))
     bad_rec = IndexRecord.from_objects(good_rec,
