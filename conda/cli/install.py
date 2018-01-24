@@ -287,7 +287,7 @@ def install(args, parser, command='install'):
             spec_regex = r'^(%s)$' % '|'.join(re.escape(s.split()[0]) for s in ospecs)
             print('\n# All requested packages already installed.')
             for action in action_set:
-                print_packages(action["PREFIX"], spec_regex)
+                print_packages(action.get("PREFIX", prefix), spec_regex)
         else:
             common.stdout_json_success(
                 message='All requested packages already installed.')

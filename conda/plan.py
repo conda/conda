@@ -806,7 +806,7 @@ def revert_actions(prefix, revision=-1, index=None):
     if state == curr:
         return {}
 
-    dists = (Dist(s) for s in state)
+    dists = tuple(Dist(s) for s in state)
     actions = ensure_linked_actions(dists, prefix)
     for dist in curr - state:
         add_unlink(actions, Dist(dist))
@@ -819,7 +819,6 @@ def revert_actions(prefix, revision=-1, index=None):
         if dist not in index:
             msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
             raise CondaRevisionError(msg)
-
     return actions
 
 
