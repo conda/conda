@@ -546,7 +546,7 @@ class IntegrationTests(TestCase):
             stderr = list_output[1]
             expected_output = """# packages in environment at %s:
 #
-
+# Name                    Version                   Build  Channel
 """ % prefix
             self.assertEqual(stdout, expected_output)
             self.assertEqual(stderr, '')
