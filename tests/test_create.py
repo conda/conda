@@ -274,7 +274,7 @@ class IntegrationTests(TestCase):
     def setUp(self):
         PackageCache.clear()
 
-    def test_install_python2(self):
+    def test_install_python2_and_search(self):
         with make_temp_env("python=2") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
@@ -284,6 +284,13 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.SEARCH, prefix, "python --json")
             packages = json.loads(stdout)
             assert len(packages) >= 1
+
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "python --json --envs")
+            envs_result = json.loads(stdout)
+            assert any(match['location'] == prefix for match in envs_result)
+
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "python --envs")
+            assert prefix in stdout
 
     def test_create_install_update_remove_smoketest(self):
         with make_temp_env("python=3.5") as prefix:
