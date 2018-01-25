@@ -931,7 +931,7 @@ def configure_parser_search(sub_parsers):
         "--envs",
         action="store_true",
         help="Search all of the current user's environments. If run as Administrator "
-             "(on Windows) or UID 0 on unix, search all known environments on the system.",
+             "(on Windows) or UID 0 (on unix), search all known environments on the system.",
     )
     p.set_defaults(func='.main_search.execute')
 
