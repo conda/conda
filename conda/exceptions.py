@@ -582,6 +582,21 @@ class CondaUpgradeError(CondaError):
         super(CondaUpgradeError, self).__init__(msg)
 
 
+class CaseInsensitiveFileSystemError(CondaError):
+    def __init__(self, package_location, extract_location, **kwargs):
+        message = dals("""
+        Cannot extract package to a case-insensitive file system.
+          package location: %(package_location)s
+          extract location: %(extract_location)s
+        """)
+        super(CaseInsensitiveFileSystemError, self).__init__(
+            message,
+            package_location=package_location,
+            extract_location=extract_location,
+            **kwargs
+        )
+
+
 class CondaVerificationError(CondaError):
     def __init__(self, message):
         super(CondaVerificationError, self).__init__(message)
