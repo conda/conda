@@ -95,9 +95,10 @@ def default_python_validation(value):
 
 def ssl_verify_validation(value):
     if isinstance(value, string_types):
-        if not isfile(value):
-            return ("ssl_verify value '%s' must be a boolean or a path to a "
-                    "certificate bundle." % value)
+        if not isfile(value) and not isdir(value):
+            return ("ssl_verify value '%s' must be a boolean, a path to a "
+                    "certificate bundle file, or a path to a directory containing "
+                    "certificates of trusted CAs." % value)
     return True
 
 
