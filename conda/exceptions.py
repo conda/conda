@@ -592,6 +592,12 @@ class SafetyError(CondaError):
         super(SafetyError, self).__init__(message)
 
 
+class CondaMemoryError(MemoryError, CondaError):
+    def __init__(self, caused_by, **kwargs):
+        message = "The conda process ran out of memory. Increase system memory and/or try again."
+        super(CondaMemoryError, self).__init__(message, caused_by=caused_by, **kwargs)
+
+
 class NotWritableError(CondaError, OSError):
 
     def __init__(self, path, errno, **kwargs):
@@ -784,6 +790,8 @@ class ExceptionHandler(object):
         if isinstance(exc_val, EnvironmentError):
             if getattr(exc_val, 'errno', None) == ENOSPC:
                 return self.handle_application_exception(NoSpaceLeftError(exc_val), exc_tb)
+        if isinstance(exc_val, MemoryError):
+            return self.handle_application_exception(CondaMemoryError(exc_val), exc_tb)
         if isinstance(exc_val, KeyboardInterrupt):
             self._print_conda_exception(CondaError("KeyboardInterrupt"), _format_exc())
             return 1
