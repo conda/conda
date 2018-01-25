@@ -582,6 +582,21 @@ class CondaUpgradeError(CondaError):
         super(CondaUpgradeError, self).__init__(msg)
 
 
+class CaseInsensitiveFileSystemError(CondaError):
+    def __init__(self, package_location, extract_location, **kwargs):
+        message = dals("""
+        Cannot extract package to a case-insensitive file system.
+          package location: %(package_location)s
+          extract location: %(extract_location)s
+        """)
+        super(CaseInsensitiveFileSystemError, self).__init__(
+            message,
+            package_location=package_location,
+            extract_location=extract_location,
+            **kwargs
+        )
+
+
 class CondaVerificationError(CondaError):
     def __init__(self, message):
         super(CondaVerificationError, self).__init__(message)
@@ -590,6 +605,12 @@ class CondaVerificationError(CondaError):
 class SafetyError(CondaError):
     def __init__(self, message):
         super(SafetyError, self).__init__(message)
+
+
+class CondaMemoryError(MemoryError, CondaError):
+    def __init__(self, caused_by, **kwargs):
+        message = "The conda process ran out of memory. Increase system memory and/or try again."
+        super(CondaMemoryError, self).__init__(message, caused_by=caused_by, **kwargs)
 
 
 class NotWritableError(CondaError, OSError):
@@ -784,6 +805,8 @@ class ExceptionHandler(object):
         if isinstance(exc_val, EnvironmentError):
             if getattr(exc_val, 'errno', None) == ENOSPC:
                 return self.handle_application_exception(NoSpaceLeftError(exc_val), exc_tb)
+        if isinstance(exc_val, MemoryError):
+            return self.handle_application_exception(CondaMemoryError(exc_val), exc_tb)
         if isinstance(exc_val, KeyboardInterrupt):
             self._print_conda_exception(CondaError("KeyboardInterrupt"), _format_exc())
             return 1

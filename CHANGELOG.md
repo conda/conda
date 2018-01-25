@@ -10,6 +10,7 @@
 * allow falsey values for default_python to avoid pinning python (#6682)
 * resolve #6700 add message for no space left on device (#6709)
 * make variable 'sourced' local for posix shells (#6726)
+* add column headers to conda list results (#5726)
 
 ### Bug Fixes
 * fix #6713 allow parenthesis in prefix path for conda.bat (#6722)
@@ -19,6 +20,18 @@
 * fix #6745 don't truncate channel priority map in conda installer (#6746)
 * add workaround for system Python usage by lsb_release (#6769)
 * fix #6624 can't start new thread (#6653)
+* fix #6628 'conda install --rev' in conda 4.4 (#6724)
+* fix #6707 FileNotFoundError when extracting tarball (#6708)
+* fix #6704 unexpected token in conda.bat (#6710)
+* fix #6208 return for no pip in environment (#6784)
+* fix #6457 env var cleanup (#6790)
+* fix #6645 escape paths for argparse help (#6779)
+* fix #6739 handle unicode in environment variables for py2 activate (#6777)
+* fix #6618 RepresenterError with 'conda config --set' (#6619)
+* fix #6699 suppress memory error upload reports (#6776)
+* fix #6770 CRLF for cmd.exe (#6775)
+* fix #6514 add message for case-insensitive filesystem errors (#6764)
+* fix #6537 AttributeError value for url not set (#6754)
 
 
 ## 4.4.7 (2018-01-08)

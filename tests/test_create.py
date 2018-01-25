@@ -546,7 +546,7 @@ class IntegrationTests(TestCase):
             stderr = list_output[1]
             expected_output = """# packages in environment at %s:
 #
-
+# Name                    Version                   Build  Channel
 """ % prefix
             self.assertEqual(stdout, expected_output)
             self.assertEqual(stderr, '')
@@ -1568,6 +1568,7 @@ class IntegrationTests(TestCase):
                 stdout, stderr = run_command(Commands.LIST, prefix, "--revisions")
                 print(stdout)
 
+                PrefixData._cache_.clear()
                 run_command(Commands.INSTALL, prefix, "--rev 3")
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "conda-4.3.27")
