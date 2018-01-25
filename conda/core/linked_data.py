@@ -7,7 +7,7 @@ from os.path import join, lexists
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..common.compat import itervalues, with_metaclass, string_types
+from ..common.compat import itervalues, string_types, with_metaclass
 from ..common.constants import NULL
 from ..common.serialize import json_load
 from ..exceptions import BasicClobberError, CondaDependencyError, maybe_raise

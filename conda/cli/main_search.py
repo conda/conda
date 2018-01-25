@@ -4,15 +4,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 import sys
 
-from conda.core.envs_manager import list_all_known_prefixes, search_all_prefixes
-from conda.core.linked_data import PrefixData
-from conda.models.index_record import PackageRef
 from .install import calculate_channel_urls
 from ..base.context import context
 from ..cli.common import stdout_json
 from ..common.io import spinner
-from ..compat import text_type, iteritems
+from ..compat import iteritems, text_type
+from ..core.envs_manager import search_all_prefixes
 from ..core.repodata import SubdirData
+from ..models.index_record import PackageRef
 from ..models.match_spec import MatchSpec
 from ..models.version import VersionOrder
 from ..resolve import dashlist
