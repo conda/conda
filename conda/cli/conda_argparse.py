@@ -377,7 +377,7 @@ def configure_parser_config(sub_parsers):
         help="""Write to the given file. Otherwise writes to the user config file ({user})
 or the file path given by the 'CONDARC' environment variable, if it is set
 (default: %(default)s).""".format(user=escaped_user_rc_path),
-        default=os.environ.get('CONDARC', user_rc_path).replace("%", "%%")
+        default=os.environ.get('CONDARC', user_rc_path)
     )
 
     # XXX: Does this really have to be mutually exclusive. I think the below
