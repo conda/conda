@@ -15,7 +15,7 @@ from .._vendor.auxlib.collection import first
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, text_type,
-                             with_metaclass)
+                             with_metaclass, string_types)
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, url_to_path
@@ -110,6 +110,8 @@ class PackageCache(object):
     def query(self, package_ref_or_match_spec):
         # returns a generator
         param = package_ref_or_match_spec
+        if isinstance(param, string_types):
+            param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             return (pcrec for pcrec in itervalues(self._package_cache_records)
                     if param.match(pcrec))

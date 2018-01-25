@@ -4,11 +4,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 import sys
 
+from conda.core.envs_manager import list_all_known_prefixes, search_all_prefixes
+from conda.core.linked_data import PrefixData
+from conda.models.index_record import PackageRef
 from .install import calculate_channel_urls
 from ..base.context import context
 from ..cli.common import stdout_json
 from ..common.io import spinner
-from ..compat import text_type
+from ..compat import text_type, iteritems
 from ..core.repodata import SubdirData
 from ..models.match_spec import MatchSpec
 from ..models.version import VersionOrder
@@ -24,6 +27,29 @@ def execute(args, parser):
         subdirs = args.platform,
     else:
         subdirs = context.subdirs
+
+    if args.envs:
+        with spinner("Searching environments for %s" % spec,
+                     not context.verbosity and not context.quiet,
+                     context.json):
+            prefix_matches = search_all_prefixes(spec)
+        formatted_result = tuple({
+            'location': prefix,
+            'package_refs': tuple(PackageRef.from_objects(prefix_rec)
+                                  for prefix_rec in prefix_recs),
+        } for prefix, prefix_recs in iteritems(prefix_matches))
+        if context.json:
+            stdout_json(formatted_result)
+        else:
+            builder = []
+            for pkg_group in formatted_result:
+                builder.append("location: %s" % pkg_group['location'])
+                builder.append("package matches:%s" % dashlist(
+                    pref.dist_str() for pref in pkg_group['package_refs']
+                ))
+                builder.append('')
+            print('\n'.join(builder))
+        return 0
 
     with spinner("Loading channels", not context.verbosity and not context.quiet, context.json):
         spec_channel = spec.get_exact_value('channel')

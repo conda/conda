@@ -7,7 +7,7 @@ from os.path import join, lexists
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..common.compat import itervalues, with_metaclass
+from ..common.compat import itervalues, with_metaclass, string_types
 from ..common.constants import NULL
 from ..common.serialize import json_load
 from ..exceptions import BasicClobberError, CondaDependencyError, maybe_raise
@@ -104,6 +104,18 @@ class PrefixData(object):
                 log.debug("adding subdir url %s for %s", subdir_url, prefix_record)
                 subdir_urls.add(subdir_url)
         return subdir_urls
+
+    def query(self, package_ref_or_match_spec):
+        # returns a generator
+        param = package_ref_or_match_spec
+        if isinstance(param, string_types):
+            param = MatchSpec(param)
+        if isinstance(param, MatchSpec):
+            return (prefix_rec for prefix_rec in self.iter_records()
+                    if param.match(prefix_rec))
+        else:
+            # assume isinstance(param, PackageRef)
+            return (prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param)
 
     @property
     def _prefix_records(self):
