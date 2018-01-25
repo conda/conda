@@ -122,11 +122,8 @@ class ChannelField(ComposableField):
         try:
             return super(ChannelField, self).__get__(instance, instance_type)
         except AttributeError:
-            try:
-                url = instance.url
-                return self.unbox(instance, instance_type, Channel(url))
-            except AttributeError:
-                return Channel(None)
+            url = instance.url
+            return self.unbox(instance, instance_type, Channel(url))
 
 
 class SubdirField(StringField):
@@ -224,7 +221,7 @@ class PackageRef(BasePackageRef):
     fn = FilenameField(aliases=('filename',))
 
     md5 = StringField(default=None, required=False, nullable=True, default_in_dump=False)
-    url = StringField(required=False, nullable=True)
+    url = StringField(default=None, required=False, nullable=True, default_in_dump=False)
 
     @property
     def schannel(self):
