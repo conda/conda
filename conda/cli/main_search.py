@@ -7,8 +7,10 @@ from .install import calculate_channel_urls
 from ..base.context import context
 from ..cli.common import stdout_json
 from ..common.io import Spinner
-from ..compat import text_type
+from ..compat import iteritems, text_type
+from ..core.envs_manager import search_all_prefixes
 from ..core.repodata import SubdirData
+from ..models.index_record import PackageRef
 from ..models.match_spec import MatchSpec
 from ..models.version import VersionOrder
 from ..resolve import dashlist
@@ -23,6 +25,29 @@ def execute(args, parser):
         subdirs = args.platform,
     else:
         subdirs = context.subdirs
+
+    if args.envs:
+        with Spinner("Searching environments for %s" % spec,
+                     not context.verbosity and not context.quiet,
+                     context.json):
+            prefix_matches = search_all_prefixes(spec)
+        formatted_result = tuple({
+            'location': prefix,
+            'package_refs': tuple(PackageRef.from_objects(prefix_rec)
+                                  for prefix_rec in prefix_recs),
+        } for prefix, prefix_recs in iteritems(prefix_matches))
+        if context.json:
+            stdout_json(formatted_result)
+        else:
+            builder = []
+            for pkg_group in formatted_result:
+                builder.append("location: %s" % pkg_group['location'])
+                builder.append("package matches:%s" % dashlist(
+                    pref.dist_str() for pref in pkg_group['package_refs']
+                ))
+                builder.append('')
+            print('\n'.join(builder))
+        return 0
 
     with Spinner("Loading channels", not context.verbosity and not context.quiet, context.json):
         spec_channel = spec.get_exact_value('channel')
