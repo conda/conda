@@ -8,19 +8,19 @@ from os import listdir
 from os.path import basename, dirname, join
 from tarfile import ReadError
 
-from conda.exceptions import NotWritableError
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
-from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, text_type,
-                             with_metaclass, string_types)
+from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, string_types,
+                             text_type, with_metaclass)
 from ..common.constants import NULL
 from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
+from ..exceptions import NotWritableError
 from ..gateways.disk.create import (create_package_cache_directory, extract_tarball,
                                     write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf
