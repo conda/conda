@@ -453,7 +453,7 @@ def _parse_channel(channel_val):
     if not channel_val:
         return None, None
     chn = Channel(channel_val)
-    channel_name = chn.name if isinstance(chn, MultiChannel) else chn.canonical_name
+    channel_name = chn.name
     return channel_name, chn.subdir
 
 
@@ -778,11 +778,14 @@ class ChannelMatch(StrMatch):
         if self._re_match:
             return self._re_match(_other_val.canonical_name)
         else:
-            return self._raw_value.canonical_name == _other_val.canonical_name
+            # assert ChannelMatch('pkgs/free').match('defaults') is False
+            # assert ChannelMatch('defaults').match('pkgs/free') is True
+            return (self._raw_value.name == _other_val.name
+                    or self._raw_value.name == _other_val.canonical_name)
 
     def __str__(self):
         try:
-            return "%s" % self._raw_value.canonical_name
+            return "%s" % self._raw_value.name
         except AttributeError:
             return "%s" % self._raw_value
 
