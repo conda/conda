@@ -178,17 +178,17 @@ class MatchSpecTests(TestCase):
         assert m("numpy=1.7=py3*_2") == "numpy==1.7[build=py3*_2]"
         assert m("numpy=1.7.*=py3*_2") == "numpy=1.7[build=py3*_2]"
 
-        assert m("https://repo.continuum.io/pkgs/free::numpy") == "defaults::numpy"
-        assert m("numpy[channel=https://repo.continuum.io/pkgs/free]") == "defaults::numpy"
+        assert m("https://repo.continuum.io/pkgs/free::numpy") == "pkgs/free::numpy"
+        assert m("numpy[channel=https://repo.continuum.io/pkgs/free]") == "pkgs/free::numpy"
         assert m("defaults::numpy") == "defaults::numpy"
         assert m("numpy[channel=defaults]") == "defaults::numpy"
         assert m("conda-forge::numpy") == "conda-forge::numpy"
         assert m("numpy[channel=conda-forge]") == "conda-forge::numpy"
 
         assert m("numpy[channel=defaults,subdir=osx-64]") == "defaults/osx-64::numpy"
-        assert m("numpy[channel=https://repo.continuum.io/pkgs/free/osx-64, subdir=linux-64]") == "defaults/linux-64::numpy"
-        assert m("https://repo.continuum.io/pkgs/free/win-32::numpy") == "defaults/win-32::numpy"
-        assert m("numpy[channel=https://repo.continuum.io/pkgs/free/osx-64]") == "defaults/osx-64::numpy"
+        assert m("numpy[channel=https://repo.continuum.io/pkgs/free/osx-64, subdir=linux-64]") == "pkgs/free/linux-64::numpy"
+        assert m("https://repo.continuum.io/pkgs/free/win-32::numpy") == "pkgs/free/win-32::numpy"
+        assert m("numpy[channel=https://repo.continuum.io/pkgs/free/osx-64]") == "pkgs/free/osx-64::numpy"
         assert m("defaults/win-32::numpy") == "defaults/win-32::numpy"
         assert m("conda-forge/linux-64::numpy") == "conda-forge/linux-64::numpy"
         assert m("numpy[channel=conda-forge,subdir=noarch]") == "conda-forge/noarch::numpy"
@@ -198,8 +198,8 @@ class MatchSpecTests(TestCase):
         assert m("*/win-32::numpy[subdir=\"osx-64\"]") == 'numpy[subdir=osx-64]'
 
         # TODO: should the result in these example pull out subdir?
-        assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "defaults/linux-32::numpy"
-        assert m("numpy[channel=https://repo.continuum.io/pkgs/free/linux-32]") == "defaults/linux-32::numpy"
+        assert m("https://repo.continuum.io/pkgs/free/linux-32::numpy") == "pkgs/free/linux-32::numpy"
+        assert m("numpy[channel=https://repo.continuum.io/pkgs/free/linux-32]") == "pkgs/free/linux-32::numpy"
 
         assert m("numpy=1.10=py38_0") == "numpy==1.10=py38_0"
         assert m("numpy==1.10=py38_0") == "numpy==1.10=py38_0"
@@ -274,11 +274,10 @@ class MatchSpecTests(TestCase):
         assert MatchSpec("numpy=1.7.*=py37_2").get_exact_value('build') == 'py37_2'
 
     def test_channel_matching(self):
-        # TODO: I don't know if this invariance for multi-channels should actually hold true
-        #   it might have to for backward compatibility
-        #   but more ideally, the first would be true, and the second would be false
-        #   (or maybe it's the other way around)
-        assert ChannelMatch("https://repo.continuum.io/pkgs/free").match('defaults') is True
+        assert ChannelMatch('pkgs/free').match('defaults') is False
+        assert ChannelMatch('defaults').match('pkgs/free') is True
+
+        assert ChannelMatch("https://repo.continuum.io/pkgs/free").match('defaults') is False
         assert ChannelMatch("defaults").match("https://repo.continuum.io/pkgs/free") is True
 
         assert ChannelMatch("https://conda.anaconda.org/conda-forge").match('conda-forge') is True
@@ -286,6 +285,8 @@ class MatchSpecTests(TestCase):
 
         assert ChannelMatch("https://repo.continuum.io/pkgs/free").match('conda-forge') is False
 
+        assert str(MatchSpec("pkgs/free::*")) == "pkgs/free::*"
+        assert str(MatchSpec("defaults::*")) == "defaults::*"
 
     def test_matchspec_errors(self):
         with pytest.raises(ValueError):
@@ -502,7 +503,7 @@ class SpecStrParsingTests(TestCase):
             "name": "numpy",
         }
         assert _parse_spec_str("https://repo.continuum.io/pkgs/free::numpy") == {
-            "channel": "defaults",
+            "channel": "pkgs/free",
             "name": "numpy",
         }
         assert _parse_spec_str("defaults::numpy=1.8") == {
