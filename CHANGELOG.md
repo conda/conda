@@ -1,4 +1,4 @@
-## 4.4.8 (unreleased)
+## 4.4.8 (2018-01-25)
 
 ### Improvements
 * allow falsey values for default_python to avoid pinning python (#6682)
@@ -26,6 +26,7 @@
 * fix #6770 CRLF for cmd.exe (#6775)
 * fix #6514 add message for case-insensitive filesystem errors (#6764)
 * fix #6537 AttributeError value for url not set (#6754)
+* fix #6748 only warn if unable to register environment due to EACCES (#6752)
 
 
 ## 4.4.7 (2018-01-08)
