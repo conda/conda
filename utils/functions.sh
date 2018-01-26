@@ -213,13 +213,15 @@ install_conda_shell_scripts() {
         echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
         echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/activate"
         cat "$src_dir/conda/shell/bin/activate" >> "$prefix/$BIN_DIR/activate"
-        chmod +x "$prefix/$BIN_DIR/activate"
+        # chmod +x "$prefix/$BIN_DIR/activate"
+        # we no longer set activate as executable, to ensure that it is being sourced
 
         rm -f "$prefix/$BIN_DIR/deactivate"
         echo "#!/bin/sh" > "$prefix/$BIN_DIR/deactivate"
         echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/deactivate"
         cat "$src_dir/conda/shell/bin/deactivate" >> "$prefix/$BIN_DIR/deactivate"
-        chmod +x "$prefix/$BIN_DIR/deactivate"
+        # chmod +x "$prefix/$BIN_DIR/deactivate"
+        # we no longer set deactivate as executable, to ensure that it is being sourced
 
     fi
 
