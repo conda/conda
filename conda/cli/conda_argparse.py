@@ -918,9 +918,8 @@ def configure_parser_search(sub_parsers):
     p.add_argument(
         "--reverse-dependency",
         action="store_true",
-        # help="Perform a reverse dependency search. Use 'conda search package --info' "
-        #      "to see the dependencies of a package.",
-        help=SUPPRESS,  # TODO: re-enable once we have --reverse-dependency working again
+        help="Perform a reverse dependency search. Use 'conda search package --info' "
+             "to see the dependencies of a package.",
     )
 
     add_parser_channels(p)
