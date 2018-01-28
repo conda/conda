@@ -29,8 +29,12 @@ def execute(args, parser):
         spec_channel = spec.get_exact_value('channel')
         channel_urls = (spec_channel,) if spec_channel else context.channels
 
-        matches = sorted(SubdirData.query_all(channel_urls, subdirs, spec),
-                         key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
+        if args.reverse_dependency:
+            matches = sorted(SubdirData.reverse_query_all(channel_urls, subdirs, spec),
+                             key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
+        else:
+            matches = sorted(SubdirData.query_all(channel_urls, subdirs, spec),
+                             key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
     if not matches:
         channels_urls = tuple(calculate_channel_urls(
