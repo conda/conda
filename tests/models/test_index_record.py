@@ -31,7 +31,7 @@ class PrefixRecordTests(TestCase):
         assert pr.subdir == "win-32"
         assert pr.fn == "austin-1.2.3-py34_2.tar.bz2"
         channel_str = text_type(Channel("https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2"))
-        assert channel_str == "https://repo.continuum.io/pkgs/free"
+        assert channel_str == "https://repo.continuum.io/pkgs/free/win-32"
         assert dict(pr.dump()) == dict(
             name='austin',
             version='1.2.3',

@@ -234,7 +234,11 @@ class Channel(object):
         return url
 
     def __str__(self):
-        return self.base_url or ""
+        base = self.base_url or self.name
+        if self.subdir:
+            return join_url(base, self.subdir)
+        else:
+            return base
 
     def __repr__(self):
         return ("Channel(scheme=%r, auth=%r, location=%r, token=%r, name=%r, platform=%r, "

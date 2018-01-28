@@ -10,7 +10,7 @@ from .channel import Channel, MultiChannel
 from .dist import Dist
 from .index_record import IndexRecord, PackageRef
 from .version import BuildNumberMatch, VersionSpec
-from .._vendor.auxlib.collection import AttrDict, frozendict
+from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..common.compat import isiterable, iteritems, string_types, text_type, with_metaclass
 from ..common.path import expand
@@ -204,7 +204,7 @@ class MatchSpec(object):
         in that record.  Returns True for a match, and False for no match.
         """
         if isinstance(rec, dict):
-            rec = AttrDict(rec)
+            rec = IndexRecord.from_objects(rec)
         for field_name, v in iteritems(self._match_components):
             if not self._match_individual(rec, field_name, v):
                 return False
