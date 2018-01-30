@@ -145,6 +145,12 @@ Installing non-conda packages
 If a package is not available from conda or Anaconda.org, you may be able to
 find and install the package with another package manager like pip.
 
+Pip packages do not have all the features of conda packages, and we recommend
+first trying to install any package with conda. If the package is unavailable
+through conda, try installing it with pip. The differences between pip and
+conda packages cause certain unavoidable limits in compatibility, but conda
+works hard to be as compatible with pip as possible.
+
 NOTE: Both pip and conda are included in Anaconda and Miniconda, so you do not
 need to install them separately.
 
