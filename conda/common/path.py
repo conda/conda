@@ -208,9 +208,16 @@ def ensure_pad(name, pad="_"):
     Examples:
         >>> ensure_pad('conda')
         '_conda_'
+        >>> ensure_pad('_conda')
+        '__conda_'
+        >>> ensure_pad('')
+        ''
 
     """
-    return name and "%s%s%s" % (pad, name.strip(pad), pad)
+    if not name or name[0] == name[-1] == pad:
+        return name
+    else:
+        return "%s%s%s" % (pad, name, pad)
 
 
 def is_private_env_name(env_name):
