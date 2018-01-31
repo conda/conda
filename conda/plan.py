@@ -521,11 +521,13 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         channels = IndexedSet(Channel(cn) for cn in channel_names)
         subdirs = IndexedSet(basename(url) for url in channel_priority_map)
     else:
+        # a hack for when conda-build calls this function without giving channel_priority_map
         if LAST_CHANNEL_URLS:
             channel_priority_map = prioritize_channels(LAST_CHANNEL_URLS)
-            channel_names = IndexedSet(Channel(url).canonical_name for url in channel_priority_map)
-            channels = IndexedSet(Channel(cn) for cn in channel_names)
-            subdirs = IndexedSet(basename(url) for url in channel_priority_map)
+            channels = IndexedSet(Channel(url) for url in channel_priority_map)
+            subdirs = IndexedSet(
+                subdir for subdir in (c.subdir for c in channels) if subdir
+            ) or context.subdirs
         else:
             channels = subdirs = None
 
