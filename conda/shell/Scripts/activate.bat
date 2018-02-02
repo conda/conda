@@ -6,14 +6,14 @@
 @REM Rather than the correct
 @REM    %windir%\system32\cmd.exe /K ""C:\Users\builder\Miniconda3\Scripts\activate.bat" "C:\Users\builder\Miniconda3""
 @REM this solution taken from https://stackoverflow.com/a/31359867
-@set "_c1=%1"
-@set _c1f=%_c1:~0,1%
-@set _c1l=%_c1:~-1%
-@set _c1f=%_c1f:"=+%
-@set _c1l=%_c1l:"=+%
-@set _c1=
+@set "_args1=%1"
+@set _args1_first=%_args1:~0,1%
+@set _args1_last=%_args1:~-1%
+@set _args1_first=%_args1_first:"=+%
+@set _args1_last=%_args1_last:"=+%
+@set _args1=
 
-@if "%_c1f%"=="+" if NOT "%_c1l%"=="+" (
+@if "%_args1_first%"=="+" if NOT "%_args1_last%"=="+" (
     @CALL "%~dp0..\Library\bin\conda.bat" activate
     @GOTO :End
 )
@@ -21,5 +21,5 @@
 @CALL "%~dp0..\Library\bin\conda.bat" activate %*
 
 :End
-@set _c1f=
-@set _c1l=
+@set _args1_first=
+@set _args1_last=
