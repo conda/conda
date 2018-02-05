@@ -1,6 +1,6 @@
-================
-Getting started
-================
+==========================
+Getting started with conda
+==========================
 
 This 30-minute getting started procedure consists of the following
 exercises:
@@ -23,16 +23,15 @@ exercises:
 
   * List packages installed on your computer.
 
-  * List available packages.
+  * List packages available for you to install.
 
-  * Install and remove some packages using ``conda install``.
+  * Install and remove some packages.
 
   * For packages not available using ``conda install``, search
     on `Anaconda.org <http://Anaconda.org>`_.
 
   * For packages that are in neither location, install a package
-    with the pip package manager. Install a free 30-day trial
-    of Anaconda's commercial package, IOPro.
+    with the pip package manager. 
 
   10 minutes
 
@@ -64,7 +63,7 @@ Use the Terminal or an Anaconda Prompt for the following steps.
    Conda displays the number of the version that you have
    installed.
 
-   EXAMPLE: ``conda 3.11.0``
+   EXAMPLE: ``conda 4.4.8``
 
    NOTE: If you see an error message, verify that you are logged
    into the same user account that you used to install Anaconda
@@ -98,15 +97,20 @@ To create a few environments and then move between them:
 
 Use the Terminal or an Anaconda Prompt for the following steps.
 
-#. Create an environment with ``conda create``:
+#. Create a new environment named ``snowflakes`` and install the 
+   package ``biopython`` in it:
 
    .. code::
 
       conda create --name snowflakes biopython
 
-   This creates a new environment named "snowflakes" with the
-   program Biopython.
+#. Conda checks to see what packages Biopython will need, and asks 
+   if you want to proceed:
 
+   .. code::
+
+      Proceed ([y]/n)? y
+   
    TIP: You can abbreviate many frequently used options that are
    preceded by 2 dashes (``--``) to just 1 dash and the first
    letter of the option. So ``--name`` and ``-n`` are the same,
@@ -124,8 +128,8 @@ Use the Terminal or an Anaconda Prompt for the following steps.
    different path, see ``conda create --help``.
 
    TIP: Since you did not specify a version of Python, conda
-   installs the same version used when conda was downloaded and
-   installed.
+   installs the same version you used when you downloaded and
+   installed Anaconda.
 
 #. Create a new environment and then install a different version
    of Python along with 2 packages named Astroid and Babel:
@@ -134,12 +138,10 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 
       conda create --name bunnies python=3.5 astroid babel
 
+   When conda asks you if you want to proceed, answer ``y`` for yes.
+   
    This creates a second new environment in ``/envs`` named
    "bunnies", with Python 3, Astroid and Babel installed.
-
-   TIP: Install all the programs you will want in this
-   environment at the same time. Installing 1 program at a time
-   can lead to dependency conflicts.
 
    TIP: You can add much more to the conda create command. See
    ``conda create --help`` for details.
@@ -162,7 +164,7 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 
    Conda puts an asterisk (*) in front of the active environment.
 
-#. Verify the current environment:
+#. Verify which of your environments is the current environment:
 
    .. code::
 
@@ -176,7 +178,7 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 
       (snowflakes) $
 
-#. Switch to another environment:
+#. Switch to the other environment:
 
    * Linux, macOS: ``source activate bunnies``
    * Windows:  ``activate bunnies``
@@ -187,7 +189,7 @@ Use the Terminal or an Anaconda Prompt for the following steps.
    * Windows:  ``deactivate``
 
    TIP: When the environment is deactivated, its name is no
-   longer shown in the prompt.
+   longer shown in your prompt.
 
 #. Make a copy of the snowflakes environment by creating a
    clone of it called "flowers":
@@ -255,7 +257,7 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 
 #. Activate the new environment:
 
-   * Linux, macOS: ``source activate snakes``
+   * Linux, macOS: ``conda activate snakes``
    * Windows:  ``activate snakes``
 
 #. Verify that the snakes environment has been added:
@@ -280,7 +282,7 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 
 #. Switch back to the default, version 2.7:
 
-   * Linux, macOS: ``source activate snowflakes``
+   * Linux, macOS: ``conda activate snowflakes``
    * Windows:  ``activate snowflakes``
 
 #. Verify that the snowflakes environment uses the same Python
@@ -293,7 +295,7 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 #. Deactivate the snowflakes environment and then revert your
    PATH to its previous state:
 
-   * Linux, macOS: ``source deactivate``
+   * Linux, macOS: ``conda deactivate``
    * Windows: ``deactivate``
 
 
@@ -309,8 +311,7 @@ are available and look for a specific package and install it.
 
 Then you look for specific packages on the Anaconda.org
 repository, install packages from Anaconda.org, install more
-packages using ``pip`` install instead of ``conda install`` and
-then install a commercial package.
+packages using ``pip`` install instead of ``conda install``.
 
 To find a package:
 
@@ -352,7 +353,7 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 
 #. Activate the bunnies environment:
 
-   * Linux, macOS: ``source activate bunnies``
+   * Linux, macOS: ``conda activate bunnies``
    * Windows:  ``activate bunnies``
 
 #. List the newly installed program:
@@ -417,9 +418,11 @@ Installing a package with pip
 
 For packages that are not available from conda or Anaconda.org,
 you can often install the package with pip, which stands for
-"pip installs packages."
+"pip installs packages." Note that you may have conflicts when 
+you switch between the two, because they do not know what the 
+other is doing. 
 
-TIP: Pip is only a package manager, so it cannot manage
+Pip is only a package manager, so it cannot manage
 environments for you. Pip cannot even update Python, because
 unlike conda, it does not consider Python a package. But it does
 install some things that conda does not, and vice versa. Both pip
@@ -430,7 +433,7 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 #. Activate the environment where you want to put the
    program, such as bunnies:
 
-   * macOS and Linux---``source activate bunnies``
+   * macOS and Linux---``conda activate bunnies``
    * Windows---``activate bunnies``
 
 #. Install a program named "see":
@@ -446,30 +449,13 @@ Use the Terminal or an Anaconda Prompt for the following steps.
       conda list
 
 
-Installing commercial packages
-------------------------------
-
-Installing commercial packages is the same as installing any
-other package with conda.
-
-EXAMPLE: To install a free trial of one of Anaconda's commercial
-packages, IOPro, which can speed up your Python processing, in your Terminal
-window or an Anaconda Prompt, run:
-
-.. code::
-
-   conda install iopro
-
-TIP: Except for academic use, this free trial expires after 30
-days.
-
 
 .. _remove-pkgs-envs-conda:
 
 Removing packages, environments, or conda
 ===============================================
 
-To remove 1 or more of your test packages, environments, and/or
+To remove one or more of your test packages, environments, and/or
 conda:
 
 #. To remove the commercial package IOPro from the bunnies
@@ -532,7 +518,7 @@ More information
 ================
 
 * Full documentation---`<https://conda.io/docs/>`_.
-* Cheat sheet---:doc:`cheatsheet`.
+* Cheat sheet: :doc:`cheatsheet`.
 * FAQs---`<http://docs.continuum.io/anaconda/faq.html>`_.
 * Free community support---`<https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda>`_.
 * Paid support options---`<https://www.anaconda.com/support/>`_.
