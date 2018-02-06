@@ -1,4 +1,4 @@
-## 4.4.9 (unreleased)
+## 4.4.9 (2018-02-06)
 
 ### Improvements
 * resolve #6632 display package removal plan when deleting an env (#6801)
@@ -12,6 +12,10 @@
 * fix #5884 allow --insecure CLI flag without contradicting meaning of ssl_verify (#6782)
 * fix MatchSpec.match() accepting dict (#6808)
 * fix broken Anaconda Prompt for users with spaces in paths (#6825)
+* JSONDecodeError was added in Python 3.5 (#6848)
+* fix #6796 update PATH/prompt on reactivate (#6828)
+* fix #6401 non-ascii characters on windows using expanduser (#6847)
+* fix #6824 import installers before invoking any (#6849)
 
 
 ## 4.4.8 (2018-01-25)
