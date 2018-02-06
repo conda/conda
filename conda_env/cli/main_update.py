@@ -101,11 +101,15 @@ def execute(args, parser):
     # common.ensure_override_channels_requires_channel(args)
     # channel_urls = args.channel or ()
 
-    for installer_type, specs in env.dependencies.items():
+    # create installers before running any of them
+    # to avoid failure to import after the file being deleted
+    # e.g. due to conda_env being upgraded or Python version switched.
+    installers = {}
+
+    for installer_type in env.dependencies:
         try:
-            installer = get_installer(installer_type)
-            installer.install(prefix, specs, args, env)
-        except InvalidInstaller:
+            installers[installer_type] = get_installer(installer_type)
+        except InvalidInstaller as e:
             sys.stderr.write(textwrap.dedent("""
                 Unable to install package for {0}.
 
@@ -116,6 +120,10 @@ def execute(args, parser):
                 """).lstrip().format(installer_type)
             )
             return -1
+
+    for installer_type, specs in env.dependencies.items():
+        installer = installers[installer_type]
+        installer.install(prefix, specs, args, env)
 
     touch_nonadmin(prefix)
     cli_install.print_activate(args.name if args.name else prefix)
