@@ -19,7 +19,7 @@ from ..gateways.disk.delete import delete_trash, rm_rf
 from ..gateways.disk.test import is_conda_environment
 from ..instructions import PREFIX
 from ..models.match_spec import MatchSpec
-from ..plan import (add_unlink)
+from ..plan import (add_unlink, display_actions)
 
 log = logging.getLogger(__name__)
 
@@ -62,6 +62,7 @@ def execute(args, parser):
         action_groups = (actions, index),
 
         if not context.json:
+            display_actions(actions, index)
             confirm_yn()
         rm_rf(prefix)
         unregister_env(prefix)

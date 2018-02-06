@@ -869,7 +869,7 @@ class IntegrationTests(TestCase):
                     run_command(Commands.CONFIG, prefix, "--validate")
 
                 assert len(exc.value.errors) == 2
-                assert "must be a boolean or a path to a certificate bundle" in str(exc.value)
+                assert "must be a boolean, a path to a certificate bundle file, or a path to a directory containing certificates of trusted CAs" in str(exc.value)
                 assert "default_python value 'anaconda' not of the form '[23].[0-9]'" in str(exc.value)
             finally:
                 reset_context()

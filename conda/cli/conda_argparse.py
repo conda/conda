@@ -123,7 +123,7 @@ class ArgumentParser(ArgumentParserBase):
             else:
                 argument = None
             if argument and argument.dest == "cmd":
-                m = re.match(r"invalid choice: u?'(\w*?)'", exc.message)
+                m = re.match(r"invalid choice: u?'([\w\-]*?)'", exc.message)
                 if m:
                     cmd = m.group(1)
                     if not cmd:
@@ -1269,6 +1269,7 @@ def add_parser_insecure(p):
     p.add_argument(
         "-k", "--insecure",
         action="store_false",
+        dest="ssl_verify",
         default=NULL,
         help="Allow conda to perform \"insecure\" SSL connections and transfers. "
              "Equivalent to setting 'ssl_verify' to 'false'."

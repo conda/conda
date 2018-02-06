@@ -4,7 +4,23 @@
 * preserve exit status in fish shell #6760
 
 
-## 4.4.8 (unreleased)
+## 4.4.9 (unreleased)
+
+### Improvements
+* resolve #6632 display package removal plan when deleting an env (#6801)
+
+### Bug Fixes
+
+* fix #6531 don't drop credentials for conda-build workaround (#6798)
+* fix external command execution issue (#6789)
+* fix #5792 conda env export error common in path (#6795)
+* fix #6390 add CorruptedEnvironmentError (#6778)
+* fix #5884 allow --insecure CLI flag without contradicting meaning of ssl_verify (#6782)
+* fix MatchSpec.match() accepting dict (#6808)
+* fix broken Anaconda Prompt for users with spaces in paths (#6825)
+
+
+## 4.4.8 (2018-01-25)
 
 ### Improvements
 * allow falsey values for default_python to avoid pinning python (#6682)
@@ -32,6 +48,7 @@
 * fix #6770 CRLF for cmd.exe (#6775)
 * fix #6514 add message for case-insensitive filesystem errors (#6764)
 * fix #6537 AttributeError value for url not set (#6754)
+* fix #6748 only warn if unable to register environment due to EACCES (#6752)
 
 
 ## 4.4.7 (2018-01-08)

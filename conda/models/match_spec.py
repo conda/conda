@@ -203,6 +203,8 @@ class MatchSpec(object):
         Accepts an `IndexRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
+        if isinstance(rec, dict):
+            rec = IndexRecord.from_objects(rec)
         for field_name, v in iteritems(self._match_components):
             if not self._match_individual(rec, field_name, v):
                 return False

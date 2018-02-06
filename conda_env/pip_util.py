@@ -87,7 +87,7 @@ def installed(prefix, output=True):
                 # version. We still include the conda version, though, because it
                 # is still installed.
 
-                version, path = kwargs['version'].split(', ')
+                version, path = kwargs['version'].split(', ', 1)
                 # We do this because the code below uses rsplit('-', 2)
                 version = version.replace('-', ' ')
                 kwargs['version'] = version
