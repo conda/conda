@@ -1062,6 +1062,12 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('?', '0', True)
         # TODO: assert that reactivate worked correctly
 
+        # regression test for #6840
+        shell.sendline('conda install --blah')
+        shell.assert_env_var('?', '2', use_exact=True)
+        shell.sendline('conda list --blah')
+        shell.assert_env_var('?', '2', use_exact=True)
+
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '1')
         shell.sendline('conda deactivate')
