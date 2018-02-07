@@ -961,33 +961,35 @@ Differentiating packages built with different variants
 With only a few things supported, we could just add things to the filename, such
 as py27 for python, or np111 for numpy. Variants are meant to support the
 general case, and in the general case this is no longer an option. Instead,
-part of the recipe is hashed using the sha1 algorithm, and that hash is a
+used variant keys and values are hashed using the sha1 algorithm, and that hash is a
 unique identifier. The information that went into the hash is stored with the
-package, in a file at ``info/hash_input.json``. Currently, only the first 7
-characters of the hash are stored. Output package names will keep the pyXY and
-npXYY for now, but have added the 7-character hash. Your package names will
-look like:
+package, in a file at ``info/hash_input.json``. Packages only have a hash when
+there are any "used" variables beyond the ones that are already accounted for in
+the build string (py, np, etc). The takeaway message is that hashes will appear
+when binary compatibility matters, but not when it doesn't.
+
+Currently, only the first 7 characters of the hash are stored. Output package
+names will keep the pyXY and npXYY, but may have added the 7-character hash.
+Your package names will look like:
 
 ``my-package-1.0-py27h3142afe_0.tar.bz2``
+
+As of conda-build 3.1.0, this hashing scheme has been simplified. A hash will be
+added if all of these are true for any dependency:
+
+* package is an explicit dependency in build, host, or run deps
+* package has a matching entry in conda_build_config.yaml which is a pin to a
+  specific version, not a lower bound
+* that package is not ignored by ignore_version
+
+OR
+
+* package uses {{ compiler() }} jinja2 function
 
 Since conflicts only need to be prevented within one version of a package, we
 think this will be adequate. If you run into hash collisions with this limited
 subspace, please file an issue on the `conda-build issue tracker
 <https://github.com/conda/conda-build/issues>`_.
-
-The information that goes into this hash is currently defined in conda-build's
-metadata.py module, in the _get_hash_contents member function. This function
-captures the following information:
-
-* ``source`` section
-* ``requirements`` section
-* ``build`` section, except:
-  * ``number``
-  * ``string``
-* any other recipe files in the folder with meta.yaml, such as bld.bat,
-  build.sh, etc. Every file other than meta.yaml is part of the hash.
-
-All "falsey" values such as empty list values are removed.
 
 There is a CLI tool that just pretty-prints this json file for easy viewing:
 
@@ -999,18 +1001,9 @@ This produces output such as:
 
 .. code-block:: shell
 
-   {'test_rm_rf_does_not_follow_links-1.0-h7330_0': {u'build': {u'script': u'python setup.py install --single-version-externally-managed --record=record.txt'},
-                                                  u'requirements': {u'build': [u'openssl 1.0.2k 0',
-                                                                               u'pip 9.0.1 py27_1',
-                                                                               u'python 2.7.13 0',
-                                                                               u'readline 6.2 2',
-                                                                               u'setuptools 27.2.0 py27_0',
-                                                                               u'sqlite 3.13.0 1',
-                                                                               u'tk 8.5.18 0',
-                                                                               u'wheel 0.29.0 py27_0',
-                                                                               u'zlib 1.2.8 3']},
-                                                  u'source': {u'path': u'/Users/msarahan/code/conda-build/tests/test-recipes/split-packages/_rm_rf_stays_within_prefix'}}}
-
+    {'python-3.6.4-h6538335_1': {'files': [],
+                                'recipe': {'c_compiler': 'vs2015',
+                                            'cxx_compiler': 'vs2015'}}}
 
 .. _extra_jinja2:
 
