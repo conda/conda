@@ -53,7 +53,7 @@ _conda_activate() {
 
     local ask_conda
     ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix activate "$@")" || return $?
-    eval "$ask_conda" || return $?
+    eval "$ask_conda"
 
     _conda_hashr
 }
@@ -61,7 +61,7 @@ _conda_activate() {
 _conda_deactivate() {
     local ask_conda
     ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix deactivate "$@")" || return $?
-    eval "$ask_conda" || return $?
+    eval "$ask_conda"
 
     _conda_hashr
 }
@@ -69,7 +69,7 @@ _conda_deactivate() {
 _conda_reactivate() {
     local ask_conda
     ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix reactivate)" || return $?
-    eval "$ask_conda" || return $?
+    eval "$ask_conda"
 
     _conda_hashr
 }
@@ -84,17 +84,17 @@ conda() {
     fi
     case "$cmd" in
         activate)
-            _conda_activate "$@" || return $?
+            _conda_activate "$@"
             ;;
         deactivate)
-            _conda_deactivate "$@" || return $?
+            _conda_deactivate "$@"
             ;;
         install|update|uninstall|remove)
-            $_CONDA_EXE "$cmd" "$@" || return $?
-            _conda_reactivate || return $?
+            $_CONDA_EXE "$cmd" "$@"
+            _conda_reactivate
             ;;
         *)
-            $_CONDA_EXE "$cmd" "$@" || return $?
+            $_CONDA_EXE "$cmd" "$@"
             ;;
     esac
 }
