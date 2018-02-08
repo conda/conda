@@ -566,13 +566,21 @@ class Resolve(object):
         return sorted(dists, key=self.version_key)
 
     @staticmethod
-    def ms_to_v(ms):
+    def to_ms_clause_id(ms):
         ms = MatchSpec(ms)
         return '@s@' + ms.spec + ('?' if ms.optional else '')
 
+    @staticmethod
+    def to_notd_ms_clause_id(ms):
+        return '!@s@'+ms.name
+
+    @staticmethod
+    def to_feature_metric_id(dist, feat):
+        return '@fm@%s@%s' % (dist, feat)
+
     def push_MatchSpec(self, C, ms):
         ms = MatchSpec(ms)
-        name = self.ms_to_v(ms)
+        name = self.to_ms_clause_id(ms)
         m = C.from_name(name)
         if m is not None:
             return name
@@ -588,7 +596,7 @@ class Resolve(object):
         if m is None:
             libs = [dist.full_name for dist in libs]
             if ms.optional:
-                libs.append('!@s@'+ms.name)
+                libs.append(self.to_notd_ms_clause_id(ms))
             m = C.Any(libs)
         C.name_var(m, name)
         return name
@@ -601,7 +609,7 @@ class Resolve(object):
             for fkey in group:
                 C.new_var(fkey)
             # Create one variable for the group
-            m = C.new_var(self.ms_to_v(name))
+            m = C.new_var(self.to_ms_clause_id(name))
             # Exactly one of the package variables, OR
             # the negation of the group variable, is true
             C.Require(C.ExactlyOne, group + [C.Not(m)])
@@ -633,12 +641,12 @@ class Resolve(object):
             dist_feats = {dist.full_name: self.features(dist) for dist in group}
             active_feats = set.union(*dist_feats.values()).intersection(self.trackers)
             for feat in active_feats:
-                feat_spec = self.push_MatchSpec(C, '@' + feat)
+                clause_id_for_feature = self.push_MatchSpec(C, '@' + feat)
                 for dist, features in dist_feats.items():
                     if feat not in features:
-                        mname = '@fm@{}@{}'.format(dist, feat)
-                        C.name_var(C.And(dist, feat_spec), mname)
-                        eq[mname] = 1
+                        feature_metric_id = self.to_feature_metric_id(dist, feat)
+                        C.name_var(C.And(dist, clause_id_for_feature), feature_metric_id)
+                        eq[feature_metric_id] = 1
         return eq
 
     def generate_removal_count(self, C, specs):
@@ -938,7 +946,12 @@ class Resolve(object):
             log.debug('Track feature count: %d', obj1)
 
             # Featured packages: minimize number of featureless packages
-            # installed when a featured alternative is feasible
+            # installed when a featured alternative is feasible.
+            # For example, package name foo exists with two built packages. One with
+            # 'track_features: 'feat1', and one with 'track_features': 'feat2'.
+            # The previous "Track features" minimization pass has chosen 'feat1' for the
+            # environment, but not 'feat2'. In this case, the 'feat2' version of foo is
+            # considered "featureless."
             eq_feature_metric = r2.generate_feature_metric(C)
             solution, obj2 = C.minimize(eq_feature_metric, solution)
             log.debug('Package misfeature count: %d', obj2)
