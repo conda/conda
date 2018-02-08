@@ -2,151 +2,151 @@
 Getting started with conda
 ==========================
 
-This 30-minute getting started procedure consists of the following
-exercises:
+.. contents::
+   :local:
+   :depth: 2
+   :hidden:
 
-* :ref:`Managing conda <managing-conda>`. Verify that Anaconda
-  or Miniconda is installed and check that :doc:`conda <../index>`
-  is updated to the current version. 3 minutes
+.. _navigator-starting:
 
-* :ref:`Managing environments <managing-envs>`. Create a few
-  :ref:`environments <concept-conda-env>` and then learn to move
-  easily between them. Verify which environment you are in and
-  make a copy of an environment as a backup. 10 minutes
+Conda is a powerful package manager and environment manager that
+you use with command line commands at the Anaconda Prompt for Windows,
+or in a Terminal window for macOS or Linux.
 
-* :ref:`Managing Python <managing-python>`. See which versions
-  of Python are available to install, install another version of
-  Python and then switch between versions. 4 minutes
+This 20-minute guide to getting started with conda lets you try out
+the major features of conda. You should understand how conda works
+when you finish this guide.
 
-* :ref:`Managing packages<managing-pkgs>`. Work with
-  :ref:`packages <concept-conda-package>`:
+SEE ALSO: `Getting started with Anaconda Navigator
+<https://docs.anaconda.com/anaconda/navigator/getting-started>`_, a
+graphical user interface that lets you use conda in a web-like interface
+without having to enter manual commands. Compare the Getting started
+guides for each to see which program you prefer.
 
-  * List packages installed on your computer.
+Before you start
+================
 
-  * List packages available for you to install.
+You should have already `installed
+Anaconda <https://docs.anaconda.com/anaconda/install/>`_.
 
-  * Install and remove some packages.
+Contents
+========
 
-  * For packages not available using ``conda install``, search
-    on `Anaconda.org <http://Anaconda.org>`_.
+ - :ref:`Starting conda <starting-conda>` on Windows, macOS or Linux. 2 MINUTES
 
-  * For packages that are in neither location, install a package
-    with the pip package manager. 
+ - :ref:`Managing conda <managing-conda>`. Verify that Anaconda is installed and check that conda is updated to the current version. 3 MINUTES
 
-  10 minutes
+ - :ref:`Managing environments <managing-envs>`. Create :ref:`environments <concept-conda-env>` and move easily between them.  5 MINUTES
 
-* :ref:`Removing packages, environments or conda
-  <remove-pkgs-envs-conda>`. Remove 1 or more of your test
-  packages, environments and/or conda. 3 minutes
+ - :ref:`Managing Python <managing-python>`. Create an environment that has a different version of Python. 5 MINUTES
 
-TOTAL TIME: 30 minutes
+ - :ref:`Managing packages<managing-pkgs>`. Find packages available for you to install. Install packages. 5 MINUTES
 
-TIP: To see the full documentation for any command, :doc:`view
-the command-line help <tasks/view-command-line-help>`.
+TOTAL TIME: 20 MINUTES
 
+
+.. _starting-conda:
+
+Starting conda
+==============
+
+**Windows**
+
+* From the Start menu, search for and open "Anaconda Prompt".
+
+.. figure:: /img/anaconda-prompt.png
+
+   ..
+
+|
+
+On Windows, all commands below are typed into the Anaconda Prompt window.
+
+**MacOS**
+
+* Open Launchpad, then click the Terminal icon.
+
+On macOS, all commands below are typed into the Terminal window.
+
+**Linux**
+
+* Open a Terminal window.
+
+On Linux, all commands below are typed into the Terminal window.
 
 .. _managing-conda:
 
 Managing conda
 ===============
 
-To manage conda versions:
+Verify that conda is installed and running on your system by typing:
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+ .. code::
 
-#. Verify that conda is installed:
+    conda --version
 
-   .. code::
+Conda displays the number of the version that you have installed. You do not need to navigate to the Anaconda directory.
 
-      conda --version
+EXAMPLE: ``conda 4.4.9``
 
-   Conda displays the number of the version that you have
-   installed.
+NOTE: If you get an error message, make sure you closed and re-opened the Terminal window after installing, or do it now. Then verify that you are logged into the same user account that you used to install Anaconda or Miniconda.
 
-   EXAMPLE: ``conda 4.4.8``
+Update conda to the current version. Type the following:
 
-   NOTE: If you see an error message, verify that you are logged
-   into the same user account that you used to install Anaconda
-   or Miniconda and that you have closed and re-opened the
-   Terminal window  after installing it.
+ .. code::
 
-#. Update conda to the current version:
+     conda update conda
 
-   .. code::
+Conda compares versions and then displays what is available to
+install.
 
-      conda update conda
+If a newer version of conda is available, type ``y`` to update:
 
-   Conda compares versions and then displays what is available to
-   install. It also tells you about other packages that will be
-   automatically updated or changed with the update.
+ .. code::
 
-#. If a newer version of conda is available, type ``y`` to
-   update:
+    Proceed ([y]/n)? y
 
-   .. code::
-
-      Proceed ([y]/n)? y
-
+TIP: We recommend that you always keep conda updated to the latest version.
 
 .. _managing-envs:
 
-Managing environments
-=========================
+Managing Environments
+=====================
 
-To create a few environments and then move between them:
+Conda allows you to to create separate environments containing
+files, packages and their dependencies that will not interact with other environments.
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+When you begin using conda, you already have a default environment named ``base``. You don't want to put programs into your base environment, though. Create separate environments to keep your programs isolated from each other.
 
-#. Create a new environment named ``snowflakes`` and install the 
-   package ``biopython`` in it:
+#. Create a new environment and install a package in it.
+
+   We will name the environment ``snowflakes`` and install the package
+   BioPython. At the Anaconda Prompt or in your Terminal window, type
+   the following:
 
    .. code::
 
       conda create --name snowflakes biopython
 
-#. Conda checks to see what packages Biopython will need, and asks 
-   if you want to proceed:
+   Conda checks to see what additional packages ("dependencies")
+   Biopython will need, and asks if you want to proceed:
 
    .. code::
 
       Proceed ([y]/n)? y
-   
-   TIP: You can abbreviate many frequently used options that are
-   preceded by 2 dashes (``--``) to just 1 dash and the first
-   letter of the option. So ``--name`` and ``-n`` are the same,
-   and ``--envs`` and ``-e`` are the same. For a list of
-   abbreviations, see ``conda --help`` or ``conda -h``.
 
-#. To activate the new environment, run the appropriate command
-   for your operating system:
+   Type "y" and press Enter to proceed.
 
-   * Linux and macOS: ``source activate snowflakes``
-   * Windows:  ``activate snowflakes``
+#. To use, or "activate" the new environment, type the following:
 
-   TIP: By default, conda installs environments into the
-   ``envs`` directory in your ``conda`` directory. To specify a
-   different path, see ``conda create --help``.
+     * Windows:  ``activate snowflakes``
+     * Linux and macOS: ``source activate snowflakes``
 
-   TIP: Since you did not specify a version of Python, conda
-   installs the same version you used when you downloaded and
-   installed Anaconda.
+   Now that you are in your ``snowflakes`` environment, any conda
+   commands you type will go to that environment until
+   you deactivate it.
 
-#. Create a new environment and then install a different version
-   of Python along with 2 packages named Astroid and Babel:
-
-   .. code::
-
-      conda create --name bunnies python=3.5 astroid babel
-
-   When conda asks you if you want to proceed, answer ``y`` for yes.
-   
-   This creates a second new environment in ``/envs`` named
-   "bunnies", with Python 3, Astroid and Babel installed.
-
-   TIP: You can add much more to the conda create command. See
-   ``conda create --help`` for details.
-
-#. Display the environments that you have installed so far:
+#. To see a list of all your environments, type:
 
    .. code::
 
@@ -158,369 +158,117 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 
       conda environments:
 
-          snowflakes   * /home/username/miniconda/envs/snowflakes
-          bunnies        /home/username/miniconda/envs/bunnies
-          root           /home/username/miniconda
+          base           /home/username/Anaconda3
+          snowflakes   * /home/username/Anaconda3/envs/snowflakes
 
-   Conda puts an asterisk (*) in front of the active environment.
+   TIP: The active environment is the one with an asterisk (*).
 
-#. Verify which of your environments is the current environment:
+#. Change your current environment back to the default (base):
 
-   .. code::
-
-      conda info --envs
-
-   Conda displays the list of all environments, with the current
-   environment shown in (parentheses) or [brackets] in front of
-   your prompt:
-
-   .. code::
-
-      (snowflakes) $
-
-#. Switch to the other environment:
-
-   * Linux, macOS: ``source activate bunnies``
-   * Windows:  ``activate bunnies``
-
-#. Change your path from the current environment back to the root:
-
-   * Linux, macOS: ``source deactivate``
-   * Windows:  ``deactivate``
+     * Windows:  ``deactivate``
+     * Linux, macOS: ``source deactivate``
 
    TIP: When the environment is deactivated, its name is no
-   longer shown in your prompt.
-
-#. Make a copy of the snowflakes environment by creating a
-   clone of it called "flowers":
-
-   .. code::
-
-      conda create --name flowers --clone snowflakes
-
-#. Verify that the copy was made:
-
-   .. code::
-
-      conda info --envs
-
-   The 3 environments are listed:  flowers, bunnies and
-   snowflakes.
-
-#. Delete the flowers environment:
-
-   .. code::
-
-      conda remove --name flowers --all
-
-#. Verify that the flowers environment has been removed:
-
-   .. code::
-
-      conda info --envs
-
-   The flowers environment is no longer in your list, so you
-   know it was deleted.
-
+   longer shown in your prompt, and the asterisk (*) returns to base.
+   To verify, you can repeat the  ``conda info --envs`` command.
 
 
 .. _managing-python:
 
 Managing Python
-====================
+===============
 
-Conda treats Python the same as any other package, so it is
-easy to manage and update multiple installations.
+When you create a new environment, conda installs the same Python version you used when you downloaded and installed Anaconda. If you want to use a different version of Python, for example Python 3.5, simply create a new environment and specify the version of Python that you want.
 
-To check which Python versions are available to install, in your Terminal window or an
-Anaconda Prompt, run:
-
-.. code::
-
-   conda search --full-name python
-
-The ``--full-name`` option lists only the packages whose full
-name is exactly "python". To list all packages whose names
-contain the text "python", use ``conda search python``.
-
-To install Python 3 without overwriting your Python 2.7
-environment:
-
-Use the Terminal or an Anaconda Prompt for the following steps.
-
-#. Create a new environment named "snakes" and install the latest
-   version of Python 3:
+#. Create a new environment named "snakes" that contains Python 3.5:
 
    .. code::
 
-      conda create --name snakes python=3
+      conda create --name snakes python=3.5
+
+   When conda asks if you want to proceed, type "y" and press Enter.
 
 #. Activate the new environment:
 
-   * Linux, macOS: ``conda activate snakes``
-   * Windows:  ``activate snakes``
+     * Windows:  ``activate snakes``
+     * Linux, macOS: ``source activate snakes``
 
-#. Verify that the snakes environment has been added:
+#. Verify that the snakes environment has been added and is active:
 
    .. code::
 
       conda info --envs
 
-   Conda displays the list of all environments, with the current
-   environment shown in (parentheses) or [brackets] in front of
-   your prompt:
+   Conda displays the list of all environments with an asterisk (*)
+   after the name of the active environment:
+
+   .. code::
+
+     # conda environments:
+     #
+     base                     /home/username/anaconda3
+     snakes                *  /home/username/anaconda3/envs/snakes
+     snowflakes               /home/username/anaconda3/envs/snowflakes
+
+   The active environment is also displayed in front of your prompt in
+   (parentheses) or [brackets] like this:
 
    .. code::
 
      (snakes) $
 
-#. Verify that the snakes environment uses Python version 3:
+#. Verify which version of Python is in your current
+   environment:
 
    .. code::
 
       python --version
 
-#. Switch back to the default, version 2.7:
+#. Deactivate the snakes environment and return to base environment:
 
-   * Linux, macOS: ``conda activate snowflakes``
-   * Windows:  ``activate snowflakes``
-
-#. Verify that the snowflakes environment uses the same Python
-   version that was used when you installed conda:
-
-   .. code::
-
-      python --version
-
-#. Deactivate the snowflakes environment and then revert your
-   PATH to its previous state:
-
-   * Linux, macOS: ``conda deactivate``
-   * Windows: ``deactivate``
+     * Windows: ``deactivate``
+     * Linux, macOS: ``source deactivate``
 
 
 .. _managing-pkgs:
 
 Managing packages
-======================
+=================
 
-You have already installed several packages---Astroid, Babel and
-a specific version of Python---when you created a new environment.
-In this section, you check which packages you have, check which
-are available and look for a specific package and install it.
+In this section, you check which packages you have installed,
+check which are available and look for a specific package and
+install it.
 
-Then you look for specific packages on the Anaconda.org
-repository, install packages from Anaconda.org, install more
-packages using ``pip`` install instead of ``conda install``.
+#. To find a package you have already installed, first activate the environment you want to search. Look above for the commands to activate your  :ref:`activate your snakes environment <managing-envs>`.
 
-To find a package:
-
-Use the Terminal or an Anaconda Prompt for the following steps.
-
-#. To confirm that a package has been added or removed, view a
-   list of packages and versions installed in an environment:
-
-   .. code::
-
-      conda list
-
-#. View a list of packages available for ``conda install``,
-   sorted by Python version, at
-   http://docs.continuum.io/anaconda/pkg-docs.html
-
-#. Check to see if a package called "beautifulsoup4" is
-   available for conda to install:
+#. Check to see if a package you have not installed named
+   "beautifulsoup4" is available from the Anaconda repository
+   (must be connected to the Internet):
 
    .. code::
 
       conda search beautifulsoup4
 
-   This displays the package, so we know it is available.
+   Conda displays a list of all packages with that name on the Anaconda
+   repository, so we know it is available.
 
-To install the package:
-
-Use the Terminal or an Anaconda Prompt for the following steps.
-
-#. Install beautifulsoup4 into the current environment:
+#. Install this package into the current environment:
 
    .. code::
 
-      conda install --name bunnies beautifulsoup4
+      conda install beautifulsoup4
 
-   NOTE: If you don't specify the name of the environment,
-   as in ``--name bunnies``, conda installs into the current
-   environment.
-
-#. Activate the bunnies environment:
-
-   * Linux, macOS: ``conda activate bunnies``
-   * Windows:  ``activate bunnies``
-
-#. List the newly installed program:
+#. Check to see if the newly installed program is in this environment:
 
    .. code::
 
       conda list
-
-
-Installing packages from Anaconda.org
------------------------------------------
-
-For packages that are not available using ``conda install``, look
-on Anaconda.org, a package management service for both public and
-private package repositories. Like Anaconda and Miniconda,
-Anaconda.org is an Anaconda product.
-
-TIP: You are not required to register with Anaconda.org to
-download files.
-
-To download into the current environment from Anaconda.org, you
-need to specify Anaconda.org as the channel by typing the full
-URL to the package that you want. To find this URL:
-
-#. In a browser, go to http://anaconda.org.
-
-#. Look for a package named "bottleneck":
-
-   #. In the top-left corner of the screen, in the Search
-      Anaconda Cloud box, type ``bottleneck``.
-
-   #. Click the Search button.
-
-   There are more than a dozen copies of bottleneck available on
-   Anaconda.org, but you want the most frequently downloaded
-   copy.
-
-#. Click the Downloads column heading to sort the results by
-   number of downloads.
-
-#. Click the package name of the version that has the most
-   downloads.
-
-   The Anaconda.org detail page appears, showing the command to
-   use to download the package:
-
-   .. code::
-
-      conda install --channel https://conda.anaconda.org/pandas bottleneck
-
-#. Run the displayed command.
-
-#. To check that the package downloaded, in the Terminal or an Anaconda Prompt, run:
-
-   .. code::
-
-      conda list
-
-
-Installing a package with pip
------------------------------
-
-For packages that are not available from conda or Anaconda.org,
-you can often install the package with pip, which stands for
-"pip installs packages." Note that you may have conflicts when 
-you switch between the two, because they do not know what the 
-other is doing. 
-
-Pip is only a package manager, so it cannot manage
-environments for you. Pip cannot even update Python, because
-unlike conda, it does not consider Python a package. But it does
-install some things that conda does not, and vice versa. Both pip
-and conda are included in Anaconda and Miniconda.
-
-Use the Terminal or an Anaconda Prompt for the following steps.
-
-#. Activate the environment where you want to put the
-   program, such as bunnies:
-
-   * macOS and Linux---``conda activate bunnies``
-   * Windows---``activate bunnies``
-
-#. Install a program named "see":
-
-   .. code::
-
-      pip install see
-
-#. Verify that see was installed:
-
-   .. code::
-
-      conda list
-
-
-
-.. _remove-pkgs-envs-conda:
-
-Removing packages, environments, or conda
-===============================================
-
-To remove one or more of your test packages, environments, and/or
-conda:
-
-#. To remove the commercial package IOPro from the bunnies
-   environment, in your Terminal window or an Anaconda Prompt, run:
-
-   .. code::
-
-      conda remove --name bunnies iopro
-
-#. To confirm that IOPro has been removed, in your Terminal
-   window or an Anaconda Prompt, run:
-
-   .. code::
-
-      conda list
-
-
-#. To remove the snakes environment, in your Terminal
-   window or an Anaconda Prompt, run:
-
-   .. code::
-
-      conda remove --name snakes --all
-
-#. To verify that the snakes environment has been removed,
-   in your Terminal window or an Anaconda Prompt, run:
-
-   .. code::
-
-      conda info --envs
-
-   You know that snakes was deleted because it no longer appears
-   in the environment list.
-
-#. Remove conda:
-
-   * For Linux and macOS, remove the Anaconda or Miniconda
-     install directory:
-
-     .. code::
-
-        rm -rf ~/miniconda
-
-     or:
-
-     .. code::
-
-        rm -rf ~/anaconda
-
-   * For Windows: In Control Panel, select Add or Remove
-     Programs, select Python X.X (Anaconda) or Python X.X
-     (Miniconda) and then click Remove Program.
-
-     NOTE: Replace X.X with your version of Python.
-
-     NOTE: Instructions are different for Windows 10.
 
 
 More information
 ================
 
+* Conda cheat sheet: :doc:`cheatsheet`.
 * Full documentation---`<https://conda.io/docs/>`_.
-* Cheat sheet: :doc:`cheatsheet`.
-* FAQs---`<http://docs.continuum.io/anaconda/faq.html>`_.
 * Free community support---`<https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda>`_.
 * Paid support options---`<https://www.anaconda.com/support/>`_.
-* Training---`<https://www.anaconda.com/training/>`_.
-* Consulting---`<https://www.anaconda.com/consulting/>`_.
