@@ -29,6 +29,7 @@ from ..gateways.disk.create import (compile_pyc, copy, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
                                     make_menu, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
+from ..gateways.disk.permissions import make_writable
 from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
                                   read_index_json)
 from ..gateways.disk.update import backoff_rename, touch
@@ -401,6 +402,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
 
         log.trace("copying %s => %s", self.source_full_path, self.intermediate_path)
         create_link(self.source_full_path, self.intermediate_path, LinkType.copy)
+        make_writable(self.intermediate_path)
 
         try:
             log.trace("rewriting prefixes in %s", self.target_full_path)

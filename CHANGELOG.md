@@ -4,13 +4,20 @@
 * preserve exit status in fish shell #6760
 
 
+## 4.4.10 (2018-02-09)
+
+### Bug Fixes
+* fix #6837 require at least futures 3.0.0 (#6855)
+* fix #6852 ensure temporary path is writable (#6856)
+* fix #6833 improve feature mismatch metric (via 4.3.34 #6853)
+
+
 ## 4.4.9 (2018-02-06)
 
 ### Improvements
 * resolve #6632 display package removal plan when deleting an env (#6801)
 
 ### Bug Fixes
-
 * fix #6531 don't drop credentials for conda-build workaround (#6798)
 * fix external command execution issue (#6789)
 * fix #5792 conda env export error common in path (#6795)
@@ -399,6 +406,12 @@ will make sure that whenever conda is installed or changed in an environment, th
 * resolve #6431 always add env_vars to info_dict (4.4.0rc3) (#6436)
 * move shell inside conda directory (4.4.0) (#6479)
 * remove dead code (4.4.0) (#6489)
+
+
+## 4.3.34 (2018-02-09)
+
+### Bug Fixes
+* fix #6833 improve feature mismatch metric (#6853)
 
 
 ## 4.3.33 (2018-01-24)
