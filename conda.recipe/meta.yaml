@@ -33,7 +33,7 @@ requirements:
     - python
     - conda-env >=2.6
     - enum34               [py<34]
-    - futures              [py<34]
+    - futures >=3.0.0      [py<34]
     - menuinst             [win]
     - pycosat >=0.6.3
     - pyopenssl >=16.2.0
