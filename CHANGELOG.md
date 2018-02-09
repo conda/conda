@@ -1,3 +1,9 @@
+## 4.3.34 (2018-02-09)
+
+### Bug Fixes
+* fix #6833 improve feature mismatch metric (#6853)
+
+
 ## 4.3.33 (2018-01-24)
 
 ### Bug Fixes
