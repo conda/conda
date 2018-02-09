@@ -1395,3 +1395,77 @@ def test_update_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2',
     ]]]
+
+
+def test_surplus_features_1():
+    index = {
+        'feature-1.0-0.tar.bz2': IndexRecord(**{
+            'name': 'feature',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            'track_features': 'feature',
+        }),
+        'package1-1.0-0.tar.bz2': IndexRecord(**{
+            'name': 'package1',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            'features': 'feature',
+        }),
+        'package2-1.0-0.tar.bz2': IndexRecord(**{
+            'name': 'package2',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': ['package1'],
+            'features': 'feature',
+        }),
+        'package2-2.0-0.tar.bz2': IndexRecord(**{
+            'name': 'package2',
+            'version': '2.0',
+            'build': '0',
+            'build_number': 0,
+            'features': 'feature',
+        }),
+    }
+    r = Resolve({Dist(key): value for key, value in iteritems(index)})
+    install = r.install(['package2', 'feature'])
+    assert 'package1' not in set(d.name for d in install)
+
+
+def test_surplus_features_2():
+    index = {
+        'feature-1.0-0.tar.bz2': IndexRecord(**{
+            'name': 'feature',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            'track_features': 'feature',
+        }),
+        'package1-1.0-0.tar.bz2': IndexRecord(**{
+            'name': 'package1',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            'features': 'feature',
+        }),
+        'package2-1.0-0.tar.bz2': IndexRecord(**{
+            'name': 'package2',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': ['package1'],
+            'features': 'feature',
+        }),
+        'package2-1.0-1.tar.bz2': IndexRecord(**{
+            'name': 'package2',
+            'version': '1.0',
+            'build': '1',
+            'build_number': 1,
+            'features': 'feature',
+        }),
+    }
+    r = Resolve({Dist(key): value for key, value in iteritems(index)})
+    install = r.install(['package2', 'feature'])
+    assert 'package1' not in set(d.name for d in install)
