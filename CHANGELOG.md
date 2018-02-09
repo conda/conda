@@ -1,4 +1,4 @@
-## 4.4.10 (unreleased)
+## 4.4.10 (2018-02-09)
 
 ### Bug Fixes
 * fix #6837 require at least futures 3.0.0 (#6855)
