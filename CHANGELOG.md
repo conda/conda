@@ -1,10 +1,16 @@
+## 4.4.10 (unreleased)
+
+### Bug Fixes
+* fix #6837 require at least futures 3.0.0 (#6855)
+* fix #6852 ensure temporary path is writable (#6856)
+
+
 ## 4.4.9 (2018-02-06)
 
 ### Improvements
 * resolve #6632 display package removal plan when deleting an env (#6801)
 
 ### Bug Fixes
-
 * fix #6531 don't drop credentials for conda-build workaround (#6798)
 * fix external command execution issue (#6789)
 * fix #5792 conda env export error common in path (#6795)
