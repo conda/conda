@@ -66,6 +66,9 @@ _NEW_PART=$("$_CONDA_DIR/conda" ..activate $_SHELL$EXT "$args")
 if (( $? == 0 )); then
     export CONDA_PATH_BACKUP="$PATH"
     # export this to restore it upon deactivation
+    if [[ -z ${PS1+x} ]]; then
+        PS1="";
+    fi;
     export CONDA_PS1_BACKUP="$PS1"
 
     # look if the deactivate script left a placeholder for us
