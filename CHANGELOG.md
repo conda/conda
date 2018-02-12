@@ -1,9 +1,37 @@
-## 4.4.8 (unreleased)
+## 4.4.10 (2018-02-09)
+
+### Bug Fixes
+* fix #6837 require at least futures 3.0.0 (#6855)
+* fix #6852 ensure temporary path is writable (#6856)
+* fix #6833 improve feature mismatch metric (via 4.3.34 #6853)
+
+
+## 4.4.9 (2018-02-06)
+
+### Improvements
+* resolve #6632 display package removal plan when deleting an env (#6801)
+
+### Bug Fixes
+* fix #6531 don't drop credentials for conda-build workaround (#6798)
+* fix external command execution issue (#6789)
+* fix #5792 conda env export error common in path (#6795)
+* fix #6390 add CorruptedEnvironmentError (#6778)
+* fix #5884 allow --insecure CLI flag without contradicting meaning of ssl_verify (#6782)
+* fix MatchSpec.match() accepting dict (#6808)
+* fix broken Anaconda Prompt for users with spaces in paths (#6825)
+* JSONDecodeError was added in Python 3.5 (#6848)
+* fix #6796 update PATH/prompt on reactivate (#6828)
+* fix #6401 non-ascii characters on windows using expanduser (#6847)
+* fix #6824 import installers before invoking any (#6849)
+
+
+## 4.4.8 (2018-01-25)
 
 ### Improvements
 * allow falsey values for default_python to avoid pinning python (#6682)
 * resolve #6700 add message for no space left on device (#6709)
 * make variable 'sourced' local for posix shells (#6726)
+* add column headers to conda list results (#5726)
 
 ### Bug Fixes
 * fix #6713 allow parenthesis in prefix path for conda.bat (#6722)
@@ -13,6 +41,19 @@
 * fix #6745 don't truncate channel priority map in conda installer (#6746)
 * add workaround for system Python usage by lsb_release (#6769)
 * fix #6624 can't start new thread (#6653)
+* fix #6628 'conda install --rev' in conda 4.4 (#6724)
+* fix #6707 FileNotFoundError when extracting tarball (#6708)
+* fix #6704 unexpected token in conda.bat (#6710)
+* fix #6208 return for no pip in environment (#6784)
+* fix #6457 env var cleanup (#6790)
+* fix #6645 escape paths for argparse help (#6779)
+* fix #6739 handle unicode in environment variables for py2 activate (#6777)
+* fix #6618 RepresenterError with 'conda config --set' (#6619)
+* fix #6699 suppress memory error upload reports (#6776)
+* fix #6770 CRLF for cmd.exe (#6775)
+* fix #6514 add message for case-insensitive filesystem errors (#6764)
+* fix #6537 AttributeError value for url not set (#6754)
+* fix #6748 only warn if unable to register environment due to EACCES (#6752)
 
 
 ## 4.4.7 (2018-01-08)
@@ -359,6 +400,12 @@ will make sure that whenever conda is installed or changed in an environment, th
 * resolve #6431 always add env_vars to info_dict (4.4.0rc3) (#6436)
 * move shell inside conda directory (4.4.0) (#6479)
 * remove dead code (4.4.0) (#6489)
+
+
+## 4.3.34 (2018-02-09)
+
+### Bug Fixes
+* fix #6833 improve feature mismatch metric (#6853)
 
 
 ## 4.3.33 (2018-01-24)

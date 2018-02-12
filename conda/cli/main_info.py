@@ -195,25 +195,29 @@ def get_info_dict(system=False):
         info_dict['UID'] = os.geteuid()
         info_dict['GID'] = os.getegid()
 
-    evars = {
+    env_var_keys = {
         'CIO_TEST',
         'REQUESTS_CA_BUNDLE',
         'SSL_CERT_FILE',
     }
 
     # add all relevant env vars, e.g. startswith('CONDA') or endswith('PATH')
-    evars.update(v for v in os.environ if v.upper().startswith('CONDA'))
-    evars.update(v for v in os.environ if v.upper().startswith('PYTHON'))
-    evars.update(v for v in os.environ if v.upper().endswith('PROXY'))
-    evars.update(v for v in os.environ if v.upper().endswith('PATH'))
-    evars.update(v for v in os.environ if v.upper().startswith('SUDO'))
+    env_var_keys.update(v for v in os.environ if v.upper().startswith('CONDA'))
+    env_var_keys.update(v for v in os.environ if v.upper().startswith('PYTHON'))
+    env_var_keys.update(v for v in os.environ if v.upper().endswith('PATH'))
+    env_var_keys.update(v for v in os.environ if v.upper().startswith('SUDO'))
+
+    env_vars = {ev: os.getenv(ev, os.getenv(ev.lower(), '<not set>')) for ev in env_var_keys}
+
+    proxy_keys = (v for v in os.environ if v.upper().endswith('PROXY'))
+    env_vars.update({ev: '<set>' for ev in proxy_keys})
 
     info_dict.update({
         'sys.version': sys.version,
         'sys.prefix': sys.prefix,
         'sys.executable': sys.executable,
         'site_dirs': get_user_site(),
-        'env_vars': {ev: os.getenv(ev, os.getenv(ev.lower(), '<not set>')) for ev in evars},
+        'env_vars': env_vars,
     })
 
     return info_dict

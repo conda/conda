@@ -7,10 +7,11 @@ from os.path import join, lexists
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..common.compat import itervalues, with_metaclass
+from ..common.compat import JSONDecodeError, itervalues, with_metaclass
 from ..common.constants import NULL
 from ..common.serialize import json_load
-from ..exceptions import BasicClobberError, CondaDependencyError, maybe_raise
+from ..exceptions import BasicClobberError, CondaDependencyError, maybe_raise, \
+    CorruptedEnvironmentError
 from ..gateways.disk.create import write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..models.dist import Dist
@@ -112,7 +113,11 @@ class PrefixData(object):
     def _load_single_record(self, prefix_record_json_path):
         log.trace("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
-            json_data = json_load(fh.read())
+            try:
+                json_data = json_load(fh.read())
+            except JSONDecodeError:
+                raise CorruptedEnvironmentError(self.prefix_path, prefix_record_json_path)
+
         prefix_record = PrefixRecord(**json_data)
         self.__prefix_records[prefix_record.name] = prefix_record
 

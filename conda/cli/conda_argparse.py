@@ -19,7 +19,8 @@ log = getLogger(__name__)
 # duplicated code in the interest of import efficiency
 on_win = bool(sys.platform == "win32")
 user_rc_path = abspath(expanduser('~/.condarc'))
-sys_rc_path = join(sys.prefix, '.condarc')
+escaped_user_rc_path = user_rc_path.replace("%", "%%")
+escaped_sys_rc_path = abspath(join(sys.prefix, '.condarc')).replace("%", "%%")
 
 
 def generate_parser():
@@ -122,7 +123,7 @@ class ArgumentParser(ArgumentParserBase):
             else:
                 argument = None
             if argument and argument.dest == "cmd":
-                m = re.match(r"invalid choice: u?'(\w*?)'", exc.message)
+                m = re.match(r"invalid choice: u?'([\w\-]*?)'", exc.message)
                 if m:
                     cmd = m.group(1)
                     if not cmd:
@@ -297,7 +298,7 @@ def configure_parser_config(sub_parsers):
     Modify configuration values in .condarc.  This is modeled after the git
     config command.  Writes to the user .condarc file (%s) by default.
 
-    """) % user_rc_path
+    """) % escaped_user_rc_path
 
     # Note, the extra whitespace in the list keys is on purpose. It's so the
     # formatting from help2man is still valid YAML (otherwise it line wraps the
@@ -357,22 +358,25 @@ def configure_parser_config(sub_parsers):
         "--system",
         action="store_true",
         help="""Write to the system .condarc file ({system}). Otherwise writes to the user
-        config file ({user}).""".format(system=sys_rc_path,
-                                        user=user_rc_path),
+        config file ({user}).""".format(system=escaped_sys_rc_path,
+                                        user=escaped_user_rc_path),
     )
     location.add_argument(
         "--env",
         action="store_true",
         help="Write to the active conda environment .condarc file (%s). "
              "If no environment is active, write to the user config file (%s)."
-             "" % (os.getenv('CONDA_PREFIX', "<no active environment>"), user_rc_path),
+             "" % (
+                 os.getenv('CONDA_PREFIX', "<no active environment>").replace("%", "%%"),
+                 escaped_user_rc_path,
+             ),
     )
     location.add_argument(
         "--file",
         action="store",
         help="""Write to the given file. Otherwise writes to the user config file ({user})
 or the file path given by the 'CONDARC' environment variable, if it is set
-(default: %(default)s).""".format(user=user_rc_path),
+(default: %(default)s).""".format(user=escaped_user_rc_path),
         default=os.environ.get('CONDARC', user_rc_path)
     )
 
@@ -1265,6 +1269,7 @@ def add_parser_insecure(p):
     p.add_argument(
         "-k", "--insecure",
         action="store_false",
+        dest="ssl_verify",
         default=NULL,
         help="Allow conda to perform \"insecure\" SSL connections and transfers. "
              "Equivalent to setting 'ssl_verify' to 'false'."

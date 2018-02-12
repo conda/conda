@@ -182,7 +182,7 @@ def get_reduced_index(prefix, channels, subdirs, specs):
         pending_track_features = set()
 
         def query_all(spec):
-            futures = (executor.submit(sd.query, spec) for sd in subdir_datas)
+            futures = tuple(executor.submit(sd.query, spec) for sd in subdir_datas)
             return tuple(concat(future.result() for future in as_completed(futures)))
 
         def push_spec(spec):

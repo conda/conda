@@ -9,7 +9,7 @@ from unittest import TestCase
 from conda._vendor.auxlib.ish import dals
 from conda.base.constants import APP_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS
 from conda.base.context import Context, context, reset_context
-from conda.common.compat import odict
+from conda.common.compat import odict, text_type
 from conda.common.configuration import YamlRawParameter
 from conda.common.io import env_var
 from conda.common.serialize import yaml_load
@@ -98,6 +98,7 @@ class DefaultConfigChannelTests(TestCase):
         assert dc.canonical_name == 'defaults'
         assert dc.urls() == self.DEFAULT_URLS
         assert dc.subdir is None
+        assert text_type(dc) == 'defaults'
 
         dc = Channel('defaults/win-32')
         assert dc.canonical_name == 'defaults'
@@ -174,6 +175,8 @@ class AnacondaServerChannelTests(TestCase):
             "https://10.2.3.4:8080/conda/bioconda/noarch",
         ]
         assert channel.token == "tk-123-45"
+        assert text_type(channel) == "https://10.2.3.4:8080/conda/bioconda"
+        assert text_type(Channel('bioconda/linux-32')) == "https://10.2.3.4:8080/conda/bioconda/linux-32"
 
     def test_channel_alias_w_subhcnnale(self):
         channel = Channel('bioconda/label/dev')

@@ -11,11 +11,12 @@ from textwrap import wrap
 
 from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
+from ..base.constants import PathConflict, SafetyChecks
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, iteritems, itervalues, string_types, text_type
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
-from ..common.serialize import yaml_dump, yaml_load
+from ..common.serialize import yaml, yaml_dump, yaml_load
 
 try:
     from cytoolz.itertoolz import concat, groupby
@@ -309,6 +310,17 @@ def execute_config(args, parser):
 
     # config.rc_keys
     if not args.get:
+
+        # Add representers for enums.
+        # Because a representer cannot be added for the base Enum class (it must be added for
+        # each specific Enum subclass), and because of import rules), I don't know of a better
+        # location to do this.
+        def enum_representer(dumper, data):
+            return dumper.represent_str(str(data))
+
+        yaml.representer.RoundTripRepresenter.add_representer(SafetyChecks, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(PathConflict, enum_representer)
+
         try:
             with open(rc_path, 'w') as rc:
                 rc.write(yaml_dump(rc_config))

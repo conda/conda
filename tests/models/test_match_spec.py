@@ -246,7 +246,9 @@ class MatchSpecTests(TestCase):
         pref2 = PackageRef.from_objects(pref1, md5="1234")
         assert MatchSpec(url=url).match(pref1)
         assert MatchSpec(m(url)).match(pref1)
+        assert MatchSpec(m(url)).match(pref1.dump())
         assert not MatchSpec(url=url, md5="1234").match(pref1)
+        assert not MatchSpec(url=url, md5="1234").match(pref1.dump())
         assert MatchSpec(url=url, md5="1234").match(pref2)
         assert MatchSpec(url=url, md5="1234").get('md5') == "1234"
 
@@ -285,7 +287,6 @@ class MatchSpecTests(TestCase):
         assert ChannelMatch("conda-forge").match("https://conda.anaconda.org/conda-forge") is True
 
         assert ChannelMatch("https://repo.continuum.io/pkgs/free").match('conda-forge') is False
-
 
     def test_matchspec_errors(self):
         with pytest.raises(ValueError):
@@ -342,12 +343,12 @@ class MatchSpecTests(TestCase):
                                      priority=0,
                                      url='https://repo.continuum.io/pkgs/free/osx-64/python-3.5.1-0.tar.bz2'))
 
-
     def test_index_record(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
         rec = DPkg(dst)
         a = MatchSpec(dst)
         b = MatchSpec(rec)
+        assert b.match(rec.dump())
         assert b.match(rec)
         assert a.match(rec)
 
