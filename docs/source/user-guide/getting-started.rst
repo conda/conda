@@ -40,7 +40,7 @@ Contents
 
  - :ref:`Managing Python <managing-python>`. Create an environment that has a different version of Python. 5 MINUTES
 
- - :ref:`Managing packages<managing-pkgs>`. Find packages available for you to install. Install packages. 5 MINUTES
+ - :ref:`Managing packages <managing-pkgs>`. Find packages available for you to install. Install packages. 5 MINUTES
 
 TOTAL TIME: 20 MINUTES
 
@@ -85,11 +85,14 @@ Verify that conda is installed and running on your system by typing:
 
     conda --version
 
-Conda displays the number of the version that you have installed. You do not need to navigate to the Anaconda directory.
+Conda displays the number of the version that you have installed. You do not
+need to navigate to the Anaconda directory.
 
 EXAMPLE: ``conda 4.4.9``
 
-NOTE: If you get an error message, make sure you closed and re-opened the Terminal window after installing, or do it now. Then verify that you are logged into the same user account that you used to install Anaconda or Miniconda.
+NOTE: If you get an error message, make sure you closed and re-opened the
+Terminal window after installing, or do it now. Then verify that you are logged
+into the same user account that you used to install Anaconda or Miniconda.
 
 Update conda to the current version. Type the following:
 
@@ -97,8 +100,7 @@ Update conda to the current version. Type the following:
 
      conda update conda
 
-Conda compares versions and then displays what is available to
-install.
+Conda compares versions and then displays what is available to install.
 
 If a newer version of conda is available, type ``y`` to update:
 
@@ -113,10 +115,12 @@ TIP: We recommend that you always keep conda updated to the latest version.
 Managing Environments
 =====================
 
-Conda allows you to to create separate environments containing
-files, packages and their dependencies that will not interact with other environments.
+Conda allows you to to create separate environments containing files, packages
+and their dependencies that will not interact with other environments.
 
-When you begin using conda, you already have a default environment named ``base``. You don't want to put programs into your base environment, though. Create separate environments to keep your programs isolated from each other.
+When you begin using conda, you already have a default environment named
+``base``. You don't want to put programs into your base environment, though.
+Create separate environments to keep your programs isolated from each other.
 
 #. Create a new environment and install a package in it.
 
@@ -178,7 +182,10 @@ When you begin using conda, you already have a default environment named ``base`
 Managing Python
 ===============
 
-When you create a new environment, conda installs the same Python version you used when you downloaded and installed Anaconda. If you want to use a different version of Python, for example Python 3.5, simply create a new environment and specify the version of Python that you want.
+When you create a new environment, conda installs the same Python version you
+used when you downloaded and installed Anaconda. If you want to use a different
+version of Python, for example Python 3.5, simply create a new environment and
+specify the version of Python that you want.
 
 #. Create a new environment named "snakes" that contains Python 3.5:
 
@@ -239,7 +246,9 @@ In this section, you check which packages you have installed,
 check which are available and look for a specific package and
 install it.
 
-#. To find a package you have already installed, first activate the environment you want to search. Look above for the commands to activate your  :ref:`activate your snakes environment <managing-envs>`.
+#. To find a package you have already installed, first activate the environment
+   you want to search. Look above for the commands to
+   :ref:`activate your snakes environment <managing-envs>`.
 
 #. Check to see if a package you have not installed named
    "beautifulsoup4" is available from the Anaconda repository
@@ -268,7 +277,7 @@ install it.
 More information
 ================
 
-* Conda cheat sheet: :doc:`cheatsheet`.
-* Full documentation---`<https://conda.io/docs/>`_.
-* Free community support---`<https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda>`_.
-* Paid support options---`<https://www.anaconda.com/support/>`_.
+* :doc:`Conda cheat sheet <cheatsheet>`.
+* Full documentation--- https://conda.io/docs/ .
+* Free community support--- https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda .
+* Paid support options--- https://www.anaconda.com/support/ .
