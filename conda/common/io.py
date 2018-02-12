@@ -11,7 +11,7 @@ from functools import wraps
 from itertools import cycle
 import json
 import logging
-from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
+from logging import CRITICAL, ERROR, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os.path import dirname, isdir, isfile, join
 import signal
@@ -318,7 +318,13 @@ class Spinner(object):
         self._spinner_thread = Thread(target=self._start_spinning)
         self._indicator_length = len(next(self.spinner_cycle)) + 1
         self.fh = sys.stdout
-        self.show_spin = enabled and not json and hasattr(self.fh, "isatty") and self.fh.isatty()
+        self.show_spin = (
+            enabled
+            and not json
+            and hasattr(self.fh, "isatty")
+            and self.fh.isatty()
+            and log.isEnabledFor(ERROR)
+        )
 
     def start(self):
         if self.show_spin:
@@ -379,7 +385,7 @@ class ProgressBar(object):
                 maintains backward compatibility with conda 4.3 and earlier behavior.
         """
         self.description = description
-        self.enabled = enabled
+        self.enabled = enabled and log.isEnabledFor(ERROR)
         self.json = json
 
         if json:
