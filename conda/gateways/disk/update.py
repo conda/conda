@@ -7,10 +7,11 @@ import os
 from os import rename as os_rename, utime
 from os.path import dirname, isdir
 import re
+from shutil import move
 
 from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
 from .delete import rm_rf
-from .link import islink, lexists
+from .link import lexists
 from ...common.compat import on_win
 from ...common.path import expand
 from ...exceptions import NotWritableError
@@ -44,15 +45,6 @@ def update_file_in_place_as_binary(file_full_path, callback):
             fh.close()
 
 
-def _copy_then_remove(source_path, destination_path):
-    from .create import copy, create_hard_link_or_copy
-    if islink(source_path):
-        copy(source_path, destination_path)
-    else:
-        create_hard_link_or_copy(source_path, destination_path)
-    rm_rf(source_path)
-
-
 def rename(source_path, destination_path, force=False):
     if lexists(destination_path) and force:
         rm_rf(destination_path)
@@ -62,10 +54,13 @@ def rename(source_path, destination_path, force=False):
             os_rename(source_path, destination_path)
         except EnvironmentError as e:
             if e.errno in (EINVAL, EXDEV):
-                # see https://github.com/conda/conda/issues/6711
-                log.trace("Could not rename do to errno [%s]. Falling back to copy/remove.",
-                          e.errno)
-                _copy_then_remove(source_path, destination_path)
+                # https://github.com/conda/conda/issues/6811
+                # https://github.com/conda/conda/issues/6711
+                log.trace("Could not rename %s => %s due to errno [%s]. Falling back"
+                          " to copy/unlink", source_path, destination_path, e.errno)
+                # https://github.com/moby/moby/issues/25409#issuecomment-238537855
+                # shutil.move() falls back to copy+unlink
+                move(source_path, destination_path)
             else:
                 raise
     else:
