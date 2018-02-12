@@ -7,6 +7,7 @@ import sys
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
+from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..models.match_spec import MatchSpec
 
@@ -155,6 +156,7 @@ def disp_features(features):
         return ''
 
 
+@swallow_broken_pipe
 def stdout_json(d):
     import json
     from .._vendor.auxlib.entity import EntityEncoder

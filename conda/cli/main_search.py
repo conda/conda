@@ -2,12 +2,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
-import sys
 
 from .install import calculate_channel_urls
 from ..base.context import context
 from ..cli.common import stdout_json
-from ..common.io import spinner
+from ..common.io import Spinner
 from ..compat import text_type
 from ..core.repodata import SubdirData
 from ..models.match_spec import MatchSpec
@@ -25,7 +24,7 @@ def execute(args, parser):
     else:
         subdirs = context.subdirs
 
-    with spinner("Loading channels", not context.verbosity and not context.quiet, context.json):
+    with Spinner("Loading channels", not context.verbosity and not context.quiet, context.json):
         spec_channel = spec.get_exact_value('channel')
         channel_urls = (spec_channel,) if spec_channel else context.channels
 
@@ -66,8 +65,7 @@ def execute(args, parser):
                 record.build,
                 record.schannel,
             ))
-        sys.stdout.write('\n'.join(builder))
-        sys.stdout.write('\n')
+        print('\n'.join(builder))
 
 
 def pretty_record(record):
@@ -95,5 +93,4 @@ def pretty_record(record):
     push_line("md5", "md5")
     builder.append("%-12s: %s" % ("dependencies", dashlist(record.depends)))
     builder.append('\n')
-    sys.stdout.write('\n'.join(builder))
-    sys.stdout.write('\n')
+    print('\n'.join(builder))
