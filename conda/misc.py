@@ -240,7 +240,12 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
         if islink(src):
-            os.symlink(os.readlink(src), dst)
+            try:
+                os.symlink(os.readlink(src), dst)
+            except:
+                import ctypes
+                kdll = ctypes.windll.LoadLibrary("kernel32.dll")
+                kdll.CreateSymbolicLinkA(src, dst, 0)
             continue
 
         try:
