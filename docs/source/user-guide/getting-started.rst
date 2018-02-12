@@ -2,11 +2,6 @@
 Getting started with conda
 ==========================
 
-.. contents::
-   :local:
-   :depth: 2
-   :hidden:
-
 .. _navigator-starting:
 
 Conda is a powerful package manager and environment manager that
