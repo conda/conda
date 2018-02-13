@@ -24,7 +24,7 @@ from .._vendor.auxlib.ish import dals
 from ..base.constants import SafetyChecks
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win
-from ..common.io import spinner, time_recorder
+from ..common.io import Spinner, time_recorder
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
@@ -181,7 +181,7 @@ class UnlinkLinkTransaction(object):
 
         self.transaction_context = {}
 
-        with spinner("Preparing transaction", not context.verbosity and not context.quiet,
+        with Spinner("Preparing transaction", not context.verbosity and not context.quiet,
                      context.json):
             for stp in itervalues(self.prefix_setups):
                 grps = self._prepare(self.transaction_context, stp.target_prefix,
@@ -202,7 +202,7 @@ class UnlinkLinkTransaction(object):
             self._verified = True
             return
 
-        with spinner("Verifying transaction", not context.verbosity and not context.quiet,
+        with Spinner("Verifying transaction", not context.verbosity and not context.quiet,
                      context.json):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
             if exceptions:
@@ -466,7 +466,7 @@ class UnlinkLinkTransaction(object):
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             pkg_idx = 0
             try:
-                with spinner("Executing transaction", not context.verbosity and not context.quiet,
+                with Spinner("Executing transaction", not context.verbosity and not context.quiet,
                              context.json):
                     for pkg_idx, axngroup in enumerate(all_action_groups):
                         cls._execute_actions(pkg_idx, axngroup)
@@ -483,7 +483,7 @@ class UnlinkLinkTransaction(object):
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
                 if context.rollback_enabled:
-                    with spinner("Rolling back transaction",
+                    with Spinner("Rolling back transaction",
                                  not context.verbosity and not context.quiet, context.json):
                         failed_pkg_idx = pkg_idx
                         reverse_actions = reversed(tuple(enumerate(

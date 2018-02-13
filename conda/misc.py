@@ -20,7 +20,7 @@ from .core.linked_data import PrefixData, linked_data
 from .core.package_cache import PackageCache, ProgressiveFetchExtract
 from .exceptions import PackagesNotFoundError, ParseError
 from .gateways.disk.delete import rm_rf
-from .gateways.disk.link import islink
+from .gateways.disk.link import islink, symlink, readlink
 from .models.dist import Dist
 from .models.index_record import IndexRecord
 from .models.match_spec import MatchSpec
@@ -240,7 +240,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
         if islink(src):
-            os.symlink(os.readlink(src), dst)
+            symlink(readlink(src), dst)
             continue
 
         try:
