@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-gfrom __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
 
@@ -7,10 +7,10 @@ from .install import calculate_channel_urls
 from ..base.context import context
 from ..cli.common import stdout_json
 from ..common.io import Spinner
-from ..compat import iteritems, text_type
-from ..core.envs_manager import search_all_prefixes
+from ..compat import text_type
+from ..core.envs_manager import query_all_prefixes
 from ..core.repodata import SubdirData
-from ..models.index_record import PackageRef
+from ..models.index_record import PackageRecord
 from ..models.match_spec import MatchSpec
 from ..models.version import VersionOrder
 from ..resolve import dashlist
@@ -30,22 +30,33 @@ def execute(args, parser):
         with Spinner("Searching environments for %s" % spec,
                      not context.verbosity and not context.quiet,
                      context.json):
-            prefix_matches = search_all_prefixes(spec)
-        formatted_result = tuple({
-            'location': prefix,
-            'package_refs': tuple(PackageRef.from_objects(prefix_rec)
-                                  for prefix_rec in prefix_recs),
-        } for prefix, prefix_recs in iteritems(prefix_matches))
+            prefix_matches = query_all_prefixes(spec)
+            ordered_result = tuple({
+                'location': prefix,
+                'package_records': tuple(sorted(
+                    (PackageRecord.from_objects(prefix_rec) for prefix_rec in prefix_recs),
+                    key=lambda prec: prec._pkey
+                )),
+            } for prefix, prefix_recs in prefix_matches)
         if context.json:
-            stdout_json(formatted_result)
+            stdout_json(ordered_result)
         else:
-            builder = []
-            for pkg_group in formatted_result:
-                builder.append("location: %s" % pkg_group['location'])
-                builder.append("package matches:%s" % dashlist(
-                    pref.dist_str() for pref in pkg_group['package_refs']
-                ))
-                builder.append('')
+            builder = ['# %-13s %15s %15s  %-20s %-20s' % (
+                "Name",
+                "Version",
+                "Build",
+                "Channel",
+                "Location",
+            )]
+            for pkg_group in ordered_result:
+                for prec in pkg_group['package_records']:
+                    builder.append('%-15s %15s %15s  %-20s %-20s' % (
+                        prec.name,
+                        prec.version,
+                        prec.build,
+                        prec.channel.name,
+                        pkg_group['location'],
+                    ))
             print('\n'.join(builder))
         return 0
 
@@ -77,18 +88,18 @@ def execute(args, parser):
             pretty_record(record)
 
     else:
-        builder = ['%-25s  %-15s %15s  %-15s' % (
+        builder = ['# %-13s %15s %15s  %-20s' % (
             "Name",
             "Version",
             "Build",
             "Channel",
         )]
         for record in matches:
-            builder.append('%-25s  %-15s %15s  %-15s' % (
+            builder.append('%-15s %15s %15s  %-20s' % (
                 record.name,
                 record.version,
                 record.build,
-                record.schannel,
+                record.channel.name,
             ))
         print('\n'.join(builder))
 

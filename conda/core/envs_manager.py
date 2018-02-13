@@ -88,12 +88,11 @@ def list_all_known_prefixes():
     return sorted(all_env_paths)
 
 
-def search_all_prefixes(spec):
-    prefix_matches = (
-        (prefix, tuple(PrefixData(prefix).query(spec)))
-        for prefix in list_all_known_prefixes()
-    )
-    return {prefix: prefix_recs for prefix, prefix_recs in prefix_matches if prefix_recs}
+def query_all_prefixes(spec):
+    for prefix in list_all_known_prefixes():
+        prefix_recs = tuple(PrefixData(prefix).query(spec))
+        if prefix_recs:
+            yield prefix, prefix_recs
 
 
 def env_name(prefix):
