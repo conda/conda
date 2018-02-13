@@ -6,6 +6,7 @@ from logging import getLogger
 import os
 from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
                      split as path_split)
+import platform
 from platform import machine
 import sys
 
@@ -173,8 +174,7 @@ class Context(Configuration):
                                   aliases=('channels', 'channel',))  # channel for args.channel
     _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
     _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
-    _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
-                                          aliases=('default_channels',))
+    _default_channels = SequenceParameter(string_types, aliases=('default_channels',))
     _migrated_channel_aliases = SequenceParameter(string_types,
                                                   aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
     migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
@@ -504,12 +504,26 @@ class Context(Configuration):
         #   - are meant to be prepended with channel_alias
         return self.custom_multichannels[DEFAULTS_CHANNEL_NAME]
 
+    def _mac_ver(self):
+        # platform.mac_ver() returns ('', ('', '', ''), '') on Linux and Windows
+        return platform.mac_ver()[0] or '10.9'  # default to 10.9, the oldest we support
+
     @memoizedproperty
     def custom_multichannels(self):
         from ..models.channel import Channel
 
+        if self._default_channels:
+            _default_channels = self._default_channels
+        else:
+            _default_channels = list(DEFAULT_CHANNELS)
+            if (self.subdir == "osx-64" and int(self._mac_ver().split('.')[1]) < 11
+                    or self.bits == 32):
+                _default_channels.remove('https://repo.continuum.io/pkgs/mro')
+            if not on_win:
+                _default_channels.remove('https://repo.continuum.io/pkgs/msys2')
+
         reserved_multichannel_urls = odict((
-            (DEFAULTS_CHANNEL_NAME, self._default_channels),
+            (DEFAULTS_CHANNEL_NAME, _default_channels),
             ('local', self.conda_build_local_urls),
         ))
         reserved_multichannels = odict(
@@ -888,7 +902,6 @@ def get_help_dict():
 
 @memoize
 def _get_user_agent(context_platform):
-    import platform
     try:
         from requests import __version__ as REQUESTS_VERSION
     except ImportError:  # pragma: no cover
