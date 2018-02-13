@@ -1,3 +1,14 @@
+## 4.4.11 (unreleased)
+
+### Improvements
+* resolve #6582 swallow_broken_pipe context manager and Spinner refactor (#6616)
+
+### Bug Fixes
+* fix potential error in ensure_pad(); add more tests (#6817)
+* fix #6840 handle error return values in conda.sh (#6850)
+* use conda.gateways.disk for misc.py imports (#6870)
+
+
 ## 4.4.10 (2018-02-09)
 
 ### Bug Fixes
