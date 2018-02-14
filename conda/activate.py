@@ -305,7 +305,6 @@ class Activator(object):
         new_conda_shlvl = old_conda_shlvl - 1
         new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
 
-        assert old_conda_shlvl > 0
         set_vars = {}
         if old_conda_shlvl == 1:
             # TODO: warn conda floor

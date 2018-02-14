@@ -27,8 +27,8 @@ log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')
 
 # used in conda build
-Unsatisfiable = UnsatisfiableError
-ResolvePackageNotFound = ResolvePackageNotFound
+Unsatisfiable = UnsatisfiableError  # lgtm [py/redundant-assignment]
+ResolvePackageNotFound = ResolvePackageNotFound  # lgtm [py/redundant-assignment]
 
 
 def dashlist(iterable, indent=2):
@@ -794,7 +794,6 @@ class Resolve(object):
 
     def remove_specs(self, specs, installed):
         nspecs = []
-        snames = set()
         # There's an imperfect thing happening here. "specs" nominally contains
         # a list of package names or track_feature values to be removed. But
         # because of add_defaults_to_specs it may also contain version contraints

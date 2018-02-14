@@ -140,8 +140,14 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         for var in (packages, features, channels, records):
             var[pkg] = var[pkg][::-1]
 
-    empty = False
+    updated = set()
+    downgraded = set()
+    channeled = set()
+    oldfmt = {}
+    newfmt = {}
+    empty = True
     if packages:
+        empty = False
         maxpkg = max(len(p) for p in packages) + 1
         maxoldver = max(len(p[0]) for p in packages.values())
         maxnewver = max(len(p[1]) for p in packages.values())
@@ -149,69 +155,61 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         maxnewfeatures = max(len(p[1]) for p in features.values())
         maxoldchannels = max(len(channel_filt(p[0])) for p in channels.values())
         maxnewchannels = max(len(channel_filt(p[1])) for p in channels.values())
-    else:
-        empty = True
+        for pkg in packages:
+            # That's right. I'm using old-style string formatting to generate a
+            # string with new-style string formatting.
+            oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
+            if maxoldchannels:
+                oldfmt[pkg] += ' {channels[0]:<%s}' % maxoldchannels
+            if features[pkg][0]:
+                oldfmt[pkg] += ' [{features[0]:<%s}]' % maxoldfeatures
 
-    updated = set()
-    downgraded = set()
-    channeled = set()
-    oldfmt = {}
-    newfmt = {}
-    for pkg in packages:
-        # That's right. I'm using old-style string formatting to generate a
-        # string with new-style string formatting.
-        oldfmt[pkg] = '{pkg:<%s} {vers[0]:<%s}' % (maxpkg, maxoldver)
-        if maxoldchannels:
-            oldfmt[pkg] += ' {channels[0]:<%s}' % maxoldchannels
-        if features[pkg][0]:
-            oldfmt[pkg] += ' [{features[0]:<%s}]' % maxoldfeatures
+            lt = LinkType(linktypes.get(pkg, LinkType.hardlink))
+            lt = '' if lt == LinkType.hardlink else (' (%s)' % lt)
+            if pkg in removed or pkg in new:
+                oldfmt[pkg] += lt
+                continue
 
-        lt = LinkType(linktypes.get(pkg, LinkType.hardlink))
-        lt = '' if lt == LinkType.hardlink else (' (%s)' % lt)
-        if pkg in removed or pkg in new:
-            oldfmt[pkg] += lt
-            continue
+            newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
+            if maxnewchannels:
+                newfmt[pkg] += ' {channels[1]:<%s}' % maxnewchannels
+            if features[pkg][1]:
+                newfmt[pkg] += ' [{features[1]:<%s}]' % maxnewfeatures
+            newfmt[pkg] += lt
 
-        newfmt[pkg] = '{vers[1]:<%s}' % maxnewver
-        if maxnewchannels:
-            newfmt[pkg] += ' {channels[1]:<%s}' % maxnewchannels
-        if features[pkg][1]:
-            newfmt[pkg] += ' [{features[1]:<%s}]' % maxnewfeatures
-        newfmt[pkg] += lt
-
-        P0 = records[pkg][0]
-        P1 = records[pkg][1]
-        pri0 = P0.get('priority')
-        pri1 = P1.get('priority')
-        if pri0 is None or pri1 is None:
-            pri0 = pri1 = 1
-        try:
-            if str(P1.version) == 'custom':
-                newver = str(P0.version) != 'custom'
-                oldver = not newver
+            P0 = records[pkg][0]
+            P1 = records[pkg][1]
+            pri0 = P0.get('priority')
+            pri1 = P1.get('priority')
+            if pri0 is None or pri1 is None:
+                pri0 = pri1 = 1
+            try:
+                if str(P1.version) == 'custom':
+                    newver = str(P0.version) != 'custom'
+                    oldver = not newver
+                else:
+                    # <= here means that unchanged packages will be put in updated
+                    N0 = normalized_version(P0.version)
+                    N1 = normalized_version(P1.version)
+                    newver = N0 < N1
+                    oldver = N0 > N1
+            except TypeError:
+                newver = P0.version < P1.version
+                oldver = P0.version > P1.version
+            oldbld = P0.build_number > P1.build_number
+            newbld = P0.build_number < P1.build_number
+            if context.channel_priority and pri1 < pri0 and (oldver or not newver and not newbld):
+                channeled.add(pkg)
+            elif newver:
+                updated.add(pkg)
+            elif pri1 < pri0 and (oldver or not newver and oldbld):
+                channeled.add(pkg)
+            elif oldver:
+                downgraded.add(pkg)
+            elif not oldbld:
+                updated.add(pkg)
             else:
-                # <= here means that unchanged packages will be put in updated
-                N0 = normalized_version(P0.version)
-                N1 = normalized_version(P1.version)
-                newver = N0 < N1
-                oldver = N0 > N1
-        except TypeError:
-            newver = P0.version < P1.version
-            oldver = P0.version > P1.version
-        oldbld = P0.build_number > P1.build_number
-        newbld = P0.build_number < P1.build_number
-        if context.channel_priority and pri1 < pri0 and (oldver or not newver and not newbld):
-            channeled.add(pkg)
-        elif newver:
-            updated.add(pkg)
-        elif pri1 < pri0 and (oldver or not newver and oldbld):
-            channeled.add(pkg)
-        elif oldver:
-            downgraded.add(pkg)
-        elif not oldbld:
-            updated.add(pkg)
-        else:
-            downgraded.add(pkg)
+                downgraded.add(pkg)
 
     arrow = ' --> '
     lead = ' ' * 4

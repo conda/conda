@@ -534,7 +534,7 @@ class Solver(object):
         # All of this _prepare() method is hidden away down here. Someday we may want to further
         # abstract away the use of `index` or the Resolve object.
 
-        if self._prepared and prepared_specs == prepared_specs:
+        if self._prepared and prepared_specs == self._prepared_specs:
             return self._index, self._r
 
         if hasattr(self, '_index') and self._index:

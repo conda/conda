@@ -13,11 +13,11 @@ if PY3:
     import configparser
 else:
     import ConfigParser as configparser
-configparser = configparser
+configparser = configparser  # lgtm [py/redundant-assignment]
 
 
 from .gateways.disk.link import lchmod  # NOQA
-lchmod = lchmod
+lchmod = lchmod  # lgtm [py/redundant-assignment]
 
 
 class TemporaryDirectory(object):

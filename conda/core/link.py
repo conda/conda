@@ -291,11 +291,7 @@ class UnlinkLinkTransaction(object):
         history_actions = UpdateHistoryAction.create_actions(
             transaction_context, target_prefix, remove_specs, update_specs,
         )
-        if link_action_groups or not (unlink_action_groups and link_action_groups):
-            register_actions = RegisterEnvironmentLocationAction(transaction_context,
-                                                                 target_prefix),
-        else:
-            register_actions = ()
+        register_actions = RegisterEnvironmentLocationAction(transaction_context, target_prefix),
 
         register_action_groups = ActionGroup('register', None,
                                              register_actions + history_actions,

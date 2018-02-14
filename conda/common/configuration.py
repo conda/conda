@@ -87,7 +87,7 @@ class ValidationError(ConfigurationError):
         self.parameter_name = parameter_name
         self.parameter_value = parameter_value
         self.source = source
-        super(ConfigurationError, self).__init__(msg, **kwargs)
+        super(ValidationError, self).__init__(msg, **kwargs)
 
 
 class MultipleKeysError(ValidationError):
@@ -387,8 +387,8 @@ class Parameter(object):
     def _set_name(self, name):
         # this is an explicit method, and not a descriptor/setter
         # it's meant to be called by the Configuration metaclass
-        self._name = name
-        self._names = frozenset(x for x in chain(self.aliases, (name, )))
+        self._name = name  # lgtm [py/mutable-descriptor]
+        self._names = frozenset(x for x in chain(self.aliases, (name, )))  # NOQA lgtm [py/mutable-descriptor]
         return name
 
     @property
@@ -454,8 +454,8 @@ class Parameter(object):
         else:
             errors.extend(self.collect_errors(instance, result))
         raise_errors(errors)
-        instance._cache_[self.name] = result
-        return result
+        instance._cache_[self.name] = result  # lgtm [py/uninitialized-local-variable]
+        return result  # lgtm [py/uninitialized-local-variable]
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         """Validate a Parameter value.

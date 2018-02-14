@@ -544,12 +544,12 @@ class DateField(Field):
 class EnumField(Field):
 
     def __init__(self, enum_class, default=NULL, required=True, validation=None,
-                 in_dump=True, default_in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, default_in_dump=True, nullable=False, immutable=False, aliases=()):
         if not issubclass(enum_class, Enum):
             raise ValidationError(None, msg="enum_class must be an instance of Enum")
         self._type = enum_class
         super(EnumField, self).__init__(default, required, validation,
-                                        in_dump, default_in_dump, nullable, immutable)
+                                        in_dump, default_in_dump, nullable, immutable, aliases)
 
     def box(self, instance, instance_type, val):
         if val is None:
@@ -573,10 +573,10 @@ class ListField(Field):
     _type = tuple
 
     def __init__(self, element_type, default=NULL, required=True, validation=None,
-                 in_dump=True, default_in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, default_in_dump=True, nullable=False, immutable=False, aliases=()):
         self._element_type = element_type
         super(ListField, self).__init__(default, required, validation,
-                                        in_dump, default_in_dump, nullable, immutable)
+                                        in_dump, default_in_dump, nullable, immutable, aliases)
 
     def box(self, instance, instance_type, val):
         if val is None:
@@ -620,9 +620,9 @@ class MapField(Field):
     _type = frozendict
 
     def __init__(self, default=NULL, required=True, validation=None,
-                 in_dump=True, default_in_dump=True, nullable=False, immutable=True):
+                 in_dump=True, default_in_dump=True, nullable=False, immutable=True, aliases=()):
         super(MapField, self).__init__(default, required, validation, in_dump, default_in_dump,
-                                       nullable, immutable)
+                                       nullable, immutable, aliases)
 
     def box(self, instance, instance_type, val):
         # TODO: really need to make this recursive to make any lists or maps immutable
@@ -642,10 +642,11 @@ class MapField(Field):
 class ComposableField(Field):
 
     def __init__(self, field_class, default=NULL, required=True, validation=None,
-                 in_dump=True, default_in_dump=True, nullable=False, immutable=False):
+                 in_dump=True, default_in_dump=True, nullable=False, immutable=False, aliases=()):
         self._type = field_class
         super(ComposableField, self).__init__(default, required, validation,
-                                              in_dump, default_in_dump, nullable, immutable)
+                                              in_dump, default_in_dump, nullable, immutable,
+                                              aliases)
 
     def box(self, instance, instance_type, val):
         if val is None:

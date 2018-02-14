@@ -24,19 +24,19 @@ except ImportError:  # pragma: no cover
     from pip._vendor.requests.structures import CaseInsensitiveDict
     from pip._vendor.requests.utils import get_auth_from_url, get_netrc_auth
 
-dispatch_hook = dispatch_hook
-BaseAdapter = BaseAdapter
-Response = Response
-CaseInsensitiveDict = CaseInsensitiveDict
-Session = Session
-HTTPAdapter = HTTPAdapter
-AuthBase = AuthBase
-_basic_auth_str = _basic_auth_str
-extract_cookies_to_jar = extract_cookies_to_jar
-get_auth_from_url = get_auth_from_url
-get_netrc_auth = get_netrc_auth
-ConnectionError = ConnectionError
-HTTPError = HTTPError
-InvalidSchema = InvalidSchema
-SSLError = SSLError
-InsecureRequestWarning = InsecureRequestWarning
+dispatch_hook = dispatch_hook  # lgtm [py/redundant-assignment]
+BaseAdapter = BaseAdapter  # lgtm [py/redundant-assignment]
+Response = Response  # lgtm [py/redundant-assignment]
+CaseInsensitiveDict = CaseInsensitiveDict  # lgtm [py/redundant-assignment]
+Session = Session  # lgtm [py/redundant-assignment]
+HTTPAdapter = HTTPAdapter  # lgtm [py/redundant-assignment]
+AuthBase = AuthBase  # lgtm [py/redundant-assignment]
+_basic_auth_str = _basic_auth_str  # lgtm [py/redundant-assignment]
+extract_cookies_to_jar = extract_cookies_to_jar  # lgtm [py/redundant-assignment]
+get_auth_from_url = get_auth_from_url  # lgtm [py/redundant-assignment]
+get_netrc_auth = get_netrc_auth  # lgtm [py/redundant-assignment]
+ConnectionError = ConnectionError  # lgtm [py/redundant-assignment]
+HTTPError = HTTPError  # lgtm [py/redundant-assignment]
+InvalidSchema = InvalidSchema  # lgtm [py/redundant-assignment]
+SSLError = SSLError  # lgtm [py/redundant-assignment]
+InsecureRequestWarning = InsecureRequestWarning  # lgtm [py/redundant-assignment]
