@@ -15,6 +15,7 @@ from ..exceptions import (BasicClobberError, CondaDependencyError, CorruptedEnvi
 from ..gateways.disk.create import write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..models.dist import Dist
+from ..models.index_record import PackageRef
 from ..models.match_spec import MatchSpec
 from ..models.prefix_record import PrefixRecord
 
@@ -115,7 +116,7 @@ class PrefixData(object):
             return (prefix_rec for prefix_rec in self.iter_records()
                     if param.match(prefix_rec))
         else:
-            # assume isinstance(param, PackageRef)
+            assert isinstance(param, PackageRef)
             return (prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param)
 
     @property

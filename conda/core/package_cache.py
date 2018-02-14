@@ -116,7 +116,7 @@ class PackageCache(object):
             return (pcrec for pcrec in itervalues(self._package_cache_records)
                     if param.match(pcrec))
         else:
-            # assume isinstance(param, PackageRef)
+            assert isinstance(param, PackageRef)
             return (pcrec for pcrec in itervalues(self._package_cache_records) if pcrec == param)
 
     @classmethod
