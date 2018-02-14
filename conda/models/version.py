@@ -545,10 +545,13 @@ class BuildNumberMatch(object):
         return self
 
     def exact_match_(self, vspec):
-        return self.spec == vspec
+        try:
+            return int(self.spec) == int(vspec)
+        except ValueError:
+            return False
 
     def veval_match_(self, vspec):
-        return self.op(VersionOrder(vspec), self.cmp)
+        return self.op(VersionOrder(text_type(vspec)), self.cmp)
 
     def triv_match_(self, vspec):
         return True

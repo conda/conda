@@ -395,6 +395,24 @@ class MatchSpecTests(TestCase):
         assert c.match(DPkg(dst, track_features='nomkl'))
         assert c.match(DPkg(dst, track_features='blas=nomkl debug'))
 
+    def test_bracket_matches(self):
+        record = {
+            'name': 'numpy',
+            'version': '1.11.0',
+            'build': 'py34_7',
+            'build_number': 7,
+        }
+
+        assert MatchSpec("numpy<2").match(record)
+        assert MatchSpec("numpy[version<2]").match(record)
+        assert not MatchSpec("numpy>2").match(record)
+        # assert not MatchSpec("numpy[version='>2']").match(record)  # TODO: make work
+
+        assert MatchSpec("numpy[build_number='7']").match(record)
+        assert MatchSpec("numpy[build_number='<8']").match(record)
+        assert not MatchSpec("numpy[build_number='>7']").match(record)
+        assert MatchSpec("numpy[build_number='>=7']").match(record)
+
 
 class TestArg2Spec(TestCase):
 
@@ -642,3 +660,47 @@ class SpecStrParsingTests(TestCase):
             # "target": "blarg",  # suppressing these for now
             # "optional": True,
         }
+
+    def test_parse_build_number_brackets(self):
+        assert _parse_spec_str("python[build_number=3]") == {
+            "name": "python",
+            "build_number": '3',
+        }
+        assert _parse_spec_str("python[build_number='>3']") == {
+            "name": "python",
+            "build_number": '>3',
+        }
+        assert _parse_spec_str("python[build_number='>=3']") == {
+            "name": "python",
+            "build_number": '>=3',
+        }
+
+        assert _parse_spec_str("python[build_number='<3']") == {
+            "name": "python",
+            "build_number": '<3',
+        }
+        assert _parse_spec_str("python[build_number='<=3']") == {
+            "name": "python",
+            "build_number": '<=3',
+        }
+
+        # # these don't work right now, should they?
+        # assert _parse_spec_str("python[build_number<3]") == {
+        #     "name": "python",
+        #     "build_number": '<3',
+        # }
+        # assert _parse_spec_str("python[build_number<=3]") == {
+        #     "name": "python",
+        #     "build_number": '<=3',
+        # }
+
+        # # these don't work right now, should they?
+        # assert _parse_spec_str("python[build_number>3]") == {
+        #     "name": "python",
+        #     "build_number": '>3',
+        # }
+        # assert _parse_spec_str("python[build_number>=3]") == {
+        #     "name": "python",
+        #     "build_number": '>=3',
+        # }
+
