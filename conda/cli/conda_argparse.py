@@ -918,9 +918,8 @@ def configure_parser_search(sub_parsers):
     p.add_argument(
         "--reverse-dependency",
         action="store_true",
-        help="Perform a reverse dependency search. When using this flag, the --full-name "
-             "flag is recommended. Use 'conda info package' to see the dependencies of a "
-             "package.",
+        help="Perform a reverse dependency search. Use 'conda info package' to see the "
+             "dependencies of a package.",
     )
     add_parser_offline(p)
     add_parser_channels(p)
