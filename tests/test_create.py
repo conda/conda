@@ -298,7 +298,9 @@ class IntegrationTests(TestCase):
             with pytest.raises(MultiplePackagesError):
                 run_command(Commands.SEARCH, prefix, "zope --reverse-dependency")
 
-            run_command(Commands.SEARCH, prefix, "zope=1.0.0=py27_0 --reverse-dependency")
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "zope=1.0.0=py27_0 --reverse-dependency")
+            assert not stderr
+            assert "zope.interface" in stdout
 
 
     def test_create_install_update_remove_smoketest(self):
