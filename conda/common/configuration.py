@@ -388,7 +388,8 @@ class Parameter(object):
         # this is an explicit method, and not a descriptor/setter
         # it's meant to be called by the Configuration metaclass
         self._name = name  # lgtm [py/mutable-descriptor]
-        self._names = frozenset(x for x in chain(self.aliases, (name, )))  # NOQA lgtm [py/mutable-descriptor]
+        _names = frozenset(x for x in chain(self.aliases, (name, )))
+        self._names = _names  # lgtm [py/mutable-descriptor]
         return name
 
     @property
@@ -671,7 +672,7 @@ class MapParameter(Parameter):
 
         # mapkeys with important matches
         def key_is_important(match, key):
-            return match.valueflags(self).get(key) is ParameterFlag.final
+            return match.valueflags(self).get(key) == ParameterFlag.final
         important_maps = tuple(dict((k, v)
                                     for k, v in iteritems(match_value)
                                     if key_is_important(match, k))

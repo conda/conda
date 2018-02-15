@@ -271,7 +271,9 @@ class IndexJsonRecord(BasePackageRef):
         return tuple(itervalues(result))
 
 
-class PackageRecord(IndexJsonRecord, PackageRef):
+# conflicting attribute due to subdir on both IndexJsonRecord and PackageRef
+# probably unavoidable for now
+class PackageRecord(IndexJsonRecord, PackageRef):  # lgtm [py/conflicting-attributes]
     # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
     # PackageCacheRecord (`pcrec`) or PrefixRecord (`prefix_rec`)
     #

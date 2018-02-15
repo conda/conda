@@ -31,7 +31,8 @@ from ...models.enums import FileMode, LinkType
 log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')
 
-mkdir_p = mkdir_p  # in __init__.py to help with circular imports  # lgtm [py/redundant-assignment]
+# in __init__.py to help with circular imports
+mkdir_p = mkdir_p  # lgtm [py/redundant-assignment]
 
 python_entry_point_template = dals("""
 # -*- coding: utf-8 -*-

@@ -117,7 +117,8 @@ def is_ipv6_address_win_py27(string_ip):
         [False, False]
     """
     # python 2.7 on windows does not have socket.inet_pton
-    return bool(re.match(r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"  # NOQA lgtm [py/regex/unmatchable-dollar]
+    return bool(re.match(r""  # lgtm [py/regex/unmatchable-dollar]
+                         r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"
                          r"([\dA-F]{1,4}(\3|:\b)|\2){5}"
                          r"(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|"
                          r"(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z",
