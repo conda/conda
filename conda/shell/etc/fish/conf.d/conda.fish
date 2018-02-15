@@ -93,7 +93,7 @@ function __fish_conda_commands
 end
 
 function __fish_conda_envs
-  basename -a $_CONDA_ROOT/envs/*/
+  eval $_CONDA_EXE env list | tail -n +3 | awk '{print $1}'
 end
 
 function __fish_conda_packages
