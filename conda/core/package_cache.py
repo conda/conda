@@ -46,18 +46,18 @@ class PackageCacheType(type):
     """
 
     def __call__(cls, pkgs_dir):
-        if isinstance(pkgs_dir, PackageCache):
+        if isinstance(pkgs_dir, PackageCacheData):
             return pkgs_dir
-        elif pkgs_dir in PackageCache._cache_:
-            return PackageCache._cache_[pkgs_dir]
+        elif pkgs_dir in PackageCacheData._cache_:
+            return PackageCacheData._cache_[pkgs_dir]
         else:
             package_cache_instance = super(PackageCacheType, cls).__call__(pkgs_dir)
-            PackageCache._cache_[pkgs_dir] = package_cache_instance
+            PackageCacheData._cache_[pkgs_dir] = package_cache_instance
             return package_cache_instance
 
 
 @with_metaclass(PackageCacheType)
-class PackageCache(object):
+class PackageCacheData(object):
     _cache_ = {}
 
     def __init__(self, pkgs_dir):
@@ -439,7 +439,7 @@ class ProgressiveFetchExtract(object):
         md5 = pref_or_spec.get('md5')
         if md5:
             extracted_pcrec = next((
-                pcrec for pcrec in concat(PackageCache(pkgs_dir).query(pref_or_spec)
+                pcrec for pcrec in concat(PackageCacheData(pkgs_dir).query(pref_or_spec)
                                           for pkgs_dir in context.pkgs_dirs)
                 if pcrec.is_extracted
             ), None)
@@ -451,11 +451,11 @@ class ProgressiveFetchExtract(object):
         # first we look in all writable caches, and if we find a match, we extract in place
         # otherwise, if we find a match in a non-writable cache, we link it to the first writable
         #   cache, and then extract
-        first_writable_cache = PackageCache.first_writable()
+        first_writable_cache = PackageCacheData.first_writable()
         first_writable_cache._ensure_exists()
         pcrec_from_writable_cache = next((
             pcrec for pcrec in concat(pcache.query(pref_or_spec)
-                                      for pcache in PackageCache.writable_caches())
+                                      for pcache in PackageCacheData.writable_caches())
             if pcrec.is_fetched
         ), None)
         if pcrec_from_writable_cache:
@@ -471,7 +471,7 @@ class ProgressiveFetchExtract(object):
 
         pcrec_from_read_only_cache = next((
             pcrec for pcrec in concat(pcache.query(pref_or_spec)
-                                      for pcache in PackageCache.read_only_caches())
+                                      for pcache in PackageCacheData.read_only_caches())
             if pcrec.is_fetched
         ), None)
 
@@ -666,10 +666,10 @@ def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=3):
 class package_cache(object):
 
     def __contains__(self, dist):
-        return bool(PackageCache.first_writable().get(Dist(dist).to_package_ref(), None))
+        return bool(PackageCacheData.first_writable().get(Dist(dist).to_package_ref(), None))
 
     def keys(self):
-        return (Dist(v) for v in itervalues(PackageCache.first_writable()))
+        return (Dist(v) for v in itervalues(PackageCacheData.first_writable()))
 
     def __delitem__(self, dist):
-        PackageCache.first_writable().remove(Dist(dist).to_package_ref())
+        PackageCacheData.first_writable().remove(Dist(dist).to_package_ref())

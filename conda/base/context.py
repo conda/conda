@@ -401,8 +401,8 @@ class Context(Configuration):
     @memoizedproperty
     def trash_dir(self):
         # TODO: this inline import can be cleaned up by moving pkgs_dir write detection logic
-        from ..core.package_cache import PackageCache
-        pkgs_dir = PackageCache.first_writable().pkgs_dir
+        from ..core.package_cache import PackageCacheData
+        pkgs_dir = PackageCacheData.first_writable().pkgs_dir
         trash_dir = join(pkgs_dir, '.trash')
         from ..gateways.disk.create import mkdir_p
         mkdir_p(trash_dir)
@@ -1000,10 +1000,10 @@ def determine_target_prefix(ctx, args=None):
 def _first_writable_envs_dir():
     # Starting in conda 4.3, we use the writability test on '..../pkgs/url.txt' to determine
     # writability of '..../envs'.
-    from ..core.package_cache import PackageCache
+    from ..core.package_cache import PackageCacheData
     for envs_dir in context.envs_dirs:
         pkgs_dir = join(dirname(envs_dir), 'pkgs')
-        if PackageCache(pkgs_dir).is_writable:
+        if PackageCacheData(pkgs_dir).is_writable:
             return envs_dir
 
     from ..exceptions import NotWritableError

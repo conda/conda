@@ -25,7 +25,7 @@ from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, st
                              text_type, with_metaclass)
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
-from ..core.package_cache import PackageCache
+from ..core.package_cache import PackageCacheData
 from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError, NotWritableError
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)
@@ -632,6 +632,6 @@ def add_http_value_to_dict(resp, http_key, d, dict_key):
 
 
 def create_cache_dir():
-    cache_dir = join(PackageCache.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
+    cache_dir = join(PackageCacheData.first_writable(context.pkgs_dirs).pkgs_dir, 'cache')
     mkdir_p_sudo_safe(cache_dir)
     return cache_dir

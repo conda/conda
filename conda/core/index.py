@@ -5,7 +5,7 @@ from itertools import chain
 from logging import getLogger
 
 from .linked_data import linked_data
-from .package_cache import PackageCache
+from .package_cache import PackageCacheData
 from .repodata import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
@@ -111,7 +111,7 @@ def _supplement_index_with_prefix(index, prefix):
 
 def _supplement_index_with_cache(index):
     # supplement index with packages from the cache
-    for pcrec in PackageCache.get_all_extracted_entries():
+    for pcrec in PackageCacheData.get_all_extracted_entries():
         dist = Dist(pcrec)
         if dist in index:
             # The downloaded repodata takes priority

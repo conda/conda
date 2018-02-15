@@ -1136,8 +1136,8 @@ class CacheUrlAction(PathAction):
     def execute(self, progress_update_callback=None):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the PackageCache class to CacheUrlAction __init__
-        from .package_cache import PackageCache
-        target_package_cache = PackageCache(self.target_pkgs_dir)
+        from .package_cache import PackageCacheData
+        target_package_cache = PackageCacheData(self.target_pkgs_dir)
 
         log.trace("caching url %s => %s", self.url, self.target_full_path)
 
@@ -1156,7 +1156,7 @@ class CacheUrlAction(PathAction):
             if dirname(source_path) in context.pkgs_dirs:
                 # if url points to another package cache, link to the writable cache
                 create_hard_link_or_copy(source_path, self.target_full_path)
-                source_package_cache = PackageCache(dirname(source_path))
+                source_package_cache = PackageCacheData(dirname(source_path))
 
                 # the package is already in a cache, so it came from a remote url somewhere;
                 #   make sure that remote url is the most recent url in the
@@ -1178,8 +1178,8 @@ class CacheUrlAction(PathAction):
                 #   anyway when we extract the tarball.
                 source_md5sum = compute_md5sum(source_path)
                 exclude_caches = self.target_pkgs_dir,
-                pc_entry = PackageCache.tarball_file_in_cache(source_path, source_md5sum,
-                                                              exclude_caches=exclude_caches)
+                pc_entry = PackageCacheData.tarball_file_in_cache(source_path, source_md5sum,
+                                                                  exclude_caches=exclude_caches)
 
                 if pc_entry:
                     origin_url = target_package_cache._urls_data.get_url(
@@ -1235,7 +1235,7 @@ class ExtractPackageAction(PathAction):
     def execute(self, progress_update_callback=None):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
-        from .package_cache import PackageCache
+        from .package_cache import PackageCacheData
         log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
         if lexists(self.hold_path):
@@ -1273,7 +1273,7 @@ class ExtractPackageAction(PathAction):
         repodata_record_path = join(self.target_full_path, 'info', 'repodata_record.json')
         write_as_json_to_file(repodata_record_path, repodata_record)
 
-        target_package_cache = PackageCache(self.target_pkgs_dir)
+        target_package_cache = PackageCacheData(self.target_pkgs_dir)
         package_cache_record = PackageCacheRecord.from_objects(
             repodata_record,
             package_tarball_full_path=self.source_full_path,
