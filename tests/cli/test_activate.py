@@ -137,12 +137,18 @@ def _format_vars(shell):
 {set} CONDARC=
 {set} CONDA_PATH_BACKUP=
 {set} PATH="{new_path}"
+{set} _CONDA_ROOT="{shellpath}"
 """
         if 'bash' in shell:
             _command_setup += "set -u\n"
 
-    command_setup = _command_setup.format(here=dirname(__file__), PYTHONPATH=shelldict['path_to'](PYTHONPATH),
-           set=shelldict["set_var"], new_path=base_path)
+    command_setup = _command_setup.format(
+        here=dirname(__file__),
+        PYTHONPATH=shelldict['path_to'](PYTHONPATH),
+        set=shelldict["set_var"],
+        new_path=base_path,
+        shellpath=join(dirname(CONDA_PACKAGE_ROOT), 'conda', 'shell')
+    )
     if shelldict["shell_suffix"] == '.bat':
         command_setup = "@echo off\n" + command_setup
 
@@ -340,51 +346,6 @@ def test_wrong_args(shell):
         stdout = strip_leading_library_bin(stdout, shells[shell])
         assert_in("activate does not accept more than one argument", stderr)
         assert_equals(stdout, shell_vars['base_path'], stderr)
-
-
-@pytest.mark.installed
-def test_activate_help(shell):
-    shell_vars = _format_vars(shell)
-    with TemporaryDirectory(prefix=ENVS_PREFIX, dir=dirname(__file__)) as envs:
-        if shell not in ['powershell.exe', 'cmd.exe']:
-            commands = (shell_vars['command_setup'] + """
-            "{syspath}{binpath}activate" Zanzibar
-            """).format(envs=envs, **shell_vars)
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '')
-            assert_in("activate must be sourced", stderr)
-            # assert_in("Usage: source activate ENV", stderr)
-
-        commands = (shell_vars['command_setup'] + """
-        {source} "{syspath}{binpath}activate" --help
-        """).format(envs=envs, **shell_vars)
-
-        stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, '')
-
-        if shell in ["cmd.exe", "powershell"]:
-            # assert_in("Usage: activate ENV", stderr)
-            pass
-        else:
-            # assert_in("Usage: source activate ENV", stderr)
-
-            commands = (shell_vars['command_setup'] + """
-            {syspath}{binpath}deactivate
-            """).format(envs=envs, **shell_vars)
-            stdout, stderr = run_in(commands, shell)
-            assert_equals(stdout, '')
-            assert_in("deactivate must be sourced", stderr)
-            # assert_in("Usage: source deactivate", stderr)
-
-        commands = (shell_vars['command_setup'] + """
-        {source} {syspath}{binpath}deactivate --help
-        """).format(envs=envs, **shell_vars)
-        stdout, stderr = run_in(commands, shell)
-        assert_equals(stdout, '')
-        # if shell in ["cmd.exe", "powershell"]:
-        #     assert_in("Usage: deactivate", stderr)
-        # else:
-        #     assert_in("Usage: source deactivate", stderr)
 
 
 @pytest.mark.installed
