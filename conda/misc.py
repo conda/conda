@@ -16,7 +16,7 @@ from .common.path import expand
 from .common.url import is_url, join_url, path_to_url, unquote
 from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
-from .core.linked_data import PrefixData, linked_data
+from .core.prefix_data import PrefixData, linked_data
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .exceptions import PackagesNotFoundError, ParseError
 from .gateways.disk.delete import rm_rf

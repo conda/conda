@@ -11,7 +11,7 @@ from time import sleep
 from uuid import uuid4
 
 from .envs_manager import USER_ENVIRONMENTS_TXT_FILE, register_env, unregister_env
-from .linked_data import PrefixData
+from .prefix_data import PrefixData
 from .portability import _PaddingError, update_prefix
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals

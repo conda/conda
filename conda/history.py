@@ -13,7 +13,7 @@ import warnings
 
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .common.compat import ensure_text_type, iteritems, open, text_type
-from .core.linked_data import PrefixData, linked
+from .core.prefix_data import PrefixData, linked
 from .exceptions import CondaFileIOError, CondaHistoryError
 from .gateways.disk.update import touch
 from .models.dist import Dist

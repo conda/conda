@@ -6,7 +6,7 @@ from logging import getLogger
 from os import listdir
 from os.path import dirname, isdir, isfile, join, normpath, split as path_split
 
-from .linked_data import PrefixData
+from .prefix_data import PrefixData
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import ensure_text_type, on_win, open

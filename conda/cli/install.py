@@ -18,7 +18,7 @@ from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
 from ..core.index import calculate_channel_urls, get_index
-from ..core.linked_data import PrefixData
+from ..core.prefix_data import PrefixData
 from ..core.solve import Solver
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotFoundError, DryRunExit,

@@ -56,7 +56,7 @@ package_cache, prefix_placeholder, symlink_conda = package_cache, prefix_placeho
 from .gateways.disk.delete import delete_trash, move_to_trash  # NOQA
 delete_trash, move_to_trash = delete_trash, move_to_trash
 
-from .core.linked_data import is_linked, linked, linked_data  # NOQA
+from .core.prefix_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
 
 from .misc import untracked, walk_prefix  # NOQA
@@ -178,7 +178,7 @@ class memoized(object):  # pragma: no cover
 
 
 from .gateways.disk.delete import rm_rf as _rm_rf  # NOQA
-from .core.linked_data import delete_prefix_from_linked_data  # NOQA
+from .core.prefix_data import delete_prefix_from_linked_data  # NOQA
 
 
 def rm_rf(path, max_retries=5, trash=True):

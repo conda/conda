@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 from logging import getLogger
 
-from .linked_data import linked_data
+from .prefix_data import linked_data
 from .package_cache_data import PackageCacheData
 from .subdir_data import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet

@@ -20,7 +20,7 @@ from .common.compat import itervalues, text_type
 from .common.io import time_recorder
 from .core.index import _supplement_index_with_prefix, LAST_CHANNEL_URLS
 from .core.link import PrefixSetup, UnlinkLinkTransaction
-from .core.linked_data import is_linked, linked_data
+from .core.prefix_data import is_linked, linked_data
 from .core.solve import get_pinned_specs
 from .exceptions import CondaIndexError, RemoveError
 from .history import History
@@ -531,7 +531,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
     specs = tuple(MatchSpec(spec) for spec in specs)
 
-    from .core.linked_data import PrefixData
+    from .core.prefix_data import PrefixData
     PrefixData._cache_.clear()
 
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)

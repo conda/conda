@@ -36,7 +36,7 @@ from conda.common.path import get_bin_directory_short_path, get_python_site_pack
     pyc_path
 from conda.common.serialize import yaml_load
 from conda.common.url import path_to_url
-from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
+from conda.core.prefix_data import PrefixData, get_python_version_for_prefix, \
     linked as install_linked, linked_data
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir

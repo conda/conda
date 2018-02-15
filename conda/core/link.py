@@ -11,7 +11,7 @@ from tempfile import mkdtemp
 from traceback import format_exception_only
 import warnings
 
-from .linked_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
+from .prefix_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
 from .package_cache_data import PackageCacheData
 from .path_actions import (CompilePycAction, CreateNonadminAction, CreatePrefixRecordAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,

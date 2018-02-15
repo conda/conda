@@ -11,7 +11,7 @@ import re
 import sys
 
 from .common.compat import itervalues, on_win
-from .core.linked_data import linked_data
+from .core.prefix_data import linked_data
 from .misc import rel_path
 from .models.dist import Dist
 
