@@ -62,12 +62,8 @@ def execute(args, parser):
         spec_channel = spec.get_exact_value('channel')
         channel_urls = (spec_channel,) if spec_channel else context.channels
 
-        if args.reverse_dependency:
-            matches = sorted(SubdirData.reverse_query_all(channel_urls, subdirs, spec),
-                             key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
-        else:
-            matches = sorted(SubdirData.query_all(channel_urls, subdirs, spec),
-                             key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
+        matches = sorted(SubdirData.query_all(channel_urls, subdirs, spec),
+                         key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
     if not matches:
         channels_urls = tuple(calculate_channel_urls(
@@ -90,6 +86,15 @@ def execute(args, parser):
             pretty_record(record)
 
     else:
+        multiple_packages_error = False
+        if args.reverse_dependency:
+            if len(matches) > 1:
+                multiple_packages_error = True
+            else:
+                package_ref = matches[0]
+                matches = sorted(SubdirData.reverse_query_all(channel_urls, subdirs, package_ref),
+                                 key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
+
         builder = ['# %-13s %15s %15s  %-20s' % (
             "Name",
             "Version",
@@ -104,6 +109,9 @@ def execute(args, parser):
                 record.channel.name,
             ))
         print('\n'.join(builder))
+        if multiple_packages_error:
+            print("\nERROR: Multiple packages found for spec: %s" % spec)
+            print("Please refine your query to result in a single package to reverse from.\n")
 
 
 def pretty_record(record):

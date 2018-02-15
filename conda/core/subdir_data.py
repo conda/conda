@@ -75,21 +75,21 @@ class SubdirData(object):
     _cache_ = {}
 
     @staticmethod
-    def reverse_query_all(channels, subdirs, package_ref_spec):
+    def reverse_query_all(channels, subdirs, package_ref):
         from .index import check_whitelist  # TODO: fix in-line import
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
         check_whitelist(channel_urls)
         with ThreadLimitedThreadPoolExecutor() as executor:
             futures = (executor.submit(
-                SubdirData(Channel(url)).reverse_query, package_ref_spec
+                SubdirData(Channel(url)).reverse_query, package_ref
             ) for url in channel_urls)
             return tuple(concat(future.result() for future in as_completed(futures)))
 
-    def reverse_query(self, package_ref_spec):
+    def reverse_query(self, package_ref):
         if not self._loaded:
             self.load()
         for prec in self._package_records:
-            if any(package_ref_spec.match(MatchSpec(drec)) for drec in prec.depends):
+            if any(MatchSpec(dep).match(package_ref) for dep in prec.depends):
                 yield prec
 
     @staticmethod
