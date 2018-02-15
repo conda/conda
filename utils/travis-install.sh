@@ -266,7 +266,7 @@ conda_build_extras() {
 echo "START INSTALLING"
 
 # set globals
-MINICONDA_URL="https://repo.continuum.io/miniconda/"
+MINICONDA_URL="https://repo.anaconda.com/miniconda/"
 
 # TODO: if a newer build exists kill this build
 

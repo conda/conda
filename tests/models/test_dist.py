@@ -56,7 +56,7 @@ class UrlDistTests(TestCase):
 
     def test_dist_with_channel_url(self):
         # standard named channel
-        url = "https://repo.continuum.io/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
+        url = "https://repo.anaconda.com/pkgs/free/win-64/spyder-app-2.3.8-py27_0.tar.bz2"
         d = Dist(url)
         assert d.channel == 'defaults'
         assert d.name == 'spyder-app'
@@ -120,7 +120,7 @@ class UrlDistTests(TestCase):
 
     def test_dist_with_non_channel_url(self):
         # contrived url
-        url = "https://repo.continuum.io/pkgs/anaconda/cffi-1.9.1-py34_0.tar.bz2"
+        url = "https://repo.anaconda.com/pkgs/anaconda/cffi-1.9.1-py34_0.tar.bz2"
         d = Dist(url)
         assert d.channel == '<unknown>'
         assert d.name == 'cffi'

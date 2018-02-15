@@ -390,7 +390,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
     if mod_stamp:
         headers["If-Modified-Since"] = mod_stamp
 
-    if 'repo.continuum.io' in url:
+    if 'repo.anaconda.com' in url:
         filename = 'repodata.json.bz2'
         headers['Accept-Encoding'] = 'identity'
     else:

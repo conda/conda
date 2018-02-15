@@ -4,14 +4,14 @@ set_vars() {
     case "$PYTHON_ARCH" in 32) arch=x86;; *) arch=x86_64;; esac
     case "$(uname -s)" in
         'Darwin')
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.30.1-MacOSX-$arch.sh"
+            export MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-4.3.30.1-MacOSX-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
             export ON_WIN=
             ;;
         'Linux')
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.30-Linux-$arch.sh"
+            export MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-4.3.30-Linux-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
@@ -19,7 +19,7 @@ set_vars() {
             ;;
         CYGWIN*|MINGW*|MSYS*)
             export ON_WIN=true
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.30-Windows-$arch.exe"
+            export MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-4.3.30-Windows-$arch.exe"
             export BIN_DIR="Scripts"
             export EXE_EXT=".exe"
             export INSTALL_PREFIX=/c/conda-root

@@ -36,7 +36,7 @@ def test_check_whitelist():
             get_index(("conda-canary",))
 
         with pytest.raises(OperationNotAllowed):
-            get_index(("https://repo.continuum.io/pkgs/denied",))
+            get_index(("https://repo.anaconda.com/pkgs/denied",))
 
         check_whitelist(("defaults",))
         check_whitelist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))

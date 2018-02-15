@@ -280,7 +280,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python-2')
 
             # regression test for #4513
-            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/not-a-channel")
+            run_command(Commands.CONFIG, prefix, "--add channels https://repo.anaconda.com/pkgs/not-a-channel")
             stdout, stderr = run_command(Commands.SEARCH, prefix, "python --json")
             packages = json.loads(stdout)
             assert len(packages) >= 1
@@ -883,7 +883,7 @@ class IntegrationTests(TestCase):
 
     def test_rpy_search(self):
         with make_temp_env("python=3.5") as prefix:
-            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/free")
+            run_command(Commands.CONFIG, prefix, "--add channels https://repo.anaconda.com/pkgs/free")
             run_command(Commands.CONFIG, prefix, "--remove channels defaults")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show", "--json")
             json_obj = json_loads(stdout)
@@ -909,7 +909,7 @@ class IntegrationTests(TestCase):
 
     def test_clone_offline_multichannel_with_untracked(self):
         with make_temp_env("python=3.5") as prefix:
-            run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/free")
+            run_command(Commands.CONFIG, prefix, "--add channels https://repo.anaconda.com/pkgs/free")
             run_command(Commands.CONFIG, prefix, "--remove channels defaults")
 
             run_command(Commands.INSTALL, prefix, "-c conda-test flask")
@@ -1174,7 +1174,7 @@ class IntegrationTests(TestCase):
         with make_temp_env() as prefix:
             stdout, stderr = run_command(
                 Commands.SEARCH, prefix, "*gawk", "--platform", "win-64", "--json",
-                "-c", "https://repo.continuum.io/pkgs/msys2 --json",
+                "-c", "https://repo.anaconda.com/pkgs/msys2 --json",
                 use_exception_handler=True,
             )
             json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
