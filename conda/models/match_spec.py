@@ -6,7 +6,7 @@ from collections import Mapping
 from os.path import basename
 import re
 
-from .channel import Channel, MultiChannel
+from .channel import Channel
 from .dist import Dist
 from .index_record import IndexRecord, PackageRef
 from .version import BuildNumberMatch, VersionSpec
