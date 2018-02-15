@@ -295,6 +295,12 @@ class IntegrationTests(TestCase):
                 stdout, stderr = run_command(Commands.SEARCH, prefix, "python --envs")
                 assert prefix in stdout
 
+            with pytest.raises(MultiplePackagesError):
+                run_command(Commands.SEARCH, prefix, "zope --reverse-dependency")
+
+            run_command(Commands.SEARCH, prefix, "zope=1.0.0=py27_0 --reverse-dependency")
+
+
     def test_create_install_update_remove_smoketest(self):
         with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))

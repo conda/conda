@@ -38,6 +38,15 @@ class ResolvePackageNotFound(CondaError):
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
 
+class MultiplePackagesError(CondaError):
+    def __init__(self, spec, **kwargs):
+        message = dals("""
+        Multiple packages found for spec: %(spec)s
+        Please refine your query to result in a single package to reverse from.
+        """)
+        super(MultiplePackagesError, self).__init__(message, spec=spec, **kwargs)
+
+
 class LockError(CondaError):
     def __init__(self, message):
         msg = "%s" % message

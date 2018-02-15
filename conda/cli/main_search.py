@@ -3,6 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 
+from conda import CondaError
+from conda._vendor.auxlib.ish import dals
+
 from .install import calculate_channel_urls
 from ..base.context import context
 from ..cli.common import stdout_json
@@ -110,8 +113,8 @@ def execute(args, parser):
             ))
         print('\n'.join(builder))
         if multiple_packages_error:
-            print("\nERROR: Multiple packages found for spec: %s" % spec)
-            print("Please refine your query to result in a single package to reverse from.\n")
+            from ..exceptions import MultiplePackagesError
+            raise MultiplePackagesError(spec)
 
 
 def pretty_record(record):
