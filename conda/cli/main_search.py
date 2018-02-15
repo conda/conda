@@ -3,9 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 
-from conda import CondaError
-from conda._vendor.auxlib.ish import dals
-
 from .install import calculate_channel_urls
 from ..base.context import context
 from ..cli.common import stdout_json
