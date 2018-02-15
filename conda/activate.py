@@ -397,7 +397,8 @@ class Activator(object):
         else:
             return path.split(os.pathsep)
 
-    def _get_path_dirs(self, prefix):
+    @staticmethod
+    def _get_path_dirs(prefix):
         if on_win:  # pragma: unix no cover
             yield prefix.rstrip("\\")
             yield join(prefix, 'Library', 'mingw-w64', 'bin')
