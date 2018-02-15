@@ -11,7 +11,7 @@ from conda.common.compat import iteritems
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
 from conda.core.index import get_index
-from conda.core.repodata import Response304ContentUnchanged, cache_fn_url, read_mod_and_etag, \
+from conda.core.subdir_data import Response304ContentUnchanged, cache_fn_url, read_mod_and_etag, \
     SubdirData
 from conda.models.channel import Channel
 
@@ -31,9 +31,9 @@ def platform_in_record(platform, record):
 class GetRepodataIntegrationTests(TestCase):
 
     def test_get_index_no_platform_with_offline_cache(self):
-        import conda.core.repodata
+        import conda.core.subdir_data
         with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
-            with patch.object(conda.core.repodata, 'read_mod_and_etag') as read_mod_and_etag:
+            with patch.object(conda.core.subdir_data, 'read_mod_and_etag') as read_mod_and_etag:
                 read_mod_and_etag.return_value = {}
                 channel_urls = ('https://repo.continuum.io/pkgs/pro',)
                 with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
@@ -51,7 +51,7 @@ class GetRepodataIntegrationTests(TestCase):
 
         for unknown in (None, False, True):
             with env_var('CONDA_OFFLINE', 'yes', reset_context):
-                with patch.object(conda.core.repodata, 'fetch_repodata_remote_request') as remote_request:
+                with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     index2 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
                     assert all(index2.get(k) == rec for k, rec in iteritems(index))
                     assert unknown is not False or len(index) == len(index2)
@@ -59,7 +59,7 @@ class GetRepodataIntegrationTests(TestCase):
 
         for unknown in (False, True):
             with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
-                with patch.object(conda.core.repodata, 'fetch_repodata_remote_request') as remote_request:
+                with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     remote_request.side_effect = Response304ContentUnchanged()
                     index3 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
                     assert all(index3.get(k) == rec for k, rec in iteritems(index))

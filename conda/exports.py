@@ -126,7 +126,7 @@ TemporaryDirectory = TemporaryDirectory  # lgtm [py/redundant-assignment]
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # NOQA
 ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call
 
-from .core.repodata import cache_fn_url  # NOQA
+from .core.subdir_data import cache_fn_url  # NOQA
 cache_fn_url = cache_fn_url  # lgtm [py/redundant-assignment]
 
 

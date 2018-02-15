@@ -18,7 +18,7 @@ from conda._vendor.auxlib.decorators import memoize
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
-from conda.core.repodata import SubdirData, make_feature_record
+from conda.core.subdir_data import SubdirData, make_feature_record
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import lexists
 from conda.gateways.logging import initialize_logging

@@ -39,7 +39,7 @@ from conda.common.url import path_to_url
 from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
     linked as install_linked, linked_data
 from conda.core.package_cache_data import PackageCacheData
-from conda.core.repodata import create_cache_dir
+from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError
 from conda.gateways.anaconda_client import read_binstar_tokens
@@ -1289,7 +1289,7 @@ class IntegrationTests(TestCase):
 
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
-        from conda.core.repodata import SubdirData
+        from conda.core.subdir_data import SubdirData
         SubdirData._cache_.clear()
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
@@ -1330,7 +1330,7 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
     def test_offline_with_empty_index_cache(self):
-        from conda.core.repodata import SubdirData
+        from conda.core.subdir_data import SubdirData
         SubdirData._cache_.clear()
 
         try:

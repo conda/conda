@@ -9,7 +9,7 @@ from ..cli.common import stdout_json
 from ..common.io import Spinner
 from ..compat import text_type
 from ..core.envs_manager import query_all_prefixes
-from ..core.repodata import SubdirData
+from ..core.subdir_data import SubdirData
 from ..models.index_record import PackageRecord
 from ..models.match_spec import MatchSpec
 from ..models.version import VersionOrder

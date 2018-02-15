@@ -6,7 +6,7 @@ from logging import getLogger
 
 from .linked_data import linked_data
 from .package_cache_data import PackageCacheData
-from .repodata import SubdirData, make_feature_record
+from .subdir_data import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues
@@ -81,7 +81,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
     use_cache = use_cache or context.use_index_cache
 
     # channel_urls reversed to build up index in correct order
-    from .repodata import collect_all_repodata_as_index
+    from .subdir_data import collect_all_repodata_as_index
     index = collect_all_repodata_as_index(use_cache, channel_urls)
 
     return index

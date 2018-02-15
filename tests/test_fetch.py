@@ -11,7 +11,7 @@ from conda.base.context import reset_context
 from conda.common.io import env_var
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.download import TmpDownload
-from conda.core.repodata import fetch_repodata_remote_request
+from conda.core.subdir_data import fetch_repodata_remote_request
 from conda.core.package_cache_data import download
 
 
