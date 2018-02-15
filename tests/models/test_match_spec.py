@@ -406,7 +406,7 @@ class MatchSpecTests(TestCase):
         assert MatchSpec("numpy<2").match(record)
         assert MatchSpec("numpy[version<2]").match(record)
         assert not MatchSpec("numpy>2").match(record)
-        # assert not MatchSpec("numpy[version='>2']").match(record)  # TODO: make work
+        assert not MatchSpec("numpy[version='>2']").match(record)
 
         assert MatchSpec("numpy[build_number='7']").match(record)
         assert MatchSpec("numpy[build_number='<8']").match(record)
