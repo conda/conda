@@ -7,14 +7,15 @@ from os.path import join, lexists
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..common.compat import JSONDecodeError, itervalues, with_metaclass
+from ..common.compat import JSONDecodeError, itervalues, string_types, with_metaclass
 from ..common.constants import NULL
 from ..common.serialize import json_load
-from ..exceptions import BasicClobberError, CondaDependencyError, maybe_raise, \
-    CorruptedEnvironmentError
+from ..exceptions import (BasicClobberError, CondaDependencyError, CorruptedEnvironmentError,
+                          maybe_raise)
 from ..gateways.disk.create import write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..models.dist import Dist
+from ..models.index_record import PackageRef
 from ..models.match_spec import MatchSpec
 from ..models.prefix_record import PrefixRecord
 
@@ -105,6 +106,18 @@ class PrefixData(object):
                 log.debug("adding subdir url %s for %s", subdir_url, prefix_record)
                 subdir_urls.add(subdir_url)
         return subdir_urls
+
+    def query(self, package_ref_or_match_spec):
+        # returns a generator
+        param = package_ref_or_match_spec
+        if isinstance(param, string_types):
+            param = MatchSpec(param)
+        if isinstance(param, MatchSpec):
+            return (prefix_rec for prefix_rec in self.iter_records()
+                    if param.match(prefix_rec))
+        else:
+            assert isinstance(param, PackageRef)
+            return (prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param)
 
     @property
     def _prefix_records(self):

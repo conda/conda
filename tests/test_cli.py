@@ -106,7 +106,7 @@ class TestJson(unittest.TestCase):
             stdout, stderr = run_command(Commands.SEARCH, prefix, "nose", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
 
-            assert "nose                       1.3.4                    py34_0  defaults" in result
+            assert "nose                      1.3.4          py34_0  pkgs/free" in result
 
     @pytest.mark.integration
     def test_search_3(self):

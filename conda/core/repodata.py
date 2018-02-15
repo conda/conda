@@ -21,8 +21,8 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, text_type,
-                             with_metaclass)
+from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, string_types,
+                             text_type, with_metaclass)
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache import PackageCache
@@ -35,7 +35,7 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.dist import Dist
-from ..models.index_record import IndexRecord, PackageRecord
+from ..models.index_record import IndexRecord, PackageRecord, PackageRef
 from ..models.match_spec import MatchSpec
 
 try:
@@ -89,6 +89,8 @@ class SubdirData(object):
         if not self._loaded:
             self.load()
         param = package_ref_or_match_spec
+        if isinstance(param, string_types):
+            param = MatchSpec(param)
         if isinstance(param, MatchSpec):
             if param.get_exact_value('name'):
                 package_name = param.get_exact_value('name')
@@ -107,7 +109,7 @@ class SubdirData(object):
                     if param.match(prec):
                         yield prec
         else:
-            # assume isinstance(param, PackageRef)
+            assert isinstance(param, PackageRef)
             for prec in self._names_index[param.name]:
                 if prec == param:
                     yield prec

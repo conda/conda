@@ -6,6 +6,7 @@ from logging import getLogger
 from os import listdir
 from os.path import dirname, isdir, isfile, join, normpath, split as path_split
 
+from .linked_data import PrefixData
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import ensure_text_type, on_win, open
@@ -85,6 +86,13 @@ def list_all_known_prefixes():
 
     all_env_paths.add(context.root_prefix)
     return sorted(all_env_paths)
+
+
+def query_all_prefixes(spec):
+    for prefix in list_all_known_prefixes():
+        prefix_recs = tuple(PrefixData(prefix).query(spec))
+        if prefix_recs:
+            yield prefix, prefix_recs
 
 
 def env_name(prefix):
