@@ -1,0 +1,8 @@
+queries:
+  - exclude: py/redundant-assignment
+
+exclude:
+  - .git
+  - conda/_vendor
+  - tests
+
