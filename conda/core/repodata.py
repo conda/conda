@@ -25,7 +25,7 @@ from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, st
                              text_type, with_metaclass)
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
-from ..core.package_cache import PackageCacheData
+from ..core.package_cache_data import PackageCacheData
 from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError, NotWritableError
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)

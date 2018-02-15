@@ -47,7 +47,7 @@ handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
                                      "Now handled by CondaSession.")
 from .core.index import dist_str_in_index, fetch_index, get_index  # NOQA
 dist_str_in_index, fetch_index, get_index = dist_str_in_index, fetch_index, get_index  # NOQA lgtm [py/redundant-assignment]
-from .core.package_cache import download, rm_fetched  # NOQA
+from .core.package_cache_data import download, rm_fetched  # NOQA
 download, rm_fetched = download, rm_fetched
 
 from .install import package_cache, prefix_placeholder, symlink_conda  # NOQA

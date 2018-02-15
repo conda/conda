@@ -4,7 +4,7 @@ from logging import getLogger
 from os.path import isfile, join
 
 from .core.link import UnlinkLinkTransaction
-from .core.package_cache import ProgressiveFetchExtract
+from .core.package_cache_data import ProgressiveFetchExtract
 from .exceptions import CondaFileIOError
 from .gateways.disk.link import islink
 

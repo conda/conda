@@ -442,7 +442,7 @@ def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: n
     from .models.dist import Dist
     from ._vendor.toolz.itertoolz import groupby
     from .instructions import LINK, PROGRESSIVEFETCHEXTRACT, UNLINK, UNLINKLINKTRANSACTION
-    from .core.package_cache import ProgressiveFetchExtract
+    from .core.package_cache_data import ProgressiveFetchExtract
     from .core.link import PrefixSetup, UnlinkLinkTransaction
     # this is only used for conda-build at this point
     first_unlink_link_idx = next((q for q, p in enumerate(plan) if p[0] in (UNLINK, LINK)), -1)

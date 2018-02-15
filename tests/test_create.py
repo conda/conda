@@ -38,7 +38,7 @@ from conda.common.serialize import yaml_load
 from conda.common.url import path_to_url
 from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
     linked as install_linked, linked_data
-from conda.core.package_cache import PackageCacheData
+from conda.core.package_cache_data import PackageCacheData
 from conda.core.repodata import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError

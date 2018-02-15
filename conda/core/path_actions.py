@@ -1136,7 +1136,7 @@ class CacheUrlAction(PathAction):
     def execute(self, progress_update_callback=None):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the PackageCache class to CacheUrlAction __init__
-        from .package_cache import PackageCacheData
+        from .package_cache_data import PackageCacheData
         target_package_cache = PackageCacheData(self.target_pkgs_dir)
 
         log.trace("caching url %s => %s", self.url, self.target_full_path)
@@ -1235,7 +1235,7 @@ class ExtractPackageAction(PathAction):
     def execute(self, progress_update_callback=None):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
-        from .package_cache import PackageCacheData
+        from .package_cache_data import PackageCacheData
         log.trace("extracting %s => %s", self.source_full_path, self.target_full_path)
 
         if lexists(self.hold_path):

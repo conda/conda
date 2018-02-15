@@ -31,7 +31,7 @@ from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
 delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
 from .core.linked_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
-from .core.package_cache import rm_fetched  # NOQA
+from .core.package_cache_data import rm_fetched  # NOQA
 rm_fetched = rm_fetched  # lgtm [py/redundant-assignment]
 
 log = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ prefix_placeholder = PREFIX_PLACEHOLDER
 
 # backwards compatibility for conda-build
 def package_cache():
-    from .core.package_cache import package_cache
+    from .core.package_cache_data import package_cache
     return package_cache()
 
 

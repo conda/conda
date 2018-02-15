@@ -19,7 +19,7 @@ log = getLogger(__name__)
 
 
 def find_tarballs():
-    from ..core.package_cache import PackageCacheData
+    from ..core.package_cache_data import PackageCacheData
     pkgs_dirs = defaultdict(list)
     totalsize = 0
     part_ext = CONDA_TARBALL_EXTENSION + '.part'
@@ -182,7 +182,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
 
 def rm_index_cache():
     from ..gateways.disk.delete import rm_rf
-    from ..core.package_cache import PackageCacheData
+    from ..core.package_cache_data import PackageCacheData
     for package_cache in PackageCacheData.writable_caches():
         rm_rf(join(package_cache.pkgs_dir, 'cache'))
 

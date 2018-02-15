@@ -5,7 +5,7 @@ from itertools import chain
 from logging import getLogger
 
 from .linked_data import linked_data
-from .package_cache import PackageCacheData
+from .package_cache_data import PackageCacheData
 from .repodata import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context

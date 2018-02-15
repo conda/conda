@@ -19,7 +19,7 @@ from conda.common.io import env_var
 from conda.common.path import expand, win_path_backout
 from conda.common.url import join_url, path_to_url
 from conda.common.serialize import yaml_load
-from conda.core.package_cache import PackageCacheData
+from conda.core.package_cache_data import PackageCacheData
 from conda.gateways.disk.create import mkdir_p, create_package_cache_directory
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only

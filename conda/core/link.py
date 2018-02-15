@@ -12,7 +12,7 @@ from traceback import format_exception_only
 import warnings
 
 from .linked_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
-from .package_cache import PackageCacheData
+from .package_cache_data import PackageCacheData
 from .path_actions import (CompilePycAction, CreateNonadminAction, CreatePrefixRecordAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
@@ -168,7 +168,7 @@ class UnlinkLinkTransaction(object):
         )
 
     def get_pfe(self):
-        from .package_cache import ProgressiveFetchExtract
+        from .package_cache_data import ProgressiveFetchExtract
         if not self.prefix_setups:
             return ProgressiveFetchExtract(())
         else:

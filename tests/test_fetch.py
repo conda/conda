@@ -12,7 +12,7 @@ from conda.common.io import env_var
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.download import TmpDownload
 from conda.core.repodata import fetch_repodata_remote_request
-from conda.core.package_cache import download
+from conda.core.package_cache_data import download
 
 
 @pytest.mark.integration
