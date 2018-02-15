@@ -97,7 +97,8 @@ class FileLock(object):
         rm_rf(self.lock_file_path)
 
 
-class DirectoryLock(FileLock):
+# lgtm alert ignore because this lock functionality is unused and will soon be replaced
+class DirectoryLock(FileLock):  # lgtm [py/missing-call-to-init]
     """Lock a directory with the lock file sitting *within* the directory being locked.
 
     Useful when, for example, locking the root prefix at ``/conda``, and ``/`` is not writable.

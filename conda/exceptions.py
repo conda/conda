@@ -624,7 +624,7 @@ class SafetyError(CondaError):
         super(SafetyError, self).__init__(message)
 
 
-class CondaMemoryError(MemoryError, CondaError):
+class CondaMemoryError(CondaError, MemoryError):
     def __init__(self, caused_by, **kwargs):
         message = "The conda process ran out of memory. Increase system memory and/or try again."
         super(CondaMemoryError, self).__init__(message, caused_by=caused_by, **kwargs)
@@ -1017,7 +1017,9 @@ class ExceptionHandler(object):
             )
         elif ask_response is None and ask_for_upload:
             # means timeout was reached for `input`
-            self.out_stream.write('\nTimeout reached. No report sent.\n')  # NOQA lgtm [py/unreachable-statement]
+            self.out_stream.write(  # lgtm [py/unreachable-statement]
+                '\nTimeout reached. No report sent.\n'
+            )
 
 
 def conda_exception_handler(func, *args, **kwargs):

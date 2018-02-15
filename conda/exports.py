@@ -107,9 +107,9 @@ get_rc_urls = lambda: list(conda.base.context.context.channels)
 get_local_urls = lambda: list(get_conda_build_local_url()) or []
 load_condarc = lambda fn: conda.base.context.reset_context([fn])
 from .exceptions import PaddingError, LinkError, CondaOSError, PathNotFoundError  # NOQA
-PaddingError = PaddingError
-LinkError = LinkError
-CondaOSError = CondaOSError
+PaddingError = PaddingError  # lgtm [py/redundant-assignment]
+LinkError = LinkError  # lgtm [py/redundant-assignment]
+CondaOSError = CondaOSError  # lgtm [py/redundant-assignment]
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
 PathNotFoundError = CondaFileNotFoundError = PathNotFoundError  # lgtm [py/redundant-assignment]
 from .gateways.disk.link import CrossPlatformStLink  # NOQA

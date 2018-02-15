@@ -461,7 +461,7 @@ class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
             return f
 
 
-as_completed = as_completed  # anchored here for import by other modules
+as_completed = as_completed  # lgtm [py/redundant-assignment]
 
 
 class time_recorder(ContextDecorator):  # pragma: no cover
