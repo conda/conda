@@ -93,7 +93,7 @@ function __fish_conda_commands
 end
 
 function __fish_conda_envs
-  eval $_CONDA_EXE env list | tail -n +3 | awk '{print $1}'
+  conda config --show envs_dirs | awk 'NR>1{print }' | xargs -IX find X -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort
 end
 
 function __fish_conda_packages
