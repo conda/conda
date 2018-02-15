@@ -1,7 +1,17 @@
 ## 4.5.0 (unreleased)
 
+### New Feature Highlights
+
+### Deprecations/Breaking Changes
+
+### API
+
 ### Improvements
-* preserve exit status in fish shell #6760
+* resolve #6791 conda search --envs (#6794)
+* preserve exit status in fish shell (#6760)
+
+### Non-User-Facing Changes
+* fix several lgtm.com flags (#6757, #6883)
 
 
 ## 4.4.11 (unreleased)
