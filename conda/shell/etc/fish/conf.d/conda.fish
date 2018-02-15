@@ -93,11 +93,11 @@ function __fish_conda_commands
 end
 
 function __fish_conda_envs
-  basename -a $_CONDA_ROOT/envs/*/
+  conda config --show envs_dirs | awk 'NR > 1 {print $2}' | xargs -IX find X -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort
 end
 
 function __fish_conda_packages
-  command conda list | awk 'NR > 2 {print $1}'
+  conda list | awk 'NR > 3 {print $1}'
 end
 
 function __fish_conda_needs_command
