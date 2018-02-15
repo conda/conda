@@ -7,6 +7,10 @@
 * fix potential error in ensure_pad(); add more tests (#6817)
 * fix #6840 handle error return values in conda.sh (#6850)
 * use conda.gateways.disk for misc.py imports (#6870)
+* fix #6672 don't update conda during conda-env operations (#6773)
+* fix #6811 don't attempt copy/remove fallback for rename failures (#6867)
+* fix #6667 aliased posix commands (#6669)
+* fix #6816 fish environment autocomplete (#6885)
 
 
 ## 4.4.10 (2018-02-09)
@@ -422,7 +426,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 ## 4.3.33 (2018-01-24)
 
 ### Bug Fixes
-* fix #6718 broken 'conda install --rev' #6719
+* fix #6718 broken 'conda install --rev' (#6719)
 * fix #6765 adjust the feature score assigned to packages not installed (#6766)
 
 
