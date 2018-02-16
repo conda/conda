@@ -15,10 +15,10 @@ from os.path import abspath
 import sys
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
-from .base.context import context
+from .base.context import context, reset_context
 from .common.compat import itervalues, text_type
-from .common.io import time_recorder
-from .core.index import _supplement_index_with_prefix, LAST_CHANNEL_URLS
+from .common.io import env_var, time_recorder
+from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.prefix_data import is_linked, linked_data
 from .core.solve import get_pinned_specs
@@ -509,40 +509,41 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                     channel_priority_map=None, is_update=False,
                     minimal_hint=False):  # pragma: no cover
     # this is for conda-build
-    from os.path import basename
-    from ._vendor.boltons.setutils import IndexedSet
-    from .core.solve import Solver
-    from .models.channel import Channel
-    from .models.dist import Dist
-    if channel_priority_map:
-        channel_names = IndexedSet(Channel(url).canonical_name for url in channel_priority_map)
-        channels = IndexedSet(Channel(cn) for cn in channel_names)
-        subdirs = IndexedSet(basename(url) for url in channel_priority_map)
-    else:
-        # a hack for when conda-build calls this function without giving channel_priority_map
-        if LAST_CHANNEL_URLS:
-            channel_priority_map = prioritize_channels(LAST_CHANNEL_URLS)
-            channels = IndexedSet(Channel(url) for url in channel_priority_map)
-            subdirs = IndexedSet(
-                subdir for subdir in (c.subdir for c in channels) if subdir
-            ) or context.subdirs
+    with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', reset_context):
+        from os.path import basename
+        from ._vendor.boltons.setutils import IndexedSet
+        from .core.solve import Solver
+        from .models.channel import Channel
+        from .models.dist import Dist
+        if channel_priority_map:
+            channel_names = IndexedSet(Channel(url).canonical_name for url in channel_priority_map)
+            channels = IndexedSet(Channel(cn) for cn in channel_names)
+            subdirs = IndexedSet(basename(url) for url in channel_priority_map)
         else:
-            channels = subdirs = None
+            # a hack for when conda-build calls this function without giving channel_priority_map
+            if LAST_CHANNEL_URLS:
+                channel_priority_map = prioritize_channels(LAST_CHANNEL_URLS)
+                channels = IndexedSet(Channel(url) for url in channel_priority_map)
+                subdirs = IndexedSet(
+                    subdir for subdir in (c.subdir for c in channels) if subdir
+                ) or context.subdirs
+            else:
+                channels = subdirs = None
 
-    specs = tuple(MatchSpec(spec) for spec in specs)
+        specs = tuple(MatchSpec(spec) for spec in specs)
 
-    from .core.prefix_data import PrefixData
-    PrefixData._cache_.clear()
+        from .core.prefix_data import PrefixData
+        PrefixData._cache_.clear()
 
-    solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
-    if index:
-        solver._index = index
-    txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
-    prefix_setup = txn.prefix_setups[prefix]
-    actions = get_blank_actions(prefix)
-    actions['UNLINK'].extend(Dist(prec) for prec in prefix_setup.unlink_precs)
-    actions['LINK'].extend(Dist(prec) for prec in prefix_setup.link_precs)
-    return actions
+        solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
+        if index:
+            solver._index = index
+        txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
+        prefix_setup = txn.prefix_setups[prefix]
+        actions = get_blank_actions(prefix)
+        actions['UNLINK'].extend(Dist(prec) for prec in prefix_setup.unlink_precs)
+        actions['LINK'].extend(Dist(prec) for prec in prefix_setup.link_precs)
+        return actions
 
 
 def get_blank_actions(prefix):  # pragma: no cover
