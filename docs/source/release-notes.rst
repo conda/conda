@@ -87,7 +87,7 @@ Improvements
 Bug Fixes
 ^^^^^^^^^
 
-* fix #6643 difference between '==' and 'exact_match_' (#6647)
+* fix #6643 difference between ``==`` and ``exact_match_`` (#6647)
 * fix #6620 KeyError(u'CONDA_PREFIX',) (#6652)
 * fix #6661 remove env from environments.txt (#6662)
 * fix #6629 'conda update --name' AssertionError (#6656)
