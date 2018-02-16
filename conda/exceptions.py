@@ -815,6 +815,8 @@ class ExceptionHandler(object):
         return_code = getattr(exc_val, 'return_code', None)
         if return_code == 0:
             return 0
+        if isinstance(exc_val, CondaHTTPError):
+            return self.handle_reportable_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, CondaError):
             return self.handle_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, UnicodeError) and PY2:
@@ -841,7 +843,18 @@ class ExceptionHandler(object):
 
     def handle_unexpected_exception(self, exc_val, exc_tb):
         error_report = self.get_error_report(exc_val, exc_tb)
-        self.print_error_report(error_report)
+        self.print_unexpected_error_report(error_report)
+        ask_for_upload, do_upload = self._calculate_ask_do_upload()
+        do_upload, ask_response = self.ask_for_upload() if ask_for_upload else (do_upload, None)
+        if do_upload:
+            self._execute_upload(error_report)
+        self.print_upload_confirm(do_upload, ask_for_upload, ask_response)
+        rc = getattr(exc_val, 'return_code', None)
+        return rc if rc is not None else 1
+
+    def handle_reportable_application_exception(self, exc_val, exc_tb):
+        error_report = self.get_error_report(exc_val, exc_tb)
+        self.print_expected_error_report(error_report)
         ask_for_upload, do_upload = self._calculate_ask_do_upload()
         do_upload, ask_response = self.ask_for_upload() if ask_for_upload else (do_upload, None)
         if do_upload:
@@ -878,7 +891,7 @@ class ExceptionHandler(object):
         }
         return error_report
 
-    def print_error_report(self, error_report):
+    def print_unexpected_error_report(self, error_report):
         from .base.context import context
         if context.json:
             from .cli.common import stdout_json
@@ -906,6 +919,41 @@ class ExceptionHandler(object):
             message_builder.append('')
             message_builder.append(
                 "An unexpected error has occurred. Conda has prepared the above report."
+            )
+            message_builder.append('')
+            self.out_stream.write('\n'.join(message_builder))
+
+    def print_expected_error_report(self, error_report):
+        from .base.context import context
+        if context.json:
+            from .cli.common import stdout_json
+            stdout_json(error_report)
+        else:
+            message_builder = []
+            message_builder.append('')
+            message_builder.append('# >>>>>>>>>>>>>>>>>>>>>> ERROR REPORT <<<<<<<<<<<<<<<<<<<<<<')
+            message_builder.append('')
+            message_builder.append('`$ %s`' % error_report['command'])
+            message_builder.append('')
+            if error_report['conda_info']:
+                from .cli.main_info import get_env_vars_str, get_main_info_str
+                try:
+                    # TODO: Sanitize env vars to remove secrets (e.g credentials for PROXY)
+                    message_builder.append(get_env_vars_str(error_report['conda_info']))
+                    message_builder.append(get_main_info_str(error_report['conda_info']))
+                except Exception as e:
+                    log.warn("%r", e, exc_info=True)
+                    message_builder.append('conda info could not be constructed.')
+                    message_builder.append('%r' % e)
+            message_builder.append('')
+            message_builder.append('V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V')
+            message_builder.append('')
+
+            message_builder.extend(error_report['error'].splitlines())
+            message_builder.append('')
+
+            message_builder.append(
+                "A reportable application error has occurred. Conda has prepared the above report."
             )
             message_builder.append('')
             self.out_stream.write('\n'.join(message_builder))

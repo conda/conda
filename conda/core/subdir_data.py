@@ -587,7 +587,8 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
                              status_code,
                              getattr(e.response, 'reason', None),
                              getattr(e.response, 'elapsed', None),
-                             e.response)
+                             e.response,
+                             caused_by=e)
 
     except ValueError as e:
         raise CondaIndexError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
