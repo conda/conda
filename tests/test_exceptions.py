@@ -317,12 +317,12 @@ class ExceptionTests(TestCase):
                 conda_exception_handler(_raise_helper, exc)
 
         assert not c.stdout
-        assert c.stderr.strip() == dals("""
+        assert dals("""
                 CondaHTTPError: HTTP Potato COULD NOT CONNECT for url <https://download.url/path/to/Potato.tar.gz>
                 Elapsed: 1.24
 
                 Potato
-                """).strip()
+                """).strip() in c.stderr.strip()
 
     def test_CommandNotFoundError_simple(self):
         cmd = "instate"

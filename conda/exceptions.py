@@ -854,6 +854,9 @@ class ExceptionHandler(object):
 
     def handle_reportable_application_exception(self, exc_val, exc_tb):
         error_report = self.get_error_report(exc_val, exc_tb)
+        from .base.context import context
+        if context.json:
+            error_report.update(exc_val.dump_map())
         self.print_expected_error_report(error_report)
         ask_for_upload, do_upload = self._calculate_ask_do_upload()
         do_upload, ask_response = self.ask_for_upload() if ask_for_upload else (do_upload, None)
