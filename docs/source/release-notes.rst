@@ -256,23 +256,23 @@ New Feature Highlights
 
   which results in information for the single package::
 
-  cytoolz 0.8.2 py35_0
-  --------------------
-  file name   : cytoolz-0.8.2-py35_0.tar.bz2
-  name        : cytoolz
-  version     : 0.8.2
-  build string: py35_0
-  build number: 0
-  size        : 1.1 MB
-  arch        : x86_64
-  platform    : Platform.linux
-  license     : BSD 3-Clause
-  subdir      : linux-64
-  url         : https://conda.anaconda.org/conda-forge/linux-64/cytoolz-0.8.2-py35_0.tar.bz2
-  md5         : e42a03f799131d5af4196ce31a1084a7
-  dependencies:
-    - python 3.5*
-    - toolz >=0.8.0
+      cytoolz 0.8.2 py35_0
+      --------------------
+      file name   : cytoolz-0.8.2-py35_0.tar.bz2
+      name        : cytoolz
+      version     : 0.8.2
+      build string: py35_0
+      build number: 0
+      size        : 1.1 MB
+      arch        : x86_64
+      platform    : Platform.linux
+      license     : BSD 3-Clause
+      subdir      : linux-64
+      url         : https://conda.anaconda.org/conda-forge/linux-64/cytoolz-0.8.2-py35_0.tar.bz2
+      md5         : e42a03f799131d5af4196ce31a1084a7
+      dependencies:
+        - python 3.5*
+        - toolz >=0.8.0
 
   The square bracket notation can also be used for any field that we match on outside the package name, and will override information given in the "simple form" position. To give a contrived example, `python==3.5[version='>=2.7,<2.8']` will match `2.7.*` versions and not `3.5`.
 
