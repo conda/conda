@@ -50,6 +50,7 @@ Starting conda
 * From the Start menu, search for and open "Anaconda Prompt".
 
 .. figure:: /img/anaconda-prompt.png
+   :width: 50%
 
    ..
 
