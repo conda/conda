@@ -131,7 +131,7 @@ Bug Fixes
 Improvements
 ^^^^^^^^^^^^
 
-* add SUDO_ env vars to info reports (#6563)
+* add ``SUDO_`` env vars to info reports (#6563)
 * add additional information to the #6546 exception (#6551)
 
 Bug Fixes
@@ -392,7 +392,7 @@ Bug Fixes
 * fix #5132 signal handler can only be used in main thread (#5133)
 * fix orphaned --clobber parser arg (#5188)
 * fix #3814 don't remove directory that's not a conda environment (#5204)
-* fix #4468 _license stack trace (#5206)
+* fix #4468 ``_license`` stack trace (#5206)
 * fix #4987 conda update --all no longer displays full list of packages (#5228)
 * fix #3489 don't error on remove --all if environment doesn't exist (#5231)
 * fix #1509 bash doesn't need full path for pre/post link/unlink scripts on unix (#5252)
@@ -410,7 +410,7 @@ Bug Fixes
 * use proxy to avoid segfaults (#5716)
 * fix #5790 incorrect activation message (4.4.0rc1) (#5820)
 * fix #5808 assertion error when loading package cache (4.4.0rc1) (#5815)
-* fix #5809 _pip_install_via_requirements got an unexpected keyword argument 'prune' (4.4.0rc1) (#5814)
+* fix #5809 ``_pip_install_via_requirements`` got an unexpected keyword argument 'prune' (4.4.0rc1) (#5814)
 * fix #5811 change safety_checks default to 'warn' for conda 4.4 (4.4.0rc1) (#5824)
 * fix #5825 --json output format (4.4.0rc1) (#5831)
 * fix force_reinstall for case when packages aren't actually installed (4.4.0rc1) (#5836)
