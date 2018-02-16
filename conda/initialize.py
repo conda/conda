@@ -13,7 +13,8 @@ import sys
 from . import CONDA_PACKAGE_ROOT
 from ._vendor.auxlib.ish import dals
 from .common.compat import on_mac, on_win, open
-from .common.path import expand, get_python_short_path, get_python_site_packages_short_path
+from .common.path import expand, get_python_short_path, get_python_site_packages_short_path, \
+    win_path_ok
 from .gateways.disk.create import create_hard_link_or_copy, mkdir_p
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import lexists
@@ -63,7 +64,7 @@ def _get_python_info(prefix):
     else:  # pragma: no cover
         raise ValueError("No python version information available.")
 
-    site_packages_dir = join(prefix, get_python_site_packages_short_path(python_version))
+    site_packages_dir = join(prefix, win_path_ok(get_python_site_packages_short_path(python_version)))
     return python_exe, python_version, site_packages_dir
 
 
