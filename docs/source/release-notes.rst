@@ -254,9 +254,8 @@ New Feature Highlights
 
       conda search 'conda-forge/linux-64::*[md5=e42a03f799131d5af4196ce31a1084a7]' --info
 
-  which results in information for the single package
+  which results in information for the single package::
 
-  ```
   cytoolz 0.8.2 py35_0
   --------------------
   file name   : cytoolz-0.8.2-py35_0.tar.bz2
@@ -274,7 +273,6 @@ New Feature Highlights
   dependencies:
     - python 3.5*
     - toolz >=0.8.0
-  ```
 
   The square bracket notation can also be used for any field that we match on outside the package name, and will override information given in the "simple form" position. To give a contrived example, `python==3.5[version='>=2.7,<2.8']` will match `2.7.*` versions and not `3.5`.
 
