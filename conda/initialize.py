@@ -5,21 +5,19 @@ from glob import glob
 import json
 from logging import getLogger
 import os
-from os.path import dirname, exists, isfile, join, isdir
+from os.path import dirname, exists, isdir, isfile, join
 from random import randint
 import re
 import sys
 
 from . import CONDA_PACKAGE_ROOT
 from ._vendor.auxlib.ish import dals
-from ._vendor.auxlib.type_coercion import boolify
-from .base.context import context
-from .common.compat import on_mac, on_win, string_types
+from .common.compat import on_mac, on_win, open
 from .common.path import expand, get_python_short_path, get_python_site_packages_short_path
-from .gateways.disk.create import create_hard_link_or_copy, create_soft_link_or_copy, mkdir_p
+from .gateways.disk.create import create_hard_link_or_copy, mkdir_p
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import lexists
-from .gateways.disk.permissions import make_executable, make_writable
+from .gateways.disk.permissions import make_executable
 from .gateways.disk.read import compute_md5sum
 from .gateways.subprocess import subprocess_call
 
@@ -47,8 +45,8 @@ def install(conda_prefix):
     print_plan_results(plan)
 
 
-def initialize(conda_prefix, auto_activate, shells, for_user, for_system):
-    plan = make_initialize_plan(conda_prefix, auto_activate, shells, for_user, for_system)
+def initialize(conda_prefix, shells, for_user, for_system):
+    plan = make_initialize_plan(conda_prefix, shells, for_user, for_system)
     run_plan(plan)
     run_plan_elevated(plan)
     print_plan_results(plan)
@@ -70,7 +68,8 @@ def _get_python_info(prefix):
 
 
 def initialize_dev(shell, dev_env_prefix=None, conda_source_dir=None):
-    # > eval `$(which python) -m conda init --dev`
+    # > alias conda-dev='eval "$(python -m conda init --dev)"'
+    # > eval "$(python -m conda init --dev)"
 
     dev_env_prefix = expand(dev_env_prefix or sys.prefix)
     conda_source_dir = expand(conda_source_dir or os.getcwd())
@@ -91,7 +90,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_dir=None):
     plan.append({
         'function': make_conda_pth.__name__,
         'kwargs': {
-            'target_path': join(site_packages_dir, 'conda.pth'),
+            'target_path': join(site_packages_dir, '50-conda-dev.pth'),
             'conda_source_dir': conda_source_dir,
         },
     })
@@ -100,7 +99,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_dir=None):
     if shell == "bash":
         builder = [
             "export PYTHON_MAJOR_VERSION='%s'" % python_version[0],
-            "export TEST_PLATFORM='%s'" % 'win' if sys.platform.startswith('win') else 'unix',
+            "export TEST_PLATFORM='%s'" % ('win' if sys.platform.startswith('win') else 'unix'),
             "export PYTHONHASHSEED='%d'" % randint(0,4294967296),
             "export _CONDA_ROOT='%s'" % conda_source_dir,
             ". conda/shell/etc/profile.d/conda.sh",
@@ -202,9 +201,10 @@ def make_install_plan(conda_prefix):
     return plan
 
 
-def make_initialize_plan(conda_prefix, auto_activate, shells, for_user, for_system):
+def make_initialize_plan(conda_prefix, shells, for_user, for_system):
     plan = make_install_plan(conda_prefix)
 
+    shells = set(shells)
     if shells & {'bash', 'zsh'}:
         if 'bash' in shells and for_user:
             bashrc_path = expand(join('~', '.bash_profile' if on_mac else '.bashrc'))
@@ -213,7 +213,6 @@ def make_initialize_plan(conda_prefix, auto_activate, shells, for_user, for_syst
                 'kwargs': {
                     'target_path': bashrc_path,
                     'conda_prefix': conda_prefix,
-                    'auto_activate': auto_activate,
                 },
             })
 
@@ -224,7 +223,6 @@ def make_initialize_plan(conda_prefix, auto_activate, shells, for_user, for_syst
                 'kwargs': {
                     'target_path': zshrc_path,
                     'conda_prefix': conda_prefix,
-                    'auto_activate': auto_activate,
                 },
             })
 
@@ -234,13 +232,6 @@ def make_initialize_plan(conda_prefix, auto_activate, shells, for_user, for_syst
                 'kwargs': {
                     'target_path': '/etc/profile.d/conda.sh',
                     'conda_prefix': conda_prefix,
-                },
-            })
-            plan.append({
-                'function': init_sh_system_activate.__name__,
-                'kwargs': {
-                    'target_path': '/etc/profile.d/conda_activate_base.sh',
-                    'auto_activate': auto_activate,
                 },
             })
 
@@ -272,7 +263,7 @@ def run_plan_elevated(plan):
             raise NotImplementedError("Windows. Blah. Run as Administrator on your own.")
         else:
             result = subprocess_call(
-                'sudo %s -m conda.core.initialize' % sys.executable,
+                'sudo %s -m conda.initialize' % sys.executable,
                 env={},
                 cwd=os.getcwd(),
                 stdin=stdin,
@@ -347,7 +338,8 @@ def make_entry_point(target_path, conda_prefix, module, func):
 def make_entry_point_exe(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Scripts', 'conda.exe')
     exe_path = target_path
-    source_exe_path = join(CONDA_PACKAGE_ROOT, 'shell', 'cli-%d.exe' % context.bits)
+    bits = 8 * tuple.__itemsize__
+    source_exe_path = join(CONDA_PACKAGE_ROOT, 'shell', 'cli-%d.exe' % bits)
     if isfile(exe_path):
         if compute_md5sum(exe_path) == compute_md5sum(source_exe_path):
             return Result.NO_CHANGE
@@ -358,10 +350,16 @@ def make_entry_point_exe(target_path, conda_prefix):
     return Result.MODIFIED
 
 
+def conda_exe(conda_prefix):
+    if on_win:
+        return "$(cygpath '%s')" % join(conda_prefix, 'Scripts', 'conda.exe')
+    else:
+        return join(conda_prefix, 'bin', 'conda')
+
+
 def init_conda_sh(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
     conda_sh_base_path = target_path
-    conda_sh_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')
 
     if isfile(conda_sh_base_path):
         with open(conda_sh_base_path) as fh:
@@ -369,14 +367,8 @@ def init_conda_sh(target_path, conda_prefix):
     else:
         original_conda_sh = ""
 
-    if on_win:
-        win_conda_exe = join(conda_prefix, 'Scripts', 'conda.exe')
-        new_conda_sh = "_CONDA_EXE=\"$(cygpath '%s')\"\n" % win_conda_exe
-    else:
-        new_conda_sh = '_CONDA_EXE="%s"\n' % join(conda_prefix, 'bin', 'conda')
-
-    with open(conda_sh_src_path) as fsrc:
-        new_conda_sh += fsrc.read()
+    from .hook import Hook
+    new_conda_sh = Hook(conda_prefix, False).posix()
 
     if new_conda_sh != original_conda_sh:
         mkdir_p(dirname(conda_sh_base_path))
@@ -387,29 +379,20 @@ def init_conda_sh(target_path, conda_prefix):
         return Result.NO_CHANGE
 
 
-def init_sh_user(target_path, conda_prefix, auto_activate):
+def init_sh_user(target_path, conda_prefix):
     # target_path: ~/.bash_profile
     user_rc_path = target_path
-    conda_sh_base_path = join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
 
     with open(user_rc_path) as fh:
         rc_content = fh.read()
 
     rc_original_content = rc_content
 
-    if auto_activate:
-        conda_initialize_content = (
-            '# >>> conda initialize >>>\n'
-            '. "%s"\n'
-            'conda activate base\n'
-            '# <<< conda initialize <<<'
-        ) % conda_sh_base_path
-    else:
-        conda_initialize_content = (
-            '# >>> conda initialize >>>\n'
-            '. "%s"\n'
-            '# <<< conda initialize <<<'
-        ) % conda_sh_base_path
+    conda_initialize_content = (
+        '# >>> conda initialize >>>\n'
+        'eval "$(\'%s\' hook posix)"\n'
+        '# <<< conda initialize <<<\n'
+    ) % conda_exe(conda_prefix)
 
     rc_content = re.sub(
         r"^[ \t]*(export PATH=['\"]%s:\$PATH['\"])[ \t]*$" % re.escape(join(conda_prefix, 'bin')),
@@ -418,13 +401,13 @@ def init_sh_user(target_path, conda_prefix, auto_activate):
         flags=re.MULTILINE,
     )
     rc_content = re.sub(
-        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*\/etc\/profile\.d\/conda\.sh)[ \t]*$",
-        r"# \1  # modified by conda initialize",
+        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*\/etc\/profile\.d\/conda\.sh).*?\n",
+        r"# \1  # modified by conda initialize\n",
         rc_content,
         flags=re.MULTILINE,
     )
     rc_content = re.sub(
-        r"^# >>> conda initialize >>>$([\s\S]*?)# <<< conda initialize <<<$",
+        r"^# >>> conda initialize >>>$([\s\S]*?)# <<< conda initialize <<<\n$",
         conda_initialize_content,
         rc_content,
         flags=re.MULTILINE,
@@ -444,52 +427,22 @@ def init_sh_user(target_path, conda_prefix, auto_activate):
 def init_sh_system(target_path, conda_prefix):
     # target_path: '/etc/profile.d/conda.sh'
     conda_sh_system_path = target_path
-    conda_sh_base_path = join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
 
     if exists(conda_sh_system_path):
         with open(conda_sh_system_path) as fh:
             conda_sh_system_contents = fh.read()
     else:
         conda_sh_system_contents = ""
-    with open(conda_sh_base_path) as fh:
-        conda_sh_contents = fh.read()
+    conda_sh_contents = 'eval "$(\'%s\' hook posix)"\n' % conda_exe(conda_prefix)
     if conda_sh_system_contents != conda_sh_contents:
         if lexists(conda_sh_system_path):
             rm_rf(conda_sh_system_path)
         mkdir_p(dirname(conda_sh_system_path))
-        create_soft_link_or_copy(conda_sh_base_path, conda_sh_system_path)
+        with open(conda_sh_system_path, 'w') as fh:
+            fh.write(conda_sh_contents)
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
-
-
-def init_sh_system_activate(target_path, auto_activate):
-    # target_path: '/etc/profile.d/conda_activate_base.sh'
-    conda_activate_sh_path = target_path
-    if isinstance(auto_activate, string_types):
-        auto_activate = boolify(auto_activate)
-    if auto_activate:
-        if exists(conda_activate_sh_path):
-            with open(conda_activate_sh_path) as fh:
-                conda_activate_sh_contents = fh.read()
-        else:
-            conda_activate_sh_contents = ""
-        conda_activate_sh_final_contents = 'conda activate base\n'
-
-        if conda_activate_sh_final_contents != conda_activate_sh_contents:
-            with open(conda_activate_sh_path, 'w') as fh:
-                fh.write(conda_activate_sh_final_contents)
-                return Result.MODIFIED
-        else:
-            return Result.NO_CHANGE
-
-    else:
-        if lexists(conda_activate_sh_path):
-            make_writable(conda_activate_sh_path)
-            os.unlink(conda_activate_sh_path)
-            return Result.MODIFIED
-        else:
-            return Result.NO_CHANGE
 
 
 def init_conda_bat(target_path, conda_prefix):

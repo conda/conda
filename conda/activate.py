@@ -401,7 +401,7 @@ class _Activator(object):
         pass
 
     def _default_env(self, prefix):
-        if prefix == context.root_prefix:
+        if normpath(prefix) == normpath(context.root_prefix):
             return 'base'
         return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
 

@@ -24,7 +24,6 @@ def execute(args, parser):
         return install(context.conda_prefix)
 
     else:
-        if not (args.install and args.user and args.system):
+        if not (args.install_only and args.user and args.system):
             args.user = True
-        return initialize(context.conda_prefix, args.auto_activate, selected_shells,
-                          args.user, args.system)
+        return initialize(context.conda_prefix, selected_shells, args.user, args.system)

@@ -108,6 +108,7 @@ class Context(Configuration):
     allow_cycles = PrimitiveParameter(True)  # allow cyclical dependencies, or raise
     allow_softlinks = PrimitiveParameter(False)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
+    auto_activate_base = PrimitiveParameter(True)
     notify_outdated_conda = PrimitiveParameter(True)
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)

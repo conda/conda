@@ -206,15 +206,6 @@ def create_hard_link_or_copy(src, dst):
         _do_copy(src, dst)
 
 
-def create_soft_link_or_copy(src, dst):
-    log.trace("soft linking %s => %s", src, dst)
-    symlink(src, dst)
-
-    if not islink(dst):
-        log.info('soft link failed, so copying %s => %s', src, dst)
-        _do_copy(src, dst)
-
-
 def _is_unix_executable_using_ORIGIN(path):
     if on_win:
         return False

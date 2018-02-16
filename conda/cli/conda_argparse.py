@@ -669,14 +669,14 @@ def configure_parser_init(sub_parsers):
             default=NULL,
         )
 
-    p.add_argument(
-        "--no-auto-activate",
-        help="Do not automatically activate the base environment on shell startup. "
-             "Instead, only make the 'conda' command available.",
-        action="store_false",
-        default=True,
-        dest='auto_activate',
-    )
+    # p.add_argument(
+    #     "--no-auto-activate",
+    #     help="Do not automatically activate the base environment on shell startup. "
+    #          "Instead, only make the 'conda' command available.",
+    #     action="store_false",
+    #     default=True,
+    #     dest='auto_activate',
+    # )
     add_parser_json(p)
     p.set_defaults(func='.main_init.execute')
 
