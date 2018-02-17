@@ -18,7 +18,7 @@ from .._vendor.auxlib.entity import EntityEncoder
 from ..base.context import context
 from ..common.compat import PY3, itervalues
 from ..common.path import paths_equal
-from ..core.linked_data import is_linked, linked, linked_data
+from ..core.prefix_data import is_linked, linked, linked_data
 from ..gateways.disk.delete import rmtree
 from ..install import PREFIX_PLACEHOLDER
 from ..misc import untracked

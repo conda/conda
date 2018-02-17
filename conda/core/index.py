@@ -4,9 +4,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 from logging import getLogger
 
-from .linked_data import linked_data
-from .package_cache import PackageCache
-from .repodata import SubdirData, make_feature_record
+from .prefix_data import linked_data
+from .package_cache_data import PackageCacheData
+from .subdir_data import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues
@@ -81,7 +81,7 @@ def fetch_index(channel_urls, use_cache=False, index=None):
     use_cache = use_cache or context.use_index_cache
 
     # channel_urls reversed to build up index in correct order
-    from .repodata import collect_all_repodata_as_index
+    from .subdir_data import collect_all_repodata_as_index
     index = collect_all_repodata_as_index(use_cache, channel_urls)
 
     return index
@@ -111,7 +111,7 @@ def _supplement_index_with_prefix(index, prefix):
 
 def _supplement_index_with_cache(index):
     # supplement index with packages from the cache
-    for pcrec in PackageCache.get_all_extracted_entries():
+    for pcrec in PackageCacheData.get_all_extracted_entries():
         dist = Dist(pcrec)
         if dist in index:
             # The downloaded repodata takes priority

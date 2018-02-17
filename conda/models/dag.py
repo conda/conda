@@ -312,7 +312,7 @@ class Node(object):
 
 
 if __name__ == "__main__":
-    from ..core.linked_data import PrefixData
+    from ..core.prefix_data import PrefixData
     from ..history import History
     prefix = sys.argv[1]
     records = PrefixData(prefix).iter_records()

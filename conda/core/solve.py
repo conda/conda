@@ -10,8 +10,8 @@ from textwrap import dedent
 
 from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
-from .linked_data import PrefixData
-from .repodata import SubdirData
+from .prefix_data import PrefixData
+from .subdir_data import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet

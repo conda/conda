@@ -12,7 +12,7 @@ import pytest
 
 from conda.base.context import context, reset_context, Context
 from conda.common.io import env_var, env_vars, stderr_log_level
-from conda.core.linked_data import PrefixData
+from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, Solver
 from conda.exceptions import UnsatisfiableError
 from conda.history import History

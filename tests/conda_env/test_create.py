@@ -23,7 +23,7 @@ from conda.install import on_win
 from conda_env.cli.main_create import configure_parser as create_configure_parser
 from conda_env.cli.main_update import configure_parser as update_configure_parser
 from conda_env.cli.main import do_call as do_call_conda_env
-from conda.core.linked_data import linked
+from conda.core.prefix_data import linked
 
 from . import utils
 

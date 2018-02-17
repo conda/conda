@@ -8,7 +8,7 @@ import os
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
 from conda.common.serialize import yaml_load_standard
-from conda.core.linked_data import linked
+from conda.core.prefix_data import linked
 from conda.models.match_spec import MatchSpec
 from conda_env.yaml import dump
 from . import compat, exceptions, yaml

@@ -1,0 +1,12 @@
+queries:
+  - exclude: py/redundant-assignment
+
+extraction:
+  python:
+    python_setup:
+      version: 3
+    index:
+      exclude:
+        - .git
+        - conda/_vendor
+        - tests

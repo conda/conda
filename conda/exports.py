@@ -47,7 +47,7 @@ handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
                                      "Now handled by CondaSession.")
 from .core.index import dist_str_in_index, fetch_index, get_index  # NOQA
 dist_str_in_index, fetch_index, get_index = dist_str_in_index, fetch_index, get_index  # NOQA lgtm [py/redundant-assignment]
-from .core.package_cache import download, rm_fetched  # NOQA
+from .core.package_cache_data import download, rm_fetched  # NOQA
 download, rm_fetched = download, rm_fetched
 
 from .install import package_cache, prefix_placeholder, symlink_conda  # NOQA
@@ -56,7 +56,7 @@ package_cache, prefix_placeholder, symlink_conda = package_cache, prefix_placeho
 from .gateways.disk.delete import delete_trash, move_to_trash  # NOQA
 delete_trash, move_to_trash = delete_trash, move_to_trash
 
-from .core.linked_data import is_linked, linked, linked_data  # NOQA
+from .core.prefix_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
 
 from .misc import untracked, walk_prefix  # NOQA
@@ -126,7 +126,7 @@ TemporaryDirectory = TemporaryDirectory  # lgtm [py/redundant-assignment]
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # NOQA
 ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call
 
-from .core.repodata import cache_fn_url  # NOQA
+from .core.subdir_data import cache_fn_url  # NOQA
 cache_fn_url = cache_fn_url  # lgtm [py/redundant-assignment]
 
 
@@ -178,7 +178,7 @@ class memoized(object):  # pragma: no cover
 
 
 from .gateways.disk.delete import rm_rf as _rm_rf  # NOQA
-from .core.linked_data import delete_prefix_from_linked_data  # NOQA
+from .core.prefix_data import delete_prefix_from_linked_data  # NOQA
 
 
 def rm_rf(path, max_retries=5, trash=True):

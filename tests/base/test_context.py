@@ -19,7 +19,7 @@ from conda.common.io import env_var
 from conda.common.path import expand, win_path_backout
 from conda.common.url import join_url, path_to_url
 from conda.common.serialize import yaml_load
-from conda.core.package_cache import PackageCache
+from conda.core.package_cache_data import PackageCacheData
 from conda.gateways.disk.create import mkdir_p, create_package_cache_directory
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.permissions import make_read_only
@@ -221,13 +221,13 @@ class ContextCustomRcTests(TestCase):
                 assert context.target_prefix == join(envs_dirs[0], 'blarg')
 
                 # with first dir read-only, choose second
-                PackageCache._cache_.clear()
+                PackageCacheData._cache_.clear()
                 make_read_only(join(prefix, 'first', 'pkgs', 'urls.txt'))
                 reset_context((), argparse_args=AttrDict(name='blarg', func='create'))
                 assert context.target_prefix == join(envs_dirs[1], 'blarg')
 
                 # if first dir is read-only but environment exists, choose first
-                PackageCache._cache_.clear()
+                PackageCacheData._cache_.clear()
                 mkdir_p(join(envs_dirs[0], 'blarg'))
                 touch(join(envs_dirs[0], 'blarg', 'history'))
                 reset_context((), argparse_args=AttrDict(name='blarg', func='create'))

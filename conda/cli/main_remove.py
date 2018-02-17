@@ -12,7 +12,7 @@ from .install import handle_txn
 from ..base.context import context
 from ..common.compat import iteritems, iterkeys
 from ..core.envs_manager import unregister_env
-from ..core.linked_data import linked_data
+from ..core.prefix_data import linked_data
 from ..core.solve import Solver
 from ..exceptions import CondaEnvironmentError, CondaValueError
 from ..gateways.disk.delete import delete_trash, rm_rf

@@ -36,10 +36,10 @@ from conda.common.path import get_bin_directory_short_path, get_python_site_pack
     pyc_path
 from conda.common.serialize import yaml_load
 from conda.common.url import path_to_url
-from conda.core.linked_data import PrefixData, get_python_version_for_prefix, \
+from conda.core.prefix_data import PrefixData, get_python_version_for_prefix, \
     linked as install_linked, linked_data
-from conda.core.package_cache import PackageCache
-from conda.core.repodata import create_cache_dir
+from conda.core.package_cache_data import PackageCacheData
+from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError
 from conda.gateways.anaconda_client import read_binstar_tokens
@@ -161,8 +161,8 @@ def make_temp_package_cache():
             yield pkgs_dir
     finally:
         rmtree(prefix, ignore_errors=True)
-        if pkgs_dir in PackageCache._cache_:
-            del PackageCache._cache_[pkgs_dir]
+        if pkgs_dir in PackageCacheData._cache_:
+            del PackageCacheData._cache_[pkgs_dir]
 
 @contextmanager
 def make_temp_channel(packages):
@@ -183,7 +183,7 @@ def make_temp_channel(packages):
     for package_data in data:
         pkg_data = package_data
         fname = pkg_data['fn']
-        tarfiles[fname] = join(PackageCache.first_writable().pkgs_dir, fname)
+        tarfiles[fname] = join(PackageCacheData.first_writable().pkgs_dir, fname)
 
         pkg_data = pkg_data.dump()
         for field in ('url', 'channel', 'schannel'):
@@ -272,7 +272,7 @@ def get_shortcut_dir():
 class IntegrationTests(TestCase):
 
     def setUp(self):
-        PackageCache.clear()
+        PackageCacheData.clear()
 
     def test_install_python2_and_search(self):
         with make_temp_env("python=2") as prefix:
@@ -626,8 +626,8 @@ class IntegrationTests(TestCase):
 
             # Regression test for 2970
             # install from build channel as a tarball
-            tar_path = join(PackageCache.first_writable().pkgs_dir, flask_fname)
-            conda_bld = join(dirname(PackageCache.first_writable().pkgs_dir), 'conda-bld')
+            tar_path = join(PackageCacheData.first_writable().pkgs_dir, flask_fname)
+            conda_bld = join(dirname(PackageCacheData.first_writable().pkgs_dir), 'conda-bld')
             conda_bld_sub = join(conda_bld, context.subdir)
             if not isdir(conda_bld_sub):
                 os.makedirs(conda_bld_sub)
@@ -650,7 +650,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'python')
 
             flask_fname = flask_data['fn']
-            tar_old_path = join(PackageCache.first_writable().pkgs_dir, flask_fname)
+            tar_old_path = join(PackageCacheData.first_writable().pkgs_dir, flask_fname)
 
             assert isfile(tar_old_path)
 
@@ -1289,7 +1289,7 @@ class IntegrationTests(TestCase):
 
     def test_use_index_cache(self):
         from conda.gateways.connection.session import CondaSession
-        from conda.core.repodata import SubdirData
+        from conda.core.subdir_data import SubdirData
         SubdirData._cache_.clear()
 
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
@@ -1330,7 +1330,7 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix, "flask", "--json", "--use-index-cache")
 
     def test_offline_with_empty_index_cache(self):
-        from conda.core.repodata import SubdirData
+        from conda.core.subdir_data import SubdirData
         SubdirData._cache_.clear()
 
         try:
@@ -1657,7 +1657,7 @@ class IntegrationTests(TestCase):
 class PrivateEnvIntegrationTests(TestCase):
 
     def setUp(self):
-        PackageCache.clear()
+        PackageCacheData.clear()
 
         self.pkgs_dirs = ','.join(context.pkgs_dirs)
         self.prefix = create_temp_location()

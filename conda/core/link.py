@@ -11,8 +11,8 @@ from tempfile import mkdtemp
 from traceback import format_exception_only
 import warnings
 
-from .linked_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
-from .package_cache import PackageCache
+from .prefix_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
+from .package_cache_data import PackageCacheData
 from .path_actions import (CompilePycAction, CreateNonadminAction, CreatePrefixRecordAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
@@ -168,7 +168,7 @@ class UnlinkLinkTransaction(object):
         )
 
     def get_pfe(self):
-        from .package_cache import ProgressiveFetchExtract
+        from .package_cache_data import ProgressiveFetchExtract
         if not self.prefix_setups:
             return ProgressiveFetchExtract(())
         else:
@@ -246,7 +246,7 @@ class UnlinkLinkTransaction(object):
         # NOTE: load_meta can return None
         # TODO: figure out if this filter shouldn't be an assert not None
         prefix_recs_to_unlink = tuple(lpd for lpd in prefix_recs_to_unlink if lpd)
-        pkg_cache_recs_to_link = tuple(PackageCache.get_entry_to_link(prec)
+        pkg_cache_recs_to_link = tuple(PackageCacheData.get_entry_to_link(prec)
                                        for prec in link_precs)
         assert all(pkg_cache_recs_to_link)
         packages_info_to_link = tuple(read_package_info(prec, pcrec)
