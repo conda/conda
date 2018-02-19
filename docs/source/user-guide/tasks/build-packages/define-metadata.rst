@@ -699,7 +699,7 @@ Build
 -----
 
 Tools required to build the package. These packages are run on
-the build system and include things such at revision control systems
+the build system and include things such as revision control systems
 (git, svn) make tools (GNU make, Autotool, CMake) and compilers
 (real cross, pseudo-cross, or native when not cross-compiling)
 and any source pre-processors.
@@ -722,8 +722,8 @@ the same as the native build platform. For example, in order for a recipe to
 section, rather than the build section, so that the shared libraries that get
 linked are ones for the target platform, rather than the native build platform.
 You should also include the base interpreter for packages that need one. In other
-words, a Python package would list `python` here and an R package would list
-`mro-base` or `r-base`.
+words, a Python package would list ``python`` here and an R package would list
+``mro-base`` or ``r-base``.
 
 .. code-block:: yaml
 
@@ -759,19 +759,20 @@ installed into the build environment. No files will be detected. Also, variables
 such as PYTHON will not be defined when python is not installed into the host
 environment.
 
-On Linux, using the compiler packages provided by Anaconda Inc. in the `defaults`
+On Linux, using the compiler packages provided by Anaconda Inc. in the ``defaults``
 meta-channel you can prevent your build system leaking into the built software by
-using our `CDT` (Core Dependency Tree) packages for any 'system' * dependencies.
+using our ``CDT`` (Core Dependency Tree) packages for any "system" dependencies.
 These packages are repackaged libraries and headers from CentOS6 and are unpacked
 into the sysroot of our pseudo-cross compilers and are found by them automatically.
-(* what qualifies as 'system' is a matter of opinion, for the Anaconda Distribution
-we took the decision not to provide X11 or GL packages (while conda-forge does), so
-we use CDT packages for X11).
 
-On macOS, using the equivalent compiler packages (in conjunction with the standard
-MACOSX_DEPLOYMENT_TARGET env. var.)  you can set the CONDA_BUILD_SYSROOT env. var.
-to identify a folder containing a macOS SDK to achieve backwards compatability
-(while still having access to C++14 and C++1z).
+Note that what qualifies as a "system" dependency is a matter of opinion. The
+Anaconda Distribution chose not to provide X11 or GL packages, so we use CDT
+packages for X11. Conda-forge chose to provide X11 and GL packages.
+
+On macOS, you can use the equivalent compiler packages in conjunction with the standard
+MACOSX_DEPLOYMENT_TARGET environment variable and set the CONDA_BUILD_SYSROOT environment variable.
+This will specify a folder containing a macOS SDK. This achieves backwards compatability
+while still providing access to C++14 and C++1z.
 
 **TL;DR**: If you use the new ``{{ compiler() }}`` jinja2 to utilize our new
 compilers, you also must move anything that is not strictly a build tool into
@@ -815,13 +816,13 @@ The line in the ``meta.yaml`` file should literally say
        - python
        - numpy x.x
 
-**NOTE**; Instead of manually specifying run requirements, since
+**NOTE**: Instead of manually specifying run requirements, since
 conda-build 3 you can augment the packages used in your build section
-with `strong run_exports` which are then automatically added to the
+with ``strong run_exports`` which are then automatically added to the
 run requirements for you. The same can be done for packages in your
-host section with `weak run_exports`. The former allows things like
-compiler runtimes to get added automatically when the compiler is
-used and the latter allows you to take advantange of generalized
+host section with ``weak run_exports``. ``strong run_exports`` allows
+automatically adding things like compiler runtimes when the compiler is
+used. ``weak run_exports`` allows you to take advantange of generalized
 and automatic pinning.
 
 .. _meta-test:
