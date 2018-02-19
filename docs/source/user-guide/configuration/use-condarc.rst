@@ -524,14 +524,14 @@ Specify package directories (pkgs_dirs)
 ---------------------------------------
 
 Specify directories in which packages are located. If this
-key is set, the root prefix ``pkgs_dir`` is not used unless
+key is set, the root prefix ``pkgs_dirs`` is not used unless
 explicitly included.
 
 EXAMPLE:
 
 .. code-block:: yaml
 
-  pkg_dirs:
+  pkgs_dirs:
     - /opt/anaconda/pkgs
 
 The CONDA_PKGS_DIRS environment variable overwrites this setting:
