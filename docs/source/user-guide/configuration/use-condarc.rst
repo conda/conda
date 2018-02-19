@@ -520,6 +520,28 @@ The CONDA_ENVS_PATH environment variable overwrites this setting:
   ``set CONDA_ENVS_PATH=C:\Users\joe\envs;C:\Anaconda\envs``
 
 
+Specify package directories (pkgs_dirs)
+---------------------------------------
+
+Specify directories in which packages are located. If this
+key is set, the root prefix ``pkgs_dir`` is not used unless
+explicitly included.
+
+EXAMPLE:
+
+.. code-block:: yaml
+
+  pkg_dirs:
+    - /opt/anaconda/pkgs
+
+The CONDA_PKGS_DIRS environment variable overwrites this setting:
+
+* For macOS and Linux:
+  ``CONDA_PKGS_DIRS=/opt/anaconda/pkgs``
+
+* For Windows:
+  ``set CONDA_PKGS_DIRS=C:\Anaconda\pkgs``
+
 Conda build configuration
 =========================
 
