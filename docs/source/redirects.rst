@@ -66,6 +66,8 @@ Redirects
    install/tab-completion
    user-guide/tasks/build-packages/add-scripts
    user-guide/tasks/build-packages/sign-packages
+   user-guide/tasks/use-mro-with-conda
+   user-guide/tasks/use-r-with-conda
    using/cheatsheet
    using/envs
    using/index
