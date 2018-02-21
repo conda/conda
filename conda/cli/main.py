@@ -63,6 +63,34 @@ def init_loggers(context=None):
         set_verbosity(context.verbosity)
 
 
+def init_std_stream_encoding():
+    """
+    PY2 compat: Initialize encoding for standard streams.
+    Python 2 sets the encoding of stdout/stderr to None if not run in a
+    terminal context and thus falls back to ASCII.
+    """
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name)
+        if not stream.encoding:
+            break
+    else:
+        return
+    from codecs import getwriter
+    from locale import getpreferredencoding
+
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name)
+        if stream.encoding:
+            continue
+        encoding = getpreferredencoding()
+        try:
+            encoder = getwriter(encoding)
+        except LookupError:
+            encoder = getwriter("UTF-8")
+        base_stream = getattr(stream, "buffer", stream)
+        setattr(sys, stream_name, encoder(base_stream))
+
+
 def _main(*args):
     if len(args) == 1:
         args = args + ('-h',)
@@ -98,6 +126,7 @@ def _ensure_text_type(value):
 
 
 def main(*args):
+    init_std_stream_encoding()
     if not args:
         args = sys.argv
 
