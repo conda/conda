@@ -537,68 +537,69 @@ def configure_parser_init(sub_parsers):
     descr = help
 
     epilog = dedent("""
-    Key parts of conda's functionality require that it interact directly with the shell 
-    within which conda is being invoked. The `conda activate` and `conda deactivate` commands 
-    specifically are shell-level commands. That is, they affect the state (e.g. environment 
-    variables) of the shell context being interacted with. Other core commands, like 
-    `conda create` and `conda install`, also necessarily interact with the shell environment. 
-    They're therefore implemented in ways specific to each shell. Each shell must be configured 
+    Key parts of conda's functionality require that it interact directly with the shell
+    within which conda is being invoked. The `conda activate` and `conda deactivate` commands
+    specifically are shell-level commands. That is, they affect the state (e.g. environment
+    variables) of the shell context being interacted with. Other core commands, like
+    `conda create` and `conda install`, also necessarily interact with the shell environment.
+    They're therefore implemented in ways specific to each shell. Each shell must be configured
     to make use of them.
-    
+
     Examples:
-        
+
         # Make the conda command available in all detected shells for the *current user*.
         # For example, if the bash shell is among those detected on your system, this command
         # will modify your user's `~/.bashrc` file (`~/.bash_profile` on macOS). In addition to,
         # the 'conda' command being made available, the 'base' conda environment is automatically
         # activated (i.e. environment variables set and all executables put on PATH).
-        
+
             $ conda init
-        
-        # Make the conda command available to every user on the system. For example, if the bash 
+
+        # Make the conda command available to every user on the system. For example, if the bash
         # shell is among those detected on your system, a file `/etc/profile.d/conda.sh` will be
         # created, which will be sourced when your shell is initialized.
-        
+
             $ conda init --system
-        
+
         # Initialize conda in all detected shells for the current user. Additionally, make *only*
-        # the 'conda' command available to the shell, and *do not* automatically activate the 
-        # base environment. Executables in the base environment, like python, will not be 
+        # the 'conda' command available to the shell, and *do not* automatically activate the
+        # base environment. Executables in the base environment, like python, will not be
         # available on PATH until running 'conda activate base'.
-        
+
             $ conda init --no-auto-activate
-        
-        # When executed from a bash shell, ensure that conda is properly installed in the prefix 
-        # for the first python on PATH (e.g. following a `python -m pip install conda`). Make the 
-        # 'conda' command available to the current shell process, and activate the 'base' 
+
+        # When executed from a bash shell, ensure that conda is properly installed in the prefix
+        # for the first python on PATH (e.g. following a `python -m pip install conda`). Make the
+        # 'conda' command available to the current shell process, and activate the 'base'
         # environment. Does not modify `~/.bashrc` for example, so has no effect on future shell
         # sessions.
-        
+
             $ eval `python -m conda init --install-only bash`
 
 
     IMPORTANT: After running `conda init`, most shells will need to be closed and restarted
                for changes to take effect.
-    
+
     """)
 
-    dev_example = dedent("""
-        # An example for creating an environment to develop on conda's own code. Clone the 
-        # conda repo and install a dedicated miniconda within it. Remove all remnants of 
-        # conda source files in the `site-packages` directory associated with 
-        # `~/conda/devenv/bin/python`. Write a `conda.pth` file in that `site-packages` 
-        # directory pointing to source code in `~/conda`, the current working directory.
-        # Write commands to stdout, suitable for bash `eval`, that sets up the current
-        # shell as a dev environment. 
-            
-            $ git clone git@github.com:conda/conda ~/conda
-            $ curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o ~/Miniconda3-latest-Linux-x86_64.sh
-            $ bash ~/Miniconda3-latest-Linux-x86_64.sh -bfp ~/conda/devenv
-            $ cd ~/conda
-            $ eval `./devenv/bin/python -m conda init --dev bash`
-        
-    
-    """)
+    # dev_example = dedent("""
+    #     # An example for creating an environment to develop on conda's own code. Clone the
+    #     # conda repo and install a dedicated miniconda within it. Remove all remnants of
+    #     # conda source files in the `site-packages` directory associated with
+    #     # `~/conda/devenv/bin/python`. Write a `conda.pth` file in that `site-packages`
+    #     # directory pointing to source code in `~/conda`, the current working directory.
+    #     # Write commands to stdout, suitable for bash `eval`, that sets up the current
+    #     # shell as a dev environment.
+    #
+    #         $ git clone git@github.com:conda/conda ~/conda
+    #         $ curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+    #               -o ~/Miniconda3-latest-Linux-x86_64.sh
+    #         $ bash ~/Miniconda3-latest-Linux-x86_64.sh -bfp ~/conda/devenv
+    #         $ cd ~/conda
+    #         $ eval `./devenv/bin/python -m conda init --dev bash`
+    #
+    #
+    # """)
 
     p = sub_parsers.add_parser(
         'init',

@@ -95,8 +95,6 @@ class Hook(object):
 
 on_win = bool(sys.platform == "win32")
 
-
-
 """
 
 eval "$(conda hook posix)"

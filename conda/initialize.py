@@ -64,7 +64,8 @@ def _get_python_info(prefix):
     else:  # pragma: no cover
         raise ValueError("No python version information available.")
 
-    site_packages_dir = join(prefix, win_path_ok(get_python_site_packages_short_path(python_version)))
+    site_packages_dir = join(prefix,
+                             win_path_ok(get_python_site_packages_short_path(python_version)))
     return python_exe, python_version, site_packages_dir
 
 
@@ -101,7 +102,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_dir=None):
         builder = [
             "export PYTHON_MAJOR_VERSION='%s'" % python_version[0],
             "export TEST_PLATFORM='%s'" % ('win' if sys.platform.startswith('win') else 'unix'),
-            "export PYTHONHASHSEED='%d'" % randint(0,4294967296),
+            "export PYTHONHASHSEED='%d'" % randint(0, 4294967296),
             "export _CONDA_ROOT='%s'" % conda_source_dir,
             ". conda/shell/etc/profile.d/conda.sh",
             "conda activate '%s'" % dev_env_prefix,
@@ -256,8 +257,8 @@ def run_plan_elevated(plan):
     if any(step['result'] == Result.NEEDS_SUDO for step in plan):
         stdin = json.dumps(plan)
         if on_win:
-            # https://github.com/ContinuumIO/menuinst/blob/master/menuinst/windows/win_elevate.py  # no stdin / stdout / stderr pipe support
-            # https://github.com/saltstack/salt-windows-install/blob/master/deps/salt/python/App/Lib/site-packages/win32/Demos/pipes/runproc.py
+            # https://github.com/ContinuumIO/menuinst/blob/master/menuinst/windows/win_elevate.py  # no stdin / stdout / stderr pipe support  # NOQA
+            # https://github.com/saltstack/salt-windows-install/blob/master/deps/salt/python/App/Lib/site-packages/win32/Demos/pipes/runproc.py  # NOQA
             # https://github.com/twonds/twisted/blob/master/twisted/internet/_dumbwin32proc.py
             # https://stackoverflow.com/a/19982092/2127762
             # https://www.codeproject.com/Articles/19165/Vista-UAC-The-Definitive-Guide
@@ -266,8 +267,8 @@ def run_plan_elevated(plan):
             result = subprocess_call(
                 'sudo %s -m conda.initialize' % sys.executable,
                 env={},
-                cwd=os.getcwd(),
-                stdin=stdin,
+                path=os.getcwd(),
+                stdin=stdin
             )
         stderr = result.stderr.strip()
         if stderr:
@@ -292,7 +293,8 @@ def print_plan_results(plan, stream=sys.stdout):
 
     changed = any(step['result'] == Result.MODIFIED for step in plan)
     if changed:
-        print("\n==> For changes to take effect, close and re-open your current shell. <==\n", file=stream)
+        print("\n==> For changes to take effect, close and re-open your current shell. <==\n",
+              file=stream)
     else:
         print("No action taken.", file=stream)
 
@@ -485,7 +487,8 @@ def init_conda_fish(target_path, conda_prefix):
 
     if on_win:
         new_conda_fish = 'set _CONDA_ROOT (cygpath %s)\n' % conda_prefix
-        new_conda_fish += 'set _CONDA_EXE (cygpath %s)\n' % join(conda_prefix, 'Scripts', 'conda.exe')
+        new_conda_fish += 'set _CONDA_EXE (cygpath %s)\n' % join(conda_prefix,
+                                                                 'Scripts', 'conda.exe')
     else:
         new_conda_fish = 'set _CONDA_ROOT "%s"\n' % conda_prefix
         new_conda_fish += 'set _CONDA_EXE "%s"\n' % join(conda_prefix, 'bin', 'conda')
@@ -544,7 +547,8 @@ def init_conda_csh(target_path, conda_prefix):
 
     if on_win:
         new_conda_csh = 'setenv _CONDA_ROOT `cygpath %s`\n' % conda_prefix
-        new_conda_csh += 'setenv _CONDA_EXE `cygpath %s`\n' % join(conda_prefix, 'Scripts', 'conda.exe')
+        new_conda_csh += 'setenv _CONDA_EXE `cygpath %s`\n' % join(conda_prefix,
+                                                                   'Scripts', 'conda.exe')
     else:
         new_conda_csh = 'setenv _CONDA_ROOT "%s"\n' % conda_prefix
         new_conda_csh += 'setenv _CONDA_EXE "%s"\n' % join(conda_prefix, 'bin', 'conda')
@@ -600,5 +604,3 @@ def make_conda_pth(target_path, conda_source_dir):
 
 if __name__ == "__main__":
     run_plan_from_stdin()
-
-

@@ -15,10 +15,10 @@ def pip_installed_post_parse_hook(args, p):
     if args.cmd not in ('init', 'info'):
         raise CondaError(dals("""
         Conda has not been initialized.
-        
+
         To enable full conda functionality, please run 'conda init'.
         For additional information, see 'conda init --help'.
-        
+
         """))
 
 
