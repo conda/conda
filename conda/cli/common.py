@@ -9,6 +9,7 @@ from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
+from ..common.serialize import json_dump
 from ..models.match_spec import MatchSpec
 
 
@@ -158,10 +159,7 @@ def disp_features(features):
 
 @swallow_broken_pipe
 def stdout_json(d):
-    import json
-    from .._vendor.auxlib.entity import EntityEncoder
-    json.dump(d, sys.stdout, indent=2, sort_keys=True, cls=EntityEncoder)
-    sys.stdout.write('\n')
+    print(json_dump(d))
 
 
 def stdout_json_success(success=True, **kwargs):
