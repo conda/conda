@@ -91,6 +91,10 @@ class PackageCacheData(object):
                 if package_cache_record:
                     _package_cache_records[package_cache_record] = package_cache_record
 
+    def reload(self):
+        self.load()
+        return self
+
     def get(self, package_ref, default=NULL):
         assert isinstance(package_ref, PackageRef)
         try:
@@ -118,6 +122,9 @@ class PackageCacheData(object):
         else:
             assert isinstance(param, PackageRef)
             return (pcrec for pcrec in itervalues(self._package_cache_records) if pcrec == param)
+
+    def iter_records(self):
+        return iter(self._package_cache_records)
 
     @classmethod
     def query_all(cls, package_ref_or_match_spec, pkgs_dirs=None):

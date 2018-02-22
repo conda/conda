@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import inspect
-from types import GeneratorType
 
 import pytest
 
@@ -13,6 +12,7 @@ from conda.common.constants import NULL
 from conda.core.link import UnlinkLinkTransaction
 from conda.models.channel import Channel
 from conda.models.index_record import PackageRef, PackageRecord
+from conda.models.package_cache_record import PackageCacheRecord
 
 
 class PositionalArgument:
@@ -135,7 +135,7 @@ def test_SubdirData_contract():
 def test_SubdirData_return_value_contract():
     sd = SubdirData(Channel('pkgs/main/linux-64'))
     query_result = sd.query('openssl')
-    assert isiterable(query_result)
+    assert isinstance(query_result, tuple)
     assert all(isinstance(prec, PackageRecord) for prec in query_result)
 
     query_all_result = sd.query_all((Channel('pkgs/main'),), context.subdirs, 'openssl')
@@ -192,6 +192,35 @@ def test_PackageCacheData_contract():
         ('self', PositionalArgument),
     ))
     inspect_arguments(PackageCacheData.reload, reload_args)
+
+
+def test_PackageCacheData_return_value_contract():
+    pc = PackageCacheData(context.pkgs_dirs[0])
+
+    single_pcrec = next(pc.iter_records())
+    get_result = pc.get(PackageRef.from_objects(single_pcrec))
+    assert isinstance(get_result, PackageCacheRecord)
+
+    query_result = pc.query('openssl')
+    assert isinstance(query_result, tuple)
+    assert all(isinstance(pcrec, PackageCacheRecord) for pcrec in query_result)
+
+    query_all_result = PackageCacheData.query_all('openssl')
+    assert isinstance(query_all_result, tuple)
+    assert all(isinstance(pcrec, PackageCacheRecord) for pcrec in query_all_result)
+
+    iter_records_result = pc.iter_records()
+    assert isiterable(iter_records_result)
+    assert all(isinstance(pcrec, PackageCacheRecord) for pcrec in iter_records_result)
+
+    is_writable_result = pc.is_writable
+    assert is_writable_result is True or is_writable_result is False
+
+    first_writable_result = PackageCacheData.first_writable()
+    assert isinstance(first_writable_result, PackageCacheData)
+
+    reload_result = pc.reload()
+    assert isinstance(reload_result, PackageCacheData)
 
 
 def test_PrefixData_contract():

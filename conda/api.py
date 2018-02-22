@@ -42,11 +42,11 @@ class SubdirData(object):
         self._internal = _SubdirData(channel)
 
     def query(self, package_ref_or_match_spec):
-        return self._internal.query(package_ref_or_match_spec)
+        return tuple(self._internal.query(package_ref_or_match_spec))
 
     @staticmethod
     def query_all(channels, subdirs, package_ref_or_match_spec):
-        return _SubdirData.query_all(channels, subdirs, package_ref_or_match_spec)
+        return tuple(_SubdirData.query_all(channels, subdirs, package_ref_or_match_spec))
 
     def iter_records(self):
         return self._internal.iter_records()
@@ -65,14 +65,14 @@ class PackageCacheData(object):
         return self._internal.get(package_ref, default)
 
     def query(self, package_ref_or_match_spec):
-        return self._internal.query(package_ref_or_match_spec)
+        return tuple(self._internal.query(package_ref_or_match_spec))
 
     @staticmethod
     def query_all(package_ref_or_match_spec, pkgs_dirs=None):
-        return _PackageCacheData.query_all(package_ref_or_match_spec, pkgs_dirs)
+        return tuple(_PackageCacheData.query_all(package_ref_or_match_spec, pkgs_dirs))
 
     def iter_records(self):
-        raise NotImplementedError()
+        return self._internal.iter_records()
 
     @property
     def is_writable(self):
@@ -80,10 +80,11 @@ class PackageCacheData(object):
 
     @staticmethod
     def first_writable(pkgs_dirs=None):
-        return _PackageCacheData.first_writable(pkgs_dirs)
+        return PackageCacheData(_PackageCacheData.first_writable(pkgs_dirs).pkgs_dir)
 
     def reload(self):
-        raise NotImplementedError()
+        self._internal = self._internal.reload()
+        return self
 
 
 class PrefixData(object):
