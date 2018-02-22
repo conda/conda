@@ -147,14 +147,13 @@ NoneType = type(None)
 primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool, NoneType)))
 
 
-def _init_std_stream_encoding(stream_name):
-    # PY2 compat: Initialize encoding for standard streams.
+def _init_stream_encoding(stream):
+    # PY2 compat: Initialize encoding for an IO stream.
     # Python 2 sets the encoding of stdout/stderr to None if not run in a
     # terminal context and thus falls back to ASCII.
-    stream = getattr(sys, stream_name)
     if stream.encoding:
         # avoid the imports below if they are not necessary
-        return
+        return stream
     from codecs import getwriter
     from locale import getpreferredencoding
     encoding = getpreferredencoding()
@@ -163,12 +162,12 @@ def _init_std_stream_encoding(stream_name):
     except LookupError:
         encoder = getwriter("UTF-8")
     base_stream = getattr(stream, "buffer", stream)
-    setattr(sys, stream_name, encoder(base_stream))
+    return encoder(base_stream)
 
 
 def init_std_stream_encoding():
-    _init_std_stream_encoding("stdout")
-    _init_std_stream_encoding("stderr")
+    sys.stdout = _init_stream_encoding(sys.stdout)
+    sys.stderr = _init_stream_encoding(sys.stderr)
 
 
 def ensure_binary(value):
