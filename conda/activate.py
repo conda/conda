@@ -314,6 +314,7 @@ class Activator(object):
                 'CONDA_PREFIX',
                 'CONDA_DEFAULT_ENV',
                 'CONDA_PYTHON_EXE',
+                'CONDA_EXE',
                 'CONDA_PROMPT_MODIFIER',
             )
             export_vars = {
