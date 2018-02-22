@@ -683,18 +683,22 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask', exact=True)
             assert_package_is_installed(prefix, 'flask-0.')
 
-    def test_remove_all(self):
-        with make_temp_env("python=2") as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert_package_is_installed(prefix, 'python-2')
-
-            # regression test for #6914
-            run_command(Commands.INSTALL, prefix, "itsdangerous=0.23 flask")
-            assert package_is_installed(prefix, "itsdangerous-0.23")
+    def test_update_with_pinned_packages(self):
+        # regression test for #6914
+        with make_temp_env("python=2.7.12") as prefix:
+            assert package_is_installed(prefix, "readline-6.2")
             rm_rf(join(prefix, 'conda-meta', 'history'))
-            run_command(Commands.UPDATE, prefix, "itsdangerous")
-            assert package_is_installed(prefix, "itsdangerous")
-            assert not package_is_installed(prefix, "itsdangerous-0.23")
+            PrefixData._cache_.clear()
+            run_command(Commands.UPDATE, prefix, "readline")
+            assert package_is_installed(prefix, "readline")
+            assert not package_is_installed(prefix, "readline-6.2")
+            assert package_is_installed(prefix, "python-2.7")
+            assert not package_is_installed(prefix, "python-2.7.12")
+
+    def test_remove_all(self):
+        with make_temp_env("sqlite") as prefix:
+            assert exists(join(prefix, PYTHON_BINARY))
+            assert_package_is_installed(prefix, 'sqlite')
 
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
