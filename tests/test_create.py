@@ -696,9 +696,9 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, "python-2.7.12")
 
     def test_remove_all(self):
-        with make_temp_env("sqlite") as prefix:
+        with make_temp_env("python") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
-            assert_package_is_installed(prefix, 'sqlite')
+            assert_package_is_installed(prefix, 'python')
 
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
