@@ -688,6 +688,14 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python-2')
 
+            # regression test for #6914
+            run_command(Commands.INSTALL, prefix, "itsdangerous=0.23 flask")
+            assert package_is_installed(prefix, "itsdangerous-0.23")
+            rm_rf(join(prefix, 'conda-meta', 'history'))
+            run_command(Commands.UPDATE, prefix, "itsdangerous")
+            assert package_is_installed(prefix, "itsdangerous")
+            assert not package_is_installed(prefix, "itsdangerous-0.23")
+
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
 
