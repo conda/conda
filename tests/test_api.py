@@ -11,7 +11,7 @@ from conda.common.compat import isiterable, odict
 from conda.common.constants import NULL
 from conda.core.link import UnlinkLinkTransaction
 from conda.models.channel import Channel
-from conda.models.records import PackageRecord, PackageRef, PackageCacheRecord, PrefixRecord
+from conda.models.records import PackageCacheRecord, PackageRecord, PackageRef, PrefixRecord
 
 
 class PositionalArgument:

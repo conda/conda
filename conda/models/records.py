@@ -21,11 +21,7 @@
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from os.path import join, basename
-
-from conda._vendor.auxlib.entity import StringField, ListField, ComposableField
-from conda.common.compat import string_types
-from conda.exceptions import PathNotFoundError
+from os.path import basename, join
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
@@ -34,6 +30,7 @@ from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixi
                                      StringField)
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
+from ..exceptions import PathNotFoundError
 
 
 class LinkTypeField(EnumField):

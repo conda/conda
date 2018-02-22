@@ -35,8 +35,8 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.dist import Dist
-from ..models.records import PackageRecord, PackageRecord, PackageRef
 from ..models.match_spec import MatchSpec
+from ..models.records import PackageRecord, PackageRef
 
 try:
     from cytoolz.itertoolz import concat, take
