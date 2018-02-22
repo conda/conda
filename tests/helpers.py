@@ -24,7 +24,7 @@ from conda.gateways.disk.read import lexists
 from conda.gateways.logging import initialize_logging
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord
+from conda.models.records import IndexRecord
 from conda.resolve import Resolve
 
 try:

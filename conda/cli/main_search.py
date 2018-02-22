@@ -10,7 +10,7 @@ from ..common.io import Spinner
 from ..compat import text_type
 from ..core.envs_manager import query_all_prefixes
 from ..core.subdir_data import SubdirData
-from ..models.index_record import PackageRecord
+from ..models.records import PackageRecord
 from ..models.match_spec import MatchSpec
 from ..models.version import VersionOrder
 from ..resolve import dashlist

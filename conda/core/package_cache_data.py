@@ -28,7 +28,7 @@ from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_in
                                   read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
-from ..models.index_record import PackageRecord, PackageRef
+from ..models.records import PackageRecord, PackageRef
 from ..models.match_spec import MatchSpec
 from ..models.package_cache_record import PackageCacheRecord
 

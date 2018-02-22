@@ -35,7 +35,7 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.dist import Dist
-from ..models.index_record import IndexRecord, PackageRecord, PackageRef
+from ..models.records import IndexRecord, PackageRecord, PackageRef
 from ..models.match_spec import MatchSpec
 
 try:

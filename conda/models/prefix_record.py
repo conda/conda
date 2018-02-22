@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 
-from .index_record import Link, PackageRecord, PathsData
+from .records import Link, PackageRecord, PathsData
 from .._vendor.auxlib.entity import ComposableField, ListField, StringField
 from ..common.compat import string_types
 

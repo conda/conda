@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from logging import getLogger
 from os.path import basename, join
 
-from .index_record import PackageRecord
+from .records import PackageRecord
 from .._vendor.auxlib.entity import StringField
 from ..exceptions import PathNotFoundError
 

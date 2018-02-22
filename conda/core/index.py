@@ -14,7 +14,7 @@ from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, time_reco
 from ..exceptions import OperationNotAllowed
 from ..models.channel import Channel, all_channel_urls
 from ..models.dist import Dist
-from ..models.index_record import EMPTY_LINK
+from ..models.records import EMPTY_LINK
 from ..models.match_spec import MatchSpec
 from ..models.package_cache_record import PackageCacheRecord
 from ..models.prefix_record import PrefixRecord

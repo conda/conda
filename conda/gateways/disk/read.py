@@ -23,7 +23,7 @@ from ...common.compat import ensure_text_type, open
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
-from ...models.index_record import IndexJsonRecord, IndexRecord, PathData, PathDataV1, PathsData
+from ...models.records import IndexJsonRecord, IndexRecord, PathData, PathDataV1, PathsData
 from ...models.package_info import PackageInfo, PackageMetadata
 
 log = getLogger(__name__)

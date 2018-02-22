@@ -16,7 +16,7 @@ from conda.exceptions import PackagesNotFoundError
 from conda.gateways.disk.create import mkdir_p
 import conda.instructions as inst
 from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord
+from conda.models.records import IndexRecord
 from conda.models.match_spec import MatchSpec
 from conda.plan import display_actions, add_unlink, add_defaults_to_specs, _update_old_plan as update_old_plan
 from conda.exports import execute_plan

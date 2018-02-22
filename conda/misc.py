@@ -22,7 +22,7 @@ from .exceptions import DisallowedPackageError, PackagesNotFoundError, ParseErro
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.dist import Dist
-from .models.index_record import IndexRecord
+from .models.records import IndexRecord
 from .models.match_spec import MatchSpec
 from .resolve import Resolve
 

@@ -8,7 +8,7 @@ import re
 
 from .channel import Channel
 from .dist import Dist
-from .index_record import IndexRecord, PackageRef
+from .records import IndexRecord, PackageRef
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION

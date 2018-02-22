@@ -49,7 +49,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
-from conda.models.index_record import IndexRecord
+from conda.models.records import IndexRecord
 from conda.utils import on_win
 
 try:

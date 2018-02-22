@@ -8,7 +8,7 @@ from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord
+from conda.models.records import IndexRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
 from .helpers import get_index_r_1, get_index_r_3, raises
 

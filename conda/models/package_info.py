@@ -5,7 +5,7 @@ from logging import getLogger
 
 from .channel import Channel
 from .enums import NoarchType
-from .index_record import IndexJsonRecord, IndexRecord, PathsData
+from .records import IndexJsonRecord, IndexRecord, PathsData
 from .._vendor.auxlib.entity import (ComposableField, Entity, EnumField,
                                      ImmutableEntity, IntegerField, ListField, StringField)
 from ..common.compat import string_types

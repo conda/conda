@@ -6,7 +6,7 @@ from logging import getLogger
 import re
 
 from .channel import Channel
-from .index_record import IndexRecord, PackageRef
+from .records import IndexRecord, PackageRef
 from .package_info import PackageInfo
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
