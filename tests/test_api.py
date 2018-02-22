@@ -2,15 +2,17 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import inspect
+from types import GeneratorType
 
 import pytest
 
 from conda.api import Solver, PackageCacheData, SubdirData, PrefixData, DepsModifier
+from conda.base.context import context
 from conda.common.compat import odict, isiterable
 from conda.common.constants import NULL
 from conda.core.link import UnlinkLinkTransaction
 from conda.models.channel import Channel
-from conda.models.index_record import PackageRef
+from conda.models.index_record import PackageRef, PackageRecord
 
 
 class PositionalArgument:
@@ -127,6 +129,25 @@ def test_SubdirData_contract():
         ('self', PositionalArgument),
     ))
     inspect_arguments(SubdirData.reload, reload_args)
+
+
+@pytest.mark.integration
+def test_SubdirData_return_value_contract():
+    sd = SubdirData(Channel('pkgs/main/linux-64'))
+    query_result = sd.query('openssl')
+    assert isiterable(query_result)
+    assert all(isinstance(prec, PackageRecord) for prec in query_result)
+
+    query_all_result = sd.query_all((Channel('pkgs/main'),), context.subdirs, 'openssl')
+    assert isinstance(query_all_result, tuple)
+    assert all(isinstance(prec, PackageRecord) for prec in query_all_result)
+
+    iter_records_result = sd.iter_records()
+    assert isiterable(iter_records_result)
+    assert all(isinstance(prec, PackageRecord) for prec in iter_records_result)
+
+    reload_result = sd.reload()
+    assert isinstance(reload_result, SubdirData)
 
 
 def test_PackageCacheData_contract():

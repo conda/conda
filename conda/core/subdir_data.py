@@ -124,6 +124,11 @@ class SubdirData(object):
                                     splitext(cache_fn_url(self.url_w_credentials))[0])
         self._loaded = False
 
+    def reload(self):
+        self._loaded = False
+        self.load()
+        return self
+
     @property
     def cache_path_json(self):
         return self.cache_path_base + '.json'

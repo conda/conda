@@ -42,17 +42,18 @@ class SubdirData(object):
         self._internal = _SubdirData(channel)
 
     def query(self, package_ref_or_match_spec):
-        pass
+        return self._internal.query(package_ref_or_match_spec)
 
     @staticmethod
     def query_all(channels, subdirs, package_ref_or_match_spec):
-        pass
+        return _SubdirData.query_all(channels, subdirs, package_ref_or_match_spec)
 
     def iter_records(self):
         return self._internal.iter_records()
 
     def reload(self):
-        raise NotImplementedError()
+        self._internal = self._internal.reload()
+        return self
 
 
 class PackageCacheData(object):
