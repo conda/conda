@@ -96,15 +96,15 @@ class PrefixData(object):
         return self._internal.get(package_ref.name, default)
 
     def query(self, package_ref_or_match_spec):
-        pass
+        return tuple(self._internal.query(package_ref_or_match_spec))
 
     def iter_records(self):
-        pass
+        return self._internal.iter_records()
 
     @property
     def is_writable(self):
-        # return self._internal.is_writable
-        raise NotImplementedError()
+        return self._internal.is_writable
 
     def reload(self):
-        raise NotImplementedError()
+        self._internal = self._internal.reload()
+        return self

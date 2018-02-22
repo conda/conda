@@ -5,14 +5,15 @@ import inspect
 
 import pytest
 
-from conda.api import Solver, PackageCacheData, SubdirData, PrefixData, DepsModifier
+from conda.api import DepsModifier, PackageCacheData, PrefixData, Solver, SubdirData
 from conda.base.context import context
-from conda.common.compat import odict, isiterable
+from conda.common.compat import isiterable, odict
 from conda.common.constants import NULL
 from conda.core.link import UnlinkLinkTransaction
 from conda.models.channel import Channel
-from conda.models.index_record import PackageRef, PackageRecord
+from conda.models.index_record import PackageRecord, PackageRef
 from conda.models.package_cache_record import PackageCacheRecord
+from conda.models.prefix_record import PrefixRecord
 
 
 class PositionalArgument:
@@ -254,3 +255,25 @@ def test_PrefixData_contract():
         ('self', PositionalArgument),
     ))
     inspect_arguments(PrefixData.reload, reload_args)
+
+
+def test_PrefixData_return_value_contract():
+    pd = PrefixData(context.conda_prefix)
+
+    single_prefix_rec = next(pd.iter_records())
+    get_result = pd.get(PackageRef.from_objects(single_prefix_rec))
+    assert isinstance(get_result, PrefixRecord)
+
+    query_result = pd.query('openssl')
+    assert isinstance(query_result, tuple)
+    assert all(isinstance(prefix_rec, PrefixRecord) for prefix_rec in query_result)
+
+    iter_records_result = pd.iter_records()
+    assert isiterable(iter_records_result)
+    assert all(isinstance(prefix_rec, PrefixRecord) for prefix_rec in iter_records_result)
+
+    is_writable_result = pd.is_writable
+    assert is_writable_result is True or is_writable_result is False
+
+    reload_result = pd.reload()
+    assert isinstance(reload_result, PrefixData)
