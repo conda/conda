@@ -189,6 +189,7 @@ class ActivatorUnitTests(TestCase):
                     }
                     export_vars = {
                         'CONDA_PYTHON_EXE': activator.path_conversion(sys.executable),
+                        'CONDA_EXE': activator.path_conversion(context.conda_exe),
                         'PATH': new_path,
                         'CONDA_PREFIX': td,
                         'CONDA_SHLVL': 1,
@@ -460,6 +461,7 @@ class ShellWrapperUnitTests(TestCase):
         assert activate_data == dals("""
         PS1='%(ps1)s'
         \\export CONDA_DEFAULT_ENV='%(native_prefix)s'
+        \\export CONDA_EXE='%(conda_exe)s'
         \\export CONDA_PREFIX='%(native_prefix)s'
         \\export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
         \\export CONDA_PYTHON_EXE='%(sys_executable)s'
@@ -472,7 +474,8 @@ class ShellWrapperUnitTests(TestCase):
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': activator.path_conversion(sys.executable),
             'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.sh')),
-            'ps1': '(%s) ' % self.prefix + os.environ.get('PS1', '')
+            'ps1': '(%s) ' % self.prefix + os.environ.get('PS1', ''),
+            'conda_exe': activator.path_conversion(context.conda_exe),
         }
 
         with env_vars({
@@ -625,6 +628,7 @@ class ShellWrapperUnitTests(TestCase):
         assert activate_data == dals("""
         set prompt='%(prompt)s';
         setenv CONDA_DEFAULT_ENV "%(native_prefix)s";
+        setenv CONDA_EXE "%(conda_exe)s";
         setenv CONDA_PREFIX "%(native_prefix)s";
         setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
         setenv CONDA_PYTHON_EXE "%(sys_executable)s";
@@ -637,7 +641,8 @@ class ShellWrapperUnitTests(TestCase):
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': activator.path_conversion(sys.executable),
             'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.csh')),
-            'prompt': '(%s) ' % self.prefix + os.environ.get('prompt', '')
+            'prompt': '(%s) ' % self.prefix + os.environ.get('prompt', ''),
+            'conda_exe': activator.path_conversion(context.conda_exe),
         }
 
         with env_vars({
@@ -707,6 +712,7 @@ class ShellWrapperUnitTests(TestCase):
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         assert activate_data == dals("""
         $CONDA_DEFAULT_ENV = '%(native_prefix)s'
+        $CONDA_EXE = '%(conda_exe)s'
         $CONDA_PREFIX = '%(native_prefix)s'
         $CONDA_PROMPT_MODIFIER = '(%(native_prefix)s) '
         $CONDA_PYTHON_EXE = '%(sys_executable)s'
@@ -719,6 +725,7 @@ class ShellWrapperUnitTests(TestCase):
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': activator.path_conversion(sys.executable),
             'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.xsh')),
+            'conda_exe': activator.path_conversion(context.conda_exe),
         }
 
         with env_vars({
@@ -786,6 +793,7 @@ class ShellWrapperUnitTests(TestCase):
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         assert activate_data == dals("""
         set -gx CONDA_DEFAULT_ENV "%(native_prefix)s";
+        set -gx CONDA_EXE "%(conda_exe)s";
         set -gx CONDA_PREFIX "%(native_prefix)s";
         set -gx CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
         set -gx CONDA_PYTHON_EXE "%(sys_executable)s";
@@ -798,6 +806,7 @@ class ShellWrapperUnitTests(TestCase):
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': activator.path_conversion(sys.executable),
             'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.fish')),
+            'conda_exe': activator.path_conversion(context.conda_exe),
         }
 
         with env_vars({
@@ -860,6 +869,7 @@ class ShellWrapperUnitTests(TestCase):
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         assert activate_data == dals("""
         $env:CONDA_DEFAULT_ENV = "%(prefix)s"
+        $env:CONDA_EXE = "%(conda_exe)s"
         $env:CONDA_PREFIX = "%(prefix)s"
         $env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
         $env:CONDA_PYTHON_EXE = "%(sys_executable)s"
@@ -870,7 +880,8 @@ class ShellWrapperUnitTests(TestCase):
             'prefix': self.prefix,
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': sys.executable,
-            'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.ps1')
+            'activate1': join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.ps1'),
+            'conda_exe': context.conda_exe,
         }
 
         with env_vars({

@@ -244,6 +244,7 @@ class Activator(object):
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
             export_vars = {
                 'CONDA_PYTHON_EXE': self.path_conversion(sys.executable),
+                'CONDA_EXE': self.path_conversion(context.conda_exe),
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
                 'CONDA_SHLVL': old_conda_shlvl + 1,
