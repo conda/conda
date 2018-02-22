@@ -3,9 +3,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import inspect
 
-from conda.api import Solver, PackageCacheData, SubdirData, PrefixData
-from conda.common.compat import odict
+import pytest
+
+from conda.api import Solver, PackageCacheData, SubdirData, PrefixData, DepsModifier
+from conda.common.compat import odict, isiterable
 from conda.common.constants import NULL
+from conda.core.link import UnlinkLinkTransaction
+from conda.models.channel import Channel
+from conda.models.index_record import PackageRef
 
 
 class PositionalArgument:
@@ -24,7 +29,16 @@ def inspect_arguments(f, arguments):
         assert recorded_value == arg_value
 
 
-def test_Solver_contract():
+def test_DepsModifier_contract():
+    assert DepsModifier.NO_DEPS
+    assert DepsModifier.ONLY_DEPS
+    assert DepsModifier.UPDATE_DEPS
+    assert DepsModifier.UPDATE_DEPS_ONLY_DEPS
+    assert DepsModifier.UPDATE_ALL
+    assert DepsModifier.FREEZE_INSTALLED
+
+
+def test_Solver_inputs_contract():
     init_args = odict((
         ('self', PositionalArgument),
         ('prefix', PositionalArgument),
@@ -63,6 +77,25 @@ def test_Solver_contract():
         ('force_reinstall', False),
     ))
     inspect_arguments(Solver.solve_for_transaction, solve_for_transaction_args)
+
+
+@pytest.mark.integration
+def test_Solver_return_value_contract():
+    solver = Solver('/', (Channel('pkgs/main'),), specs_to_add=('openssl',))
+    solve_final_state_rv = solver.solve_final_state()
+    assert isiterable(solve_final_state_rv)
+    assert all(isinstance(pref, PackageRef) for pref in solve_final_state_rv)
+
+    solve_for_diff_rv = solver.solve_for_diff()
+    assert len(solve_for_diff_rv) == 2
+    unlink_precs, link_precs = solve_for_diff_rv
+    assert isiterable(unlink_precs)
+    assert all(isinstance(pref, PackageRef) for pref in unlink_precs)
+    assert isiterable(link_precs)
+    assert all(isinstance(pref, PackageRef) for pref in link_precs)
+
+    solve_for_transaction_rv = solver.solve_for_transaction()
+    assert isinstance(solve_for_transaction_rv, UnlinkLinkTransaction)
 
 
 def test_SubdirData_contract():

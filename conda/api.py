@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.models.channel import Channel
 from .common.constants import NULL
-from .core.solve import Solver as _Solver
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
-from .core.subdir_data import SubdirData as _SubdirData
 from .core.prefix_data import PrefixData as _PrefixData
+from .core.solve import Solver as _Solver, DepsModifier as _DepsModifier
+from .core.subdir_data import SubdirData as _SubdirData
+from .models.channel import Channel
+
+
+DepsModifier = _DepsModifier
 
 
 class Solver(object):
