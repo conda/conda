@@ -18,7 +18,7 @@ from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
 from ..models.records import PackageRef
 from ..models.match_spec import MatchSpec
-from ..models.prefix_record import PrefixRecord
+from conda.models.records import PrefixRecord
 
 log = getLogger(__name__)
 

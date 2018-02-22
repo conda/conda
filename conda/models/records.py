@@ -23,7 +23,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from os.path import join, basename
 
-from conda._vendor.auxlib.entity import StringField
+from conda._vendor.auxlib.entity import StringField, ListField, ComposableField
+from conda.common.compat import string_types
 from conda.exceptions import PathNotFoundError
 
 from .channel import Channel
@@ -348,3 +349,27 @@ class PackageCacheRecord(PackageRecord):
             md5sum = compute_md5sum(self.package_tarball_full_path)
             setattr(self, '_memoized_md5', md5sum)
             return md5sum
+
+
+class PrefixRecord(PackageRecord):
+
+    package_tarball_full_path = StringField(required=False)
+    extracted_package_dir = StringField(required=False)
+
+    files = ListField(string_types, default=(), required=False)
+    paths_data = ComposableField(PathsData, required=False, nullable=True, default_in_dump=False)
+    link = ComposableField(Link, required=False)
+    # app = ComposableField(App, required=False)
+
+    requested_spec = StringField(required=False)
+
+    # There have been requests in the past to save remote server auth
+    # information with the package.  Open to rethinking that though.
+    auth = StringField(required=False, nullable=True)
+
+    # # a new concept introduced in 4.4 for private env packages
+    # leased_paths = ListField(LeasedPathEntry, required=False)
+
+    # @classmethod
+    # def load(cls, conda_meta_json_path):
+    #     return cls()
