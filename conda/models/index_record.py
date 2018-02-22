@@ -229,7 +229,8 @@ class PackageRef(BasePackageRef):
 
     @property
     def _pkey(self):
-        return self.channel.canonical_name, self.subdir, self.name, self.version, self.build
+        return (self.channel.canonical_name, self.subdir, self.name, self.version,
+                self.build_number, self.build)
 
     def __hash__(self):
         return hash(self._pkey)
