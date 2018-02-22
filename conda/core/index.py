@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 from logging import getLogger
 
-from .linked_data import linked_data
+from .linked_data import linked_data, PrefixData
 from .package_cache import PackageCache
 from .repodata import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
@@ -202,6 +202,9 @@ def get_reduced_index(prefix, channels, subdirs, specs):
                 for ftr_name in record.track_features:
                     push_spec(MatchSpec(track_features=ftr_name))
 
+        if prefix:
+            for prefix_rec in PrefixData(prefix).iter_records():
+                push_spec(MatchSpec(prefix_rec.name))
         for spec in specs:
             push_spec(spec)
 
