@@ -38,7 +38,7 @@ from ..models.channel import Channel
 from ..models.enums import LinkType, NoarchType, PathType
 from ..models.records import Link, PackageRecord, PathDataV1, PathsData
 from ..models.match_spec import MatchSpec
-from ..models.package_cache_record import PackageCacheRecord
+from conda.models.records import PackageCacheRecord
 from ..models.prefix_record import PrefixRecord
 
 try:

@@ -16,7 +16,7 @@ from ..models.channel import Channel, all_channel_urls
 from ..models.dist import Dist
 from ..models.records import EMPTY_LINK
 from ..models.match_spec import MatchSpec
-from ..models.package_cache_record import PackageCacheRecord
+from conda.models.records import PackageCacheRecord
 from ..models.prefix_record import PrefixRecord
 from ..resolve import dashlist
 

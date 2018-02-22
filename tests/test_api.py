@@ -11,8 +11,7 @@ from conda.common.compat import isiterable, odict
 from conda.common.constants import NULL
 from conda.core.link import UnlinkLinkTransaction
 from conda.models.channel import Channel
-from conda.models.records import PackageRecord, PackageRef
-from conda.models.package_cache_record import PackageCacheRecord
+from conda.models.records import PackageRecord, PackageRef, PackageCacheRecord
 from conda.models.prefix_record import PrefixRecord
 
 

@@ -30,7 +30,7 @@ from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
 from ..models.records import PackageRecord, PackageRef
 from ..models.match_spec import MatchSpec
-from ..models.package_cache_record import PackageCacheRecord
+from conda.models.records import PackageCacheRecord
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby
