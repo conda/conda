@@ -5,7 +5,7 @@ from logging import getLogger
 
 from .channel import Channel
 from .enums import NoarchType
-from .records import IndexJsonRecord, IndexRecord, PathsData
+from .records import IndexJsonRecord, PackageRecord, PathsData
 from .._vendor.auxlib.entity import (ComposableField, Entity, EnumField,
                                      ImmutableEntity, IntegerField, ListField, StringField)
 from ..common.compat import string_types
@@ -43,7 +43,7 @@ class PackageInfo(ImmutableEntity):
     # attributes external to the package tarball
     extracted_package_dir = StringField()
     channel = ComposableField(Channel)
-    repodata_record = ComposableField(IndexRecord)
+    repodata_record = ComposableField(PackageRecord)
     url = StringField()
 
     # attributes within the package tarball

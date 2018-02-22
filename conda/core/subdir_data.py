@@ -35,7 +35,7 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.dist import Dist
-from ..models.records import IndexRecord, PackageRecord, PackageRef
+from ..models.records import PackageRecord, PackageRecord, PackageRef
 from ..models.match_spec import MatchSpec
 
 try:
@@ -578,7 +578,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
 def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
     pkg_name = "%s@" % feature_name
-    return IndexRecord(
+    return PackageRecord(
         name=pkg_name,
         version='0',
         build='0',

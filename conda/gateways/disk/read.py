@@ -23,7 +23,7 @@ from ...common.compat import ensure_text_type, open
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
-from ...models.records import IndexJsonRecord, IndexRecord, PathData, PathDataV1, PathsData
+from ...models.records import IndexJsonRecord, PackageRecord, PathData, PathDataV1, PathsData
 from ...models.package_info import PackageInfo, PackageMetadata
 
 log = getLogger(__name__)
@@ -121,7 +121,7 @@ def read_index_json_from_tarball(package_tarball_full_path):
 
 def read_repodata_json(extracted_package_directory):
     with open(join(extracted_package_directory, 'info', 'repodata_record.json')) as fi:
-        record = IndexRecord(**json.load(fi))
+        record = PackageRecord(**json.load(fi))
     return record
 
 

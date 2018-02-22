@@ -293,6 +293,3 @@ class PackageRecord(IndexJsonRecord, PackageRef):  # lgtm [py/conflicting-attrib
     def __str__(self):
         return "%s/%s::%s==%s=%s" % (self.channel.canonical_name, self.subdir, self.name,
                                      self.version, self.build)
-
-
-IndexRecord = PackageRecord

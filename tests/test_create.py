@@ -49,7 +49,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
-from conda.models.records import IndexRecord
+from conda.models.records import PackageRecord
 from conda.utils import on_win
 
 try:
@@ -189,7 +189,7 @@ def make_temp_channel(packages):
         pkg_data = pkg_data.dump()
         for field in ('url', 'channel', 'schannel'):
             pkg_data.pop(field, None)
-        repodata['packages'][fname] = IndexRecord(**pkg_data)
+        repodata['packages'][fname] = PackageRecord(**pkg_data)
 
     with make_temp_env() as channel:
         subchan = join(channel, context.subdir)

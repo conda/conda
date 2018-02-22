@@ -8,7 +8,7 @@ from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.records import IndexRecord
+from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
 from .helpers import get_index_r_1, get_index_r_3, raises
 
@@ -408,7 +408,7 @@ def test_timestamps_and_deps():
     # to be done at low priority so that conda is free to consider packages with the
     # same version and build that are most compatible with the installed environment.
     index2 = {Dist(key): value for key, value in iteritems(index)}
-    index2[Dist('mypackage-1.0-hash12_0.tar.bz2')] = IndexRecord(**{
+    index2[Dist('mypackage-1.0-hash12_0.tar.bz2')] = PackageRecord(**{
         'build': 'hash27_0',
         'build_number': 0,
         'depends': ['libpng 1.2.*'],
@@ -417,7 +417,7 @@ def test_timestamps_and_deps():
         'version': '1.0',
         'timestamp': 1,
     })
-    index2[Dist('mypackage-1.0-hash15_0.tar.bz2')] = IndexRecord(**{
+    index2[Dist('mypackage-1.0-hash15_0.tar.bz2')] = PackageRecord(**{
         'build': 'hash15_0',
         'build_number': 0,
         'depends': ['libpng 1.5.*'],
@@ -446,7 +446,7 @@ def test_timestamps_and_deps():
 
 def test_nonexistent_deps():
     index2 = index.copy()
-    index2['mypackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
+    index2['mypackage-1.0-py33_0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -458,7 +458,7 @@ def test_nonexistent_deps():
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.0',
     })
-    index2['mypackage-1.1-py33_0.tar.bz2'] = IndexRecord(**{
+    index2['mypackage-1.1-py33_0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -470,7 +470,7 @@ def test_nonexistent_deps():
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.1',
     })
-    index2['anotherpackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
+    index2['anotherpackage-1.0-py33_0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -482,7 +482,7 @@ def test_nonexistent_deps():
         'requires': ['nose', 'mypackage 1.1'],
         'version': '1.0',
     })
-    index2['anotherpackage-2.0-py33_0.tar.bz2'] = IndexRecord(**{
+    index2['anotherpackage-2.0-py33_0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -568,7 +568,7 @@ def test_nonexistent_deps():
 
     # This time, the latest version is messed up
     index3 = index.copy()
-    index3['mypackage-1.1-py33_0.tar.bz2'] = IndexRecord(**{
+    index3['mypackage-1.1-py33_0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -580,7 +580,7 @@ def test_nonexistent_deps():
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.1',
     })
-    index3['mypackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
+    index3['mypackage-1.0-py33_0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -592,7 +592,7 @@ def test_nonexistent_deps():
         'requires': ['nose 1.2.1', 'python 3.3'],
         'version': '1.0',
     })
-    index3['anotherpackage-1.0-py33_0.tar.bz2'] = IndexRecord(**{
+    index3['anotherpackage-1.0-py33_0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -604,7 +604,7 @@ def test_nonexistent_deps():
         'requires': ['nose', 'mypackage 1.0'],
         'version': '1.0',
     })
-    index3['anotherpackage-2.0-py33_0.tar.bz2'] = IndexRecord(**{
+    index3['anotherpackage-2.0-py33_0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -690,7 +690,7 @@ def test_nonexistent_deps():
 
 def test_install_package_with_feature():
     index2 = index.copy()
-    index2['mypackage-1.0-featurepy33_0.tar.bz2'] = IndexRecord(**{
+    index2['mypackage-1.0-featurepy33_0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -702,7 +702,7 @@ def test_install_package_with_feature():
         'version': '1.0',
         'features': 'feature',
     })
-    index2['feature-1.0-py33_0.tar.bz2'] = IndexRecord(**{
+    index2['feature-1.0-py33_0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -730,11 +730,11 @@ def test_unintentional_feature_downgrade():
     good_rec = index[Dist('channel-1::scipy-0.11.0-np17py33_3.tar.bz2')]
     bad_deps = tuple(d for d in good_rec.depends
                      if not d.startswith('numpy'))
-    bad_rec = IndexRecord.from_objects(good_rec,
-                  build=good_rec.build.replace('_3','_x0'),
-                  build_number=0, depends=bad_deps,
-                  fn=good_rec.fn.replace('_3','_x0'),
-                  url=good_rec.url.replace('_3','_x0'))
+    bad_rec = PackageRecord.from_objects(good_rec,
+                                         build=good_rec.build.replace('_3','_x0'),
+                                         build_number=0, depends=bad_deps,
+                                         fn=good_rec.fn.replace('_3','_x0'),
+                                         url=good_rec.url.replace('_3','_x0'))
     bad_dist = Dist(bad_rec)
     index2 = index.copy()
     index2[bad_dist] = bad_rec
@@ -746,7 +746,7 @@ def test_unintentional_feature_downgrade():
 
 def test_circular_dependencies():
     index2 = index.copy()
-    index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
+    index2['package1-1.0-0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -758,7 +758,7 @@ def test_circular_dependencies():
         'requires': ['package2'],
         'version': '1.0',
     })
-    index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
+    index2['package2-1.0-0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -789,7 +789,7 @@ def test_circular_dependencies():
 
 def test_optional_dependencies():
     index2 = index.copy()
-    index2['package1-1.0-0.tar.bz2'] = IndexRecord(**{
+    index2['package1-1.0-0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -801,7 +801,7 @@ def test_optional_dependencies():
         'requires': ['package2'],
         'version': '1.0',
     })
-    index2['package2-1.0-0.tar.bz2'] = IndexRecord(**{
+    index2['package2-1.0-0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -813,7 +813,7 @@ def test_optional_dependencies():
         'requires': [],
         'version': '1.0',
     })
-    index2['package2-2.0-0.tar.bz2'] = IndexRecord(**{
+    index2['package2-2.0-0.tar.bz2'] = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
         "md5": "0123456789",
@@ -890,7 +890,7 @@ def test_no_features():
             ]]]
 
     index2 = index.copy()
-    index2["channel-1::pandas-0.12.0-np16py27_0.tar.bz2"] = IndexRecord(**{
+    index2["channel-1::pandas-0.12.0-np16py27_0.tar.bz2"] = PackageRecord(**{
             "channel": "channel-1",
             "subdir": context.subdir,
             "md5": "0123456789",
@@ -913,7 +913,7 @@ def test_no_features():
             "version": "0.12.0"
         })
     # Make it want to choose the pro version by having it be newer.
-    index2["channel-1::numpy-1.6.2-py27_p5.tar.bz2"] = IndexRecord(**{
+    index2["channel-1::numpy-1.6.2-py27_p5.tar.bz2"] = PackageRecord(**{
             "channel": "channel-1",
             "subdir": context.subdir,
             "md5": "0123456789",
@@ -1087,7 +1087,7 @@ def test_channel_priority_1():
 
     fn1 = 'channel-1::pandas-0.10.1-np17py27_0.tar.bz2'
     record_1 = index2[Dist(fn1)]
-    record_2 = IndexRecord.from_objects(record_1, channel=Channel("channel-A"))
+    record_2 = PackageRecord.from_objects(record_1, channel=Channel("channel-A"))
 
     index2[Dist(record_2)] = record_2
 
@@ -1454,21 +1454,21 @@ def test_update_deps():
 
 def test_surplus_features_1():
     index = {
-        'feature-1.0-0.tar.bz2': IndexRecord(**{
+        'feature-1.0-0.tar.bz2': PackageRecord(**{
             'name': 'feature',
             'version': '1.0',
             'build': '0',
             'build_number': 0,
             'track_features': 'feature',
         }),
-        'package1-1.0-0.tar.bz2': IndexRecord(**{
+        'package1-1.0-0.tar.bz2': PackageRecord(**{
             'name': 'package1',
             'version': '1.0',
             'build': '0',
             'build_number': 0,
             'features': 'feature',
         }),
-        'package2-1.0-0.tar.bz2': IndexRecord(**{
+        'package2-1.0-0.tar.bz2': PackageRecord(**{
             'name': 'package2',
             'version': '1.0',
             'build': '0',
@@ -1476,7 +1476,7 @@ def test_surplus_features_1():
             'depends': ['package1'],
             'features': 'feature',
         }),
-        'package2-2.0-0.tar.bz2': IndexRecord(**{
+        'package2-2.0-0.tar.bz2': PackageRecord(**{
             'name': 'package2',
             'version': '2.0',
             'build': '0',
@@ -1491,21 +1491,21 @@ def test_surplus_features_1():
 
 def test_surplus_features_2():
     index = {
-        'feature-1.0-0.tar.bz2': IndexRecord(**{
+        'feature-1.0-0.tar.bz2': PackageRecord(**{
             'name': 'feature',
             'version': '1.0',
             'build': '0',
             'build_number': 0,
             'track_features': 'feature',
         }),
-        'package1-1.0-0.tar.bz2': IndexRecord(**{
+        'package1-1.0-0.tar.bz2': PackageRecord(**{
             'name': 'package1',
             'version': '1.0',
             'build': '0',
             'build_number': 0,
             'features': 'feature',
         }),
-        'package2-1.0-0.tar.bz2': IndexRecord(**{
+        'package2-1.0-0.tar.bz2': PackageRecord(**{
             'name': 'package2',
             'version': '1.0',
             'build': '0',
@@ -1513,7 +1513,7 @@ def test_surplus_features_2():
             'depends': ['package1'],
             'features': 'feature',
         }),
-        'package2-1.0-1.tar.bz2': IndexRecord(**{
+        'package2-1.0-1.tar.bz2': PackageRecord(**{
             'name': 'package2',
             'version': '1.0',
             'build': '1',

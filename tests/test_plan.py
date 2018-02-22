@@ -16,7 +16,7 @@ from conda.exceptions import PackagesNotFoundError
 from conda.gateways.disk.create import mkdir_p
 import conda.instructions as inst
 from conda.models.dist import Dist
-from conda.models.records import IndexRecord
+from conda.models.records import PackageRecord
 from conda.models.match_spec import MatchSpec
 from conda.plan import display_actions, add_unlink, add_defaults_to_specs, _update_old_plan as update_old_plan
 from conda.exports import execute_plan
@@ -46,7 +46,7 @@ def DPkg(s, **kwargs):
         md5="012345789",
     )
     _kwargs.update(kwargs)
-    return IndexRecord(**_kwargs)
+    return PackageRecord(**_kwargs)
 
 def solve(specs):
     return [Dist.from_string(fn) for fn in r.solve(specs)]
@@ -143,9 +143,9 @@ def test_display_actions_0():
     actions = defaultdict(list, {"FETCH": [Dist('channel-1::sympy-0.7.2-py27_0'), Dist("channel-1::numpy-1.7.1-py27_0")]})
     # The older test index doesn't have the size metadata
     d = Dist.from_string('channel-1::sympy-0.7.2-py27_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(index[d], size=4374752)
+    index[d] = PackageRecord.from_objects(index[d], size=4374752)
     d = Dist.from_string("channel-1::numpy-1.7.1-py27_0.tar.bz2")
-    index[d] = IndexRecord.from_objects(index[d], size=5994338)
+    index[d] = PackageRecord.from_objects(index[d], size=5994338)
 
     with captured() as c:
         display_actions(actions, index)
@@ -671,10 +671,10 @@ The following packages will be DOWNGRADED:
     reset_context(())
 
     d = Dist('cython-0.19.1-py33_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(index[d], channel='my_channel')
+    index[d] = PackageRecord.from_objects(index[d], channel='my_channel')
 
     d = Dist('dateutil-1.5-py33_0.tar.bz2')
-    index[d] = IndexRecord.from_objects(index[d], channel='my_channel')
+    index[d] = PackageRecord.from_objects(index[d], channel='my_channel')
 
     actions = defaultdict(list, {'LINK': ['cython-0.19.1-py33_0 3', 'dateutil-1.5-py33_0 3',
     'numpy-1.7.1-py33_0 3', 'python-3.3.2-0 3', 'readline-6.2-0 3', 'sqlite-3.7.13-0 3', 'tk-8.5.13-0 3', 'zlib-1.2.7-0 3']})
