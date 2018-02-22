@@ -11,7 +11,11 @@
 #
 #         sudo ln -s [CONDA_INSTALL_LOCATION]/etc/fish/conf.d/conda.fish /etc/fish/conf.d/conda.fish
 #
-
+#     If you are using fish as your default shell, you also have to add conda to PATH by adding
+#     
+#        set -gx PATH [CONDA_INSTALL_LOCATION]/bin $PATH
+#
+#     to ~/.config/config.fish before sourcing conda.fish.
 
 
 # source shell/etc/fish/conf.d/conda.fish
