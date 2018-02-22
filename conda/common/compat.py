@@ -151,7 +151,7 @@ def _init_stream_encoding(stream):
     # PY2 compat: Initialize encoding for an IO stream.
     # Python 2 sets the encoding of stdout/stderr to None if not run in a
     # terminal context and thus falls back to ASCII.
-    if stream.encoding:
+    if getattr(stream, "encoding", True):
         # avoid the imports below if they are not necessary
         return stream
     from codecs import getwriter
