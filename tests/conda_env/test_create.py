@@ -25,7 +25,7 @@ from conda_env.cli.main_update import configure_parser as update_configure_parse
 from conda_env.cli.main import do_call as do_call_conda_env
 from conda.core.prefix_data import linked
 
-from . import utils
+from . import support_file
 
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
@@ -114,11 +114,11 @@ class IntegrationTests(TestCase):
                 prefix = join(envs_dir, env_name)
                 python_path = join(prefix, PYTHON_BINARY)
 
-                run_command(Commands.CREATE, env_name, utils.support_file('example/environment_pinned.yml'))
+                run_command(Commands.CREATE, env_name, support_file('example/environment_pinned.yml'))
                 assert exists(python_path)
                 assert_package_is_installed(prefix, 'flask-0.9')
 
-                run_command(Commands.UPDATE, env_name, utils.support_file('example/environment_pinned_updated.yml'))
+                run_command(Commands.UPDATE, env_name, support_file('example/environment_pinned_updated.yml'))
                 assert_package_is_installed(prefix, 'flask-0.10.1')
                 assert not package_is_installed(prefix, 'flask-0.9')
 
@@ -130,7 +130,7 @@ class IntegrationTests(TestCase):
                 python_path = join(prefix, PYTHON_BINARY)
 
                 run_command(Commands.CREATE, env_name,
-                            utils.support_file('advanced-pip/environment.yml'))
+                            support_file('advanced-pip/environment.yml'))
                 assert exists(python_path)
                 assert_package_is_installed(prefix, 'argh', exact=False, pip=True)
                 assert_package_is_installed(prefix, 'module-to-install-in-editable-mode', exact=False, pip=True)
