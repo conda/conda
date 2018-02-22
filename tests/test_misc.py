@@ -11,6 +11,8 @@ class TestMisc(unittest.TestCase):
     def test_cache_fn_url(self):
         url = "http://repo.continuum.io/pkgs/pro/osx-64/"
         self.assertEqual(cache_fn_url(url), '7618c8b6.json')
+        url = "http://repo.anaconda.com/pkgs/pro/osx-64/"
+        self.assertEqual(cache_fn_url(url), 'e42afea8.json')
 
     def test_url_pat_1(self):
         m = url_pat.match('http://www.cont.io/pkgs/linux-64/foo.tar.bz2'

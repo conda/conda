@@ -64,18 +64,18 @@ RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
 
 DEFAULT_CHANNELS_UNIX = (
-    'https://repo.continuum.io/pkgs/main',
-    'https://repo.continuum.io/pkgs/free',
-    'https://repo.continuum.io/pkgs/r',
-    'https://repo.continuum.io/pkgs/pro',
+    'https://repo.anaconda.com/pkgs/main',
+    'https://repo.anaconda.com/pkgs/free',
+    'https://repo.anaconda.com/pkgs/r',
+    'https://repo.anaconda.com/pkgs/pro',
 )
 
 DEFAULT_CHANNELS_WIN = (
-    'https://repo.continuum.io/pkgs/main',
-    'https://repo.continuum.io/pkgs/free',
-    'https://repo.continuum.io/pkgs/r',
-    'https://repo.continuum.io/pkgs/pro',
-    'https://repo.continuum.io/pkgs/msys2',
+    'https://repo.anaconda.com/pkgs/main',
+    'https://repo.anaconda.com/pkgs/free',
+    'https://repo.anaconda.com/pkgs/r',
+    'https://repo.anaconda.com/pkgs/pro',
+    'https://repo.anaconda.com/pkgs/msys2',
 )
 
 # use the bool(sys.platform == "win32") definition here so we don't import .compat.on_win

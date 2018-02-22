@@ -118,7 +118,7 @@ class TestJson(unittest.TestCase):
             result = stdout.replace("Loading channels: ...working... done", "")
             assert "file name   : nose-1.3.7-py36_1.tar.bz2" in result
             assert "name        : nose" in result
-            assert "url         : https://repo.continuum.io/pkgs/free/linux-64/nose-1.3.7-py36_1.tar.bz2" in result
+            assert "url         : https://repo.anaconda.com/pkgs/free/linux-64/nose-1.3.7-py36_1.tar.bz2" in result
             assert "md5         : f4f697f5ad4df9c8fe35357d269718a5" in result
 
     @pytest.mark.integration

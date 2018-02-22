@@ -42,7 +42,7 @@ class TestConnectionWithShortTimeouts(TestCase):
         with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, reset_context):
             with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, reset_context):
                 with env_var('CONDA_REMOTE_MAX_RETRIES', 1, reset_context):
-                    url = "https://repo.continuum.io/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
+                    url = "https://repo.anaconda.com/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
                     with TmpDownload(url) as dst:
                         assert exists(dst)
                         assert isfile(dst)

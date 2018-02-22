@@ -22,7 +22,7 @@ from conda.gateways.disk.delete import rm_rf
 #     pass
 
 # unset CIO_TEST.  This is a Continuum-internal variable that draws packages from an internal server instead of
-#     repo.continuum.io
+#     repo.anaconda.com
 
 @contextmanager
 def make_temp_condarc(value=None):

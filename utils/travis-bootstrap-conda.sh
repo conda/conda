@@ -21,8 +21,8 @@ travis_bootstrap_conda() {
     if ! [[ -d $HOME/miniconda ]]; then
         declare miniconda_url
         case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
-            linux) miniconda_url="https://repo.continuum.io/miniconda/Miniconda${py_major}-latest-Linux-x86_64.sh";;
-            darwin) miniconda_url="https://repo.continuum.io/miniconda/Miniconda${py_major}-latest-MacOSX-x86_64.sh";;
+            linux) miniconda_url="https://repo.anaconda.com/miniconda/Miniconda${py_major}-latest-Linux-x86_64.sh";;
+            darwin) miniconda_url="https://repo.anaconda.com/miniconda/Miniconda${py_major}-latest-MacOSX-x86_64.sh";;
         esac
 
         curl -sS -o miniconda.sh "$miniconda_url"

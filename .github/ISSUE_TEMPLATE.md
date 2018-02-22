@@ -9,7 +9,7 @@ If your issue is a bug report or feature request for:
       ==> file at https://github.com/ContinuumIO/anaconda-issues
   * a specific conda package from conda-forge:
       ==> file at the corresponding feedstock under https://github.com/conda-forge
-  * repo.continuum.io access and service:
+  * repo.anaconda.com access and service:
       ==> file at https://github.com/ContinuumIO/anaconda-issues
   * anaconda.org access and service:
       ==> file at https://anaconda.org/contact/report

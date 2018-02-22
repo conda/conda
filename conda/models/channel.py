@@ -114,7 +114,7 @@ class Channel(object):
             return Channel.from_url(value)
         else:
             # at this point assume we don't have a bare (non-scheme) url
-            #   e.g. this would be bad:  repo.continuum.io/pkgs/free
+            #   e.g. this would be bad:  repo.anaconda.com/pkgs/free
             _stripped, platform = split_platform(value, context.known_subdirs)
             if _stripped in context.custom_multichannels:
                 return MultiChannel(_stripped, context.custom_multichannels[_stripped], platform)

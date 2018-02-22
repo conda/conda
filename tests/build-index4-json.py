@@ -3,7 +3,7 @@ import requests
 
 
 def main():
-    r1 = requests.get('https://repo.continuum.io/pkgs/main/linux-64/repodata.json')
+    r1 = requests.get('https://repo.anaconda.com/pkgs/main/linux-64/repodata.json')
     r1.raise_for_status()
 
     r1json = r1.json()

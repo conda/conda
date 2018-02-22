@@ -17,7 +17,7 @@
 
 @REM # set globals                                                       #
 @SET "HOME=%HOMEDRIVE%%HOMEPATH%"
-@SET "MINICONDA_URL=https://repo.continuum.io/miniconda"
+@SET "MINICONDA_URL=https://repo.anaconda.com/miniconda"
 @SET "CYGWIN_BIN=C:\cygwin64\bin"
 @SET "MINGW_BIN=C:\MinGW\msys\1.0\bin"
 @SET "MSYS2_BIN=C:\msys64\usr\bin"

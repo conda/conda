@@ -5,7 +5,7 @@
 @REM declare variables that need to be preserved
 @SETLOCAL EnableDelayedExpansion
 
-@SET "URL=https://repo.continuum.io/miniconda/Miniconda2-latest-Windows-x86_64.exe"
+@SET "URL=https://repo.anaconda.com/miniconda/Miniconda2-latest-Windows-x86_64.exe"
 @SET "DST=C:\Users\appveyor\miniconda_installer.exe"
 
 @ECHO "GOT URL & FILENAME"
