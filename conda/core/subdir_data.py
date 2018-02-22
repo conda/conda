@@ -26,7 +26,7 @@ from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, st
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
-from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError, NotWritableError
+from ..exceptions import CondaDependencyError, CondaHTTPError, NotWritableError
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)
 from ..gateways.connection.session import CondaSession
@@ -516,10 +516,10 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
                 help_message = dals("""
                 An HTTP error occurred when trying to retrieve this URL.
                 HTTP errors are often intermittent, and a simple retry will get you on your way.
-                
+
                 If your current network has https://www.anaconda.com blocked, please file
                 a support request with your network engineering team.
-                
+
                 %s
                 """) % maybe_unquote(repr(e))
             else:
