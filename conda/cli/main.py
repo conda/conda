@@ -63,32 +63,7 @@ def init_loggers(context=None):
         set_verbosity(context.verbosity)
 
 
-def init_std_stream_encoding():
-    """
-    PY2 compat: Initialize encoding for standard streams.
-    Python 2 sets the encoding of stdout/stderr to None if not run in a
-    terminal context and thus falls back to ASCII.
-    """
-    for stream_name in ("stdout", "stderr"):
-        stream = getattr(sys, stream_name)
-        if not stream.encoding:
-            break
-    else:
-        return
-    from codecs import getwriter
-    from locale import getpreferredencoding
 
-    for stream_name in ("stdout", "stderr"):
-        stream = getattr(sys, stream_name)
-        if stream.encoding:
-            continue
-        encoding = getpreferredencoding()
-        try:
-            encoder = getwriter(encoding)
-        except LookupError:
-            encoder = getwriter("UTF-8")
-        base_stream = getattr(stream, "buffer", stream)
-        setattr(sys, stream_name, encoder(base_stream))
 
 
 def _main(*args):
@@ -108,29 +83,15 @@ def _main(*args):
         return exit_code
 
 
-def _ensure_text_type(value):
-    # copying here from conda/common/compat.py to avoid the import
-    try:
-        return value.decode('utf-8')
-    except AttributeError:
-        # AttributeError: '<>' object has no attribute 'decode'
-        # In this case assume already text_type and do nothing
-        return value
-    except UnicodeDecodeError:
-        try:
-            from requests.packages.chardet import detect
-        except ImportError:  # pragma: no cover
-            from pip._vendor.requests.packages.chardet import detect
-        encoding = detect(value).get('encoding') or 'utf-8'
-        return value.decode(encoding)
-
-
 def main(*args):
+    # conda.common.compat contains only stdlib imports
+    from ..common.compat import ensure_text_type, init_std_stream_encoding
+
     init_std_stream_encoding()
     if not args:
         args = sys.argv
 
-    args = tuple(_ensure_text_type(s) for s in args)
+    args = tuple(ensure_text_type(s) for s in args)
 
     if len(args) > 1:
         try:

@@ -16,12 +16,12 @@ from textwrap import dedent
 from time import time
 import warnings
 
-from .. import CondaError, iteritems
+from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
-from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, text_type,
+from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems, text_type,
                              with_metaclass)
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
