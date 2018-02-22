@@ -63,9 +63,6 @@ def init_loggers(context=None):
         set_verbosity(context.verbosity)
 
 
-
-
-
 def _main(*args):
     if len(args) == 1:
         args = args + ('-h',)
