@@ -548,6 +548,7 @@ class ShellWrapperUnitTests(TestCase):
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         assert activate_data == dals("""
         @SET "CONDA_DEFAULT_ENV=%(native_prefix)s"
+        @SET "CONDA_EXE=%(conda_exe)s"
         @SET "CONDA_PREFIX=%(converted_prefix)s"
         @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
         @SET "CONDA_PYTHON_EXE=%(sys_executable)s"
@@ -562,6 +563,7 @@ class ShellWrapperUnitTests(TestCase):
             'sys_executable': activator.path_conversion(sys.executable),
             'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat')),
             'PYTHONIOENCODING': PYTHONIOENCODING,
+            'conda_exe': activator.path_conversion(context.conda_exe),
         }
 
         with env_vars({
@@ -606,6 +608,7 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             @CALL "%(deactivate1)s"
             @SET CONDA_DEFAULT_ENV=
+            @SET CONDA_EXE=
             @SET CONDA_PREFIX=
             @SET CONDA_PROMPT_MODIFIER=
             @SET CONDA_PYTHON_EXE=
