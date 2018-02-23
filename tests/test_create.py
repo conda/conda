@@ -41,7 +41,8 @@ from conda.core.prefix_data import PrefixData, get_python_version_for_prefix, \
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
-    PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError
+    PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
+    DisallowedError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -1483,6 +1484,16 @@ class IntegrationTests(TestCase):
 
         finally:
             rmtree(prefix, ignore_errors=True)
+
+    @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
+    def test_disallowed_packages(self):
+        with env_var('CONDA_DISALLOWED_PACKAGES', 'sqlite&flask', reset_context):
+            with make_temp_env() as prefix:
+                with pytest.raises(CondaMultiError) as exc:
+                    run_command(Commands.INSTALL, prefix, 'python')
+            exc_val = exc.value.errors[0]
+            assert isinstance(exc_val, DisallowedError)
+            assert exc_val.dump_map()['package_ref']['name'] == 'sqlite'
 
     def test_dont_remove_conda(self):
         pkgs_dirs = context.pkgs_dirs
