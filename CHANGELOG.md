@@ -6,11 +6,12 @@
 * resolve #6886 transition defaults from repo.continuum.io to repo.anaconda.com (#6887)
 * resolve #6192 deprecate 'conda help' in favor of --help CLI flag (#6918)
 
-### API
-
 ### Improvements
 * resolve #6791 conda search --envs (#6794)
 * preserve exit status in fish shell (#6760)
+* resolve #6810 add CONDA_EXE environment variable to activate (#6923)
+
+### API
 
 ### Non-User-Facing Changes
 * fix several lgtm.com flags (#6757, #6883)
