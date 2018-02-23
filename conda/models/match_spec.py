@@ -680,14 +680,14 @@ class FeatureMatch(MatchInterface):
         super(FeatureMatch, self).__init__(self._convert(value))
 
     def _convert(self, value):
-        if isinstance(value, frozenset):
-            return value
-        elif not value:
+        if not value:
             return frozenset()
         elif isinstance(value, string_types):
-            return frozenset(value.replace(' ', ',').split(','))
+            return frozenset(f for f in (
+                ff.strip() for ff in value.replace(' ', ',').split(',')
+            ) if f)
         else:
-            return frozenset(value)
+            return frozenset(f for f in (ff.strip() for ff in value) if f)
 
     def match(self, other):
         other = self._convert(other)
