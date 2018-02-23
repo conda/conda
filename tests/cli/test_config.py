@@ -333,10 +333,10 @@ always_yes: true
 
     with make_temp_condarc(condarc) as rc:
         stdout, stderr, return_code = run_command(Commands.CONFIG, '--file', rc, '--add',
-                                           'disallow', 'perl')
+                                           'disallowed_packages', 'perl')
         assert stdout == stderr == ''
         assert _read_test_condarc(rc) == condarc + """\
-disallow:
+disallowed_packages:
   - perl
 """
 
