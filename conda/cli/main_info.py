@@ -92,7 +92,7 @@ def print_package_info(packages):
     results = {}
     for package in packages:
         spec = MatchSpec(package)
-        results[package] = tuple(SubdirData.query_all(context.channels, context.subdirs, spec))
+        results[package] = tuple(SubdirData.query_all(spec))
 
     if context.json:
         stdout_json({package: results[package] for package in packages})

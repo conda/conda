@@ -156,6 +156,7 @@ class UnlinkLinkTransaction(object):
                       '\n    '.join(prec.dist_str() for prec in stp.unlink_precs),
                       '\n    '.join(prec.dist_str() for prec in stp.link_precs))
 
+        self._pfe = None
         self._prepared = False
         self._verified = False
 
@@ -167,15 +168,18 @@ class UnlinkLinkTransaction(object):
                     for stp in itervalues(self.prefix_setups))
         )
 
-    def get_pfe(self):
-        from .package_cache_data import ProgressiveFetchExtract
-        if not self.prefix_setups:
-            return ProgressiveFetchExtract(())
-        else:
-            link_precs = set(concat(stp.link_precs for stp in itervalues(self.prefix_setups)))
-            return ProgressiveFetchExtract(link_precs)
+    def download_and_extract(self):
+        if self._pfe is None:
+            self._get_pfe()
+        if not self._pfe._executed:
+            self._pfe.execute()
 
     def prepare(self):
+        if self._pfe is None:
+            self._get_pfe()
+        if not self._pfe._executed:
+            self._pfe.execute()
+
         if self._prepared:
             return
 
@@ -226,6 +230,17 @@ class UnlinkLinkTransaction(object):
         finally:
             rm_rf(self.transaction_context['temp_dir'])
 
+    def _get_pfe(self):
+        from .package_cache_data import ProgressiveFetchExtract
+        if self._pfe is not None:
+            pfe = self._pfe
+        elif not self.prefix_setups:
+            self._pfe = pfe = ProgressiveFetchExtract(())
+        else:
+            link_precs = set(concat(stp.link_precs for stp in itervalues(self.prefix_setups)))
+            self._pfe = pfe = ProgressiveFetchExtract(link_precs)
+        return pfe
+
     @classmethod
     def _prepare(cls, transaction_context, target_prefix, unlink_precs, link_precs,
                  remove_specs, update_specs):
@@ -257,9 +272,9 @@ class UnlinkLinkTransaction(object):
 
         # make all the path actions
         # no side effects allowed when instantiating these action objects
-        python_version = cls.get_python_version(target_prefix,
-                                                prefix_recs_to_unlink,
-                                                packages_info_to_link)
+        python_version = cls._get_python_version(target_prefix,
+                                                 prefix_recs_to_unlink,
+                                                 packages_info_to_link)
         transaction_context['target_python_version'] = python_version
         sp = get_python_site_packages_short_path(python_version)
         transaction_context['target_site_packages_short_path'] = sp
@@ -281,8 +296,8 @@ class UnlinkLinkTransaction(object):
 
         matchspecs_for_link_dists = match_specs_to_dists(packages_info_to_link, update_specs)
         link_action_groups = tuple(
-            ActionGroup('link', pkg_info, cls.make_link_actions(transaction_context, pkg_info,
-                                                                target_prefix, lt, spec),
+            ActionGroup('link', pkg_info, cls._make_link_actions(transaction_context, pkg_info,
+                                                                 target_prefix, lt, spec),
                         target_prefix)
             for pkg_info, lt, spec in zip(packages_info_to_link, link_types,
                                           matchspecs_for_link_dists)
@@ -581,7 +596,7 @@ class UnlinkLinkTransaction(object):
         return exceptions
 
     @staticmethod
-    def get_python_version(target_prefix, pcrecs_to_unlink, packages_info_to_link):
+    def _get_python_version(target_prefix, pcrecs_to_unlink, packages_info_to_link):
         # this method determines the python version that will be present at the
         # end of the transaction
         linking_new_python = next((package_info for package_info in packages_info_to_link
@@ -610,8 +625,8 @@ class UnlinkLinkTransaction(object):
         return None
 
     @staticmethod
-    def make_link_actions(transaction_context, package_info, target_prefix, requested_link_type,
-                          requested_spec):
+    def _make_link_actions(transaction_context, package_info, target_prefix, requested_link_type,
+                           requested_spec):
         required_quad = transaction_context, package_info, target_prefix, requested_link_type
 
         file_link_actions = LinkPathAction.create_file_link_actions(*required_quad)
@@ -673,17 +688,20 @@ class UnlinkLinkTransaction(object):
             meta_create_actions,
         ))
 
-    def make_legacy_action_groups(self, pfe):
+    def _make_legacy_action_groups(self):
         # this code reverts json output for plan back to previous behavior
         #   relied on by Anaconda Navigator and nb_conda
         from ..models.dist import Dist
         legacy_action_groups = []
 
+        if self._pfe is None:
+            self._get_pfe()
+
         for q, (prefix, setup) in enumerate(iteritems(self.prefix_setups)):
             actions = defaultdict(list)
             if q == 0:
-                pfe.prepare()
-                for axn in pfe.cache_actions:
+                self._pfe.prepare()
+                for axn in self._pfe.cache_actions:
                     actions['FETCH'].append(Dist(axn.url))
 
             actions['PREFIX'] = setup.target_prefix
@@ -696,10 +714,10 @@ class UnlinkLinkTransaction(object):
 
         return legacy_action_groups
 
-    def display_actions(self, pfe):
+    def print_transaction_summary(self):
         from ..models.dist import Dist
         from ..plan import display_actions
-        legacy_action_groups = self.make_legacy_action_groups(pfe)
+        legacy_action_groups = self._make_legacy_action_groups()
 
         for actions, (prefix, stp) in zip(legacy_action_groups, iteritems(self.prefix_setups)):
             pseudo_index = {Dist(prec): prec for prec in concatv(stp.unlink_precs, stp.link_precs)}

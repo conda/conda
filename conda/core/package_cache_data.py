@@ -91,6 +91,10 @@ class PackageCacheData(object):
                 if package_cache_record:
                     _package_cache_records[package_cache_record] = package_cache_record
 
+    def reload(self):
+        self.load()
+        return self
+
     def get(self, package_ref, default=NULL):
         assert isinstance(package_ref, PackageRef)
         try:
@@ -118,6 +122,9 @@ class PackageCacheData(object):
         else:
             assert isinstance(param, PackageRef)
             return (pcrec for pcrec in itervalues(self._package_cache_records) if pcrec == param)
+
+    def iter_records(self):
+        return iter(self._package_cache_records)
 
     @classmethod
     def query_all(cls, package_ref_or_match_spec, pkgs_dirs=None):
@@ -541,6 +548,7 @@ class ProgressiveFetchExtract(object):
         self.paired_actions = odict()  # Map[pref, Tuple(CacheUrlAction, ExtractPackageAction)]
 
         self._prepared = False
+        self._executed = False
 
     @time_recorder("fetch_extract_prepare")
     def prepare(self):
@@ -560,6 +568,8 @@ class ProgressiveFetchExtract(object):
         return tuple(axns[1] for axns in itervalues(self.paired_actions) if axns[1])
 
     def execute(self):
+        if self._executed:
+            return
         if not self._prepared:
             self.prepare()
 
@@ -590,6 +600,7 @@ class ProgressiveFetchExtract(object):
 
         if exceptions:
             raise CondaMultiError(exceptions)
+        self._executed = True
 
     @staticmethod
     def _execute_actions(prec_or_spec, actions):

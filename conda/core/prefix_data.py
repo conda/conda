@@ -3,9 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from glob import glob
 from logging import getLogger
-from os.path import join, lexists
+from os.path import isfile, join, lexists
 
-from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import JSONDecodeError, itervalues, string_types, with_metaclass
 from ..common.constants import NULL
@@ -14,6 +14,7 @@ from ..exceptions import (BasicClobberError, CondaDependencyError, CorruptedEnvi
                           maybe_raise)
 from ..gateways.disk.create import write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
 from ..models.index_record import PackageRef
 from ..models.match_spec import MatchSpec
@@ -48,6 +49,10 @@ class PrefixData(object):
         self.__prefix_records = {}
         for meta_file in glob(join(self.prefix_path, 'conda-meta', '*.json')):
             self._load_single_record(meta_file)
+
+    def reload(self):
+        self.load()
+        return self
 
     def insert(self, prefix_record):
         assert prefix_record.name not in self._prefix_records
@@ -133,6 +138,13 @@ class PrefixData(object):
 
         prefix_record = PrefixRecord(**json_data)
         self.__prefix_records[prefix_record.name] = prefix_record
+
+    @property
+    def is_writable(self):
+        test_path = join(self.prefix_path, PREFIX_MAGIC_FILE)
+        if not isfile(test_path):
+            return None
+        return file_path_is_writable(test_path)
 
 
 def get_python_version_for_prefix(prefix):
