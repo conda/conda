@@ -461,7 +461,7 @@ class Resolve(object):
         simple = spec._is_single()
         nm = spec.get_exact_value('name')
         tf = frozenset(_tf for _tf in (
-            f.strip() for f in spec.get_exact_value('track_features')
+            f.strip() for f in spec.get_exact_value('track_features') or ()
         ) if _tf)
 
         if nm:
