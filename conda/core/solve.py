@@ -511,7 +511,7 @@ class Solver(object):
             conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
             if not any(conda_newer_spec.match(prec) for prec in link_precs):
                 conda_newer_records = sorted(
-                    SubdirData.query_all(self.channels, self.subdirs, conda_newer_spec),
+                    SubdirData.query_all(conda_newer_spec, self.channels, self.subdirs),
                     key=lambda x: VersionOrder(x.version)
                 )
                 if conda_newer_records:

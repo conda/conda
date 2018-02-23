@@ -132,24 +132,74 @@ class Solver(object):
 
 
 class SubdirData(object):
+    """High-level management and usage of repodata.json for subdirs."""
 
     def __init__(self, channel):
-        assert isinstance(channel, Channel)
+        """
+        Args:
+            channel (str or Channel):
+                The target subdir for the instance. Must either be a url that includes a subdir
+                or a :obj:`Channel` that includes a subdir. e.g.:
+                    * 'https://repo.anaconda.com/pkgs/main/linux-64'
+                    * Channel('https://repo.anaconda.com/pkgs/main/linux-64')
+                    * Channel('conda-forge/osx-64')
+        """
+        channel = Channel(channel)
         assert channel.subdir
-        assert not channel.package_filename
         self._internal = _SubdirData(channel)
 
     def query(self, package_ref_or_match_spec):
+        """Run a query against this specific instance of repodata.
+
+        Args:
+            package_ref_or_match_spec (PackageRef or MatchSpec or str):
+                Either an exact :obj:`PackageRef` to match against, or a :obj:`MatchSpec`
+                query object.  A :obj:`str` will be turned into a :obj:`MatchSpec` automatically.
+
+        Returns:
+            Tuple[PackageRecord]
+
+        """
         return tuple(self._internal.query(package_ref_or_match_spec))
 
     @staticmethod
-    def query_all(channels, subdirs, package_ref_or_match_spec):
-        return tuple(_SubdirData.query_all(channels, subdirs, package_ref_or_match_spec))
+    def query_all(package_ref_or_match_spec, channels=None, subdirs=None):
+        """Run a query against all repodata instances in channel/subdir matrix.
+
+        Args:
+            package_ref_or_match_spec (PackageRef or MatchSpec or str):
+                Either an exact :obj:`PackageRef` to match against, or a :obj:`MatchSpec`
+                query object.  A :obj:`str` will be turned into a :obj:`MatchSpec` automatically.
+            channels (Iterable[Channel or str] or None):
+                An iterable of urls for channels or :obj:`Channel` objects. If None, will fall
+                back to context.channels.
+            subdirs (Iterable[str] or None):
+                If None, will fall back to context.subdirs.
+
+        Returns:
+            Tuple[PackageRecord]
+
+        """
+        return tuple(_SubdirData.query_all(package_ref_or_match_spec, channels, subdirs))
 
     def iter_records(self):
+        """
+        Returns:
+            Iterable[PackageRecord]: A generator over all records contained in the repodata.json
+                instance.  Warning: this is a generator that is exhausted on first use.
+
+        """
         return self._internal.iter_records()
 
     def reload(self):
+        """Update the instance with new information. Backing information (i.e. repodata.json)
+        is lazily downloaded/loaded on first use by the other methods of this class. You
+        should only use this method if you are *sure* you have outdated data.
+
+        Returns:
+            SubdirData
+
+        """
         self._internal = self._internal.reload()
         return self
 

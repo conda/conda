@@ -75,8 +75,12 @@ class SubdirData(object):
     _cache_ = {}
 
     @staticmethod
-    def query_all(channels, subdirs, package_ref_or_match_spec):
+    def query_all(package_ref_or_match_spec, channels=None, subdirs=None):
         from .index import check_whitelist  # TODO: fix in-line import
+        if channels is None:
+            channels = context.channels
+        if subdirs is None:
+            subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
         check_whitelist(channel_urls)
         with ThreadLimitedThreadPoolExecutor() as executor:
@@ -116,7 +120,10 @@ class SubdirData(object):
 
     def __init__(self, channel):
         assert channel.subdir
-        assert not channel.package_filename
+        if channel.package_filename:
+            parts = channel.dump()
+            del parts['package_filename']
+            channel = Channel(**parts)
         self.channel = channel
         self.url_w_subdir = self.channel.url(with_credentials=False)
         self.url_w_credentials = self.channel.url(with_credentials=True)

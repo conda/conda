@@ -115,9 +115,9 @@ def test_SubdirData_contract():
     inspect_arguments(SubdirData.query, query_args)
 
     query_all_args = odict((
-        ('channels', PositionalArgument),
-        ('subdirs', PositionalArgument),
         ('package_ref_or_match_spec', PositionalArgument),
+        ('channels', None),
+        ('subdirs', None),
     ))
     inspect_arguments(SubdirData.query_all, query_all_args)
 
@@ -139,7 +139,7 @@ def test_SubdirData_return_value_contract():
     assert isinstance(query_result, tuple)
     assert all(isinstance(prec, PackageRecord) for prec in query_result)
 
-    query_all_result = sd.query_all((Channel('pkgs/main'),), context.subdirs, 'openssl')
+    query_all_result = sd.query_all('openssl', (Channel('pkgs/main'),), context.subdirs)
     assert isinstance(query_all_result, tuple)
     assert all(isinstance(prec, PackageRecord) for prec in query_all_result)
 
