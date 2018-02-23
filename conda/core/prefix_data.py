@@ -142,7 +142,9 @@ class PrefixData(object):
     @property
     def is_writable(self):
         test_path = join(self.prefix_path, PREFIX_MAGIC_FILE)
-        return isfile(test_path) and file_path_is_writable(test_path)
+        if not isfile(test_path):
+            return None
+        return file_path_is_writable(test_path)
 
 
 def get_python_version_for_prefix(prefix):

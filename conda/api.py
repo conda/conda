@@ -205,54 +205,176 @@ class SubdirData(object):
 
 
 class PackageCacheData(object):
+    """High-level management and usage of package caches."""
 
     def __init__(self, pkgs_dir):
+        """
+        Args:
+            pkgs_dir (str):
+        """
         self._internal = _PackageCacheData(pkgs_dir)
 
     def get(self, package_ref, default=NULL):
+        """
+        Args:
+            package_ref (PackageRef):
+                A :obj:`PackageRef` instance representing the key for the
+                :obj:`PackageCacheRecord` being sought.
+            default: The default value to return if the record does not exist. If not
+                specified and no record exists, :exc:`KeyError` is raised.
+
+        Returns:
+            PackageCacheRecord
+
+        """
         return self._internal.get(package_ref, default)
 
     def query(self, package_ref_or_match_spec):
+        """Run a query against this specific package cache instance.
+
+        Args:
+            package_ref_or_match_spec (PackageRef or MatchSpec or str):
+                Either an exact :obj:`PackageRef` to match against, or a :obj:`MatchSpec`
+                query object.  A :obj:`str` will be turned into a :obj:`MatchSpec` automatically.
+
+        Returns:
+            Tuple[PackageCacheRecord]
+
+        """
         return tuple(self._internal.query(package_ref_or_match_spec))
 
     @staticmethod
     def query_all(package_ref_or_match_spec, pkgs_dirs=None):
+        """Run a query against all package caches.
+
+        Args:
+            package_ref_or_match_spec (PackageRef or MatchSpec or str):
+                Either an exact :obj:`PackageRef` to match against, or a :obj:`MatchSpec`
+                query object.  A :obj:`str` will be turned into a :obj:`MatchSpec` automatically.
+            pkgs_dirs (Iterable[str] or None):
+                If None, will fall back to context.pkgs_dirs.
+
+        Returns:
+            Tuple[PackageCacheRecord]
+
+        """
         return tuple(_PackageCacheData.query_all(package_ref_or_match_spec, pkgs_dirs))
 
     def iter_records(self):
+        """
+        Returns:
+            Iterable[PackageCacheRecord]: A generator over all records contained in the package
+                cache instance.  Warning: this is a generator that is exhausted on first use.
+
+        """
         return self._internal.iter_records()
 
     @property
     def is_writable(self):
+        """Indicates if the package cache location is writable or read-only.
+
+        Returns:
+            bool
+
+        """
         return self._internal.is_writable
 
     @staticmethod
     def first_writable(pkgs_dirs=None):
+        """Get an instance object for the first writable package cache.
+
+        Args:
+            pkgs_dirs (Iterable[str]):
+                If None, will fall back to context.pkgs_dirs.
+
+        Returns:
+            PackageCacheData:
+                An instance for the first writable package cache.
+
+        """
         return PackageCacheData(_PackageCacheData.first_writable(pkgs_dirs).pkgs_dir)
 
     def reload(self):
+        """Update the instance with new information. Backing information (i.e. contents of
+        the pkgs_dir) is lazily loaded on first use by the other methods of this class. You
+        should only use this method if you are *sure* you have outdated data.
+
+        Returns:
+            PackageCacheData
+
+        """
         self._internal = self._internal.reload()
         return self
 
 
 class PrefixData(object):
+    """High-level management and usage of conda environment prefixes."""
 
     def __init__(self, prefix_path):
+        """
+        Args:
+            prefix_path (str):
+        """
         self._internal = _PrefixData(prefix_path)
 
     def get(self, package_ref, default=NULL):
+        """
+        Args:
+            package_ref (PackageRef):
+                A :obj:`PackageRef` instance representing the key for the
+                :obj:`PrefixRecord` being sought.
+            default: The default value to return if the record does not exist. If not
+                specified and no record exists, :exc:`KeyError` is raised.
+
+        Returns:
+            PrefixRecord
+
+        """
         return self._internal.get(package_ref.name, default)
 
     def query(self, package_ref_or_match_spec):
+        """Run a query against this specific prefix instance.
+
+        Args:
+            package_ref_or_match_spec (PackageRef or MatchSpec or str):
+                Either an exact :obj:`PackageRef` to match against, or a :obj:`MatchSpec`
+                query object.  A :obj:`str` will be turned into a :obj:`MatchSpec` automatically.
+
+        Returns:
+            Tuple[PrefixRecord]
+
+        """
         return tuple(self._internal.query(package_ref_or_match_spec))
 
     def iter_records(self):
+        """
+        Returns:
+            Iterable[PrefixRecord]: A generator over all records contained in the prefix.
+                Warning: this is a generator that is exhausted on first use.
+
+        """
         return self._internal.iter_records()
 
     @property
     def is_writable(self):
+        """Indicates if the prefix is writable or read-only.
+
+        Returns:
+            bool or None:
+                True if the prefix is writable.  False if read-only.  None if the prefix
+                does not exist as a conda environment.
+
+        """
         return self._internal.is_writable
 
     def reload(self):
+        """Update the instance with new information. Backing information (i.e. contents of
+        the conda-meta directory) is lazily loaded on first use by the other methods of this
+        class. You should only use this method if you are *sure* you have outdated data.
+
+        Returns:
+            PrefixData
+
+        """
         self._internal = self._internal.reload()
         return self
