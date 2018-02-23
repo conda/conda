@@ -3,6 +3,8 @@
 ### New Feature Highlights
 
 ### Deprecations/Breaking Changes
+* resolve #6886 transition defaults from repo.continuum.io to repo.anaconda.com (#6887)
+* resolve #6192 deprecate 'conda help' in favor of --help CLI flag (#6918)
 
 ### API
 
@@ -12,6 +14,7 @@
 
 ### Non-User-Facing Changes
 * fix several lgtm.com flags (#6757, #6883)
+* cleanups and refactors for conda 4.5 (#6889)
 
 
 ## 4.4.11 (unreleased)
