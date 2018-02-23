@@ -80,28 +80,15 @@ def _main(*args):
         return exit_code
 
 
-def _ensure_text_type(value):
-    # copying here from conda/common/compat.py to avoid the import
-    try:
-        return value.decode('utf-8')
-    except AttributeError:
-        # AttributeError: '<>' object has no attribute 'decode'
-        # In this case assume already text_type and do nothing
-        return value
-    except UnicodeDecodeError:
-        try:
-            from requests.packages.chardet import detect
-        except ImportError:  # pragma: no cover
-            from pip._vendor.requests.packages.chardet import detect
-        encoding = detect(value).get('encoding') or 'utf-8'
-        return value.decode(encoding)
-
-
 def main(*args):
+    # conda.common.compat contains only stdlib imports
+    from ..common.compat import ensure_text_type  # , init_std_stream_encoding
+
+    # init_std_stream_encoding()
     if not args:
         args = sys.argv
 
-    args = tuple(_ensure_text_type(s) for s in args)
+    args = tuple(ensure_text_type(s) for s in args)
 
     if len(args) > 1:
         try:
