@@ -15,6 +15,8 @@ DepsModifier = _DepsModifier
 
 class Solver(object):
     """
+    **Beta**
+
     A high-level API to conda's solving logic. Three public methods are provided to access a
     solution in various forms.
 
@@ -26,6 +28,8 @@ class Solver(object):
 
     def __init__(self, prefix, channels, subdirs=(), specs_to_add=(), specs_to_remove=()):
         """
+        **Beta**
+
         Args:
             prefix (str):
                 The conda prefix / environment location for which the :class:`Solver`
@@ -44,7 +48,10 @@ class Solver(object):
 
     def solve_final_state(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
                           force_remove=NULL):
-        """Gives the final, solved state of the environment.
+        """
+        **Beta**
+
+        Gives the final, solved state of the environment.
 
         Args:
             deps_modifier (DepsModifier):
@@ -56,6 +63,7 @@ class Solver(object):
                     * ONLY_DEPS
                     * UPDATE_DEPS
                     * UPDATE_DEPS_ONLY_DEPS
+                    * FREEZE_INSTALLED
             prune (bool):
                 If ``True``, the solution will not contain packages that were
                 previously brought into the environment as dependencies but are no longer
@@ -77,7 +85,10 @@ class Solver(object):
 
     def solve_for_diff(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
                        force_remove=NULL, force_reinstall=False):
-        """Gives the package references to remove from an environment, followed by
+        """
+        **Beta**
+
+        Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
         Args:
@@ -91,9 +102,9 @@ class Solver(object):
                 See :meth:`solve_final_state`.
             force_reinstall (bool):
                 For requested specs_to_add that are already satisfied in the environment,
-                    instructs the solver to remove the package and spec from the environment,
-                    and then add it back--possibly with the exact package instance modified,
-                    depending on the spec exactness.
+                instructs the solver to remove the package and spec from the environment,
+                and then add it back--possibly with the exact package instance modified,
+                depending on the spec exactness.
 
         Returns:
             Tuple[PackageRef], Tuple[PackageRef]:
@@ -108,7 +119,10 @@ class Solver(object):
 
     def solve_for_transaction(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
                               force_remove=NULL, force_reinstall=False):
-        """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
+        """
+        **Beta**
+
+        Gives an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
 
         Args:
@@ -132,10 +146,16 @@ class Solver(object):
 
 
 class SubdirData(object):
-    """High-level management and usage of repodata.json for subdirs."""
+    """
+    **Beta**
+
+    High-level management and usage of repodata.json for subdirs.
+    """
 
     def __init__(self, channel):
         """
+        **Beta**
+
         Args:
             channel (str or Channel):
                 The target subdir for the instance. Must either be a url that includes a subdir
@@ -149,7 +169,10 @@ class SubdirData(object):
         self._internal = _SubdirData(channel)
 
     def query(self, package_ref_or_match_spec):
-        """Run a query against this specific instance of repodata.
+        """
+        **Beta**
+
+        Run a query against this specific instance of repodata.
 
         Args:
             package_ref_or_match_spec (PackageRef or MatchSpec or str):
@@ -164,7 +187,10 @@ class SubdirData(object):
 
     @staticmethod
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None):
-        """Run a query against all repodata instances in channel/subdir matrix.
+        """
+        **Beta**
+
+        Run a query against all repodata instances in channel/subdir matrix.
 
         Args:
             package_ref_or_match_spec (PackageRef or MatchSpec or str):
@@ -184,6 +210,8 @@ class SubdirData(object):
 
     def iter_records(self):
         """
+        **Beta**
+
         Returns:
             Iterable[PackageRecord]: A generator over all records contained in the repodata.json
                 instance.  Warning: this is a generator that is exhausted on first use.
@@ -192,7 +220,10 @@ class SubdirData(object):
         return self._internal.iter_records()
 
     def reload(self):
-        """Update the instance with new information. Backing information (i.e. repodata.json)
+        """
+        **Beta**
+
+        Update the instance with new information. Backing information (i.e. repodata.json)
         is lazily downloaded/loaded on first use by the other methods of this class. You
         should only use this method if you are *sure* you have outdated data.
 
@@ -205,10 +236,16 @@ class SubdirData(object):
 
 
 class PackageCacheData(object):
-    """High-level management and usage of package caches."""
+    """
+    **Beta**
+
+    High-level management and usage of package caches.
+    """
 
     def __init__(self, pkgs_dir):
         """
+        **Beta**
+
         Args:
             pkgs_dir (str):
         """
@@ -216,6 +253,8 @@ class PackageCacheData(object):
 
     def get(self, package_ref, default=NULL):
         """
+        **Beta**
+
         Args:
             package_ref (PackageRef):
                 A :obj:`PackageRef` instance representing the key for the
@@ -230,7 +269,10 @@ class PackageCacheData(object):
         return self._internal.get(package_ref, default)
 
     def query(self, package_ref_or_match_spec):
-        """Run a query against this specific package cache instance.
+        """
+        **Beta**
+
+        Run a query against this specific package cache instance.
 
         Args:
             package_ref_or_match_spec (PackageRef or MatchSpec or str):
@@ -245,7 +287,10 @@ class PackageCacheData(object):
 
     @staticmethod
     def query_all(package_ref_or_match_spec, pkgs_dirs=None):
-        """Run a query against all package caches.
+        """
+        **Beta**
+
+        Run a query against all package caches.
 
         Args:
             package_ref_or_match_spec (PackageRef or MatchSpec or str):
@@ -262,6 +307,8 @@ class PackageCacheData(object):
 
     def iter_records(self):
         """
+        **Beta**
+
         Returns:
             Iterable[PackageCacheRecord]: A generator over all records contained in the package
                 cache instance.  Warning: this is a generator that is exhausted on first use.
@@ -271,7 +318,10 @@ class PackageCacheData(object):
 
     @property
     def is_writable(self):
-        """Indicates if the package cache location is writable or read-only.
+        """
+        **Beta**
+
+        Indicates if the package cache location is writable or read-only.
 
         Returns:
             bool
@@ -281,7 +331,10 @@ class PackageCacheData(object):
 
     @staticmethod
     def first_writable(pkgs_dirs=None):
-        """Get an instance object for the first writable package cache.
+        """
+        **Beta**
+
+        Get an instance object for the first writable package cache.
 
         Args:
             pkgs_dirs (Iterable[str]):
@@ -295,7 +348,10 @@ class PackageCacheData(object):
         return PackageCacheData(_PackageCacheData.first_writable(pkgs_dirs).pkgs_dir)
 
     def reload(self):
-        """Update the instance with new information. Backing information (i.e. contents of
+        """
+        **Beta**
+
+        Update the instance with new information. Backing information (i.e. contents of
         the pkgs_dir) is lazily loaded on first use by the other methods of this class. You
         should only use this method if you are *sure* you have outdated data.
 
@@ -308,10 +364,16 @@ class PackageCacheData(object):
 
 
 class PrefixData(object):
-    """High-level management and usage of conda environment prefixes."""
+    """
+    **Beta**
+
+    High-level management and usage of conda environment prefixes.
+    """
 
     def __init__(self, prefix_path):
         """
+        **Beta**
+
         Args:
             prefix_path (str):
         """
@@ -319,6 +381,8 @@ class PrefixData(object):
 
     def get(self, package_ref, default=NULL):
         """
+        **Beta**
+
         Args:
             package_ref (PackageRef):
                 A :obj:`PackageRef` instance representing the key for the
@@ -333,7 +397,10 @@ class PrefixData(object):
         return self._internal.get(package_ref.name, default)
 
     def query(self, package_ref_or_match_spec):
-        """Run a query against this specific prefix instance.
+        """
+        **Beta**
+
+        Run a query against this specific prefix instance.
 
         Args:
             package_ref_or_match_spec (PackageRef or MatchSpec or str):
@@ -348,6 +415,8 @@ class PrefixData(object):
 
     def iter_records(self):
         """
+        **Beta**
+
         Returns:
             Iterable[PrefixRecord]: A generator over all records contained in the prefix.
                 Warning: this is a generator that is exhausted on first use.
@@ -357,7 +426,10 @@ class PrefixData(object):
 
     @property
     def is_writable(self):
-        """Indicates if the prefix is writable or read-only.
+        """
+        **Beta**
+
+        Indicates if the prefix is writable or read-only.
 
         Returns:
             bool or None:
@@ -368,7 +440,10 @@ class PrefixData(object):
         return self._internal.is_writable
 
     def reload(self):
-        """Update the instance with new information. Backing information (i.e. contents of
+        """
+        **Beta**
+        
+        Update the instance with new information. Backing information (i.e. contents of
         the conda-meta directory) is lazily loaded on first use by the other methods of this
         class. You should only use this method if you are *sure* you have outdated data.
 

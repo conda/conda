@@ -101,6 +101,7 @@ class Solver(object):
                     * ONLY_DEPS
                     * UPDATE_DEPS
                     * UPDATE_DEPS_ONLY_DEPS
+                    * FREEZE_INSTALLED
             prune (bool):
                 If ``True``, the solution will not contain packages that were
                 previously brought into the environment as dependencies but are no longer
