@@ -408,7 +408,7 @@ class UnlinkLinkTransaction(object):
 
     @staticmethod
     def _verify_transaction_level(prefix_setups):
-        # 1. make sure we're not removing conda or a conda dependency from conda's env
+        # 1. make sure we're not removing conda from conda's env
         # 2. make sure we're not removing a conda dependency from conda's env
         # 3. enforce context.disallowed_packages
         # 4. make sure we're not removing pinned packages without no-pin flag
