@@ -479,6 +479,12 @@ class Context(Configuration):
     def conda_prefix(self):
         return normpath(sys.prefix)
 
+    @property
+    def conda_exe(self):
+        bin_dir = 'Scripts' if on_win else 'bin'
+        exe = 'conda.exe' if on_win else 'conda'
+        return join(self.conda_prefix, bin_dir, exe)
+
     @memoizedproperty
     def channel_alias(self):
         from ..models.channel import Channel
