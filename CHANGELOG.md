@@ -1,4 +1,4 @@
-## 4.4.11 (2018-02-22)
+## 4.4.11 (2018-02-23)
 
 ### Improvements
 * resolve #6582 swallow_broken_pipe context manager and Spinner refactor (#6616)
@@ -17,6 +17,7 @@
 * fix #6880 build_number comparison not functional in match_spec (#6881)
 * fix #6910 sort key prioritizes build string over build number (#6911)
 * fix #6914, #6691 conda can fail to update packages even though newer versions exist (#6921)
+* fix #6899 handle Unicode output in activate commands (#6909)
 
 
 ## 4.4.10 (2018-02-09)
