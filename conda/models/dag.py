@@ -38,6 +38,7 @@ class PrefixDag(object):
             self.add_spec(spec)
 
         self.nodes = self.get_nodes_ordered_from_roots()
+        print([str(n) for n in self.nodes])
 
     def get_node_by_name(self, name):
         return next((node for node in self.nodes if node.record.name == name), None)
@@ -289,6 +290,9 @@ class Node(object):
                 dag.spec_matches[spec].append(self)
 
         dag.nodes.append(self)
+
+    def __str__(self):
+        return self.record.dist_str()
 
     def constrained_by(self, other):
         return other.record.name in self._constrains
