@@ -229,13 +229,11 @@ def install(args, parser, command='install'):
                               use_local=index_args['use_local'], use_cache=index_args['use_cache'],
                               unknown=index_args['unknown'], prefix=prefix)
             unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
-            progressive_fetch_extract = unlink_link_transaction.get_pfe()
         else:
             solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
             unlink_link_transaction = solver.solve_for_transaction(
                 force_reinstall=context.force,
             )
-            progressive_fetch_extract = unlink_link_transaction.get_pfe()
 
     except ResolvePackageNotFound as e:
         channels_urls = tuple(calculate_channel_urls(
@@ -252,11 +250,10 @@ def install(args, parser, command='install'):
             raise CondaImportError(text_type(e))
         raise
 
-    handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args, newenv)
+    handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 
-def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args, newenv,
-               remove_op=False):
+def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
@@ -269,16 +266,16 @@ def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args,
             return
 
     if not context.json:
-        unlink_link_transaction.display_actions(progressive_fetch_extract)
+        unlink_link_transaction.print_transaction_summary()
         common.confirm_yn()
 
     elif context.dry_run:
-        actions = unlink_link_transaction.make_legacy_action_groups(progressive_fetch_extract)[0]
+        actions = unlink_link_transaction._make_legacy_action_groups()[0]
         common.stdout_json_success(prefix=prefix, actions=actions, dry_run=True)
         raise DryRunExit()
 
     try:
-        progressive_fetch_extract.execute()
+        unlink_link_transaction.download_and_extract()
         if context.download_only:
             raise CondaExitZero('Package caches prepared. UnlinkLinkTransaction cancelled with '
                                 '--download-only option.')
@@ -292,5 +289,5 @@ def handle_txn(progressive_fetch_extract, unlink_link_transaction, prefix, args,
         print_activate(args.name if args.name else prefix)
 
     if context.json:
-        actions = unlink_link_transaction.make_legacy_action_groups(progressive_fetch_extract)[0]
+        actions = unlink_link_transaction._make_legacy_action_groups()[0]
         common.stdout_json_success(prefix=prefix, actions=actions)

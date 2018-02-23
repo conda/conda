@@ -34,6 +34,6 @@ def install(prefix, specs, args, env, *_, **kwargs):
     solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
     unlink_link_transaction = solver.solve_for_transaction(prune=getattr(args, 'prune', False))
 
-    pfe = unlink_link_transaction.get_pfe()
+    pfe = unlink_link_transaction._get_pfe()
     pfe.execute()
     unlink_link_transaction.execute()
