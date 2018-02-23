@@ -683,10 +683,22 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask', exact=True)
             assert_package_is_installed(prefix, 'flask-0.')
 
+    def test_update_with_pinned_packages(self):
+        # regression test for #6914
+        with make_temp_env("python=2.7.12") as prefix:
+            assert package_is_installed(prefix, "readline-6.2")
+            rm_rf(join(prefix, 'conda-meta', 'history'))
+            PrefixData._cache_.clear()
+            run_command(Commands.UPDATE, prefix, "readline")
+            assert package_is_installed(prefix, "readline")
+            assert not package_is_installed(prefix, "readline-6.2")
+            assert package_is_installed(prefix, "python-2.7")
+            assert not package_is_installed(prefix, "python-2.7.12")
+
     def test_remove_all(self):
-        with make_temp_env("python=2") as prefix:
+        with make_temp_env("python") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
-            assert_package_is_installed(prefix, 'python-2')
+            assert_package_is_installed(prefix, 'python')
 
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
