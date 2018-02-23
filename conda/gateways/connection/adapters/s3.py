@@ -116,3 +116,5 @@ class S3Adapter(BaseAdapter):
             resp.close = resp.raw.close
         else:
             resp.status_code = 404
+
+        return resp
