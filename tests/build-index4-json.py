@@ -174,6 +174,19 @@ def main():
         'pcre',
         'gstreamer',
         'libxml2',
+
+        'parso',
+        'openblas-devel',
+        'libopenblas',
+
+        'conda-build',
+        'pkginfo',
+        'glob2',
+        'filelock',
+        'conda-verify',
+        'contextlib2',
+        'patchelf',
+        'beautifulsoup4',
     )
 
     keep = {}

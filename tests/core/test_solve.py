@@ -1271,15 +1271,15 @@ def test_timestamps_1():
             'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
             'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
             'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-            'channel-4::libffi-3.2.1-h4deb6c0_3',
-            'channel-4::ncurses-6.0-h06874d7_1',
-            'channel-4::openssl-1.0.2l-h077ae2c_5',
-            'channel-4::tk-8.6.7-h5979e9b_1',
-            'channel-4::xz-5.2.3-h2bcbf08_1',
-            'channel-4::zlib-1.2.11-hfbfcf68_1',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.0-h9df7e31_2',
+            'channel-4::openssl-1.0.2n-hb7f436b_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::xz-5.2.3-h55aa19d_2',
+            'channel-4::zlib-1.2.11-ha838bed_2',
             'channel-4::libedit-3.1-heed3624_0',
-            'channel-4::readline-7.0-hac23ff0_3',
-            'channel-4::sqlite-3.20.1-h6d8b0f3_1',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.22.0-h1bed415_0',
             'channel-4::python-3.6.2-hca45abc_19',  # this package has a later timestamp but lower hash value
                                                     # than the alternate 'channel-4::python-3.6.2-hda45abc_19'
         )
@@ -1315,24 +1315,26 @@ def test_priority_1():
             # PrefixDag(final_state_1, specs).open_url()
             print([Dist(rec).full_name for rec in final_state_1])
             order = (
-                'channel-4::intel-openmp-2018.0.0-h15fc484_7',
+                'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+                'channel-4::intel-openmp-2018.0.0-hc7b2577_8',
                 'channel-2::libffi-3.2.1-1',
                 'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+                'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
                 'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-                'channel-2::openssl-1.0.2l-0',
-                'channel-4::mkl-2018.0.0-hb491cac_4',
-                'channel-4::ncurses-6.0-h06874d7_1',
-                'channel-4::tk-8.6.7-h5979e9b_1',
-                'channel-4::zlib-1.2.11-hfbfcf68_1',
+                'channel-4::mkl-2018.0.1-h19d6760_4',
+                'channel-4::ncurses-6.0-h9df7e31_2',
+                'channel-4::openssl-1.0.2n-hb7f436b_0',
+                'channel-4::tk-8.6.7-hc745277_3',
+                'channel-4::zlib-1.2.11-ha838bed_2',
                 'channel-4::libedit-3.1-heed3624_0',
-                'channel-4::readline-7.0-hac23ff0_3',
-                'channel-4::sqlite-3.20.1-h6d8b0f3_1',
-                'channel-4::python-2.7.14-hc2b0042_21',
-                'channel-4::numpy-1.13.3-py27hbcc08e0_0',
-                'channel-2::pytz-2017.2-py27_0',
-                'channel-2::six-1.10.0-py27_0',
+                'channel-4::readline-7.0-ha6073c6_4',
+                'channel-4::sqlite-3.22.0-h1bed415_0',
+                'channel-4::python-2.7.14-h1571d57_29',
+                'channel-4::numpy-1.14.1-py27h3dfced4_1',
+                'channel-4::pytz-2018.3-py27_0',
+                'channel-4::six-1.11.0-py27h5f960f1_1',
                 'channel-4::python-dateutil-2.6.1-py27h4ca5741_1',
-                'channel-4::pandas-0.20.3-py27h820b67f_2',
+                'channel-4::pandas-0.22.0-py27hf484d3e_0',
             )
             assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
@@ -1367,21 +1369,22 @@ def test_features_solve_1():
             # PrefixDag(final_state_1, specs).open_url()
             print([Dist(rec).full_name for rec in final_state_1])
             order = (
-                'channel-4::intel-openmp-2018.0.0-h15fc484_7',
+                'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
                 'channel-2::libffi-3.2.1-1',
                 'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+                'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
                 'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
                 'channel-2::nomkl-1.0-0',
-                'channel-2::openssl-1.0.2l-0',
-                'channel-4::mkl-2018.0.0-hb491cac_4',  # <- this is wrong
-                'channel-4::ncurses-6.0-h06874d7_1',
-                'channel-4::tk-8.6.7-h5979e9b_1',
-                'channel-4::zlib-1.2.11-hfbfcf68_1',
+                'channel-4::libopenblas-0.2.20-h9ac9557_4',
+                'channel-4::ncurses-6.0-h9df7e31_2',
+                'channel-4::openssl-1.0.2n-hb7f436b_0',
+                'channel-4::tk-8.6.7-hc745277_3',
+                'channel-4::zlib-1.2.11-ha838bed_2',
                 'channel-4::libedit-3.1-heed3624_0',
-                'channel-4::readline-7.0-hac23ff0_3',
-                'channel-4::sqlite-3.20.1-h6d8b0f3_1',
-                'channel-4::python-2.7.14-hc2b0042_21',
-                'channel-4::numpy-1.13.3-py27hbcc08e0_0',
+                'channel-4::readline-7.0-ha6073c6_4',
+                'channel-4::sqlite-3.22.0-h1bed415_0',
+                'channel-4::python-2.7.14-h1571d57_29',
+                'channel-4::numpy-1.14.1-py27_nomklh7cdd4dd_1',
             )
             assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
 
