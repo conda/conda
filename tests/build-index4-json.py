@@ -27,7 +27,6 @@ def main():
         'cloog',
         'cloudpickle',
         'colorama',
-        'conda',
         'conda-env',
         'cryptography',
         'dask',
@@ -187,6 +186,10 @@ def main():
         'contextlib2',
         'patchelf',
         'beautifulsoup4',
+
+        'conda',
+        'cytoolz',
+
     )
 
     keep = {}

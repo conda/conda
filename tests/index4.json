@@ -5902,6 +5902,108 @@
     "timestamp": 1505733648132,
     "version": "0.10.0"
   },
+  "cytoolz-0.8.2-py27hf14aec9_0.tar.bz2": {
+    "build": "py27hf14aec9_0",
+    "build_number": 0,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "python >=2.7,<2.8.0a0",
+      "toolz >=0.8.0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "1f7ebd7de2101e63109e6917596b05ce",
+    "name": "cytoolz",
+    "sha256": "be571d710f26baae923bb4c9a5bc9be3acb7485b86d9272fd9299df86b3dbb7b",
+    "size": 365962,
+    "subdir": "linux-64",
+    "timestamp": 1505740196014,
+    "version": "0.8.2"
+  },
+  "cytoolz-0.8.2-py35ha53021f_0.tar.bz2": {
+    "build": "py35ha53021f_0",
+    "build_number": 0,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "python >=3.5,<3.6.0a0",
+      "toolz >=0.8.0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "55d4f6a4fc2a934f8c808e061dbaf081",
+    "name": "cytoolz",
+    "sha256": "325791eb49aa72ebdbcbe2dca6d193f4c4a93b34aa7f85ed6b6d65a54a94eef4",
+    "size": 368960,
+    "subdir": "linux-64",
+    "timestamp": 1505740231317,
+    "version": "0.8.2"
+  },
+  "cytoolz-0.8.2-py36h708bfd4_0.tar.bz2": {
+    "build": "py36h708bfd4_0",
+    "build_number": 0,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "python >=3.6,<3.7.0a0",
+      "toolz >=0.8.0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "92977087dc2a463e99a1d993f81f40dd",
+    "name": "cytoolz",
+    "sha256": "ab77acd49239414febafaf186c86c9e7c9e95ddc671ce7800966b65ae15735f3",
+    "size": 372473,
+    "subdir": "linux-64",
+    "timestamp": 1505740267776,
+    "version": "0.8.2"
+  },
+  "cytoolz-0.9.0-py27h14c3975_0.tar.bz2": {
+    "build": "py27h14c3975_0",
+    "build_number": 0,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "python >=2.7,<2.8.0a0",
+      "toolz >=0.8.0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "6a9cf232e7f88c0162b528a2000319f0",
+    "name": "cytoolz",
+    "sha256": "0da21fbc2d64b5b42de5e4be847a3edf01ad386866dcede87e545d7ce910fe7b",
+    "size": 419962,
+    "subdir": "linux-64",
+    "timestamp": 1515794222549,
+    "version": "0.9.0"
+  },
+  "cytoolz-0.9.0-py35h14c3975_0.tar.bz2": {
+    "build": "py35h14c3975_0",
+    "build_number": 0,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "python >=3.5,<3.6.0a0",
+      "toolz >=0.8.0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "78a584072ce03c27ac7bddc663d88787",
+    "name": "cytoolz",
+    "sha256": "d95a88be9ec56debff01f831a4958ee467f3a84cd1b7ec789fd78e1189ec06e8",
+    "size": 423813,
+    "subdir": "linux-64",
+    "timestamp": 1515794234739,
+    "version": "0.9.0"
+  },
+  "cytoolz-0.9.0-py36h14c3975_0.tar.bz2": {
+    "build": "py36h14c3975_0",
+    "build_number": 0,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "python >=3.6,<3.7.0a0",
+      "toolz >=0.8.0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "779cae8eda221eb1352adfa7e57acbbe",
+    "name": "cytoolz",
+    "sha256": "3d388c72616cb640254bde405456e95e7137d23f97c5d864152feeaa0fc9f2de",
+    "size": 429351,
+    "subdir": "linux-64",
+    "timestamp": 1515794401867,
+    "version": "0.9.0"
+  },
   "dask-0.15.2-py27h7693082_0.tar.bz2": {
     "build": "py27h7693082_0",
     "build_number": 0,
