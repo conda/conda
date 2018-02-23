@@ -23,7 +23,7 @@ USER_ENVIRONMENTS_TXT_FILE = expand(join('~', '.conda', 'environments.txt'))
 def register_env(location):
     location = normpath(location)
 
-    if "placehold_pl" in location:
+    if "placehold_pl" in location or "skeleton_" in location:
         # Don't record envs created by conda-build.
         return
 

@@ -241,6 +241,21 @@ class ConfigurationTests(TestCase):
         finally:
             [environ.pop(key) for key in test_dict]
 
+    def test_env_var_config_empty_sequence(self):
+        def make_key(appname, key):
+            return "{0}_{1}".format(appname.upper(), key.upper())
+        appname = "myapp"
+        test_dict = {}
+        test_dict[make_key(appname, 'channels')] = ''
+
+        try:
+            environ.update(test_dict)
+            assert 'MYAPP_CHANNELS' in environ
+            config = SampleConfiguration()._set_env_vars(appname)
+            assert config.channels == ()
+        finally:
+            [environ.pop(key) for key in test_dict]
+
     def test_load_raw_configs(self):
         try:
             tempdir = mkdtemp()

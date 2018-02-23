@@ -587,7 +587,6 @@ class Context(Configuration):
             'error_upload_url',  # should remain undocumented
             'force_32bit',
             'ignore_pinned',
-            'max_shlvl',
             'migrated_custom_channels',
             'only_dependencies',
             'prune',
@@ -772,6 +771,9 @@ def get_help_dict():
             respected). For a value of True or 1, respect the HTTP Cache-Control max-age
             header. Any other positive integer values is the number of seconds to locally
             cache repodata before checking the remote server for an update.
+            """),
+        'max_shlvl': dals("""
+            The maximum number of stacked active conda environments.
             """),
         'migrated_channel_aliases': dals("""
             A list of previously-used channel_alias values, useful for example when switching
