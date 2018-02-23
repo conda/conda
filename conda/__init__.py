@@ -8,7 +8,7 @@ from os.path import dirname
 import sys
 
 from ._vendor.auxlib.packaging import get_version
-from .common.compat import iteritems, text_type
+from .common.compat import text_type
 
 __all__ = (
     "__name__", "__version__", "__author__", "__email__", "__license__", "__summary__", "__url__",
@@ -46,20 +46,20 @@ class CondaError(Exception):
     def __str__(self):
         try:
             return text_type(self.message % self._kwargs)
-        except TypeError:
-            # TypeError: not enough arguments for format string
+        except:
             debug_message = "\n".join((
                 "class: " + self.__class__.__name__,
                 "message:",
                 self.message,
                 "kwargs:",
                 text_type(self._kwargs),
+                "",
             ))
             sys.stderr.write(debug_message)
             raise
 
     def dump_map(self):
-        result = dict((k, v) for k, v in iteritems(vars(self)) if not k.startswith('_'))
+        result = dict((k, v) for k, v in vars(self).items() if not k.startswith('_'))
         result.update(exception_type=text_type(type(self)),
                       exception_name=self.__class__.__name__,
                       message=text_type(self),
