@@ -26,7 +26,7 @@ from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, it
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
-from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError, NotWritableError
+from ..exceptions import CondaDependencyError, CondaHTTPError, NotWritableError
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)
 from ..gateways.connection.session import CondaSession
@@ -406,30 +406,6 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
             log.debug(stringify(resp))
         resp.raise_for_status()
 
-        if resp.status_code == 304:
-            raise Response304ContentUnchanged()
-
-        def maybe_decompress(filename, resp_content):
-            return ensure_text_type(bz2.decompress(resp_content)
-                                    if filename.endswith('.bz2')
-                                    else resp_content).strip()
-        json_str = maybe_decompress(filename, resp.content)
-
-        saved_fields = {'_url': url}
-        add_http_value_to_dict(resp, 'Etag', saved_fields, '_etag')
-        add_http_value_to_dict(resp, 'Last-Modified', saved_fields, '_mod')
-        add_http_value_to_dict(resp, 'Cache-Control', saved_fields, '_cache_control')
-
-        # add extra values to the raw repodata json
-        if json_str and json_str != "{}":
-            raw_repodata_str = "%s, %s" % (
-                json.dumps(saved_fields)[:-1],  # remove trailing '}'
-                json_str[1:]  # remove first '{'
-            )
-        else:
-            raw_repodata_str = json.dumps(saved_fields)
-        return raw_repodata_str
-
     except InvalidSchema as e:
         if 'SOCKS' in text_type(e):
             message = dals("""
@@ -445,7 +421,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
     except (ConnectionError, HTTPError, SSLError) as e:
         # status_code might not exist on SSLError
         status_code = getattr(e.response, 'status_code', None)
-        if status_code == 404:
+        if status_code in (403, 404):
             if not url.endswith('/noarch'):
                 return None
             else:
@@ -455,7 +431,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
                     requested channel with url: %s
 
                     It is possible you have given conda an invalid channel. Please double-check
-                    your conda configuration using `conda config --show`.
+                    your conda configuration using `conda config --show channels`.
 
                     If the requested url is in fact a valid conda channel, please request that the
                     channel administrator create `noarch/repodata.json` and associated
@@ -480,47 +456,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
                     $ bzip2 -k noarch/repodata.json
 
                     You will need to adjust your conda configuration to proceed.
-                    Use `conda config --show` to view your configuration's current state.
-                    Further configuration help can be found at <%s>.
-                    """) % (maybe_unquote(dirname(url)),
-                            join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
-
-        elif status_code == 403:
-            if not url.endswith('/noarch'):
-                return None
-            else:
-                if context.allow_non_channel_urls:
-                    help_message = dedent("""
-                    WARNING: The remote server could not find the noarch directory for the
-                    requested channel with url: %s
-
-                    It is possible you have given conda an invalid channel. Please double-check
-                    your conda configuration using `conda config --show`.
-
-                    If the requested url is in fact a valid conda channel, please request that the
-                    channel administrator create `noarch/repodata.json` and associated
-                    `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
-                    $ mkdir noarch
-                    $ echo '{}' > noarch/repodata.json
-                    $ bzip2 -k noarch/repodata.json
-                    """) % maybe_unquote(dirname(url))
-                    stderrlog.warn(help_message)
-                    return None
-                else:
-                    help_message = dals("""
-                    The remote server could not find the noarch directory for the
-                    requested channel with url: %s
-
-                    As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
-                    associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                    empty. please request that the channel administrator create
-                    `noarch/repodata.json` and associated `noarch/repodata.json.bz2` files.
-                    $ mkdir noarch
-                    $ echo '{}' > noarch/repodata.json
-                    $ bzip2 -k noarch/repodata.json
-
-                    You will need to adjust your conda configuration to proceed.
-                    Use `conda config --show` to view your configuration's current state.
+                    Use `conda config --show channels` to view your configuration's current state.
                     Further configuration help can be found at <%s>.
                     """) % (maybe_unquote(dirname(url)),
                             join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
@@ -576,21 +512,55 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
             """)
 
         else:
-            help_message = dals("""
-            An HTTP error occurred when trying to retrieve this URL.
-            HTTP errors are often intermittent, and a simple retry will get you on your way.
-            %s
-            """) % maybe_unquote(repr(e))
+            if url.startswith("https://repo.anaconda.com/"):
+                help_message = dals("""
+                An HTTP error occurred when trying to retrieve this URL.
+                HTTP errors are often intermittent, and a simple retry will get you on your way.
+
+                If your current network has https://www.anaconda.com blocked, please file
+                a support request with your network engineering team.
+
+                %s
+                """) % maybe_unquote(repr(e))
+            else:
+                help_message = dals("""
+                An HTTP error occurred when trying to retrieve this URL.
+                HTTP errors are often intermittent, and a simple retry will get you on your way.
+                %s
+                """) % maybe_unquote(repr(e))
 
         raise CondaHTTPError(help_message,
                              join_url(url, filename),
                              status_code,
                              getattr(e.response, 'reason', None),
                              getattr(e.response, 'elapsed', None),
-                             e.response)
+                             e.response,
+                             caused_by=e)
 
-    except ValueError as e:
-        raise CondaIndexError("Invalid index file: {0}: {1}".format(join_url(url, filename), e))
+    if resp.status_code == 304:
+        raise Response304ContentUnchanged()
+
+    def maybe_decompress(filename, resp_content):
+        return ensure_text_type(bz2.decompress(resp_content)
+                                if filename.endswith('.bz2')
+                                else resp_content).strip()
+
+    json_str = maybe_decompress(filename, resp.content)
+
+    saved_fields = {'_url': url}
+    add_http_value_to_dict(resp, 'Etag', saved_fields, '_etag')
+    add_http_value_to_dict(resp, 'Last-Modified', saved_fields, '_mod')
+    add_http_value_to_dict(resp, 'Cache-Control', saved_fields, '_cache_control')
+
+    # add extra values to the raw repodata json
+    if json_str and json_str != "{}":
+        raw_repodata_str = "%s, %s" % (
+            json.dumps(saved_fields)[:-1],  # remove trailing '}'
+            json_str[1:]  # remove first '{'
+        )
+    else:
+        raw_repodata_str = json.dumps(saved_fields)
+    return raw_repodata_str
 
 
 def make_feature_record(feature_name):

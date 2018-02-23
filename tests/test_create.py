@@ -275,22 +275,23 @@ class IntegrationTests(TestCase):
         PackageCacheData.clear()
 
     def test_install_python2_and_search(self):
-        with make_temp_env("python=2") as prefix:
-            assert exists(join(prefix, PYTHON_BINARY))
-            assert_package_is_installed(prefix, 'python-2')
+        with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', reset_context):
+            with make_temp_env("python=2") as prefix:
+                assert exists(join(prefix, PYTHON_BINARY))
+                assert_package_is_installed(prefix, 'python-2')
 
-            # regression test for #4513
-            run_command(Commands.CONFIG, prefix, "--add channels https://repo.anaconda.com/pkgs/not-a-channel")
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "python --json")
-            packages = json.loads(stdout)
-            assert len(packages) >= 1
+                # regression test for #4513
+                run_command(Commands.CONFIG, prefix, "--add channels https://repo.continuum.io/pkgs/not-a-channel")
+                stdout, stderr = run_command(Commands.SEARCH, prefix, "python --json")
+                packages = json.loads(stdout)
+                assert len(packages) >= 1
 
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "python --json --envs")
-            envs_result = json.loads(stdout)
-            assert any(match['location'] == prefix for match in envs_result)
+                stdout, stderr = run_command(Commands.SEARCH, prefix, "python --json --envs")
+                envs_result = json.loads(stdout)
+                assert any(match['location'] == prefix for match in envs_result)
 
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "python --envs")
-            assert prefix in stdout
+                stdout, stderr = run_command(Commands.SEARCH, prefix, "python --envs")
+                assert prefix in stdout
 
     def test_create_install_update_remove_smoketest(self):
         with make_temp_env("python=3.5") as prefix:
