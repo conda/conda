@@ -826,7 +826,6 @@ class IntegrationTests(TestCase):
                         pass
                 assert exc.value.dump_map()['package_ref']['name'] == 'python'
 
-
     def test_conda_config_describe(self):
         with make_temp_env() as prefix:
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe")
