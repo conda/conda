@@ -16,11 +16,11 @@ from .common.path import expand
 from .common.url import is_url, join_url, path_to_url, unquote
 from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
-from .core.prefix_data import PrefixData, linked_data
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
-from .exceptions import PackagesNotFoundError, ParseError
+from .core.prefix_data import PrefixData, linked_data
+from .exceptions import DisallowedError, PackagesNotFoundError, ParseError
 from .gateways.disk.delete import rm_rf
-from .gateways.disk.link import islink, symlink, readlink
+from .gateways.disk.link import islink, readlink, symlink
 from .models.dist import Dist
 from .models.index_record import IndexRecord
 from .models.match_spec import MatchSpec
@@ -227,6 +227,12 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         r = Resolve(index)
     dists = r.dependency_sort({d.quad[0]: d for d in urls.keys()})
     urls = [urls[d] for d in dists]
+
+    precs = tuple(index[dist] for dist in dists)
+    disallowed = tuple(MatchSpec(s) for s in context.disallowed_packages)
+    for prec in precs:
+        if any(d.match(prec) for d in disallowed):
+            raise DisallowedError(prec)
 
     if verbose:
         print('Packages: %d' % len(dists))

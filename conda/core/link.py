@@ -11,13 +11,13 @@ from tempfile import mkdtemp
 from traceback import format_exception_only
 import warnings
 
-from .prefix_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
 from .package_cache_data import PackageCacheData
 from .path_actions import (CompilePycAction, CreateNonadminAction, CreatePrefixRecordAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
                            RemoveMenuAction, UnlinkPathAction, UnregisterEnvironmentLocationAction,
                            UpdateHistoryAction)
+from .prefix_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
@@ -28,9 +28,8 @@ from ..common.io import Spinner, time_recorder
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
-from ..exceptions import (KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise,
-                          DisallowedError)
+from ..exceptions import (DisallowedError, KnownPackageClobberError, LinkError, RemoveError,
+                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info

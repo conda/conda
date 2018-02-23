@@ -820,6 +820,13 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'flask-0.10.1')
                 assert_package_is_installed(clone_prefix, 'python')
 
+            with env_var('CONDA_DISALLOWED_PACKAGES', 'python', reset_context):
+                with pytest.raises(DisallowedError) as exc:
+                    with make_temp_env('--clone "%s"' % prefix, "--offline"):
+                        pass
+                assert exc.value.dump_map()['package_ref']['name'] == 'python'
+
+
     def test_conda_config_describe(self):
         with make_temp_env() as prefix:
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--describe")
