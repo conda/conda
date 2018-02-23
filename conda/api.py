@@ -442,7 +442,7 @@ class PrefixData(object):
     def reload(self):
         """
         **Beta**
-        
+
         Update the instance with new information. Backing information (i.e. contents of
         the conda-meta directory) is lazily loaded on first use by the other methods of this
         class. You should only use this method if you are *sure* you have outdated data.
