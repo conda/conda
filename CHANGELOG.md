@@ -1,7 +1,10 @@
-## 4.4.11 (unreleased)
+## 4.4.11 (2018-02-22)
 
 ### Improvements
 * resolve #6582 swallow_broken_pipe context manager and Spinner refactor (#6616)
+* resolve #6882 document max_shlvl (#6892)
+* resolve #6733 make empty env vars sequence-safe for sequence parameters (#6741)
+* resolve #6900 don't record conda skeleton environments in environments.txt (#6908)
 
 ### Bug Fixes
 * fix potential error in ensure_pad(); add more tests (#6817)
@@ -11,6 +14,9 @@
 * fix #6811 don't attempt copy/remove fallback for rename failures (#6867)
 * fix #6667 aliased posix commands (#6669)
 * fix #6816 fish environment autocomplete (#6885)
+* fix #6880 build_number comparison not functional in match_spec (#6881)
+* fix #6910 sort key prioritizes build string over build number (#6911)
+* fix #6914, #6691 conda can fail to update packages even though newer versions exist (#6921)
 
 
 ## 4.4.10 (2018-02-09)
