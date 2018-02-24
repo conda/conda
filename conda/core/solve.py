@@ -508,7 +508,7 @@ class Solver(object):
                 # TODO: Only explicitly requested remove and update specs are being included in
                 #   History right now. Do we need to include other categories from the solve?
 
-        if context.notify_outdated_conda:
+        if context.notify_outdated_conda and not context.quiet:
             conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
             if not any(conda_newer_spec.match(prec) for prec in link_precs):
                 conda_newer_records = sorted(
