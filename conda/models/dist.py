@@ -21,6 +21,9 @@ DistDetails = namedtuple('DistDetails', ('name', 'version', 'build_string', 'bui
                                          'dist_name'))
 
 
+IndexRecord = PackageRecord  # for conda-build backward compat
+
+
 class DistType(EntityType):
 
     def __call__(cls, *args, **kwargs):
