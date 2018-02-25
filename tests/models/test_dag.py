@@ -3,11 +3,64 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 
-from conda.models.dag import PrefixDag
+from conda.models.dag import PrefixDag, PrefixDag2
 from conda.models.match_spec import MatchSpec
+from conda.resolve import dashlist
 from tests.core.test_solve import get_solver_2, get_solver_4
 
 log = getLogger(__name__)
+
+
+
+
+
+
+def test_prefix_dag_2():
+    specs = MatchSpec("conda"), MatchSpec("conda-build"), MatchSpec("intel-openmp"),
+    with get_solver_4(specs) as solver:
+        final_state = solver.solve_final_state()
+        dag = PrefixDag2(final_state, specs)
+
+        # for rec in dag.graph:
+        #     print(rec.dist_str(), dashlist((d.dist_str() for d in dag.graph[rec])))
+        #     print()
+        #
+        # for rec, specs in dag.spec_matches.items():
+        #     if specs:
+        #         print(rec.dist_str(), dashlist((s for s in specs)))
+        #         print()
+        #
+
+
+        nodes = dag.topological_sort()
+        anchor_node = nodes[20]
+
+        print("node", anchor_node.dist_str())
+
+        print("nodes", dashlist((rec.dist_str() for rec in nodes)))
+
+        print("downstreams", dashlist((rec.dist_str() for rec in dag.downstream(anchor_node))))
+        print("all downstreams", dashlist((rec.dist_str() for rec in dag.all_downstreams(anchor_node))))
+
+
+        print("all roots", dashlist((rec.dist_str() for rec in dag.all_roots())))
+
+        print("all orphans", dashlist((rec.dist_str() for rec in dag.all_orphans())))
+
+        print("all leaves", dashlist((rec.dist_str() for rec in dag.all_leaves())))
+
+        print("predecessors", dashlist((rec.dist_str() for rec in dag.predecessors(anchor_node))))
+        print("all predecessors", dashlist((rec.dist_str() for rec in dag.all_predecessors(anchor_node))))
+
+        assert 0
+
+
+
+
+
+
+
+
 
 
 def test_ordered_nodes():

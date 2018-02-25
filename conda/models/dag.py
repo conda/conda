@@ -6,9 +6,10 @@ from logging import getLogger
 import sys
 from weakref import WeakSet, proxy
 
+from conda.common.compat import odict
 from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
-from ..common.compat import itervalues
+from ..common.compat import itervalues, iteritems
 from ..common.url import quote as url_quote
 
 try:
@@ -19,6 +20,181 @@ except ImportError:
     from .._vendor.toolz.itertoolz import concatv  # NOQA
 
 log = getLogger(__name__)
+
+
+class PrefixDag2(object):
+    # https://github.com/thieman/py-dag/blob/master/dag/__init__.py
+
+    def __init__(self, records, specs):
+        self.graph = graph = {}
+        self.spec_matches = spec_matches = {}
+        for record in records:
+            matchers = tuple(MatchSpec(d) for d in record.depends)
+            dependents = IndexedSet(sorted(
+                (rec for rec in records if any(m.match(rec) for m in matchers)),
+                key=lambda x: x._pkey
+            ))
+            graph[record] = dependents
+            matching_specs = IndexedSet(s for s in specs if s.match(record))
+            if matching_specs:
+                spec_matches[record] = matching_specs
+
+    def remove_spec(self, spec):
+        remove_these = tuple(node for node in self.graph if spec.match(node))
+        for node in remove_these:
+            self.delete_node(node)
+
+    def remove_root_nodes_with_specs(self):
+        spec_matches = self.spec_matches
+        roots_with_specs = tuple(node for node in self.all_roots() if node in spec_matches)
+        for node in roots_with_specs:
+            self.delete_node(node)
+
+    @property
+    def records(self):
+        return iter(self.graph)
+
+    def prune(self):
+        # remove orphans without specs
+        # remove roots without specs
+        orphans = set(self.all_orphans())
+        roots_wo_specs = set(node for node in self.all_roots() if node not in self.spec_matches)
+        for node in orphans | roots_wo_specs:
+            self.delete_node(node)
+
+    def get_node_by_name(self, name):
+        return next(rec for rec in self.graph if rec.name == name)
+
+    def delete_node(self, node):
+        """ Deletes this node and all edges referencing it. """
+        graph = self.graph
+        if node not in graph:
+            raise KeyError('node %s does not exist' % node)
+        graph.pop(node)
+        self.spec_matches.pop(node, None)
+
+        for node, edges in iteritems(graph):
+            if node in edges:
+                edges.remove(node)
+
+    def all_leaves(self):
+        """ Return a list of all leaves (nodes with no downstreams) """
+        graph = self.graph
+        return [key for key in graph if not graph[key]]
+
+    def predecessors(self, node):
+        """ Returns a list of all predecessors of the given node """
+        graph = self.graph
+        return [key for key in graph if node in graph[key]]
+
+    def all_predecessors(self, node):
+        # all children
+        nodes = [node]
+        nodes_seen = set()
+        i = 0
+        while i < len(nodes):
+            predecessors = self.predecessors(nodes[i])
+            for predecessor_node in predecessors:
+                if predecessor_node not in nodes_seen:
+                    nodes_seen.add(predecessor_node)
+                    nodes.append(predecessor_node)
+            i += 1
+        return list(
+            filter(
+                lambda node: node in nodes_seen,
+                self.topological_sort()
+            )
+        )
+
+    def all_roots(self):
+        """ Returns a list of all nodes in the graph with no dependencies. """
+        # independent nodes, root nodes, nodes with no dependencies
+        graph = self.graph
+        dependent_nodes = set(
+            node for dependents in itervalues(graph) for node in dependents
+        )
+        return [node for node in graph.keys() if node not in dependent_nodes]
+
+    def all_orphans(self):
+        leaves = self.all_leaves()
+        roots = self.all_roots()
+        return [node for node in leaves if node in roots]
+
+    def children(self, node):
+        # children depend on parents
+        # children of this node are the records that depend on this node
+        graph = self.graph
+        return tuple(node for node in graph if node in graph[node])
+
+    def parents(self, node):
+        # just record.depends
+        return tuple(self.graph[node])
+
+    def oldest_ascendants(self):
+        pass
+
+    def youngest_descendants(self):
+        pass
+
+    def downstream(self, node):
+        """ Returns a list of all nodes this node has edges towards. """
+        graph = self.graph
+        if node not in graph:
+            raise KeyError('node %s is not in graph' % node)
+        return list(graph[node])
+
+    def all_downstreams(self, node):
+        """Returns a list of all nodes ultimately downstream
+        of the given node in the dependency graph, in
+        topological order."""
+        nodes = [node]
+        nodes_seen = set()
+        i = 0
+        while i < len(nodes):
+            downstreams = self.downstream(nodes[i])
+            for downstream_node in downstreams:
+                if downstream_node not in nodes_seen:
+                    nodes_seen.add(downstream_node)
+                    nodes.append(downstream_node)
+            i += 1
+        return list(
+            filter(
+                lambda node: node in nodes_seen,
+                self.topological_sort()
+            )
+        )
+
+    def topological_sort(self):
+        graph = self.graph
+        in_degree = {}
+        for u in graph:
+            in_degree[u] = 0
+
+        for u in graph:
+            for v in graph[u]:
+                in_degree[v] += 1
+
+        queue = deque()
+        for u in in_degree:
+            if in_degree[u] == 0:
+                queue.appendleft(u)
+
+        l = []
+        while queue:
+            u = queue.pop()
+            l.append(u)
+            for v in graph[u]:
+                in_degree[v] -= 1
+                if in_degree[v] == 0:
+                    queue.appendleft(v)
+
+        if len(l) == len(graph):
+            self.graph = odict((node, graph[node]) for node in l)
+            return l
+        else:
+            raise ValueError('graph is not acyclic')
+
+
 
 
 class PrefixDag(object):
