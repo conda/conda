@@ -368,32 +368,43 @@ class MatchSpecTests(TestCase):
         assert ms.get_exact_value('build') == '0'
         assert ms._to_filename_do_not_use() == 'zlib-1.2.7-0.tar.bz2'
 
-    @pytest.mark.skip(reason="key-value features interface disabled in conda 4.4")
-    def test_key_value_features_match(self):
+    def test_track_features_match(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
         a = MatchSpec(features='test')
-        assert text_type(a) == "*[provides_features='test=true']"
+        assert text_type(a) == "*[features=test]"
         assert not a.match(DPkg(dst))
         assert not a.match(DPkg(dst, track_features=''))
+
+        a = MatchSpec(track_features='test')
         assert a.match(DPkg(dst, track_features='test'))
         assert not a.match(DPkg(dst, track_features='test2'))
-        assert a.match(DPkg(dst, track_features='test me'))
-        assert a.match(DPkg(dst, track_features='you test'))
-        assert a.match(DPkg(dst, track_features='you test me'))
-        assert a.get_exact_value('provides_features') == frozendict({'test': 'true'})
+        assert not a.match(DPkg(dst, track_features='test me'))
+        assert not a.match(DPkg(dst, track_features='you test'))
+        assert not a.match(DPkg(dst, track_features='you test me'))
+        assert a.get_exact_value('track_features') == frozenset(('test',))
 
-        b = MatchSpec(features='mkl')
+        b = MatchSpec(track_features='mkl')
         assert not b.match(DPkg(dst))
         assert b.match(DPkg(dst, track_features='mkl'))
-        assert b.match(DPkg(dst, track_features='blas=mkl'))
-        assert b.match(DPkg(dst, track_features='blas=mkl debug'))
+        assert b.match(DPkg(dst, track_features='mkl'))
+        assert not b.match(DPkg(dst, track_features='mkl debug'))
         assert not b.match(DPkg(dst, track_features='debug'))
 
-        c = MatchSpec(features='nomkl')
+        c = MatchSpec(track_features='nomkl')
         assert not c.match(DPkg(dst))
         assert not c.match(DPkg(dst, track_features='mkl'))
         assert c.match(DPkg(dst, track_features='nomkl'))
-        assert c.match(DPkg(dst, track_features='blas=nomkl debug'))
+        assert not c.match(DPkg(dst, track_features='nomkl debug'))
+
+        # regression test for #6860
+        d = MatchSpec(track_features='')
+        assert d.get_exact_value('track_features') == frozenset()
+        d = MatchSpec(track_features=' ')
+        assert d.get_exact_value('track_features') == frozenset()
+        d = MatchSpec(track_features=('', ''))
+        assert d.get_exact_value('track_features') == frozenset()
+        d = MatchSpec(track_features=('', '', 'test'))
+        assert d.get_exact_value('track_features') == frozenset(('test',))
 
     def test_bracket_matches(self):
         record = {
