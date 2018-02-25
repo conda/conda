@@ -28,7 +28,7 @@ from ..common.io import Spinner, time_recorder
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
-from ..exceptions import (DisallowedError, KnownPackageClobberError, LinkError, RemoveError,
+from ..exceptions import (DisallowedPackageError, KnownPackageClobberError, LinkError, RemoveError,
                           SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
@@ -469,7 +469,7 @@ class UnlinkLinkTransaction(object):
         for prefix_setup in itervalues(prefix_setups):
             for prec in prefix_setup.link_precs:
                 if any(d.match(prec) for d in disallowed):
-                    yield DisallowedError(prec)
+                    yield DisallowedPackageError(prec)
 
     @classmethod
     def _verify(cls, prefix_setups, prefix_action_groups):

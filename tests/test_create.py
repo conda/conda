@@ -42,7 +42,7 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
-    DisallowedError
+    DisallowedPackageError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -821,7 +821,7 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'python')
 
             with env_var('CONDA_DISALLOWED_PACKAGES', 'python', reset_context):
-                with pytest.raises(DisallowedError) as exc:
+                with pytest.raises(DisallowedPackageError) as exc:
                     with make_temp_env('--clone "%s"' % prefix, "--offline"):
                         pass
                 assert exc.value.dump_map()['package_ref']['name'] == 'python'
@@ -1498,7 +1498,7 @@ class IntegrationTests(TestCase):
                 with pytest.raises(CondaMultiError) as exc:
                     run_command(Commands.INSTALL, prefix, 'python')
             exc_val = exc.value.errors[0]
-            assert isinstance(exc_val, DisallowedError)
+            assert isinstance(exc_val, DisallowedPackageError)
             assert exc_val.dump_map()['package_ref']['name'] == 'sqlite'
 
     def test_dont_remove_conda(self):

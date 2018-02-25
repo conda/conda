@@ -18,7 +18,7 @@ from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData, linked_data
-from .exceptions import DisallowedError, PackagesNotFoundError, ParseError
+from .exceptions import DisallowedPackageError, PackagesNotFoundError, ParseError
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.dist import Dist
@@ -232,7 +232,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     disallowed = tuple(MatchSpec(s) for s in context.disallowed_packages)
     for prec in precs:
         if any(d.match(prec) for d in disallowed):
-            raise DisallowedError(prec)
+            raise DisallowedPackageError(prec)
 
     if verbose:
         print('Packages: %d' % len(dists))
