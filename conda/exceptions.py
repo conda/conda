@@ -552,6 +552,16 @@ class RemoveError(CondaError):
         super(RemoveError, self).__init__(msg)
 
 
+class DisallowedPackageError(CondaError):
+    def __init__(self, package_ref, **kwargs):
+        from .models.index_record import PackageRef
+        package_ref = PackageRef.from_objects(package_ref)
+        message = ("The package '%(dist_str)s' is disallowed by configuration.\n"
+                   "See 'conda config --show disallowed_packages'.")
+        super(DisallowedPackageError, self).__init__(message, package_ref=package_ref,
+                                                     dist_str=package_ref.dist_str(), **kwargs)
+
+
 class CondaIndexError(CondaError, IndexError):
     def __init__(self, message):
         msg = '%s' % message

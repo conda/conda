@@ -55,7 +55,7 @@ class CondaError(Exception):
                 text_type(self._kwargs),
                 "",
             ))
-            sys.stderr.write(debug_message)
+            print(debug_message, file=sys.stderr)
             raise
 
     def dump_map(self):

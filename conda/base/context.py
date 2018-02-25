@@ -114,7 +114,6 @@ class Context(Configuration):
     default_python = PrimitiveParameter(default_python_default(),
                                         element_type=string_types + (NoneType,),
                                         validation=default_python_validation)
-    disallow = SequenceParameter(string_types)
     download_only = PrimitiveParameter(False)
     enable_private_envs = PrimitiveParameter(False)
     force_32bit = PrimitiveParameter(False)
@@ -129,6 +128,8 @@ class Context(Configuration):
     path_conflict = PrimitiveParameter(PathConflict.clobber)
 
     pinned_packages = SequenceParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
+    disallowed_packages = SequenceParameter(string_types, aliases=('disallow',),
+                                            string_delimiter='&')
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
@@ -746,7 +747,7 @@ def get_help_dict():
         #     version of Python (2/3) to be used in new environments. Defaults to
         #     the version used by conda itself.
         #     """),
-        'disallow': dals("""
+        'disallowed_packages': dals("""
             Package specifications to disallow installing. The default is to allow
             all packages.
             """),
