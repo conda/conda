@@ -554,7 +554,7 @@ class RemoveError(CondaError):
 
 class DisallowedPackageError(CondaError):
     def __init__(self, package_ref, **kwargs):
-        from .models.index_record import PackageRef
+        from .models.records import PackageRef
         package_ref = PackageRef.from_objects(package_ref)
         message = ("The package '%(dist_str)s' is disallowed by configuration.\n"
                    "See 'conda config --show disallowed_packages'.")
