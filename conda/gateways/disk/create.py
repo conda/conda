@@ -32,7 +32,7 @@ log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')
 
 # in __init__.py to help with circular imports
-mkdir_p = mkdir_p  # lgtm [py/redundant-assignment]
+mkdir_p = mkdir_p
 
 python_entry_point_template = dals("""
 # -*- coding: utf-8 -*-

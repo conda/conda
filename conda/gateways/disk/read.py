@@ -28,8 +28,8 @@ from ...models.package_info import PackageInfo, PackageMetadata
 
 log = getLogger(__name__)
 
-listdir = listdir  # lgtm [py/redundant-assignment]
-lexists, isdir, isfile = lexists, isdir, isfile  # lgtm [py/redundant-assignment]
+listdir = listdir
+lexists, isdir, isfile = lexists, isdir, isfile
 
 
 def yield_lines(path):

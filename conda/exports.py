@@ -9,44 +9,44 @@ from warnings import warn
 log = getLogger(__name__)
 
 from . import CondaError  # NOQA
-CondaError = CondaError  # lgtm [py/redundant-assignment]
+CondaError = CondaError
 
 from . import compat, plan  # NOQA
 compat, plan = compat, plan
 
 from .core.solve import Solver  # NOQA
-Solver = Solver  # lgtm [py/redundant-assignment]
+Solver = Solver
 
 from .plan import display_actions  # NOQA
-display_actions = display_actions  # lgtm [py/redundant-assignment]
+display_actions = display_actions
 
 from .cli.common import specs_from_args, spec_from_line, specs_from_url  # NOQA
 from .cli.conda_argparse import add_parser_prefix, add_parser_channels  # NOQA
 add_parser_channels, add_parser_prefix = add_parser_channels, add_parser_prefix
 specs_from_args, spec_from_line = specs_from_args, spec_from_line
-specs_from_url = specs_from_url  # lgtm [py/redundant-assignment]
+specs_from_url = specs_from_url
 
 from .cli.conda_argparse import ArgumentParser  # NOQA
-ArgumentParser = ArgumentParser  # lgtm [py/redundant-assignment]
+ArgumentParser = ArgumentParser
 
 from .common.compat import PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
-PY3, StringIO,  input, iteritems, string_types, text_type = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA lgtm [py/redundant-assignment]
+PY3, StringIO,  input, iteritems, string_types, text_type = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
 from .gateways.connection.session import CondaSession  # NOQA
-CondaSession = CondaSession  # lgtm [py/redundant-assignment]
+CondaSession = CondaSession
 
 from .common.toposort import _toposort  # NOQA
-_toposort = _toposort  # lgtm [py/redundant-assignment]
+_toposort = _toposort
 
 from .gateways.disk.link import lchmod  # NOQA
-lchmod = lchmod  # lgtm [py/redundant-assignment]
+lchmod = lchmod
 
 from .gateways.connection.download import TmpDownload  # NOQA
 
-TmpDownload = TmpDownload  # lgtm [py/redundant-assignment]
+TmpDownload = TmpDownload
 handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
                                      "Now handled by CondaSession.")
 from .core.index import dist_str_in_index, fetch_index, get_index  # NOQA
-dist_str_in_index, fetch_index, get_index = dist_str_in_index, fetch_index, get_index  # NOQA lgtm [py/redundant-assignment]
+dist_str_in_index, fetch_index, get_index = dist_str_in_index, fetch_index, get_index  # NOQA
 from .core.package_cache_data import download, rm_fetched  # NOQA
 download, rm_fetched = download, rm_fetched
 
@@ -64,28 +64,28 @@ untracked, walk_prefix = untracked, walk_prefix
 
 from .resolve import MatchSpec, ResolvePackageNotFound, Resolve, Unsatisfiable  # NOQA
 MatchSpec, Resolve = MatchSpec, Resolve
-Unsatisfiable = Unsatisfiable  # lgtm [py/redundant-assignment]
-NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # lgtm [py/redundant-assignment]
+Unsatisfiable = Unsatisfiable
+NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
 from .utils import hashsum_file, human_bytes, unix_path_to_win, url_path  # NOQA
 from .common.path import win_path_to_unix  # NOQA
 hashsum_file, human_bytes = hashsum_file, human_bytes
-unix_path_to_win = unix_path_to_win  # lgtm [py/redundant-assignment]
+unix_path_to_win = unix_path_to_win
 win_path_to_unix, url_path = win_path_to_unix, url_path
 
 from .gateways.disk.read import compute_md5sum  # NOQA
-md5_file = compute_md5sum  # lgtm [py/redundant-assignment]
+md5_file = compute_md5sum
 
 from .models.version import VersionOrder, normalized_version  # NOQA
-VersionOrder, normalized_version = VersionOrder, normalized_version  # NOQA lgtm [py/redundant-assignment]
+VersionOrder, normalized_version = VersionOrder, normalized_version  # NOQA
 
 import conda.base.context  # NOQA
 from .base.context import get_prefix, non_x86_linux_machines, sys_rc_path  # NOQA
 non_x86_linux_machines, sys_rc_path = non_x86_linux_machines, sys_rc_path
-get_prefix = get_prefix  # lgtm [py/redundant-assignment]
+get_prefix = get_prefix
 
 from ._vendor.auxlib.entity import EntityEncoder # NOQA
-EntityEncoder = EntityEncoder  # lgtm [py/redundant-assignment]
+EntityEncoder = EntityEncoder
 from .base.constants import DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
 DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX = DEFAULT_CHANNELS, DEFAULT_CHANNELS_WIN, DEFAULT_CHANNELS_UNIX  # NOQA
 get_default_urls = lambda: DEFAULT_CHANNELS
@@ -107,30 +107,30 @@ get_rc_urls = lambda: list(conda.base.context.context.channels)
 get_local_urls = lambda: list(get_conda_build_local_url()) or []
 load_condarc = lambda fn: conda.base.context.reset_context([fn])
 from .exceptions import PaddingError, LinkError, CondaOSError, PathNotFoundError  # NOQA
-PaddingError = PaddingError  # lgtm [py/redundant-assignment]
-LinkError = LinkError  # lgtm [py/redundant-assignment]
-CondaOSError = CondaOSError  # lgtm [py/redundant-assignment]
+PaddingError = PaddingError
+LinkError = LinkError
+CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
-PathNotFoundError = CondaFileNotFoundError = PathNotFoundError  # lgtm [py/redundant-assignment]
+PathNotFoundError = CondaFileNotFoundError = PathNotFoundError
 from .gateways.disk.link import CrossPlatformStLink  # NOQA
-CrossPlatformStLink = CrossPlatformStLink  # lgtm [py/redundant-assignment]
+CrossPlatformStLink = CrossPlatformStLink
 
 from .models.enums import FileMode  # NOQA
-FileMode = FileMode  # lgtm [py/redundant-assignment]
+FileMode = FileMode
 from .models.enums import PathType  # NOQA
-PathType = PathType  # lgtm [py/redundant-assignment]
+PathType = PathType
 
-from .models.records import PackageRecord
+from .models.records import PackageRecord  # NOQA
 PackageRecord = IndexRecord = PackageRecord
 
 from .compat import TemporaryDirectory  # NOQA
-TemporaryDirectory = TemporaryDirectory  # lgtm [py/redundant-assignment]
+TemporaryDirectory = TemporaryDirectory
 
 from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # NOQA
 ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call
 
 from .core.subdir_data import cache_fn_url  # NOQA
-cache_fn_url = cache_fn_url  # lgtm [py/redundant-assignment]
+cache_fn_url = cache_fn_url
 
 
 class Completer(object):  # pragma: no cover

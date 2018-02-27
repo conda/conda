@@ -27,8 +27,8 @@ log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')
 
 # used in conda build
-Unsatisfiable = UnsatisfiableError  # lgtm [py/redundant-assignment]
-ResolvePackageNotFound = ResolvePackageNotFound  # lgtm [py/redundant-assignment]
+Unsatisfiable = UnsatisfiableError
+ResolvePackageNotFound = ResolvePackageNotFound
 
 
 def dashlist(iterable, indent=2):

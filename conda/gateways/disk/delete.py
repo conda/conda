@@ -249,10 +249,10 @@ else:  # pragma: no cover
     _obtained_privileges = []
 
     # Aliases to functions/classes, and utility lambdas
-    cast = cast  # lgtm [py/redundant-assignment]
-    byref = byref  # lgtm [py/redundant-assignment]
-    sizeof = sizeof  # lgtm [py/redundant-assignment]
-    WinError = WinError  # lgtm [py/redundant-assignment]
+    cast = cast
+    byref = byref
+    sizeof = sizeof
+    WinError = WinError
     hasflag = lambda value, flag: (value & flag) == flag
 
     # Constants derived from C
@@ -553,7 +553,7 @@ else:  # pragma: no cover
                 # If the first try fails, we'll set the GUID and try again
                 buffer = get_buffer(filepath, hFile)
                 info.ReparseTag = buffer.ReparseTag
-                info.ReparseGuid = info.ReparseGuid  # lgtm [py/redundant-assignment]
+                info.ReparseGuid = info.ReparseGuid
                 result, dwRet = DeviceIoControl(hFile, FSCTL_DELETE_REPARSE_POINT, byref(info),
                                                 REPARSE_GUID_DATA_BUFFER_HEADER_SIZE, None,
                                                 _long(0))
