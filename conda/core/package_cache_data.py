@@ -28,9 +28,8 @@ from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_in
                                   read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
-from ..models.records import PackageRecord, PackageRef
 from ..models.match_spec import MatchSpec
-from conda.models.records import PackageCacheRecord
+from ..models.records import PackageCacheRecord, PackageRecord, PackageRef
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby

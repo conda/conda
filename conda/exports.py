@@ -120,6 +120,9 @@ FileMode = FileMode  # lgtm [py/redundant-assignment]
 from .models.enums import PathType  # NOQA
 PathType = PathType  # lgtm [py/redundant-assignment]
 
+from .models.records import PackageRecord
+PackageRecord = IndexRecord = PackageRecord
+
 from .compat import TemporaryDirectory  # NOQA
 TemporaryDirectory = TemporaryDirectory  # lgtm [py/redundant-assignment]
 
