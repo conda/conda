@@ -303,7 +303,8 @@ class PrefixGraph(object):
             conda_node = next((node for node in graph if node.name == 'conda'), None)
             python_node = next((node for node in graph if node.name == 'python'), None)
             if menuinst_node:
-                # add menuinst as a parent if python is a parent and the node isn't a parent of menuinst
+                # add menuinst as a parent if python is a parent and the node
+                # isn't a parent of menuinst
                 assert python_node is not None
                 menuinst_parents = graph[menuinst_node]
                 for node, parents in iteritems(graph):
@@ -314,8 +315,8 @@ class PrefixGraph(object):
                 # add conda as a parent if python is a parent and node isn't a parent of conda
                 conda_parents = graph[conda_node]
                 for node, parents in iteritems(graph):
-                    if hasattr(node,
-                               'noarch') and node.noarch == NoarchType.python and node not in conda_parents:
+                    if (hasattr(node, 'noarch') and node.noarch == NoarchType.python
+                            and node not in conda_parents):
                         parents.add(conda_node)
 
 

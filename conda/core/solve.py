@@ -24,11 +24,10 @@ from ..exceptions import PackagesNotFoundError
 from ..gateways.logging import TRACE
 from ..history import History
 from ..models.channel import Channel
-from ..models.prefix_graph import PrefixGraph as PrefixDag
-from ..models.prefix_graph import PrefixGraph
 from ..models.dist import Dist
 from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
+from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..resolve import Resolve, dashlist
 

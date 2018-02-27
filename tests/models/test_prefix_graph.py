@@ -4,9 +4,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from conda._vendor.auxlib.decorators import memoize
 from conda.base.context import reset_context
 from conda.common.io import env_var
+from conda.exceptions import CyclicalDependencyError
 from conda.models.match_spec import MatchSpec
 import conda.models.prefix_graph
 from conda.models.prefix_graph import PrefixGraph
+import pytest
 from tests.core.test_solve import get_solver_4, get_solver_5
 
 try:
@@ -733,6 +735,6 @@ def test_sort_without_prep():
 
         with env_var('CONDA_ALLOW_CYCLES', 'false', reset_context):
             records, specs = get_windows_conda_build_record_set()
-            graph = PrefixGraph(records, specs)
-            graph._toposort_raise_on_cycles(graph.graph)
+            with pytest.raises(CyclicalDependencyError):
+                graph = PrefixGraph(records, specs)
 
