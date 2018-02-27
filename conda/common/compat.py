@@ -151,18 +151,16 @@ def _init_stream_encoding(stream):
     # PY2 compat: Initialize encoding for an IO stream.
     # Python 2 sets the encoding of stdout/stderr to None if not run in a
     # terminal context and thus falls back to ASCII.
-    if getattr(stream, "encoding", True):
-        # avoid the imports below if they are not necessary
+    if not PY2 or not isinstance(stream, file) or stream.encoding:
         return stream
     from codecs import getwriter
     from locale import getpreferredencoding
     encoding = getpreferredencoding()
     try:
-        encoder = getwriter(encoding)
+        writer_class = getwriter(encoding)
     except LookupError:
-        encoder = getwriter("UTF-8")
-    base_stream = getattr(stream, "buffer", stream)
-    return encoder(base_stream)
+        writer_class = getwriter("UTF-8")
+    return writer_class(stream)
 
 
 def init_std_stream_encoding():
