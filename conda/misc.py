@@ -22,7 +22,7 @@ from .exceptions import DisallowedPackageError, PackagesNotFoundError, ParseErro
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.dist import Dist
-from .models.index_record import IndexRecord
+from .models.records import PackageRecord
 from .models.match_spec import MatchSpec
 from .resolve import Resolve
 
@@ -219,7 +219,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     for dist, info in iteritems(drecs):
         fkey = dist
         if fkey not in index:
-            index[fkey] = IndexRecord.from_objects(info, not_fetched=True)
+            index[fkey] = PackageRecord.from_objects(info, not_fetched=True)
             r = None
         urls[dist] = info['url']
 

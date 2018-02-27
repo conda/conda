@@ -30,7 +30,7 @@ from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType, NoarchType, PathType
-from conda.models.index_record import PathDataV1
+from conda.models.records import PathDataV1
 
 try:
     from unittest.mock import Mock, patch

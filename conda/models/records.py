@@ -21,6 +21,8 @@
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from os.path import basename, join
+
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
@@ -28,6 +30,7 @@ from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixi
                                      StringField)
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
+from ..exceptions import PathNotFoundError
 
 
 class LinkTypeField(EnumField):
@@ -295,4 +298,75 @@ class PackageRecord(IndexJsonRecord, PackageRef):  # lgtm [py/conflicting-attrib
                                      self.version, self.build)
 
 
-IndexRecord = PackageRecord
+class Md5Field(StringField):
+
+    def __init__(self):
+        super(Md5Field, self).__init__(required=False, nullable=True)
+
+    def __get__(self, instance, instance_type):
+        try:
+            return super(Md5Field, self).__get__(instance, instance_type)
+        except AttributeError as e:
+            try:
+                return instance._calculate_md5sum()
+            except PathNotFoundError:
+                raise e
+
+
+class PackageCacheRecord(PackageRecord):
+
+    package_tarball_full_path = StringField()
+    extracted_package_dir = StringField()
+
+    md5 = Md5Field()
+
+    @property
+    def is_fetched(self):
+        from ..gateways.disk.read import isfile
+        return isfile(self.package_tarball_full_path)
+
+    @property
+    def is_extracted(self):
+        from ..gateways.disk.read import isdir, isfile
+        epd = self.extracted_package_dir
+        return isdir(epd) and isfile(join(epd, 'info', 'index.json'))
+
+    @property
+    def tarball_basename(self):
+        return basename(self.package_tarball_full_path)
+
+    def _calculate_md5sum(self):
+        memoized_md5 = getattr(self, '_memoized_md5', None)
+        if memoized_md5:
+            return memoized_md5
+
+        from os.path import isfile
+        if isfile(self.package_tarball_full_path):
+            from ..gateways.disk.read import compute_md5sum
+            md5sum = compute_md5sum(self.package_tarball_full_path)
+            setattr(self, '_memoized_md5', md5sum)
+            return md5sum
+
+
+class PrefixRecord(PackageRecord):
+
+    package_tarball_full_path = StringField(required=False)
+    extracted_package_dir = StringField(required=False)
+
+    files = ListField(string_types, default=(), required=False)
+    paths_data = ComposableField(PathsData, required=False, nullable=True, default_in_dump=False)
+    link = ComposableField(Link, required=False)
+    # app = ComposableField(App, required=False)
+
+    requested_spec = StringField(required=False)
+
+    # There have been requests in the past to save remote server auth
+    # information with the package.  Open to rethinking that though.
+    auth = StringField(required=False, nullable=True)
+
+    # # a new concept introduced in 4.4 for private env packages
+    # leased_paths = ListField(LeasedPathEntry, required=False)
+
+    # @classmethod
+    # def load(cls, conda_meta_json_path):
+    #     return cls()

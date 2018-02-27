@@ -19,7 +19,7 @@ from conda.history import History
 from conda.models.channel import Channel
 from conda.models.dag import PrefixDag
 from conda.models.dist import Dist
-from conda.models.prefix_record import PrefixRecord
+from conda.models.records import PrefixRecord
 from conda.resolve import MatchSpec
 from ..helpers import patch, get_index_r_1, get_index_r_2, get_index_r_3, get_index_r_4
 from conda.common.compat import iteritems

@@ -24,7 +24,7 @@ from conda.gateways.disk.read import lexists
 from conda.gateways.logging import initialize_logging
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord
+from conda.models.records import PackageRecord
 from conda.resolve import Resolve
 
 try:
@@ -127,16 +127,16 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
         subdir = "%s-%s" % (repodata_info['platform'], repodata_info['arch'])
     auth = channel.auth
     for fn, info in iteritems(repodata['packages']):
-        rec = IndexRecord.from_objects(info,
-                                       fn=fn,
-                                       arch=arch,
-                                       platform=platform,
-                                       channel=channel,
-                                       subdir=subdir,
-                                       # schannel=schannel,
-                                       priority=priority,
-                                       # url=join_url(channel_url, fn),
-                                       auth=auth)
+        rec = PackageRecord.from_objects(info,
+                                         fn=fn,
+                                         arch=arch,
+                                         platform=platform,
+                                         channel=channel,
+                                         subdir=subdir,
+                                         # schannel=schannel,
+                                         priority=priority,
+                                         # url=join_url(channel_url, fn),
+                                         auth=auth)
         dist = Dist(rec)
         index[dist] = rec
 

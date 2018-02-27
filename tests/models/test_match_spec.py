@@ -13,7 +13,7 @@ from conda.common.compat import on_win
 from conda.exceptions import CondaValueError
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord, PackageRecord, PackageRef
+from conda.models.records import PackageRecord, PackageRecord, PackageRef
 from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
 from conda.models.version import VersionSpec
 
@@ -27,7 +27,7 @@ def m(string):
 
 def DPkg(s, **kwargs):
     d = Dist(s)
-    return IndexRecord(
+    return PackageRecord(
         fn=d.to_filename(),
         name=d.name,
         version=d.version,

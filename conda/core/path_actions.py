@@ -11,8 +11,8 @@ from time import sleep
 from uuid import uuid4
 
 from .envs_manager import USER_ENVIRONMENTS_TXT_FILE, register_env, unregister_env
-from .prefix_data import PrefixData
 from .portability import _PaddingError, update_prefix
+from .prefix_data import PrefixData
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -36,10 +36,9 @@ from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
 from ..models.channel import Channel
 from ..models.enums import LinkType, NoarchType, PathType
-from ..models.index_record import Link, PackageRecord, PathDataV1, PathsData
 from ..models.match_spec import MatchSpec
-from ..models.package_cache_record import PackageCacheRecord
-from ..models.prefix_record import PrefixRecord
+from ..models.records import (Link, PackageCacheRecord, PackageRecord, PathDataV1, PathsData,
+                              PrefixRecord)
 
 try:
     from cytoolz.itertoolz import concat, concatv

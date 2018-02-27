@@ -32,7 +32,7 @@ delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
 from .core.prefix_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
 from .core.package_cache_data import rm_fetched  # NOQA
-rm_fetched = rm_fetched  # lgtm [py/redundant-assignment]
+rm_fetched = rm_fetched
 
 log = logging.getLogger(__name__)
 

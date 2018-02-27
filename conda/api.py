@@ -4,10 +4,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from .common.constants import NULL
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
 from .core.prefix_data import PrefixData as _PrefixData
-from .core.solve import Solver as _Solver, DepsModifier as _DepsModifier
+from .core.solve import DepsModifier as _DepsModifier, Solver as _Solver
 from .core.subdir_data import SubdirData as _SubdirData
 from .models.channel import Channel
-
 
 DepsModifier = _DepsModifier
 """Flags to enable alternate handling of dependencies."""

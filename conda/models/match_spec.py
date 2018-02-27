@@ -8,7 +8,7 @@ import re
 
 from .channel import Channel
 from .dist import Dist
-from .index_record import IndexRecord, PackageRef
+from .records import PackageRecord, PackageRef
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -204,7 +204,7 @@ class MatchSpec(object):
         in that record.  Returns True for a match, and False for no match.
         """
         if isinstance(rec, dict):
-            rec = IndexRecord.from_objects(rec)
+            rec = PackageRecord.from_objects(rec)
         for field_name, v in iteritems(self._match_components):
             if not self._match_individual(rec, field_name, v):
                 return False
@@ -348,7 +348,7 @@ class MatchSpec(object):
     @staticmethod
     def _build_components(**kwargs):
         def _make(field_name, value):
-            if field_name not in IndexRecord.__fields__:
+            if field_name not in PackageRecord.__fields__:
                 raise CondaValueError('Cannot match on field %s' % (field_name,))
             elif isinstance(value, string_types):
                 value = text_type(value)

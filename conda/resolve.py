@@ -14,7 +14,7 @@ from .exceptions import ResolvePackageNotFound, UnsatisfiableError
 from .models.channel import Channel, MultiChannel
 from .models.dist import Dist
 from .models.enums import NoarchType
-from .models.index_record import PackageRef
+from .models.records import PackageRef
 from .models.match_spec import MatchSpec
 from .models.version import VersionOrder
 
@@ -27,8 +27,8 @@ log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')
 
 # used in conda build
-Unsatisfiable = UnsatisfiableError  # lgtm [py/redundant-assignment]
-ResolvePackageNotFound = ResolvePackageNotFound  # lgtm [py/redundant-assignment]
+Unsatisfiable = UnsatisfiableError
+ResolvePackageNotFound = ResolvePackageNotFound
 
 
 def dashlist(iterable, indent=2):

@@ -16,9 +16,8 @@ from ..gateways.disk.create import write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
-from ..models.index_record import PackageRef
 from ..models.match_spec import MatchSpec
-from ..models.prefix_record import PrefixRecord
+from ..models.records import PackageRef, PrefixRecord
 
 log = getLogger(__name__)
 

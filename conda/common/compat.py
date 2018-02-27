@@ -110,7 +110,7 @@ elif PY2:  # pragma: py3 no cover
 # #############################
 
 from collections import OrderedDict as odict  # NOQA
-odict = odict  # lgtm [py/redundant-assignment]
+odict = odict
 
 from io import open as io_open  # NOQA
 
