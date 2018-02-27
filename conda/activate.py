@@ -568,6 +568,9 @@ else:  # pragma: py2 no cover
 
 
 def main(argv=None):
+    from .common.compat import init_std_stream_encoding
+
+    # init_std_stream_encoding()
     argv = argv or sys.argv
     assert len(argv) >= 3
     assert argv[1].startswith('shell.')
