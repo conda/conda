@@ -583,7 +583,7 @@ class CondaTypeError(CondaError, TypeError):
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles, **kwargs):
         from .resolve import dashlist
-        from .models.index_record import PackageRef
+        from .models.records import PackageRef
         packages_with_cycles = tuple(PackageRef.from_objects(p) for p in packages_with_cycles)
         message = "Cyclic dependencies exist among these items: %s" % dashlist(
             p.dist_str() for p in packages_with_cycles
