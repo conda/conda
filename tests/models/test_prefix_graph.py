@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
-from logging import getLogger
 
 from conda._vendor.auxlib.decorators import memoize
+from conda.base.context import reset_context
+from conda.common.io import env_var
 from conda.models.match_spec import MatchSpec
+import conda.models.prefix_graph
 from conda.models.prefix_graph import PrefixGraph
-from conda.resolve import dashlist
-from tests.core.test_solve import get_solver_4
+from tests.core.test_solve import get_solver_4, get_solver_5
 
-log = getLogger(__name__)
-
+try:
+    from unittest.mock import Mock, patch
+except ImportError:
+    from mock import Mock, patch
 
 @memoize
 def get_conda_build_record_set():
@@ -19,9 +22,19 @@ def get_conda_build_record_set():
     return final_state, frozenset(specs)
 
 
+@memoize
 def get_pandas_record_set():
     specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.13")
     with get_solver_4(specs) as solver:
+        final_state = solver.solve_final_state()
+    return final_state, frozenset(specs)
+
+
+@memoize
+def get_windows_conda_build_record_set():
+    specs = (MatchSpec("conda"), MatchSpec("conda-build"), MatchSpec("affine"),
+             MatchSpec("colour"), MatchSpec("uses-spiffy-test-app"),)
+    with get_solver_5(specs) as solver:
         final_state = solver.solve_final_state()
     return final_state, frozenset(specs)
 
@@ -533,3 +546,193 @@ def test_remove_youngest_descendant_nodes_with_specs():
     removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
     print(removed_nodes)
     assert removed_nodes == order
+
+
+def test_windows_sort_orders_1():
+    old_on_win = conda.models.prefix_graph.on_win
+    conda.models.prefix_graph.on_win = True
+    try:
+        records, specs = get_windows_conda_build_record_set()
+        graph = PrefixGraph(records, specs)
+
+        nodes = tuple(rec.dist_str() for rec in graph.records)
+        print(nodes)
+        order = (
+            'channel-5::ca-certificates-2017.08.26-h94faf87_0',
+            'channel-5::conda-env-2.6.0-h36134e3_1',
+            'channel-5::vs2015_runtime-14.0.25123-3',
+            'channel-5::vc-14-h0510ff6_3',
+            'channel-5::openssl-1.0.2n-h74b6da3_0',
+            'channel-5::python-3.6.4-h6538335_1',
+            'channel-5::yaml-0.1.7-hc54c509_2',
+            'channel-5::pywin32-222-py36hfa6e2cd_0',
+            'channel-5::menuinst-1.4.11-py36hfa6e2cd_0',  # on_win, menuinst should be very early
+            'channel-5::asn1crypto-0.24.0-py36_0',
+            'channel-5::beautifulsoup4-4.6.0-py36hd4cc5e8_1',
+            'channel-5::certifi-2018.1.18-py36_0',
+            'channel-5::chardet-3.0.4-py36h420ce6e_1',
+            'channel-5::filelock-3.0.4-py36_0',
+            'channel-5::glob2-0.6-py36hdf76b57_0',
+            'channel-5::idna-2.6-py36h148d497_1',
+            'channel-5::markupsafe-1.0-py36h0e26971_1',
+            'channel-5::pkginfo-1.4.1-py36hb0f9cfa_1',
+            'channel-5::psutil-5.4.3-py36hfa6e2cd_0',
+            'channel-5::pycosat-0.6.3-py36h413d8a4_0',
+            'channel-5::pycparser-2.18-py36hd053e01_1',
+            'channel-5::pyyaml-3.12-py36h1d1928f_1',
+            'channel-5::ruamel_yaml-0.15.35-py36hfa6e2cd_1',
+            'channel-5::six-1.11.0-py36h4db2310_1',
+            'channel-5::win_inet_pton-1.0.1-py36he67d7fd_1',
+            'channel-5::wincertstore-0.2-py36h7fe50ca_0',
+            'channel-5::cffi-1.11.4-py36hfa6e2cd_0',
+            'channel-5::conda-verify-2.0.0-py36h065de53_0',
+            'channel-5::pysocks-1.6.8-py36_0',
+            'channel-5::setuptools-38.5.1-py36_0',
+            'channel-5::cryptography-2.1.4-py36he1d7878_0',
+            'channel-5::jinja2-2.10-py36h292fed1_0',
+            'channel-5::wheel-0.30.0-py36h6c3ec14_1',
+            'channel-5::pip-9.0.1-py36h226ae91_4',  # pip always comes after python
+            'channel-5::pyopenssl-17.5.0-py36h5b7d817_0',
+            'channel-5::urllib3-1.22-py36h276f60a_0',
+            'channel-5::requests-2.18.4-py36h4371aae_1',
+            'channel-5::conda-4.4.11-py36_0',  # on_win, conda comes before all noarch: python packages (affine, colour, spiffy-test-app, uses-spiffy-test-app)
+            'channel-5::affine-2.1.0-pyh128a3a6_1',
+            'channel-5::colour-0.1.4-pyhd67b51d_0',
+            'channel-5::conda-build-3.5.1-py36_0',
+            'channel-5::spiffy-test-app-0.5-pyh6afbcc8_0',
+            'channel-5::uses-spiffy-test-app-2.0-pyh18698f2_0',
+        )
+        assert nodes == order
+    finally:
+        conda.models.prefix_graph.on_win = old_on_win
+
+
+def test_windows_sort_orders_2():
+    with env_var('CONDA_ALLOW_CYCLES', 'false', reset_context):
+        old_on_win = conda.models.prefix_graph.on_win
+        conda.models.prefix_graph.on_win = False
+        try:
+            records, specs = get_windows_conda_build_record_set()
+            graph = PrefixGraph(records, specs)
+
+            python_node = graph.get_node_by_name('python')
+            pip_node = graph.get_node_by_name('pip')
+            assert pip_node in graph.graph[python_node]
+            assert python_node in graph.graph[pip_node]
+
+            nodes = tuple(rec.dist_str() for rec in graph.records)
+            print(nodes)
+            order = (
+                'channel-5::ca-certificates-2017.08.26-h94faf87_0',
+                'channel-5::conda-env-2.6.0-h36134e3_1',
+                'channel-5::vs2015_runtime-14.0.25123-3',
+                'channel-5::vc-14-h0510ff6_3',
+                'channel-5::openssl-1.0.2n-h74b6da3_0',
+                'channel-5::python-3.6.4-h6538335_1',
+                'channel-5::yaml-0.1.7-hc54c509_2',
+                'channel-5::affine-2.1.0-pyh128a3a6_1',
+                'channel-5::asn1crypto-0.24.0-py36_0',
+                'channel-5::beautifulsoup4-4.6.0-py36hd4cc5e8_1',
+                'channel-5::certifi-2018.1.18-py36_0',
+                'channel-5::chardet-3.0.4-py36h420ce6e_1',
+                'channel-5::colour-0.1.4-pyhd67b51d_0',
+                'channel-5::filelock-3.0.4-py36_0',
+                'channel-5::glob2-0.6-py36hdf76b57_0',
+                'channel-5::idna-2.6-py36h148d497_1',
+                'channel-5::markupsafe-1.0-py36h0e26971_1',
+                'channel-5::pkginfo-1.4.1-py36hb0f9cfa_1',
+                'channel-5::psutil-5.4.3-py36hfa6e2cd_0',
+                'channel-5::pycosat-0.6.3-py36h413d8a4_0',
+                'channel-5::pycparser-2.18-py36hd053e01_1',
+                'channel-5::pywin32-222-py36hfa6e2cd_0',
+                'channel-5::pyyaml-3.12-py36h1d1928f_1',
+                'channel-5::ruamel_yaml-0.15.35-py36hfa6e2cd_1',
+                'channel-5::six-1.11.0-py36h4db2310_1',
+                'channel-5::spiffy-test-app-0.5-pyh6afbcc8_0',
+                'channel-5::win_inet_pton-1.0.1-py36he67d7fd_1',
+                'channel-5::wincertstore-0.2-py36h7fe50ca_0',
+                'channel-5::cffi-1.11.4-py36hfa6e2cd_0',
+                'channel-5::conda-verify-2.0.0-py36h065de53_0',
+                'channel-5::menuinst-1.4.11-py36hfa6e2cd_0',  # not on_win, menuinst isn't changed
+                'channel-5::pysocks-1.6.8-py36_0',
+                'channel-5::setuptools-38.5.1-py36_0',
+                'channel-5::uses-spiffy-test-app-2.0-pyh18698f2_0',
+                'channel-5::cryptography-2.1.4-py36he1d7878_0',
+                'channel-5::jinja2-2.10-py36h292fed1_0',
+                'channel-5::wheel-0.30.0-py36h6c3ec14_1',
+                'channel-5::pip-9.0.1-py36h226ae91_4',  # pip always comes after python
+                'channel-5::pyopenssl-17.5.0-py36h5b7d817_0',
+                'channel-5::urllib3-1.22-py36h276f60a_0',
+                'channel-5::requests-2.18.4-py36h4371aae_1',
+                'channel-5::conda-4.4.11-py36_0',  # not on_win, no special treatment for noarch: python packages (affine, colour, spiffy-test-app, uses-spiffy-test-app)
+                'channel-5::conda-build-3.5.1-py36_0',
+            )
+            assert nodes == order
+        finally:
+            conda.models.prefix_graph.on_win = old_on_win
+
+
+def test_sort_without_prep():
+    with patch.object(conda.models.prefix_graph.PrefixGraph, '_toposort_prepare_graph', return_value=None):
+        records, specs = get_windows_conda_build_record_set()
+        graph = PrefixGraph(records, specs)
+
+        python_node = graph.get_node_by_name('python')
+        pip_node = graph.get_node_by_name('pip')
+        assert pip_node in graph.graph[python_node]
+        assert python_node in graph.graph[pip_node]
+
+        nodes = tuple(rec.dist_str() for rec in graph.records)
+        print(nodes)
+        order = (
+            'channel-5::ca-certificates-2017.08.26-h94faf87_0',
+            'channel-5::conda-env-2.6.0-h36134e3_1',
+            'channel-5::vs2015_runtime-14.0.25123-3',
+            'channel-5::vc-14-h0510ff6_3',
+            'channel-5::openssl-1.0.2n-h74b6da3_0',
+            'channel-5::yaml-0.1.7-hc54c509_2',
+            'channel-5::affine-2.1.0-pyh128a3a6_1',
+            'channel-5::asn1crypto-0.24.0-py36_0',
+            'channel-5::beautifulsoup4-4.6.0-py36hd4cc5e8_1',
+            'channel-5::certifi-2018.1.18-py36_0',
+            'channel-5::chardet-3.0.4-py36h420ce6e_1',
+            'channel-5::colour-0.1.4-pyhd67b51d_0',
+            'channel-5::filelock-3.0.4-py36_0',
+            'channel-5::glob2-0.6-py36hdf76b57_0',
+            'channel-5::idna-2.6-py36h148d497_1',
+            'channel-5::markupsafe-1.0-py36h0e26971_1',
+            'channel-5::pkginfo-1.4.1-py36hb0f9cfa_1',
+            'channel-5::psutil-5.4.3-py36hfa6e2cd_0',
+            'channel-5::pycosat-0.6.3-py36h413d8a4_0',
+            'channel-5::pycparser-2.18-py36hd053e01_1',
+            'channel-5::cffi-1.11.4-py36hfa6e2cd_0',
+            'channel-5::python-3.6.4-h6538335_1',
+            'channel-5::pywin32-222-py36hfa6e2cd_0',
+            'channel-5::pyyaml-3.12-py36h1d1928f_1',
+            'channel-5::ruamel_yaml-0.15.35-py36hfa6e2cd_1',
+            'channel-5::six-1.11.0-py36h4db2310_1',
+            'channel-5::spiffy-test-app-0.5-pyh6afbcc8_0',
+            'channel-5::win_inet_pton-1.0.1-py36he67d7fd_1',
+            'channel-5::wincertstore-0.2-py36h7fe50ca_0',
+            'channel-5::conda-verify-2.0.0-py36h065de53_0',
+            'channel-5::cryptography-2.1.4-py36he1d7878_0',
+            'channel-5::menuinst-1.4.11-py36hfa6e2cd_0',
+            'channel-5::pysocks-1.6.8-py36_0',
+            'channel-5::setuptools-38.5.1-py36_0',
+            'channel-5::uses-spiffy-test-app-2.0-pyh18698f2_0',
+            'channel-5::jinja2-2.10-py36h292fed1_0',
+            'channel-5::pyopenssl-17.5.0-py36h5b7d817_0',
+            'channel-5::wheel-0.30.0-py36h6c3ec14_1',
+            'channel-5::pip-9.0.1-py36h226ae91_4',
+            'channel-5::urllib3-1.22-py36h276f60a_0',
+            'channel-5::requests-2.18.4-py36h4371aae_1',
+            'channel-5::conda-4.4.11-py36_0',
+            'channel-5::conda-build-3.5.1-py36_0',
+        )
+        assert nodes == order
+
+        with env_var('CONDA_ALLOW_CYCLES', 'false', reset_context):
+            records, specs = get_windows_conda_build_record_set()
+            graph = PrefixGraph(records, specs)
+            graph._toposort_raise_on_cycles(graph.graph)
+

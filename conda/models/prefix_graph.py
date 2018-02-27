@@ -6,48 +6,11 @@ from logging import getLogger
 from .enums import NoarchType
 from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
+from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, on_win
+from ..exceptions import CyclicalDependencyError
 
 log = getLogger(__name__)
-
-
-def prepare_toposort_graph(graph):
-    # There are currently at least three special cases to be aware of.
-    # 1. The `toposort()` function, called below, contains special case code to remove
-    #    any circular dependency between python and pip.
-    # 2. conda/plan.py has special case code for menuinst
-    #       Always link/unlink menuinst first/last on windows in case a subsequent
-    #       package tries to import it to create/remove a shortcut
-    # 3. On windows, python noarch packages need an implicit dependency on conda added, if
-    #    conda is in the list of packages for the environment.  Python noarch packages
-    #    that have entry points use conda's own conda.exe python entry point binary. If conda
-    #    is going to be updated during an operation, the unlink / link order matters.
-    #    See issue #6057.
-    for node in graph:
-        if node.name == "python":
-            parents = graph[node]
-            for parent in tuple(parents):
-                if parent.name == 'pip':
-                    parents.remove(parent)
-
-    if on_win:
-        menuinst_node = next((node for node in graph if node.name == 'menuinst'), None)
-        conda_node = next((node for node in graph if node.name == 'conda'), None)
-        python_node = next((node for node in graph if node.name == 'python'), None)
-        if menuinst_node:
-            # add menuinst as a parent if python is a parent and the node isn't a parent of menuinst
-            assert python_node is not None
-            menuinst_parents = graph[menuinst_node]
-            for node, parents in iteritems(graph):
-                if python_node in parents and node not in menuinst_parents:
-                    parents.add(menuinst_node)
-
-        if conda_node:
-            # add conda as a parent if python is a parent and node isn't a parent of conda
-            conda_parents = graph[conda_node]
-            for node, parents in iteritems(graph):
-                if hasattr(node, 'noarch') and node.noarch == NoarchType.python and node not in conda_parents:
-                    parents.add(conda_node)
 
 
 class PrefixGraph(object):
@@ -56,8 +19,12 @@ class PrefixGraph(object):
     manipulating packages within prefixes (e.g. removing and pruning).
 
     The terminology used for edge direction is "parents" and "children" rather than "successors"
-    and "predecessors". The parent vertices of a record are those records in the graph that
-    match the record's "depends" field.
+    and "predecessors". The parent nodes of a record are those records in the graph that
+    match the record's "depends" field.  E.g. NodeA depends on NodeB, then NodeA is a child
+    of NodeB, and NodeB is a parent of NodeA.  Nodes can have zero parents, or more than two
+    parents.
+
+    Most public methods mutate the graph.
     """
 
     def __init__(self, records, specs=()):
@@ -77,94 +44,17 @@ class PrefixGraph(object):
         self.graph = graph
         self._toposort()
 
-    @classmethod
-    def _toposort1(cls, graph):
-        if not graph:
-            return
-
-        while True:
-            no_parent_nodes = IndexedSet(sorted(
-                (node for node, parents in iteritems(graph) if len(parents) == 0),
-                key=lambda x: x.name
-            ))
-            if not no_parent_nodes:
-                break
-
-            for node in no_parent_nodes:
-                yield node
-                graph.pop(node, None)
-
-            for parents in itervalues(graph):
-                parents -= no_parent_nodes
-
-        if len(graph) != 0:
-            from ..exceptions import CondaValueError  # TODO: CyclicalDependencyError
-            msg = 'Cyclic dependencies exist among these items: {}'
-            raise CondaValueError(msg.format(' -> '.join(node.dist_str() for node in graph)))
-
-    @classmethod
-    def _sort_handle_cycles(cls, graph):
-        # remove edges that point directly back to the node
-        for k, v in iteritems(graph):
-            v.discard(k)
-
-        # disconnected nodes go first
-        nodes_that_are_parents = set(node for parents in itervalues(graph) for node in parents)
-        nodes_without_parents = (node for node in graph if not graph[node])
-        disconnected_nodes = sorted(
-            (node for node in nodes_without_parents if node not in nodes_that_are_parents),
-            key=lambda x: x.name
-        )
-        for node in disconnected_nodes:
-            yield node
-
-        t = cls._toposort1(graph)
-
-        while True:
-            try:
-                value = next(t)
-                yield value
-            except ValueError as err:
-                log.debug(err.args[0])
-
-                yield cls._pop_key(graph)
-
-                t = cls._toposort1(graph)
-                continue
-
-            except StopIteration:
-                return
-
-    @staticmethod
-    def _pop_key(graph):
-        """
-        Pop an item from the graph that has the fewest parents.
-        In the case of a tie, use the node with the alphabetically-first package name.
-        """
-        node_with_fewest_parents = sorted(
-            (len(parents), node.name, node) for node, parents in iteritems(graph)
-        )[0][2]
-        graph.pop(node_with_fewest_parents)
-
-        for parents in itervalues(graph):
-            parents.discard(node_with_fewest_parents)
-
-        return node_with_fewest_parents
-
-    def _toposort(self, allow_cycles=None):
-        if allow_cycles is None:
-            allow_cycles = True  # TODO: context.allow_cycles
-        graph_copy = odict((node, IndexedSet(parents)) for node, parents in iteritems(self.graph))
-        prepare_toposort_graph(graph_copy)
-        if allow_cycles:
-            sorted_nodes = tuple(self._sort_handle_cycles(graph_copy))
-        else:
-            sorted_nodes = tuple(self._toposort1(graph_copy))
-        original_graph = self.graph
-        self.graph = odict((node, original_graph[node]) for node in sorted_nodes)
-        return sorted_nodes
-
     def remove_spec(self, spec):
+        """
+        Remove all matching nodes, and any associated child nodes.
+
+        Args:
+            spec (MatchSpec):
+
+        Returns:
+            Tuple[PrefixRecord]: The removed nodes.
+
+        """
         node_matches = set(node for node in self.graph if spec.match(node))
 
         # If the spec was a track_features spec, then we need to also remove every
@@ -187,6 +77,13 @@ class PrefixGraph(object):
         return tuple(remove_these)
 
     def remove_youngest_descendant_nodes_with_specs(self):
+        """
+        A specialized method used to determine only dependencies of requested specs.
+
+        Returns:
+            Tuple[PrefixRecord]: The removed nodes.
+
+        """
         graph = self.graph
         spec_matches = self.spec_matches
         inverted_graph = {
@@ -209,8 +106,12 @@ class PrefixGraph(object):
         return iter(self.graph)
 
     def prune(self):
-        # remove orphans without specs
-        # remove roots without specs
+        """Prune back all packages until all child nodes are anchored by a spec.
+
+        Returns:
+            Tuple[PrefixRecord]: The pruned nodes.
+
+        """
         graph = self.graph
         spec_matches = self.spec_matches
         original_order = tuple(self.graph)
@@ -236,21 +137,8 @@ class PrefixGraph(object):
         self._toposort()
         return removed_nodes
 
-
     def get_node_by_name(self, name):
         return next(rec for rec in self.graph if rec.name == name)
-
-    def _remove_node(self, node):
-        """ Removes this node and all edges referencing it. """
-        graph = self.graph
-        if node not in graph:
-            raise KeyError('node %s does not exist' % node)
-        graph.pop(node)
-        self.spec_matches.pop(node, None)
-
-        for node, edges in iteritems(graph):
-            if node in edges:
-                edges.remove(node)
 
     def all_descendants(self, node):
         graph = self.graph
@@ -292,6 +180,144 @@ class PrefixGraph(object):
                 graph
             )
         )
+
+    def _remove_node(self, node):
+        """ Removes this node and all edges referencing it. """
+        graph = self.graph
+        if node not in graph:
+            raise KeyError('node %s does not exist' % node)
+        graph.pop(node)
+        self.spec_matches.pop(node, None)
+
+        for node, edges in iteritems(graph):
+            if node in edges:
+                edges.remove(node)
+
+    def _toposort(self):
+        graph_copy = odict((node, IndexedSet(parents)) for node, parents in iteritems(self.graph))
+        self._toposort_prepare_graph(graph_copy)
+        if context.allow_cycles:
+            sorted_nodes = tuple(self._topo_sort_handle_cycles(graph_copy))
+        else:
+            sorted_nodes = tuple(self._toposort_raise_on_cycles(graph_copy))
+        original_graph = self.graph
+        self.graph = odict((node, original_graph[node]) for node in sorted_nodes)
+        return sorted_nodes
+
+    @classmethod
+    def _toposort_raise_on_cycles(cls, graph):
+        if not graph:
+            return
+
+        while True:
+            no_parent_nodes = IndexedSet(sorted(
+                (node for node, parents in iteritems(graph) if len(parents) == 0),
+                key=lambda x: x.name
+            ))
+            if not no_parent_nodes:
+                break
+
+            for node in no_parent_nodes:
+                yield node
+                graph.pop(node, None)
+
+            for parents in itervalues(graph):
+                parents -= no_parent_nodes
+
+        if len(graph) != 0:
+            raise CyclicalDependencyError(tuple(graph))
+
+    @classmethod
+    def _topo_sort_handle_cycles(cls, graph):
+        # remove edges that point directly back to the node
+        for k, v in iteritems(graph):
+            v.discard(k)
+
+        # disconnected nodes go first
+        nodes_that_are_parents = set(node for parents in itervalues(graph) for node in parents)
+        nodes_without_parents = (node for node in graph if not graph[node])
+        disconnected_nodes = sorted(
+            (node for node in nodes_without_parents if node not in nodes_that_are_parents),
+            key=lambda x: x.name
+        )
+        for node in disconnected_nodes:
+            yield node
+
+        t = cls._toposort_raise_on_cycles(graph)
+
+        while True:
+            try:
+                value = next(t)
+                yield value
+            except CyclicalDependencyError as e:
+                # TODO: Turn this into a warning, but without being too annoying with
+                #       multiple messages.  See https://github.com/conda/conda/issues/4067
+                log.debug('%r', e)
+
+                yield cls._toposort_pop_key(graph)
+
+                t = cls._toposort_raise_on_cycles(graph)
+                continue
+
+            except StopIteration:
+                return
+
+    @staticmethod
+    def _toposort_pop_key(graph):
+        """
+        Pop an item from the graph that has the fewest parents.
+        In the case of a tie, use the node with the alphabetically-first package name.
+        """
+        node_with_fewest_parents = sorted(
+            (len(parents), node.name, node) for node, parents in iteritems(graph)
+        )[0][2]
+        graph.pop(node_with_fewest_parents)
+
+        for parents in itervalues(graph):
+            parents.discard(node_with_fewest_parents)
+
+        return node_with_fewest_parents
+
+    @staticmethod
+    def _toposort_prepare_graph(graph):
+        # There are currently at least three special cases to be aware of.
+        # 1. The `toposort()` function, called below, contains special case code to remove
+        #    any circular dependency between python and pip.
+        # 2. conda/plan.py has special case code for menuinst
+        #       Always link/unlink menuinst first/last on windows in case a subsequent
+        #       package tries to import it to create/remove a shortcut
+        # 3. On windows, python noarch packages need an implicit dependency on conda added, if
+        #    conda is in the list of packages for the environment.  Python noarch packages
+        #    that have entry points use conda's own conda.exe python entry point binary. If conda
+        #    is going to be updated during an operation, the unlink / link order matters.
+        #    See issue #6057.
+        for node in graph:
+            if node.name == "python":
+                parents = graph[node]
+                for parent in tuple(parents):
+                    if parent.name == 'pip':
+                        parents.remove(parent)
+
+        if on_win:
+            menuinst_node = next((node for node in graph if node.name == 'menuinst'), None)
+            conda_node = next((node for node in graph if node.name == 'conda'), None)
+            python_node = next((node for node in graph if node.name == 'python'), None)
+            if menuinst_node:
+                # add menuinst as a parent if python is a parent and the node isn't a parent of menuinst
+                assert python_node is not None
+                menuinst_parents = graph[menuinst_node]
+                for node, parents in iteritems(graph):
+                    if python_node in parents and node not in menuinst_parents:
+                        parents.add(menuinst_node)
+
+            if conda_node:
+                # add conda as a parent if python is a parent and node isn't a parent of conda
+                conda_parents = graph[conda_node]
+                for node, parents in iteritems(graph):
+                    if hasattr(node,
+                               'noarch') and node.noarch == NoarchType.python and node not in conda_parents:
+                        parents.add(conda_node)
+
 
 #     def dot_repr(self, title=None):  # pragma: no cover
 #         # graphviz DOT graph description language

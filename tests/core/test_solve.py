@@ -19,7 +19,7 @@ from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.records import PrefixRecord
 from conda.resolve import MatchSpec
-from ..helpers import patch, get_index_r_1, get_index_r_2, get_index_r_3, get_index_r_4
+from ..helpers import get_index_r_1, get_index_r_2, get_index_r_3, get_index_r_4, get_index_r_5
 from conda.common.compat import iteritems
 
 try:
@@ -78,6 +78,19 @@ def get_solver_4(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     get_index_r_4()
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(TEST_PREFIX, (Channel('channel-4'),), (context.subdir,),
+                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+        yield solver
+
+
+@contextmanager
+def get_solver_5(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+    PrefixData._cache_.clear()
+    pd = PrefixData(TEST_PREFIX)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
+    spec_map = {spec.name: spec for spec in history_specs}
+    get_index_r_5()
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(TEST_PREFIX, (Channel('channel-5'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
 
