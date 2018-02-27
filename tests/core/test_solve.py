@@ -7,7 +7,6 @@ from unittest import TestCase
 
 from os.path import join
 
-from conda.gateways.logging import TRACE
 import pytest
 
 from conda.base.context import context, reset_context, Context
@@ -17,7 +16,6 @@ from conda.core.solve import DepsModifier, Solver
 from conda.exceptions import UnsatisfiableError
 from conda.history import History
 from conda.models.channel import Channel
-from conda.models.dag import PrefixDag
 from conda.models.dist import Dist
 from conda.models.records import PrefixRecord
 from conda.resolve import MatchSpec
@@ -745,6 +743,99 @@ def test_install_uninstall_features_1():
         )
         assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
+
+def test_install_uninstall_features_2():
+    specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.13.*")
+    with env_var("CONDA_TRACK_FEATURES", 'nomkl', reset_context):
+        with get_solver_4(specs) as solver:
+            final_state_1 = solver.solve_final_state()
+            # PrefixDag(final_state_1, specs).open_url()
+            print([Dist(rec).full_name for rec in final_state_1])
+            order = (
+                'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+                'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+                'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
+                'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+                'channel-4::libffi-3.2.1-hd88cf55_4',
+                'channel-4::libopenblas-0.2.20-h9ac9557_4',
+                'channel-4::ncurses-6.0-h9df7e31_2',
+                'channel-4::openssl-1.0.2n-hb7f436b_0',
+                'channel-4::tk-8.6.7-hc745277_3',
+                'channel-4::zlib-1.2.11-ha838bed_2',
+                'channel-4::libedit-3.1-heed3624_0',
+                'channel-4::readline-7.0-ha6073c6_4',
+                'channel-4::sqlite-3.22.0-h1bed415_0',
+                'channel-4::python-2.7.14-h1571d57_29',
+                'channel-4::numpy-1.13.3-py27_nomklhfe0a00b_0',
+                'channel-4::pytz-2018.3-py27_0',
+                'channel-4::six-1.11.0-py27h5f960f1_1',
+                'channel-4::python-dateutil-2.6.1-py27h4ca5741_1',
+                'channel-4::pandas-0.22.0-py27hf484d3e_0',
+            )
+            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+
+    # no more track_features in configuration
+    # just remove the pandas package, but the nomkl feature "stays in the environment"
+    # that is, the current nomkl packages aren't switched out
+    specs_to_remove = MatchSpec("pandas"),
+    with get_solver_4(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
+                      history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+            'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+            'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
+            'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::libopenblas-0.2.20-h9ac9557_4',
+            'channel-4::ncurses-6.0-h9df7e31_2',
+            'channel-4::openssl-1.0.2n-hb7f436b_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1-heed3624_0',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.22.0-h1bed415_0',
+            'channel-4::python-2.7.14-h1571d57_29',
+            'channel-4::numpy-1.13.3-py27_nomklhfe0a00b_0',
+            'channel-4::pytz-2018.3-py27_0',
+            'channel-4::six-1.11.0-py27h5f960f1_1',
+            'channel-4::python-dateutil-2.6.1-py27h4ca5741_1',
+        )
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+
+    # now remove the nomkl feature
+    specs_to_remove = MatchSpec(track_features="nomkl"),
+    history_specs = MatchSpec("python=2.7"), MatchSpec("numpy 1.13.*")
+    with get_solver_4(specs_to_remove=specs_to_remove, prefix_records=final_state_2,
+                      history_specs=history_specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print([Dist(rec).full_name for rec in final_state_2])
+        order = (
+            'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+            'channel-4::intel-openmp-2018.0.0-hc7b2577_8',
+            'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+            'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
+            'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::libopenblas-0.2.20-h9ac9557_4',
+            'channel-4::mkl-2018.0.1-h19d6760_4',
+            'channel-4::ncurses-6.0-h9df7e31_2',
+            'channel-4::openssl-1.0.2n-hb7f436b_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1-heed3624_0',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.22.0-h1bed415_0',
+            'channel-4::python-2.7.14-h1571d57_29',
+            'channel-4::numpy-1.13.3-py27h3dfced4_2',
+            'channel-4::pytz-2018.3-py27_0',
+            'channel-4::six-1.11.0-py27h5f960f1_1',
+            'channel-4::python-dateutil-2.6.1-py27h4ca5741_1',
+        )
+        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
 
 def test_auto_update_conda():
     specs = MatchSpec("conda=1.3"),

@@ -24,7 +24,8 @@ from ..exceptions import PackagesNotFoundError
 from ..gateways.logging import TRACE
 from ..history import History
 from ..models.channel import Channel
-from ..models.dag import PrefixDag
+from ..models.prefix_graph import PrefixGraph as PrefixDag
+from ..models.prefix_graph import PrefixGraph
 from ..models.dist import Dist
 from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
@@ -181,21 +182,21 @@ class Solver(object):
         if specs_to_remove:
             # In a previous implementation, we invoked SAT here via `r.remove()` to help with
             # spec removal, and then later invoking SAT again via `r.solve()`. Rather than invoking
-            # SAT for spec removal determination, we can use the DAG and simple tree traversal
-            # if we're careful about how we handle features. We still invoke sat via `r.solve()`
-            # later.
+            # SAT for spec removal determination, we can use the PrefixGraph and simple tree
+            # traversal if we're careful about how we handle features. We still invoke sat via
+            # `r.solve()` later.
             _track_fts_specs = (spec for spec in specs_to_remove if 'track_features' in spec)
             feature_names = set(concat(spec.get_raw_value('track_features')
                                        for spec in _track_fts_specs))
-            dag = PrefixDag((index[dist] for dist in solution), itervalues(specs_map))
+            graph = PrefixGraph((index[dist] for dist in solution), itervalues(specs_map))
 
             removed_records = []
             for spec in specs_to_remove:
-                # If the spec was a provides_features spec, then we need to also remove every
-                # package with a requires_feature that matches the provides_feature.  The
-                # `dag.remove_spec()` method handles that for us.
-                log.trace("using dag to remove records for %s", spec)
-                removed_records.extend(dag.remove_spec(spec))
+                # If the spec was a track_features spec, then we need to also remove every
+                # package with a feature that matches the track_feature. The
+                # `graph.remove_spec()` method handles that for us.
+                log.trace("using PrefixGraph to remove records for %s", spec)
+                removed_records.extend(graph.remove_spec(spec))
 
             for rec in removed_records:
                 # We keep specs (minus the feature part) for the non provides_features packages
@@ -208,7 +209,7 @@ class Solver(object):
                 else:
                     specs_map.pop(rec.name, None)
 
-            solution = tuple(Dist(rec) for rec in dag.records)
+            solution = tuple(Dist(rec) for rec in graph.records)
 
             if not removed_records and not prune:
                 raise PackagesNotFoundError(tuple(spec.name for spec in specs_to_remove))
@@ -361,25 +362,25 @@ class Solver(object):
             _no_deps_solution |= only_add_these
             solution = _no_deps_solution
         elif deps_modifier == DepsModifier.ONLY_DEPS:
-            # Using a special instance of the DAG to remove leaf nodes that match the original
-            # specs_to_add.  It's important to only remove leaf nodes, because a typical use
-            # might be `conda install --only-deps python=2 flask`, and in that case we'd want
-            # to keep python.
-            dag = PrefixDag((index[d] for d in solution), specs_to_add)
-            dag.remove_leaf_nodes_with_specs()
-            solution = tuple(Dist(rec) for rec in dag.records)
+            # Using a special instance of PrefixGraph to remove youngest child nodes that match
+            # the original specs_to_add.  It's important to remove only the *youngest* child nodes,
+            # because a typical use might be `conda install --only-deps python=2 flask`, and in
+            # that case we'd want to keep python.
+            graph = PrefixGraph((index[d] for d in solution), specs_to_add)
+            graph.remove_youngest_descendant_nodes_with_specs()
+            solution = tuple(Dist(rec) for rec in graph.records)
         elif deps_modifier in (DepsModifier.UPDATE_DEPS, DepsModifier.UPDATE_DEPS_ONLY_DEPS):
             # Here we have to SAT solve again :(  It's only now that we know the dependency
             # chain of specs_to_add.
             specs_to_add_names = set(spec.name for spec in specs_to_add)
             update_names = set()
-            dag = PrefixDag((index[d] for d in solution), final_environment_specs)
+            graph = PrefixGraph((index[d] for d in solution), final_environment_specs)
             for spec in specs_to_add:
-                node = dag.get_node_by_name(spec.name)
-                for ascendant in node.all_ascendants():
-                    ascendant_name = ascendant.record.name
-                    if ascendant_name not in specs_to_add_names:
-                        update_names.add(ascendant_name)
+                node = graph.get_node_by_name(spec.name)
+                for ancestor_record in graph.all_ancestors(node):
+                    ancestor_name = ancestor_record.name
+                    if ancestor_name not in specs_to_add_names:
+                        update_names.add(ancestor_name)
             grouped_specs = groupby(lambda s: s.name in update_names, final_environment_specs)
             new_final_environment_specs = set(grouped_specs.get(False, ()))
             update_specs = set(MatchSpec(spec.name, optional=spec.optional)
@@ -389,14 +390,14 @@ class Solver(object):
 
             if deps_modifier == DepsModifier.UPDATE_DEPS_ONLY_DEPS:
                 # duplicated from DepsModifier.ONLY_DEPS
-                dag = PrefixDag((index[d] for d in solution), specs_to_add)
-                dag.remove_leaf_nodes_with_specs()
-                solution = tuple(Dist(rec) for rec in dag.records)
+                graph = PrefixGraph((index[d] for d in solution), specs_to_add)
+                graph.remove_youngest_descendant_nodes_with_specs()
+                solution = tuple(Dist(rec) for rec in graph.records)
 
         if prune:
-            dag = PrefixDag((index[d] for d in solution), final_environment_specs)
-            dag.prune()
-            solution = tuple(Dist(rec) for rec in dag.records)
+            graph = PrefixGraph((index[d] for d in solution), final_environment_specs)
+            graph.prune()
+            solution = tuple(Dist(rec) for rec in graph.records)
 
         self._check_solution(solution, pinned_specs)
 
