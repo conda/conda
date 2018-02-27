@@ -82,9 +82,9 @@ def _main(*args):
 
 def main(*args):
     # conda.common.compat contains only stdlib imports
-    from ..common.compat import ensure_text_type  # , init_std_stream_encoding
+    from ..common.compat import ensure_text_type, init_std_stream_encoding
 
-    # init_std_stream_encoding()
+    init_std_stream_encoding()
     if not args:
         args = sys.argv
 
