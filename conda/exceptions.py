@@ -589,7 +589,7 @@ class CyclicalDependencyError(CondaError, ValueError):
             p.dist_str() for p in packages_with_cycles
         )
         super(CyclicalDependencyError, self).__init__(
-            message, packages_with_cycles=packages_with_cycles, **kwargs,
+            message, packages_with_cycles=packages_with_cycles, **kwargs
         )
 
 
