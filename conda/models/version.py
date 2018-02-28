@@ -504,10 +504,8 @@ class VersionSpec(object):
         return self.is_exact() and self.spec or None
 
     def merge(self, other):
-        if self.raw_value != other.raw_value:
-            raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
-                             % (self.raw_value, other.raw_value))
-        return self.raw_value
+        assert isinstance(other, self.__class__)
+        return self.__class__('%s,%s' % (self.raw_value, other.raw_value))
 
 
 class BuildNumberMatch(object):

@@ -725,8 +725,15 @@ class MatchSpecMergeTests(TestCase):
         merged_specs = MatchSpec.merge(specs)
         print(merged_specs)
         assert len(merged_specs) == 1
-        print(merged_specs[0])
-        assert str(merged_specs[0]) == "exact[version='>1.0,<2',build=1]"
+        merged_spec = merged_specs[0]
+        print(merged_spec)
+        assert str(merged_spec) == "exact[version='1.2.3,>1.0,<2',build=1]"
+        assert merged_spec.match({
+            'name': 'exact',
+            'version': '1.2.3',
+            'build': '1',
+            'build_number': 1,
+        })
 
         # from https://github.com/conda/conda-build/pull/2694/files
 
