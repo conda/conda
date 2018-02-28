@@ -23,6 +23,8 @@
 * fix #5802, #6736 enforce disallowed_packages configuration parameter (#6932)
 * fix #6860 infinite recursion in resolve.py for empty track_features (#6928)
 * set encoding for PY2 stdout/stderr (#6951)
+* fix #6821 non-deterministic behavior from MatchSpec merge clobbering (#6956)
+* fix #6904 logic errors in prefix graph data structure (#6929)
 
 ### Non-User-Facing Changes
 * fix several lgtm.com flags (#6757, #6883)
