@@ -129,10 +129,7 @@ class Activator(object):
     def _finalize(self, commands, ext):
         commands = concatv(commands, ('',))  # add terminating newline
         if ext is None:
-            output = self.command_join.join(commands)
-            if PY2:
-                return ensure_binary(output)
-            return output
+            return self.command_join.join(commands)
         elif ext:
             with NamedTemporaryFile('w+b', suffix=ext, delete=False) as tf:
                 # the default mode is 'w+b', and universal new lines don't work in that mode
@@ -573,6 +570,9 @@ else:  # pragma: py2 no cover
 
 
 def main(argv=None):
+    from .common.compat import init_std_stream_encoding
+
+    init_std_stream_encoding()
     argv = argv or sys.argv
     assert len(argv) >= 3
     assert argv[1].startswith('shell.')
