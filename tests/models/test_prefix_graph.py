@@ -41,7 +41,18 @@ def get_windows_conda_build_record_set():
     return final_state, frozenset(specs)
 
 
+@memoize
+def get_sqlite_cyclical_record_set():
+    # sqlite-3.20.1-haaaaaaa_4
+    specs = MatchSpec("sqlite=3.20.1[build_number=4]"), MatchSpec("flask"),
+    with get_solver_4(specs) as solver:
+        final_state = solver.solve_final_state()
+    return final_state, frozenset(specs)
+
+
 def test_prefix_graph_1():
+    # Basic initial test for public methods of PrefixGraph.
+
     records, specs = get_conda_build_record_set()
     graph = PrefixGraph(records, specs)
 
@@ -376,7 +387,6 @@ def test_prefix_graph_2():
     assert removed_nodes == order
 
 
-
 def test_remove_youngest_descendant_nodes_with_specs():
     records, specs = get_conda_build_record_set()
     graph = PrefixGraph(records, tuple(specs) + (MatchSpec("requests"),))
@@ -551,6 +561,9 @@ def test_remove_youngest_descendant_nodes_with_specs():
 
 
 def test_windows_sort_orders_1():
+    # This test makes sure the windows-specific parts of _toposort_prepare_graph
+    # are behaving correctly.
+
     old_on_win = conda.models.prefix_graph.on_win
     conda.models.prefix_graph.on_win = True
     try:
@@ -610,6 +623,9 @@ def test_windows_sort_orders_1():
 
 
 def test_windows_sort_orders_2():
+    # This test makes sure the windows-specific parts of _toposort_prepare_graph
+    # are behaving correctly.
+
     with env_var('CONDA_ALLOW_CYCLES', 'false', reset_context):
         old_on_win = conda.models.prefix_graph.on_win
         conda.models.prefix_graph.on_win = False
@@ -675,6 +691,9 @@ def test_windows_sort_orders_2():
 
 
 def test_sort_without_prep():
+    # Test the _toposort_prepare_graph method, here by not running it at all.
+    # The method is invoked in every other test.  This is what happens when it's not invoked.
+
     with patch.object(conda.models.prefix_graph.PrefixGraph, '_toposort_prepare_graph', return_value=None):
         records, specs = get_windows_conda_build_record_set()
         graph = PrefixGraph(records, specs)
@@ -738,3 +757,164 @@ def test_sort_without_prep():
             with pytest.raises(CyclicalDependencyError):
                 graph = PrefixGraph(records, specs)
 
+
+def test_deep_cyclical_dependency():
+    # Basically, the whole purpose of this test is to make sure nothing blows up with
+    # recursion errors or anything like that.  Cyclical dependencies will always lead to
+    # problems, and the tests here document the behavior.
+
+    # "sqlite-3.20.1-haaaaaaa_4.tar.bz2": {
+    #   "build": "haaaaaaa_4",
+    #   "build_number": 4,
+    #   "depends": [
+    #     "libedit",
+    #     "libgcc-ng >=7.2.0",
+    #     "jinja2 2.9.6"
+    #   ],
+    #   "license": "Public-Domain (http://www.sqlite.org/copyright.html)",
+    #   "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+    #   "name": "sqlite",
+    #   "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+    #   "size": 1540584,
+    #   "subdir": "linux-64",
+    #   "timestamp": 1505666646842,
+    #   "version": "3.20.1"
+    # },
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set())
+
+    nodes = tuple(rec.dist_str() for rec in graph.records)
+    print(nodes)
+    order = (
+        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+        'channel-4::libffi-3.2.1-hd88cf55_4',
+        'channel-4::ncurses-6.0-h9df7e31_2',
+        'channel-4::openssl-1.0.2n-hb7f436b_0',
+        'channel-4::tk-8.6.7-hc745277_3',
+        'channel-4::xz-5.2.3-h55aa19d_2',
+        'channel-4::zlib-1.2.11-ha838bed_2',
+        'channel-4::libedit-3.1-heed3624_0',
+        'channel-4::readline-7.0-ha6073c6_4',
+        'channel-4::certifi-2018.1.18-py36_0',
+        'channel-4::click-6.7-py36h5253387_0',
+        'channel-4::itsdangerous-0.24-py36h93cc618_1',
+        'channel-4::markupsafe-1.0-py36hd9260cd_1',
+        'channel-4::python-3.6.4-hc3d631a_1',
+        'channel-4::setuptools-38.5.1-py36_0',
+        'channel-4::werkzeug-0.14.1-py36_0',
+        'channel-4::jinja2-2.9.6-py36h489bce4_1',
+        'channel-4::flask-0.12.2-py36hb24657c_0',
+        'channel-4::sqlite-3.20.1-haaaaaaa_4',  # deep cyclical dependency; guess this is what we get
+    )
+    assert nodes == order
+
+    # test remove spec
+    # because of this deep cyclical dependency, removing jinja2 will remove sqlite and python
+    expected_removal = (
+        'channel-4::certifi-2018.1.18-py36_0',
+        'channel-4::click-6.7-py36h5253387_0',
+        'channel-4::itsdangerous-0.24-py36h93cc618_1',
+        'channel-4::markupsafe-1.0-py36hd9260cd_1',
+        'channel-4::python-3.6.4-hc3d631a_1',
+        'channel-4::setuptools-38.5.1-py36_0',
+        'channel-4::werkzeug-0.14.1-py36_0',
+        'channel-4::jinja2-2.9.6-py36h489bce4_1',
+        'channel-4::flask-0.12.2-py36hb24657c_0',
+        'channel-4::sqlite-3.20.1-haaaaaaa_4',
+    )
+
+    removed_nodes = graph.remove_spec(MatchSpec("sqlite"))
+    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
+    print(removed_nodes)
+    assert removed_nodes == expected_removal
+
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set())
+    removed_nodes = graph.remove_spec(MatchSpec("python"))
+    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
+    print(removed_nodes)
+    assert removed_nodes == expected_removal
+
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set())
+    removed_nodes = graph.remove_spec(MatchSpec("jinja2"))
+    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
+    print(removed_nodes)
+    assert removed_nodes == expected_removal
+
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set())
+    removed_nodes = graph.remove_spec(MatchSpec("markupsafe"))
+    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
+    print(removed_nodes)
+    assert removed_nodes == expected_removal
+
+
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set())
+    removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
+    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
+    print(removed_nodes)
+    expected_removal = (
+        'channel-4::flask-0.12.2-py36hb24657c_0',
+    )
+    assert removed_nodes == expected_removal
+
+    removed_nodes = graph.prune()
+    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
+    print(removed_nodes)
+    expected_removal = (
+        'channel-4::click-6.7-py36h5253387_0',
+        'channel-4::itsdangerous-0.24-py36h93cc618_1',
+        'channel-4::werkzeug-0.14.1-py36_0',
+    )
+    assert removed_nodes == expected_removal
+
+    removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
+    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
+    print(removed_nodes)
+    expected_removal = (
+        # None, because of the cyclical dependency?
+    )
+    assert removed_nodes == expected_removal
+
+
+    graph = PrefixGraph(*get_sqlite_cyclical_record_set())
+    markupsafe_node = graph.get_node_by_name('markupsafe')
+    markupsafe_ancestors = graph.all_ancestors(markupsafe_node)
+    nodes = tuple(rec.dist_str() for rec in markupsafe_ancestors)
+    print(nodes)
+    order = (
+        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+        'channel-4::libffi-3.2.1-hd88cf55_4',
+        'channel-4::ncurses-6.0-h9df7e31_2',
+        'channel-4::openssl-1.0.2n-hb7f436b_0',
+        'channel-4::tk-8.6.7-hc745277_3',
+        'channel-4::xz-5.2.3-h55aa19d_2',
+        'channel-4::zlib-1.2.11-ha838bed_2',
+        'channel-4::libedit-3.1-heed3624_0',
+        'channel-4::readline-7.0-ha6073c6_4',
+        'channel-4::certifi-2018.1.18-py36_0',
+        'channel-4::markupsafe-1.0-py36hd9260cd_1',
+        'channel-4::python-3.6.4-hc3d631a_1',
+        'channel-4::setuptools-38.5.1-py36_0',
+        'channel-4::jinja2-2.9.6-py36h489bce4_1',
+        'channel-4::sqlite-3.20.1-haaaaaaa_4',
+    )
+    assert nodes == order
+
+    markupsafe_descendants = graph.all_descendants(markupsafe_node)
+    nodes = tuple(rec.dist_str() for rec in markupsafe_descendants)
+    print(nodes)
+    order = (
+        'channel-4::certifi-2018.1.18-py36_0',
+        'channel-4::click-6.7-py36h5253387_0',
+        'channel-4::itsdangerous-0.24-py36h93cc618_1',
+        'channel-4::markupsafe-1.0-py36hd9260cd_1',
+        'channel-4::python-3.6.4-hc3d631a_1',
+        'channel-4::setuptools-38.5.1-py36_0',
+        'channel-4::werkzeug-0.14.1-py36_0',
+        'channel-4::jinja2-2.9.6-py36h489bce4_1',
+        'channel-4::flask-0.12.2-py36hb24657c_0',
+        'channel-4::sqlite-3.20.1-haaaaaaa_4',
+    )
+    assert nodes == order
