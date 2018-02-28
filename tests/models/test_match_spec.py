@@ -717,3 +717,36 @@ class SpecStrParsingTests(TestCase):
         #     "build_number": '>=3',
         # }
 
+
+class MatchSpecMergeTests(TestCase):
+
+    def test_merge_version(self):
+        specs = (MatchSpec('exact'), MatchSpec('exact 1.2.3 1'), MatchSpec('exact >1.0,<2'))
+        merged_specs = MatchSpec.merge(specs)
+        print(merged_specs)
+        assert len(merged_specs) == 1
+        print(merged_specs[0])
+        assert str(merged_specs[0]) == "exact[version='>1.0,<2',build=1]"
+
+        # from https://github.com/conda/conda-build/pull/2694/files
+
+        # reqs = {'build': ['exact', 'exact 1.2.3 1', 'exact >1.0,<2',
+        #                   'bounded >=1.0,<2.0', 'bounded >=1.5', 'bounded <=1.8'],
+        #         'host': ['exact', 'exact 1.2.3 1', 'bounded >=1.0,<2.0', 'bounded >=1.5',
+        #                  'bounded <=1.8'],
+        #         'run': ['exact', 'exact 1.2.3 1', 'bounded >=1.0,<2.0', 'bounded >=1.5',
+        #                 'bounded <=1.8'],
+        #         }
+        # testing_metadata.meta['requirements'] = reqs
+        # render._simplify_to_tightest_constraint(testing_metadata)
+        # assert (testing_metadata.meta['requirements']['build'] ==
+        #         testing_metadata.meta['requirements']['host'] ==
+        #         testing_metadata.meta['requirements']['run'])
+        # simplified_deps = testing_metadata.meta['requirements']
+        # assert len(simplified_deps['build']) == 2
+        # assert 'exact 1.2.3 1' in simplified_deps['build']
+        # # currently we lose the >= in the upper bound.  I don't think that's going to be a huge issue,
+        # #     but we'll see.  I don't really want to track the bound - just the bound type (upper/lower)
+        # assert 'bounded >=1.5,<1.8' in simplified_deps['build']
+
+
