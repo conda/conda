@@ -5,17 +5,30 @@
 ### Deprecations/Breaking Changes
 * resolve #6886 transition defaults from repo.continuum.io to repo.anaconda.com (#6887)
 * resolve #6192 deprecate 'conda help' in favor of --help CLI flag (#6918)
+* resolve #6894 add http errors to auto-uploaded error reports (#6895)
 
 ### Improvements
 * resolve #6791 conda search --envs (#6794)
 * preserve exit status in fish shell (#6760)
 * resolve #6810 add CONDA_EXE environment variable to activate (#6923)
+* resolve #6695 outdated conda warning respects --quiet flag (#6935)
+* add instructions to activate default environment (#6944)
 
 ### API
+* resolve #5610 add PrefixData, SubdirData, and PackageCacheData to conda/api.py (#6922)
+
+### Bug Fixes
+* channel matchspec fixes (#6893)
+* fix #6930 add missing return statement to S3Adapter (#6931)
+* fix #5802, #6736 enforce disallowed_packages configuration parameter (#6932)
+* fix #6860 infinite recursion in resolve.py for empty track_features (#6928)
+* set encoding for PY2 stdout/stderr (#6951)
 
 ### Non-User-Facing Changes
 * fix several lgtm.com flags (#6757, #6883)
 * cleanups and refactors for conda 4.5 (#6889)
+* unify location of record types in conda/models/records.py (#6924)
+* resolve #6952 memoize url search in package cache loading (#6957)
 
 
 ## 4.4.11 (2018-02-23)
