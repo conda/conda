@@ -8,6 +8,8 @@ from os import listdir
 from os.path import basename, dirname, join
 from tarfile import ReadError
 
+from conda._vendor.auxlib.decorators import memoizemethod
+
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
@@ -349,7 +351,7 @@ class PackageCacheData(object):
             else:
                 md5 = None
 
-            url = first(self._urls_data, lambda x: basename(x) == package_filename)
+            url = self._urls_data.get_url(package_filename)
             package_cache_record = PackageCacheRecord.from_objects(
                 index_json_record,
                 url=url,
@@ -417,6 +419,7 @@ class UrlsData(object):
             fh.write(url + '\n')
         self._urls_data.insert(0, url)
 
+    @memoizemethod
     def get_url(self, package_path):
         # package path can be a full path or just a basename
         #   can be either an extracted directory or tarball
