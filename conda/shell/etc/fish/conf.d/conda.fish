@@ -11,6 +11,16 @@
 #
 #         sudo ln -s [CONDA_INSTALL_LOCATION]/etc/fish/conf.d/conda.fish /etc/fish/conf.d/conda.fish
 #
+#     If you are using fish as your default shell and want any environment activated by default also add
+#
+#         conda activate <env-name>
+#
+#     For example add 
+#    
+#         conda acitvate base
+#   
+#     to have the default environment running as in bash.
+#
 
 
 
