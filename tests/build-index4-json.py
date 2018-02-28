@@ -233,6 +233,23 @@ def main():
             "timestamp": 1507190714033,
             "version": "3.6.2"
         },
+        "sqlite-3.20.1-haaaaaaa_4.tar.bz2": {  # deep cyclical dependency
+            "build": "haaaaaaa_4",
+            "build_number": 4,
+            "depends": [
+                "libedit",
+                "libgcc-ng >=7.2.0",
+                "jinja2 2.9.6"
+            ],
+            "license": "Public-Domain (http://www.sqlite.org/copyright.html)",
+            "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+            "name": "sqlite",
+            "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+            "size": 1540584,
+            "subdir": "linux-64",
+            "timestamp": 1505666646842,
+            "version": "3.20.1"
+        },
     }
 
     keep.update(additional_records)
