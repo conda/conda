@@ -149,17 +149,17 @@ class PrefixGraph(object):
 
         nodes = [node]
         nodes_seen = set()
-        i = 0
-        while i < len(nodes):
-            for child_node in inverted_graph[nodes[i]]:
+        q = 0
+        while q < len(nodes):
+            for child_node in inverted_graph[nodes[q]]:
                 if child_node not in nodes_seen:
                     nodes_seen.add(child_node)
                     nodes.append(child_node)
-            i += 1
+            q += 1
         return tuple(
             filter(
                 lambda node: node in nodes_seen,
-                self.graph
+                graph
             )
         )
 
@@ -167,13 +167,13 @@ class PrefixGraph(object):
         graph = self.graph
         nodes = [node]
         nodes_seen = set()
-        i = 0
-        while i < len(nodes):
-            for parent_node in graph[nodes[i]]:
+        q = 0
+        while q < len(nodes):
+            for parent_node in graph[nodes[q]]:
                 if parent_node not in nodes_seen:
                     nodes_seen.add(parent_node)
                     nodes.append(parent_node)
-            i += 1
+            q += 1
         return tuple(
             filter(
                 lambda node: node in nodes_seen,
@@ -281,16 +281,9 @@ class PrefixGraph(object):
     @staticmethod
     def _toposort_prepare_graph(graph):
         # There are currently at least three special cases to be aware of.
-        # 1. The `toposort()` function, called below, contains special case code to remove
-        #    any circular dependency between python and pip.
-        # 2. conda/plan.py has special case code for menuinst
-        #       Always link/unlink menuinst first/last on windows in case a subsequent
-        #       package tries to import it to create/remove a shortcut
-        # 3. On windows, python noarch packages need an implicit dependency on conda added, if
-        #    conda is in the list of packages for the environment.  Python noarch packages
-        #    that have entry points use conda's own conda.exe python entry point binary. If conda
-        #    is going to be updated during an operation, the unlink / link order matters.
-        #    See issue #6057.
+
+        # 1. Remove any circular dependency between python and pip. This typically comes about
+        #    because of the add_pip_as_python_dependency configuration parameter.
         for node in graph:
             if node.name == "python":
                 parents = graph[node]
@@ -299,8 +292,10 @@ class PrefixGraph(object):
                         parents.remove(parent)
 
         if on_win:
+            # 2. Special case code for menuinst.
+            #    Always link/unlink menuinst first/last on windows in case a subsequent
+            #    package tries to import it to create/remove a shortcut.
             menuinst_node = next((node for node in graph if node.name == 'menuinst'), None)
-            conda_node = next((node for node in graph if node.name == 'conda'), None)
             python_node = next((node for node in graph if node.name == 'python'), None)
             if menuinst_node:
                 # add menuinst as a parent if python is a parent and the node
@@ -311,6 +306,12 @@ class PrefixGraph(object):
                     if python_node in parents and node not in menuinst_parents:
                         parents.add(menuinst_node)
 
+            # 3. On windows, python noarch packages need an implicit dependency on conda added, if
+            #    conda is in the list of packages for the environment.  Python noarch packages
+            #    that have entry points use conda's own conda.exe python entry point binary. If
+            #    conda is going to be updated during an operation, the unlink / link order matters.
+            #    See issue #6057.
+            conda_node = next((node for node in graph if node.name == 'conda'), None)
             if conda_node:
                 # add conda as a parent if python is a parent and node isn't a parent of conda
                 conda_parents = graph[conda_node]
