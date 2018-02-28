@@ -368,7 +368,7 @@ def _get_channel_for_name(channel_name):
         # stripping off path threw information away from channel_name (i.e. any potential subname)
         # channel.name *should still be* channel_name
         channel = copy(channel)
-        channel.name = channel_name
+        channel.name = _stripped
         if platform:
             channel.platform = platform
         return channel
