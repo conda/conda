@@ -599,4 +599,3 @@ class BuildNumberMatch(object):
             raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
                              % (self.raw_value, other.raw_value))
         return self.raw_value
-

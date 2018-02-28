@@ -437,9 +437,6 @@ class MatchSpec(object):
         return self.__class__(optional=self.optional, target=self.target, **final_components)
 
 
-
-
-
 def _parse_version_plus_build(v_plus_b):
     """This should reliably pull the build string out of a version + build string combo.
     Examples:
