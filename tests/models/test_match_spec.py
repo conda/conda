@@ -717,3 +717,142 @@ class SpecStrParsingTests(TestCase):
         #     "build_number": '>=3',
         # }
 
+
+class MatchSpecMergeTests(TestCase):
+
+    def test_merge_single_name(self):
+        specs = (MatchSpec('exact'), MatchSpec('exact 1.2.3 1'), MatchSpec('exact >1.0,<2'))
+        merged_specs = MatchSpec.merge(specs)
+        print(merged_specs)
+        assert len(merged_specs) == 1
+        merged_spec = merged_specs[0]
+        print(merged_spec)
+        assert str(merged_spec) == "exact[version='1.2.3,>1.0,<2',build=1]"
+        assert merged_spec.match({
+            'name': 'exact',
+            'version': '1.2.3',
+            'build': '1',
+            'build_number': 1,
+        })
+        assert not merged_spec.match({
+            'name': 'exact',
+            'version': '1.2.2',
+            'build': '1',
+            'build_number': 1,
+        })
+
+        specs = (MatchSpec('exact 1.2.3 1'), MatchSpec('exact 1.2.3 2'))
+        with pytest.raises(ValueError):
+            MatchSpec.merge(specs)
+
+        merged_specs = MatchSpec.merge((MatchSpec('exact 1.2.3 1'),))
+        assert len(merged_specs) == 1
+        assert str(merged_specs[0]) == "exact==1.2.3=1"
+
+    def test_merge_multiple_name(self):
+        specs = tuple(MatchSpec(s) for s in (
+            'exact', 'exact 1.2.3 1',
+            'bounded >=1.0,<2.0', 'bounded >=1.5', 'bounded <=1.8',
+            'exact >1.0,<2',
+        ))
+        merged_specs = MatchSpec.merge(specs)
+        print(merged_specs)
+        assert len(merged_specs) == 2
+
+        exact_spec = next(s for s in merged_specs if s.name == 'exact')
+        bounded_spec = next(s for s in merged_specs if s.name == 'bounded')
+
+        assert str(exact_spec) == "exact[version='1.2.3,>1.0,<2',build=1]"
+        assert str(bounded_spec) == "bounded[version='>=1.0,<2.0,>=1.5,<=1.8']"
+
+        assert not bounded_spec.match({
+            'name': 'bounded',
+            'version': '1',
+            'build': '6',
+            'build_number': 6,
+        })
+        assert bounded_spec.match({
+            'name': 'bounded',
+            'version': '1.5',
+            'build': '7',
+            'build_number': 7,
+        })
+        assert not bounded_spec.match({
+            'name': 'bounded',
+            'version': '2',
+            'build': '8',
+            'build_number': 8,
+        })
+
+    def test_channel_merge(self):
+        specs = (MatchSpec('pkgs/main::python'), MatchSpec('defaults::python'))
+        with pytest.raises(ValueError):
+            MatchSpec.merge(specs)
+
+        specs = (MatchSpec('defaults::python'), MatchSpec('pkgs/main::python'))
+        with pytest.raises(ValueError):
+            MatchSpec.merge(specs)
+
+        specs = (MatchSpec('defaults::python'), MatchSpec('defaults::python 1.2.3'))
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 1
+        assert str(merged[0]) == "defaults::python==1.2.3"
+
+        specs = (MatchSpec('pkgs/free::python'), MatchSpec('pkgs/free::python 1.2.3'))
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 1
+        assert str(merged[0]) == "pkgs/free::python==1.2.3"
+
+    def test_subdir_merge(self):
+        specs = (MatchSpec('pkgs/main/linux-64::python'), MatchSpec('pkgs/main/linux-32::python'))
+        with pytest.raises(ValueError):
+            MatchSpec.merge(specs)
+
+        specs = (MatchSpec('defaults/win-32::python'), MatchSpec('defaults/win-64::python'))
+        with pytest.raises(ValueError):
+            MatchSpec.merge(specs)
+
+        specs = (MatchSpec('pkgs/free/linux-64::python'), MatchSpec('pkgs/free::python 1.2.3'))
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 1
+        assert str(merged[0]) == "pkgs/free/linux-64::python==1.2.3"
+        assert merged[0] == MatchSpec(channel='pkgs/free', subdir='linux-64', name='python', version='1.2.3')
+
+    def test_build_merge(self):
+        specs = (MatchSpec('python[build=py27_1]'), MatchSpec('python=1.2.3=py27_1'), MatchSpec('conda-forge::python<=8'))
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 1
+        assert str(merged[0]) == "conda-forge::python[version='1.2.3,<=8',build=py27_1]"
+
+        specs = (MatchSpec('python[build=py27_1]'), MatchSpec('python=1.2.3=1'), MatchSpec('conda-forge::python<=8[build=py27_1]'))
+        with pytest.raises(ValueError):
+            MatchSpec.merge(specs)
+
+    def test_build_number_merge(self):
+        specs = (MatchSpec('python[build_number=1]'), MatchSpec('python=1.2.3=py27_7'), MatchSpec('conda-forge::python<=8[build_number=1]'))
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 1
+        assert str(merged[0]) == "conda-forge::python[version='1.2.3,<=8',build=py27_7,build_number=1]"
+
+        specs = (MatchSpec('python[build_number=2]'), MatchSpec('python=1.2.3=py27_7'), MatchSpec('python<=8[build_number=1]'))
+        with pytest.raises(ValueError):
+            MatchSpec.merge(specs)
+
+    def test_md5_merge_with_name(self):
+        specs = (MatchSpec('python[md5=deadbeef]'), MatchSpec('python=1.2.3'), MatchSpec('conda-forge::python[md5=deadbeef]'))
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 1
+        assert str(merged[0]) == "conda-forge::python=1.2.3[md5=deadbeef]"
+
+        specs = (MatchSpec('python[md5=FFBADD11]'), MatchSpec('python=1.2.3'), MatchSpec('python[md5=ffbadd11]'))
+        with pytest.raises(ValueError):
+            MatchSpec.merge(specs)
+
+    def test_md5_merge_wo_name(self):
+        specs = (MatchSpec('*[md5=deadbeef]'), MatchSpec('*[md5=FFBADD11]'))
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 2
+        str_specs = ('*[md5=deadbeef]', '*[md5=FFBADD11]')
+        assert str(merged[0]) in str_specs
+        assert str(merged[1]) in str_specs
+        assert str(merged[0]) != str(merged[1])

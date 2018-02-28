@@ -270,9 +270,10 @@ class IndexJsonRecord(BasePackageRef):
     @property
     def combined_depends(self):
         from .match_spec import MatchSpec
-        result = {ms.name: ms for ms in (MatchSpec(spec) for spec in self.depends or ())}
-        result.update({ms.name: ms for ms in (MatchSpec(spec, optional=True)
-                                              for spec in self.constrains or ())})
+        result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}
+        result.update({ms.name: ms for ms in MatchSpec.merge(
+            MatchSpec(spec, optional=True) for spec in self.constrains or ()
+        )})
         return tuple(itervalues(result))
 
 

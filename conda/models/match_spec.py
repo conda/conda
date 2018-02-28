@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import Mapping
+from functools import reduce
 from os.path import basename
 import re
 
@@ -12,15 +13,16 @@ from .records import PackageRecord, PackageRef
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
-from ..common.compat import isiterable, iteritems, string_types, text_type, with_metaclass
+from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
+                             with_metaclass)
 from ..common.path import expand
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError
 
 try:
-    from cytoolz.itertoolz import concat
+    from cytoolz.itertoolz import concat, concatv, groupby
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 
 class MatchSpecType(type):
@@ -404,6 +406,37 @@ class MatchSpec(object):
         assert val
         return val
 
+    @classmethod
+    def merge(cls, match_specs):
+        match_specs = tuple(cls(s) for s in match_specs)
+        grouped = groupby(lambda spec: spec.get_exact_value('name'), match_specs)
+        dont_merge_these = grouped.pop('*', []) + grouped.pop(None, [])
+        specs_map = {
+            name: reduce(lambda x, y: x._merge(y), specs) if len(specs) > 1 else specs[0]
+            for name, specs in iteritems(grouped)
+        }
+        return tuple(concatv(itervalues(specs_map), dont_merge_these))
+
+    def _merge(self, other):
+        if self.optional != other.optional or self.target != other.target:
+            raise ValueError("Incompatible MatchSpec merge:  - %s\n  - %s" % (self, other))
+
+        final_components = {}
+        component_names = set(self._match_components) | set(other._match_components)
+        for component_name in component_names:
+            this_component = self._match_components.get(component_name)
+            that_component = other._match_components.get(component_name)
+            if this_component is None and that_component is None:
+                continue
+            elif this_component is None:
+                final_components[component_name] = that_component
+            elif that_component is None:
+                final_components[component_name] = this_component
+            else:
+                final_components[component_name] = this_component.merge(that_component)
+
+        return self.__class__(optional=self.optional, target=self.target, **final_components)
+
 
 def _parse_version_plus_build(v_plus_b):
     """This should reliably pull the build string out of a version + build string combo.
@@ -615,7 +648,7 @@ class MatchInterface(object):
 
     @abstractmethod
     def match(self, other):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def matches(self, value):
         return self.match(value)
@@ -629,6 +662,10 @@ class MatchInterface(object):
         """If the match value is an exact specification, returns the value.
         Otherwise returns None.
         """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def merge(self, other):
         raise NotImplementedError()
 
 
@@ -672,6 +709,12 @@ class SplitStrMatch(MatchInterface):
     def exact_value(self):
         return self._raw_value
 
+    def merge(self, other):
+        if self.raw_value != other.raw_value:
+            raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
+                             % (self.raw_value, other.raw_value))
+        return self.raw_value
+
 
 class FeatureMatch(MatchInterface):
     __slots__ = '_raw_value',
@@ -708,6 +751,12 @@ class FeatureMatch(MatchInterface):
     @property
     def exact_value(self):
         return self._raw_value
+
+    def merge(self, other):
+        if self.raw_value != other.raw_value:
+            raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
+                             % (self.raw_value, other.raw_value))
+        return self.raw_value
 
 
 class StrMatch(MatchInterface):
@@ -753,6 +802,12 @@ class StrMatch(MatchInterface):
     def matches_all(self):
         return self._raw_value == '*'
 
+    def merge(self, other):
+        if self.raw_value != other.raw_value:
+            raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
+                             % (self.raw_value, other.raw_value))
+        return self.raw_value
+
 
 class ChannelMatch(StrMatch):
 
@@ -791,6 +846,12 @@ class ChannelMatch(StrMatch):
 
     def __repr__(self):
         return "'%s'" % self.__str__()
+
+    def merge(self, other):
+        if self.raw_value != other.raw_value:
+            raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
+                             % (self.raw_value, other.raw_value))
+        return self.raw_value
 
 
 class LowerStrMatch(StrMatch):

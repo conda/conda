@@ -139,6 +139,21 @@ class DefaultConfigChannelTests(TestCase):
             join_url(url, 'noarch'),
         ]
 
+    def test_channel_name_subdir_only(self):
+        channel = Channel('pkgs/free/win-64')
+        assert channel.scheme == "https"
+        assert channel.location == "repo.anaconda.com"
+        assert channel.platform == 'win-64' == channel.subdir
+        assert channel.name == 'pkgs/free'
+
+        assert channel.base_url == 'https://repo.anaconda.com/pkgs/free'
+        assert channel.canonical_name == 'defaults'
+        assert channel.url() == 'https://repo.anaconda.com/pkgs/free/win-64'
+        assert channel.urls() == [
+            'https://repo.anaconda.com/pkgs/free/win-64',
+            'https://repo.anaconda.com/pkgs/free/noarch',
+        ]
+
 
 class AnacondaServerChannelTests(TestCase):
 

@@ -79,8 +79,8 @@ class Solver(object):
         self.prefix = prefix
         self.channels = IndexedSet(Channel(c) for c in channels or context.channels)
         self.subdirs = tuple(s for s in subdirs or context.subdirs)
-        self.specs_to_add = frozenset(MatchSpec(s) for s in specs_to_add)
-        self.specs_to_remove = frozenset(MatchSpec(s) for s in specs_to_remove)
+        self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
+        self.specs_to_remove = frozenset(MatchSpec.merge(s for s in specs_to_remove))
 
         assert all(s in context.known_subdirs for s in self.subdirs)
         self._index = None
