@@ -751,8 +751,9 @@ class MatchSpecMergeTests(TestCase):
 
     def test_merge_multiple_name(self):
         specs = tuple(MatchSpec(s) for s in (
-            'exact', 'exact 1.2.3 1', 'exact >1.0,<2',
+            'exact', 'exact 1.2.3 1',
             'bounded >=1.0,<2.0', 'bounded >=1.5', 'bounded <=1.8',
+            'exact >1.0,<2',
         ))
         merged_specs = MatchSpec.merge(specs)
         print(merged_specs)
@@ -846,3 +847,12 @@ class MatchSpecMergeTests(TestCase):
         specs = (MatchSpec('python[md5=FFBADD11]'), MatchSpec('python=1.2.3'), MatchSpec('python[md5=ffbadd11]'))
         with pytest.raises(ValueError):
             MatchSpec.merge(specs)
+
+    def test_md5_merge_wo_name(self):
+        specs = (MatchSpec('*[md5=deadbeef]'), MatchSpec('*[md5=FFBADD11]'))
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 2
+        str_specs = ('*[md5=deadbeef]', '*[md5=FFBADD11]')
+        assert str(merged[0]) in str_specs
+        assert str(merged[1]) in str_specs
+        assert str(merged[0]) != str(merged[1])

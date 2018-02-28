@@ -20,9 +20,9 @@ from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError
 
 try:
-    from cytoolz.itertoolz import concat, groupby
+    from cytoolz.itertoolz import concat, concatv, groupby
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, groupby  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 
 class MatchSpecType(type):
@@ -410,11 +410,12 @@ class MatchSpec(object):
     def merge(cls, match_specs):
         match_specs = tuple(cls(s) for s in match_specs)
         grouped = groupby(lambda spec: spec.get_exact_value('name'), match_specs)
+        dont_merge_these = grouped.pop('*', []) + grouped.pop(None, [])
         specs_map = {
             name: reduce(lambda x, y: x._merge(y), specs) if len(specs) > 1 else specs[0]
             for name, specs in iteritems(grouped)
         }
-        return tuple(itervalues(specs_map))
+        return tuple(concatv(itervalues(specs_map), dont_merge_these))
 
     def _merge(self, other):
         if self.optional != other.optional or self.target != other.target:
