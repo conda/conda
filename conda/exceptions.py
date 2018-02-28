@@ -580,6 +580,19 @@ class CondaTypeError(CondaError, TypeError):
         super(CondaTypeError, self).__init__(msg)
 
 
+class CyclicalDependencyError(CondaError, ValueError):
+    def __init__(self, packages_with_cycles, **kwargs):
+        from .resolve import dashlist
+        from .models.records import PackageRef
+        packages_with_cycles = tuple(PackageRef.from_objects(p) for p in packages_with_cycles)
+        message = "Cyclic dependencies exist among these items: %s" % dashlist(
+            p.dist_str() for p in packages_with_cycles
+        )
+        super(CyclicalDependencyError, self).__init__(
+            message, packages_with_cycles=packages_with_cycles, **kwargs
+        )
+
+
 class CorruptedEnvironmentError(CondaError):
     def __init__(self, environment_location, corrupted_file, **kwargs):
         message = dals("""

@@ -105,6 +105,7 @@ def ssl_verify_validation(value):
 class Context(Configuration):
 
     add_pip_as_python_dependency = PrimitiveParameter(True)
+    allow_cycles = PrimitiveParameter(True)  # allow cyclical dependencies, or raise
     allow_softlinks = PrimitiveParameter(False)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
     notify_outdated_conda = PrimitiveParameter(True)
@@ -584,6 +585,7 @@ class Context(Configuration):
 
     def list_parameters(self):
         UNLISTED_PARAMETERS = (
+            'allow_cycles',  # allow cyclical dependencies, or raise
             'bld_path',
             'conda_build',
             'croot',
