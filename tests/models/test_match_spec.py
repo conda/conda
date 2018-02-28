@@ -734,6 +734,15 @@ class MatchSpecMergeTests(TestCase):
             'build': '1',
             'build_number': 1,
         })
+        assert not merged_spec.match({
+            'name': 'exact',
+            'version': '1.2.2',
+            'build': '1',
+            'build_number': 1,
+        })
+
+
+
 
         # from https://github.com/conda/conda-build/pull/2694/files
 
