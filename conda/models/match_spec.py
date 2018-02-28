@@ -408,19 +408,12 @@ class MatchSpec(object):
 
     @classmethod
     def merge(cls, match_specs):
-        match_specs = tuple(match_specs)
-        for match_spec in match_specs:
-            assert isinstance(match_spec, cls), match_spec
-
+        match_specs = tuple(cls(s) for s in match_specs)
         grouped = groupby(lambda spec: spec.get_exact_value('name'), match_specs)
-
-        specs_map = {}
-        for name, specs in iteritems(grouped):
-            if len(specs) > 1:
-                specs_map[name] = reduce(lambda x, y: x._merge(y), specs)
-            else:
-                specs_map[name] = specs[0]
-
+        specs_map = {
+            name: reduce(lambda x, y: x._merge(y), specs) if len(specs) > 1 else specs[0]
+            for name, specs in iteritems(grouped)
+        }
         return tuple(itervalues(specs_map))
 
     def _merge(self, other):
