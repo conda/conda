@@ -1126,6 +1126,42 @@ or through a ``{{ compilers('c') }}`` jinja2 function) will automatically have a
 compatible libgcc runtime dependency added.
 
 
+Compiler versions
+-----------------
+
+Most of the time, the newest compilers are the best compilers. There are some
+special instances where you'll need to use older compilers, though. For example,
+NVIDIA's CUDA libraries only support compilers that they have rigorously tested.
+Often, the latest gcc compiler is not supported for use with CUDA. If your
+recipe needs to use CUDA, you'll need to use an older version of GCC. There are
+special keys associated with the compilers. These are just the compiler key,
+plus ``_version``. For example, if your compiler key is ``c_compiler``, the
+version key associated with it is ``c_compiler_version``. If you had a recipe
+for, say, Tensorflow with GPU support, you would put a conda_build_config.yaml
+file alongside meta.yaml, with contents like:
+
+.. code-block:: yaml
+
+   c_compiler_version:    # [linux]
+       - 5.4              # [linux]
+   cxx_compiler_version:  # [linux]
+       - 5.4              # [linux]
+
+
+We specify selectors so that this extra version information is not also applied
+to Windows and Mac - those platforms have totally different compilers and could
+have their own versions if necessary.
+
+It is not necessary to specify ``c_compiler`` or ``cxx_compiler``, because the
+default value (``gcc`` on linux) will be used. It is necessary to specify both
+``c`` and ``cxx`` versions, even if they are the same, because they are treated
+independently.
+
+By placing this file in the recipe, it will apply only to this recipe. All other
+recipes will default to the latest compiler. Note that the version number you
+specify here must exist as a package in your currently configured channels.
+
+
 Cross-compiling
 ---------------
 
