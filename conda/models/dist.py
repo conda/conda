@@ -72,6 +72,9 @@ class Dist(Entity):
                                    base_url=base_url,
                                    platform=platform)
 
+        self.__key = (channel, dist_name)
+        self.__key_hash = hash(self.__key)
+
     def to_package_ref(self):
         return PackageRef(
             channel=self.channel,
@@ -228,33 +231,26 @@ class Dist(Entity):
                 if self.platform
                 else join_url(self.base_url, filename))
 
-    def __key__(self):
-        return self.channel, self.dist_name
-
     def __lt__(self, other):
-        assert isinstance(other, self.__class__)
-        return self.__key__() < other.__key__()
+        return isinstance(other, self.__class__) and self.__key < other.__key
 
     def __gt__(self, other):
-        assert isinstance(other, self.__class__)
-        return self.__key__() > other.__key__()
+        return isinstance(other, self.__class__) and self.__key > other.__key
 
     def __le__(self, other):
-        assert isinstance(other, self.__class__)
-        return self.__key__() <= other.__key__()
+        return isinstance(other, self.__class__) and self.__key <= other.__key
 
     def __ge__(self, other):
-        assert isinstance(other, self.__class__)
-        return self.__key__() >= other.__key__()
+        return isinstance(other, self.__class__) and self.__key >= other.__key
 
     def __hash__(self):
-        return hash(self.__key__())
+        return self.__key_hash
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__key__() == other.__key__()
+        return isinstance(other, self.__class__) and self.__key == other.__key
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     # ############ conda-build compatibility ################
 
