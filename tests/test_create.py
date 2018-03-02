@@ -1127,21 +1127,6 @@ class IntegrationTests(TestCase):
             shutil.move(pkgs_dir_hold, pkgs_dir)
             PackageCache.clear()
 
-    def test_clean_source_cache(self):
-        cache_dirs = {
-            'source cache': text_type(context.src_cache),
-            'git cache': text_type(context.git_cache),
-            'hg cache': text_type(context.hg_cache),
-            'svn cache': text_type(context.svn_cache),
-        }
-
-        assert all(isdir(d) for d in itervalues(cache_dirs))
-
-        # --json flag is regression test for #5451
-        run_command(Commands.CLEAN, '', "--source-cache --yes  --json")
-
-        assert not all(isdir(d) for d in itervalues(cache_dirs))
-
     def test_install_mkdir(self):
         try:
             prefix = make_temp_prefix()
