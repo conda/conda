@@ -73,7 +73,6 @@ class Dist(Entity):
                                    platform=platform)
 
         self.__key = (channel, dist_name)
-        self.__key_hash = hash(self.__key)
 
     def to_package_ref(self):
         return PackageRef(
@@ -244,7 +243,7 @@ class Dist(Entity):
         return isinstance(other, self.__class__) and self.__key >= other.__key
 
     def __hash__(self):
-        return self.__key_hash
+        return hash(self.__key)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.__key == other.__key
