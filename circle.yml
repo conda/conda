@@ -200,7 +200,7 @@ jobs:
   2.1 conda-build:
     <<: *conda_build_test
     environment:
-      - CONDA_BUILD: 2.1.17
+      - CONDA_BUILD: 2.1.x
       - CONDA_INSTRUMENTATION_ENABLED: true
 
   activate tests: *activate_tests
