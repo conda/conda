@@ -82,16 +82,18 @@ function conda
     if [ (count $argv) -lt 1 ]
         eval $_CONDA_EXE
     else
-        switch $argv[1]
+        set -l cmd $argv[1]
+        set -e argv[1]
+        switch $cmd
             case activate
-                eval (eval $_CONDA_EXE shell.fish activate $argv[2..-1])
+                eval (eval $_CONDA_EXE shell.fish activate $argv)
             case deactivate
-                eval (eval $_CONDA_EXE shell.fish deactivate $argv[2..-1])
+                eval (eval $_CONDA_EXE shell.fish deactivate $argv)
             case install update remove uninstall
-                eval $_CONDA_EXE $argv[1..-1]
+                eval $_CONDA_EXE $cmd $argv
                 eval (eval $_CONDA_EXE shell.fish reactivate)
             case '*'
-                eval $_CONDA_EXE $argv[1..-1]
+                eval $_CONDA_EXE $cmd $argv
         end
     end
 end
