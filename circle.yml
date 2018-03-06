@@ -142,7 +142,7 @@ conda_build_test: &conda_build_test
         environment:
           CONDABUILD_SKIP: >
             not perl-cpan-Moo
-            not r-cran-nmf
+            and not r-cran-nmf
             and not skeleton_pypi
             and not env_creation_with_short_prefix_does_not_deadlock
           # skipping perl-cpan-Moo because of changes in cpan API
