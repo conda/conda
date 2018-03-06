@@ -91,7 +91,7 @@ function conda
                 eval (eval $_CONDA_EXE shell.fish deactivate $argv)
             case install update remove uninstall
                 eval $_CONDA_EXE $cmd $argv
-                eval (eval $_CONDA_EXE shell.fish reactivate)
+                and eval (eval $_CONDA_EXE shell.fish reactivate)
             case '*'
                 eval $_CONDA_EXE $cmd $argv
         end
