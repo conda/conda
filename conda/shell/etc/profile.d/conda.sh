@@ -17,10 +17,10 @@ _conda_set_vars() {
         if [ -n "${_CONDA_ROOT:+x}" ]; then
             # typically this should be for dev only; _CONDA_EXE should be written at top of file
             # for normal installs
-            _CONDA_EXE="$_CONDA_ROOT/conda/shell/bin/conda"
+            _CONDA_EXE="${_CONDA_ROOT}/conda/shell/bin/conda"
         fi
         if ! [ -f "${_CONDA_EXE-x}" ]; then
-            _CONDA_EXE="$PWD/conda/shell/bin/conda"
+            _CONDA_EXE="${PWD}/conda/shell/bin/conda"
         fi
     fi
 
@@ -35,7 +35,7 @@ _conda_set_vars() {
 
 
 _conda_hashr() {
-    case "$_CONDA_SHELL_FLAVOR" in
+    case "${_CONDA_SHELL_FLAVOR}" in
         zsh) \rehash;;
         posh) ;;
         *) \hash -r;;
@@ -47,28 +47,30 @@ _conda_activate() {
     if [ -n "${CONDA_PS1_BACKUP:+x}" ]; then
         # Handle transition from shell activated with conda <= 4.3 to a subsequent activation
         # after conda updated to >= 4.4. See issue #6173.
-        PS1="$CONDA_PS1_BACKUP"
+        PS1="${CONDA_PS1_BACKUP}"
         \unset CONDA_PS1_BACKUP
     fi
 
     \local ask_conda
-    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix activate "$@")" || \return $?
-    \eval "$ask_conda"
+    ask_conda="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix activate "$@")" || \return $?
+    \eval "${ask_conda}"
 
     _conda_hashr
 }
+
 
 _conda_deactivate() {
     \local ask_conda
-    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix deactivate "$@")" || \return $?
+    ask_conda="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix deactivate "$@")" || \return $?
     \eval "$ask_conda"
 
     _conda_hashr
 }
 
+
 _conda_reactivate() {
     \local ask_conda
-    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix reactivate)" || \return $?
+    ask_conda="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix reactivate)" || \return $?
     \eval "$ask_conda"
 
     _conda_hashr
@@ -100,6 +102,7 @@ conda() {
 
 
 _conda_set_vars
+
 
 if [ -z "${CONDA_SHLVL+x}" ]; then
     \export CONDA_SHLVL=0

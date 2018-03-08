@@ -9,9 +9,9 @@
 if (! $?_CONDA_EXE) then
   set _CONDA_EXE="${PWD}/conda/shell/bin/conda"
 else
-  if ("$_CONDA_EXE" == "") then
-      set _CONDA_EXE="${PWD}/conda/shell/bin/conda"
-  endif
+    if ("${_CONDA_EXE}" == "") then
+        set _CONDA_EXE="${PWD}/conda/shell/bin/conda"
+    endif
 endif
 
 if ("`alias conda`" == "") then
@@ -21,6 +21,9 @@ if ("`alias conda`" == "") then
         alias conda source "${PWD}/conda/shell/etc/profile.d/conda.csh"
     endif
     setenv CONDA_SHLVL 0
+
+    # setting to empty such that things don't break weirdly in
+    # non-interactive cases where (T)CSH doesn't set the prompt variable
     if (! $?prompt) then
         set prompt=""
     endif

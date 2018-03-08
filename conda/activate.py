@@ -26,12 +26,18 @@ class _Activator(object):
     # Shells should also use 'reactivate' following conda's install, update, and
     #   remove/uninstall commands.
     #
-    # All core logic is in build_activate() or build_deactivate(), and is independent of
-    # shell type.  Each returns a map containing the keys:
-    #   export_vars
-    #   unset_var
-    #   activate_scripts
-    #   deactivate_scripts
+    # All core logic is in the build_*() functions:
+    #   - build_activate()
+    #   - build_deactivate()
+    #   - build_reactivate()
+    #   - build_post()
+    # and is independent of shell type.  Each returns a map optionally containing the keys:
+    #   unset_vars          (tuple of keys to unset)
+    #   export_vars         (dict of key-values to export)
+    #   set_vars            (dict of key-values to set)
+    #   activate_scripts    (tuple of activate scripts)
+    #   deactivate_scripts  (tuple of deactivate scripts)
+    #   post                (bool to include post command)
     #
     # The value of the CONDA_PROMPT_MODIFIER environment variable holds conda's contribution
     #   to the command prompt.
@@ -87,6 +93,10 @@ class _Activator(object):
         return self._finalize(self._yield_commands(self.build_reactivate()),
                               self.tempfile_extension)
 
+    def post(self):
+        return self._finalize(self._yield_commands(self.build_post()),
+                              self.tempfile_extension)
+
     def execute(self):
         # return value meant to be written to stdout
         self._parse_and_set_args(self._raw_arguments)
@@ -96,7 +106,8 @@ class _Activator(object):
         # the first index of arguments MUST be either activate, deactivate, or reactivate
         if arguments is None:
             from .exceptions import ArgumentError
-            raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
+            raise ArgumentError("'activate', 'deactivate', 'reactivate', or 'post' command must "
+                                "be given")
 
         command = arguments[0]
         arguments = tuple(drop(self.shift_args + 1, arguments))
@@ -107,13 +118,14 @@ class _Activator(object):
 
         if not command:
             from .exceptions import ArgumentError
-            raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
+            raise ArgumentError("'activate', 'deactivate', 'reactivate', or 'post' command must "
+                                "be given")
         elif help_requested:
             from . import CondaError
             class Help(CondaError):  # NOQA
                 pass
             raise Help("help requested for %s" % command)
-        elif command not in ('activate', 'deactivate', 'reactivate'):
+        elif command not in ('activate', 'deactivate', 'reactivate', 'post'):
             from .exceptions import ArgumentError
             raise ArgumentError("invalid command '%s'" % command)
         elif command == 'activate' and len(remainder_args) > 1:
@@ -143,107 +155,107 @@ class _Activator(object):
         for key, value in sorted(iteritems(cmds_dict.get('export_vars', {}))):
             yield self.export_var_tmpl % (key, value)
 
+        if cmds_dict.get('post', False):
+            yield self.post_tmpl
+
         for script in cmds_dict.get('activate_scripts', ()):
             yield self.run_script_tmpl % script
 
     def build_activate(self, env_name_or_prefix):
+        # determine the environment prefix (the path to the environment) that we are activating
         if re.search(r'\\|/', env_name_or_prefix):
-            prefix = expand(env_name_or_prefix)
-            if not isdir(join(prefix, 'conda-meta')):
+            new_prefix = expand(env_name_or_prefix)
+            if not isdir(join(new_prefix, 'conda-meta')):
                 from .exceptions import EnvironmentLocationNotFound
-                raise EnvironmentLocationNotFound(prefix)
+                raise EnvironmentLocationNotFound(new_prefix)
         elif env_name_or_prefix in (ROOT_ENV_NAME, 'root'):
-            prefix = context.root_prefix
+            new_prefix = context.root_prefix
         else:
-            prefix = locate_prefix_by_name(env_name_or_prefix)
-        prefix = normpath(prefix)
+            new_prefix = locate_prefix_by_name(env_name_or_prefix)
+        new_prefix = normpath(new_prefix)
 
-        # query environment
-        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
-        old_conda_prefix = self.environ.get('CONDA_PREFIX')
+        # query environment/context
+        old_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
+        old_prefix = self.environ.get('CONDA_PREFIX')
         max_shlvl = context.max_shlvl
 
-        if old_conda_prefix == prefix and old_conda_shlvl > 0:
+        if old_prefix == new_prefix and old_shlvl > 0:
+            # user is attempting to activate the currently active environment, use reactivate
+            # instead
             return self.build_reactivate()
-        if self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
+        if self.environ.get('CONDA_PREFIX_%s' % (old_shlvl - 1)) == new_prefix:
             # in this case, user is attempting to activate the previous environment,
-            #  i.e. step back down
+            # i.e. step back down
             return self.build_deactivate()
+        assert 0 <= old_shlvl <= max_shlvl
 
-        activate_scripts = self._get_activate_scripts(prefix)
-        conda_default_env = self._default_env(prefix)
+        conda_default_env = self._default_env(new_prefix)
         conda_prompt_modifier = self._prompt_modifier(conda_default_env)
 
-        assert 0 <= old_conda_shlvl <= max_shlvl
-        set_vars = {}
-        if old_conda_shlvl == 0:
-            new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
+        if old_shlvl == 0:
+            # this is the first activate (in most cases this is "base")
             export_vars = {
                 'CONDA_PYTHON_EXE': self.path_conversion(sys.executable),
                 'CONDA_EXE': self.path_conversion(context.conda_exe),
-                'PATH': new_path,
-                'CONDA_PREFIX': prefix,
-                'CONDA_SHLVL': old_conda_shlvl + 1,
+                'CONDA_PREFIX': new_prefix,
+                'CONDA_SHLVL': old_shlvl + 1,
                 'CONDA_DEFAULT_ENV': conda_default_env,
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
-            deactivate_scripts = ()
-        elif old_conda_shlvl == max_shlvl:
-            new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix))
+        elif old_shlvl == max_shlvl:
+            # this is the top of the activate stack, we are effectively replacing the previously
+            # activated environment
             export_vars = {
-                'PATH': new_path,
-                'CONDA_PREFIX': prefix,
+                'CONDA_PREFIX': new_prefix,
                 'CONDA_DEFAULT_ENV': conda_default_env,
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
-            deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
         else:
-            new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
+            # this is not the top of the activate stack, we are effectively appending this activate
+            # to the previous activate
             export_vars = {
-                'PATH': new_path,
-                'CONDA_PREFIX': prefix,
-                'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
-                'CONDA_SHLVL': old_conda_shlvl + 1,
+                'CONDA_PREFIX': new_prefix,
+                'CONDA_PREFIX_%d' % old_shlvl: old_prefix,
+                'CONDA_SHLVL': old_shlvl + 1,
                 'CONDA_DEFAULT_ENV': conda_default_env,
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
-            deactivate_scripts = ()
 
+        # get deactivate_scripts and whether post needs to occur
+        deactivate_scripts = self._get_deactivate_scripts(old_prefix)
+        post = self._derive_post_from_deactivate(deactivate_scripts, export_vars,
+                                                 old_prefix=old_prefix,
+                                                 new_prefix=new_prefix)
+
+        # update the prompt
+        set_vars = {}
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
         self._build_activate_shell_custom(export_vars)
 
         return {
-            'unset_vars': (),
+            'deactivate_scripts': deactivate_scripts,
             'set_vars': set_vars,
             'export_vars': export_vars,
-            'deactivate_scripts': deactivate_scripts,
-            'activate_scripts': activate_scripts,
+            'post': post,
+            'activate_scripts': self._get_activate_scripts(new_prefix),
         }
 
     def build_deactivate(self):
         # query environment
-        old_conda_prefix = self.environ.get('CONDA_PREFIX')
-        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
-        if not old_conda_prefix or old_conda_shlvl < 1:
+        old_prefix = self.environ.get('CONDA_PREFIX')
+        old_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
+        if not old_prefix or old_shlvl < 1:
             # no active environment, so cannot deactivate; do nothing
-            return {
-                'unset_vars': (),
-                'set_vars': {},
-                'export_vars': {},
-                'deactivate_scripts': (),
-                'activate_scripts': (),
-            }
-        deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
+            return {}
 
-        new_conda_shlvl = old_conda_shlvl - 1
-        new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
+        new_shlvl = old_shlvl - 1
 
-        set_vars = {}
-        if old_conda_shlvl == 1:
+        if old_shlvl == 1:
             # TODO: warn conda floor
             conda_prompt_modifier = ''
+
             unset_vars = (
                 'CONDA_PREFIX',
                 'CONDA_DEFAULT_ENV',
@@ -252,67 +264,99 @@ class _Activator(object):
                 'CONDA_PROMPT_MODIFIER',
             )
             export_vars = {
-                'PATH': new_path,
-                'CONDA_SHLVL': new_conda_shlvl,
+                'CONDA_SHLVL': new_shlvl,
             }
             activate_scripts = ()
         else:
-            new_prefix = self.environ.get('CONDA_PREFIX_%d' % new_conda_shlvl)
+            new_prefix = self.environ.get('CONDA_PREFIX_%d' % new_shlvl)
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(conda_default_env)
 
             unset_vars = (
-                'CONDA_PREFIX_%d' % new_conda_shlvl,
+                'CONDA_PREFIX_%d' % new_shlvl,
             )
             export_vars = {
-                'PATH': new_path,
-                'CONDA_SHLVL': new_conda_shlvl,
+                'CONDA_SHLVL': new_shlvl,
                 'CONDA_PREFIX': new_prefix,
                 'CONDA_DEFAULT_ENV': conda_default_env,
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
             activate_scripts = self._get_activate_scripts(new_prefix)
 
+        # get deactivate_scripts and whether post needs to occur
+        deactivate_scripts = self._get_deactivate_scripts(old_prefix)
+        # there is no new_prefix as we are deactivating, which always pops a prefix, the "new"
+        # prefix is already on the $PATH
+        post = self._derive_post_from_deactivate(deactivate_scripts, export_vars,
+                                                 old_prefix=old_prefix,
+                                                 new_prefix="")
+
+        # update the prompt
+        set_vars = {}
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
         return {
+            'deactivate_scripts': deactivate_scripts,
             'unset_vars': unset_vars,
             'set_vars': set_vars,
             'export_vars': export_vars,
-            'deactivate_scripts': deactivate_scripts,
+            'post': post,
             'activate_scripts': activate_scripts,
         }
 
     def build_reactivate(self):
-        conda_prefix = self.environ.get('CONDA_PREFIX')
-        conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
-        if not conda_prefix or conda_shlvl < 1:
+        prefix = self.environ.get('CONDA_PREFIX')
+        shlvl = int(self.environ.get('CONDA_SHLVL', -1))
+        if not prefix or shlvl < 1:
             # no active environment, so cannot reactivate; do nothing
-            return {
-                'unset_vars': (),
-                'set_vars': {},
-                'export_vars': {},
-                'deactivate_scripts': (),
-                'activate_scripts': (),
-            }
-        conda_default_env = self.environ.get('CONDA_DEFAULT_ENV', self._default_env(conda_prefix))
-        new_path = self.pathsep_join(self._replace_prefix_in_path(conda_prefix, conda_prefix))
-        set_vars = {}
+            return {}
+
+        conda_default_env = self.environ.get('CONDA_DEFAULT_ENV', self._default_env(prefix))
         conda_prompt_modifier = self._prompt_modifier(conda_default_env)
+
+        # environment variables are set only to aid transition from conda 4.3 to conda 4.4
+        export_vars = {
+            'CONDA_SHLVL': shlvl,
+            'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+        }
+
+        # get deactivate_scripts and whether post needs to occur
+        deactivate_scripts = self._get_deactivate_scripts(prefix)
+        post = self._derive_post_from_deactivate(deactivate_scripts, export_vars,
+                                                 old_prefix=prefix,
+                                                 new_prefix=prefix)
+
+        # update the prompt
+        set_vars = {}
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
-        # environment variables are set only to aid transition from conda 4.3 to conda 4.4
+
         return {
-            'unset_vars': (),
+            'deactivate_scripts': deactivate_scripts,
             'set_vars': set_vars,
-            'export_vars': {
-                'PATH': new_path,
-                'CONDA_SHLVL': conda_shlvl,
-                'CONDA_PROMPT_MODIFIER': self._prompt_modifier(conda_default_env),
-            },
-            'deactivate_scripts': self._get_deactivate_scripts(conda_prefix),
-            'activate_scripts': self._get_activate_scripts(conda_prefix),
+            'export_vars': export_vars,
+            'post': post,
+            'activate_scripts': self._get_activate_scripts(prefix),
+        }
+
+    def build_post(self):
+        conda_post = self.environ.get("CONDA_POST")
+        if not conda_post:
+            # no post process defined
+            return {}
+
+        # create the export_vars
+        export_vars = {}
+        old_prefix, new_prefix = conda_post.split(":")
+        self._update_path(export_vars, old_prefix, new_prefix)
+
+        # create the unset_vars
+        unset_vars = ("CONDA_POST",)
+
+        return {
+            'unset_vars': unset_vars,
+            'export_vars': export_vars,
         }
 
     def _get_starting_path_list(self):
@@ -400,6 +444,41 @@ class _Activator(object):
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         pass
 
+    def _derive_post_from_deactivate(self, deactivate_scripts, export_vars,
+                                     old_prefix="", new_prefix=""):
+        # determine how to handle the $PATH based on whether deactivate scripts exist
+        if deactivate_scripts:
+            # there are deactivate scripts, we need to use the post process to fixup the $PATH
+            #
+            # there is no new_prefix as we are deactivating, which always pops a prefix, the "new"
+            # prefix is already on the $PATH
+            old_prefix = old_prefix if old_prefix else ''
+            new_prefix = new_prefix if new_prefix else ''
+            export_vars["CONDA_POST"] = "%s:%s" % (old_prefix, new_prefix)
+            return True
+        else:
+            # there are no deactivate scripts, we need to update the $PATH in the current process
+            #
+            # there is no new_prefix as we are deactivating, which always pops a prefix, the "new"
+            # prefix is already on the $PATH
+            self._update_path(export_vars, old_prefix, new_prefix)
+            return False
+
+    def _update_path(self, export_vars, old_prefix=None, new_prefix=None):
+        # determine what kind of $PATH modification to make
+        if not old_prefix and new_prefix:
+            # adding new prefix to $PATH
+            path = self._add_prefix_to_path(new_prefix)
+        elif old_prefix and new_prefix:
+            # replacing old prefix with new prefix in $PATH
+            path = self._replace_prefix_in_path(old_prefix, new_prefix)
+        elif old_prefix and not new_prefix:
+            # removing old prefix from $PATH
+            path = self._remove_prefix_from_path(old_prefix)
+
+        # add the new path to export_vars
+        export_vars["PATH"] = self.pathsep_join(path)
+
     def _default_env(self, prefix):
         if prefix == context.root_prefix:
             return 'base'
@@ -409,11 +488,15 @@ class _Activator(object):
         return "(%s) " % conda_default_env if context.changeps1 else ""
 
     def _get_activate_scripts(self, prefix):
+        if not prefix:
+            return ()
         return self.path_conversion(glob(join(
             prefix, 'etc', 'conda', 'activate.d', '*' + self.script_extension
         )))
 
     def _get_deactivate_scripts(self, prefix):
+        if not prefix:
+            return ()
         return self.path_conversion(glob(join(
             prefix, 'etc', 'conda', 'deactivate.d', '*' + self.script_extension
         )))
@@ -503,6 +586,11 @@ class PosixActivator(_Activator):
         self.set_var_tmpl = "%s='%s'"
         self.run_script_tmpl = '\\. "%s"'
 
+        self.post_tmpl = "\n".join((
+            '\local ask_conda',
+            'ask_conda="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix post)" || \\return $?',
+            '\eval "${ask_conda}"'))
+
         super(PosixActivator, self).__init__(arguments)
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
@@ -534,6 +622,12 @@ class CshActivator(_Activator):
         self.set_var_tmpl = "set %s='%s'"
         self.run_script_tmpl = 'source "%s"'
 
+        self.post_tmpl = "\n".join((
+            ('set ask_conda="`('
+                "setenv prompt '${prompt}' ; ${_CONDA_EXE}' shell.csh post"
+             ')`" || exit ${status}'),
+            'eval "${ask_conda}"'))
+
         super(CshActivator, self).__init__(arguments)
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
@@ -561,6 +655,12 @@ class XonshActivator(_Activator):
         self.set_var_tmpl = "$%s = '%s'"  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = 'source "%s"'
 
+        self.post_tmpl = "\n".join((
+            "pipeline2 = !(@(_CONDA_EXE) shell.xonsh post)",
+            "stdout2 = _raise_pipeline_error(pipeline2)",
+            "source @(stdout2)",
+            "os.unlink(stdout2)"))
+
         super(XonshActivator, self).__init__(arguments)
 
 
@@ -578,6 +678,9 @@ class CmdExeActivator(_Activator):
         self.export_var_tmpl = '@SET "%s=%s"'
         self.set_var_tmpl = '@SET "%s=%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = '@CALL "%s"'
+
+        self.post_tmpl = "\n".join((
+            "@CALL %%_CONDA_EXE%% shell.cmd.exe post"))
 
         super(CmdExeActivator, self).__init__(arguments)
 
@@ -604,6 +707,9 @@ class FishActivator(_Activator):
         self.set_var_tmpl = 'set -gx %s "%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = 'source "%s"'
 
+        self.post_tmpl = "\n".join((
+            "eval (eval $_CONDA_EXE shell.fish post)"))
+
         super(FishActivator, self).__init__(arguments)
 
 
@@ -621,6 +727,9 @@ class PowershellActivator(_Activator):
         self.export_var_tmpl = '$env:%s = "%s"'
         self.set_var_tmpl = '$env:%s = "%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = '. "%s"'
+
+        self.post_tmpl = "\n".join((
+                ""))
 
         super(PowershellActivator, self).__init__(arguments)
 
