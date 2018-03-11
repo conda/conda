@@ -629,7 +629,7 @@ package may not be testable, because the hashes will differ.
 Export runtime requirements
 ---------------------------
 
-Some build or host :ref:``requirements`` will impose a runtime requirement.
+Some build or host :ref:`requirements` will impose a runtime requirement.
 Most commonly this is true for shared libraries (e.g. libpng), which are
 required for linking at build time, and for resolving the link at run time.
 With ``run_exports`` (new in conda-build 3) such a runtime requirement can be
@@ -842,8 +842,8 @@ The line in the ``meta.yaml`` file should literally say
 
 **NOTE**: Instead of manually specifying run requirements, since
 conda-build 3 you can augment the packages used in your build and host
-sections with :ref:``run_exports`` which are then automatically added to the
-run requirements for you.
+sections with :ref:`run_exports <run_exports>` which are then automatically
+added to the run requirements for you.
 
 .. _meta-test:
 
