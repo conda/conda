@@ -106,9 +106,9 @@ inherited from the shell environment in which you invoke
      - Hash of the package being built, without leading h. EXAMPLE: 21422ab .
        Conda-build 3.0+.
    * - PYTHON
-     - Path to the Python executable in the build prefix. Python
-       is installed only in the build prefix when it is listed as
-       a build requirement.
+     - Path to the Python executable in the host prefix. Python
+       is installed only in the host prefix when it is listed as
+       a host requirement.
    * - PY3K
      - ``1`` when Python 3 is installed in the build prefix,
        otherwise ``0``.

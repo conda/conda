@@ -83,7 +83,7 @@ Editing the meta.yaml file
        git_url:
 
      requirements:
-       build:
+       host:
          - python
          - setuptools
 

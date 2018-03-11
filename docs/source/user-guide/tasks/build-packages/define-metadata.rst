@@ -626,22 +626,42 @@ package may not be testable, because the hashes will differ.
 
 .. _run_exports:
 
-Pin downstream
---------------
+Export runtime requirements
+---------------------------
 
-It is often useful to require a particular runtime library to be present at
-runtime when a particular library or package is used at build time. For example,
-if you use a C++ compiler to build a package with dynamic linkage, then it is
-likely that you also need to include the C++ runtime package corresponding to
-that compiler as a runtime requirement. Generally, these imposed pinnings should
-be added to the tool (compiler) or library (jpeg, bzip2, and so on) used at build
-time, rather than to the package using those tools or libraries.
+Some build or host :ref:``requirements`` will impose a runtime requirement.
+Most commonly this is true for shared libraries (e.g. libpng), which are
+required for linking at build time, and for resolving the link at run time.
+With ``run_exports`` (new in conda-build 3) such a runtime requirement can be
+implicitly added by host requirements (e.g. libpng exports libpng), and with
+``run_exports/strong`` even by build requirements (e.g. gcc exports libgcc).
 
 .. code-block:: yaml
 
+   # meta.yaml of libpng
    build:
      run_exports:
-       - libstdc++
+       - libpng
+
+.. code-block:: yaml
+
+   # meta.yaml of gcc compiler
+   build:
+     run_exports:
+       strong:
+         - libgcc
+
+.. code-block:: yaml
+
+   # meta.yaml of some package using gcc and libpng
+   requirements:
+     build:
+       - gcc            # has a strong run export
+     host:
+       - libpng         # has a (weak) run export
+     run:
+       # - libgcc       <-- implicitly added
+       # - libpng       <-- implicitly added
 
 You can express version constraints directly, or use any of the jinja2 helper
 functions listed at :ref:`extra_jinja2`.
@@ -653,10 +673,10 @@ pinning relative to versions present at build time:
 
   build:
     run_exports:
-      - libstdc++  {{ pin_compatible('g++', 'x') }}
+      - {{ pin_subpackage('libpng', max_pin='x.x') }}
 
-With this example, if g++ were version 5.3.0, this pinning expression would
-evaluate to ``>=5.3.0,<6``.
+With this example, if libpng were version 1.6.34, this pinning expression would
+evaluate to ``>=1.6.34,<1.7``.
 
 Note that ``run_exports`` can be specified both in the build section, and on
 a per-output basis for split packages.
@@ -685,6 +705,8 @@ package name in the ``build/ignore_run_exports`` section:
        - libstdc++
 
 
+.. _requirements:
+
 Requirements section
 ====================
 
@@ -703,6 +725,8 @@ the build system and include things such as revision control systems
 (git, svn) make tools (GNU make, Autotool, CMake) and compilers
 (real cross, pseudo-cross, or native when not cross-compiling)
 and any source pre-processors.
+Packages which provide "sysroot" files, like the ``CDT`` packages (see below)
+also belong in the build section.
 
 
 .. code-block:: yaml
@@ -817,13 +841,9 @@ The line in the ``meta.yaml`` file should literally say
        - numpy x.x
 
 **NOTE**: Instead of manually specifying run requirements, since
-conda-build 3 you can augment the packages used in your build section
-with ``strong run_exports`` which are then automatically added to the
-run requirements for you. The same can be done for packages in your
-host section with ``weak run_exports``. ``strong run_exports`` allows
-automatically adding things like compiler runtimes when the compiler is
-used. ``weak run_exports`` allows you to take advantange of generalized
-and automatic pinning.
+conda-build 3 you can augment the packages used in your build and host
+sections with :ref:``run_exports`` which are then automatically added to the
+run requirements for you.
 
 .. _meta-test:
 
