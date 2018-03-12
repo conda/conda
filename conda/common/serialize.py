@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import json
 from logging import getLogger
+import re
 
 from .compat import PY2, odict, ensure_text_type
 from .._vendor.auxlib.decorators import memoize
@@ -11,9 +12,42 @@ from .._vendor.auxlib.entity import EntityEncoder
 log = getLogger(__name__)
 
 
+class LazyEval(object):
+    init_count = 0
+    eval_count = 0
+
+    def __init__(self, func, *args, **kwargs):
+        LazyEval.init_count += 1
+
+        def lazy_self():
+            LazyEval.eval_count += 1
+            return_value = func(*args, **kwargs)
+            object.__setattr__(self, "lazy_self", lambda: return_value)
+            return return_value
+        object.__setattr__(self, "lazy_self", lazy_self)
+
+    def __getattribute__(self, name):
+        lazy_self = object.__getattribute__(self, "lazy_self")
+        if name == "lazy_self":
+            return lazy_self
+        return getattr(lazy_self(), name)
+
+    def __setattr__(self, name, value):
+        setattr(self.lazy_self(), name, value)
+
+
+class LazyFunc:
+    def __init__(self, func):
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        return LazyEval(self.func, *args, **kwargs)
+
+
 @memoize
 def get_yaml():
     try:
+        re.compile = LazyFunc(re.compile)
         import ruamel_yaml as yaml
     except ImportError:  # pragma: no cover
         try:
@@ -22,6 +56,8 @@ def get_yaml():
             raise ImportError("No yaml library available.\n"
                               "To proceed, conda install "
                               "ruamel_yaml")
+    finally:
+        re.compile = re.compile.func
     return yaml
 
 
