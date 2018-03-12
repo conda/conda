@@ -311,7 +311,7 @@ class YamlRawParameter(RawParameter):
 
     @staticmethod
     def _get_yaml_map_comments(rawvalue):
-        return dict((key, excepts(KeyError,
+        return dict((key, excepts((AttributeError, KeyError),
                                   lambda k: rawvalue.ca.items[k][2].value.strip() or None,
                                   lambda _: None  # default value on exception
                                   )(key))
