@@ -70,7 +70,7 @@ class Activator(object):
             self.shift_args = 0
             self.command_join = ';\n'
 
-            self.unset_var_tmpl = 'unset %s'
+            self.unset_var_tmpl = 'unsetenv %s'
             self.export_var_tmpl = 'setenv %s "%s"'
             self.set_var_tmpl = "set %s='%s'"
             self.run_script_tmpl = 'source "%s"'
