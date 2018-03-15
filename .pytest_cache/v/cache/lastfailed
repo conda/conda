@@ -1,0 +1,8 @@
+{
+  "tests/test_activate.py::ShellWrapperIntegrationTests::test_bash_activate_error": true,
+  "tests/test_activate.py::ShellWrapperIntegrationTests::test_bash_basic_integration": true,
+  "tests/test_activate.py::ShellWrapperIntegrationTests::test_csh_basic_integration": true,
+  "tests/test_activate.py::ShellWrapperIntegrationTests::test_dash_basic_integration": true,
+  "tests/test_activate.py::ShellWrapperIntegrationTests::test_tcsh_basic_integration": true,
+  "tests/test_activate.py::ShellWrapperIntegrationTests::test_zsh_basic_integration": true
+}
