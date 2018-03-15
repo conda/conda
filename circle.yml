@@ -61,14 +61,6 @@ conda_build_test: &conda_build_test
   <<: *defaults
   environment:
     CONDA_BUILD: master
-    CONDABUILD_SKIP: >
-      not xattr
-      and not skeleton_pypi
-      and not perl-cpan-Moo
-      and not r-cran-nmf
-      and not test_expand_globs
-      and not test_build_expands_wildcards
-      and not numpy_build_run
   steps:
     - run: *remove_conda
     - checkout
