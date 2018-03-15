@@ -78,7 +78,7 @@ function fish_right_prompt
 end
 
 
-function conda
+function conda --inherit-variable _CONDA_EXE
     if [ (count $argv) -lt 1 ]
         eval $_CONDA_EXE
     else
