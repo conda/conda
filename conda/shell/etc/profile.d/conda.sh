@@ -76,26 +76,26 @@ _conda_reactivate() {
 
 
 conda() {
-    if [ "$#" -ge 1 ]; then
+    if [ "$#" -lt 1 ]; then
+        $_CONDA_EXE
+    else
         \local cmd="$1"
         shift
-    else
-        \local cmd=""
+        case "$cmd" in
+            activate)
+                _conda_activate "$@"
+                ;;
+            deactivate)
+                _conda_deactivate "$@"
+                ;;
+            install|update|uninstall|remove)
+                $_CONDA_EXE "$cmd" "$@" && _conda_reactivate
+                ;;
+            *)
+                $_CONDA_EXE "$cmd" "$@"
+                ;;
+        esac
     fi
-    case "$cmd" in
-        activate)
-            _conda_activate "$@"
-            ;;
-        deactivate)
-            _conda_deactivate "$@"
-            ;;
-        install|update|uninstall|remove)
-            $_CONDA_EXE "$cmd" "$@" && _conda_reactivate
-            ;;
-        *)
-            $_CONDA_EXE "$cmd" "$@"
-            ;;
-    esac
 }
 
 
