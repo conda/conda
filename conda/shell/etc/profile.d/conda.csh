@@ -27,16 +27,19 @@ if ("`alias conda`" == "") then
 else
     switch ( "${1}" )
         case "activate":
-            eval "`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh activate '${2}' ${argv[3-]})`"
+            set ask_conda="`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh activate '${2}' ${argv[3-]})`" || exit ${status}
+            eval "${ask_conda}"
             rehash
             breaksw
         case "deactivate":
-            eval "`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh deactivate '${2}' ${argv[3-]})`"
+            set ask_conda="`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh deactivate '${2}' ${argv[3-]})`" || exit ${status}
+            eval "${ask_conda}"
             rehash
             breaksw
         case "install" | "update" | "uninstall" | "remove":
             $_CONDA_EXE $argv[1-]
-            eval "`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh reactivate)`"
+            set ask_conda="`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh reactivate)`" || exit ${status}
+            eval "${ask_conda}"
             rehash
             breaksw
         default:
