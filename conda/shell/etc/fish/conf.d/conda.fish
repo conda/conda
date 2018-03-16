@@ -31,21 +31,9 @@ test -n "$_CONDA_EXE"; or set _CONDA_EXE "$PWD/shell/bin/conda"
 
 test -n "$CONDA_SHLVL"; or set -gx CONDA_SHLVL "0"
 
-# Determine if we should display the environment in the prompt.
-# Do this once because calling conda is expensive.
-if string match -iq '*true' (eval $_CONDA_EXE config --show changeps1)
-  set -g CHANGE_PROMPT "1"
-end
-
 function __conda_add_prompt
-  if begin set -q CONDA_DEFAULT_ENV; and set -q CHANGE_PROMPT; end
-      set_color normal
-      echo -n '('
-      set_color -o green
-      echo -n $CONDA_DEFAULT_ENV
-      set_color normal
-      echo -n ') '
-  end
+  set_color normal
+  echo -n $CONDA_PROMPT_MODIFIER
 end
 
 if functions -q fish_prompt
