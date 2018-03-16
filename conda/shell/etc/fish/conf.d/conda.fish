@@ -43,7 +43,9 @@ function __conda_add_prompt
 end
 
 if functions -q fish_prompt
-    functions -c fish_prompt __fish_prompt_orig
+    if not functions -q __fish_prompt_orig
+        functions -c fish_prompt __fish_prompt_orig
+    end
     functions -e fish_prompt
 else
     function __fish_prompt_orig
@@ -64,7 +66,9 @@ function fish_prompt
 end
 
 if functions -q fish_right_prompt
-    functions -c fish_right_prompt __fish_right_prompt_orig
+    if not functions -q  __fish_right_prompt_orig
+        functions -c fish_right_prompt __fish_right_prompt_orig
+    end
     functions -e fish_right_prompt
 else
     function __fish_right_prompt_orig
