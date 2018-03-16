@@ -255,6 +255,9 @@ def typify_data_structure(value, type_hint=None):
         return type(value)((k, typify(v, type_hint)) for k, v in iteritems(value))
     elif isiterable(value):
         return type(value)(typify(v, type_hint) for v in value)
+    elif (isinstance(value, string_types)
+          and isinstance(type_hint, type) and issubclass(type_hint, string_types)):
+        return value
     else:
         return typify(value, type_hint)
 

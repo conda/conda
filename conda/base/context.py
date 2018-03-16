@@ -112,7 +112,7 @@ class Context(Configuration):
     notify_outdated_conda = PrimitiveParameter(True)
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
-    prompt = PrimitiveParameter("({name}) ")
+    prompt = PrimitiveParameter("({default_env}) ")
     create_default_packages = SequenceParameter(string_types)
     default_python = PrimitiveParameter(default_python_default(),
                                         element_type=string_types + (NoneType,),
