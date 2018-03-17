@@ -121,6 +121,9 @@ def get_activate_path(prefix, shell, going_to_shell=True):
 
 
 def main():
+    print("WARNING: The module conda.cli.activate is deprecated. It will be removed in a "
+          "future feature release (i.e. minor version release).", file=sys.stderr)
+
     from ..base.constants import ROOT_ENV_NAME
     from ..gateways.logging import initialize_logging
     initialize_logging()
