@@ -1,7 +1,6 @@
 """
 IPython/Jupyter Notebook progressbar decorator for iterators.
 Includes a default (x)range iterator printing to stderr.
-
 Usage:
   >>> from tqdm_notebook import tnrange[, tqdm_notebook]
   >>> for i in tnrange(10): #same as: for i in tqdm_notebook(xrange(10))
@@ -106,7 +105,7 @@ class tqdm_notebook(tqdm):
         container = HBox(children=[pbar, ptext])
         display(container)
 
-        def print_status(s='', close=False, bar_style=None):
+        def print_status(s='', close=False, bar_style=None, desc=None):
             # Note: contrary to native tqdm, s='' does NOT clear bar
             # goal is to keep all infos if error happens so user knows
             # at which iteration the loop failed.
@@ -116,7 +115,7 @@ class tqdm_notebook(tqdm):
 
             # Get current iteration value from format_meter string
             if total:
-                n = None
+                # n = None
                 if s:
                     npos = s.find(r'/|/')  # cause we use bar_format=r'{n}|...'
                     # Check that n can be found in s (else n > total)
@@ -143,20 +142,16 @@ class tqdm_notebook(tqdm):
 
             # Special signal to close the bar
             if close and pbar.bar_style != 'danger':  # hide only if no error
-                container.visible = False
+                try:
+                    container.close()
+                except AttributeError:
+                    container.visible = False
+
+            # Update description
+            if desc:
+                pbar.description = desc
 
         return print_status
-
-    @classmethod
-    def write(cls, s, file=None, end="\n"):
-        """
-        Print a message via tqdm_notebook (just an alias for print)
-        """
-        if file is None:
-            file = sys.stdout
-        # Just an alias for print because overlap is impossible with ipywidgets
-        file.write(s)
-        file.write(end)
 
     def __init__(self, *args, **kwargs):
         # Setup default output
@@ -220,6 +215,15 @@ class tqdm_notebook(tqdm):
     def moveto(self, *args, **kwargs):
         # void -> avoid extraneous `\n` in IPython output cell
         return
+
+    def set_description(self, desc=None, **_):
+        """
+        Set/modify description of the progress bar.
+        Parameters
+        ----------
+        desc  : str, optional
+        """
+        self.sp(desc=desc)
 
 
 def tnrange(*args, **kwargs):

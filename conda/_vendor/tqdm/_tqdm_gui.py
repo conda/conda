@@ -1,7 +1,6 @@
 """
 GUI progressbar decorator for iterators.
 Includes a default (x)range iterator printing to stderr.
-
 Usage:
   >>> from tqdm_gui import tgrange[, tqdm_gui]
   >>> for i in tgrange(10): #same as: for i in tqdm_gui(xrange(10))
@@ -11,7 +10,7 @@ Usage:
 # a result precise floating numbers (instead of truncated int)
 from __future__ import division, absolute_import
 # import compatibility functions and utilities
-import sys
+# import sys
 from time import time
 from ._utils import _range
 # to inherit from the tqdm class
@@ -27,16 +26,7 @@ class tqdm_gui(tqdm):  # pragma: no cover
     Experimental GUI version of tqdm!
     """
 
-    @classmethod
-    def write(cls, s, file=None, end="\n"):
-        """
-        Print a message via tqdm_gui (just an alias for print)
-        """
-        if file is None:
-            file = sys.stdout
-        # TODO: print text on GUI?
-        file.write(s)
-        file.write(end)
+    # TODO: @classmethod: write() on GUI?
 
     def __init__(self, *args, **kwargs):
         import matplotlib as mpl
