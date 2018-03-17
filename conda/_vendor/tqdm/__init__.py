@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# source: https://raw.githubusercontent.com/tqdm/tqdm/v4.14.0/tqdm/__init__.py
-# version: 4.14.0
-# date: 2017-06-18
+# source: https://raw.githubusercontent.com/tqdm/tqdm/v4.19.8/tqdm/__init__.py
+# version: 4.19.8
+# date: 2018-03-17
 
 from ._tqdm import tqdm
 from ._tqdm import trange
@@ -9,12 +9,15 @@ from ._tqdm_gui import tqdm_gui
 from ._tqdm_gui import tgrange
 from ._tqdm_pandas import tqdm_pandas
 from ._main import main
+from ._monitor import TMonitor
 from ._version import __version__  # NOQA
-from ._tqdm import TqdmTypeError, TqdmKeyError, TqdmDeprecationWarning
+from ._tqdm import TqdmTypeError, TqdmKeyError, TqdmDeprecationWarning, \
+    TqdmMonitorWarning
 
 __all__ = ['tqdm', 'tqdm_gui', 'trange', 'tgrange', 'tqdm_pandas',
-           'tqdm_notebook', 'tnrange', 'main',
+           'tqdm_notebook', 'tnrange', 'main', 'TMonitor',
            'TqdmTypeError', 'TqdmKeyError', 'TqdmDeprecationWarning',
+           'TqdmMonitorWarning',
            '__version__']
 
 
