@@ -39,6 +39,20 @@ class _Activator(object):
     # To implement support for a new shell, ideally one would only need to add shell-specific
     # information to the __init__ method of this class.
 
+    # The following instance variables must be defined by each implementation.
+    shell = None
+    pathsep_join = None
+    path_conversion = None
+    script_extension = None
+    tempfile_extension = None  # None means write instructions to stdout rather than a temp file
+    shift_args = None
+    command_join = None
+
+    unset_var_tmpl = None
+    export_var_tmpl = None
+    set_var_tmpl = None
+    run_script_tmpl = None
+
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
 
@@ -546,6 +560,7 @@ class XonshActivator(_Activator):
 
         self.unset_var_tmpl = 'del $%s'
         self.export_var_tmpl = "$%s = '%s'"
+        self.set_var_tmpl = "$%s = '%s'"  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = 'source "%s"'
 
         super(XonshActivator, self).__init__(arguments)
@@ -565,6 +580,7 @@ class CmdExeActivator(_Activator):
 
         self.unset_var_tmpl = '@SET %s='
         self.export_var_tmpl = '@SET "%s=%s"'
+        self.set_var_tmpl = '@SET "%s=%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = '@CALL "%s"'
 
         super(CmdExeActivator, self).__init__(arguments)
@@ -584,6 +600,7 @@ class FishActivator(_Activator):
 
         self.unset_var_tmpl = 'set -e %s'
         self.export_var_tmpl = 'set -gx %s "%s"'
+        self.set_var_tmpl = 'set -gx %s "%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = 'source "%s"'
 
         super(FishActivator, self).__init__(arguments)
@@ -603,6 +620,7 @@ class PowershellActivator(_Activator):
 
         self.unset_var_tmpl = 'Remove-Variable %s'
         self.export_var_tmpl = '$env:%s = "%s"'
+        self.set_var_tmpl = '$env:%s = "%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = '. "%s"'
 
         super(PowershellActivator, self).__init__(arguments)
