@@ -128,7 +128,8 @@ def execute_config(args, parser):
                 }
             # TODO: custom_multichannels needs better formatting
             if 'custom_multichannels' in d:
-                d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls])
+                d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls],
+                                                           ensure_ascii=False)
                                              for k, chnls in iteritems(d['custom_multichannels'])}
 
             print('\n'.join(format_dict(d)))
