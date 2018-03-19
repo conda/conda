@@ -472,6 +472,7 @@ class CreateNonadminAction(CreateInPrefixPathAction):
     def __init__(self, transaction_context, package_info, target_prefix):
         super(CreateNonadminAction, self).__init__(transaction_context, package_info, None, None,
                                                    target_prefix, '.nonadmin')
+        self._file_created = None
 
     def execute(self):
         log.trace("touching nonadmin %s", self.target_full_path)
