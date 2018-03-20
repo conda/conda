@@ -1,6 +1,21 @@
-## 4.5.0 (unreleased)
+## 4.5.1 (unreleased)
+
+### Bug Fixes
+* fix #6703,#6981 index out of bound when running deactivate on fish shell (#6993)
+* properly close over $_CONDA_EXE variable (#7004)
+* fix condarc map parsing with comments (#7021)
+
+
+## 4.5.0 (2018-03-20)
 
 ### New Feature Highlights
+* A new flag, '--envs', has been added to 'conda search'. In this mode,
+  'conda search' will look for the package query in existing conda environments
+  on your system. If ran as UID 0 (i.e. root) on unix systems or as an
+  Administrator user on Windows, all known conda environments for all users
+  on the system will be searched.  For example, 'conda search --envs openssl'
+  will show the openssl version and environment location for all
+  conda-installed openssl packages.
 
 ### Deprecations/Breaking Changes
 * resolve #6886 transition defaults from repo.continuum.io to repo.anaconda.com (#6887)
