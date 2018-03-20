@@ -1146,6 +1146,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('CONDA_SHLVL', '0')
 
     @pytest.mark.skipif(not which('csh'), reason='csh not installed')
+    @pytest.mark.xfail(reason="pure csh doesn't support argument passing to sourced scripts")
     def test_csh_basic_integration(self):
         with InteractiveShell('csh') as shell:
             self.basic_csh(shell)
