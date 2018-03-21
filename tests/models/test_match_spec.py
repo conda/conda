@@ -443,6 +443,7 @@ class MatchSpecTests(TestCase):
         assert MatchSpec("*[license_family='*gpl*']").match(record)
 
         assert MatchSpec("*[license='*gpl*']").match(record)
+        assert MatchSpec("*[license='*v3+']").match(record)
 
 
 class TestArg2Spec(TestCase):
