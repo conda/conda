@@ -792,7 +792,10 @@ class Resolve(object):
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
         pkgs = self.solve(specs, returnall=returnall, _remove=False)
         self.restore_bad(pkgs, preserve)
-        return pkgs
+        if returnall:
+            return [[self.index[d] for d in dists] for dists in pkgs]
+        else:
+            return [self.index[dist] for dist in pkgs]
 
     def remove_specs(self, specs, installed):
         nspecs = []
@@ -829,7 +832,7 @@ class Resolve(object):
         specs, preserve = self.remove_specs(specs, installed)
         pkgs = self.solve(specs, _remove=True)
         self.restore_bad(pkgs, preserve)
-        return pkgs
+        return [self.index[dist] for dist in pkgs]
 
     @time_recorder("resolve_solve")
     def solve(self, specs, returnall=False, _remove=False):

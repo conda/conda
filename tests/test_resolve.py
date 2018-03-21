@@ -10,6 +10,7 @@ from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
+
 from .helpers import get_index_r_1, get_index_r_3, raises
 
 index, r, = get_index_r_1()
@@ -64,19 +65,19 @@ class TestSolve(unittest.TestCase):
 
     def test_iopro_nomkl(self):
         installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], returnall=True)
-        installed = [[dist.to_filename() for dist in psol] for psol in installed]
+        installed = [[rec.dist_str() for rec in psol] for psol in installed]
 
         self.assertEqual(installed,
-            [['iopro-1.4.3-np17py27_p0.tar.bz2',
-              'numpy-1.7.1-py27_0.tar.bz2',
-              'openssl-1.0.1c-0.tar.bz2',
-              'python-2.7.5-0.tar.bz2',
-              'readline-6.2-0.tar.bz2',
-              'sqlite-3.7.13-0.tar.bz2',
-              'system-5.8-1.tar.bz2',
-              'tk-8.5.13-0.tar.bz2',
-              'unixodbc-2.3.1-0.tar.bz2',
-              'zlib-1.2.7-0.tar.bz2']])
+            [['channel-1::iopro-1.4.3-np17py27_p0',
+              'channel-1::numpy-1.7.1-py27_0',
+              'channel-1::openssl-1.0.1c-0',
+              'channel-1::python-2.7.5-0',
+              'channel-1::readline-6.2-0',
+              'channel-1::sqlite-3.7.13-0',
+              'channel-1::system-5.8-1',
+              'channel-1::tk-8.5.13-0',
+              'channel-1::unixodbc-2.3.1-0',
+              'channel-1::zlib-1.2.7-0']])
 
     def test_iopro_mkl(self):
         installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')], returnall=True)
@@ -118,34 +119,36 @@ class TestSolve(unittest.TestCase):
 
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True) == [[
-        Dist(add_defaults_if_no_channel(fn)) for fn in [
-        'iopro-1.4.3-np15py27_p0.tar.bz2',
-        'numpy-1.5.1-py27_4.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'unixodbc-2.3.1-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]]]
+    installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True)
+    installed = [[rec.dist_str() for rec in psol] for psol in installed]
+    assert installed == [[
+        'channel-1::iopro-1.4.3-np15py27_p0',
+        'channel-1::numpy-1.5.1-py27_4',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-2.7.5-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::unixodbc-2.3.1-0',
+        'channel-1::zlib-1.2.7-0',
+    ]]
 
-    assert r.install(['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')], returnall=True) == [[
-        Dist(add_defaults_if_no_channel(fn)) for fn in [
-        'iopro-1.4.3-np15py27_p0.tar.bz2',
-        'mkl-rt-11.0-p0.tar.bz2',
-        'numpy-1.5.1-py27_p4.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'unixodbc-2.3.1-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]]]
+    installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')], returnall=True)
+    installed = [[rec.dist_str() for rec in psol] for psol in installed]
+    assert installed == [[
+        'channel-1::iopro-1.4.3-np15py27_p0',
+        'channel-1::mkl-rt-11.0-p0',
+        'channel-1::numpy-1.5.1-py27_p4',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-2.7.5-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::unixodbc-2.3.1-0',
+        'channel-1::zlib-1.2.7-0',
+    ]]
 
 
 def test_get_dists():
@@ -523,48 +526,50 @@ def test_nonexistent_deps():
 
     target_result = r.install(['mypackage'])
     assert target_result == r.install(['mypackage 1.1'])
+    target_result = [rec.dist_str() for rec in target_result]
     assert target_result == [
-        Dist(add_defaults_if_no_channel(dname)) for dname in [
-        '<unknown>::mypackage-1.1-py33_0.tar.bz2',
-        'nose-1.3.0-py33_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-3.3.2-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]]
+        'defaults::mypackage-1.1-py33_0',
+        'channel-1::nose-1.3.0-py33_0',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-3.3.2-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
     assert raises(ResolvePackageNotFound, lambda: r.install(['mypackage 1.0']))
     assert raises(ResolvePackageNotFound, lambda: r.install(['mypackage 1.0', 'burgertime 1.0']))
 
-    assert r.install(['anotherpackage 1.0']) == [
-        Dist(add_defaults_if_no_channel(dname)) for dname in [
-        '<unknown>::anotherpackage-1.0-py33_0.tar.bz2',
-        '<unknown>::mypackage-1.1-py33_0.tar.bz2',
-        'nose-1.3.0-py33_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-3.3.2-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]]
+    target_result = r.install(['anotherpackage 1.0'])
+    target_result = [rec.dist_str() for rec in target_result]
+    assert target_result == [
+        'defaults::anotherpackage-1.0-py33_0',
+        'defaults::mypackage-1.1-py33_0',
+        'channel-1::nose-1.3.0-py33_0',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-3.3.2-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
 
-    assert r.install(['anotherpackage']) == [
-        Dist(add_defaults_if_no_channel(dname)) for dname in [
-        '<unknown>::anotherpackage-2.0-py33_0.tar.bz2',
-        '<unknown>::mypackage-1.1-py33_0.tar.bz2',
-        'nose-1.3.0-py33_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-3.3.2-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]]
+    target_result = r.install(['anotherpackage'])
+    target_result = [rec.dist_str() for rec in target_result]
+    assert target_result == [
+        'defaults::anotherpackage-2.0-py33_0',
+        'defaults::mypackage-1.1-py33_0',
+        'channel-1::nose-1.3.0-py33_0',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-3.3.2-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
 
     # This time, the latest version is messed up
     index3 = index.copy()
@@ -643,49 +648,52 @@ def test_nonexistent_deps():
         'tk-8.5.13-0.tar.bz2',
         'zlib-1.2.7-0.tar.bz2'}
 
-    assert r.install(['mypackage']) == r.install(['mypackage 1.0']) == [
-        Dist(add_defaults_if_no_channel(dname)) for dname in [
-        '<unknown>::mypackage-1.0-py33_0.tar.bz2',
-        'nose-1.3.0-py33_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-3.3.2-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]]
+    target_result = r.install(['mypackage'])
+    target_result = [rec.dist_str() for rec in target_result]
+    assert target_result == [
+        'defaults::mypackage-1.0-py33_0',
+        'channel-1::nose-1.3.0-py33_0',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-3.3.2-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
     assert raises(ResolvePackageNotFound, lambda: r.install(['mypackage 1.1']))
 
-    assert r.install(['anotherpackage 1.0']) == [
-        Dist(add_defaults_if_no_channel(dname))for dname in [
-        '<unknown>::anotherpackage-1.0-py33_0.tar.bz2',
-        '<unknown>::mypackage-1.0-py33_0.tar.bz2',
-        'nose-1.3.0-py33_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-3.3.2-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]]
+    target_result = r.install(['anotherpackage 1.0'])
+    target_result = [rec.dist_str() for rec in target_result]
+    assert target_result == [
+        'defaults::anotherpackage-1.0-py33_0',
+        'defaults::mypackage-1.0-py33_0',
+        'channel-1::nose-1.3.0-py33_0',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-3.3.2-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
 
     # If recursive checking is working correctly, this will give
     # anotherpackage 2.0, not anotherpackage 1.0
-    assert r.install(['anotherpackage']) == [
-        Dist(add_defaults_if_no_channel(dname))for dname in [
-        '<unknown>::anotherpackage-2.0-py33_0.tar.bz2',
-        '<unknown>::mypackage-1.0-py33_0.tar.bz2',
-        'nose-1.3.0-py33_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-3.3.2-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]]
+    target_result = r.install(['anotherpackage'])
+    target_result = [rec.dist_str() for rec in target_result]
+    assert target_result == [
+        'defaults::anotherpackage-2.0-py33_0',
+        'defaults::mypackage-1.0-py33_0',
+        'channel-1::nose-1.3.0-py33_0',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-3.3.2-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
 
 
 def test_install_package_with_feature():
@@ -780,10 +788,12 @@ def test_circular_dependencies():
         Dist('package1-1.0-0.tar.bz2'),
         Dist('package2-1.0-0.tar.bz2'),
     }
-    assert r.install(['package1']) == r.install(['package2']) == \
-        r.install(['package1', 'package2']) == [
-        Dist('package1-1.0-0.tar.bz2'),
-        Dist('package2-1.0-0.tar.bz2'),
+    result = r.install(['package1', 'package2'])
+    assert r.install(['package1']) == r.install(['package2']) == result
+    result = [r.dist_str() for r in result]
+    assert result == [
+        'defaults::package1-1.0-0',
+        'defaults::package2-1.0-0',
     ]
 
 
@@ -835,59 +845,67 @@ def test_optional_dependencies():
         Dist('package1-1.0-0.tar.bz2'),
         Dist('package2-2.0-0.tar.bz2'),
     }
-    assert r.install(['package1']) == [
-        Dist('package1-1.0-0.tar.bz2'),
+    result = r.install(['package1'])
+    result = [rec.dist_str() for rec in result]
+    assert result == [
+        'defaults::package1-1.0-0',
     ]
-    assert r.install(['package1', 'package2']) == r.install(['package1', 'package2 >1.0']) == [
-        Dist('package1-1.0-0.tar.bz2'),
-        Dist('package2-2.0-0.tar.bz2'),
+    result = r.install(['package1', 'package2'])
+    assert result == r.install(['package1', 'package2 >1.0'])
+    result = [rec.dist_str() for rec in result]
+    assert result == [
+        'defaults::package1-1.0-0',
+        'defaults::package2-2.0-0',
     ]
     assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 <2.0']))
     assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 1.0']))
 
 
 def test_irrational_version():
-    assert r.install(['pytz 2012d', 'python 3*'], returnall=True) == [[
-        Dist(add_defaults_if_no_channel(fname)) for fname in [
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-3.3.2-0.tar.bz2',
-        'pytz-2012d-py33_0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2'
-    ]]]
+    result = r.install(['pytz 2012d', 'python 3*'], returnall=True)
+    result = [[rec.dist_str() for rec in recs] for recs in result]
+    assert result == [[
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-3.3.2-0',
+        'channel-1::pytz-2012d-py33_0',
+        'channel-1::readline-6.2-0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]]
 
 
 def test_no_features():
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
-    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'],
-        returnall=True) == [[Dist(add_defaults_if_no_channel(fname)) for fname in [
-            'numpy-1.6.2-py26_4.tar.bz2',
-            'openssl-1.0.1c-0.tar.bz2',
-            'python-2.6.8-6.tar.bz2',
-            'readline-6.2-0.tar.bz2',
-            'scipy-0.11.0-np16py26_3.tar.bz2',
-            'sqlite-3.7.13-0.tar.bz2',
-            'system-5.8-1.tar.bz2',
-            'tk-8.5.13-0.tar.bz2',
-            'zlib-1.2.7-0.tar.bz2',
-            ]]]
+    result = r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'], returnall=True)
+    result = [[rec.dist_str() for rec in recs] for recs in result]
+    assert result == [[
+        'channel-1::numpy-1.6.2-py26_4',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-2.6.8-6',
+        'channel-1::readline-6.2-0',
+        'channel-1::scipy-0.11.0-np16py26_3',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]]
 
-    assert r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(track_features='mkl')],
-        returnall=True) == [[Dist(add_defaults_if_no_channel(fname)) for fname in [
-            'mkl-rt-11.0-p0.tar.bz2',           # This,
-            'numpy-1.6.2-py26_p4.tar.bz2',      # this,
-            'openssl-1.0.1c-0.tar.bz2',
-            'python-2.6.8-6.tar.bz2',
-            'readline-6.2-0.tar.bz2',
-            'scipy-0.11.0-np16py26_p3.tar.bz2', # and this are different.
-            'sqlite-3.7.13-0.tar.bz2',
-            'system-5.8-1.tar.bz2',
-            'tk-8.5.13-0.tar.bz2',
-            'zlib-1.2.7-0.tar.bz2',
-            ]]]
+    result = r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(track_features='mkl')], returnall=True)
+    result = [[rec.dist_str() for rec in recs] for recs in result]
+    assert result == [[
+        'channel-1::mkl-rt-11.0-p0',           # This,
+        'channel-1::numpy-1.6.2-py26_p4',      # this,
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-2.6.8-6',
+        'channel-1::readline-6.2-0',
+        'channel-1::scipy-0.11.0-np16py26_p3', # and this are different.
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]]
 
     index2 = index.copy()
     index2["channel-1::pandas-0.12.0-np16py27_0.tar.bz2"] = PackageRecord(**{
@@ -939,38 +957,40 @@ def test_no_features():
 
     # This should not pick any mkl packages (the difference here is that none
     # of the specs directly have mkl versions)
-    assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*'],
-        returnall=True) == [[Dist(add_defaults_if_no_channel(fname)) for fname in [
-            'dateutil-2.1-py27_1.tar.bz2',
-            'numpy-1.6.2-py27_4.tar.bz2',
-            'openssl-1.0.1c-0.tar.bz2',
-            'pandas-0.12.0-np16py27_0.tar.bz2',
-            'python-2.7.5-0.tar.bz2',
-            'pytz-2013b-py27_0.tar.bz2',
-            'readline-6.2-0.tar.bz2',
-            'six-1.3.0-py27_0.tar.bz2',
-            'sqlite-3.7.13-0.tar.bz2',
-            'system-5.8-1.tar.bz2',
-            'tk-8.5.13-0.tar.bz2',
-            'zlib-1.2.7-0.tar.bz2',
-            ]]]
+    result = r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*'], returnall=True)
+    result = [[rec.dist_str() for rec in recs] for recs in result]
+    assert result == [[
+        'channel-1::dateutil-2.1-py27_1',
+        'channel-1::numpy-1.6.2-py27_4',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::pandas-0.12.0-np16py27_0',
+        'channel-1::python-2.7.5-0',
+        'channel-1::pytz-2013b-py27_0',
+        'channel-1::readline-6.2-0',
+        'channel-1::six-1.3.0-py27_0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]]
 
-    assert r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(track_features='mkl')],
-        returnall=True)[0] == [[Dist(add_defaults_if_no_channel(fname)) for fname in [
-            'dateutil-2.1-py27_1.tar.bz2',
-            'mkl-rt-11.0-p0.tar.bz2',           # This
-            'numpy-1.6.2-py27_p5.tar.bz2',      # and this are different.
-            'openssl-1.0.1c-0.tar.bz2',
-            'pandas-0.12.0-np16py27_0.tar.bz2',
-            'python-2.7.5-0.tar.bz2',
-            'pytz-2013b-py27_0.tar.bz2',
-            'readline-6.2-0.tar.bz2',
-            'six-1.3.0-py27_0.tar.bz2',
-            'sqlite-3.7.13-0.tar.bz2',
-            'system-5.8-1.tar.bz2',
-            'tk-8.5.13-0.tar.bz2',
-            'zlib-1.2.7-0.tar.bz2',
-            ]]][0]
+    result = r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(track_features='mkl')], returnall=True)[0]
+    result = [rec.dist_str() for rec in result]
+    assert result == [
+        'channel-1::dateutil-2.1-py27_1',
+        'channel-1::mkl-rt-11.0-p0',           # This
+        'channel-1::numpy-1.6.2-py27_p5',      # and this are different.
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::pandas-0.12.0-np16py27_0',
+        'channel-1::python-2.7.5-0',
+        'channel-1::pytz-2013b-py27_0',
+        'channel-1::readline-6.2-0',
+        'channel-1::six-1.3.0-py27_0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
 
 
 def test_multiple_solution():
@@ -990,20 +1010,22 @@ def test_multiple_solution():
 
 def test_broken_install():
     installed = r.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
-    assert installed == [Dist(add_defaults_if_no_channel(fname)) for fname in [
-        'dateutil-2.1-py27_1.tar.bz2',
-        'numpy-1.6.2-py27_4.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'pandas-0.11.0-np16py27_1.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'pytz-2013b-py27_0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.12.0-np16py27_0.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']]
+    _installed = [rec.dist_str() for rec in installed]
+    assert _installed == [
+        'channel-1::dateutil-2.1-py27_1',
+        'channel-1::numpy-1.6.2-py27_4',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::pandas-0.11.0-np16py27_1',
+        'channel-1::python-2.7.5-0',
+        'channel-1::pytz-2013b-py27_0',
+        'channel-1::readline-6.2-0',
+        'channel-1::scipy-0.12.0-np16py27_0',
+        'channel-1::six-1.3.0-py27_0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
 
     # Add an incompatible numpy; installation should be untouched
     installed1 = list(installed)
@@ -1030,49 +1052,56 @@ def test_broken_install():
 
 def test_remove():
     installed = r.install(['pandas', 'python 2.7*'])
-    assert installed == [Dist(add_defaults_if_no_channel(fname)) for fname in [
-        'dateutil-2.1-py27_1.tar.bz2',
-        'numpy-1.7.1-py27_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'pandas-0.11.0-np17py27_1.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'pytz-2013b-py27_0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.12.0-np17py27_0.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']]
+    _installed = [rec.dist_str() for rec in installed]
+    assert _installed == [
+        'channel-1::dateutil-2.1-py27_1',
+        'channel-1::numpy-1.7.1-py27_0',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::pandas-0.11.0-np17py27_1',
+        'channel-1::python-2.7.5-0',
+        'channel-1::pytz-2013b-py27_0',
+        'channel-1::readline-6.2-0',
+        'channel-1::scipy-0.12.0-np17py27_0',
+        'channel-1::six-1.3.0-py27_0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
 
-    assert r.remove(['pandas'], installed=installed) == [
-        Dist(add_defaults_if_no_channel(fname)) for fname in [
-        'dateutil-2.1-py27_1.tar.bz2',
-        'numpy-1.7.1-py27_0.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'pytz-2013b-py27_0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.12.0-np17py27_0.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']]
+    installed = [Dist(rec) for rec in installed]
+    result = r.remove(['pandas'], installed=installed)
+    result = [rec.dist_str() for rec in result]
+    assert result == [
+        'channel-1::dateutil-2.1-py27_1',
+        'channel-1::numpy-1.7.1-py27_0',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-2.7.5-0',
+        'channel-1::pytz-2013b-py27_0',
+        'channel-1::readline-6.2-0',
+        'channel-1::scipy-0.12.0-np17py27_0',
+        'channel-1::six-1.3.0-py27_0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
 
     # Pandas requires numpy
-    assert r.remove(['numpy'], installed=installed) == [
-        Dist(add_defaults_if_no_channel(fname)) for fname in [
-        'dateutil-2.1-py27_1.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'pytz-2013b-py27_0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']]
+    result = r.remove(['numpy'], installed=installed)
+    result = [rec.dist_str() for rec in result]
+    assert result == [
+        'channel-1::dateutil-2.1-py27_1',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::python-2.7.5-0',
+        'channel-1::pytz-2013b-py27_0',
+        'channel-1::readline-6.2-0',
+        'channel-1::six-1.3.0-py27_0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
 
 
 def test_channel_priority_1():
@@ -1399,57 +1428,62 @@ def test_dependency_sort():
 
 def test_update_deps():
     installed = r.install(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'])
-    assert installed == [Dist(add_defaults_if_no_channel(fn)) for fn in [
-        'dateutil-2.1-py27_1.tar.bz2',
-        'numpy-1.6.2-py27_4.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'pandas-0.10.1-np16py27_0.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.11.0-np16py27_3.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]]
+    result = [rec.dist_str() for rec in installed]
+    assert result == [
+        'channel-1::dateutil-2.1-py27_1',
+        'channel-1::numpy-1.6.2-py27_4',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::pandas-0.10.1-np16py27_0',
+        'channel-1::python-2.7.5-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::scipy-0.11.0-np16py27_3',
+        'channel-1::six-1.3.0-py27_0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]
 
     # scipy, and pandas should all be updated here. pytz is a new
     # dependency of pandas. But numpy does not _need_ to be updated
     # to get the latest version of pandas, so it stays put.
-    assert r.install(['pandas', 'python 2.7*'], installed=installed,
-        update_deps=True, returnall=True) == [[Dist(add_defaults_if_no_channel(fn)) for fn in [
-        'dateutil-2.1-py27_1.tar.bz2',
-        'numpy-1.6.2-py27_4.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'pandas-0.11.0-np16py27_1.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'pytz-2013b-py27_0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.12.0-np16py27_0.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2']]]
+    installed = [Dist(rec) for rec in installed]
+    result = r.install(['pandas', 'python 2.7*'], installed=installed, update_deps=True, returnall=True)
+    result = [[rec.dist_str() for rec in recs] for recs in result]
+    assert result == [[
+        'channel-1::dateutil-2.1-py27_1',
+        'channel-1::numpy-1.6.2-py27_4',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::pandas-0.11.0-np16py27_1',
+        'channel-1::python-2.7.5-0',
+        'channel-1::pytz-2013b-py27_0',
+        'channel-1::readline-6.2-0',
+        'channel-1::scipy-0.12.0-np16py27_0',
+        'channel-1::six-1.3.0-py27_0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]]
 
     # pandas should be updated here. However, it's going to try to not update
     # scipy, so it won't be updated to the latest version (0.11.0).
-    assert r.install(['pandas', 'python 2.7*'], installed=installed,
-        update_deps=False, returnall=True) == [[Dist(add_defaults_if_no_channel(fn)) for fn in [
-        'dateutil-2.1-py27_1.tar.bz2',
-        'numpy-1.6.2-py27_4.tar.bz2',
-        'openssl-1.0.1c-0.tar.bz2',
-        'pandas-0.10.1-np16py27_0.tar.bz2',
-        'python-2.7.5-0.tar.bz2',
-        'readline-6.2-0.tar.bz2',
-        'scipy-0.11.0-np16py27_3.tar.bz2',
-        'six-1.3.0-py27_0.tar.bz2',
-        'sqlite-3.7.13-0.tar.bz2',
-        'system-5.8-1.tar.bz2',
-        'tk-8.5.13-0.tar.bz2',
-        'zlib-1.2.7-0.tar.bz2',
-    ]]]
+    result = r.install(['pandas', 'python 2.7*'], installed=installed, update_deps=False, returnall=True)
+    result = [[rec.dist_str() for rec in recs] for recs in result]
+    assert result == [[
+        'channel-1::dateutil-2.1-py27_1',
+        'channel-1::numpy-1.6.2-py27_4',
+        'channel-1::openssl-1.0.1c-0',
+        'channel-1::pandas-0.10.1-np16py27_0',
+        'channel-1::python-2.7.5-0',
+        'channel-1::readline-6.2-0',
+        'channel-1::scipy-0.11.0-np16py27_3',
+        'channel-1::six-1.3.0-py27_0',
+        'channel-1::sqlite-3.7.13-0',
+        'channel-1::system-5.8-1',
+        'channel-1::tk-8.5.13-0',
+        'channel-1::zlib-1.2.7-0',
+    ]]
 
 
 def test_surplus_features_1():
