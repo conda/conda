@@ -172,6 +172,8 @@ class MatchSpec(object):
         'features',
         'url',
         'md5',
+        'license',
+        'license_family',
     )
 
     def __init__(self, optional=False, target=None, **kwargs):
@@ -769,7 +771,8 @@ class StrMatch(MatchInterface):
         if value.startswith('^') and value.endswith('$'):
             self._re_match = re.compile(value).match
         elif '*' in value:
-            self._re_match = re.compile(r'^(?:%s)$' % value.replace('*', r'.*')).match
+            value = re.escape(value).replace('\\*', r'.*')
+            self._re_match = re.compile(r'^(?:%s)$' % value).match
 
     def match(self, other):
         try:
@@ -860,6 +863,20 @@ class LowerStrMatch(StrMatch):
         super(LowerStrMatch, self).__init__(value.lower())
 
 
+class CaseInsensitiveStrMatch(LowerStrMatch):
+
+    def match(self, other):
+        try:
+            _other_val = other._raw_value
+        except AttributeError:
+            _other_val = text_type(other)
+
+        _other_val = _other_val.lower()
+        if self._re_match:
+            return self._re_match(_other_val)
+        else:
+            return self._raw_value == _other_val
+
 _implementors = {
     'name': LowerStrMatch,
     'track_features': FeatureMatch,
@@ -867,4 +884,6 @@ _implementors = {
     'version': VersionSpec,
     'build_number': BuildNumberMatch,
     'channel': ChannelMatch,
+    'license': CaseInsensitiveStrMatch,
+    'license_family': CaseInsensitiveStrMatch,
 }
