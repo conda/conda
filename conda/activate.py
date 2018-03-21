@@ -209,13 +209,10 @@ class _Activator(object):
             }
             deactivate_scripts = ()
 
-        self._update_prompt(set_vars, conda_prompt_modifier)
+        if context.changeps1:
+            self._update_prompt(set_vars, conda_prompt_modifier)
 
-        if on_win and self.shell == 'cmd.exe':
-            import ctypes
-            export_vars.update({
-                "PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),
-            })
+        self._build_activate_shell_custom(export_vars)
 
         return {
             'unset_vars': (),
@@ -276,7 +273,8 @@ class _Activator(object):
             }
             activate_scripts = self._get_activate_scripts(new_prefix)
 
-        self._update_prompt(set_vars, conda_prompt_modifier)
+        if context.changeps1:
+            self._update_prompt(set_vars, conda_prompt_modifier)
 
         return {
             'unset_vars': unset_vars,
@@ -302,7 +300,8 @@ class _Activator(object):
         new_path = self.pathsep_join(self._replace_prefix_in_path(conda_prefix, conda_prefix))
         set_vars = {}
         conda_prompt_modifier = self._prompt_modifier(conda_default_env)
-        self._update_prompt(set_vars, conda_prompt_modifier)
+        if context.changeps1:
+            self._update_prompt(set_vars, conda_prompt_modifier)
         # environment variables are set only to aid transition from conda 4.3 to conda 4.4
         return {
             'unset_vars': (),
@@ -393,30 +392,13 @@ class _Activator(object):
                 path_list.insert(idx, join(new_prefix, 'bin'))
         return self.path_conversion(path_list)
 
-    def _update_prompt(self, set_vars, conda_prompt_modifier):
-        if not context.changeps1:
-            return
+    def _build_activate_shell_custom(self, export_vars):
+        # A method that can be overriden by shell-specific implementations.
+        # The signature of this method may change in the future.
+        pass
 
-        if self.shell == 'posix':
-            ps1 = self.environ.get('PS1', '')
-            current_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER')
-            if current_prompt_modifier:
-                ps1 = re.sub(re.escape(current_prompt_modifier), r'', ps1)
-            # Because we're using single-quotes to set shell variables, we need to handle the
-            # proper escaping of single quotes that are already part of the string.
-            # Best solution appears to be https://stackoverflow.com/a/1250279
-            ps1 = ps1.replace("'", "'\"'\"'")
-            set_vars.update({
-                'PS1': conda_prompt_modifier + ps1,
-            })
-        elif self.shell == 'csh':
-            prompt = self.environ.get('prompt', '')
-            current_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER')
-            if current_prompt_modifier:
-                prompt = re.sub(re.escape(current_prompt_modifier), r'', prompt)
-            set_vars.update({
-                'prompt': conda_prompt_modifier + prompt,
-            })
+    def _update_prompt(self, set_vars, conda_prompt_modifier):
+        pass
 
     def _default_env(self, prefix):
         if prefix == context.root_prefix:
@@ -509,8 +491,6 @@ else:  # pragma: py2 no cover
 class PosixActivator(_Activator):
 
     def __init__(self, arguments=None):
-        self.shell = 'posix'
-
         self.pathsep_join = ':'.join
         self.path_conversion = native_path_to_unix
         self.script_extension = '.sh'
@@ -525,12 +505,23 @@ class PosixActivator(_Activator):
 
         super(PosixActivator, self).__init__(arguments)
 
+    def _update_prompt(self, set_vars, conda_prompt_modifier):
+        ps1 = self.environ.get('PS1', '')
+        current_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER')
+        if current_prompt_modifier:
+            ps1 = re.sub(re.escape(current_prompt_modifier), r'', ps1)
+        # Because we're using single-quotes to set shell variables, we need to handle the
+        # proper escaping of single quotes that are already part of the string.
+        # Best solution appears to be https://stackoverflow.com/a/1250279
+        ps1 = ps1.replace("'", "'\"'\"'")
+        set_vars.update({
+            'PS1': conda_prompt_modifier + ps1,
+        })
+
 
 class CshActivator(_Activator):
 
     def __init__(self, arguments=None):
-        self.shell = 'csh'
-
         self.pathsep_join = ':'.join
         self.path_conversion = native_path_to_unix
         self.script_extension = '.csh'
@@ -545,12 +536,19 @@ class CshActivator(_Activator):
 
         super(CshActivator, self).__init__(arguments)
 
+    def _update_prompt(self, set_vars, conda_prompt_modifier):
+        prompt = self.environ.get('prompt', '')
+        current_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER')
+        if current_prompt_modifier:
+            prompt = re.sub(re.escape(current_prompt_modifier), r'', prompt)
+        set_vars.update({
+            'prompt': conda_prompt_modifier + prompt,
+        })
+
 
 class XonshActivator(_Activator):
 
     def __init__(self, arguments=None):
-        self.shell = 'xonsh'
-
         self.pathsep_join = ':'.join
         self.path_conversion = native_path_to_unix
         self.script_extension = '.xsh'
@@ -569,8 +567,6 @@ class XonshActivator(_Activator):
 class CmdExeActivator(_Activator):
 
     def __init__(self, arguments=None):
-        self.shell = 'cmd.exe'
-
         self.pathsep_join = ';'.join
         self.path_conversion = path_identity
         self.script_extension = '.bat'
@@ -585,12 +581,17 @@ class CmdExeActivator(_Activator):
 
         super(CmdExeActivator, self).__init__(arguments)
 
+    def _build_activate_shell_custom(self, export_vars):
+        if on_win:
+            import ctypes
+            export_vars.update({
+                "PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),
+            })
+
 
 class FishActivator(_Activator):
 
     def __init__(self, arguments=None):
-        self.shell = 'fish'
-
         self.pathsep_join = '" "'.join
         self.path_conversion = native_path_to_unix
         self.script_extension = '.fish'
@@ -609,8 +610,6 @@ class FishActivator(_Activator):
 class PowershellActivator(_Activator):
 
     def __init__(self, arguments=None):
-        self.shell = 'powershell'
-
         self.pathsep_join = ';'.join
         self.path_conversion = path_identity
         self.script_extension = '.ps1'
