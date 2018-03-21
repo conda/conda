@@ -14,29 +14,29 @@ else
   endif
 endif
 
-if (`alias conda` == "") then
+if ("`alias conda`" == "") then
     if ($?_CONDA_ROOT) then
-        alias conda source $_CONDA_ROOT/etc/profile.d/conda.csh
+        alias conda source "${_CONDA_ROOT}/etc/profile.d/conda.csh"
     else
-        alias conda source $PWD/conda/shell/etc/profile.d/conda.csh
+        alias conda source "${PWD}/conda/shell/etc/profile.d/conda.csh"
     endif
     setenv CONDA_SHLVL 0
     if (! $?prompt) then
         set prompt=""
     endif
 else
-    switch ( $1 )
+    switch ( "${1}" )
         case "activate":
-            eval `$_CONDA_EXE shell.csh activate "$2" $argv[3-]`
+            eval "`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh activate '${2}' ${argv[3-]})`"
             rehash
             breaksw
         case "deactivate":
-            eval `$_CONDA_EXE shell.csh deactivate "$2" $argv[3-]`
+            eval "`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh deactivate '${2}' ${argv[3-]})`"
             rehash
             breaksw
         case "install" | "update" | "uninstall" | "remove":
             $_CONDA_EXE $argv[1-]
-            eval `$_CONDA_EXE shell.csh reactivate`
+            eval "`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh reactivate)`"
             rehash
             breaksw
         default:

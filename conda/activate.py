@@ -70,7 +70,7 @@ class Activator(object):
             self.shift_args = 0
             self.command_join = ';\n'
 
-            self.unset_var_tmpl = 'unset %s'
+            self.unset_var_tmpl = 'unsetenv %s'
             self.export_var_tmpl = 'setenv %s "%s"'
             self.set_var_tmpl = "set %s='%s'"
             self.run_script_tmpl = 'source "%s"'
@@ -227,7 +227,7 @@ class Activator(object):
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
         max_shlvl = context.max_shlvl
 
-        if old_conda_prefix == prefix:
+        if old_conda_prefix == prefix and old_conda_shlvl > 0:
             return self.build_reactivate()
         if self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
             # in this case, user is attempting to activate the previous environment,
@@ -291,9 +291,10 @@ class Activator(object):
 
     def build_deactivate(self):
         # query environment
+        old_conda_prefix = self.environ.get('CONDA_PREFIX')
         old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
-        old_conda_prefix = self.environ.get('CONDA_PREFIX', None)
-        if old_conda_shlvl <= 0 or old_conda_prefix is None:
+        if not old_conda_prefix or old_conda_shlvl < 1:
+            # no active environment, so cannot deactivate; do nothing
             return {
                 'unset_vars': (),
                 'set_vars': {},
@@ -351,7 +352,7 @@ class Activator(object):
 
     def build_reactivate(self):
         conda_prefix = self.environ.get('CONDA_PREFIX')
-        conda_shlvl = int(self.environ.get('CONDA_SHLVL', -1))
+        conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
         if not conda_prefix or conda_shlvl < 1:
             # no active environment, so cannot reactivate; do nothing
             return {

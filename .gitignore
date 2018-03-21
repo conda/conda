@@ -25,3 +25,4 @@ record.txt
 Vagrantfile
 docs/_build
 env/
+.pytest_cache/

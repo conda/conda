@@ -687,11 +687,11 @@ class ShellWrapperUnitTests(TestCase):
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             assert deactivate_data == dals("""
             source "%(deactivate1)s";
-            unset CONDA_DEFAULT_ENV;
-            unset CONDA_EXE;
-            unset CONDA_PREFIX;
-            unset CONDA_PROMPT_MODIFIER;
-            unset CONDA_PYTHON_EXE;
+            unsetenv CONDA_DEFAULT_ENV;
+            unsetenv CONDA_EXE;
+            unsetenv CONDA_PREFIX;
+            unsetenv CONDA_PROMPT_MODIFIER;
+            unsetenv CONDA_PYTHON_EXE;
             set prompt='%(prompt)s';
             setenv CONDA_SHLVL "0";
             setenv PATH "%(new_path)s";
@@ -1146,7 +1146,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('CONDA_SHLVL', '0')
 
     @pytest.mark.skipif(not which('csh'), reason='csh not installed')
-    @pytest.mark.xfail(reason="csh needs work apparently; but at least tcsh works")
+    @pytest.mark.xfail(reason="pure csh doesn't support argument passing to sourced scripts")
     def test_csh_basic_integration(self):
         with InteractiveShell('csh') as shell:
             self.basic_csh(shell)
