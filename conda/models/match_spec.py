@@ -877,6 +877,7 @@ class CaseInsensitiveStrMatch(LowerStrMatch):
         else:
             return self._raw_value == _other_val
 
+
 _implementors = {
     'name': LowerStrMatch,
     'track_features': FeatureMatch,
