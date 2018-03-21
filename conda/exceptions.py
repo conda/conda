@@ -917,7 +917,7 @@ class ExceptionHandler(object):
         }
 
         if isinstance(exc_val, CondaError):
-            error_report['conda_error_dump'] = exc_val.dump_map()
+            error_report['conda_error_components'] = exc_val.dump_map()
 
         return error_report
 
