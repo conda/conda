@@ -61,13 +61,6 @@ conda_build_test: &conda_build_test
   <<: *defaults
   environment:
     CONDA_BUILD: master
-    CONDABUILD_SKIP: >
-      not xattr
-      and not skeleton_pypi
-      and not perl-cpan-Moo
-      and not test_expand_globs
-      and not test_build_expands_wildcards
-      and not numpy_build_run
   steps:
     - run: *remove_conda
     - checkout
@@ -121,11 +114,13 @@ conda_build_test: &conda_build_test
             and not numpy
             and not test_intradependencies
             and not perl-cpan-Moo
+            and not cran-nmf
           # skeleton_pypi skipped because of changes to PyPI API
           # expand_globs and build_expands_wildcards fail on circleci because of list ordering discrepancies
           # skipping numpy tests so circleci images don't need numpy (and mkl) installed
           # test_intradependencies started failing after pkgs/main release it seems
           # skipping perl-cpan-Moo because of changes in cpan API
+          # skipping cran-nmf because nmf was removed/archived in cran
         command: |
           . /opt/conda/etc/profile.d/conda.sh
           conda activate base
@@ -139,9 +134,11 @@ conda_build_test: &conda_build_test
         environment:
           CONDABUILD_SKIP: >
             not perl-cpan-Moo
+            and not cran-nmf
             and not skeleton_pypi
             and not env_creation_with_short_prefix_does_not_deadlock
           # skipping perl-cpan-Moo because of changes in cpan API
+          # skipping cran-nmf because nmf was removed/archived in cran
           # skeleton_pypi skipped because of changes to PyPI API
           # env_creation_with_short_prefix_does_not_deadlock: error is prefix is too long
         command: |
