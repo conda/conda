@@ -1,5 +1,5 @@
 <!--
-Hi!
+Hi!  Read this; it's important.
 
 This is an issue tracker for conda -- the package manager.  File feature requests
 for conda here, as well as bug reports about something conda has messed up.
@@ -19,6 +19,14 @@ If your issue is a bug report or feature request for:
       ==> please file it here!
   * all other conda commands that start with 'conda':
       ==> please file it here!
+
+If you continue on, and especially if you are submitting a bug report,
+
+   **please include all requested information below.**
+
+If a maintainer determines the  information is required to understand 
+your issue, and if it is not provided, your issue may be
+closed automatically.
 
 -->
 
