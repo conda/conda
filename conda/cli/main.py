@@ -91,6 +91,7 @@ def main(*args):
     args = tuple(ensure_text_type(s) for s in args)
 
     if len(args) > 1:
+        from ..exceptions import HelpError
         try:
             argv1 = args[1].strip()
             if argv1.startswith('shell.'):
@@ -103,6 +104,8 @@ def main(*args):
             elif argv1 in ('activate', 'deactivate'):
                 from ..exceptions import CommandNotFoundError
                 raise CommandNotFoundError(argv1)
+        except HelpError:
+            args = ["-h"]
         except Exception as e:
             _, exc_val, exc_tb = sys.exc_info()
             init_loggers()

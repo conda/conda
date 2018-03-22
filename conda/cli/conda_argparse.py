@@ -146,8 +146,8 @@ class ArgumentParser(ArgumentParserBase):
 
         super(ArgumentParser, self).error(message)
 
-    def print_help(self):
-        super(ArgumentParser, self).print_help()
+    def print_help(self, file=None):
+        super(ArgumentParser, self).print_help(file=file)
 
         if sys.argv[1:] in ([], [''], ['help'], ['-h'], ['--help']):
             from .find_commands import find_commands
@@ -1154,6 +1154,12 @@ def add_parser_copy(p):
         default=NULL,
         help="Install all packages using copies instead of hard- or soft-linking."
     )
+
+
+class _HelpAction(_HelpAction):
+    def __call__(self, parser, namespace, values, option_string=None):
+        parser.print_help(file=sys.stderr)
+        parser.exit()
 
 
 def add_parser_help(p):

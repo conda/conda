@@ -173,10 +173,8 @@ class Activator(object):
             from .exceptions import ArgumentError
             raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
         elif help_requested:
-            from . import CondaError
-            class Help(CondaError):  # NOQA
-                pass
-            raise Help("help requested for %s" % command)
+            from .exceptions import HelpError
+            raise HelpError("help requested for %s" % command)
         elif command not in ('activate', 'deactivate', 'reactivate'):
             from .exceptions import ArgumentError
             raise ArgumentError("invalid command '%s'" % command)
@@ -572,6 +570,7 @@ else:  # pragma: py2 no cover
 
 def main(argv=None):
     from .common.compat import init_std_stream_encoding
+    from .exceptions import HelpError
 
     init_std_stream_encoding()
     argv = argv or sys.argv
@@ -583,6 +582,8 @@ def main(argv=None):
     try:
         print(activator.execute(), end='')
         return 0
+    except HelpError:
+        raise
     except Exception as e:
         from . import CondaError
         if isinstance(e, CondaError):
