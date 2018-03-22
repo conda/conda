@@ -80,7 +80,8 @@ def execute(args, parser):
                 Please re-run this command with one of the following options:
 
                 * Provide an environment name via --name or -n
-                * Re-run this command inside an activated conda environment.""").lstrip()
+                * Re-run this command inside an activated conda environment.
+                * To export the root environment, use "conda env export --name root" """).lstrip()
             # TODO Add json support
             raise CondaEnvException(msg)
         args.name = name
