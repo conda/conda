@@ -462,6 +462,13 @@ class PackagesNotFoundError(CondaError):
             Current channels:
 
             %(channels_formatted)s
+            
+            To search for alternate channels that may provide the conda package you're
+            looking for, navigate to
+
+                https://anaconda.org
+
+            and use the search bar at the top of the page.
             """)
             packages_formatted = format_list(packages)
             channels_formatted = format_list(channel_urls)
