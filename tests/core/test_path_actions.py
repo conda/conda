@@ -24,7 +24,7 @@ from conda.common.path import get_bin_directory_short_path, get_python_noarch_ta
 from conda.core.path_actions import CompilePycAction, CreatePythonEntryPointAction, LinkPathAction
 from conda.exceptions import ParseError
 from conda.gateways.disk.create import create_link, mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_queued, rm_rf_wait
 from conda.gateways.disk.link import islink, stat_nlink
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
@@ -81,14 +81,15 @@ class PathActionsTests(TestCase):
         assert isdir(self.pkgs_dir)
 
     def tearDown(self):
-        rm_rf(self.prefix)
+        rm_rf_queued(self.prefix)
         if not (on_win and PY2):
             # this assertion fails for the Softlink action windows tests
             # line 141 in backoff_rmdir
             #  exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
             # leaves a directory self.prefix\\Scripts that cannot be accessed or removed
             assert not lexists(self.prefix)
-        rm_rf(self.pkgs_dir)
+        rm_rf_queued(self.pkgs_dir)
+        rm_rf_queued.flush()
         assert not lexists(self.pkgs_dir)
 
     def test_CompilePycAction_generic(self):
@@ -149,7 +150,7 @@ class PathActionsTests(TestCase):
         assert isfile(axn.target_full_path)
 
         # remove the source .py file so we're sure we're importing the pyc file below
-        rm_rf(axn.source_full_path)
+        rm_rf_wait(axn.source_full_path)
         assert not isfile(axn.source_full_path)
 
         if (3,) > sys.version_info >= (3, 5):
@@ -158,6 +159,7 @@ class PathActionsTests(TestCase):
             assert imported_pyc_file.value == 42
 
         axn.reverse()
+        rm_rf_queued.flush()
         assert not isfile(axn.target_full_path)
 
     def test_CreatePythonEntryPointAction_generic(self):
@@ -213,6 +215,7 @@ class PathActionsTests(TestCase):
         assert last_line == "sys.exit(%s())" % func
 
         py_ep_axn.reverse()
+        rm_rf_queued.flush()
         assert not isfile(py_ep_axn.target_full_path)
 
         if on_win:
@@ -230,6 +233,7 @@ class PathActionsTests(TestCase):
             assert src == compute_md5sum(windows_exe_axn.target_full_path)
 
             windows_exe_axn.reverse()
+            rm_rf_queued.flush()
             assert not isfile(windows_exe_axn.target_full_path)
 
     def test_simple_LinkPathAction_hardlink(self):
@@ -258,6 +262,7 @@ class PathActionsTests(TestCase):
         assert stat_nlink(axn.target_full_path) == 2
 
         axn.reverse()
+        rm_rf_queued.flush()
         assert not lexists(axn.target_full_path)
 
     def test_simple_LinkPathAction_softlink(self):
@@ -286,6 +291,7 @@ class PathActionsTests(TestCase):
         assert stat_nlink(axn.target_full_path) == 1
 
         axn.reverse()
+        rm_rf_queued.flush()
         assert not lexists(axn.target_full_path)
         assert lexists(source_full_path)
 
@@ -329,6 +335,7 @@ class PathActionsTests(TestCase):
         assert stat_nlink(axn.target_full_path) == 1
 
         axn.reverse()
+        rm_rf_queued.flush()
         assert not lexists(axn.target_full_path)
 
     # @pytest.mark.skipif(on_win, reason="unix-only test")

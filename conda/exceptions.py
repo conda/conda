@@ -812,7 +812,10 @@ class ExceptionHandler(object):
             return func(*args, **kwargs)
         except:
             _, exc_val, exc_tb = sys.exc_info()
-            return self.handle_exception(exc_val, exc_tb)
+            rc = self.handle_exception(exc_val, exc_tb)
+            from .gateways.disk.delete import rm_rf_queued
+            rm_rf_queued.flush()
+            return rc
 
     @property
     def out_stream(self):

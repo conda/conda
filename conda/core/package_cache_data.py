@@ -9,7 +9,6 @@ from os.path import basename, dirname, join
 from tarfile import ReadError
 
 from conda._vendor.auxlib.decorators import memoizemethod
-
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
@@ -25,7 +24,7 @@ from ..common.url import path_to_url
 from ..exceptions import NotWritableError
 from ..gateways.disk.create import (create_package_cache_directory, extract_tarball,
                                     write_as_json_to_file)
-from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.delete import rm_rf_wait
 from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_index_json,
                                   read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
@@ -314,7 +313,7 @@ class PackageCacheData(object):
                         if isdir(extracted_package_dir):
                             # We have a partially unpacked conda package directory. Best thing
                             # to do is remove it and try extracting.
-                            rm_rf(extracted_package_dir)
+                            rm_rf_wait(extracted_package_dir)
                         try:
                             extract_tarball(package_tarball_full_path, extracted_package_dir)
                         except EnvironmentError as e:
@@ -323,15 +322,15 @@ class PackageCacheData(object):
                                 # At this point, we can assume the package tarball is bad.
                                 # Remove everything and move on.
                                 # see https://github.com/conda/conda/issues/6707
-                                rm_rf(package_tarball_full_path)
-                                rm_rf(extracted_package_dir)
+                                rm_rf_wait(package_tarball_full_path)
+                                rm_rf_wait(extracted_package_dir)
                         try:
                             index_json_record = read_index_json(extracted_package_dir)
                         except (IOError, OSError, JSONDecodeError):
                             # At this point, we can assume the package tarball is bad.
                             # Remove everything and move on.
-                            rm_rf(package_tarball_full_path)
-                            rm_rf(extracted_package_dir)
+                            rm_rf_wait(package_tarball_full_path)
+                            rm_rf_wait(extracted_package_dir)
                             return None
                     else:
                         index_json_record = read_index_json_from_tarball(package_tarball_full_path)
@@ -342,7 +341,7 @@ class PackageCacheData(object):
                     # anything, and move on.
                     log.debug("unable to extract info/index.json from %s\n  because %r",
                               package_tarball_full_path, e)
-                    rm_rf(package_tarball_full_path)
+                    rm_rf_wait(package_tarball_full_path)
                     return None
 
             # we were able to read info/index.json, so let's continue

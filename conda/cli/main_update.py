@@ -7,9 +7,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from .install import install
-from ..gateways.disk.delete import delete_trash
+from ..gateways.disk.delete import delete_trash, rm_rf_queued
 
 
 def execute(args, parser):
     install(args, parser, 'update')
     delete_trash()
+    rm_rf_queued.flush()

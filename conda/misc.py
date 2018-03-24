@@ -19,7 +19,7 @@ from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData, linked_data
 from .exceptions import DisallowedPackageError, PackagesNotFoundError, ParseError
-from .gateways.disk.delete import rm_rf
+from .gateways.disk.delete import rm_rf_wait
 from .gateways.disk.link import islink, readlink, symlink
 from .models.dist import Dist
 from .models.records import PackageRecord
@@ -243,7 +243,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         dst = join(prefix2, f)
         dst_dir = dirname(dst)
         if islink(dst_dir) or isfile(dst_dir):
-            rm_rf(dst_dir)
+            rm_rf_wait(dst_dir)
         if not isdir(dst_dir):
             os.makedirs(dst_dir)
         if islink(src):

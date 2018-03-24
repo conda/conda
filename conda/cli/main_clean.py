@@ -15,6 +15,7 @@ import sys
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
 from ..common.compat import on_win
+from ..gateways.disk.delete import rm_rf_queued
 
 try:
     from cytoolz.itertoolz import concatv
@@ -51,7 +52,6 @@ def clean_all_trash():
 
 def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     from .common import confirm_yn
-    from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
 
     if verbose:
@@ -87,7 +87,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
             try:
-                if rm_rf(os.path.join(pkgs_dir, fn)):
+                if rm_rf_queued(os.path.join(pkgs_dir, fn)):
                     if verbose:
                         print("Removed %s" % fn)
                 else:
@@ -154,7 +154,6 @@ def find_pkgs():
 
 def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
     from .common import confirm_yn
-    from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
     if verbose:
         for pkgs_dir in pkgs_dirs:
@@ -190,14 +189,13 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
         for pkg in pkgs_dirs[pkgs_dir]:
             if verbose:
                 print("removing %s" % pkg)
-            rm_rf(join(pkgs_dir, pkg))
+            rm_rf_queued(join(pkgs_dir, pkg))
 
 
 def rm_index_cache():
-    from ..gateways.disk.delete import rm_rf
     from ..core.package_cache_data import PackageCacheData
     for package_cache in PackageCacheData.writable_caches():
-        rm_rf(join(package_cache.pkgs_dir, 'cache'))
+        rm_rf_queued(join(package_cache.pkgs_dir, 'cache'))
 
 
 def find_source_cache():
@@ -229,7 +227,6 @@ def find_source_cache():
 
 def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
     from .common import confirm_yn
-    from ..gateways.disk.delete import rm_rf
     from ..utils import human_bytes
 
     verbose = not (context.json or context.quiet)
@@ -255,7 +252,7 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
     for dir in cache_dirs.values():
         if verbose:
             print("Removing %s" % dir)
-        rm_rf(dir)
+        rm_rf_queued(dir)
 
 
 def execute(args, parser):
@@ -299,6 +296,8 @@ def execute(args, parser):
         json_result['source_cache'] = find_source_cache()
         rm_source_cache(args, **json_result['source_cache'])
 
+    rm_rf_queued.flush()
+
     if not any((args.lock, args.tarballs, args.index_cache, args.packages,
                 args.source_cache, args.all)):
         from ..exceptions import ArgumentError
@@ -307,6 +306,7 @@ def execute(args, parser):
 
     if args.all or on_win and args.trash:
         clean_all_trash()
+        rm_rf_queued.flush()
 
     if context.json:
         stdout_json(json_result)

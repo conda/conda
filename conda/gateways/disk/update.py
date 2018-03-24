@@ -10,7 +10,7 @@ import re
 from shutil import move
 
 from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
-from .delete import rm_rf
+from .delete import rm_rf_wait
 from .link import lexists
 from ...common.compat import on_win
 from ...common.path import expand
@@ -47,7 +47,7 @@ def update_file_in_place_as_binary(file_full_path, callback):
 
 def rename(source_path, destination_path, force=False):
     if lexists(destination_path) and force:
-        rm_rf(destination_path)
+        rm_rf_wait(destination_path)
     if lexists(source_path):
         log.trace("renaming %s => %s", source_path, destination_path)
         try:

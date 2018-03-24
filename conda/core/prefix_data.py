@@ -13,7 +13,7 @@ from ..common.serialize import json_load
 from ..exceptions import (BasicClobberError, CondaDependencyError, CorruptedEnvironmentError,
                           maybe_raise)
 from ..gateways.disk.create import write_as_json_to_file
-from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.delete import rm_rf_wait
 from ..gateways.disk.test import file_path_is_writable
 from ..models.dist import Dist
 from ..models.match_spec import MatchSpec
@@ -66,7 +66,7 @@ class PrefixData(object):
                 target_path=prefix_record_json_path,
                 context=context,
             ), context)
-            rm_rf(prefix_record_json_path)
+            rm_rf_wait(prefix_record_json_path)
 
         write_as_json_to_file(prefix_record_json_path, prefix_record)
 
@@ -79,7 +79,7 @@ class PrefixData(object):
 
         filename = prefix_record.fn[:-len(CONDA_TARBALL_EXTENSION)] + '.json'
         conda_meta_full_path = join(self.prefix_path, 'conda-meta', filename)
-        rm_rf(conda_meta_full_path)
+        rm_rf_wait(conda_meta_full_path)
 
         del self._prefix_records[package_name]
 

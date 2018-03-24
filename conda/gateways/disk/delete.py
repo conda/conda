@@ -15,6 +15,11 @@ from ...base.context import context
 from ...common.compat import PY2, ensure_binary, ensure_fs_path_encoding, on_win, text_type
 from ...common.io import Spinner, ThreadLimitedThreadPoolExecutor
 
+try:
+    from cytoolz.itertoolz import concatv
+except ImportError:  # pragma: no cover
+    from ..._vendor.toolz.itertoolz import concatv  # NOQA
+
 if on_win:
     from win32file import (RemoveDirectory, DeleteFileW, SetFileAttributesW, GetFileAttributesW,
                            FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_DIRECTORY)
@@ -75,6 +80,22 @@ def rm_rf_wait(path):
         return True
     finally:
         assert not lexists(path), "rm_rf failed for %s" % path
+
+
+def rm_rf_no_trash(path):
+    path = abspath(path)
+    try:
+        if isdir(path) and not islink(path):
+            log.trace("rm_rf_no_trash directory %s", path)
+            rmdir_recursive(path)
+        elif lexists(path):
+            log.trace("rm_rf_no_trash path %s", path)
+            backoff_unlink(path)
+        else:
+            log.trace("rm_rf no-op. Not a link, file, or directory: %s", path)
+        return True
+    finally:
+        assert not lexists(path), "rm_rf_no_trash failed for %s" % path
 
 
 def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
@@ -215,28 +236,16 @@ def rm_rf(path, max_retries=5, trash=True):
 
 
 def delete_trash(prefix=None):
-    for pkg_dir in context.pkgs_dirs:
-        trash_dir = join(pkg_dir, '.trash')
-        if not lexists(trash_dir):
-            log.trace("Trash directory %s doesn't exist. Moving on.", trash_dir)
-            continue
-        log.trace("removing trash for %s", trash_dir)
-        with Spinner("Removing trash %s" % trash_dir,
-                     not context.verbosity and not context.quiet, context.json):
-            for p in listdir(trash_dir):
-                path = join(trash_dir, p)
-                try:
-                    if isdir(path):
-                        backoff_rmdir(path, max_tries=1)
-                    else:
-                        backoff_unlink(path, max_tries=1)
-                except (IOError, OSError) as e:
-                    log.info("Could not delete path in trash dir %s\n%r", path, e)
-            files_remaining = listdir(trash_dir)
-            if files_remaining:
-                log.info("Unable to fully clean trash directory %s\n"
-                         "There are %d remaining file(s).",
-                         trash_dir, len(files_remaining))
+    trash_dirs = tuple(td for td in (
+        join(d, '.trash') for d in concatv(context.pkgs_dirs, context.target_prefix)
+    ) if lexists(td))
+    if not trash_dirs:
+        return
+
+    with Spinner("Removing trash", not context.verbosity and not context.quiet, context.json):
+        for trash_dir in trash_dirs:
+            log.trace("removing trash for %s", trash_dir)
+            rm_rf_no_trash(trash_dir)
 
 
 def move_path_to_trash(path, preclean=True):
