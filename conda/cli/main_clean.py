@@ -14,6 +14,12 @@ import sys
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
+from ..common.compat import on_win
+
+try:
+    from cytoolz.itertoolz import concatv
+except ImportError:  # pragma: no cover
+    from .._vendor.toolz.itertoolz import concatv  # NOQA
 
 log = getLogger(__name__)
 
@@ -34,6 +40,13 @@ def find_tarballs():
                 totalsize += getsize(join(root, fn))
 
     return pkgs_dirs, totalsize
+
+
+def clean_all_trash():
+    from ..core.envs_manager import list_all_known_prefixes
+    trash_dirs = (join(prefix, '.trash') for prefix in
+                  concatv(list_all_known_prefixes(), context.pkgs_dirs))
+    raise NotImplementedError()
 
 
 def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
@@ -291,6 +304,9 @@ def execute(args, parser):
         from ..exceptions import ArgumentError
         raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
                             "--source-cache, --all} required")
+
+    if args.all or on_win and args.trash:
+        clean_all_trash()
 
     if context.json:
         stdout_json(json_result)
