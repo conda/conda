@@ -174,16 +174,6 @@ class FileTests(unittest.TestCase):
                 b'\x7fELF.../usr/local/lib/libfoo.so\0\0\0\0\0\0\0\0'
             )
 
-    def test_trash_outside_prefix(self):
-        tmp_dir = tempfile.mkdtemp()
-        rel = relpath(tmp_dir, context.root_dir)
-        self.assertTrue(rel.startswith(u'..'))
-        move_path_to_trash(tmp_dir)
-        self.assertFalse(exists(tmp_dir))
-        makedirs(tmp_dir)
-        move_path_to_trash(tmp_dir)
-        self.assertFalse(exists(tmp_dir))
-
 
 # class remove_readonly_TestCase(unittest.TestCase):
 #     def test_takes_three_args(self):
