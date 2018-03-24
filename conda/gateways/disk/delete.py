@@ -12,9 +12,169 @@ from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
-from ...common.compat import PY2, on_win, text_type, ensure_binary
+from ...common.compat import PY2, ensure_binary, ensure_fs_path_encoding, on_win, text_type
+from ...common.io import Spinner, ThreadLimitedThreadPoolExecutor
+
+if on_win:
+    from win32file import (RemoveDirectory, DeleteFileW, SetFileAttributesW, GetFileAttributesW,
+                           FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_DIRECTORY)
+    from win32api import FindFiles
+    from ctypes import FormatError
+
 
 log = getLogger(__name__)
+
+
+class RM_RF_Queue(object):
+    """
+    Remove paths asynchronously.  Must always call `.flush()` to ensure paths
+    are actually removed.
+    """
+
+    def __init__(self):
+        self.executor = ThreadLimitedThreadPoolExecutor()
+        self.queue = []
+
+    def __call__(self, path):
+        self.submit(path)
+
+    def submit(self, path):
+        future = self.executor.submit(rm_rf_wait, path)
+        self.queue.append(future)
+
+    def flush(self):
+        while self.queue:
+            future = self.queue.pop(0)
+            future.result()
+
+
+rm_rf_queued = RM_RF_Queue()
+
+
+def rm_rf_wait(path):
+    """Block until path is deleted."""
+    path = abspath(path)
+    try:
+        if isdir(path) and not islink(path):
+            log.trace("rm_rf directory %s", path)
+            # On Windows, always move to trash first.
+            if on_win:
+                move_path_to_trash(path)
+            rmdir_recursive(path)
+        elif lexists(path):
+            log.trace("rm_rf path %s", path)
+            try:
+                backoff_unlink(path)
+            except EnvironmentError:
+                if on_win:
+                    move_path_to_trash(path)
+                else:
+                    raise
+        else:
+            log.trace("rm_rf no-op. Not a link, file, or directory: %s", path)
+        return True
+    finally:
+        assert not lexists(path), "rm_rf failed for %s" % path
+
+
+def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
+    exp_backoff_fn(_do_unlink, file_or_symlink_path, max_tries=max_tries)
+
+
+def _make_win_path(path):
+    return '\\\\?\\%s' % ensure_fs_path_encoding(abspath(path))
+
+
+def _do_unlink(path):
+    if on_win:
+        path = ensure_fs_path_encoding(abspath(path))
+        win_path = '\\\\?\\%s' % path
+        file_attr = GetFileAttributesW(win_path)
+        log.debug("attributes for file [%s] are %s" % (path, hex(file_attr)))
+        if 0 == SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL):
+            error = OSError(FormatError())
+            if error.errno != ENOENT:
+                raise error
+        if 0 == DeleteFileW(win_path):
+            error = OSError(FormatError())
+            if error.errno != ENOENT:
+                raise error
+
+        # log.info("attributes for [%s] are %s" % (path, hex(GetFileAttributesW(path))))
+        # raise RuntimeError("Problem for path: %s" % path)
+    else:
+        try:
+            make_writable(path)
+            unlink(path)
+        except EnvironmentError as e:
+            if e.errno == ENOENT:
+                pass
+            else:
+                raise
+
+
+def backoff_rmdir_empty(dirpath, max_tries=MAX_TRIES):
+    exp_backoff_fn(rmdir, dirpath, max_tries=max_tries)
+
+
+def rmdir_recursive(path, max_tries=MAX_TRIES):
+    if on_win:
+        path = ensure_fs_path_encoding(abspath(path))
+        win_path = '\\\\?\\%s' % path
+        file_attr = GetFileAttributesW(win_path)
+
+        dots = {'.', '..'}
+        if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+            for ffrec in FindFiles(win_path + '\\*.*'):
+                file_name = ensure_fs_path_encoding(ffrec[8])
+                if file_name in dots:
+                    continue
+                file_attr = ffrec[0]
+                reparse_tag = ffrec[6]
+                file_path = join(path, file_name)
+                log.debug("attributes for [%s] [%s] are %s" % (file_path, reparse_tag, hex(file_attr)))
+                if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+                    rmdir_recursive(file_path, max_tries=max_tries)
+                else:
+                    backoff_unlink(file_path, max_tries=max_tries)
+            backoff_rmdir_empty(path)
+        else:
+            backoff_unlink(path, max_tries=max_tries)
+    else:
+        path = abspath(path)
+        if not lexists(path):
+            return
+        elif isdir(path) and not islink(path):
+            dots = {'.', '..'}
+            for file_name in listdir(path):
+                if file_name in dots:
+                    continue
+                file_path = join(path, file_name)
+                if isdir(file_path) and not islink(file_path):
+                    rmdir_recursive(file_path, max_tries=max_tries)
+                else:
+                    backoff_unlink(file_path, max_tries=max_tries)
+            backoff_rmdir_empty(path, max_tries=max_tries)
+        else:
+            backoff_unlink(path, max_tries=max_tries)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def rm_rf(path, max_retries=5, trash=True):
@@ -61,56 +221,45 @@ def delete_trash(prefix=None):
             log.trace("Trash directory %s doesn't exist. Moving on.", trash_dir)
             continue
         log.trace("removing trash for %s", trash_dir)
-        for p in listdir(trash_dir):
-            path = join(trash_dir, p)
-            try:
-                if isdir(path):
-                    backoff_rmdir(path, max_tries=1)
-                else:
-                    backoff_unlink(path, max_tries=1)
-            except (IOError, OSError) as e:
-                log.info("Could not delete path in trash dir %s\n%r", path, e)
-        files_remaining = listdir(trash_dir)
-        if files_remaining:
-            log.info("Unable to fully clean trash directory %s\nThere are %d remaining file(s).",
-                     trash_dir, len(files_remaining))
-
-
-def move_to_trash(prefix, f, tempdir=None):
-    """
-    Move a file or folder f from prefix to the trash
-
-    tempdir is a deprecated parameter, and will be ignored.
-
-    This function is deprecated in favor of `move_path_to_trash`.
-    """
-    return move_path_to_trash(join(prefix, f) if f else prefix)
+        with Spinner("Removing trash %s" % trash_dir,
+                     not context.verbosity and not context.quiet, context.json):
+            for p in listdir(trash_dir):
+                path = join(trash_dir, p)
+                try:
+                    if isdir(path):
+                        backoff_rmdir(path, max_tries=1)
+                    else:
+                        backoff_unlink(path, max_tries=1)
+                except (IOError, OSError) as e:
+                    log.info("Could not delete path in trash dir %s\n%r", path, e)
+            files_remaining = listdir(trash_dir)
+            if files_remaining:
+                log.info("Unable to fully clean trash directory %s\n"
+                         "There are %d remaining file(s).",
+                         trash_dir, len(files_remaining))
 
 
 def move_path_to_trash(path, preclean=True):
     trash_file = join(context.trash_dir, text_type(uuid4()))
-    try:
-        rename(path, trash_file)
-    except (IOError, OSError) as e:
-        log.trace("Could not move %s to %s.\n%r", path, trash_file, e)
-        return False
-    else:
-        log.trace("Moved to trash: %s", path)
-        return True
+    if on_win:
+        trash_file = '\\\\?\\%s' % ensure_fs_path_encoding(abspath(trash_file))
+        path = '\\\\?\\%s' % ensure_fs_path_encoding(abspath(path))
+    # This rename assumes the trash_file is on the same file system as the file being trashed.
+    rename(path, trash_file)
 
 
-def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
-    def _unlink(path):
-        make_writable(path)
-        unlink(path)
-
-    try:
-        exp_backoff_fn(lambda f: lexists(f) and _unlink(f), file_or_symlink_path,
-                       max_tries=max_tries)
-    except (IOError, OSError) as e:
-        if e.errno not in (ENOENT,):
-            # errno.ENOENT File not found error / No such file or directory
-            raise
+# def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
+#     def _unlink(path):
+#         make_writable(path)
+#         unlink(path)
+#
+#     try:
+#         exp_backoff_fn(lambda f: lexists(f) and _unlink(f), file_or_symlink_path,
+#                        max_tries=max_tries)
+#     except (IOError, OSError) as e:
+#         if e.errno not in (ENOENT,):
+#             # errno.ENOENT File not found error / No such file or directory
+#             raise
 
 
 def backoff_rmdir(dirpath, max_tries=MAX_TRIES):

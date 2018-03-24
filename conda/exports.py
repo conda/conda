@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import Hashable
 from logging import getLogger
+import os
 import threading
 from warnings import warn
 
@@ -53,8 +54,8 @@ download, rm_fetched = download, rm_fetched
 from .install import package_cache, prefix_placeholder, symlink_conda  # NOQA
 package_cache, prefix_placeholder, symlink_conda = package_cache, prefix_placeholder, symlink_conda
 
-from .gateways.disk.delete import delete_trash, move_to_trash  # NOQA
-delete_trash, move_to_trash = delete_trash, move_to_trash
+from .gateways.disk.delete import delete_trash  # NOQA
+delete_trash = delete_trash
 
 from .core.prefix_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
@@ -207,3 +208,13 @@ def verify(_):
 from .plan import execute_actions, execute_instructions, execute_plan, install_actions  # NOQA
 execute_actions, execute_instructions = execute_actions, execute_instructions
 execute_plan, install_actions = execute_plan, install_actions
+
+
+def move_to_trash(prefix, f, tempdir=None):
+    """
+    Move a file or folder f from prefix to the trash
+    tempdir is a deprecated parameter, and will be ignored.
+    This function is deprecated in favor of `move_path_to_trash`.
+    """
+    from .gateways.disk.delete import move_path_to_trash as _move_path_to_trash
+    return _move_path_to_trash(os.path.join(prefix, f) if f else prefix)
