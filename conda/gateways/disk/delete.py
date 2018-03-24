@@ -124,6 +124,9 @@ def _do_unlink(path):
             error = OSError(FormatError())
             if error.errno != ENOENT:
                 raise error
+        if lexists(win_path):
+            make_writable(win_path)
+            unlink(win_path)
 
         # log.info("attributes for [%s] are %s" % (path, hex(GetFileAttributesW(path))))
         # raise RuntimeError("Problem for path: %s" % path)

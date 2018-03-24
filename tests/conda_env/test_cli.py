@@ -14,7 +14,7 @@ from conda.cli.main import generate_parser
 from conda.common.io import captured
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import EnvironmentLocationNotFound
-from conda.install import rm_rf
+from conda.install import rm_rf_wait
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
 from conda_env.exceptions import SpecNotFound
 from conda_env.yaml import load as yaml_load
@@ -132,12 +132,12 @@ def remove_env_file(filename='environment.yml'):
 class IntegrationTests(unittest.TestCase):
 
     def setUp(self):
-        rm_rf("environment.yml")
+        rm_rf_wait("environment.yml")
         if env_is_created(test_env_name_1):
             run_env_command(Commands.ENV_REMOVE, test_env_name_1)
 
     def tearDown(self):
-        rm_rf("environment.yml")
+        rm_rf_wait("environment.yml")
         if env_is_created(test_env_name_1):
             run_env_command(Commands.ENV_REMOVE, test_env_name_1)
 
