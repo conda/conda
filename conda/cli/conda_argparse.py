@@ -228,13 +228,12 @@ def configure_parser_clean(sub_parsers):
         action='store_true',
         help="""Remove files from the source cache of conda build.""",
     )
-    if on_win:
-        p.add_argument(
-            '-t', '--trash',
-            action='store_true',
-            help="""Remove accumulated trash files.""",
-        )
-        p.set_defaults(func='.main_clean.execute')
+    p.add_argument(
+        '--trash',
+        action='store_true',
+        help="""Remove accumulated trash files.""",
+    )
+    p.set_defaults(func='.main_clean.execute')
 
 
 def configure_parser_info(sub_parsers):

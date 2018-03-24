@@ -82,7 +82,7 @@ def rm_rf_wait(path):
         assert not lexists(path), "rm_rf failed for %s" % path
 
 
-def rm_rf_no_trash(path):
+def rm_rf_no_move_to_trash(path):
     path = abspath(path)
     try:
         if isdir(path) and not islink(path):
@@ -235,9 +235,9 @@ def rm_rf(path, max_retries=5, trash=True):
             return False
 
 
-def delete_trash(prefix=None):
+def delete_trash():
     trash_dirs = tuple(td for td in (
-        join(d, '.trash') for d in concatv(context.pkgs_dirs, context.target_prefix)
+        join(d, '.trash') for d in concatv(context.pkgs_dirs, (context.target_prefix,))
     ) if lexists(td))
     if not trash_dirs:
         return
@@ -246,13 +246,13 @@ def delete_trash(prefix=None):
         for trash_dir in trash_dirs:
             log.trace("removing trash for %s", trash_dir)
             try:
-                rm_rf_no_trash(trash_dir)
-            except EnvironmentError:
-                log.info("Could not delete trash path: %s", trash_dir)
+                rm_rf_no_move_to_trash(trash_dir)
+            except EnvironmentError as e:
+                log.info("Unable to delete trash path: %s\n  %r", trash_dir, e)
         rm_rf_queued.flush()
 
 
-def move_path_to_trash(path, preclean=True):
+def move_path_to_trash(path):
     trash_dir = context.trash_dir
     mkdir_p(trash_dir)
     trash_file = join(trash_dir, text_type(uuid4()))

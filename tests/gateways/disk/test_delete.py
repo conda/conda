@@ -4,14 +4,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import ENOENT
 import os
-from os.path import isdir, isfile, islink, join, lexists
+from os.path import isdir, isfile, islink, join, lexists, dirname
 
 import pytest
 
+from conda.base.context import reset_context
+from conda.common.io import env_var
 from conda.compat import TemporaryDirectory
 from conda.exports import move_to_trash
 from conda.gateways.disk.create import create_link
-from conda.gateways.disk.delete import rm_rf, rm_rf_wait
+from conda.gateways.disk.delete import rm_rf, rm_rf_wait, move_path_to_trash, delete_trash
 from conda.gateways.disk.link import islink, symlink
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
@@ -127,6 +129,37 @@ def test_move_to_trash():
         assert not isfile(test_path)
         rm_rf_wait(delete_me)
         assert not isfile(delete_me)
+
+
+def test_move_path_to_trash_file():
+    with tempdir() as td:
+        with env_var('CONDA_PREFIX', td, reset_context):
+            test_file = join(td, 'test_file')
+            touch(test_file)
+            assert isfile(test_file)
+            trash_file = move_path_to_trash(test_file)
+            assert not isfile(test_file)
+            assert isfile(trash_file)
+            delete_trash()
+            assert not isfile(trash_file)
+            assert not isdir(dirname(trash_file))
+
+
+def test_move_path_to_trash_dir():
+    with tempdir() as td:
+        with env_var('CONDA_PREFIX', td, reset_context):
+            test_file = join(td, 'test_dir', 'test_file')
+            test_dir = dirname(test_file)
+            touch(test_file, mkdir=True)
+            assert isdir(test_dir)
+            assert isfile(test_file)
+            trash_dir = move_path_to_trash(test_dir)
+            assert not isdir(test_dir)
+            assert isdir(trash_dir)
+            assert isfile(join(trash_dir, 'test_file'))
+            delete_trash()
+            assert not isdir(trash_dir)
+            assert not isdir(dirname(trash_dir))
 
 
 def test_backoff_unlink():

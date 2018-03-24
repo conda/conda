@@ -15,7 +15,7 @@ import sys
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
 from ..common.compat import on_win
-from ..gateways.disk.delete import rm_rf_queued
+from ..gateways.disk.delete import rm_rf_queued, rm_rf_no_move_to_trash
 
 try:
     from cytoolz.itertoolz import concatv
@@ -47,7 +47,12 @@ def clean_all_trash():
     from ..core.envs_manager import list_all_known_prefixes
     trash_dirs = (join(prefix, '.trash') for prefix in
                   concatv(list_all_known_prefixes(), context.pkgs_dirs))
-    raise NotImplementedError()
+    for trash_dir in trash_dirs:
+        log.trace("removing trash for %s", trash_dir)
+        try:
+            rm_rf_no_move_to_trash(trash_dir)
+        except EnvironmentError as e:
+            log.info("Unable to delete trash path: %s\n  %r", trash_dir, e)
 
 
 def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
@@ -256,6 +261,12 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
 
 
 def execute(args, parser):
+    if not any((args.lock, args.tarballs, args.index_cache, args.packages,
+                args.source_cache, args.trash, args.all)):
+        from ..exceptions import ArgumentError
+        raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
+                            "--source-cache, --trash, --all} required")
+
     from .common import stdout_json
     json_result = {
         'success': True
@@ -296,17 +307,10 @@ def execute(args, parser):
         json_result['source_cache'] = find_source_cache()
         rm_source_cache(args, **json_result['source_cache'])
 
-    rm_rf_queued.flush()
-
-    if not any((args.lock, args.tarballs, args.index_cache, args.packages,
-                args.source_cache, args.all)):
-        from ..exceptions import ArgumentError
-        raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
-                            "--source-cache, --all} required")
-
-    if args.all or on_win and args.trash:
+    if args.all or args.trash:
         clean_all_trash()
-        rm_rf_queued.flush()
+
+    rm_rf_queued.flush()
 
     if context.json:
         stdout_json(json_result)
