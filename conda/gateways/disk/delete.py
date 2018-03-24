@@ -21,7 +21,7 @@ except ImportError:  # pragma: no cover
     from ..._vendor.toolz.itertoolz import concatv  # NOQA
 
 if on_win:
-    from win32file import (DeleteFileW, SetFileAttributesW, GetFileAttributesW,
+    from win32file import (RemoveDirectory, DeleteFileW, SetFileAttributesW, GetFileAttributesW,
                            FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_DIRECTORY)
     from win32api import FindFiles
     from ctypes import FormatError
@@ -103,13 +103,17 @@ def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
 
 
 def _make_win_path(path):
-    return '\\\\?\\%s' % ensure_fs_path_encoding(abspath(path))
+    path = abspath(path).rstrip('\\')
+    if path.startswith('\\\\?\\'):
+        return ensure_fs_path_encoding(path)
+    else:
+        return ensure_fs_path_encoding('\\\\?\\%s' % path)
 
 
 def _do_unlink(path):
     if on_win:
         path = ensure_fs_path_encoding(abspath(path))
-        win_path = '\\\\?\\%s' % path
+        win_path = _make_win_path(path)
         file_attr = GetFileAttributesW(win_path)
         log.debug("attributes for file [%s] are %s" % (path, hex(file_attr)))
         if 0 == SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL):
@@ -135,18 +139,25 @@ def _do_unlink(path):
 
 
 def backoff_rmdir_empty(dirpath, max_tries=MAX_TRIES):
-    exp_backoff_fn(rmdir, dirpath, max_tries=max_tries)
+    try:
+        make_writable(dirpath)
+        exp_backoff_fn(rmdir, dirpath, max_tries=max_tries)
+    except EnvironmentError as e:
+        if e.errno == ENOENT:
+            pass
+        else:
+            raise
 
 
 def rmdir_recursive(path, max_tries=MAX_TRIES):
     if on_win:
         path = ensure_fs_path_encoding(abspath(path))
-        win_path = '\\\\?\\%s' % path
+        win_path = _make_win_path(path)
         file_attr = GetFileAttributesW(win_path)
 
         dots = {'.', '..'}
         if file_attr & FILE_ATTRIBUTE_DIRECTORY:
-            for ffrec in FindFiles(win_path + '\\*.*'):
+            for ffrec in FindFiles(ensure_fs_path_encoding(win_path + '\\*.*')):
                 file_name = ensure_fs_path_encoding(ffrec[8])
                 if file_name in dots:
                     continue
@@ -158,7 +169,8 @@ def rmdir_recursive(path, max_tries=MAX_TRIES):
                     rmdir_recursive(file_path, max_tries=max_tries)
                 else:
                     backoff_unlink(file_path, max_tries=max_tries)
-            backoff_rmdir_empty(path)
+            SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL)
+            RemoveDirectory(win_path)
         else:
             backoff_unlink(path, max_tries=max_tries)
     else:
@@ -257,8 +269,8 @@ def move_path_to_trash(path):
     mkdir_p(trash_dir)
     trash_file = join(trash_dir, text_type(uuid4()))
     if on_win:
-        trash_file = '\\\\?\\%s' % ensure_fs_path_encoding(abspath(trash_file))
-        path = '\\\\?\\%s' % ensure_fs_path_encoding(abspath(path))
+        trash_file = _make_win_path(trash_file)
+        path = _make_win_path(path)
     # This rename assumes the trash_file is on the same file system as the file being trashed.
     rename(path, trash_file)
     return trash_file
