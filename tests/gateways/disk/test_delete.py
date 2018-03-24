@@ -13,7 +13,7 @@ from conda.common.io import env_var
 from conda.compat import TemporaryDirectory
 from conda.exports import move_to_trash
 from conda.gateways.disk.create import create_link
-from conda.gateways.disk.delete import rm_rf, rm_rf_wait, move_path_to_trash, delete_trash
+from conda.gateways.disk.delete import rm_rf_wait, move_path_to_trash, delete_trash
 from conda.gateways.disk.link import islink, symlink
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
@@ -34,7 +34,7 @@ def test_remove_file():
         _try_open(test_path)
         _make_read_only(test_path)
         pytest.raises((IOError, OSError), _try_open, test_path)
-        assert rm_rf(test_path)
+        assert rm_rf_wait(test_path)
         assert not isfile(test_path)
 
 
@@ -46,7 +46,7 @@ def test_remove_file_to_trash():
         _try_open(test_path)
         _make_read_only(test_path)
         pytest.raises((IOError, OSError), _try_open, test_path)
-        assert rm_rf(test_path)
+        assert rm_rf_wait(test_path)
         assert not isfile(test_path)
 
 
@@ -58,8 +58,8 @@ def test_remove_dir():
         assert isfile(test_path)
         assert isdir(td)
         assert not islink(test_path)
-        assert rm_rf(td)
-        assert rm_rf(test_path)
+        assert rm_rf_wait(td)
+        assert rm_rf_wait(test_path)
         assert not isdir(td)
         assert not isfile(test_path)
         assert not lexists(test_path)
@@ -74,9 +74,9 @@ def test_remove_link_to_file():
         assert isfile(src_file)
         assert not islink(src_file)
         assert islink(dst_link)
-        assert rm_rf(dst_link)
+        assert rm_rf_wait(dst_link)
         assert isfile(src_file)
-        assert rm_rf(src_file)
+        assert rm_rf_wait(src_file)
         assert not isfile(src_file)
         assert not islink(dst_link)
         assert not lexists(dst_link)
@@ -90,10 +90,10 @@ def test_remove_link_to_dir():
         symlink(src_dir, dst_link)
         assert not islink(src_dir)
         assert islink(dst_link)
-        assert rm_rf(dst_link)
+        assert rm_rf_wait(dst_link)
         assert not isdir(dst_link)
         assert not islink(dst_link)
-        assert rm_rf(src_dir)
+        assert rm_rf_wait(src_dir)
         assert not isdir(src_dir)
         assert not islink(src_dir)
         assert not lexists(dst_link)
@@ -113,7 +113,7 @@ def test_rm_rf_does_not_follow_symlinks():
         create_link(real_file, link_path, link_type=LinkType.softlink)
         assert islink(link_path)
         # rm_rf the subfolder
-        rm_rf(subdir)
+        rm_rf_wait(subdir)
         # assert that the file still exists in the root folder
         assert os.path.isfile(real_file)
 
