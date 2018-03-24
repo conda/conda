@@ -102,9 +102,6 @@ def main(*args, **kwargs):
             if argv1.startswith('shell.'):
                 from ..activate import main as activator_main
                 return activator_main()
-            elif argv1 == "hook":
-                from ..hook import main as hook_main
-                return hook_main()
             elif argv1.startswith('..'):
                 import conda.cli.activate as activate
                 activate.main()

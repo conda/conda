@@ -90,12 +90,12 @@ class _Activator(object):
         return self._finalize(self._yield_commands(self.build_reactivate()),
                               self.tempfile_extension)
 
-    def hook(self):
+    def hook(self, auto_activate_base=None):
         builder = []
         builder.append(self._hook_preamble())
         with open(self.hook_source_path) as fsrc:
             builder.append(fsrc.read())
-        if context.auto_activate_base:
+        if auto_activate_base is None and context.auto_activate_base or auto_activate_base:
             builder.append("conda activate base\n")
         return "\n".join(builder)
 

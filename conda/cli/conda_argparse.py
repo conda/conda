@@ -561,13 +561,6 @@ def configure_parser_init(sub_parsers):
 
             $ conda init --system
 
-        # Initialize conda in all detected shells for the current user. Additionally, make *only*
-        # the 'conda' command available to the shell, and *do not* automatically activate the
-        # base environment. Executables in the base environment, like python, will not be
-        # available on PATH until running 'conda activate base'.
-
-            $ conda init --no-auto-activate
-
         # When executed from a bash shell, ensure that conda is properly installed in the prefix
         # for the first python on PATH (e.g. following a `python -m pip install conda`). Make the
         # 'conda' command available to the current shell process, and activate the 'base'
@@ -670,14 +663,6 @@ def configure_parser_init(sub_parsers):
             default=NULL,
         )
 
-    # p.add_argument(
-    #     "--no-auto-activate",
-    #     help="Do not automatically activate the base environment on shell startup. "
-    #          "Instead, only make the 'conda' command available.",
-    #     action="store_false",
-    #     default=True,
-    #     dest='auto_activate',
-    # )
     add_parser_json(p)
     p.set_defaults(func='.main_init.execute')
 

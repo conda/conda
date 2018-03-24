@@ -5,7 +5,7 @@ from glob import glob
 import json
 from logging import getLogger
 import os
-from os.path import dirname, exists, isdir, isfile, join
+from os.path import dirname, exists, expanduser, isdir, isfile, join
 from random import randint
 import re
 import sys
@@ -13,9 +13,9 @@ import sys
 from . import CONDA_PACKAGE_ROOT
 from ._vendor.auxlib.ish import dals
 from .common.compat import on_mac, on_win, open
-from .common.path import expand, get_python_short_path, get_python_site_packages_short_path, \
-    win_path_ok
-from .gateways.disk.create import create_hard_link_or_copy, mkdir_p
+from .common.path import (expand, get_python_short_path, get_python_site_packages_short_path,
+                          win_path_ok)
+from .gateways.disk.create import copy, mkdir_p
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import lexists
 from .gateways.disk.permissions import make_executable
@@ -167,7 +167,14 @@ def make_install_plan(conda_prefix):
         plan.append({
             'function': init_conda_bat.__name__,
             'kwargs': {
-                'target_path': join(sys.prefix, 'Library', 'bin', 'conda.bat'),
+                'target_path': join(conda_prefix, 'Library', 'bin', 'conda.bat'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+        plan.append({
+            'function': init_condacmd_bat.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'condacmd', 'conda.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
@@ -262,6 +269,9 @@ def run_plan_elevated(plan):
             # https://github.com/twonds/twisted/blob/master/twisted/internet/_dumbwin32proc.py
             # https://stackoverflow.com/a/19982092/2127762
             # https://www.codeproject.com/Articles/19165/Vista-UAC-The-Definitive-Guide
+
+            # from menuinst.win_elevate import isUserAdmin, runAsAdmin
+            # I do think we can pipe to stdin, so we're going to have to write to a temp file and read in the elevated process
             raise NotImplementedError("Windows. Blah. Run as Administrator on your own.")
         else:
             result = subprocess_call(
@@ -315,14 +325,24 @@ def make_entry_point(target_path, conda_prefix, module, func):
     else:
         new_ep_content = "#!%s\n" % join(conda_prefix, get_python_short_path())
 
+    conda_extra = dals("""
+    # Before any more imports, leave cwd out of sys.path for internal 'conda shell.*' commands.
+    # see https://github.com/conda/conda/issues/6549
+    if len(sys.argv) > 1 and sys.argv[1].startswith('shell.') and sys.path and sys.path[0] == '':
+        # The standard first entry in sys.path is an empty string,
+        # and os.path.abspath('') expands to os.getcwd().
+        del sys.path[0]
+    """)
+
     new_ep_content += dals("""
     # -*- coding: utf-8 -*-
-
+    import sys
+    %(extra)s
     if __name__ == '__main__':
-        import sys
         from %(module)s import %(func)s
         sys.exit(%(func)s())
     """) % {
+        'extra': conda_extra if module == 'conda.cli' else '',
         'module': module,
         'func': func,
     }
@@ -349,7 +369,9 @@ def make_entry_point_exe(target_path, conda_prefix):
 
     if not isdir(dirname(exe_path)):
         mkdir_p(dirname(exe_path))
-    create_hard_link_or_copy(source_exe_path, exe_path)
+    # prefer copy() over create_hard_link_or_copy() because of windows file deletion issues
+    # with open processes
+    copy(source_exe_path, exe_path)
     return Result.MODIFIED
 
 
@@ -370,8 +392,8 @@ def init_conda_sh(target_path, conda_prefix):
     else:
         original_conda_sh = ""
 
-    from .hook import Hook
-    new_conda_sh = Hook(conda_prefix, False).posix()
+    from .activate import PosixActivator
+    new_conda_sh = PosixActivator().hook(auto_activate_base=False)
 
     if new_conda_sh != original_conda_sh:
         mkdir_p(dirname(conda_sh_base_path))
@@ -393,7 +415,7 @@ def init_sh_user(target_path, conda_prefix):
 
     conda_initialize_content = (
         '# >>> conda initialize >>>\n'
-        'eval "$(\'%s\' hook posix)"\n'
+        'eval "$(\'%s\' shell.posix hook)"\n'
         '# <<< conda initialize <<<\n'
     ) % conda_exe(conda_prefix)
 
@@ -436,7 +458,7 @@ def init_sh_system(target_path, conda_prefix):
             conda_sh_system_contents = fh.read()
     else:
         conda_sh_system_contents = ""
-    conda_sh_contents = 'eval "$(\'%s\' hook posix)"\n' % conda_exe(conda_prefix)
+    conda_sh_contents = 'eval "$(\'%s\' shell.posix hook)"\n' % conda_exe(conda_prefix)
     if conda_sh_system_contents != conda_sh_contents:
         if lexists(conda_sh_system_path):
             rm_rf(conda_sh_system_path)
@@ -449,7 +471,7 @@ def init_sh_system(target_path, conda_prefix):
 
 
 def init_conda_bat(target_path, conda_prefix):
-    # target_path: join(sys.prefix, 'Library', 'bin', 'conda.bat')
+    # target_path: join(conda_prefix, 'Library', 'bin', 'conda.bat')
     conda_bat_dst_path = target_path
     conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Library', 'bin', 'conda.bat')
 
@@ -472,6 +494,51 @@ def init_conda_bat(target_path, conda_prefix):
         return Result.NO_CHANGE
 
     # TODO: use menuinst to create shortcuts
+
+
+def init_condacmd_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condacmd', 'conda.bat')
+    conda_bat_dst_path = target_path
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda', 'conda.bat')
+
+    if isfile(conda_bat_dst_path):
+        with open(conda_bat_dst_path) as fh:
+            original_conda_bat = fh.read()
+    else:
+        original_conda_bat = ""
+
+    new_conda_bat = ""
+    with open(conda_bat_src_path) as fsrc:
+        new_conda_bat += fsrc.read()
+
+    if new_conda_bat != original_conda_bat:
+        mkdir_p(dirname(conda_bat_dst_path))
+        with open(conda_bat_dst_path, 'w') as fdst:
+            fdst.write(new_conda_bat)
+            return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
+
+
+def install_conda_shortcut(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condacmd', 'conda.lnk')
+    icon_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda_icon.ico')
+
+    from menuinst.windows.winshortcut import create_shortcut
+    args = (
+        join(conda_prefix, 'condacmd', 'conda.bat'),
+    )
+    # The API for the call to 'create_shortcut' has 3
+    # required arguments (path, description, filename)
+    # and 4 optional ones (args, working_dir, icon_path, icon_index).
+    create_shortcut(
+        "%windir%\\System32\\cmd.exe",
+        "Conda Prompt",
+        '' + target_path,
+        ' '.join(args),
+        '' + expanduser('~'),
+        '' + icon_path,
+    )
 
 
 def init_conda_fish(target_path, conda_prefix):

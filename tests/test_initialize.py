@@ -142,10 +142,9 @@ def test_init_conda_sh():
 
         first_line, remainder = created_file_contents.split('\n', 1)
         if on_win:
-            win_conda_exe = join(conda_prefix, 'Scripts', 'conda.exe')
-            assert first_line == "_CONDA_EXE=\"$(cygpath '%s')\"" % win_conda_exe
+            assert first_line == "_CONDA_EXE=\"$(cygpath '%s')\"" % context.conda_exe
         else:
-            assert first_line == '_CONDA_EXE="%s"' % join(conda_prefix, 'bin', 'conda')
+            assert first_line == '_CONDA_EXE="%s"' % context.conda_exe
 
         with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')) as fh:
             original_contents = fh.read()
