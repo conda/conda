@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import basename, dirname, isdir, join
+from os.path import dirname, isdir, join
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
@@ -21,7 +21,7 @@ from conda.common.compat import iteritems, on_win, string_types
 from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_wait
 from conda.gateways.disk.update import touch
 from tests.helpers import tempdir
 
@@ -413,7 +413,7 @@ class ShellWrapperUnitTests(TestCase):
             os.environ.pop(var, None)
 
     def tearDown(self):
-        rm_rf(self.prefix)
+        rm_rf_wait(self.prefix)
         os.environ.clear()
         os.environ.update(self.hold_environ)
 
@@ -543,7 +543,7 @@ class ShellWrapperUnitTests(TestCase):
 
         with open(activate_result) as fh:
             activate_data = fh.read()
-        rm_rf(activate_result)
+        rm_rf_wait(activate_result)
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         assert activate_data == dals("""
@@ -579,7 +579,7 @@ class ShellWrapperUnitTests(TestCase):
 
             with open(reactivate_result) as fh:
                 reactivate_data = fh.read()
-            rm_rf(reactivate_result)
+            rm_rf_wait(reactivate_result)
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             assert reactivate_data == dals("""
@@ -602,7 +602,7 @@ class ShellWrapperUnitTests(TestCase):
 
             with open(deactivate_result) as fh:
                 deactivate_data = fh.read()
-            rm_rf(deactivate_result)
+            rm_rf_wait(deactivate_result)
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             assert deactivate_data == dals("""
@@ -713,7 +713,7 @@ class ShellWrapperUnitTests(TestCase):
 
         with open(activate_result) as fh:
             activate_data = fh.read()
-        rm_rf(activate_result)
+        rm_rf_wait(activate_result)
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
         assert activate_data == dals("""
@@ -747,7 +747,7 @@ class ShellWrapperUnitTests(TestCase):
 
             with open(reactivate_result) as fh:
                 reactivate_data = fh.read()
-            rm_rf(reactivate_result)
+            rm_rf_wait(reactivate_result)
 
             new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             assert reactivate_data == dals("""
@@ -770,7 +770,7 @@ class ShellWrapperUnitTests(TestCase):
 
             with open(deactivate_result) as fh:
                 deactivate_data = fh.read()
-            rm_rf(deactivate_result)
+            rm_rf_wait(deactivate_result)
 
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             assert deactivate_data == dals("""
@@ -1077,7 +1077,7 @@ class ShellWrapperIntegrationTests(TestCase):
         touch(join(self.prefix, 'envs', 'charizard', 'conda-meta', 'history'))
 
     def tearDown(self):
-        rm_rf(self.prefix)
+        rm_rf_wait(self.prefix)
 
     def basic_posix(self, shell):
         shell.assert_env_var('CONDA_SHLVL', '0')

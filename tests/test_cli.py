@@ -6,7 +6,7 @@ import pytest
 
 from conda.base.context import context
 from conda.common.io import captured
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_wait
 from tests.helpers import capture_json_with_argv, run_inprocess_conda_command
 
 
@@ -20,7 +20,7 @@ class TestJson(unittest.TestCase):
         self.assertIn('error', res)
 
     def tearDown(self):
-        rm_rf('tempfile.rc')
+        rm_rf_wait('tempfile.rc')
 
     def test_config(self):
         res = capture_json_with_argv('conda config --get --json')

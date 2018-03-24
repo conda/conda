@@ -10,7 +10,7 @@ import uuid
 from conda.common.compat import on_win, PY2
 
 from conda.gateways.disk.create import mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_wait
 from conda.gateways.disk.link import link, islink, readlink, stat_nlink, symlink
 from conda.gateways.disk.update import touch
 
@@ -27,7 +27,7 @@ class LinkSymlinkUnlinkIslinkReadlinkTests(TestCase):
         assert isdir(self.test_dir)
 
     def tearDown(self):
-        rm_rf(self.test_dir)
+        rm_rf_wait(self.test_dir)
         assert not lexists(self.test_dir)
 
     def test_hard_link(self):

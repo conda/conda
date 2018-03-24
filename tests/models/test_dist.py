@@ -10,7 +10,7 @@ from conda.base.context import context, reset_context
 from conda.common.io import env_var
 from conda.common.url import join_url, path_to_url
 from conda.gateways.disk.create import mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_wait
 from conda.models.dist import Dist
 from logging import getLogger
 from unittest import TestCase
@@ -103,7 +103,7 @@ class UrlDistTests(TestCase):
                 assert d.to_url() == url
                 assert d.is_channel is True
         finally:
-            rm_rf(conda_bld_path)
+            rm_rf_wait(conda_bld_path)
 
         # local file url that is not a named channel
         url = join_url('file:///some/location/on/disk', 'osx-64', 'bcrypt-3.1.1-py35_2.tar.bz2')

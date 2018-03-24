@@ -45,7 +45,7 @@ from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllow
     DisallowedPackageError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_wait
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
@@ -222,7 +222,7 @@ def tempdir():
         yield prefix
     finally:
         if lexists(prefix):
-            rm_rf(prefix)
+            rm_rf_wait(prefix)
 
 
 def reload_config(prefix):
@@ -579,7 +579,7 @@ class IntegrationTests(TestCase):
             # regression test for #5847
             #   when using rm_rf on a directory
             assert prefix in PrefixData._cache_
-            _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")))
+            _rm_rf_wait(join(prefix, get_python_site_packages_short_path("3.5")))
             assert prefix not in PrefixData._cache_
 
     def test_list_with_pip_wheel(self):
@@ -599,7 +599,7 @@ class IntegrationTests(TestCase):
             # regression test for #5847
             #   when using rm_rf on a file
             assert prefix in PrefixData._cache_
-            _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
+            _rm_rf_wait(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
             assert prefix not in PrefixData._cache_
 
         # regression test for #5980, related to #5847
@@ -611,7 +611,7 @@ class IntegrationTests(TestCase):
             assert not isdir(prefix)
             assert prefix in PrefixData._cache_
 
-            _rm_rf(prefix)
+            _rm_rf_wait(prefix)
             assert not isdir(prefix)
             assert prefix not in PrefixData._cache_
 
@@ -697,7 +697,7 @@ class IntegrationTests(TestCase):
         # regression test for #6914
         with make_temp_env("python=2.7.12") as prefix:
             assert package_is_installed(prefix, "readline-6.2")
-            rm_rf(join(prefix, 'conda-meta', 'history'))
+            rm_rf_wait(join(prefix, 'conda-meta', 'history'))
             PrefixData._cache_.clear()
             run_command(Commands.UPDATE, prefix, "readline")
             assert package_is_installed(prefix, "readline")
@@ -854,7 +854,7 @@ class IntegrationTests(TestCase):
             with pytest.raises(CondaError):
                 run_command(Commands.CONFIG, prefix, "--write-default")
 
-            rm_rf(join(prefix, 'condarc'))
+            rm_rf_wait(join(prefix, 'condarc'))
             run_command(Commands.CONFIG, prefix, "--write-default")
 
             with open(join(prefix, 'condarc')) as fh:
@@ -1480,7 +1480,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
             assert_package_is_installed(prefix, "python-3.5.2")
 
-            rm_rf(prefix)
+            rm_rf_wait(prefix)
             assert not isdir(prefix)
 
             # this part also a regression test for #4849
@@ -1567,7 +1567,7 @@ class IntegrationTests(TestCase):
 
         # regression test for #3489
         # don't raise for remove --all if environment doesn't exist
-        rm_rf(prefix)
+        rm_rf_wait(prefix)
         run_command(Commands.REMOVE, prefix, "--all")
 
     def test_download_only_flag(self):
@@ -1738,7 +1738,7 @@ class PrivateEnvIntegrationTests(TestCase):
         reset_context()
 
     def tearDown(self):
-        rm_rf(self.prefix)
+        rm_rf_wait(self.prefix)
 
         for key, value in iteritems(self.saved_values):
             if value is not None:

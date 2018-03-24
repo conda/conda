@@ -10,7 +10,7 @@ from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
 from conda.common.configuration import LoadError
 from conda.common.serialize import yaml_load
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_wait
 
 
 # use condarc from source tree to run these tests against
@@ -36,7 +36,7 @@ def make_temp_condarc(value=None):
         reset_context([temp_path])
         yield temp_path
     finally:
-        rm_rf(temp_path)
+        rm_rf_wait(temp_path)
 
 
 def _read_test_condarc(rc):

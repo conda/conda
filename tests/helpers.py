@@ -19,7 +19,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
 from conda.core.subdir_data import SubdirData, make_feature_record
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_wait
 from conda.gateways.disk.read import lexists
 from conda.gateways.logging import initialize_logging
 from conda.models.channel import Channel
@@ -115,7 +115,7 @@ def tempdir():
         yield prefix
     finally:
         if lexists(prefix):
-            rm_rf(prefix)
+            rm_rf_wait(prefix)
 
 
 def supplement_index_with_repodata(index, repodata, channel, priority):

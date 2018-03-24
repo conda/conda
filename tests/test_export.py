@@ -1,6 +1,6 @@
 import pytest
 import tempfile
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_wait
 from datetime import datetime
 from os.path import exists, join
 from unittest import TestCase
@@ -58,7 +58,7 @@ class ExportIntegrationTests(TestCase):
                 output2, error = run_command(Commands.LIST, prefix2, "-e")
                 self.assertEqual(output, output2)
             finally:
-                rm_rf(env_txt.name)
+                rm_rf_wait(env_txt.name)
 
     def test_multi_channel_explicit(self):
         """
@@ -87,4 +87,4 @@ class ExportIntegrationTests(TestCase):
                 output2, _ = run_command(Commands.LIST, prefix2, "--explicit")
                 self.assertEqual(output, output2)
             finally:
-                rm_rf(env_txt.name)
+                rm_rf_wait(env_txt.name)

@@ -93,8 +93,8 @@ class FileLock(object):
         raise LockError(LOCKSTR.format(last_glob_match))
 
     def __exit__(self, exc_type, exc_value, traceback):
-        from .gateways.disk.delete import rm_rf
-        rm_rf(self.lock_file_path)
+        from .gateways.disk.delete import rm_rf_wait
+        rm_rf_wait(self.lock_file_path)
 
 
 # lgtm alert ignore because this lock functionality is unused and will soon be replaced

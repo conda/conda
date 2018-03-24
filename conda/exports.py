@@ -181,12 +181,12 @@ class memoized(object):  # pragma: no cover
                 return value
 
 
-from .gateways.disk.delete import rm_rf as _rm_rf  # NOQA
+from .gateways.disk.delete import rm_rf_wait as _rm_rf_wait  # NOQA
 from .core.prefix_data import delete_prefix_from_linked_data  # NOQA
 
 
 def rm_rf(path, max_retries=5, trash=True):
-    _rm_rf(path, max_retries, trash)
+    _rm_rf_wait(path)
     delete_prefix_from_linked_data(path)
 
 

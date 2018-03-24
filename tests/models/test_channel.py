@@ -15,7 +15,7 @@ from conda.common.io import env_var
 from conda.common.serialize import yaml_load
 from conda.common.url import join, join_url
 from conda.gateways.disk.create import mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_wait
 from conda.models.channel import Channel, prioritize_channels
 from conda.utils import on_win
 
@@ -550,7 +550,7 @@ class CustomConfigChannelTests(TestCase):
                 assert channel.urls() == Channel(local_channel_first_subchannel).urls()
                 assert channel.urls()[0].startswith('file:///')
         finally:
-            rm_rf(conda_bld_path)
+            rm_rf_wait(conda_bld_path)
 
     def test_defaults_channel(self):
         channel = Channel('defaults')

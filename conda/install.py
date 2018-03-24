@@ -27,7 +27,8 @@ from os.path import dirname, isdir, isfile, join, normcase, normpath
 
 from .base.constants import PREFIX_PLACEHOLDER
 from .common.compat import on_win, open
-from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
+from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf_wait
+
 delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
 from .core.prefix_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
@@ -120,7 +121,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
         try:
             # try to kill stale links if they exist
             if os.path.lexists(prefix_file):
-                rm_rf(prefix_file)
+                rm_rf_wait(prefix_file)
             # if they're in use, they won't be killed.  Skip making new symlink.
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)

@@ -138,15 +138,30 @@ def _do_unlink(path):
                 raise
 
 
+def _do_rmdir(path):
+    if on_win:
+        if 0 == SetFileAttributesW(path, FILE_ATTRIBUTE_NORMAL):
+            error = OSError(FormatError())
+            if error.errno != ENOENT:
+                raise error
+        if 0 == RemoveDirectory(path):
+            error = OSError(FormatError())
+            if error.errno != ENOENT:
+                raise error
+    else:
+        try:
+            make_writable(path)
+            rmdir(path)
+        except EnvironmentError as e:
+            if e.errno == ENOENT:
+                pass
+            else:
+                raise
+
+
 def backoff_rmdir_empty(dirpath, max_tries=MAX_TRIES):
-    try:
-        make_writable(dirpath)
-        exp_backoff_fn(rmdir, dirpath, max_tries=max_tries)
-    except EnvironmentError as e:
-        if e.errno == ENOENT:
-            pass
-        else:
-            raise
+    exp_backoff_fn(_do_rmdir, dirpath, max_tries=max_tries)
+
 
 
 def rmdir_recursive(path, max_tries=MAX_TRIES):
@@ -169,8 +184,7 @@ def rmdir_recursive(path, max_tries=MAX_TRIES):
                     rmdir_recursive(file_path, max_tries=max_tries)
                 else:
                     backoff_unlink(file_path, max_tries=max_tries)
-            SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL)
-            RemoveDirectory(win_path)
+            backoff_rmdir_empty(win_path, max_tries=max_tries)
         else:
             backoff_unlink(path, max_tries=max_tries)
     else:

@@ -13,7 +13,7 @@ from conda.common.compat import ensure_binary, PY3
 from conda.common.url import path_to_url
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
 from conda.gateways.connection.session import CondaHttpAuth, CondaSession
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_wait
 
 log = getLogger(__name__)
 
@@ -65,4 +65,4 @@ class CondaSessionTests(TestCase):
             assert r.json()['content'] == "file content"
         finally:
             if test_path is not None:
-                rm_rf(test_path)
+                rm_rf_wait(test_path)
