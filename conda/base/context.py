@@ -402,11 +402,8 @@ class Context(Configuration):
 
     @memoizedproperty
     def trash_dir(self):
-        # TODO: this inline import can be cleaned up by moving pkgs_dir write detection logic
-        from ..core.package_cache_data import PackageCacheData
-        pkgs_dir = PackageCacheData.first_writable().pkgs_dir
-        trash_dir = join(pkgs_dir, '.trash')
         from ..gateways.disk.create import mkdir_p
+        trash_dir = join(self.target_prefix, '.trash')
         mkdir_p(trash_dir)
         return trash_dir
 
