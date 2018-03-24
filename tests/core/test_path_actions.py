@@ -81,7 +81,7 @@ class PathActionsTests(TestCase):
         assert isdir(self.pkgs_dir)
 
     def tearDown(self):
-        rm_rf_queued(self.prefix)
+        rm_rf_wait(self.prefix)
         if not (on_win and PY2):
             # this assertion fails for the Softlink action windows tests
             # line 141 in backoff_rmdir

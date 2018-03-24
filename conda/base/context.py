@@ -402,10 +402,7 @@ class Context(Configuration):
 
     @memoizedproperty
     def trash_dir(self):
-        from ..gateways.disk.create import mkdir_p
-        trash_dir = join(self.target_prefix, '.trash')
-        mkdir_p(trash_dir)
-        return trash_dir
+        return join(self.target_prefix, '.trash')
 
     @property
     def _user_data_dir(self):

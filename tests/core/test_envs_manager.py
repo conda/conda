@@ -17,7 +17,7 @@ from conda.core.envs_manager import list_all_known_prefixes, register_env, \
     USER_ENVIRONMENTS_TXT_FILE, \
     unregister_env, _clean_environments_txt
 from conda.gateways.disk import mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf_queued
 from conda.gateways.disk.read import yield_lines
 from conda.gateways.disk.update import touch
 
@@ -39,7 +39,8 @@ class EnvsManagerUnitTests(TestCase):
         assert isdir(self.prefix)
 
     def tearDown(self):
-        rm_rf(self.prefix)
+        rm_rf_queued(self.prefix)
+        rm_rf_queued.flush()
         assert not lexists(self.prefix)
 
     def test_register_unregister_location_env(self):
@@ -68,6 +69,7 @@ class EnvsManagerUnitTests(TestCase):
             reset_context((), argparse_args=AttrDict(prefix='./blarg', func='create'))
             target_prefix = join(os.getcwd(), 'blarg')
             assert context.target_prefix == target_prefix
+            rm_rf_queued.flush()
             assert not isdir(target_prefix)
 
     def test_rewrite_environments_txt_file(self):

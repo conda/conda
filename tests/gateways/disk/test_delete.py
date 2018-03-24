@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
@@ -8,8 +9,9 @@ from os.path import isdir, isfile, islink, join, lexists
 import pytest
 
 from conda.compat import TemporaryDirectory
+from conda.exports import move_to_trash
 from conda.gateways.disk.create import create_link
-from conda.gateways.disk.delete import move_to_trash, rm_rf
+from conda.gateways.disk.delete import rm_rf, rm_rf_wait
 from conda.gateways.disk.link import islink, symlink
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
@@ -121,19 +123,10 @@ def test_move_to_trash():
         _try_open(test_path)
         assert isdir(td)
         assert isfile(test_path)
-        move_to_trash(td, test_path)
+        delete_me = move_to_trash(td, test_path)
         assert not isfile(test_path)
-
-
-def test_move_path_to_trash_couldnt():
-    from conda.gateways.disk.delete import move_path_to_trash
-    with tempdir() as td:
-        test_path = join(td, 'test_path')
-        touch(test_path)
-        _try_open(test_path)
-        assert isdir(td)
-        assert isfile(test_path)
-        assert move_path_to_trash(test_path)
+        rm_rf_wait(delete_me)
+        assert not isfile(delete_me)
 
 
 def test_backoff_unlink():
