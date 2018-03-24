@@ -238,6 +238,9 @@ class LinkPathAction(CreateInPrefixPathAction):
             _path=target_short_path,
             path_type=PathType.windows_python_entry_point_exe,
         )
+        requested_link_type = LinkType.copy
+        # To deal with Windows file ownership and process locking, it's safer to always
+        # copy this file.
         return cls(transaction_context, package_info, source_directory,
                    source_short_path, target_prefix, target_short_path,
                    requested_link_type, source_path_data)
