@@ -49,6 +49,15 @@ if sys.platform == "win32":
     install_requires.append('menuinst')
 
 
+def package_files(*root_directories):
+    return [
+        os.path.join('..', path, filename)
+        for directory in root_directories
+        for (path, directories, filenames) in os.walk(directory)
+        for filename in filenames
+    ]
+
+
 setup(
     name=conda.__name__,
     version=conda.__version__,
@@ -76,7 +85,9 @@ setup(
         "utils",
         ".tox"
     )),
-    include_package_data=True,
+    package_data={
+        '': package_files('conda/shell') + ['LICENSE'],
+    },
     cmdclass={
         'build_py': conda._vendor.auxlib.packaging.BuildPyCommand,
         'sdist': conda._vendor.auxlib.packaging.SDistCommand,
