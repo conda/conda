@@ -65,9 +65,9 @@ def execute(args, parser):
             display_actions(actions, index)
             confirm_yn()
         rm_rf_queued(prefix)
+        rm_rf_queued.flush()
         unregister_env(prefix)
 
-        rm_rf_queued.flush()
         if context.json:
             stdout_json({
                 'success': True,

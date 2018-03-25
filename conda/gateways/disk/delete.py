@@ -135,8 +135,14 @@ def _do_unlink(path):
         _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
         _win_fs_syscall(DeleteFileW, win_path)
         if lexists(win_path):
-            make_writable(win_path)
-            unlink(win_path)
+            try:
+                make_writable(win_path)
+                unlink(win_path)
+            except EnvironmentError as e:
+                if e.errno == ENOENT:
+                    pass
+                else:
+                    raise
 
         # log.info("attributes for [%s] are %s" % (path, hex(GetFileAttributesW(path))))
         # raise RuntimeError("Problem for path: %s" % path)
