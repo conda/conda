@@ -221,5 +221,9 @@ def main():
     print(path)
 
 
+print("WARNING: The conda.cli.activate module is deprecated and will be removed in a "
+      "future release.", file=sys.stderr)
+
+
 if __name__ == '__main__':
     main()
