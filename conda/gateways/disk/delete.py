@@ -25,6 +25,7 @@ if on_win:
                            FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_DIRECTORY)
     from win32api import FindFiles
     from ctypes import FormatError
+    from pywintypes import error as PyWinTypeError
 
 
 log = getLogger(__name__)
@@ -113,20 +114,26 @@ def _make_win_path(path):
         return ensure_fs_path_encoding('\\\\?\\%s' % path)
 
 
+def _win_fs_syscall(func, *args):
+    try:
+        if 0 == func(*args):
+            error = OSError(FormatError())
+            if error.errno != ENOENT:
+                raise error
+    except PyWinTypeError:
+        error = OSError(FormatError())
+        if error.errno != ENOENT:
+            raise error
+
+
 def _do_unlink(path):
     if on_win:
         path = ensure_fs_path_encoding(abspath(path))
         win_path = _make_win_path(path)
         file_attr = GetFileAttributesW(win_path)
         log.debug("attributes for file [%s] are %s" % (path, hex(file_attr)))
-        if 0 == SetFileAttributesW(win_path, FILE_ATTRIBUTE_NORMAL):
-            error = OSError(FormatError())
-            if error.errno != ENOENT:
-                raise error
-        if 0 == DeleteFileW(win_path):
-            error = OSError(FormatError())
-            if error.errno != ENOENT:
-                raise error
+        _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
+        _win_fs_syscall(DeleteFileW, win_path)
         if lexists(win_path):
             make_writable(win_path)
             unlink(win_path)
@@ -146,14 +153,8 @@ def _do_unlink(path):
 
 def _do_rmdir(path):
     if on_win:
-        if 0 == SetFileAttributesW(path, FILE_ATTRIBUTE_NORMAL):
-            error = OSError(FormatError())
-            if error.errno != ENOENT:
-                raise error
-        if 0 == RemoveDirectory(path):
-            error = OSError(FormatError())
-            if error.errno != ENOENT:
-                raise error
+        _win_fs_syscall(SetFileAttributesW, path, FILE_ATTRIBUTE_NORMAL)
+        _win_fs_syscall(RemoveDirectory, path)
     else:
         try:
             make_writable(path)
@@ -167,7 +168,6 @@ def _do_rmdir(path):
 
 def backoff_rmdir_empty(dirpath, max_tries=MAX_TRIES):
     exp_backoff_fn(_do_rmdir, dirpath, max_tries=max_tries)
-
 
 
 def rmdir_recursive(path, max_tries=MAX_TRIES):
