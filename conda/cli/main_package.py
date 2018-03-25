@@ -19,7 +19,7 @@ from ..base.context import context
 from ..common.compat import PY3, itervalues
 from ..common.path import paths_equal
 from ..core.prefix_data import is_linked, linked, linked_data
-from ..gateways.disk.delete import rmtree
+from ..gateways.disk.delete import rm_rf_wait
 from ..install import PREFIX_PLACEHOLDER
 from ..misc import untracked
 
@@ -172,7 +172,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
         update_info(info)
     _add_info_dir(t, tmp_dir, files, has_prefix, info)
     t.close()
-    rmtree(tmp_dir)
+    rm_rf_wait(tmp_dir)
     return warnings
 
 

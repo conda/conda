@@ -163,25 +163,20 @@ def test_move_path_to_trash_dir():
 
 
 def test_backoff_unlink():
-    from conda.gateways.disk.delete import backoff_rmdir
     with tempdir() as td:
         test_path = join(td, 'test_path')
         touch(test_path)
         _try_open(test_path)
         assert isdir(td)
-        backoff_rmdir(td)
+        rm_rf_wait(td)
         assert not isdir(td)
 
 
 def test_backoff_unlink_doesnt_exist():
-    from conda.gateways.disk.delete import backoff_rmdir
     with tempdir() as td:
         test_path = join(td, 'test_path')
         touch(test_path)
-        try:
-            backoff_rmdir(join(test_path, 'some', 'path', 'in', 'utopia'))
-        except Exception as e:
-            assert e.value.errno == ENOENT
+        rm_rf_wait(join(test_path, 'some', 'path', 'in', 'utopia'))
 
 
 def test_try_rmdir_all_empty_doesnt_exist():

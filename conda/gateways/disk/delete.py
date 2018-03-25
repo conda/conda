@@ -108,10 +108,7 @@ def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
 
 def _make_win_path(path):
     path = abspath(path).rstrip('\\')
-    if path.startswith('\\\\?\\'):
-        return ensure_fs_path_encoding(path)
-    else:
-        return ensure_fs_path_encoding('\\\\?\\%s' % path)
+    return ensure_fs_path_encoding(path if path.startswith('\\\\?\\') else '\\\\?\\%s' % path)
 
 
 def _win_fs_syscall(func, *args):
@@ -128,10 +125,7 @@ def _win_fs_syscall(func, *args):
 
 def _do_unlink(path):
     if on_win:
-        path = ensure_fs_path_encoding(abspath(path))
         win_path = _make_win_path(path)
-        file_attr = GetFileAttributesW(win_path)
-        log.debug("attributes for file [%s] are %s" % (path, hex(file_attr)))
         _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
         _win_fs_syscall(DeleteFileW, win_path)
         if lexists(win_path):
@@ -143,9 +137,6 @@ def _do_unlink(path):
                     pass
                 else:
                     raise
-
-        # log.info("attributes for [%s] are %s" % (path, hex(GetFileAttributesW(path))))
-        # raise RuntimeError("Problem for path: %s" % path)
     else:
         try:
             make_writable(path)
@@ -159,8 +150,9 @@ def _do_unlink(path):
 
 def _do_rmdir(path):
     if on_win:
-        _win_fs_syscall(SetFileAttributesW, path, FILE_ATTRIBUTE_NORMAL)
-        _win_fs_syscall(RemoveDirectory, path)
+        win_path = _make_win_path(path)
+        _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
+        _win_fs_syscall(RemoveDirectory, win_path)
     else:
         try:
             make_writable(path)
@@ -178,7 +170,6 @@ def backoff_rmdir_empty(dirpath, max_tries=MAX_TRIES):
 
 def rmdir_recursive(path, max_tries=MAX_TRIES):
     if on_win:
-        path = ensure_fs_path_encoding(abspath(path))
         win_path = _make_win_path(path)
         file_attr = GetFileAttributesW(win_path)
 
@@ -316,38 +307,38 @@ def move_path_to_trash(path):
 #             raise
 
 
-def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
-    if not isdir(dirpath):
-        return
-
-    # shutil.rmtree:
-    #   if onerror is set, it is called to handle the error with arguments (func, path, exc_info)
-    #     where func is os.listdir, os.remove, or os.rmdir;
-    #     path is the argument to that function that caused it to fail; and
-    #     exc_info is a tuple returned by sys.exc_info() ==> (type, value, traceback).
-    def retry(func, path, exc_info):
-        if getattr(exc_info[1], 'errno', None) == ENOENT:
-            return
-        recursive_make_writable(dirname(path), max_tries=max_tries)
-        func(path)
-
-    def _rmdir(path):
-        try:
-            recursive_make_writable(path)
-            exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
-        except (IOError, OSError) as e:
-            if e.errno == ENOENT:
-                log.trace("no such file or directory: %s", path)
-            else:
-                raise
-
-    for root, dirs, files in walk(dirpath, topdown=False):
-        for file in files:
-            backoff_unlink(join(root, file), max_tries=max_tries)
-        for dir in dirs:
-            _rmdir(join(root, dir))
-
-    _rmdir(dirpath)
+# def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
+#     if not isdir(dirpath):
+#         return
+#
+#     # shutil.rmtree:
+#     #   if onerror is set, it is called to handle the error with arguments (func, path, exc_info)
+#     #     where func is os.listdir, os.remove, or os.rmdir;
+#     #     path is the argument to that function that caused it to fail; and
+#     #     exc_info is a tuple returned by sys.exc_info() ==> (type, value, traceback).
+#     def retry(func, path, exc_info):
+#         if getattr(exc_info[1], 'errno', None) == ENOENT:
+#             return
+#         recursive_make_writable(dirname(path), max_tries=max_tries)
+#         func(path)
+#
+#     def _rmdir(path):
+#         try:
+#             recursive_make_writable(path)
+#             exp_backoff_fn(rmtree, path, onerror=retry, max_tries=max_tries)
+#         except (IOError, OSError) as e:
+#             if e.errno == ENOENT:
+#                 log.trace("no such file or directory: %s", path)
+#             else:
+#                 raise
+#
+#     for root, dirs, files in walk(dirpath, topdown=False):
+#         for file in files:
+#             backoff_unlink(join(root, file), max_tries=max_tries)
+#         for dir in dirs:
+#             _rmdir(join(root, dir))
+#
+#     _rmdir(dirpath)
 
 
 def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
