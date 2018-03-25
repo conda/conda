@@ -365,12 +365,12 @@ set_test_vars() {
 
 conda_unit_test() {
     $PYTHON_EXE utils/setup-testing.py --version
-    $PYTEST_EXE $ADD_COV -m "not integration and not installed" -v
+    # $PYTEST_EXE $ADD_COV -m "not integration and not installed" -v
 }
 
 
 conda_integration_test() {
-    $PYTEST_EXE $ADD_COV --cov-append -m "integration and not installed" -v
+    $PYTEST_EXE $ADD_COV --cov-append -m "integration and not installed" -v tests/conda_env
 }
 
 
