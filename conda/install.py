@@ -27,9 +27,9 @@ from os.path import dirname, isdir, isfile, join, normcase, normpath
 
 from .base.constants import PREFIX_PLACEHOLDER
 from .common.compat import on_win, open
-from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf_wait
+from .gateways.disk.delete import delete_trash, _move_path_to_trash, rm_rf_wait
 
-delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
+delete_trash, move_path_to_trash = delete_trash, _move_path_to_trash
 from .core.prefix_data import is_linked, linked, linked_data  # NOQA
 is_linked, linked, linked_data = is_linked, linked, linked_data
 from .core.package_cache_data import rm_fetched  # NOQA

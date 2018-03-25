@@ -216,5 +216,5 @@ def move_to_trash(prefix, f, tempdir=None):
     tempdir is a deprecated parameter, and will be ignored.
     This function is deprecated in favor of `move_path_to_trash`.
     """
-    from .gateways.disk.delete import move_path_to_trash as _move_path_to_trash
+    from .gateways.disk.delete import _move_path_to_trash
     return _move_path_to_trash(os.path.join(prefix, f) if f else prefix)

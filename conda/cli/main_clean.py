@@ -14,8 +14,7 @@ import sys
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..common.compat import on_win
-from ..gateways.disk.delete import rm_rf_queued, rm_rf_no_move_to_trash
+from ..gateways.disk.delete import _delete_trash_dirs, rm_rf_queued
 
 try:
     from cytoolz.itertoolz import concatv
@@ -47,12 +46,7 @@ def clean_all_trash():
     from ..core.envs_manager import list_all_known_prefixes
     trash_dirs = (join(prefix, '.trash') for prefix in
                   concatv(list_all_known_prefixes(), context.pkgs_dirs))
-    for trash_dir in trash_dirs:
-        log.trace("removing trash for %s", trash_dir)
-        try:
-            rm_rf_no_move_to_trash(trash_dir)
-        except EnvironmentError as e:
-            log.info("Unable to delete trash path: %s\n  %r", trash_dir, e)
+    _delete_trash_dirs(trash_dirs)
 
 
 def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):

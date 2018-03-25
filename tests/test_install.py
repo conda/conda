@@ -7,7 +7,7 @@ from conda.base.context import context
 from conda.common.compat import text_type
 from conda.core.package_cache_data import download
 from conda.core.portability import _PaddingError, binary_replace, update_prefix
-from conda.gateways.disk.delete import move_path_to_trash
+from conda.gateways.disk.delete import _move_path_to_trash
 from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
 from conda.utils import on_win

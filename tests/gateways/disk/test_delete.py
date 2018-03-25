@@ -13,7 +13,7 @@ from conda.common.io import env_var
 from conda.compat import TemporaryDirectory
 from conda.exports import move_to_trash
 from conda.gateways.disk.create import create_link
-from conda.gateways.disk.delete import rm_rf_wait, move_path_to_trash, delete_trash
+from conda.gateways.disk.delete import rm_rf_wait, _move_path_to_trash, delete_trash
 from conda.gateways.disk.link import islink, symlink
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
@@ -137,7 +137,7 @@ def test_move_path_to_trash_file():
             test_file = join(td, 'test_file')
             touch(test_file)
             assert isfile(test_file)
-            trash_file = move_path_to_trash(test_file)
+            trash_file = _move_path_to_trash(test_file)
             assert not isfile(test_file)
             assert isfile(trash_file)
             delete_trash()
@@ -153,7 +153,7 @@ def test_move_path_to_trash_dir():
             touch(test_file, mkdir=True)
             assert isdir(test_dir)
             assert isfile(test_file)
-            trash_dir = move_path_to_trash(test_dir)
+            trash_dir = _move_path_to_trash(test_dir)
             assert not isdir(test_dir)
             assert isdir(trash_dir)
             assert isfile(join(trash_dir, 'test_file'))
