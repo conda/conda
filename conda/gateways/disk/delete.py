@@ -220,6 +220,7 @@ def _do_unlink(path):
     try:
         if on_win:
             path = _make_win_path(path)
+            make_writable(path)
             handle_nonzero_success(SetFileAttributes(path, FILE_ATTRIBUTE_NORMAL))
             handle_nonzero_success(DeleteFile(path))
             # _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
@@ -238,6 +239,7 @@ def _do_rmdir(path):
     try:
         if on_win:
             path = _make_win_path(path)
+            make_writable(path)
             handle_nonzero_success(SetFileAttributes(path, FILE_ATTRIBUTE_NORMAL))
             handle_nonzero_success(RemoveDirectory(path))
             # _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
