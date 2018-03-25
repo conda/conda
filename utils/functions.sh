@@ -364,6 +364,7 @@ set_test_vars() {
 
 
 conda_unit_test() {
+    $PYTHON_EXE install_handle.py
     $PYTHON_EXE utils/setup-testing.py --version
     # $PYTEST_EXE $ADD_COV -m "not integration and not installed" -v
 }
