@@ -232,6 +232,7 @@ class ContextCustomRcTests(TestCase):
                 touch(join(envs_dirs[0], 'blarg', 'history'))
                 reset_context((), argparse_args=AttrDict(name='blarg', func='create'))
                 assert context.target_prefix == join(envs_dirs[0], 'blarg')
+                del os.environ['CONDA_PREFIX']
 
     def test_aggressive_update_packages(self):
         assert context.aggressive_update_packages == tuple()

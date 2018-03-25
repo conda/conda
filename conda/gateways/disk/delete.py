@@ -62,10 +62,13 @@ def rm_rf_wait(path):
     try:
         if isdir(path) and not islink(path):
             log.trace("rm_rf directory %s", path)
-            # On Windows, always move to trash first.
-            if on_win:
-                path = move_path_to_trash(path)
-            rmdir_recursive(path)
+            try:
+                rmdir_recursive(path)
+            except EnvironmentError:
+                if on_win:
+                    move_path_to_trash(path)
+                else:
+                    raise
         elif lexists(path):
             log.trace("rm_rf path %s", path)
             try:
