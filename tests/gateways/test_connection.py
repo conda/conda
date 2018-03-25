@@ -63,6 +63,7 @@ class CondaSessionTests(TestCase):
             r.raise_for_status()
             assert r.status_code == 200
             assert r.json()['content'] == "file content"
+            r.close()
         finally:
             if test_path is not None:
                 rm_rf_wait(test_path)
