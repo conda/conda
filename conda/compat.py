@@ -65,3 +65,7 @@ class TemporaryDirectory(object):
     def __del__(self):
         # Issue a ResourceWarning if implicit cleanup needed
         self.cleanup(_warn=True)
+
+
+print("WARNING: The conda.compat module is deprecated and will be removed in a future release.",
+      file=sys.stderr)
