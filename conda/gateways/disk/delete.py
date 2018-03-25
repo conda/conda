@@ -76,7 +76,7 @@ if on_win:
             return self.message
 
         def __repr__(self):
-            return '{self.__class__.__name__}({self.winerror})'.format(**vars())
+            return '{self.__class__.__name__}({self.errno}, \'{self.message}\')'.format(**vars())
 
 
     def format_system_message(errno):
@@ -152,46 +152,47 @@ rm_rf_queued = RM_RF_Queue()
 def rm_rf_wait(path):
     """Block until path is deleted."""
     path = abspath(path)
-    try:
-        if isdir(path) and not islink(path):
-            log.trace("rm_rf directory %s", path)
-            try:
-                _rmdir_recursive(path)
-            except EnvironmentError:
-                if on_win:
-                    _move_path_to_trash(path)
-                else:
-                    raise
-        elif lexists(path):
-            log.trace("rm_rf path %s", path)
-            try:
-                _backoff_unlink(path)
-            except EnvironmentError:
-                if on_win:
-                    _move_path_to_trash(path)
-                else:
-                    raise
-        else:
-            log.trace("rm_rf no-op. Not a link, file, or directory: %s", path)
-        return True
-    finally:
-        assert not lexists(path), "rm_rf failed for %s" % path
+
+    if isdir(path) and not islink(path):
+        log.trace("rm_rf directory %s", path)
+        try:
+            _rmdir_recursive(path)
+        except EnvironmentError:
+            if on_win:
+                _move_path_to_trash(path)
+            else:
+                raise
+    elif lexists(path):
+        log.trace("rm_rf path %s", path)
+        try:
+            _backoff_unlink(path)
+        except EnvironmentError:
+            if on_win:
+                _move_path_to_trash(path)
+            else:
+                raise
+    else:
+        log.trace("rm_rf no-op. Not a link, file, or directory: %s", path)
+
+    assert not lexists(path), "rm_rf failed for %s" % path
+    return True
+
 
 
 def _rm_rf_no_move_to_trash(path):
     path = abspath(path)
-    try:
-        if isdir(path) and not islink(path):
-            log.trace("rm_rf_no_trash directory %s", path)
-            _rmdir_recursive(path)
-        elif lexists(path):
-            log.trace("rm_rf_no_trash path %s", path)
-            _backoff_unlink(path)
-        else:
-            log.trace("rm_rf_no_trash no-op. Not a link, file, or directory: %s", path)
-        return True
-    finally:
-        assert not lexists(path), "rm_rf_no_trash failed for %s" % path
+
+    if isdir(path) and not islink(path):
+        log.trace("rm_rf_no_trash directory %s", path)
+        _rmdir_recursive(path)
+    elif lexists(path):
+        log.trace("rm_rf_no_trash path %s", path)
+        _backoff_unlink(path)
+    else:
+        log.trace("rm_rf_no_trash no-op. Not a link, file, or directory: %s", path)
+
+    assert not lexists(path), "rm_rf_no_trash failed for %s" % path
+    return True
 
 
 def _backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
@@ -216,51 +217,39 @@ def _win_fs_syscall(func, *args):
 
 
 def _do_unlink(path):
-    if on_win:
-        win_path = _make_win_path(path)
-
-        handle_nonzero_success(SetFileAttributes(win_path, FILE_ATTRIBUTE_NORMAL))
-        handle_nonzero_success(DeleteFile(win_path))
-
-        # _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
-        # _win_fs_syscall(DeleteFileW, win_path)
-        if lexists(win_path):
-            try:
-                make_writable(win_path)
-                unlink(win_path)
-            except EnvironmentError as e:
-                if e.errno == ENOENT:
-                    pass
-                else:
-                    raise
-    else:
-        try:
+    try:
+        if on_win:
+            path = _make_win_path(path)
+            handle_nonzero_success(SetFileAttributes(path, FILE_ATTRIBUTE_NORMAL))
+            handle_nonzero_success(DeleteFile(path))
+            # _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
+            # _win_fs_syscall(DeleteFileW, win_path)
+        if lexists(path):
             make_writable(path)
             unlink(path)
-        except EnvironmentError as e:
-            if e.errno == ENOENT:
-                pass
-            else:
-                raise
+    except EnvironmentError as e:
+        if e.errno == ENOENT:
+            pass
+        else:
+            raise
 
 
 def _do_rmdir(path):
-    if on_win:
-        win_path = _make_win_path(path)
-        handle_nonzero_success(SetFileAttributes(win_path, FILE_ATTRIBUTE_NORMAL))
-        handle_nonzero_success(RemoveDirectory(win_path))
-
-        # _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
-        # _win_fs_syscall(RemoveDirectory, win_path)
-    else:
-        try:
+    try:
+        if on_win:
+            path = _make_win_path(path)
+            handle_nonzero_success(SetFileAttributes(path, FILE_ATTRIBUTE_NORMAL))
+            handle_nonzero_success(RemoveDirectory(path))
+            # _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
+            # _win_fs_syscall(RemoveDirectory, win_path)
+        if lexists(path):
             make_writable(path)
             rmdir(path)
-        except EnvironmentError as e:
-            if e.errno == ENOENT:
-                pass
-            else:
-                raise
+    except EnvironmentError as e:
+        if e.errno == ENOENT:
+            pass
+        else:
+            raise
 
 
 def _backoff_rmdir_empty(dirpath, max_tries=MAX_TRIES):

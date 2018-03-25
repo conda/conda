@@ -28,7 +28,7 @@ def exp_backoff_fn(fn, *args, **kwargs):
     for n in range(max_tries):
         try:
             result = fn(*args, **kwargs)
-        except (OSError, IOError) as e:
+        except EnvironmentError as e:
             log.trace(repr(e))
             if e.errno in (EPERM, EACCES):
                 if n == max_tries-1:
@@ -46,7 +46,7 @@ def exp_backoff_fn(fn, *args, **kwargs):
                 # errno.ENOTEMPTY OSError(41, 'The directory is not empty')
                 raise
             else:
-                log.warn("Uncaught backoff with errno %s %d", errorcode[e.errno], e.errno)
+                log.warn("Uncaught backoff with error: %r %r", e, vars(e))
                 raise
         else:
             return result
