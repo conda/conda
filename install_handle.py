@@ -21,6 +21,6 @@ print("handle.zip extracted", file=sys.stderr)
 print(os.listdir('.'), file=sys.stderr)
 
 result = subprocess_call(expand('handle -accepteula'))
-print(result.stdout, file=sys.stderr)
-print(result.stderr, file=sys.stderr)
+# print(result.stdout, file=sys.stderr)
+# print(result.stderr, file=sys.stderr)
 
