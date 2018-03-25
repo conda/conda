@@ -67,6 +67,7 @@ def execute(args, parser):
         rm_rf_queued(prefix)
         unregister_env(prefix)
 
+        rm_rf_queued.flush()
         if context.json:
             stdout_json({
                 'success': True,
@@ -84,8 +85,7 @@ def execute(args, parser):
         solver = Solver(prefix, channel_urls, subdirs, specs_to_remove=specs)
         txn = solver.solve_for_transaction(force_remove=args.force)
         handle_txn(txn, prefix, args, False, True)
-
-    rm_rf_queued.flush()
+        rm_rf_queued.flush()
 
     # Keep this code for dev reference until private envs can be re-enabled in
     # Solver.solve_for_transaction

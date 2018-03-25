@@ -579,7 +579,7 @@ class IntegrationTests(TestCase):
             # regression test for #5847
             #   when using rm_rf on a directory
             assert prefix in PrefixData._cache_
-            _rm_rf_wait(join(prefix, get_python_site_packages_short_path("3.5")))
+            _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")))
             assert prefix not in PrefixData._cache_
 
     def test_list_with_pip_wheel(self):
@@ -599,7 +599,7 @@ class IntegrationTests(TestCase):
             # regression test for #5847
             #   when using rm_rf on a file
             assert prefix in PrefixData._cache_
-            _rm_rf_wait(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
+            _rm_rf(join(prefix, get_python_site_packages_short_path("3.5")), "os.py")
             assert prefix not in PrefixData._cache_
 
         # regression test for #5980, related to #5847
@@ -611,7 +611,7 @@ class IntegrationTests(TestCase):
             assert not isdir(prefix)
             assert prefix in PrefixData._cache_
 
-            _rm_rf_wait(prefix)
+            _rm_rf(prefix)
             assert not isdir(prefix)
             assert prefix not in PrefixData._cache_
 

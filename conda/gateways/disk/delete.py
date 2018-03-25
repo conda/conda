@@ -230,41 +230,41 @@ def rmdir_recursive(path, max_tries=MAX_TRIES):
 
 
 
-def rm_rf(path, max_retries=5, trash=True):
-    """
-    Completely delete path
-    max_retries is the number of times to retry on failure. The default is 5. This only applies
-    to deleting a directory.
-    If removing path fails and trash is True, files will be moved to the trash directory.
-    """
-    try:
-        path = abspath(path)
-        log.trace("rm_rf %s", path)
-        if isdir(path) and not islink(path):
-            # On Windows, always move to trash first.
-            if trash and on_win:
-                move_result = move_path_to_trash(path, preclean=False)
-                if move_result:
-                    return True
-            backoff_rmdir(path)
-        elif lexists(path):
-            try:
-                backoff_unlink(path)
-                return True
-            except (OSError, IOError) as e:
-                log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
-                if trash:
-                    move_result = move_path_to_trash(path)
-                    if move_result:
-                        return True
-                log.info("Failed to remove %s.", path)
-        else:
-            log.trace("rm_rf failed. Not a link, file, or directory: %s", path)
-        return True
-    finally:
-        if lexists(path):
-            log.info("rm_rf failed for %s", path)
-            return False
+# def rm_rf(path, max_retries=5, trash=True):
+#     """
+#     Completely delete path
+#     max_retries is the number of times to retry on failure. The default is 5. This only applies
+#     to deleting a directory.
+#     If removing path fails and trash is True, files will be moved to the trash directory.
+#     """
+#     try:
+#         path = abspath(path)
+#         log.trace("rm_rf %s", path)
+#         if isdir(path) and not islink(path):
+#             # On Windows, always move to trash first.
+#             if trash and on_win:
+#                 move_result = move_path_to_trash(path, preclean=False)
+#                 if move_result:
+#                     return True
+#             backoff_rmdir(path)
+#         elif lexists(path):
+#             try:
+#                 backoff_unlink(path)
+#                 return True
+#             except (OSError, IOError) as e:
+#                 log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, path)
+#                 if trash:
+#                     move_result = move_path_to_trash(path)
+#                     if move_result:
+#                         return True
+#                 log.info("Failed to remove %s.", path)
+#         else:
+#             log.trace("rm_rf failed. Not a link, file, or directory: %s", path)
+#         return True
+#     finally:
+#         if lexists(path):
+#             log.info("rm_rf failed for %s", path)
+#             return False
 
 
 def delete_trash():
