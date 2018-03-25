@@ -462,7 +462,7 @@ class PackagesNotFoundError(CondaError):
             Current channels:
 
             %(channels_formatted)s
-            
+
             To search for alternate channels that may provide the conda package you're
             looking for, navigate to
 
