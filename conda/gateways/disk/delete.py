@@ -73,7 +73,7 @@ if on_win:
             return self.winerror
 
         def __str__(self):
-            return self.message
+            return "[%s] %s" % (self.errno, self.message)
 
         def __repr__(self):
             return '{self.__class__.__name__}({self.errno}, \'{self.message}\')'.format(**vars())
@@ -117,7 +117,9 @@ if on_win:
 
     def handle_nonzero_success(result):
         if result == 0:
-            raise WindowsError()
+            e = WindowsError()
+            log.error('%r', e)
+            raise e
 
 
 log = getLogger(__name__)

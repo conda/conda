@@ -181,30 +181,30 @@ flake8: &flake8
 
 
 jobs:
-  py36 main tests:
-    <<: *main_test
-    docker:
-      - image: condatest/linux-64-python-3.6
-    environment:
-      - CONDA_INSTRUMENTATION_ENABLED: true
-  py27 main tests:
-    <<: *main_test
-    docker:
-      - image: condatest/linux-64-python-2.7
-    environment:
-      - CONDA_INSTRUMENTATION_ENABLED: true
-  3.0 conda-build:
-    <<: *conda_build_test
-    environment:
-      - CONDA_BUILD: 3.0.21
-      - CONDA_INSTRUMENTATION_ENABLED: true
-  2.1 conda-build:
-    <<: *conda_build_test
-    environment:
-      - CONDA_BUILD: 2.1.17
-      - CONDA_INSTRUMENTATION_ENABLED: true
-
-  activate tests: *activate_tests
+#  py36 main tests:
+#    <<: *main_test
+#    docker:
+#      - image: condatest/linux-64-python-3.6
+#    environment:
+#      - CONDA_INSTRUMENTATION_ENABLED: true
+#  py27 main tests:
+#    <<: *main_test
+#    docker:
+#      - image: condatest/linux-64-python-2.7
+#    environment:
+#      - CONDA_INSTRUMENTATION_ENABLED: true
+#  3.0 conda-build:
+#    <<: *conda_build_test
+#    environment:
+#      - CONDA_BUILD: 3.0.21
+#      - CONDA_INSTRUMENTATION_ENABLED: true
+#  2.1 conda-build:
+#    <<: *conda_build_test
+#    environment:
+#      - CONDA_BUILD: 2.1.17
+#      - CONDA_INSTRUMENTATION_ENABLED: true
+#
+#  activate tests: *activate_tests
   flake8: *flake8
 
 
