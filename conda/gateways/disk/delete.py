@@ -38,13 +38,15 @@ class RM_RF_Queue(object):
         self.submit(path)
 
     def submit(self, path):
-        future = self.executor.submit(rm_rf_wait, path)
-        self.queue.append(future)
+        rm_rf_wait(path)
+        # future = self.executor.submit(rm_rf_wait, path)
+        # self.queue.append(future)
 
     def flush(self):
-        while self.queue:
-            future = self.queue.pop(0)
-            future.result()
+        pass
+        # while self.queue:
+        #     future = self.queue.pop(0)
+        #     future.result()
 
 
 rm_rf_queued = RM_RF_Queue()
