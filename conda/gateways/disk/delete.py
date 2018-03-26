@@ -12,115 +12,13 @@ from . import MAX_TRIES, exp_backoff_fn, mkdir_p
 from .link import islink, lexists
 from .permissions import make_writable
 from ...base.context import context
-from ...common.compat import ensure_fs_path_encoding, on_win, text_type, PY3
+from ...common.compat import PY3, ensure_fs_path_encoding, on_win, text_type
 from ...common.io import Spinner, ThreadLimitedThreadPoolExecutor
 
 try:
     from cytoolz.itertoolz import concatv
 except ImportError:  # pragma: no cover
     from ..._vendor.toolz.itertoolz import concatv  # NOQA
-
-if on_win:
-    import ctypes
-    from ctypes import FormatError
-    from pywintypes import error as PyWinTypeError
-    from win32api import FindFiles
-    from win32file import (DeleteFileW, FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_NORMAL,
-                           GetFileAttributesW, RemoveDirectory, SetFileAttributesW)
-
-    if PY3:
-        import builtins
-    else:
-        import __builtin__ as builtins
-
-    SetFileAttributes = ctypes.windll.kernel32.SetFileAttributesW
-    SetFileAttributes.argtypes = ctypes.wintypes.LPWSTR, ctypes.wintypes.DWORD
-    SetFileAttributes.restype = ctypes.wintypes.BOOL
-
-    DeleteFile = ctypes.windll.kernel32.DeleteFileW
-    DeleteFile.argtypes = ctypes.wintypes.LPWSTR,
-    DeleteFile.restype = ctypes.wintypes.BOOL
-
-    RemoveDirectory = ctypes.windll.kernel32.RemoveDirectoryW
-    RemoveDirectory.argtypes = ctypes.wintypes.LPWSTR,
-    RemoveDirectory.restype = ctypes.wintypes.BOOL
-
-    FILE_ATTRIBUTE_NORMAL = 0x80
-
-
-    class WindowsError(builtins.WindowsError):
-        """
-        More info about errors at
-        http://msdn.microsoft.com/en-us/library/ms681381(VS.85).aspx
-        """
-
-        def __init__(self, value=None):
-            if value is None:
-                value = ctypes.windll.kernel32.GetLastError()
-            strerror = format_system_message(value)
-            if sys.version_info > (3, 3):
-                args = 0, strerror, None, value
-            else:
-                args = value, strerror
-            super(WindowsError, self).__init__(*args)
-
-        @property
-        def message(self):
-            return self.strerror
-
-        @property
-        def code(self):
-            return self.winerror
-
-        def __str__(self):
-            return "[%s] %s" % (self.errno, self.message)
-
-        def __repr__(self):
-            e = WindowsError()
-            log.error('%r', e)
-            raise e
-
-
-    def format_system_message(errno):
-        """
-        Call FormatMessage with a system error number to retrieve
-        the descriptive error message.
-        """
-        # first some flags used by FormatMessageW
-        ALLOCATE_BUFFER = 0x100
-        FROM_SYSTEM = 0x1000
-
-        # Let FormatMessageW allocate the buffer (we'll free it below)
-        # Also, let it know we want a system error message.
-        flags = ALLOCATE_BUFFER | FROM_SYSTEM
-        source = None
-        message_id = errno
-        language_id = 0
-        result_buffer = ctypes.wintypes.LPWSTR()
-        buffer_size = 0
-        arguments = None
-        bytes = ctypes.windll.kernel32.FormatMessageW(
-            flags,
-            source,
-            message_id,
-            language_id,
-            ctypes.byref(result_buffer),
-            buffer_size,
-            arguments,
-        )
-        # note the following will cause an infinite loop if GetLastError
-        #  repeatedly returns an error that cannot be formatted, although
-        #  this should not happen.
-        handle_nonzero_success(bytes)
-        message = result_buffer.value
-        ctypes.windll.kernel32.LocalFree(result_buffer)
-        return message
-
-
-    def handle_nonzero_success(result):
-        if result == 0:
-            raise WindowsError()
-
 
 log = getLogger(__name__)
 
@@ -179,6 +77,29 @@ def rm_rf_wait(path):
     assert not lexists(path), "rm_rf failed for %s" % path
     return True
 
+
+def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
+    # This function uses removedirs to remove an empty directory and all parent empty directories.
+    if not dirpath or not isdir(dirpath):
+        return
+
+    try:
+        log.trace("Attempting to remove directory %s", dirpath)
+        exp_backoff_fn(removedirs, dirpath, max_tries=max_tries)
+    except (IOError, OSError) as e:
+        # this function only guarantees trying, so we just swallow errors
+        log.trace('%r', e)
+
+
+def delete_trash():
+    trash_dirs = tuple(td for td in (
+        join(d, '.trash') for d in concatv(context.pkgs_dirs, (context.target_prefix,))
+    ) if lexists(td))
+    if not trash_dirs:
+        return
+
+    with Spinner("Removing trash", not context.verbosity and not context.quiet, context.json):
+        _delete_trash_dirs(trash_dirs)
 
 
 def _rm_rf_no_move_to_trash(path):
@@ -302,17 +223,6 @@ def _rmdir_recursive(path, max_tries=MAX_TRIES):
             _backoff_unlink(path, max_tries=max_tries)
 
 
-def delete_trash():
-    trash_dirs = tuple(td for td in (
-        join(d, '.trash') for d in concatv(context.pkgs_dirs, (context.target_prefix,))
-    ) if lexists(td))
-    if not trash_dirs:
-        return
-
-    with Spinner("Removing trash", not context.verbosity and not context.quiet, context.json):
-        _delete_trash_dirs(trash_dirs)
-
-
 def _delete_trash_dirs(trash_dirs):
     for trash_dir in trash_dirs:
         log.trace("removing trash for %s", trash_dir)
@@ -335,13 +245,103 @@ def _move_path_to_trash(path):
     return trash_file
 
 
-def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
-    if not dirpath or not isdir(dirpath):
-        return
+if on_win:
+    import ctypes
+    from ctypes import FormatError
+    from pywintypes import error as PyWinTypeError
+    from win32api import FindFiles
+    from win32file import (FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_NORMAL,
+                           GetFileAttributesW, RemoveDirectory)
 
-    try:
-        log.trace("Attempting to remove directory %s", dirpath)
-        exp_backoff_fn(removedirs, dirpath, max_tries=max_tries)
-    except (IOError, OSError) as e:
-        # this function only guarantees trying, so we just swallow errors
-        log.trace('%r', e)
+    if PY3:
+        import builtins
+    else:
+        import __builtin__ as builtins
+
+    SetFileAttributes = ctypes.windll.kernel32.SetFileAttributesW
+    SetFileAttributes.argtypes = ctypes.wintypes.LPWSTR, ctypes.wintypes.DWORD
+    SetFileAttributes.restype = ctypes.wintypes.BOOL
+
+    DeleteFile = ctypes.windll.kernel32.DeleteFileW
+    DeleteFile.argtypes = ctypes.wintypes.LPWSTR,
+    DeleteFile.restype = ctypes.wintypes.BOOL
+
+    RemoveDirectory = ctypes.windll.kernel32.RemoveDirectoryW
+    RemoveDirectory.argtypes = ctypes.wintypes.LPWSTR,
+    RemoveDirectory.restype = ctypes.wintypes.BOOL
+
+    FILE_ATTRIBUTE_NORMAL = 0x80
+
+
+    class WindowsError(builtins.WindowsError):
+        """
+        More info about errors at
+        http://msdn.microsoft.com/en-us/library/ms681381(VS.85).aspx
+        """
+
+        def __init__(self, value=None):
+            if value is None:
+                value = ctypes.windll.kernel32.GetLastError()
+            strerror = format_system_message(value)
+            if sys.version_info > (3, 3):
+                args = 0, strerror, None, value
+            else:
+                args = value, strerror
+            super(WindowsError, self).__init__(*args)
+
+        @property
+        def message(self):
+            return self.strerror
+
+        @property
+        def code(self):
+            return self.winerror
+
+        def __str__(self):
+            return "[%s] %s" % (self.errno, self.message)
+
+        def __repr__(self):
+            e = WindowsError()
+            log.error('%r', e)
+            raise e
+
+
+    def format_system_message(errno):
+        """
+        Call FormatMessage with a system error number to retrieve
+        the descriptive error message.
+        """
+        # first some flags used by FormatMessageW
+        ALLOCATE_BUFFER = 0x100
+        FROM_SYSTEM = 0x1000
+
+        # Let FormatMessageW allocate the buffer (we'll free it below)
+        # Also, let it know we want a system error message.
+        flags = ALLOCATE_BUFFER | FROM_SYSTEM
+        source = None
+        message_id = errno
+        language_id = 0
+        result_buffer = ctypes.wintypes.LPWSTR()
+        buffer_size = 0
+        arguments = None
+        bytes = ctypes.windll.kernel32.FormatMessageW(
+            flags,
+            source,
+            message_id,
+            language_id,
+            ctypes.byref(result_buffer),
+            buffer_size,
+            arguments,
+        )
+        # note the following will cause an infinite loop if GetLastError
+        #  repeatedly returns an error that cannot be formatted, although
+        #  this should not happen.
+        handle_nonzero_success(bytes)
+        message = result_buffer.value
+        ctypes.windll.kernel32.LocalFree(result_buffer)
+        return message
+
+
+    def handle_nonzero_success(result):
+        if result == 0:
+            raise WindowsError()
