@@ -188,7 +188,10 @@ def _rmdir_recursive(path, max_tries=MAX_TRIES):
                 # log.debug("attributes for [%s] [%s] are %s" %
                 #           (file_path, reparse_tag, hex(file_attr)))
                 if file_attr & FILE_ATTRIBUTE_DIRECTORY:
-                    _rmdir_recursive(file_path, max_tries=max_tries)
+                    if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
+                        _backoff_rmdir_empty(win_path, max_tries=max_tries)
+                    else:
+                        _rmdir_recursive(file_path, max_tries=max_tries)
                 else:
                     _backoff_unlink(file_path, max_tries=max_tries)
             _backoff_rmdir_empty(win_path, max_tries=max_tries)
@@ -264,6 +267,7 @@ if on_win:
     RemoveDirectory.restype = ctypes.wintypes.BOOL
 
     FILE_ATTRIBUTE_NORMAL = 0x80
+    FILE_ATTRIBUTE_REPARSE_POINT = 0x400
 
     class WindowsError(builtins.WindowsError):
         """
