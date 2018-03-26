@@ -21,7 +21,7 @@ environment:
 #       PYTHON_VERSION: "2.7"
 #       PYTHON_ARCH: "32"
 
-image: Visual Studio 2017
+# image: Visual Studio 2017
 
 init:
   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
@@ -77,5 +77,5 @@ test_script:
 #  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "integration and not installed"
 #  - py.test --cov-report xml --cov-report term-missing --cov-append --cov conda -m "installed" --shell=cmd.exe --shell=bash.exe
 
-on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#on_finish:
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))

@@ -125,6 +125,24 @@ if on_win:
 log = getLogger(__name__)
 
 
+
+
+# >>> import win32file
+# >>> filename = "c:\\Users\\builder\\conda\\MANIFEST.in"
+# >>> f = win32file.CreateFile(filename, win32file.GENERIC_READ, 0, None, win32file.OPEN_EXISTING, 0, None)
+# >>> win32file.GetFileInformationByHandleEx(f, win32file.FileStandardInfo)
+# {'Directory': False, 'EndOfFile': 175L, 'AllocationSize': 176L, 'DeletePending': False, 'NumberOfLinks': 1}
+
+def is_delete_pending(path):
+    from win32file import CreateFile, GENERIC_READ, OPEN_EXISTING, GetFileInformationByHandleEx, FileStandardInfo
+    path = _make_win_path(path)
+    fh = CreateFile(path, GENERIC_READ, 0, None, OPEN_EXISTING, 0, None)
+    standard_info = GetFileInformationByHandleEx(fh, FileStandardInfo)
+    return standard_info['DeletePending']
+
+
+
+
 class RM_RF_Queue(object):
     """
     Remove paths asynchronously.  Must always call `.flush()` to ensure paths
@@ -234,6 +252,8 @@ def _do_unlink(path):
         if e.errno == ENOENT:
             pass
         else:
+            pd = is_delete_pending(path)
+            log.warn("is_delete_pending %s %s", pd, path)
             raise
 
 
