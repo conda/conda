@@ -244,8 +244,7 @@ def _move_path_to_trash(path):
 if on_win:
     import ctypes
     from win32api import FindFiles
-    from win32file import (FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_NORMAL,
-                           GetFileAttributesW, RemoveDirectory)
+    from win32file import FILE_ATTRIBUTE_DIRECTORY, GetFileAttributesW
 
     if PY3:
         import builtins
@@ -265,7 +264,6 @@ if on_win:
     RemoveDirectory.restype = ctypes.wintypes.BOOL
 
     FILE_ATTRIBUTE_NORMAL = 0x80
-
 
     class WindowsError(builtins.WindowsError):
         """
@@ -298,7 +296,6 @@ if on_win:
             e = WindowsError()
             log.error('%r', e)
             raise e
-
 
     def format_system_message(errno):
         """
@@ -334,7 +331,6 @@ if on_win:
         message = result_buffer.value
         ctypes.windll.kernel32.LocalFree(result_buffer)
         return message
-
 
     def handle_nonzero_success(result):
         if result == 0:
