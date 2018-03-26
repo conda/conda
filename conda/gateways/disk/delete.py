@@ -178,23 +178,26 @@ def _rmdir_recursive(path, max_tries=MAX_TRIES):
 
         dots = {'.', '..'}
         if file_attr & FILE_ATTRIBUTE_DIRECTORY:
-            for ffrec in FindFiles(ensure_fs_path_encoding(win_path + '\\*.*')):
-                file_name = ensure_fs_path_encoding(ffrec[8])
-                if file_name in dots:
-                    continue
-                file_attr = ffrec[0]
-                # reparse_tag = ffrec[6]
-                file_path = join(path, file_name)
-                # log.debug("attributes for [%s] [%s] are %s" %
-                #           (file_path, reparse_tag, hex(file_attr)))
-                if file_attr & FILE_ATTRIBUTE_DIRECTORY:
-                    if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
-                        _backoff_rmdir_empty(win_path, max_tries=max_tries)
+            if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
+                _backoff_rmdir_empty(win_path, max_tries=max_tries)
+            else:
+                for ffrec in FindFiles(ensure_fs_path_encoding(win_path + '\\*.*')):
+                    file_name = ensure_fs_path_encoding(ffrec[8])
+                    if file_name in dots:
+                        continue
+                    file_attr = ffrec[0]
+                    # reparse_tag = ffrec[6]
+                    file_path = join(path, file_name)
+                    # log.debug("attributes for [%s] [%s] are %s" %
+                    #           (file_path, reparse_tag, hex(file_attr)))
+                    if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+                        if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
+                            _backoff_rmdir_empty(win_path, max_tries=max_tries)
+                        else:
+                            _rmdir_recursive(file_path, max_tries=max_tries)
                     else:
-                        _rmdir_recursive(file_path, max_tries=max_tries)
-                else:
-                    _backoff_unlink(file_path, max_tries=max_tries)
-            _backoff_rmdir_empty(win_path, max_tries=max_tries)
+                        _backoff_unlink(file_path, max_tries=max_tries)
+                _backoff_rmdir_empty(win_path, max_tries=max_tries)
         else:
             _backoff_unlink(path, max_tries=max_tries)
     else:

@@ -14,10 +14,10 @@ from conda.common.configuration import ValidationError
 from os import environ, mkdir
 from os.path import join
 from pytest import raises
-from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
 
+from conda.gateways.disk.delete import rm_rf_wait
 
 test_yaml_raw = {
     'file1': dals("""
@@ -295,7 +295,7 @@ class ConfigurationTests(TestCase):
             assert config.channels == ('wile', 'porky', 'bugs', 'elmer', 'daffy',
                                        'tweety', 'foghorn')
         finally:
-            rmtree(tempdir, ignore_errors=True)
+            rm_rf_wait(tempdir)
 
     def test_important_primitive_map_merges(self):
         raw_data = load_from_string_data('file1', 'file3', 'file2')

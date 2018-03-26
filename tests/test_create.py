@@ -13,7 +13,7 @@ from os.path import basename, dirname, exists, isdir, isfile, join, lexists, rel
 from random import sample
 import re
 from shlex import split
-from shutil import copyfile, rmtree
+from shutil import copyfile
 from subprocess import check_call
 import sys
 from tempfile import gettempdir
@@ -147,7 +147,7 @@ def make_temp_env(*packages, **kwargs):
             run_command(Commands.CREATE, prefix, *packages, **kwargs)
             yield prefix
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf_wait(prefix)
 
 @contextmanager
 def make_temp_package_cache():
@@ -161,7 +161,7 @@ def make_temp_package_cache():
             assert context.pkgs_dirs == (pkgs_dir,)
             yield pkgs_dir
     finally:
-        rmtree(prefix, ignore_errors=True)
+        rm_rf_wait(prefix)
         if pkgs_dir in PackageCacheData._cache_:
             del PackageCacheData._cache_[pkgs_dir]
 
@@ -460,7 +460,7 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask')
             assert_package_is_installed(prefix, 'python-3')
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf_wait(prefix)
 
     def test_conda_update_package_not_installed(self):
         with make_temp_env() as prefix:
@@ -607,7 +607,7 @@ class IntegrationTests(TestCase):
             assert isdir(prefix)
             assert prefix in PrefixData._cache_
 
-            rmtree(prefix)
+            rm_rf_wait(prefix)
             assert not isdir(prefix)
             assert prefix in PrefixData._cache_
 
@@ -1035,7 +1035,7 @@ class IntegrationTests(TestCase):
                 assert not package_is_installed(prefix, 'console_shortcut')
                 assert not isfile(shortcut_file)
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf_wait(prefix)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
 
@@ -1060,7 +1060,7 @@ class IntegrationTests(TestCase):
                 assert not package_is_installed(prefix, 'console_shortcut')
                 assert not isfile(shortcut_file)
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf_wait(prefix)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
 
@@ -1092,7 +1092,7 @@ class IntegrationTests(TestCase):
                 assert not package_is_installed(prefix, 'console_shortcut')
                 assert not isfile(shortcut_file)
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf_wait(prefix)
             if isfile(shortcut_file):
                 os.remove(shortcut_file)
 
@@ -1118,7 +1118,7 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(prefix, 'flask')
 
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf_wait(prefix)
 
     def test_create_default_packages_no_default_packages(self):
         try:
@@ -1141,7 +1141,7 @@ class IntegrationTests(TestCase):
                 assert not package_is_installed(prefix, 'flask')
 
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf_wait(prefix)
 
     def test_create_dry_run(self):
         # Regression test for #3453
@@ -1246,7 +1246,7 @@ class IntegrationTests(TestCase):
             assert len(json_obj["anaconda-mosaic"]) > 0
 
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf_wait(prefix)
             reset_context()
 
     def test_anaconda_token_with_private_package(self):
@@ -1274,7 +1274,7 @@ class IntegrationTests(TestCase):
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
 
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf_wait(prefix)
             reset_context()
 
         # Step 2. Now with the token make sure we can see the anyjson package
@@ -1293,7 +1293,7 @@ class IntegrationTests(TestCase):
             assert 'anyjson' in json_obj
 
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf_wait(prefix)
 
     def test_clean_index_cache(self):
         prefix = ''
@@ -1489,7 +1489,7 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, "python-dateutil-2.6.0")
 
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf_wait(prefix)
 
     @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
     def test_disallowed_packages(self):
