@@ -656,6 +656,8 @@ class CondaMemoryError(CondaError, MemoryError):
 class NotWritableError(CondaError, OSError):
 
     def __init__(self, path, errno, **kwargs):
+        self.path = path
+        self.errno = errno
         kwargs.update({
             'path': path,
             'errno': errno,
@@ -664,11 +666,13 @@ class NotWritableError(CondaError, OSError):
             message = dals("""
             The current user does not have write permissions to a required path.
               path: %(path)s
+              errno: %(errno)s
             """)
         else:
             message = dals("""
             The current user does not have write permissions to a required path.
               path: %(path)s
+              errno: %(errno)s
               uid: %(uid)s
               gid: %(gid)s
 

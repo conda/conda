@@ -14,6 +14,7 @@ from .permissions import make_writable
 from ...base.context import context
 from ...common.compat import PY3, ensure_fs_path_encoding, on_win, text_type
 from ...common.io import Spinner, ThreadLimitedThreadPoolExecutor
+from ...exceptions import NotWritableError
 
 try:
     from cytoolz.itertoolz import concatv
@@ -74,7 +75,8 @@ def rm_rf_wait(path):
     else:
         log.trace("rm_rf no-op. Not a link, file, or directory: %s", path)
 
-    assert not lexists(path), "rm_rf failed for %s" % path
+    if not on_win and lexists(path):
+        assert not lexists(path), "rm_rf failed for %s" % path
     return True
 
 
@@ -127,18 +129,6 @@ def _make_win_path(path):
     return ensure_fs_path_encoding(path if path.startswith('\\\\?\\') else '\\\\?\\%s' % path)
 
 
-def _win_fs_syscall(func, *args):
-    try:
-        if 0 == func(*args):
-            error = OSError(FormatError())
-            if error.errno != ENOENT:
-                raise error
-    except PyWinTypeError:
-        error = OSError(FormatError())
-        if error.errno != ENOENT:
-            raise error
-
-
 def _do_unlink(path):
     try:
         if on_win:
@@ -146,16 +136,16 @@ def _do_unlink(path):
             make_writable(path)
             handle_nonzero_success(SetFileAttributes(path, FILE_ATTRIBUTE_NORMAL))
             handle_nonzero_success(DeleteFile(path))
-            # _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
-            # _win_fs_syscall(DeleteFileW, win_path)
         if lexists(path):
             make_writable(path)
             unlink(path)
     except EnvironmentError as e:
         if e.errno == ENOENT:
             pass
-        else:
+        elif on_win:
             raise
+        else:
+            raise NotWritableError(path, e.errno, caused_by=e)
 
 
 def _do_rmdir(path):
@@ -165,16 +155,16 @@ def _do_rmdir(path):
             make_writable(path)
             handle_nonzero_success(SetFileAttributes(path, FILE_ATTRIBUTE_NORMAL))
             handle_nonzero_success(RemoveDirectory(path))
-            # _win_fs_syscall(SetFileAttributesW, win_path, FILE_ATTRIBUTE_NORMAL)
-            # _win_fs_syscall(RemoveDirectory, win_path)
         if lexists(path):
             make_writable(path)
             rmdir(path)
     except EnvironmentError as e:
         if e.errno == ENOENT:
             pass
-        else:
+        elif on_win:
             raise
+        else:
+            raise NotWritableError(path, e.errno, caused_by=e)
 
 
 def _backoff_rmdir_empty(dirpath, max_tries=MAX_TRIES):
@@ -234,21 +224,25 @@ def _delete_trash_dirs(trash_dirs):
 
 
 def _move_path_to_trash(path):
-    trash_dir = context.trash_dir
-    mkdir_p(trash_dir)
-    trash_file = join(trash_dir, text_type(uuid4()))
-    if on_win:
-        trash_file = _make_win_path(trash_file)
-        path = _make_win_path(path)
-    # This rename assumes the trash_file is on the same file system as the file being trashed.
-    rename(path, trash_file)
-    return trash_file
+    try:
+        trash_dir = context.trash_dir
+        mkdir_p(trash_dir)
+        trash_file = join(trash_dir, text_type(uuid4()))
+        if on_win:
+            trash_file = _make_win_path(trash_file)
+            path = _make_win_path(path)
+        # This rename assumes the trash_file is on the same file system as the file being trashed.
+        rename(path, trash_file)
+        return trash_file
+    except EnvironmentError as e:
+        if on_win:
+            pass
+        else:
+            raise
 
 
 if on_win:
     import ctypes
-    from ctypes import FormatError
-    from pywintypes import error as PyWinTypeError
     from win32api import FindFiles
     from win32file import (FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_NORMAL,
                            GetFileAttributesW, RemoveDirectory)
