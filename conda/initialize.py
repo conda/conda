@@ -46,8 +46,8 @@ def install(conda_prefix):
     print_plan_results(plan)
 
 
-def initialize(conda_prefix, shells, for_user, for_system):
-    plan = make_initialize_plan(conda_prefix, shells, for_user, for_system)
+def initialize(conda_prefix, shells, for_user, for_system, desktop_prompt):
+    plan = make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_prompt)
     run_plan(plan)
     run_plan_elevated(plan)
     print_plan_results(plan)
@@ -69,17 +69,17 @@ def _get_python_info(prefix):
     return python_exe, python_version, site_packages_dir
 
 
-def initialize_dev(shell, dev_env_prefix=None, conda_source_dir=None):
+def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     # > alias conda-dev='eval "$(python -m conda init --dev)"'
     # > eval "$(python -m conda init --dev)"
 
     dev_env_prefix = expand(dev_env_prefix or sys.prefix)
-    conda_source_dir = expand(conda_source_dir or os.getcwd())
+    conda_source_root = expand(conda_source_root or os.getcwd())
 
     python_exe, python_version, site_packages_dir = _get_python_info(dev_env_prefix)
 
-    if not isfile(join(conda_source_dir, 'conda', '__init__.py')):
-        print("Directory is not a conda source root: %s" % conda_source_dir, file=sys.stderr)
+    if not isfile(join(conda_source_root, 'conda', '__main__.py')):
+        print("Directory is not a conda source root: %s" % conda_source_root, file=sys.stderr)
         return 1
 
     plan = []
@@ -92,18 +92,22 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_dir=None):
     plan.append({
         'function': make_conda_pth.__name__,
         'kwargs': {
-            'target_path': join(site_packages_dir, '50-conda-dev.pth'),
-            'conda_source_dir': conda_source_dir,
+            'target_path': join(site_packages_dir, 'conda-dev.pth'),
+            'conda_source_root': conda_source_root,
         },
     })
 
     run_plan(plan)
+    if any(step['result'] == Result.NEEDS_SUDO for step in plan):
+        print("Operation failed.", file=sys.stderr)
+        return 1
+
     if shell == "bash":
         builder = [
             "export PYTHON_MAJOR_VERSION='%s'" % python_version[0],
             "export TEST_PLATFORM='%s'" % ('win' if sys.platform.startswith('win') else 'unix'),
             "export PYTHONHASHSEED='%d'" % randint(0, 4294967296),
-            "export _CONDA_ROOT='%s'" % conda_source_dir,
+            "export _CONDA_ROOT='%s'" % conda_source_root,
             ". conda/shell/etc/profile.d/conda.sh",
             "conda activate '%s'" % dev_env_prefix,
         ]
@@ -165,14 +169,14 @@ def make_install_plan(conda_prefix):
     # ######################################
     if on_win:
         plan.append({
-            'function': init_conda_bat.__name__,
+            'function': install_conda_bat.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'Library', 'bin', 'conda.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
         plan.append({
-            'function': init_condacmd_bat.__name__,
+            'function': install_condacmd_bat.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'condacmd', 'conda.bat'),
                 'conda_prefix': conda_prefix,
@@ -180,28 +184,28 @@ def make_install_plan(conda_prefix):
         })
 
     plan.append({
-        'function': init_conda_sh.__name__,
+        'function': install_conda_sh.__name__,
         'kwargs': {
             'target_path': join(conda_prefix, 'etc', 'profile.d', 'conda.sh'),
             'conda_prefix': conda_prefix,
         },
     })
     plan.append({
-        'function': init_conda_fish.__name__,
+        'function': install_conda_fish.__name__,
         'kwargs': {
             'target_path': join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish'),
             'conda_prefix': conda_prefix,
         },
     })
     plan.append({
-        'function': init_conda_xsh.__name__,
+        'function': install_conda_xsh.__name__,
         'kwargs': {
             'target_path': join(site_packages_dir, 'xonsh', 'conda.xsh'),
             'conda_prefix': conda_prefix,
         },
     })
     plan.append({
-        'function': init_conda_csh.__name__,
+        'function': install_conda_csh.__name__,
         'kwargs': {
             'target_path': join(conda_prefix, 'etc', 'profile.d', 'conda.csh'),
             'conda_prefix': conda_prefix,
@@ -210,7 +214,7 @@ def make_install_plan(conda_prefix):
     return plan
 
 
-def make_initialize_plan(conda_prefix, shells, for_user, for_system):
+def make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_prompt):
     plan = make_install_plan(conda_prefix)
 
     shells = set(shells)
@@ -243,6 +247,31 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system):
                     'conda_prefix': conda_prefix,
                 },
             })
+
+    if shells & {'fish',}:
+        raise NotImplementedError()
+
+    if shells & {'tcsh',}:
+        raise NotImplementedError()
+
+    if shells & {'powershell',}:
+        raise NotImplementedError()
+
+    if on_win and desktop_prompt:
+        plan.append({
+            'function': install_conda_shortcut.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'condacmd', 'Conda Prompt.lnk'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+        plan.append({
+            'function': install_conda_shortcut.__name__,
+            'kwargs': {
+                'target_path': join(os.environ["HOMEPATH"], "Desktop", "Conda Prompt.lnk"),
+                'conda_prefix': conda_prefix,
+            },
+        })
 
     return plan
 
@@ -382,26 +411,94 @@ def conda_exe(conda_prefix):
         return join(conda_prefix, 'bin', 'conda')
 
 
-def init_conda_sh(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
-    conda_sh_base_path = target_path
+def install_conda_shortcut(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condacmd', 'Conda Prompt.lnk')
+    # target: join(os.environ["HOMEPATH"], "Desktop", "Conda Prompt.lnk")
+    icon_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda_icon.ico')
 
-    if isfile(conda_sh_base_path):
-        with open(conda_sh_base_path) as fh:
-            original_conda_sh = fh.read()
+    try:
+        from menuinst.winshortcut import create_shortcut
+    except ImportError:
+        from menuinst.windows.winshortcut import create_shortcut
+
+    args = (
+        '/K',
+        '"%s"' % join(conda_prefix, 'condacmd', 'conda.bat'),
+    )
+    # The API for the call to 'create_shortcut' has 3
+    # required arguments (path, description, filename)
+    # and 4 optional ones (args, working_dir, icon_path, icon_index).
+    create_shortcut(
+        "%windir%\\System32\\cmd.exe",
+        "Conda Prompt",
+        '' + target_path,
+        ' '.join(args),
+        '' + expanduser('~'),
+        '' + icon_path,
+    )
+
+
+def _install_file(target_path, file_content):
+    if isfile(target_path):
+        with open(target_path) as fh:
+            original_content = fh.read()
     else:
-        original_conda_sh = ""
+        original_content = ""
 
-    from .activate import PosixActivator
-    new_conda_sh = PosixActivator().hook(auto_activate_base=False)
+    new_content = file_content
 
-    if new_conda_sh != original_conda_sh:
-        mkdir_p(dirname(conda_sh_base_path))
-        with open(conda_sh_base_path, 'w') as fdst:
-            fdst.write(new_conda_sh)
+    if new_content != original_content:
+        mkdir_p(dirname(target_path))
+        with open(target_path, 'w') as fdst:
+            fdst.write(new_content)
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
+
+
+def install_conda_sh(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
+    from .activate import PosixActivator
+    file_content = PosixActivator().hook(auto_activate_base=False)
+    return _install_file(target_path, file_content)
+
+
+def install_conda_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'Library', 'bin', 'conda.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Library', 'bin', 'conda.bat')
+    file_content = '@SET "_CONDA_EXE=%s"\n' % join(conda_prefix, 'Scripts', 'conda.exe')
+    with open(conda_bat_src_path) as fsrc:
+        file_content += fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_condacmd_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condacmd', 'conda.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda.bat')
+    with open(conda_bat_src_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_conda_fish(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish')
+    from .activate import FishActivator
+    file_content = FishActivator().hook(auto_activate_base=False)
+    return _install_file(target_path, file_content)
+
+
+def install_conda_xsh(target_path, conda_prefix):
+    # target_path: join(site_packages_dir, 'xonsh', 'conda.xsh')
+    from .activate import XonshActivator
+    file_content = XonshActivator().hook(auto_activate_base=False)
+    return _install_file(target_path, file_content)
+
+
+def install_conda_csh(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'etc', 'profile.d', 'conda.csh')
+    from .activate import CshActivator
+    file_content = CshActivator().hook(auto_activate_base=False)
+    return _install_file(target_path, file_content)
 
 
 def init_sh_user(target_path, conda_prefix):
@@ -470,180 +567,18 @@ def init_sh_system(target_path, conda_prefix):
         return Result.NO_CHANGE
 
 
-def init_conda_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'Library', 'bin', 'conda.bat')
-    conda_bat_dst_path = target_path
-    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Library', 'bin', 'conda.bat')
-
-    if isfile(conda_bat_dst_path):
-        with open(conda_bat_dst_path) as fh:
-            original_conda_bat = fh.read()
-    else:
-        original_conda_bat = ""
-
-    new_conda_bat = '@SET "_CONDA_EXE=%s"\n' % join(conda_prefix, 'Scripts', 'conda.exe')
-    with open(conda_bat_src_path) as fsrc:
-        new_conda_bat += fsrc.read()
-
-    if new_conda_bat != original_conda_bat:
-        mkdir_p(dirname(conda_bat_dst_path))
-        with open(conda_bat_dst_path, 'w') as fdst:
-            fdst.write(new_conda_bat)
-            return Result.MODIFIED
-    else:
-        return Result.NO_CHANGE
-
-    # TODO: use menuinst to create shortcuts
-
-
-def init_condacmd_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'conda.bat')
-    conda_bat_dst_path = target_path
-    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda.bat')
-
-    if isfile(conda_bat_dst_path):
-        with open(conda_bat_dst_path) as fh:
-            original_conda_bat = fh.read()
-    else:
-        original_conda_bat = ""
-
-    new_conda_bat = ""
-    with open(conda_bat_src_path) as fsrc:
-        new_conda_bat += fsrc.read()
-
-    if new_conda_bat != original_conda_bat:
-        mkdir_p(dirname(conda_bat_dst_path))
-        with open(conda_bat_dst_path, 'w') as fdst:
-            fdst.write(new_conda_bat)
-            return Result.MODIFIED
-    else:
-        return Result.NO_CHANGE
-
-
-def install_conda_shortcut(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'Conda Prompt.lnk')
-    # target: join(os.environ["HOMEPATH"], "Desktop", "Conda Prompt.lnk")
-    icon_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda_icon.ico')
-
-    try:
-        from menuinst.winshortcut import create_shortcut
-    except ImportError:
-        from menuinst.windows.winshortcut import create_shortcut
-
-    args = (
-        '/K',
-        '"%s"' % join(conda_prefix, 'condacmd', 'conda.bat'),
-    )
-    # The API for the call to 'create_shortcut' has 3
-    # required arguments (path, description, filename)
-    # and 4 optional ones (args, working_dir, icon_path, icon_index).
-    create_shortcut(
-        "%windir%\\System32\\cmd.exe",
-        "Conda Prompt",
-        '' + target_path,
-        ' '.join(args),
-        '' + expanduser('~'),
-        '' + icon_path,
-    )
-
-
-def init_conda_fish(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish')
-    conda_fish_base_path = target_path
-    conda_fish_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d', 'conda.fish')
-
-    if isfile(conda_fish_base_path):
-        with open(conda_fish_base_path) as fh:
-            original_conda_fish = fh.read()
-    else:
-        original_conda_fish = ""
-
-    if on_win:
-        new_conda_fish = 'set _CONDA_ROOT (cygpath %s)\n' % conda_prefix
-        new_conda_fish += 'set _CONDA_EXE (cygpath %s)\n' % join(conda_prefix,
-                                                                 'Scripts', 'conda.exe')
-    else:
-        new_conda_fish = 'set _CONDA_ROOT "%s"\n' % conda_prefix
-        new_conda_fish += 'set _CONDA_EXE "%s"\n' % join(conda_prefix, 'bin', 'conda')
-
-    with open(conda_fish_src_path) as fsrc:
-        new_conda_fish += fsrc.read()
-
-    if new_conda_fish != original_conda_fish:
-        mkdir_p(dirname(conda_fish_base_path))
-        with open(conda_fish_base_path, 'w') as fdst:
-            fdst.write(new_conda_fish)
-        return Result.MODIFIED
-    else:
-        return Result.NO_CHANGE
-
-
-def init_conda_xsh(target_path, conda_prefix):
-    # target_path: join(site_packages_dir, 'xonsh', 'conda.xsh')
-    conda_xsh_base_path = target_path
-    conda_xsh_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')
-
-    if isfile(conda_xsh_base_path):
-        with open(conda_xsh_base_path) as fh:
-            original_conda_xsh = fh.read()
-    else:
-        original_conda_xsh = ""
-
-    if on_win:
-        new_conda_xsh = '_CONDA_EXE = "%s"\n' % join(conda_prefix, 'Scripts', 'conda.exe')
-    else:
-        new_conda_xsh = '_CONDA_EXE = "%s"\n' % join(conda_prefix, 'bin', 'conda')
-
-    with open(conda_xsh_src_path) as fsrc:
-        new_conda_xsh += fsrc.read()
-
-    if new_conda_xsh != original_conda_xsh:
-        mkdir_p(dirname(conda_xsh_base_path))
-        with open(conda_xsh_base_path, 'w') as fdst:
-            fdst.write(new_conda_xsh)
-        return Result.MODIFIED
-    else:
-        return Result.NO_CHANGE
-
-
-def init_conda_csh(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'etc', 'profile.d', 'conda.csh')
-
-    conda_csh_base_path = target_path
-    conda_csh_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.csh')
-
-    if isfile(conda_csh_base_path):
-        with open(conda_csh_base_path) as fh:
-            original_conda_csh = fh.read()
-    else:
-        original_conda_csh = ""
-
-    if on_win:
-        new_conda_csh = 'setenv _CONDA_ROOT `cygpath %s`\n' % conda_prefix
-        new_conda_csh += 'setenv _CONDA_EXE `cygpath %s`\n' % join(conda_prefix,
-                                                                   'Scripts', 'conda.exe')
-    else:
-        new_conda_csh = 'setenv _CONDA_ROOT "%s"\n' % conda_prefix
-        new_conda_csh += 'setenv _CONDA_EXE "%s"\n' % join(conda_prefix, 'bin', 'conda')
-
-    with open(conda_csh_src_path) as fsrc:
-        new_conda_csh += fsrc.read()
-
-    if new_conda_csh != original_conda_csh:
-        mkdir_p(dirname(conda_csh_base_path))
-        with open(conda_csh_base_path, 'w') as fdst:
-            fdst.write(new_conda_csh)
-        return Result.MODIFIED
-    else:
-        return Result.NO_CHANGE
-
-
 def remove_conda_in_sp_dir(target_path):
     # target_path: site_packages_dir
+    modified = False
     site_packages_dir = target_path
-    for path in glob(join(site_packages_dir, "conda*.egg")):
-        print("rm -rf %s" % path, file=sys.stderr)
-        rm_rf(path)
+    for fn in glob(join(site_packages_dir, "conda*.egg")):
+        print("rm -rf %s" % join(site_packages_dir, fn), file=sys.stderr)
+        rm_rf(join(site_packages_dir, fn))
+        modified = True
+    for fn in glob(join(site_packages_dir, "conda.*")):
+        print("rm -rf %s" % join(site_packages_dir, fn), file=sys.stderr)
+        rm_rf(join(site_packages_dir, fn))
+        modified = True
     others = (
         "conda",
         "conda.egg-link",
@@ -651,13 +586,18 @@ def remove_conda_in_sp_dir(target_path):
     )
     for other in others:
         path = join(site_packages_dir, other)
-        if isfile(path):
-            print("rm -rf %s" % path)
+        if lexists(path):
+            print("rm -rf %s" % path, file=sys.stderr)
             rm_rf(path)
+            modified = True
+    if modified:
+        return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
 
 
 def make_conda_pth(target_path, conda_source_dir):
-    # target_path: join(site_packages_dir, 'conda.pth')
+    # target_path: join(site_packages_dir, 'conda-dev.pth')
     conda_pth_path = target_path
     conda_pth_contents = conda_source_dir
 

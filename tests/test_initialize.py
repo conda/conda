@@ -11,8 +11,8 @@ from conda._vendor.auxlib.ish import dals
 from conda.base.context import context
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win
-from conda.initialize import Result, _get_python_info, init_conda_bat, init_conda_csh, \
-    init_conda_fish, init_conda_sh, init_conda_xsh, make_entry_point, make_install_plan, \
+from conda.initialize import Result, _get_python_info, install_conda_bat, install_conda_csh, \
+    install_conda_fish, install_conda_sh, install_conda_xsh, make_entry_point, make_install_plan, \
     make_entry_point_exe
 from .helpers import tempdir
 
@@ -134,7 +134,7 @@ def test_make_entry_point():
 def test_init_conda_sh():
     with tempdir() as conda_prefix:
         target_path = join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
-        result = init_conda_sh(target_path, conda_prefix)
+        result = install_conda_sh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
         with open(target_path) as fh:
@@ -150,14 +150,14 @@ def test_init_conda_sh():
             original_contents = fh.read()
         assert remainder == original_contents
 
-        result = init_conda_sh(target_path, conda_prefix)
+        result = install_conda_sh(target_path, conda_prefix)
         assert result == Result.NO_CHANGE
 
 
 def test_init_conda_fish():
     with tempdir() as conda_prefix:
         target_path = join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish')
-        result = init_conda_fish(target_path, conda_prefix)
+        result = install_conda_fish(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
         with open(target_path) as fh:
@@ -176,14 +176,14 @@ def test_init_conda_fish():
             original_contents = fh.read()
         assert remainder == original_contents
 
-        result = init_conda_fish(target_path, conda_prefix)
+        result = install_conda_fish(target_path, conda_prefix)
         assert result == Result.NO_CHANGE
 
 
 def test_init_conda_xsh():
     with tempdir() as conda_prefix:
         target_path = join(conda_prefix, 'Lib', 'site-packages', 'conda.xsh')
-        result = init_conda_xsh(target_path, conda_prefix)
+        result = install_conda_xsh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
         with open(target_path) as fh:
@@ -199,14 +199,14 @@ def test_init_conda_xsh():
             original_contents = fh.read()
         assert remainder == original_contents
 
-        result = init_conda_xsh(target_path, conda_prefix)
+        result = install_conda_xsh(target_path, conda_prefix)
         assert result == Result.NO_CHANGE
 
 
 def test_init_conda_csh():
     with tempdir() as conda_prefix:
         target_path = join(conda_prefix, 'etc', 'profile.d', 'conda.csh')
-        result = init_conda_csh(target_path, conda_prefix)
+        result = install_conda_csh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
         with open(target_path) as fh:
@@ -224,14 +224,14 @@ def test_init_conda_csh():
             original_contents = fh.read()
         assert remainder == original_contents
 
-        result = init_conda_csh(target_path, conda_prefix)
+        result = install_conda_csh(target_path, conda_prefix)
         assert result == Result.NO_CHANGE
 
 
 def test_init_conda_bat():
     with tempdir() as conda_prefix:
         target_path = join(conda_prefix, 'Library', 'bin', 'conda.bat')
-        result = init_conda_bat(target_path, conda_prefix)
+        result = install_conda_bat(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
         with open(target_path) as fh:
@@ -244,7 +244,7 @@ def test_init_conda_bat():
             original_contents = fh.read()
         assert remainder == original_contents
 
-        result = init_conda_bat(target_path, conda_prefix)
+        result = install_conda_bat(target_path, conda_prefix)
         assert result == Result.NO_CHANGE
 
 

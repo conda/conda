@@ -649,17 +649,25 @@ def configure_parser_init(sub_parsers):
         #     help="Set up conda for powershell.",
         #     default=NULL,
         # )
-    else:
-        shells_group.add_argument(
-            "--bash",
+
+    shells_group.add_argument(
+        "--bash",
+        action="store_true",
+        help="Set up conda for bash (default).",
+        default=NULL,
+    )
+    shells_group.add_argument(
+        "--zsh",
+        action="store_true",
+        help="Set up conda for zsh.",
+        default=NULL,
+    )
+
+    if on_win:
+        p.add_argument(
+            "--desktop-prompt",
             action="store_true",
-            help="Set up conda for bash (default).",
-            default=NULL,
-        )
-        shells_group.add_argument(
-            "--zsh",
-            action="store_true",
-            help="Set up conda for zsh.",
+            help="Add a 'Conda Prompt' icon to your desktop.",
             default=NULL,
         )
 
