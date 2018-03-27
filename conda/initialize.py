@@ -176,9 +176,16 @@ def make_install_plan(conda_prefix):
             },
         })
         plan.append({
-            'function': install_condacmd_bat.__name__,
+            'function': install_condacmd_conda_bat.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'condacmd', 'conda.bat'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+        plan.append({
+            'function': install_condacmd_hook_bat.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'condacmd', 'conda-hook.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
@@ -423,7 +430,7 @@ def install_conda_shortcut(target_path, conda_prefix):
 
     args = (
         '/K',
-        '"%s"' % join(conda_prefix, 'condacmd', 'conda.bat'),
+        '"%s"' % join(conda_prefix, 'condacmd', 'conda-hook.bat'),
     )
     # The API for the call to 'create_shortcut' has 3
     # required arguments (path, description, filename)
@@ -472,9 +479,17 @@ def install_conda_bat(target_path, conda_prefix):
     return _install_file(target_path, file_content)
 
 
-def install_condacmd_bat(target_path, conda_prefix):
+def install_condacmd_conda_bat(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'condacmd', 'conda.bat')
     conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda.bat')
+    with open(conda_bat_src_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_condacmd_hook_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condacmd', 'conda-hook.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda-hook.bat')
     with open(conda_bat_src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)

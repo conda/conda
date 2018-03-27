@@ -3,14 +3,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from distutils.sysconfig import get_python_lib
 from logging import getLogger
-from os.path import join, realpath, isfile
+from os.path import join, realpath, isfile, abspath
 import sys
 
 from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win
+from conda.common.io import env_var
 from conda.initialize import Result, _get_python_info, install_conda_bat, install_conda_csh, \
     install_conda_fish, install_conda_sh, install_conda_xsh, make_entry_point, make_install_plan, \
     make_entry_point_exe
@@ -65,28 +66,28 @@ def test_make_initialize_plan_install():
                     }
                 },
                 {
-                    "function": "init_conda_sh",
+                    "function": "install_conda_sh",
                     "kwargs": {
                         "conda_prefix": "/darwin",
                         "target_path": "/darwin/etc/profile.d/conda.sh"
                     }
                 },
                 {
-                    "function": "init_conda_fish",
+                    "function": "install_conda_fish",
                     "kwargs": {
                         "conda_prefix": "/darwin",
                         "target_path": "/darwin/etc/fish/conf.d/conda.fish"
                     }
                 },
                 {
-                    "function": "init_conda_xsh",
+                    "function": "install_conda_xsh",
                     "kwargs": {
                         "conda_prefix": "/darwin",
                         "target_path": "/darwin/lib/python2.6/site-packages/xonsh/conda.xsh"
                     }
                 },
                 {
-                    "function": "init_conda_csh",
+                    "function": "install_conda_csh",
                     "kwargs": {
                         "conda_prefix": "/darwin",
                         "target_path": "/darwin/etc/profile.d/conda.csh"
@@ -96,11 +97,12 @@ def test_make_initialize_plan_install():
 
 
 def test_make_entry_point():
-    with tempdir() as conda_prefix:
+    with tempdir() as conda_temp_prefix:
+        conda_prefix = abspath(sys.prefix)
         if on_win:
-            conda_exe_path = join(conda_prefix, 'Scripts', 'conda-script.py')
+            conda_exe_path = join(conda_temp_prefix, 'Scripts', 'conda-script.py')
         else:
-            conda_exe_path = join(conda_prefix, 'bin', 'conda')
+            conda_exe_path = join(conda_temp_prefix, 'bin', 'conda')
         result = make_entry_point(conda_exe_path, conda_prefix, 'conda.entry.point', 'run')
         assert result == Result.MODIFIED
 
@@ -110,9 +112,9 @@ def test_make_entry_point():
         if on_win:
             assert ep_contents == dals("""
             # -*- coding: utf-8 -*-
+            import sys
 
             if __name__ == '__main__':
-                import sys
                 from conda.entry.point import run
                 sys.exit(run())
             """) % conda_prefix
@@ -120,9 +122,9 @@ def test_make_entry_point():
             assert ep_contents == dals("""
             #!%s/bin/python
             # -*- coding: utf-8 -*-
+            import sys
 
             if __name__ == '__main__':
-                import sys
                 from conda.entry.point import run
                 sys.exit(run())
             """) % conda_prefix
@@ -154,9 +156,10 @@ def test_init_conda_sh():
         assert result == Result.NO_CHANGE
 
 
-def test_init_conda_fish():
-    with tempdir() as conda_prefix:
-        target_path = join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish')
+def test_install_conda_fish():
+    with tempdir() as conda_temp_prefix:
+        conda_prefix = abspath(sys.prefix)
+        target_path = join(conda_temp_prefix, 'etc', 'fish', 'conf.d', 'conda.fish')
         result = install_conda_fish(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
@@ -180,9 +183,10 @@ def test_init_conda_fish():
         assert result == Result.NO_CHANGE
 
 
-def test_init_conda_xsh():
-    with tempdir() as conda_prefix:
-        target_path = join(conda_prefix, 'Lib', 'site-packages', 'conda.xsh')
+def test_install_conda_xsh():
+    with tempdir() as conda_temp_prefix:
+        conda_prefix = abspath(sys.prefix)
+        target_path = join(conda_temp_prefix, 'Lib', 'site-packages', 'conda.xsh')
         result = install_conda_xsh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
@@ -203,9 +207,10 @@ def test_init_conda_xsh():
         assert result == Result.NO_CHANGE
 
 
-def test_init_conda_csh():
-    with tempdir() as conda_prefix:
-        target_path = join(conda_prefix, 'etc', 'profile.d', 'conda.csh')
+def test_install_conda_csh():
+    with tempdir() as conda_temp_prefix:
+        conda_prefix = abspath(sys.prefix)
+        target_path = join(conda_temp_prefix, 'etc', 'profile.d', 'conda.csh')
         result = install_conda_csh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
@@ -228,9 +233,10 @@ def test_init_conda_csh():
         assert result == Result.NO_CHANGE
 
 
-def test_init_conda_bat():
-    with tempdir() as conda_prefix:
-        target_path = join(conda_prefix, 'Library', 'bin', 'conda.bat')
+def test_install_conda_bat():
+    with tempdir() as conda_temp_prefix:
+        conda_prefix = abspath(sys.prefix)
+        target_path = join(conda_temp_prefix, 'Library', 'bin', 'conda.bat')
         result = install_conda_bat(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
@@ -249,8 +255,9 @@ def test_init_conda_bat():
 
 
 def test_make_entry_point_exe():
-    with tempdir() as conda_prefix:
-        target_path = join(conda_prefix, 'Scripts', 'conda-env.exe')
+    with tempdir() as conda_temp_prefix:
+        conda_prefix = abspath(sys.prefix)
+        target_path = join(conda_temp_prefix, 'Scripts', 'conda-env.exe')
         result = make_entry_point_exe(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
