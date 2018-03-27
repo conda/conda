@@ -499,7 +499,7 @@ def init_conda_bat(target_path, conda_prefix):
 def init_condacmd_bat(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'condacmd', 'conda.bat')
     conda_bat_dst_path = target_path
-    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda', 'conda.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda.bat')
 
     if isfile(conda_bat_dst_path):
         with open(conda_bat_dst_path) as fh:
@@ -521,12 +521,18 @@ def init_condacmd_bat(target_path, conda_prefix):
 
 
 def install_conda_shortcut(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'conda.lnk')
+    # target_path: join(conda_prefix, 'condacmd', 'Conda Prompt.lnk')
+    # target: join(os.environ["HOMEPATH"], "Desktop", "Conda Prompt.lnk")
     icon_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda_icon.ico')
 
-    from menuinst.windows.winshortcut import create_shortcut
+    try:
+        from menuinst.winshortcut import create_shortcut
+    except ImportError:
+        from menuinst.windows.winshortcut import create_shortcut
+
     args = (
-        join(conda_prefix, 'condacmd', 'conda.bat'),
+        '/K',
+        '"%s"' % join(conda_prefix, 'condacmd', 'conda.bat'),
     )
     # The API for the call to 'create_shortcut' has 3
     # required arguments (path, description, filename)
