@@ -15,7 +15,13 @@ def execute(args, parser):
     if args.install_only:
         return install(context.conda_prefix)
 
-    selected_shells = tuple(s for s in ALL_SHELLS if getattr(args, s, None))
+    invalid_shells = tuple(s for s in args.shells if s not in ALL_SHELLS)
+    if invalid_shells:
+        from ..exceptions import ArgumentError
+        from ..resolve import dashlist  # TODO: this import is ridiculous; move it to common!
+        raise ArgumentError("Invalid shells: %s" % dashlist(invalid_shells))
+
+    selected_shells = tuple(args.shells)
     if not selected_shells:
         selected_shells = ('cmd_exe' if on_win else 'bash',)
 

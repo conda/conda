@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import ENOENT
 from glob import glob
+from itertools import chain
 import json
 from logging import getLogger
 import os
@@ -134,18 +135,29 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         'PYTHON_MAJOR_VERSION': python_version[0],
         'TEST_PLATFORM': 'win' if on_win else 'unix',
     }
+    unset_env_vars = (
+        'CONDA_DEFAULT_ENV',
+        'CONDA_EXE',
+        'CONDA_PREFIX',
+        'CONDA_PREFIX_1',
+        'CONDA_PREFIX_2',
+        'CONDA_PROMPT_MODIFIER',
+        'CONDA_PYTHON_EXE',
+        'CONDA_SHLVL',
+    )
 
     if shell == "bash":
-        builder = ["export %s='%s'" % (key, env_vars[key]) for key in sorted(env_vars)]
+        builder = ["unset %s" % unset_env_var for unset_env_var in unset_env_vars]
+        builder += ["export %s='%s'" % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
             "eval \"$(%s -m conda shell.bash hook)\"" % abspath(sys.executable),
             "conda activate '%s'" % dev_env_prefix,
         ]
         print("\n".join(builder))
     elif shell == 'cmd_exe':
-        builder = ['SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
+        builder = ["SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
+        builder += ['SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
-            'SET CONDA_SHLVL=',
             'CALL %s' % join(dev_env_prefix, 'condacmd', 'conda-hook.bat'),
             'conda activate \'%s\'' % dev_env_prefix,
         ]
@@ -697,30 +709,43 @@ def init_sh_user(target_path, conda_prefix, shell):
 
     rc_original_content = rc_content
 
-    conda_initialize_content = (
-        '# >>> conda initialize >>>\n'
-        'eval "$(\'%s\' shell.%s hook)"\n'
-        '# <<< conda initialize <<<\n'
-    ) % (_conda_exe(conda_prefix), shell)
+    conda_exe = _conda_exe(conda_prefix)
+    conda_initialize_content = dals("""
+    # >>> conda initialize >>>
+    __conda_setup="$('%(conda_exe)s' shell.%(shell)s hook 2> /dev/null)"
+    if [ $? -eq 0 ]; then
+        eval "$__conda_setup"
+    else
+        export PATH="%(conda_bin)s:$PATH"
+    fi
+    unset __conda_setup
+    # <<< conda initialize <<<
+    """) % {
+        'conda_exe': conda_exe,
+        'shell': shell,
+        'conda_bin': dirname(conda_exe),
+    }
 
     rc_content = re.sub(
         r"^[ \t]*(export PATH=['\"]%s:\$PATH['\"])[ \t]*$" % re.escape(join(conda_prefix, 'bin')),
-        r"# \1  # modified by conda initialize",
+        r"# \1  # commted out by conda initialize",
         rc_content,
         flags=re.MULTILINE,
     )
     rc_content = re.sub(
         r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*\/etc\/profile\.d\/conda\.sh).*?\n",
-        r"# \1  # modified by conda initialize\n",
+        r"# \1  # commented out by conda initialize\n",
         rc_content,
         flags=re.MULTILINE,
     )
+    replace_str = "__CONDA_REPLACE_ME_123__"
     rc_content = re.sub(
         r"^# >>> conda initialize >>>$([\s\S]*?)# <<< conda initialize <<<\n$",
-        conda_initialize_content,
+        replace_str,
         rc_content,
         flags=re.MULTILINE,
     )
+    rc_content = rc_content.replace(replace_str, conda_initialize_content)
 
     if "# >>> conda initialize >>>" not in rc_content:
         rc_content += '\n%s\n' % conda_initialize_content
@@ -822,12 +847,12 @@ def remove_conda_in_sp_dir(target_path):
     # target_path: site_packages_dir
     modified = False
     site_packages_dir = target_path
-    for fn in glob(join(site_packages_dir, "conda-*info")):
-        print("rm -rf %s" % join(site_packages_dir, fn), file=sys.stderr)
-        if not context.dry_run:
-            rm_rf(join(site_packages_dir, fn))
-        modified = True
-    for fn in glob(join(site_packages_dir, "conda.*")):
+    rm_rf_these = chain.from_iterable((
+        glob(join(site_packages_dir, "conda-*info")),
+        glob(join(site_packages_dir, "conda.*")),
+        glob(join(site_packages_dir, "conda-*.egg")),
+    ))
+    for fn in rm_rf_these:
         print("rm -rf %s" % join(site_packages_dir, fn), file=sys.stderr)
         if not context.dry_run:
             rm_rf(join(site_packages_dir, fn))

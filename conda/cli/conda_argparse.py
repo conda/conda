@@ -644,7 +644,6 @@ def configure_parser_init(sub_parsers):
     p.add_argument(
         'shells',
         nargs='*',
-        action='append',
     )
 
     # shells_group = p.add_argument_group('shells')
