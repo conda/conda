@@ -446,16 +446,16 @@ def make_entry_point(target_path, conda_prefix, module, func):
     }
 
     if new_ep_content != original_ep_content:
+        if context.verbosity:
+            print('\n')
+            print(target_path)
+            print(make_diff(original_ep_content, new_ep_content))
         if not context.dry_run:
             mkdir_p(dirname(conda_ep_path))
             with open(conda_ep_path, 'w') as fdst:
                 fdst.write(new_ep_content)
             if not on_win:
                 make_executable(conda_ep_path)
-        elif context.verbosity:
-            print(target_path)
-            print(make_diff(original_ep_content, new_ep_content))
-
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
@@ -519,13 +519,14 @@ def _install_file(target_path, file_content):
     new_content = file_content
 
     if new_content != original_content:
+        if context.verbosity:
+            print('\n')
+            print(target_path)
+            print(make_diff(original_content, new_content))
         if not context.dry_run:
             mkdir_p(dirname(target_path))
             with open(target_path, 'w') as fdst:
                 fdst.write(new_content)
-        elif context.verbosity:
-            print(target_path)
-            print(make_diff(original_content, new_content))
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
@@ -622,13 +623,13 @@ def init_sh_user(target_path, conda_prefix, shell):
         rc_content += '\n%s\n' % conda_initialize_content
 
     if rc_content != rc_original_content:
+        if context.verbosity:
+            print('\n')
+            print(target_path)
+            print(make_diff(rc_original_content, rc_content))
         if not context.dry_run:
             with open(user_rc_path, 'w') as fh:
                 fh.write(rc_content)
-        elif context.verbosity:
-            print(target_path)
-            print(make_diff(rc_original_content, rc_content))
-
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
@@ -645,15 +646,16 @@ def init_sh_system(target_path, conda_prefix):
         conda_sh_system_contents = ""
     conda_sh_contents = 'eval "$(\'%s\' shell.posix hook)"\n' % _conda_exe(conda_prefix)
     if conda_sh_system_contents != conda_sh_contents:
+        if context.verbosity:
+            print('\n')
+            print(target_path)
+            print(make_diff(conda_sh_contents, conda_sh_system_contents))
         if not context.dry_run:
             if lexists(conda_sh_system_path):
                 rm_rf(conda_sh_system_path)
             mkdir_p(dirname(conda_sh_system_path))
             with open(conda_sh_system_path, 'w') as fh:
                 fh.write(conda_sh_contents)
-        elif context.verbosity:
-            print(target_path)
-            print(make_diff(conda_sh_contents, conda_sh_system_contents))
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
@@ -680,17 +682,29 @@ def init_cmd_exe_user(target_path, conda_prefix):
             prev_value = ""
             value_type = winreg.REG_EXPAND_SZ
 
-        # TODO: remove conda-hook.bat from prev_value
-
         hook_path = join(conda_prefix, 'condacmd', 'conda-hook.bat')
-        new_value = "%s & %s" % (prev_value, hook_path) if prev_value else hook_path
+        replace_str = "__CONDA_REPLACE_ME_123__"
+        new_value = re.sub(
+            r"(& )?([^&;]*?conda-hook\.bat)",
+            "\\1" + replace_str,
+            prev_value,
+            count=1,
+            flags=re.IGNORECASE | re.UNICODE,
+        )
+        new_value = new_value.replace(replace_str, hook_path)
+        if hook_path not in new_value:
+            if new_value:
+                new_value += ' & ' + hook_path
+            else:
+                new_value = hook_path
 
         if prev_value != new_value:
-            if not context.dry_run:
-                winreg.SetValueEx(key, "AutoRun", 0, value_type, new_value)
-            elif context.verbosity:
+            if context.verbosity:
+                print('\n')
                 print(target_path)
                 print(make_diff(prev_value, new_value))
+            if not context.dry_run:
+                winreg.SetValueEx(key, "AutoRun", 0, value_type, new_value)
             return Result.MODIFIED
         else:
             return Result.NO_CHANGE
@@ -742,12 +756,13 @@ def make_conda_pth(target_path, conda_source_root):
         conda_pth_contents_old = ""
 
     if conda_pth_contents_old != conda_pth_contents:
+        if context.verbosity:
+            print('\n', file=sys.stderr)
+            print(target_path, file=sys.stderr)
+            print(make_diff(conda_pth_contents_old, conda_pth_contents), file=sys.stderr)
         if not context.dry_run:
             with open(conda_pth_path, 'w') as fh:
                 fh.write(conda_pth_contents)
-        elif context.verbosity:
-            print(target_path)
-            print(make_diff(conda_pth_contents_old, conda_pth_contents), file=sys.stderr)
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
