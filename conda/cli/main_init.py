@@ -26,9 +26,12 @@ def execute(args, parser):
         return initialize_dev(shell)
 
     else:
+        for_user = args.user
         if not (args.install_only and args.user and args.system):
-            args.user = True
+            for_user = True
+        if args.no_user:
+            for_user = False
 
         desktop_prompt = on_win and args.desktop_prompt
-        return initialize(context.conda_prefix, selected_shells, args.user, args.system,
+        return initialize(context.conda_prefix, selected_shells, for_user, args.system,
                           desktop_prompt)

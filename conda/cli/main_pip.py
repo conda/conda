@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
+import os
 import sys
 
 from .main import main as main_main
@@ -23,6 +24,7 @@ def pip_installed_post_parse_hook(args, p):
 
 
 def main(*args, **kwargs):
+    os.environ[str('CONDA_PIP_UNINITIALIZED')] = str('true')
     kwargs['post_parse_hook'] = pip_installed_post_parse_hook
     return main_main(*args, **kwargs)
 

@@ -1,3 +1,5 @@
+@IF DEFINED CONDA_SHLVL @GOTO :EOF
+
 @FOR %%F in ("%~dp0") do @SET __conda_exe_dir=%%~dpF
 @SET "PATH=%__conda_exe_dir%;%PATH%"
 @SET __conda_exe_dir=

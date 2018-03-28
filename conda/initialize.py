@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import ENOENT
 from glob import glob
 import json
 from logging import getLogger
@@ -12,7 +13,7 @@ import sys
 
 from . import CONDA_PACKAGE_ROOT
 from ._vendor.auxlib.ish import dals
-from .common.compat import on_mac, on_win, open
+from .common.compat import PY2, on_mac, on_win, open
 from .common.path import (expand, get_python_short_path, get_python_site_packages_short_path,
                           win_path_ok)
 from .gateways.disk.create import copy, mkdir_p
@@ -22,14 +23,25 @@ from .gateways.disk.permissions import make_executable
 from .gateways.disk.read import compute_md5sum
 from .gateways.subprocess import subprocess_call
 
+if on_win:
+    if PY2:
+        import _winreg as winreg
+    else:
+        import winreg
+    try:
+        from menuinst.winshortcut import create_shortcut
+    except ImportError:
+        from menuinst.windows.winshortcut import create_shortcut
+
 log = getLogger(__name__)
 
 ALL_SHELLS = (
     'cmd_exe',
     'bash',
     'zsh',
-    # 'fish',
-    # 'tcsh',
+    'fish',
+    'tcsh',
+    'xonsh',
 )
 
 
@@ -47,10 +59,17 @@ def install(conda_prefix):
 
 
 def initialize(conda_prefix, shells, for_user, for_system, desktop_prompt):
-    plan = make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_prompt)
-    run_plan(plan)
-    run_plan_elevated(plan)
-    print_plan_results(plan)
+    plan1 = []
+    if os.getenv('CONDA_PIP_UNINITIALIZED') == 'true':
+        plan1 = make_install_plan(conda_prefix)
+        run_plan(plan1)
+        run_plan_elevated(plan1)
+        # TODO: make sure this all succeeded
+
+    plan2 = make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_prompt)
+    run_plan(plan2)
+    run_plan_elevated(plan2)
+    print_plan_results(plan1 + plan2)
 
 
 def _get_python_info(prefix):
@@ -222,8 +241,7 @@ def make_install_plan(conda_prefix):
 
 
 def make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_prompt):
-    plan = make_install_plan(conda_prefix)
-
+    plan = []
     shells = set(shells)
     if shells & {'bash', 'zsh'}:
         if 'bash' in shells and for_user:
@@ -233,6 +251,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_pro
                 'kwargs': {
                     'target_path': bashrc_path,
                     'conda_prefix': conda_prefix,
+                    'shell': 'bash',
                 },
             })
 
@@ -243,6 +262,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_pro
                 'kwargs': {
                     'target_path': zshrc_path,
                     'conda_prefix': conda_prefix,
+                    'shell': 'zsh',
                 },
             })
 
@@ -255,14 +275,24 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_pro
                 },
             })
 
-    if shells & {'fish',}:
+    if shells & {'fish', }:
         raise NotImplementedError()
 
-    if shells & {'tcsh',}:
+    if shells & {'tcsh', }:
         raise NotImplementedError()
 
-    if shells & {'powershell',}:
+    if shells & {'powershell', }:
         raise NotImplementedError()
+
+    if shells & {'cmd_exe', }:
+        # TODO: make sure cmd_exe and cmd.exe are consistently used; choose one
+        if for_user:
+            plan.append({
+                'function': init_cmd_exe_user.__name__,
+                'kwargs': {
+                    'conda_prefix': conda_prefix,
+                },
+            })
 
     if on_win and desktop_prompt:
         plan.append({
@@ -307,7 +337,7 @@ def run_plan_elevated(plan):
             # https://www.codeproject.com/Articles/19165/Vista-UAC-The-Definitive-Guide
 
             # from menuinst.win_elevate import isUserAdmin, runAsAdmin
-            # I do think we can pipe to stdin, so we're going to have to write to a temp file and read in the elevated process
+            # I do think we can pipe to stdin, so we're going to have to write to a temp file and read in the elevated process  # NOQA
             raise NotImplementedError("Windows. Blah. Run as Administrator on your own.")
         else:
             result = subprocess_call(
@@ -411,7 +441,7 @@ def make_entry_point_exe(target_path, conda_prefix):
     return Result.MODIFIED
 
 
-def conda_exe(conda_prefix):
+def _conda_exe(conda_prefix):
     if on_win:
         return "$(cygpath '%s')" % join(conda_prefix, 'Scripts', 'conda.exe')
     else:
@@ -422,11 +452,6 @@ def install_conda_shortcut(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'condacmd', 'Conda Prompt.lnk')
     # target: join(os.environ["HOMEPATH"], "Desktop", "Conda Prompt.lnk")
     icon_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda_icon.ico')
-
-    try:
-        from menuinst.winshortcut import create_shortcut
-    except ImportError:
-        from menuinst.windows.winshortcut import create_shortcut
 
     args = (
         '/K',
@@ -516,7 +541,7 @@ def install_conda_csh(target_path, conda_prefix):
     return _install_file(target_path, file_content)
 
 
-def init_sh_user(target_path, conda_prefix):
+def init_sh_user(target_path, conda_prefix, shell):
     # target_path: ~/.bash_profile
     user_rc_path = target_path
 
@@ -527,9 +552,9 @@ def init_sh_user(target_path, conda_prefix):
 
     conda_initialize_content = (
         '# >>> conda initialize >>>\n'
-        'eval "$(\'%s\' shell.posix hook)"\n'
+        'eval "$(\'%s\' shell.%s hook)"\n'
         '# <<< conda initialize <<<\n'
-    ) % conda_exe(conda_prefix)
+    ) % (_conda_exe(conda_prefix), shell)
 
     rc_content = re.sub(
         r"^[ \t]*(export PATH=['\"]%s:\$PATH['\"])[ \t]*$" % re.escape(join(conda_prefix, 'bin')),
@@ -570,7 +595,7 @@ def init_sh_system(target_path, conda_prefix):
             conda_sh_system_contents = fh.read()
     else:
         conda_sh_system_contents = ""
-    conda_sh_contents = 'eval "$(\'%s\' shell.posix hook)"\n' % conda_exe(conda_prefix)
+    conda_sh_contents = 'eval "$(\'%s\' shell.posix hook)"\n' % _conda_exe(conda_prefix)
     if conda_sh_system_contents != conda_sh_contents:
         if lexists(conda_sh_system_path):
             rm_rf(conda_sh_system_path)
@@ -580,6 +605,41 @@ def init_sh_system(target_path, conda_prefix):
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
+
+
+def init_cmd_exe_user(conda_prefix):
+    # HKEY_LOCAL_MACHINE\Software\Microsoft\Command Processor\AutoRun
+    # HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun
+    key_str = r'Software\Microsoft\Command Processor'
+    try:
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_str, 0, winreg.KEY_ALL_ACCESS)
+    except EnvironmentError as e:
+        if e.errno != ENOENT:
+            raise
+        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_str)
+    try:
+        try:
+            value = winreg.QueryValueEx(key, "AutoRun")
+            prev_value = value[0].strip()
+            value_type = value[1]
+        except EnvironmentError as e:
+            if e.errno != ENOENT:
+                raise
+            prev_value = ""
+            value_type = winreg.REG_EXPAND_SZ
+
+        # TODO: remove conda-hook.bat from prev_value
+
+        hook_path = join(conda_prefix, 'condacmd', 'conda-hook.bat')
+        new_value = "%s & %s" % (prev_value, hook_path) if prev_value else hook_path
+
+        if prev_value != new_value:
+            winreg.SetValueEx(key, "AutoRun", 0, value_type, new_value)
+            return Result.MODIFIED
+        else:
+            return Result.NO_CHANGE
+    finally:
+        winreg.CloseKey(key)
 
 
 def remove_conda_in_sp_dir(target_path):

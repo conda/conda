@@ -971,15 +971,16 @@ class InteractiveShell(object):
         },
         'zsh': {
             'base_shell': 'posix',  # inheritance implemented in __init__
+            'init_command': 'env | sort && eval "$(python -m conda shell.zsh hook)"',
         },
         'cmd.exe': {
             'activator': 'cmd.exe',
-            'init_command': None,
+            'init_command': 'conda\\shell\\condacmd\\conda-hook.bat',
             'print_env_var': '@echo %%%s%%',
         },
         'csh': {
             'activator': 'csh',
-            'init_command': 'eval `python -m conda shell.csh hook`',
+            'init_command': 'source conda/shell/etc/profile.d/conda.csh',
             'print_env_var': 'echo "$%s"',
         },
         'tcsh': {

@@ -652,7 +652,8 @@ class FishActivator(_Activator):
         self.set_var_tmpl = 'set -gx %s "%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = 'source "%s"'
 
-        self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d', 'conda.fish')
+        self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d',
+                                     'conda.fish')
 
         super(FishActivator, self).__init__(arguments)
 
@@ -692,7 +693,12 @@ class PowershellActivator(_Activator):
 
 activator_map = {
     'posix': PosixActivator,
+    'ash': PosixActivator,
+    'bash': PosixActivator,
+    'dash': PosixActivator,
+    'zsh': PosixActivator,
     'csh': CshActivator,
+    'tcsh': CshActivator,
     'xonsh': XonshActivator,
     'cmd.exe': CmdExeActivator,
     'fish': FishActivator,

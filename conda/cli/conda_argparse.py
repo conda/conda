@@ -618,13 +618,22 @@ def configure_parser_init(sub_parsers):
     setup_type_group.add_argument(
         "--user",
         action="store_true",
-        help="Initialize conda for the current user (default).",
+        # help="Initialize conda for the current user (default).",
+        help=SUPPRESS,
+        default=NULL,
+    )
+    setup_type_group.add_argument(
+        "--no-user",
+        action="store_false",
+        # help="Don't initialize conda for the current user (default).",
+        help=SUPPRESS,
         default=NULL,
     )
     setup_type_group.add_argument(
         "--system",
         action="store_true",
-        help="Initialize conda for all users on the system.",
+        # help="Initialize conda for all users on the system.",
+        help=SUPPRESS,
         default=NULL,
     )
 

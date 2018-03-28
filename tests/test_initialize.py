@@ -133,7 +133,20 @@ def test_make_entry_point():
         assert result == Result.NO_CHANGE
 
 
-def test_init_conda_sh():
+def test_make_entry_point_exe():
+    with tempdir() as conda_temp_prefix:
+        conda_prefix = abspath(sys.prefix)
+        target_path = join(conda_temp_prefix, 'Scripts', 'conda-env.exe')
+        result = make_entry_point_exe(target_path, conda_prefix)
+        assert result == Result.MODIFIED
+
+        assert isfile(target_path)
+
+        result = make_entry_point_exe(target_path, conda_prefix)
+        assert result == Result.NO_CHANGE
+
+
+def test_install_conda_sh():
     with tempdir() as conda_prefix:
         target_path = join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
         result = install_conda_sh(target_path, conda_prefix)
@@ -251,17 +264,4 @@ def test_install_conda_bat():
         assert remainder == original_contents
 
         result = install_conda_bat(target_path, conda_prefix)
-        assert result == Result.NO_CHANGE
-
-
-def test_make_entry_point_exe():
-    with tempdir() as conda_temp_prefix:
-        conda_prefix = abspath(sys.prefix)
-        target_path = join(conda_temp_prefix, 'Scripts', 'conda-env.exe')
-        result = make_entry_point_exe(target_path, conda_prefix)
-        assert result == Result.MODIFIED
-
-        assert isfile(target_path)
-
-        result = make_entry_point_exe(target_path, conda_prefix)
         assert result == Result.NO_CHANGE
