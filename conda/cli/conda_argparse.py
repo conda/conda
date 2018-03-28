@@ -555,25 +555,29 @@ def configure_parser_init(sub_parsers):
 
             $ conda init
 
-        # Make the conda command available to every user on the system. For example, if the bash
-        # shell is among those detected on your system, a file `/etc/profile.d/conda.sh` will be
-        # created, which will be sourced when your shell is initialized.
-
-            $ conda init --system
-
-        # When executed from a bash shell, ensure that conda is properly installed in the prefix
-        # for the first python on PATH (e.g. following a `python -m pip install conda`). Make the
-        # 'conda' command available to the current shell process, and activate the 'base'
-        # environment. Does not modify `~/.bashrc` for example, so has no effect on future shell
-        # sessions.
-
-            $ eval `python -m conda init --install-only bash`
 
 
     IMPORTANT: After running `conda init`, most shells will need to be closed and restarted
                for changes to take effect.
 
     """)
+
+    # """
+    # # Make the conda command available to every user on the system. For example, if the bash
+    # # shell is among those detected on your system, a file `/etc/profile.d/conda.sh` will be
+    # # created, which will be sourced when your shell is initialized.
+    #
+    #     $ conda init --system
+    #
+    # # When executed from a bash shell, ensure that conda is properly installed in the prefix
+    # # for the first python on PATH (e.g. following a `python -m pip install conda`). Make the
+    # # 'conda' command available to the current shell process, and activate the 'base'
+    # # environment. Does not modify `~/.bashrc` for example, so has no effect on future shell
+    # # sessions.
+    #
+    #     $ eval `python -m conda init --install-only bash`
+    #
+    # """
 
     # dev_example = dedent("""
     #     # An example for creating an environment to develop on conda's own code. Clone the
@@ -643,34 +647,34 @@ def configure_parser_init(sub_parsers):
         action='append',
     )
 
-    shells_group = p.add_argument_group('shells')
-    if on_win:
-        shells_group.add_argument(
-            "--cmd",
-            action="store_true",
-            help="Set up conda for cmd shell (default).",
-            default=NULL,
-            dest="cmd_exe",
-        )
-        # shells_group.add_argument(
-        #     "--powershell",
-        #     action="store_true",
-        #     help="Set up conda for powershell.",
-        #     default=NULL,
-        # )
-
-    shells_group.add_argument(
-        "--bash",
-        action="store_true",
-        help="Set up conda for bash (default).",
-        default=NULL,
-    )
-    shells_group.add_argument(
-        "--zsh",
-        action="store_true",
-        help="Set up conda for zsh.",
-        default=NULL,
-    )
+    # shells_group = p.add_argument_group('shells')
+    # if on_win:
+    #     shells_group.add_argument(
+    #         "--cmd",
+    #         action="store_true",
+    #         help="Set up conda for cmd shell (default).",
+    #         default=NULL,
+    #         dest="cmd_exe",
+    #     )
+    #     # shells_group.add_argument(
+    #     #     "--powershell",
+    #     #     action="store_true",
+    #     #     help="Set up conda for powershell.",
+    #     #     default=NULL,
+    #     # )
+    #
+    # shells_group.add_argument(
+    #     "--bash",
+    #     action="store_true",
+    #     help="Set up conda for bash (default).",
+    #     default=NULL,
+    # )
+    # shells_group.add_argument(
+    #     "--zsh",
+    #     action="store_true",
+    #     help="Set up conda for zsh.",
+    #     default=NULL,
+    # )
 
     if on_win:
         p.add_argument(
@@ -681,6 +685,11 @@ def configure_parser_init(sub_parsers):
         )
 
     add_parser_json(p)
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Only display what would have been done.",
+    )
     p.set_defaults(func='.main_init.execute')
 
 
