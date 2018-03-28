@@ -6,7 +6,7 @@ from glob import glob
 import json
 from logging import getLogger
 import os
-from os.path import dirname, exists, expanduser, isdir, isfile, join, abspath
+from os.path import abspath, dirname, exists, expanduser, isdir, isfile, join
 from random import randint
 import re
 import sys
@@ -16,8 +16,8 @@ from . import CONDA_PACKAGE_ROOT
 from ._vendor.auxlib.ish import dals
 from .base.context import context
 from .common.compat import PY2, ensure_binary, ensure_unicode, on_mac, on_win, open
-from .common.path import (expand, get_python_short_path, get_python_site_packages_short_path,
-                          win_path_ok)
+from .common.path import (expand, get_bin_directory_short_path, get_python_short_path,
+                          get_python_site_packages_short_path, win_path_ok)
 from .gateways.disk.create import copy, mkdir_p
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import lexists
@@ -104,7 +104,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         print("Directory is not a conda source root: %s" % conda_source_root, file=sys.stderr)
         return 1
 
-    plan = []
+    plan = make_install_plan(dev_env_prefix)
     plan.append({
         'function': remove_conda_in_sp_dir.__name__,
         'kwargs': {
@@ -121,7 +121,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
 
     run_plan(plan)
 
-    if context.dry_run:
+    if context.dry_run or context.verbosity:
         print_plan_results(plan, sys.stderr)
 
     if any(step['result'] == Result.NEEDS_SUDO for step in plan):
@@ -145,7 +145,9 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     elif shell == 'cmd_exe':
         builder = ['set %s="%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
-            '@conda activate "%s"' % dev_env_prefix,
+            '@SET CONDA_SHLVL=',
+            '@CALL %s' % join(dev_env_prefix, 'condacmd', 'conda-hook.bat'),
+            '@conda activate \'%s\'' % dev_env_prefix,
         ]
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
@@ -230,6 +232,35 @@ def make_install_plan(conda_prefix):
                 'conda_prefix': conda_prefix,
             },
         })
+        plan.append({
+            'function': install_activate_bat.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'Scripts', 'activate.bat'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+        plan.append({
+            'function': install_deactivate_bat.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'Scripts', 'deactivate.bat'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+
+    plan.append({
+        'function': install_activate.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, get_bin_directory_short_path(), 'activate'),
+            'conda_prefix': conda_prefix,
+        },
+    })
+    plan.append({
+        'function': install_deactivate.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, get_bin_directory_short_path(), 'deactivate'),
+            'conda_prefix': conda_prefix,
+        },
+    })
 
     plan.append({
         'function': install_conda_sh.__name__,
@@ -576,6 +607,46 @@ def install_conda_bat(target_path, conda_prefix):
     conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Library', 'bin', 'conda.bat')
     file_content = '@SET "_CONDA_EXE=%s"\n' % join(conda_prefix, 'Scripts', 'conda.exe')
     with open(conda_bat_src_path) as fsrc:
+        file_content += fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_activate_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'Scripts', 'activate.bat')
+    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Scripts', 'activate.bat')
+    with open(src_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_deactivate_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'Scripts', 'deactivate.bat')
+    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Scripts', 'deactivate.bat')
+    with open(src_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_activate(target_path, conda_prefix):
+    # target_path: join(conda_prefix, get_bin_directory_short_path(), 'activate')
+    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'bin', 'activate')
+    file_content = (
+        "#!/bin/sh\n"
+        "_CONDA_ROOT=\"%s\""
+    ) % conda_prefix
+    with open(src_path) as fsrc:
+        file_content += fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_deactivate(target_path, conda_prefix):
+    # target_path: join(conda_prefix, get_bin_directory_short_path(), 'deactivate')
+    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'bin', 'deactivate')
+    file_content = (
+        "#!/bin/sh\n"
+        "_CONDA_ROOT=\"%s\""
+    ) % conda_prefix
+    with open(src_path) as fsrc:
         file_content += fsrc.read()
     return _install_file(target_path, file_content)
 
