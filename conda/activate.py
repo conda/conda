@@ -9,7 +9,7 @@ import sys
 from tempfile import NamedTemporaryFile
 
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-context.__init__()  # oOn import, context does not include SEARCH_PATH. This line fixes that.
+context.__init__()  # On import, context does not include SEARCH_PATH. This line fixes that.
 
 try:
     from cytoolz.itertoolz import concatv, drop
@@ -17,7 +17,7 @@ except ImportError:  # pragma: no cover
     from ._vendor.toolz.itertoolz import concatv, drop  # NOQA
 
 
-class Activator(object):
+class _Activator(object):
     # Activate and deactivate have three tasks
     #   1. Set and unset environment variables
     #   2. Execute/source activate.d/deactivate.d scripts
@@ -39,8 +39,21 @@ class Activator(object):
     # To implement support for a new shell, ideally one would only need to add shell-specific
     # information to the __init__ method of this class.
 
-    def __init__(self, shell, arguments=None):
-        self.shell = shell
+    # The following instance variables must be defined by each implementation.
+    shell = None
+    pathsep_join = None
+    path_conversion = None
+    script_extension = None
+    tempfile_extension = None  # None means write instructions to stdout rather than a temp file
+    shift_args = None
+    command_join = None
+
+    unset_var_tmpl = None
+    export_var_tmpl = None
+    set_var_tmpl = None
+    run_script_tmpl = None
+
+    def __init__(self, arguments=None):
         self._raw_arguments = arguments
 
         if PY2:
@@ -48,83 +61,6 @@ class Activator(object):
                             for k, v in iteritems(os.environ)}
         else:
             self.environ = os.environ.copy()
-
-        if shell == 'posix':
-            self.pathsep_join = ':'.join
-            self.path_conversion = native_path_to_unix
-            self.script_extension = '.sh'
-            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
-            self.shift_args = 0
-            self.command_join = '\n'
-
-            self.unset_var_tmpl = '\\unset %s'
-            self.export_var_tmpl = "\\export %s='%s'"
-            self.set_var_tmpl = "%s='%s'"
-            self.run_script_tmpl = '\\. "%s"'
-
-        elif shell == 'csh':
-            self.pathsep_join = ':'.join
-            self.path_conversion = native_path_to_unix
-            self.script_extension = '.csh'
-            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
-            self.shift_args = 0
-            self.command_join = ';\n'
-
-            self.unset_var_tmpl = 'unsetenv %s'
-            self.export_var_tmpl = 'setenv %s "%s"'
-            self.set_var_tmpl = "set %s='%s'"
-            self.run_script_tmpl = 'source "%s"'
-
-        elif shell == 'xonsh':
-            self.pathsep_join = ':'.join
-            self.path_conversion = native_path_to_unix
-            self.script_extension = '.xsh'
-            self.tempfile_extension = '.xsh'
-            self.shift_args = 0
-            self.command_join = '\n'
-
-            self.unset_var_tmpl = 'del $%s'
-            self.export_var_tmpl = "$%s = '%s'"
-            self.run_script_tmpl = 'source "%s"'
-
-        elif shell == 'cmd.exe':
-            self.pathsep_join = ';'.join
-            self.path_conversion = path_identity
-            self.script_extension = '.bat'
-            self.tempfile_extension = '.bat'
-            self.shift_args = 1
-            self.command_join = '\r\n' if on_win else '\n'
-
-            self.unset_var_tmpl = '@SET %s='
-            self.export_var_tmpl = '@SET "%s=%s"'
-            self.run_script_tmpl = '@CALL "%s"'
-
-        elif shell == 'fish':
-            self.pathsep_join = '" "'.join
-            self.path_conversion = native_path_to_unix
-            self.script_extension = '.fish'
-            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
-            self.shift_args = 0
-            self.command_join = ';\n'
-
-            self.unset_var_tmpl = 'set -e %s'
-            self.export_var_tmpl = 'set -gx %s "%s"'
-            self.run_script_tmpl = 'source "%s"'
-
-        elif shell == 'powershell':
-            self.pathsep_join = ';'.join
-            self.path_conversion = path_identity
-            self.script_extension = '.ps1'
-            self.tempfile_extension = None  # write instructions to stdout rather than a temp file
-            self.shift_args = 0
-            self.command_join = '\n'
-
-            self.unset_var_tmpl = 'Remove-Variable %s'
-            self.export_var_tmpl = '$env:%s = "%s"'
-            self.run_script_tmpl = '. "%s"'
-
-        else:
-            raise NotImplementedError()
 
     def _finalize(self, commands, ext):
         commands = concatv(commands, ('',))  # add terminating newline
@@ -273,13 +209,10 @@ class Activator(object):
             }
             deactivate_scripts = ()
 
-        self._update_prompt(set_vars, conda_prompt_modifier)
+        if context.changeps1:
+            self._update_prompt(set_vars, conda_prompt_modifier)
 
-        if on_win and self.shell == 'cmd.exe':
-            import ctypes
-            export_vars.update({
-                "PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),
-            })
+        self._build_activate_shell_custom(export_vars)
 
         return {
             'unset_vars': (),
@@ -340,7 +273,8 @@ class Activator(object):
             }
             activate_scripts = self._get_activate_scripts(new_prefix)
 
-        self._update_prompt(set_vars, conda_prompt_modifier)
+        if context.changeps1:
+            self._update_prompt(set_vars, conda_prompt_modifier)
 
         return {
             'unset_vars': unset_vars,
@@ -366,7 +300,8 @@ class Activator(object):
         new_path = self.pathsep_join(self._replace_prefix_in_path(conda_prefix, conda_prefix))
         set_vars = {}
         conda_prompt_modifier = self._prompt_modifier(conda_default_env)
-        self._update_prompt(set_vars, conda_prompt_modifier)
+        if context.changeps1:
+            self._update_prompt(set_vars, conda_prompt_modifier)
         # environment variables are set only to aid transition from conda 4.3 to conda 4.4
         return {
             'unset_vars': (),
@@ -457,30 +392,13 @@ class Activator(object):
                 path_list.insert(idx, join(new_prefix, 'bin'))
         return self.path_conversion(path_list)
 
-    def _update_prompt(self, set_vars, conda_prompt_modifier):
-        if not context.changeps1:
-            return
+    def _build_activate_shell_custom(self, export_vars):
+        # A method that can be overriden by shell-specific implementations.
+        # The signature of this method may change in the future.
+        pass
 
-        if self.shell == 'posix':
-            ps1 = self.environ.get('PS1', '')
-            current_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER')
-            if current_prompt_modifier:
-                ps1 = re.sub(re.escape(current_prompt_modifier), r'', ps1)
-            # Because we're using single-quotes to set shell variables, we need to handle the
-            # proper escaping of single quotes that are already part of the string.
-            # Best solution appears to be https://stackoverflow.com/a/1250279
-            ps1 = ps1.replace("'", "'\"'\"'")
-            set_vars.update({
-                'PS1': conda_prompt_modifier + ps1,
-            })
-        elif self.shell == 'csh':
-            prompt = self.environ.get('prompt', '')
-            current_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER')
-            if current_prompt_modifier:
-                prompt = re.sub(re.escape(current_prompt_modifier), r'', prompt)
-            set_vars.update({
-                'prompt': conda_prompt_modifier + prompt,
-            })
+    def _update_prompt(self, set_vars, conda_prompt_modifier):
+        pass
 
     def _default_env(self, prefix):
         if prefix == context.root_prefix:
@@ -570,6 +488,153 @@ else:  # pragma: py2 no cover
         return iter(d.items(**kw))
 
 
+class PosixActivator(_Activator):
+
+    def __init__(self, arguments=None):
+        self.pathsep_join = ':'.join
+        self.path_conversion = native_path_to_unix
+        self.script_extension = '.sh'
+        self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+        self.shift_args = 0
+        self.command_join = '\n'
+
+        self.unset_var_tmpl = '\\unset %s'
+        self.export_var_tmpl = "\\export %s='%s'"
+        self.set_var_tmpl = "%s='%s'"
+        self.run_script_tmpl = '\\. "%s"'
+
+        super(PosixActivator, self).__init__(arguments)
+
+    def _update_prompt(self, set_vars, conda_prompt_modifier):
+        ps1 = self.environ.get('PS1', '')
+        current_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER')
+        if current_prompt_modifier:
+            ps1 = re.sub(re.escape(current_prompt_modifier), r'', ps1)
+        # Because we're using single-quotes to set shell variables, we need to handle the
+        # proper escaping of single quotes that are already part of the string.
+        # Best solution appears to be https://stackoverflow.com/a/1250279
+        ps1 = ps1.replace("'", "'\"'\"'")
+        set_vars.update({
+            'PS1': conda_prompt_modifier + ps1,
+        })
+
+
+class CshActivator(_Activator):
+
+    def __init__(self, arguments=None):
+        self.pathsep_join = ':'.join
+        self.path_conversion = native_path_to_unix
+        self.script_extension = '.csh'
+        self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+        self.shift_args = 0
+        self.command_join = ';\n'
+
+        self.unset_var_tmpl = 'unsetenv %s'
+        self.export_var_tmpl = 'setenv %s "%s"'
+        self.set_var_tmpl = "set %s='%s'"
+        self.run_script_tmpl = 'source "%s"'
+
+        super(CshActivator, self).__init__(arguments)
+
+    def _update_prompt(self, set_vars, conda_prompt_modifier):
+        prompt = self.environ.get('prompt', '')
+        current_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER')
+        if current_prompt_modifier:
+            prompt = re.sub(re.escape(current_prompt_modifier), r'', prompt)
+        set_vars.update({
+            'prompt': conda_prompt_modifier + prompt,
+        })
+
+
+class XonshActivator(_Activator):
+
+    def __init__(self, arguments=None):
+        self.pathsep_join = ':'.join
+        self.path_conversion = native_path_to_unix
+        self.script_extension = '.xsh'
+        self.tempfile_extension = '.xsh'
+        self.shift_args = 0
+        self.command_join = '\n'
+
+        self.unset_var_tmpl = 'del $%s'
+        self.export_var_tmpl = "$%s = '%s'"
+        self.set_var_tmpl = "$%s = '%s'"  # TODO: determine if different than export_var_tmpl
+        self.run_script_tmpl = 'source "%s"'
+
+        super(XonshActivator, self).__init__(arguments)
+
+
+class CmdExeActivator(_Activator):
+
+    def __init__(self, arguments=None):
+        self.pathsep_join = ';'.join
+        self.path_conversion = path_identity
+        self.script_extension = '.bat'
+        self.tempfile_extension = '.bat'
+        self.shift_args = 1
+        self.command_join = '\r\n' if on_win else '\n'
+
+        self.unset_var_tmpl = '@SET %s='
+        self.export_var_tmpl = '@SET "%s=%s"'
+        self.set_var_tmpl = '@SET "%s=%s"'  # TODO: determine if different than export_var_tmpl
+        self.run_script_tmpl = '@CALL "%s"'
+
+        super(CmdExeActivator, self).__init__(arguments)
+
+    def _build_activate_shell_custom(self, export_vars):
+        if on_win:
+            import ctypes
+            export_vars.update({
+                "PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),
+            })
+
+
+class FishActivator(_Activator):
+
+    def __init__(self, arguments=None):
+        self.pathsep_join = '" "'.join
+        self.path_conversion = native_path_to_unix
+        self.script_extension = '.fish'
+        self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+        self.shift_args = 0
+        self.command_join = ';\n'
+
+        self.unset_var_tmpl = 'set -e %s'
+        self.export_var_tmpl = 'set -gx %s "%s"'
+        self.set_var_tmpl = 'set -gx %s "%s"'  # TODO: determine if different than export_var_tmpl
+        self.run_script_tmpl = 'source "%s"'
+
+        super(FishActivator, self).__init__(arguments)
+
+
+class PowershellActivator(_Activator):
+
+    def __init__(self, arguments=None):
+        self.pathsep_join = ';'.join
+        self.path_conversion = path_identity
+        self.script_extension = '.ps1'
+        self.tempfile_extension = None  # write instructions to stdout rather than a temp file
+        self.shift_args = 0
+        self.command_join = '\n'
+
+        self.unset_var_tmpl = 'Remove-Variable %s'
+        self.export_var_tmpl = '$env:%s = "%s"'
+        self.set_var_tmpl = '$env:%s = "%s"'  # TODO: determine if different than export_var_tmpl
+        self.run_script_tmpl = '. "%s"'
+
+        super(PowershellActivator, self).__init__(arguments)
+
+
+activator_map = {
+    'posix': PosixActivator,
+    'csh': CshActivator,
+    'xonsh': XonshActivator,
+    'cmd.exe': CmdExeActivator,
+    'fish': FishActivator,
+    'powershell': PowershellActivator,
+}
+
+
 def main(argv=None):
     from .common.compat import init_std_stream_encoding
 
@@ -579,7 +644,12 @@ def main(argv=None):
     assert argv[1].startswith('shell.')
     shell = argv[1].replace('shell.', '', 1)
     activator_args = argv[2:]
-    activator = Activator(shell, activator_args)
+    try:
+        activator_cls = activator_map[shell]
+    except KeyError:
+        from . import CondaError
+        raise CondaError("%s is not a supported shell." % shell)
+    activator = activator_cls(activator_args)
     try:
         print(activator.execute(), end='')
         return 0
