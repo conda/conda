@@ -35,19 +35,6 @@ source.
 
 """
 
-install_requires = [
-    'pycosat >=0.6.3',
-    'requests >=2.12.4',
-    'ruamel_yaml >=0.11.14'
-]
-
-if sys.version_info < (3, 4):
-    install_requires.append('enum34')
-    install_requires.append('futures')
-
-if sys.platform == "win32":
-    install_requires.append('menuinst')
-
 
 def package_files(*root_directories):
     return [
@@ -97,6 +84,13 @@ setup(
             'conda=conda.cli.main_pip:main',
         ],
     },
-    install_requires=install_requires,
+    install_requires=[
+        "pycosat >=0.6.3",
+        "requests >=2.12.4",
+        "ruamel.yaml >=0.11.14",
+        "enum34 ; python_version<'3.4'",
+        "future ; python_version<'3.4'",
+        "menuinst ; platform_system=='Windows'",
+    ],
     zip_safe=False,
 )

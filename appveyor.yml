@@ -38,6 +38,7 @@ build: false
 
 test_script:
   - type dev-init.bat
+  - type C:\Miniconda36-x64\condacmd\conda-hook.bat
   - dev-init
   - conda info
   - set "ADD_COV=--cov-report xml --cov-report term-missing --cov conda"
