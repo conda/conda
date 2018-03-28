@@ -140,11 +140,11 @@ class IntegrationTests(unittest.TestCase):
         rm_rf_wait("environment.yml")
         if env_is_created(test_env_name_1):
             run_env_command(Commands.ENV_REMOVE, test_env_name_1)
-            # try:
-            #     run_env_command(Commands.ENV_REMOVE, test_env_name_1)
-            # except Exception as e:
-            #     import pdb; pdb.set_trace()
-            #     assert 1
+            try:
+                run_env_command(Commands.ENV_REMOVE, test_env_name_1)
+            except Exception as e:
+                import pdb; pdb.set_trace()
+                assert 1
 
     def test_conda_env_create_no_file(self):
         '''
