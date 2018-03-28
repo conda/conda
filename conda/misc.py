@@ -18,12 +18,12 @@ from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from .core.prefix_data import PrefixData, linked_data
-from .exceptions import DisallowedPackageError, PackagesNotFoundError, ParseError
+from .exceptions import DisallowedPackageError, DryRunExit, PackagesNotFoundError, ParseError
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.dist import Dist
-from .models.records import PackageRecord
 from .models.match_spec import MatchSpec
+from .models.records import PackageRecord
 from .resolve import Resolve
 
 
@@ -64,6 +64,9 @@ def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, 
         # url_p is everything but the tarball_basename and the md5sum
 
         fetch_specs.append(MatchSpec(url, md5=md5sum) if md5sum else MatchSpec(url))
+
+    if context.dry_run:
+        raise DryRunExit()
 
     pfe = ProgressiveFetchExtract(fetch_specs)
     pfe.execute()
@@ -237,6 +240,9 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     if verbose:
         print('Packages: %d' % len(dists))
         print('Files: %d' % len(untracked_files))
+
+    if context.dry_run:
+        raise DryRunExit()
 
     for f in untracked_files:
         src = join(prefix1, f)
