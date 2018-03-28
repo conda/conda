@@ -6,7 +6,7 @@ from glob import glob
 import json
 from logging import getLogger
 import os
-from os.path import dirname, exists, expanduser, isdir, isfile, join
+from os.path import dirname, exists, expanduser, isdir, isfile, join, abspath
 from random import randint
 import re
 import sys
@@ -128,38 +128,30 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         print("Operation failed.", file=sys.stderr)
         return 1
 
-    stuff = {
-        'python_version': python_version[0],
-        'test_platform': 'win' if on_win else 'unix',
-        'pythonhashseed': randint(0, 4294967296),
-        'conda_source_root': conda_source_root,
-        'dev_env_prefix': dev_env_prefix,
-
+    env_vars = {
+        'ADD_COV': '--cov-report xml --cov-report term-missing --cov conda',
+        'PYTHONHASHSEED': randint(0, 4294967296),
+        'PYTHON_MAJOR_VERSION': python_version[0],
+        'TEST_PLATFORM': 'win' if on_win else 'unix',
     }
 
     if shell == "bash":
-        builder = [
-            "export PYTHON_MAJOR_VERSION='%(python_version)s'",
-            "export TEST_PLATFORM='%(test_platform)s'",
-            "export PYTHONHASHSEED='%(pythonhashseed)d'",
-            "export _CONDA_ROOT='%(conda_source_root)s'",
-            ". conda/shell/etc/profile.d/conda.sh",
-            "conda activate '%(dev_env_prefix)s'",
+        builder = ["export %s='%s'" % (key, env_vars[key]) for key in sorted(env_vars)]
+        builder += [
+            "eval \"$(%s -m conda shell.bash hook)\"" % abspath(sys.executable),
+            "conda activate '%s'" % dev_env_prefix,
         ]
-        print("\n".join(builder) % stuff)
+        print("\n".join(builder))
     elif shell == 'cmd_exe':
-        builder = [
-            'set "PYTHON_MAJOR_VERSION=%(python_version)s"',
-            'set "TEST_PLATFORM=%(test_platform)s"',
-            'set "PYTHONHASHSEED=%(pythonhashseed)d"',
-            'set "_CONDA_ROOT=%(conda_source_root)s"',
-            'conda activate "%(dev_env_prefix)s"',
+        builder = ['set %s="%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
+        builder += [
+            '@conda activate "%s"' % dev_env_prefix,
         ]
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
-                fh.write('\n'.join(builder) % stuff)
+                fh.write('\n'.join(builder))
         if context.verbosity:
-            print('\n'.join(builder) % stuff)
+            print('\n'.join(builder))
         print("now run  > .\\dev-init.bat")
     else:
         raise NotImplementedError()
@@ -306,13 +298,22 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_pro
             })
 
     if shells & {'fish', }:
-        raise NotImplementedError()
+        if for_user:
+            raise NotImplementedError()
+        if for_system:
+            raise NotImplementedError()
 
     if shells & {'tcsh', }:
-        raise NotImplementedError()
+        if for_user:
+            raise NotImplementedError()
+        if for_system:
+            raise NotImplementedError()
 
     if shells & {'powershell', }:
-        raise NotImplementedError()
+        if for_user:
+            raise NotImplementedError()
+        if for_system:
+            raise NotImplementedError()
 
     if shells & {'cmd_exe', }:
         # TODO: make sure cmd_exe and cmd.exe are consistently used; choose one
@@ -325,22 +326,30 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_pro
                     'conda_prefix': conda_prefix,
                 },
             })
-
-    if on_win and desktop_prompt:
-        plan.append({
-            'function': install_conda_shortcut.__name__,
-            'kwargs': {
-                'target_path': join(conda_prefix, 'condacmd', 'Conda Prompt.lnk'),
-                'conda_prefix': conda_prefix,
-            },
-        })
-        plan.append({
-            'function': install_conda_shortcut.__name__,
-            'kwargs': {
-                'target_path': join(os.environ["HOMEPATH"], "Desktop", "Conda Prompt.lnk"),
-                'conda_prefix': conda_prefix,
-            },
-        })
+        if for_system:
+            plan.append({
+                'function': init_cmd_exe_user.__name__,
+                'kwargs': {
+                    'target_path': 'HKEY_LOCAL_MACHINE\\Software\\Microsoft\\'
+                                   'Command Processor\\AutoRun',
+                    'conda_prefix': conda_prefix,
+                },
+            })
+        if desktop_prompt:
+            plan.append({
+                'function': install_conda_shortcut.__name__,
+                'kwargs': {
+                    'target_path': join(conda_prefix, 'condacmd', 'Conda Prompt.lnk'),
+                    'conda_prefix': conda_prefix,
+                },
+            })
+            plan.append({
+                'function': install_conda_shortcut.__name__,
+                'kwargs': {
+                    'target_path': join(os.environ["HOMEPATH"], "Desktop", "Conda Prompt.lnk"),
+                    'conda_prefix': conda_prefix,
+                },
+            })
 
     return plan
 
@@ -352,8 +361,8 @@ def run_plan(plan):
             continue
         try:
             result = globals()[step['function']](*step.get('args', ()), **step.get('kwargs', {}))
-        except (IOError, OSError) as e:
-            log.error("%s: %r", step['function'], e, exc_info=True)
+        except EnvironmentError as e:
+            log.info("%s: %r", step['function'], e, exc_info=True)
             result = Result.NEEDS_SUDO
         step['result'] = result
 
@@ -377,7 +386,7 @@ def run_plan_elevated(plan):
                     # the default mode is 'w+b', and universal new lines don't work in that mode
                     tf.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
                     temp_path = tf.name
-                rc = runAsAdmin('%s -m conda.initialize \'%s\'' % (sys.executable, temp_path))
+                rc = runAsAdmin((sys.executable, '-m',  'conda.initialize',  '"%s"' % temp_path))
                 assert rc == 0
 
                 with open(temp_path) as fh:
@@ -687,16 +696,19 @@ def init_sh_system(target_path, conda_prefix):
 def init_cmd_exe_user(target_path, conda_prefix):
     # HKEY_LOCAL_MACHINE\Software\Microsoft\Command Processor\AutoRun
     # HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun
-    key_str = r'Software\Microsoft\Command Processor'
+    main_key, the_rest = target_path.split('\\', 1)
+    subkey_str, value_name = the_rest.rsplit('\\', 1)
+    main_key = getattr(winreg, main_key)
+
     try:
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_str, 0, winreg.KEY_ALL_ACCESS)
+        key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_ALL_ACCESS)
     except EnvironmentError as e:
         if e.errno != ENOENT:
             raise
-        key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_str)
+        key = winreg.CreateKey(main_key, subkey_str)
     try:
         try:
-            value = winreg.QueryValueEx(key, "AutoRun")
+            value = winreg.QueryValueEx(key, value_name)
             prev_value = value[0].strip()
             value_type = value[1]
         except EnvironmentError as e:
@@ -727,7 +739,7 @@ def init_cmd_exe_user(target_path, conda_prefix):
                 print(target_path)
                 print(make_diff(prev_value, new_value))
             if not context.dry_run:
-                winreg.SetValueEx(key, "AutoRun", 0, value_type, new_value)
+                winreg.SetValueEx(key, value_name, 0, value_type, new_value)
             return Result.MODIFIED
         else:
             return Result.NO_CHANGE

@@ -25,4 +25,8 @@ record.txt
 Vagrantfile
 docs/_build
 env/
+dev-init.bat
+devenv/
+Miniconda*.sh
+miniconda*.sh
 .pytest_cache/

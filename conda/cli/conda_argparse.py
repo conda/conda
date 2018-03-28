@@ -588,12 +588,12 @@ def configure_parser_init(sub_parsers):
     #     # Write commands to stdout, suitable for bash `eval`, that sets up the current
     #     # shell as a dev environment.
     #
-    #         $ git clone git@github.com:conda/conda ~/conda
-    #         $ curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-    #               -o ~/Miniconda3-latest-Linux-x86_64.sh
-    #         $ bash ~/Miniconda3-latest-Linux-x86_64.sh -bfp ~/conda/devenv
-    #         $ cd ~/conda
-    #         $ eval `./devenv/bin/python -m conda init --dev bash`
+    #         $ CONDA_PROJECT_ROOT="~/conda"
+    #         $ git clone git@github.com:conda/conda "$CONDA_PROJECT_ROOT"
+    #         $ cd "$CONDA_PROJECT_ROOT"
+    #         $ wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    #         $ bash Miniconda3-latest-Linux-x86_64.sh -bfp ./devenv
+    #         $ eval "$(./devenv/bin/python -m conda init --dev bash)"
     #
     #
     # """)
