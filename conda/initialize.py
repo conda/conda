@@ -128,16 +128,39 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         print("Operation failed.", file=sys.stderr)
         return 1
 
+    stuff = {
+        'python_version': python_version[0],
+        'test_platform': 'win' if on_win else 'unix',
+        'pythonhashseed': randint(0, 4294967296),
+        'conda_source_root': conda_source_root,
+        'dev_env_prefix': dev_env_prefix,
+
+    }
+
     if shell == "bash":
         builder = [
-            "export PYTHON_MAJOR_VERSION='%s'" % python_version[0],
-            "export TEST_PLATFORM='%s'" % ('win' if sys.platform.startswith('win') else 'unix'),
-            "export PYTHONHASHSEED='%d'" % randint(0, 4294967296),
-            "export _CONDA_ROOT='%s'" % conda_source_root,
+            "export PYTHON_MAJOR_VERSION='%(python_version)s'",
+            "export TEST_PLATFORM='%(test_platform)s'",
+            "export PYTHONHASHSEED='%(pythonhashseed)d'",
+            "export _CONDA_ROOT='%(conda_source_root)s'",
             ". conda/shell/etc/profile.d/conda.sh",
-            "conda activate '%s'" % dev_env_prefix,
+            "conda activate '%(dev_env_prefix)s'",
         ]
-        print("\n".join(builder))
+        print("\n".join(builder) % stuff)
+    elif shell == 'cmd_exe':
+        builder = [
+            'set "PYTHON_MAJOR_VERSION=%(python_version)s"',
+            'set "TEST_PLATFORM=%(test_platform)s"',
+            'set "PYTHONHASHSEED=%(pythonhashseed)d"',
+            'set "_CONDA_ROOT=%(conda_source_root)s"',
+            'conda activate "%(dev_env_prefix)s"',
+        ]
+        if not context.dry_run:
+            with open('dev-init.bat', 'w') as fh:
+                fh.write('\n'.join(builder) % stuff)
+        if context.verbosity:
+            print('\n'.join(builder) % stuff)
+        print("now run  > .\\dev-init.bat")
     else:
         raise NotImplementedError()
 
@@ -716,7 +739,7 @@ def remove_conda_in_sp_dir(target_path):
     # target_path: site_packages_dir
     modified = False
     site_packages_dir = target_path
-    for fn in glob(join(site_packages_dir, "conda*.egg")):
+    for fn in glob(join(site_packages_dir, "conda-*info")):
         print("rm -rf %s" % join(site_packages_dir, fn), file=sys.stderr)
         if not context.dry_run:
             rm_rf(join(site_packages_dir, fn))
