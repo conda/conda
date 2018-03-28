@@ -66,6 +66,20 @@ def test_make_initialize_plan_install():
                     }
                 },
                 {
+                    "function": "install_activate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/bin/activate"
+                    }
+                },
+                {
+                    "function": "install_deactivate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/bin/deactivate"
+                    }
+                },
+                {
                     "function": "install_conda_sh",
                     "kwargs": {
                         "conda_prefix": "/darwin",

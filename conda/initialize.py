@@ -130,7 +130,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
 
     env_vars = {
         'ADD_COV': '--cov-report xml --cov-report term-missing --cov conda',
-        'PYTHONHASHSEED': randint(0, 4294967296),
+        'PYTHONHASHSEED': str(randint(0, 4294967296)),
         'PYTHON_MAJOR_VERSION': python_version[0],
         'TEST_PLATFORM': 'win' if on_win else 'unix',
     }
@@ -143,11 +143,11 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         ]
         print("\n".join(builder))
     elif shell == 'cmd_exe':
-        builder = ['set %s="%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
+        builder = ['SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
-            '@SET CONDA_SHLVL=',
-            '@CALL %s' % join(dev_env_prefix, 'condacmd', 'conda-hook.bat'),
-            '@conda activate \'%s\'' % dev_env_prefix,
+            'SET CONDA_SHLVL=',
+            'CALL %s' % join(dev_env_prefix, 'condacmd', 'conda-hook.bat'),
+            'conda activate \'%s\'' % dev_env_prefix,
         ]
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
