@@ -10,10 +10,11 @@ from os.path import dirname, exists, expanduser, isdir, isfile, join
 from random import randint
 import re
 import sys
+from tempfile import NamedTemporaryFile
 
 from . import CONDA_PACKAGE_ROOT
 from ._vendor.auxlib.ish import dals
-from .common.compat import PY2, on_mac, on_win, open
+from .common.compat import PY2, on_mac, on_win, open, ensure_binary, ensure_unicode
 from .common.path import (expand, get_python_short_path, get_python_site_packages_short_path,
                           win_path_ok)
 from .gateways.disk.create import copy, mkdir_p
@@ -28,10 +29,8 @@ if on_win:
         import _winreg as winreg
     else:
         import winreg
-    try:
-        from menuinst.winshortcut import create_shortcut
-    except ImportError:
-        from menuinst.windows.winshortcut import create_shortcut
+    from menuinst.winshortcut import create_shortcut
+
 
 log = getLogger(__name__)
 
@@ -328,8 +327,8 @@ def run_plan(plan):
 
 def run_plan_elevated(plan):
     if any(step['result'] == Result.NEEDS_SUDO for step in plan):
-        stdin = json.dumps(plan)
         if on_win:
+            from menuinst.win_elevate import runAsAdmin
             # https://github.com/ContinuumIO/menuinst/blob/master/menuinst/windows/win_elevate.py  # no stdin / stdout / stderr pipe support  # NOQA
             # https://github.com/saltstack/salt-windows-install/blob/master/deps/salt/python/App/Lib/site-packages/win32/Demos/pipes/runproc.py  # NOQA
             # https://github.com/twonds/twisted/blob/master/twisted/internet/_dumbwin32proc.py
@@ -338,20 +337,35 @@ def run_plan_elevated(plan):
 
             # from menuinst.win_elevate import isUserAdmin, runAsAdmin
             # I do think we can pipe to stdin, so we're going to have to write to a temp file and read in the elevated process  # NOQA
-            raise NotImplementedError("Windows. Blah. Run as Administrator on your own.")
+
+            temp_path = None
+            try:
+                with NamedTemporaryFile('w+b', suffix='.json', delete=False) as tf:
+                    # the default mode is 'w+b', and universal new lines don't work in that mode
+                    tf.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
+                    temp_path = tf.name
+                rc = runAsAdmin('%s -m conda.initialize \'%s\'' % (sys.executable, temp_path))
+                assert rc == 0
+
+                with open(temp_path) as fh:
+                    _plan = json.loads(ensure_unicode(fh.read()))
+            finally:
+                if temp_path and lexists(temp_path):
+                    rm_rf(temp_path)
+
         else:
+            stdin = json.dumps(plan)
             result = subprocess_call(
                 'sudo %s -m conda.initialize' % sys.executable,
                 env={},
                 path=os.getcwd(),
                 stdin=stdin
             )
-        stderr = result.stderr.strip()
-        if stderr:
-            sys.stderr.write(stderr)
-            sys.stderr.write('\n')
+            stderr = result.stderr.strip()
+            if stderr:
+                print(stderr, file=sys.stderr)
+            _plan = json.loads(result.stdout.strip())
 
-        _plan = json.loads(result.stdout.strip())
         del plan[:]
         plan.extend(_plan)
 
@@ -361,6 +375,14 @@ def run_plan_from_stdin():
     plan = json.loads(stdin)
     run_plan(plan)
     sys.stdout.write(json.dumps(plan))
+
+
+def run_plan_from_temp_file(temp_path):
+    with open(temp_path) as fh:
+        plan = json.loads(ensure_unicode(fh.read()))
+    run_plan(plan)
+    with open(temp_path, 'w+b') as fh:
+        fh.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
 
 
 def print_plan_results(plan, stream=sys.stdout):
@@ -691,4 +713,8 @@ def make_conda_pth(target_path, conda_source_dir):
 
 
 if __name__ == "__main__":
-    run_plan_from_stdin()
+    if on_win:
+        temp_path = sys.argv[1]
+        run_plan_from_temp_file(temp_path)
+    else:
+        run_plan_from_stdin()
