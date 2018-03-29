@@ -643,6 +643,11 @@ implicitly added by host requirements (e.g. libpng exports libpng), and with
      run_exports:
        - libpng
 
+Here, because no specific kind of run_exports is specified, libpng's run_exports
+are considered "weak." This means they will only apply when libpng is in the
+host section, when they will add their export to the run section.  If libpng were
+listed in the build section, the run_exports would not apply to the run section.
+
 .. code-block:: yaml
 
    # meta.yaml of gcc compiler
@@ -650,6 +655,12 @@ implicitly added by host requirements (e.g. libpng exports libpng), and with
      run_exports:
        strong:
          - libgcc
+
+Strong run_exports are used for things like runtimes, where the same runtime
+needs to be present in the host and the run environment, and exactly which
+runtime that should be is determined by what's present in the build section.
+This mechanism is how we line up appropriate software on windows, where we must
+match MSVC versions used across all of the shared libraries in an environment.
 
 .. code-block:: yaml
 
@@ -659,9 +670,10 @@ implicitly added by host requirements (e.g. libpng exports libpng), and with
        - gcc            # has a strong run export
      host:
        - libpng         # has a (weak) run export
+       # - libgcc       <-- implicitly added by gcc
      run:
-       # - libgcc       <-- implicitly added
-       # - libpng       <-- implicitly added
+       # - libgcc       <-- implicitly added by gcc
+       # - libpng       <-- implicitly added by libpng
 
 You can express version constraints directly, or use any of the jinja2 helper
 functions listed at :ref:`extra_jinja2`.
