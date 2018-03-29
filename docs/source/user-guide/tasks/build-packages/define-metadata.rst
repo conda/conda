@@ -1398,6 +1398,57 @@ Jinja templates are evaluated during the build process. To
 retrieve a fully rendered ``meta.yaml`` use the
 :doc:`../../../commands/build/conda-render`.
 
+.. _extra_jinja2_meta:
+
+Conda-build specific Jinja2 functions
+-------------------------------------
+
+Besides the default Jinja2 functionality, additional Jinja functions are
+available during the conda-build process: ``pin_compatible``,
+``pin_subpackage``, ``compiler``, and ``resolved_packages``. Please see
+:ref:`extra_jinja2` for the definition of the first three functions. Definition
+of ``resolved_packages`` is given below:
+
+* ``resolved_packages('environment_name')``: Returns the final list of packages
+  (in the form of ``package_name version build_string``) that are listed in
+  ``requirements:host`` or ``requirements:build``. This includes all packages
+  (including the indirect dependencies) that will be installed in the host or
+  build environment. ``environment_name`` must be either ``host`` or ``build``.
+  This function is useful for creating meta packages that will want to pin all
+  of their *direct* and *indirect* dependencies to their exact match. For
+  example::
+
+      requirements:
+        host:
+          - curl 7.55.1
+        run:
+        {% for package in resolved_packages('host') %}
+          - {{ package }}
+        {% endfor %}
+
+  might render to (depending on package dependencies and the platform)::
+
+      requirements:
+          host:
+              - ca-certificates 2017.08.26 h1d4fec5_0
+              - curl 7.55.1 h78862de_4
+              - libgcc-ng 7.2.0 h7cc24e2_2
+              - libssh2 1.8.0 h9cfc8f7_4
+              - openssl 1.0.2n hb7f436b_0
+              - zlib 1.2.11 ha838bed_2
+          run:
+              - ca-certificates 2017.08.26 h1d4fec5_0
+              - curl 7.55.1 h78862de_4
+              - libgcc-ng 7.2.0 h7cc24e2_2
+              - libssh2 1.8.0 h9cfc8f7_4
+              - openssl 1.0.2n hb7f436b_0
+              - zlib 1.2.11 ha838bed_2
+
+  Here, output of ``resolved_packages`` was::
+
+      ['ca-certificates 2017.08.26 h1d4fec5_0', 'curl 7.55.1 h78862de_4',
+      'libgcc-ng 7.2.0 h7cc24e2_2', 'libssh2 1.8.0 h9cfc8f7_4',
+      'openssl 1.0.2n hb7f436b_0', 'zlib 1.2.11 ha838bed_2']
 
 .. _preprocess-selectors:
 
