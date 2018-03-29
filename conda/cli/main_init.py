@@ -33,7 +33,7 @@ def execute(args, parser):
         selected_shells = ('cmd.exe' if on_win else 'bash',)
 
     if args.dev:
-        assert len(selected_shells) == 1, selected_shells
+        assert len(selected_shells) == 1, "--dev can only handle one shell at a time right now"
         shell = selected_shells[0]
         # assert shell == 'bash'
         return initialize_dev(shell)

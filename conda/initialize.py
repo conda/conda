@@ -13,7 +13,7 @@ import re
 import sys
 from tempfile import NamedTemporaryFile
 
-from . import CONDA_PACKAGE_ROOT
+from . import CONDA_PACKAGE_ROOT, CondaError
 from ._vendor.auxlib.ish import dals
 from .base.context import context
 from .common.compat import PY2, ensure_binary, ensure_unicode, on_mac, on_win, open
@@ -31,6 +31,7 @@ if on_win:
         import _winreg as winreg
     else:
         import winreg
+    from menuinst.knownfolders import get_folder_path, FOLDERID
     from menuinst.winshortcut import create_shortcut
 
 
@@ -98,8 +99,8 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     python_exe, python_version, site_packages_dir = _get_python_info(dev_env_prefix)
 
     if not isfile(join(conda_source_root, 'conda', '__main__.py')):
-        print("Directory is not a conda source root: %s" % conda_source_root, file=sys.stderr)
-        return 1
+        from .exceptions import CondaValueError
+        raise CondaValueError("Directory is not a conda source root: %s" % conda_source_root)
 
     plan = make_install_plan(dev_env_prefix)
     plan.append({
@@ -121,9 +122,8 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     if context.dry_run or context.verbosity:
         print_plan_results(plan, sys.stderr)
 
-    if any(step['result'] == Result.NEEDS_SUDO for step in plan):
-        print("Operation failed.", file=sys.stderr)
-        return 1
+    if any(step['result'] == Result.NEEDS_SUDO for step in plan):  # pragma: no cover
+        raise CondaError("Operation failed. Privileged install disallowed for 'conda init --dev'.")
 
     env_vars = {
         'ADD_COV': '--cov-report xml --cov-report term-missing --cov conda',
@@ -172,7 +172,10 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
 
 
 def make_install_plan(conda_prefix):
-    python_exe, python_version, site_packages_dir = _get_python_info(conda_prefix)
+    try:
+        python_exe, python_version, site_packages_dir = _get_python_info(conda_prefix)
+    except EnvironmentError:
+        python_exe, python_version, site_packages_dir = None, None, None
 
     plan = []
 
@@ -288,13 +291,17 @@ def make_install_plan(conda_prefix):
             'conda_prefix': conda_prefix,
         },
     })
-    plan.append({
-        'function': install_conda_xsh.__name__,
-        'kwargs': {
-            'target_path': join(site_packages_dir, 'xonsh', 'conda.xsh'),
-            'conda_prefix': conda_prefix,
-        },
-    })
+    if site_packages_dir:
+        plan.append({
+            'function': install_conda_xsh.__name__,
+            'kwargs': {
+                'target_path': join(site_packages_dir, 'xonsh', 'conda.xsh'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+    else:
+        print("WARNING: Cannot install xonsh wrapper without a python interpreter in prefix: "
+              "%s" % conda_prefix, file=sys.stderr)
     plan.append({
         'function': install_conda_csh.__name__,
         'kwargs': {
@@ -306,7 +313,7 @@ def make_install_plan(conda_prefix):
 
 
 def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt):
-    plan = []
+    plan = make_install_plan(conda_prefix)
     shells = set(shells)
     if shells & {'bash', 'zsh'}:
         if 'bash' in shells and for_user:
@@ -361,7 +368,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
     if shells & {'cmd.exe', }:
         if for_user:
             plan.append({
-                'function': init_cmd_exe_user.__name__,
+                'function': init_cmd_exe_registry.__name__,
                 'kwargs': {
                     'target_path': 'HKEY_CURRENT_USER\\Software\\Microsoft\\'
                                    'Command Processor\\AutoRun',
@@ -370,7 +377,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
             })
         if for_system:
             plan.append({
-                'function': init_cmd_exe_user.__name__,
+                'function': init_cmd_exe_registry.__name__,
                 'kwargs': {
                     'target_path': 'HKEY_LOCAL_MACHINE\\Software\\Microsoft\\'
                                    'Command Processor\\AutoRun',
@@ -385,10 +392,14 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'conda_prefix': conda_prefix,
                 },
             })
+            if on_win:
+                desktop_dir = get_folder_path(FOLDERID.Desktop)
+            else:
+                desktop_dir = join(expanduser('~'), "Desktop")
             plan.append({
                 'function': install_anaconda_prompt.__name__,
                 'kwargs': {
-                    'target_path': join(os.environ["HOMEPATH"], "Desktop", "Anaconda Prompt.lnk"),
+                    'target_path': join(desktop_dir, "Anaconda Prompt.lnk"),
                     'conda_prefix': conda_prefix,
                 },
             })
@@ -469,7 +480,9 @@ def run_plan_from_temp_file(temp_path):
         fh.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
 
 
-def print_plan_results(plan, stream=sys.stdout):
+def print_plan_results(plan, stream=None):
+    if not stream:
+        stream = sys.stdout
     for step in plan:
         print("%s\n  %s\n" % (step['kwargs']['target_path'], step.get('result')), file=stream)
 
@@ -581,6 +594,8 @@ def install_anaconda_prompt(target_path, conda_prefix):
             '' + expanduser('~'),
             '' + icon_path,
         )
+    # TODO: need to make idempotent / support NO_CHANGE
+    return Result.MODIFIED
 
 
 def _install_file(target_path, file_content):
@@ -789,7 +804,7 @@ def init_sh_system(target_path, conda_prefix):
         return Result.NO_CHANGE
 
 
-def init_cmd_exe_user(target_path, conda_prefix):
+def init_cmd_exe_registry(target_path, conda_prefix):
     # HKEY_LOCAL_MACHINE\Software\Microsoft\Command Processor\AutoRun
     # HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun
     main_key, the_rest = target_path.split('\\', 1)
