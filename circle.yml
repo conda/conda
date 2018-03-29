@@ -124,10 +124,10 @@ activate_tests: &activate_tests
         command: |
           echo "auto_activate_base: false" >> ~/.condarc
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+          python -m conda._vendor.auxlib.packaging conda
           conda deactivate
           conda info
-          python -m conda._vendor.auxlib.packaging conda
-          py.test $ADD_COV -m "installed" -v --shell=bash --shell=zsh
+          /opt/conda/bin/py.test $ADD_COV -m "installed" -v --shell=bash --shell=zsh
 
 
 flake8: &flake8
