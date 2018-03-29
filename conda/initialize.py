@@ -160,7 +160,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         builder += [
             'CALL %s' % join(dev_env_prefix, 'condacmd', 'conda-hook.bat'),
             'SET',
-            'conda activate \'%s\'' % dev_env_prefix,
+            'conda activate \"%s\"' % dev_env_prefix,
         ]
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
@@ -894,7 +894,7 @@ def make_conda_pth(target_path, conda_source_root):
             print(make_diff(conda_pth_contents_old, conda_pth_contents), file=sys.stderr)
         if not context.dry_run:
             with open(conda_pth_path, 'w') as fh:
-                fh.write(conda_pth_contents)
+                fh.write(ensure_unicode(conda_pth_contents))
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
