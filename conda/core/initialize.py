@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from difflib import unified_diff
 from errno import ENOENT
 from glob import glob
 from itertools import chain
@@ -13,18 +14,20 @@ import re
 import sys
 from tempfile import NamedTemporaryFile
 
-from . import CONDA_PACKAGE_ROOT, CondaError
-from ._vendor.auxlib.ish import dals
-from .base.context import context
-from .common.compat import PY2, ensure_binary, ensure_unicode, on_mac, on_win, open
-from .common.path import (expand, get_bin_directory_short_path, get_python_short_path,
-                          get_python_site_packages_short_path, win_path_ok)
-from .gateways.disk.create import copy, mkdir_p
-from .gateways.disk.delete import rm_rf
-from .gateways.disk.link import lexists
-from .gateways.disk.permissions import make_executable
-from .gateways.disk.read import compute_md5sum
-from .gateways.subprocess import subprocess_call
+from .. import CONDA_PACKAGE_ROOT, CondaError
+from .._vendor.auxlib.ish import dals
+from ..activate import CshActivator, FishActivator, PosixActivator, XonshActivator
+from ..base.context import context
+from ..common.compat import PY2, ensure_binary, ensure_unicode, on_mac, on_win, open
+from ..common.path import (expand, get_bin_directory_short_path, get_python_short_path,
+                           get_python_site_packages_short_path, win_path_ok)
+from ..exceptions import CondaValueError
+from ..gateways.disk.create import copy, mkdir_p
+from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.link import lexists
+from ..gateways.disk.permissions import make_executable
+from ..gateways.disk.read import compute_md5sum
+from ..gateways.subprocess import subprocess_call
 
 if on_win:
     if PY2:
@@ -99,7 +102,6 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     python_exe, python_version, site_packages_dir = _get_python_info(dev_env_prefix)
 
     if not isfile(join(conda_source_root, 'conda', '__main__.py')):
-        from .exceptions import CondaValueError
         raise CondaValueError("Directory is not a conda source root: %s" % conda_source_root)
 
     plan = make_install_plan(dev_env_prefix)
@@ -624,7 +626,6 @@ def _install_file(target_path, file_content):
 
 def install_conda_sh(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'etc', 'profile.d', 'conda.sh')
-    from .activate import PosixActivator
     file_content = PosixActivator().hook(auto_activate_base=False)
     return _install_file(target_path, file_content)
 
@@ -696,21 +697,18 @@ def install_condacmd_hook_bat(target_path, conda_prefix):
 
 def install_conda_fish(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish')
-    from .activate import FishActivator
     file_content = FishActivator().hook(auto_activate_base=False)
     return _install_file(target_path, file_content)
 
 
 def install_conda_xsh(target_path, conda_prefix):
     # target_path: join(site_packages_dir, 'xonsh', 'conda.xsh')
-    from .activate import XonshActivator
     file_content = XonshActivator().hook(auto_activate_base=False)
     return _install_file(target_path, file_content)
 
 
 def install_conda_csh(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'etc', 'profile.d', 'conda.csh')
-    from .activate import CshActivator
     file_content = CshActivator().hook(auto_activate_base=False)
     return _install_file(target_path, file_content)
 
@@ -916,7 +914,6 @@ def make_conda_pth(target_path, conda_source_root):
 
 
 def make_diff(old, new):
-    from difflib import unified_diff
     return '\n'.join(unified_diff(old.splitlines(), new.splitlines()))
 
 

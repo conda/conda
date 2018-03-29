@@ -17,11 +17,11 @@ from conda.common.io import env_var, captured
 from conda.common.path import get_python_short_path
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
-from conda.initialize import Result, _get_python_info, install_conda_bat, install_conda_csh, \
+from conda.core.initialize import Result, _get_python_info, install_conda_bat, install_conda_csh, \
     install_conda_fish, install_conda_sh, install_conda_xsh, make_entry_point, make_install_plan, \
     make_entry_point_exe, install, initialize_dev, make_initialize_plan
 from conda.models.enums import LinkType
-from .helpers import tempdir
+from tests.helpers import tempdir
 
 try:
     from unittest.mock import Mock, patch
@@ -44,7 +44,7 @@ def test_make_install_plan():
     python_version = "2.6.10"
     site_packages_dir = "/darwin/lib/python2.6/site-packages"
 
-    with patch("conda.initialize._get_python_info", return_value=(
+    with patch("conda.core.initialize._get_python_info", return_value=(
             python_exe, python_version, site_packages_dir
     )):
         plan = make_install_plan("/darwin")
@@ -579,4 +579,3 @@ def test_initialize_dev_cmd_exe():
     stderr = "".join(s.strip('\n\r') for s in stderr.splitlines())
     for fn in modified_files:
         assert '%s  modified' % fn in stderr
-

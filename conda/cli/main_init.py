@@ -11,12 +11,12 @@ log = getLogger(__name__)
 
 def execute(args, parser):
     from ..base.constants import COMPATIBLE_SHELLS
-    from ..initialize import initialize, initialize_dev, install
+    from ..core.initialize import initialize, initialize_dev, install
 
     if args.install:
         return install(context.conda_prefix)
 
-    invalid_shells = tuple(s for s in args.shells if s not in ALL_SHELLS)
+    invalid_shells = tuple(s for s in args.shells if s not in COMPATIBLE_SHELLS)
     if invalid_shells:
         from ..exceptions import ArgumentError
         from ..resolve import dashlist  # TODO: this import is ridiculous; move it to common!
