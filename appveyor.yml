@@ -32,7 +32,10 @@ install:
   - "%PYTHON_ROOT%\\Scripts\\conda install -y -c defaults -c conda-forge python=%PYTHON_VERSION% pycosat conda requests ruamel_yaml anaconda-client nbformat pytest pytest-cov pytest-timeout mock responses pexpect xonsh"
   # conda install -y -c defaults -c conda-forge pytest pytest-cov pytest-timeout mock responses pexpect xonsh
   - "%PYTHON_ROOT%\\Scripts\\pip install codecov"
-  - "%PYTHON_ROOT%\\python -m conda init --dev"
+  - "%PYTHON_ROOT%\\python -m conda init --install -v"
+  - "%PYTHON_ROOT%\\python -m conda init --dev -v"
+  - C:\Miniconda36-x64\condacmd\conda-hook.bat
+  - set
 
 build: false
 

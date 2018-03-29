@@ -575,7 +575,7 @@ def configure_parser_init(sub_parsers):
     # # environment. Does not modify `~/.bashrc` for example, so has no effect on future shell
     # # sessions.
     #
-    #     $ eval `python -m conda init --install-only bash`
+    #     $ eval `python -m conda init --install bash`
     #
     # """
 
@@ -614,7 +614,7 @@ def configure_parser_init(sub_parsers):
 
     setup_type_group = p.add_argument_group('setup type')
     setup_type_group.add_argument(
-        "--install-only",
+        "--install",
         action="store_true",
         help=SUPPRESS,
         default=NULL,
