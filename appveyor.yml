@@ -48,4 +48,5 @@ test_script:
   - IF NOT DEFINED SHELL_INTEGRATION py.test %ADD_COV% --cov-append -m "integration and not installed" -v
   - IF NOT DEFINED SHELL_INTEGRATION codecov --env PYTHON_VERSION --required
   - IF NOT DEFINED SHELL_INTEGRATION python -m conda.common.io
-  - IF DEFINED SHELL_INTEGRATION dev\appveyor\test_script.bat
+  - IF DEFINED SHELL_INTEGRATION %PYTHON_ROOT%\python -m conda._vendor.auxlib.packaging conda
+  - IF DEFINED SHELL_INTEGRATION %PYTHON_ROOT%\Scripts\py.test %ADD_COV% -m "installed" --shell=bash.exe --shell=cmd.exe
