@@ -159,6 +159,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         builder += ['SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
             'CALL %s' % join(dev_env_prefix, 'condacmd', 'conda-hook.bat'),
+            'SET',
             'conda activate \'%s\'' % dev_env_prefix,
         ]
         if not context.dry_run:

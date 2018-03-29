@@ -32,17 +32,14 @@ install:
   - "%PYTHON_ROOT%\\Scripts\\conda install -y -c defaults -c conda-forge python=%PYTHON_VERSION% pycosat conda requests ruamel_yaml anaconda-client nbformat pytest pytest-cov pytest-timeout mock responses pexpect xonsh"
   # conda install -y -c defaults -c conda-forge pytest pytest-cov pytest-timeout mock responses pexpect xonsh
   - "%PYTHON_ROOT%\\Scripts\\pip install codecov"
-  - "%PYTHON_ROOT%\\python -m conda init --install -v"
-  - "%PYTHON_ROOT%\\python -m conda init --dev -v"
-  - C:\Miniconda36-x64\condacmd\conda-hook.bat
-  - set
+  - "%PYTHON_ROOT%\\python -m conda init --install"
+  - "%PYTHON_ROOT%\\python -m conda init --dev"
+  - dir C:\Miniconda36-x64\conda-meta
 
 build: false
 
 test_script:
-  - type dev-init.bat
-  - type C:\Miniconda36-x64\condacmd\conda-hook.bat
-  - dev-init
+  - dev-init.bat
   - conda info
   - set "ADD_COV=--cov-report xml --cov-report term-missing --cov conda"
   - IF NOT DEFINED SHELL_INTEGRATION py.test %ADD_COV% -m "not integration and not installed" -v
