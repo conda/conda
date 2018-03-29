@@ -12,6 +12,12 @@ if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
              "current version: %d.%d" % sys.version_info[:2])
 
+print("\n\n"
+      "WARNING: The utils/setup-testing.py is deprecated and scheduled for removal.\n"
+      "         Consider transitioning tooling to make use of 'conda init'.\n"
+      "\n\n",
+      file=sys.stderr)
+
 # When executing setup.py, we need to be able to import ourselves, this
 # means that we need to add the src directory to the sys.path.
 here = os.path.abspath(os.path.dirname(__file__))

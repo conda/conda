@@ -37,7 +37,7 @@ if on_win:
 log = getLogger(__name__)
 
 ALL_SHELLS = (
-    'cmd_exe',
+    'cmd.exe',
     'bash',
     'zsh',
     'fish',
@@ -67,13 +67,18 @@ def initialize(conda_prefix, shells, for_user, for_system, desktop_prompt):
         run_plan(plan1)
         if not context.dry_run:
             run_plan_elevated(plan1)
-            # TODO: make sure this all succeeded
 
     plan2 = make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_prompt)
     run_plan(plan2)
     if not context.dry_run:
         run_plan_elevated(plan2)
-    print_plan_results(plan1 + plan2)
+
+    plan = plan1 + plan2
+    print_plan_results(plan)
+
+    if any(step['result'] == Result.NEEDS_SUDO for step in plan):
+        print("Operation failed.", file=sys.stderr)
+        return 1
 
 
 def _get_python_info(prefix):
@@ -147,14 +152,15 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     )
 
     if shell == "bash":
-        builder = ["unset %s" % unset_env_var for unset_env_var in unset_env_vars]
+        builder = []
+        builder += ["unset %s" % unset_env_var for unset_env_var in unset_env_vars]
         builder += ["export %s='%s'" % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
             "eval \"$(%s -m conda shell.bash hook)\"" % abspath(sys.executable),
             "conda activate '%s'" % dev_env_prefix,
         ]
         print("\n".join(builder))
-    elif shell == 'cmd_exe':
+    elif shell == 'cmd.exe':
         builder = []
         builder += ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
         builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
@@ -361,8 +367,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_pro
         if for_system:
             raise NotImplementedError()
 
-    if shells & {'cmd_exe', }:
-        # TODO: make sure cmd_exe and cmd.exe are consistently used; choose one
+    if shells & {'cmd.exe', }:
         if for_user:
             plan.append({
                 'function': init_cmd_exe_user.__name__,

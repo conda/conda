@@ -1,3 +1,9 @@
+echo >&2
+echo >&2 "WARNING: The utils/functions.sh is deprecated and scheduled for removal."
+echo >&2 "         Consider transitioning tooling to make use of 'conda init'."
+echo >&2
+
+
 set_vars() {
     # Set global variables
     local arch
