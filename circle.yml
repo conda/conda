@@ -122,7 +122,9 @@ activate_tests: &activate_tests
     - run:
         name: activate tests
         command: |
+          /opt/conda/bin/conda config --set auto_activate_base false
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+          conda info
           python -m conda._vendor.auxlib.packaging conda
           py.test $ADD_COV -m "installed" -v --shell=bash --shell=zsh
 
