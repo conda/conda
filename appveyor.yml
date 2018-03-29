@@ -28,10 +28,10 @@ environment:
 
 init:
   - ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH% %HOME%
-  # - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
-#on_finish:
-#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+on_finish:
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 install:
   - "%PYTHON_ROOT%\\Scripts\\conda install -y -c defaults -c conda-forge python=%PYTHON_VERSION% pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses pexpect"
@@ -43,13 +43,13 @@ install:
 build: false
 
 test_script:
-  - IF DEFINED SHELL_INTEGRATION %PYTHON_ROOT%\\Scripts\\conda config --set auto_activate_base false
   - dev-init.bat
+  - IF DEFINED SHELL_INTEGRATION conda deactivate
   - conda info
-  - set "ADD_COV=--cov-report xml --cov-report term-missing --cov conda"
   - IF NOT DEFINED SHELL_INTEGRATION py.test %ADD_COV% -m "not integration and not installed" -v
   - IF NOT DEFINED SHELL_INTEGRATION py.test %ADD_COV% --cov-append -m "integration and not installed" -v
-  - IF NOT DEFINED SHELL_INTEGRATION codecov --env PYTHON_VERSION --flags integration --required
+  - dir
+  - IF NOT DEFINED SHELL_INTEGRATION codecov --env PYTHON_VERSION --required
   - IF NOT DEFINED SHELL_INTEGRATION python -m conda.common.io
   - IF DEFINED SHELL_INTEGRATION python -m conda._vendor.auxlib.packaging conda  # this hard-codes __version__ in conda/__init__.py to speed up tests
   - IF DEFINED SHELL_INTEGRATION py.test %ADD_COV% -m "installed" --shell=bash.exe --shell=cmd.exe

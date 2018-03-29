@@ -37,4 +37,4 @@ def test_info_unsafe_channels():
         assert rc == 0
         assert not stderr
         json_obj = json.loads(stdout.strip())
-        assert json_obj["channels"] == [url]
+        assert url in json_obj["channels"]

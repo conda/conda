@@ -745,6 +745,7 @@ def init_sh_user(target_path, conda_prefix, shell):
         rc_content,
         flags=re.MULTILINE,
     )
+    # TODO: maybe remove all but last of replace_str, if there's more than one occurrence
     rc_content = rc_content.replace(replace_str, conda_initialize_content)
 
     if "# >>> conda initialize >>>" not in rc_content:
