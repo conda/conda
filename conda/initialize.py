@@ -393,7 +393,8 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                 },
             })
             if on_win:
-                desktop_dir = get_folder_path(FOLDERID.Desktop)
+                desktop_dir, exception = get_folder_path(FOLDERID.Desktop)
+                assert not exception
             else:
                 desktop_dir = join(expanduser('~'), "Desktop")
             plan.append({

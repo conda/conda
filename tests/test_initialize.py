@@ -431,17 +431,38 @@ def test_install_1():
                 install(conda_temp_prefix)
 
     assert "WARNING: Cannot install xonsh wrapper" in c.stderr
-    modified_files = (
-        'conda',
-        'conda-env',
-        'activate',
-        'deactivate',
-        'conda.sh',
-        'conda.fish',
-        'conda.csh',
-    )
-    assert c.stdout.count('modified') == len(modified_files)
+    if on_win:
+        modified_files = (
+            'conda.exe',
+            'conda-env.exe',
+            'conda-script.py',
+            'conda-env-script.py',
+            'conda.bat',
+            'conda.bat',
+            'conda-hook.bat',
+            'activate.bat',
+            'deactivate.bat',
+            'activate',
+            'deactivate',
+            'conda.sh',
+            'conda.fish',
+            'conda.csh',
+        )
+    else:
+        modified_files = (
+            'conda',
+            'conda-env',
+            'activate',
+            'deactivate',
+            'conda.sh',
+            'conda.fish',
+            'conda.csh',
+        )
 
+    print(c.stdout)
+    print(c.stderr, file=sys.stderr)
+
+    assert c.stdout.count('modified') == len(modified_files)
     stdout = "".join(s.strip('\n\r') for s in c.stdout.splitlines())
     for fn in modified_files:
         assert '%s  modified' % fn in stdout
@@ -462,18 +483,40 @@ def test_initialize_dev_bash():
     print(c.stdout)
     print(c.stderr, file=sys.stderr)
 
-    modified_files = (
-        'conda',
-        'conda-env',
-        'activate',
-        'deactivate',
-        'conda.sh',
-        'conda.fish',
-        'conda.xsh',
-        'conda.csh',
-        'site-packages',  # remove conda in site-packages dir
-        'conda-dev.pth',
-    )
+    if on_win:
+        modified_files = (
+            'conda.exe',
+            'conda-env.exe',
+            'conda-script.py',
+            'conda-env-script.py',
+            'conda.bat',
+            'conda.bat',
+            'conda-hook.bat',
+            'activate.bat',
+            'deactivate.bat',
+            'activate',
+            'deactivate',
+            'conda.sh',
+            'conda.fish',
+            'conda.xsh',
+            'conda.csh',
+            'site-packages',
+            'conda-dev.pth',
+        )
+    else:
+        modified_files = (
+            'conda',
+            'conda-env',
+            'activate',
+            'deactivate',
+            'conda.sh',
+            'conda.fish',
+            'conda.xsh',
+            'conda.csh',
+            'site-packages',  # remove conda in site-packages dir
+            'conda-dev.pth',
+        )
+
     stderr = c.stderr.replace('no change', 'modified')
     assert stderr.count('modified') == len(modified_files)
 
@@ -496,18 +539,40 @@ def test_initialize_dev_cmd_exe():
     print(c.stdout)
     print(c.stderr, file=sys.stderr)
 
-    modified_files = (
-        'conda',
-        'conda-env',
-        'activate',
-        'deactivate',
-        'conda.sh',
-        'conda.fish',
-        'conda.xsh',
-        'conda.csh',
-        'site-packages',  # remove conda in site-packages dir
-        'conda-dev.pth',
-    )
+    if on_win:
+        modified_files = (
+            'conda.exe',
+            'conda-env.exe',
+            'conda-script.py',
+            'conda-env-script.py',
+            'conda.bat',
+            'conda.bat',
+            'conda-hook.bat',
+            'activate.bat',
+            'deactivate.bat',
+            'activate',
+            'deactivate',
+            'conda.sh',
+            'conda.fish',
+            'conda.xsh',
+            'conda.csh',
+            'site-packages',
+            'conda-dev.pth',
+        )
+    else:
+        modified_files = (
+            'conda',
+            'conda-env',
+            'activate',
+            'deactivate',
+            'conda.sh',
+            'conda.fish',
+            'conda.xsh',
+            'conda.csh',
+            'site-packages',  # remove conda in site-packages dir
+            'conda-dev.pth',
+        )
+
     stderr = c.stderr.replace('no change', 'modified')
     assert stderr.count('modified') == len(modified_files)
 
