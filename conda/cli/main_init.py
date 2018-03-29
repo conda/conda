@@ -12,7 +12,7 @@ log = getLogger(__name__)
 def execute(args, parser):
     from ..initialize import ALL_SHELLS, initialize, initialize_dev, install
 
-    if args.install_only:
+    if args.install:
         return install(context.conda_prefix)
 
     invalid_shells = tuple(s for s in args.shells if s not in ALL_SHELLS)
@@ -33,7 +33,7 @@ def execute(args, parser):
 
     else:
         for_user = args.user
-        if not (args.install_only and args.user and args.system):
+        if not (args.install and args.user and args.system):
             for_user = True
         if args.no_user:
             for_user = False

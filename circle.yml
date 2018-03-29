@@ -28,8 +28,11 @@ remove_conda: &remove_conda
 main_test: &main_test
   <<: *defaults
   steps:
-    - run: *remove_conda
+    # - run: *remove_conda
     - checkout
+    - run:
+        name: install conda dev
+        command: sudo /opt/conda/bin/python -m conda init --dev -v
     - run:
         name: unit tests
         command: |
