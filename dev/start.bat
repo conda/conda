@@ -5,5 +5,5 @@
 @devenv\Scripts\conda install -yq --file dev/test-requirements.txt -c defaults -c conda-forge
 
 :ALREADY_INSTALLED
-@devenv\python -m conda init --dev > NUL
+@devenv\python -m conda init --dev cmd.exe > NUL
 @CALL dev-init
