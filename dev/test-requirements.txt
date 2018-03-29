@@ -1,0 +1,21 @@
+# run as 'conda install --file dev/test-requirements.txt -c defaults -c conda-forge'
+# conda
+flake8
+mock
+pexpect
+pytest
+pytest-cov
+pytest-timeout
+radon
+responses
+
+# conda-build
+anaconda-client
+beautifulsoup4
+chardet
+conda-verify
+contextlib2
+filelock
+pycrypto
+pyflakes
+pytest-mock

@@ -29,4 +29,5 @@ dev-init.bat
 devenv/
 Miniconda*.sh
 miniconda*.sh
+miniconda*.exe
 .pytest_cache/
