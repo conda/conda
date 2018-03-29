@@ -32,32 +32,23 @@ main_test: &main_test
     - checkout
     - run:
         name: install conda dev
-        command: sudo /opt/conda/bin/python -m conda init --dev -v
+        command: |
+          echo "local_repodata_ttl: 1800" >> ~/.condarc
+          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
     - run:
         name: unit tests
         command: |
-          echo "local_repodata_ttl: 1800" >> ~/.condarc
-          mkdir -p ~/.conda
-          /opt/conda/bin/python utils/setup-testing.py --version
-          /opt/conda/bin/python -m conda info
-          export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
-          export TEST_PLATFORM=$(/opt/conda/bin/python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
-          export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-          ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
-          /opt/conda/bin/py.test $ADD_COV -m "not integration and not installed"
-        # PYTHON_MAJOR_VERSION and TEST_PLATFORM are used by coverage via setup.cfg
+          env | sort
+          conda info
+          py.test $ADD_COV -m "not integration and not installed"
     - run:
         name: integration tests
         command: |
-          export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
-          export TEST_PLATFORM=$(/opt/conda/bin/python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
-          export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-          ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
-          /opt/conda/bin/py.test $ADD_COV --cov-append -m "integration and not installed" -v
-          /opt/conda/bin/python -m conda.common.io
+          py.test $ADD_COV --cov-append -m "integration and not installed" -v
+          python -m conda.common.io
     - run:
         name: upload codecov
-        command: /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
+        command: codecov --env PYTHON_VERSION --flags integration --required
 
 
 conda_build_test: &conda_build_test

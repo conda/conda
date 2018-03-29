@@ -44,7 +44,117 @@ def test_make_initialize_plan_install():
         plan = make_install_plan("/darwin")
         stdout_json(plan)
         if on_win:
-            assert False
+            assert plan == [
+                {
+                    "function": "make_entry_point_exe",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\conda.exe"
+                    }
+                },
+                {
+                    "function": "make_entry_point_exe",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\conda-env.exe"
+                    }
+                },
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda.cli",
+                        "target_path": "/darwin\\Scripts\\conda-script.py"
+                    }
+                },
+                {
+                    "function": "make_entry_point",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "func": "main",
+                        "module": "conda_env.cli.main",
+                        "target_path": "/darwin\\Scripts\\conda-env-script.py"
+                    }
+                },
+                {
+                    "function": "install_conda_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Library\\bin\\conda.bat"
+                    }
+                },
+                {
+                    "function": "install_condacmd_conda_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condacmd\\conda.bat"
+                    }
+                },
+                {
+                    "function": "install_condacmd_hook_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\condacmd\\conda-hook.bat"
+                    }
+                },
+                {
+                    "function": "install_activate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\activate.bat"
+                    }
+                },
+                {
+                    "function": "install_deactivate_bat",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\deactivate.bat"
+                    }
+                },
+                {
+                    "function": "install_activate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\activate"
+                    }
+                },
+                {
+                    "function": "install_deactivate",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\Scripts\\deactivate"
+                    }
+                },
+                {
+                    "function": "install_conda_sh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\etc\\profile.d\\conda.sh"
+                    }
+                },
+                {
+                    "function": "install_conda_fish",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\etc\\fish\\conf.d\\conda.fish"
+                    }
+                },
+                {
+                    "function": "install_conda_xsh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin/lib/python2.6/site-packages\\xonsh\\conda.xsh"
+                    }
+                },
+                {
+                    "function": "install_conda_csh",
+                    "kwargs": {
+                        "conda_prefix": "/darwin",
+                        "target_path": "/darwin\\etc\\profile.d\\conda.csh"
+                    }
+                }
+            ]
         else:
             assert plan == [
                 {
@@ -131,7 +241,7 @@ def test_make_entry_point():
             if __name__ == '__main__':
                 from conda.entry.point import run
                 sys.exit(run())
-            """) % conda_prefix
+            """)
         else:
             assert ep_contents == dals("""
             #!%s/bin/python
