@@ -155,11 +155,14 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         ]
         print("\n".join(builder))
     elif shell == 'cmd_exe':
-        builder = ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
-        builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
+        builder = ['echo on']
+        builder += ["SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
+        builder += ['SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
-            '@CALL %s' % join(dev_env_prefix, 'condacmd', 'conda-hook.bat'),
-            '@conda activate \"%s\"' % dev_env_prefix,
+            'CALL %s' % join(dev_env_prefix, 'condacmd', 'conda-hook.bat'),
+            'if %errorlevel% neq 0 exit /b %errorlevel%',
+            'conda activate \"%s\"' % dev_env_prefix,
+            'if %errorlevel% neq 0 exit /b %errorlevel%',
         ]
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:

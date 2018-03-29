@@ -43,4 +43,4 @@ install:
 build: false
 
 test_script:
-  - dev\appveyor-test.bat
+  - dev\appveyor\test_script.bat
