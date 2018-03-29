@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# # conda-build
+# filelock anaconda-client contextlib2 pyflakes conda-verify beautifulsoup4 chardet pycrypto pytest-mock
+# patchelf
+# pip install --no-deps -U .
+
 if ! [ -d devenv ]; then
     if [ `uname` == Darwin ]; then
         curl https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o miniconda.sh

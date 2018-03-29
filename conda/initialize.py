@@ -644,7 +644,7 @@ def install_activate(target_path, conda_prefix):
     src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'bin', 'activate')
     file_content = (
         "#!/bin/sh\n"
-        "_CONDA_ROOT=\"%s\""
+        "_CONDA_ROOT=\"%s\"\n"
     ) % conda_prefix
     with open(src_path) as fsrc:
         file_content += fsrc.read()
@@ -656,7 +656,7 @@ def install_deactivate(target_path, conda_prefix):
     src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'bin', 'deactivate')
     file_content = (
         "#!/bin/sh\n"
-        "_CONDA_ROOT=\"%s\""
+        "_CONDA_ROOT=\"%s\"\n"
     ) % conda_prefix
     with open(src_path) as fsrc:
         file_content += fsrc.read()
