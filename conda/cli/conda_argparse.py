@@ -11,7 +11,7 @@ import sys
 from textwrap import dedent
 
 from .. import __version__
-from ..base.constants import CONDA_HOMEPAGE_URL
+from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL
 from ..common.constants import NULL
 
 log = getLogger(__name__)
@@ -544,40 +544,16 @@ def configure_parser_init(sub_parsers):
     `conda create` and `conda install`, also necessarily interact with the shell environment.
     They're therefore implemented in ways specific to each shell. Each shell must be configured
     to make use of them.
-
-    Examples:
-
-        # Make the conda command available in all detected shells for the *current user*.
-        # For example, if the bash shell is among those detected on your system, this command
-        # will modify your user's `~/.bashrc` file (`~/.bash_profile` on macOS). In addition to,
-        # the 'conda' command being made available, the 'base' conda environment is automatically
-        # activated (i.e. environment variables set and all executables put on PATH).
-
-            $ conda init
-
-
+    
+    This command makes changes to your system that are specific and customized for each shell.
+    To see the specific files and locations on your system that will be affected before, use the
+    '--dry-run' flag.  To see the exact changes that are being or will be made to each location, 
+    use the '--verbose' flag.
 
     IMPORTANT: After running `conda init`, most shells will need to be closed and restarted
                for changes to take effect.
 
     """)
-
-    # """
-    # # Make the conda command available to every user on the system. For example, if the bash
-    # # shell is among those detected on your system, a file `/etc/profile.d/conda.sh` will be
-    # # created, which will be sourced when your shell is initialized.
-    #
-    #     $ conda init --system
-    #
-    # # When executed from a bash shell, ensure that conda is properly installed in the prefix
-    # # for the first python on PATH (e.g. following a `python -m pip install conda`). Make the
-    # # 'conda' command available to the current shell process, and activate the 'base'
-    # # environment. Does not modify `~/.bashrc` for example, so has no effect on future shell
-    # # sessions.
-    #
-    #     $ eval `python -m conda init --install bash`
-    #
-    # """
 
     # dev_example = dedent("""
     #     # An example for creating an environment to develop on conda's own code. Clone the
@@ -609,6 +585,13 @@ def configure_parser_init(sub_parsers):
         "--dev",
         action="store_true",
         help=SUPPRESS,
+        default=NULL,
+    )
+
+    p.add_argument(
+        "--all",
+        action="store_true",
+        help="Initialize all currently available shells.",
         default=NULL,
     )
 
@@ -644,42 +627,17 @@ def configure_parser_init(sub_parsers):
     p.add_argument(
         'shells',
         nargs='*',
+        help="One or more shells to be initialized. If not given, the default value is "
+             "'bash' on unix and 'cmd.exe' on Windows. Use the '--all' flag to initialize "
+             "all shells. Currently compatible shells are {%s}"
+             % ", ".join(sorted(COMPATIBLE_SHELLS)),
     )
-
-    # shells_group = p.add_argument_group('shells')
-    # if on_win:
-    #     shells_group.add_argument(
-    #         "--cmd",
-    #         action="store_true",
-    #         help="Set up conda for cmd shell (default).",
-    #         default=NULL,
-    #         dest="cmd_exe",
-    #     )
-    #     # shells_group.add_argument(
-    #     #     "--powershell",
-    #     #     action="store_true",
-    #     #     help="Set up conda for powershell.",
-    #     #     default=NULL,
-    #     # )
-    #
-    # shells_group.add_argument(
-    #     "--bash",
-    #     action="store_true",
-    #     help="Set up conda for bash (default).",
-    #     default=NULL,
-    # )
-    # shells_group.add_argument(
-    #     "--zsh",
-    #     action="store_true",
-    #     help="Set up conda for zsh.",
-    #     default=NULL,
-    # )
 
     if on_win:
         p.add_argument(
-            "--desktop-prompt",
+            "--anaconda-prompt",
             action="store_true",
-            help="Add a 'Conda Prompt' icon to your desktop.",
+            help="Add an 'Anaconda Prompt' icon to your desktop.",
             default=NULL,
         )
 

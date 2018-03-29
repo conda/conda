@@ -10,7 +10,8 @@ log = getLogger(__name__)
 
 
 def execute(args, parser):
-    from ..initialize import ALL_SHELLS, initialize, initialize_dev, install
+    from ..base.constants import COMPATIBLE_SHELLS
+    from ..initialize import initialize, initialize_dev, install
 
     if args.install:
         return install(context.conda_prefix)
@@ -19,11 +20,17 @@ def execute(args, parser):
     if invalid_shells:
         from ..exceptions import ArgumentError
         from ..resolve import dashlist  # TODO: this import is ridiculous; move it to common!
-        raise ArgumentError("Invalid shells: %s" % dashlist(invalid_shells))
+        raise ArgumentError("Invalid shells: %s\n\n"
+                            "Currently available shells are:%s"
+                            % (dashlist(invalid_shells), dashlist(sorted(COMPATIBLE_SHELLS))))
 
-    selected_shells = tuple(args.shells)
+    if args.all:
+        selected_shells = COMPATIBLE_SHELLS
+    else:
+        selected_shells = tuple(args.shells)
+
     if not selected_shells:
-        selected_shells = ('cmd_exe' if on_win else 'bash',)
+        selected_shells = ('cmd.exe' if on_win else 'bash',)
 
     if args.dev:
         assert len(selected_shells) == 1, selected_shells
@@ -38,6 +45,6 @@ def execute(args, parser):
         if args.no_user:
             for_user = False
 
-        desktop_prompt = on_win and args.desktop_prompt
+        anaconda_prompt = on_win and args.anaconda_prompt
         return initialize(context.conda_prefix, selected_shells, for_user, args.system,
-                          desktop_prompt)
+                          anaconda_prompt)

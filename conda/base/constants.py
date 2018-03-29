@@ -11,7 +11,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from os.path import join
 
 from enum import Enum
-import sys
+
+from ..common.compat import on_win
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
@@ -80,8 +81,7 @@ DEFAULT_CUSTOM_CHANNELS = {
     'pkgs/pro': 'https://repo.anaconda.com',
 }
 
-# use the bool(sys.platform == "win32") definition here so we don't import .compat.on_win
-DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if bool(sys.platform == "win32") else DEFAULT_CHANNELS_UNIX
+DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = 'base'
 
@@ -99,6 +99,25 @@ DEFAULT_AGGRESSIVE_UPDATE_PACKAGES = (
     'certifi',
     'openssl',
 )
+
+if on_win:
+    COMPATIBLE_SHELLS = (
+        'bash',
+        'cmd.exe',
+        'fish',
+        'tcsh',
+        'xonsh',
+        'zsh',
+    )
+else:
+    COMPATIBLE_SHELLS = (
+        'bash',
+        'fish',
+        'tcsh',
+        'xonsh',
+        'zsh',
+    )
+
 
 # Maximum priority, reserved for packages we really want to remove
 MAX_CHANNEL_PRIORITY = 10000

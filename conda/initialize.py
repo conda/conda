@@ -36,15 +36,6 @@ if on_win:
 
 log = getLogger(__name__)
 
-ALL_SHELLS = (
-    'cmd.exe',
-    'bash',
-    'zsh',
-    'fish',
-    'tcsh',
-    'xonsh',
-)
-
 
 class Result:
     NEEDS_SUDO = "needs sudo"
@@ -60,7 +51,7 @@ def install(conda_prefix):
     print_plan_results(plan)
 
 
-def initialize(conda_prefix, shells, for_user, for_system, desktop_prompt):
+def initialize(conda_prefix, shells, for_user, for_system, anaconda_prompt):
     plan1 = []
     if os.getenv('CONDA_PIP_UNINITIALIZED') == 'true':
         plan1 = make_install_plan(conda_prefix)
@@ -68,7 +59,7 @@ def initialize(conda_prefix, shells, for_user, for_system, desktop_prompt):
         if not context.dry_run:
             run_plan_elevated(plan1)
 
-    plan2 = make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_prompt)
+    plan2 = make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt)
     run_plan(plan2)
     if not context.dry_run:
         run_plan_elevated(plan2)
@@ -314,7 +305,7 @@ def make_install_plan(conda_prefix):
     return plan
 
 
-def make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_prompt):
+def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_prompt):
     plan = []
     shells = set(shells)
     if shells & {'bash', 'zsh'}:
@@ -386,18 +377,18 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, desktop_pro
                     'conda_prefix': conda_prefix,
                 },
             })
-        if desktop_prompt:
+        if anaconda_prompt:
             plan.append({
-                'function': install_conda_shortcut.__name__,
+                'function': install_anaconda_prompt.__name__,
                 'kwargs': {
-                    'target_path': join(conda_prefix, 'condacmd', 'Conda Prompt.lnk'),
+                    'target_path': join(conda_prefix, 'condacmd', 'Anaconda Prompt.lnk'),
                     'conda_prefix': conda_prefix,
                 },
             })
             plan.append({
-                'function': install_conda_shortcut.__name__,
+                'function': install_anaconda_prompt.__name__,
                 'kwargs': {
-                    'target_path': join(os.environ["HOMEPATH"], "Desktop", "Conda Prompt.lnk"),
+                    'target_path': join(os.environ["HOMEPATH"], "Desktop", "Anaconda Prompt.lnk"),
                     'conda_prefix': conda_prefix,
                 },
             })
@@ -569,9 +560,9 @@ def _conda_exe(conda_prefix):
         return join(conda_prefix, 'bin', 'conda')
 
 
-def install_conda_shortcut(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'Conda Prompt.lnk')
-    # target: join(os.environ["HOMEPATH"], "Desktop", "Conda Prompt.lnk")
+def install_anaconda_prompt(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condacmd', 'Anaconda Prompt.lnk')
+    # target: join(os.environ["HOMEPATH"], "Desktop", "Anaconda Prompt.lnk")
     icon_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda_icon.ico')
 
     args = (
@@ -584,7 +575,7 @@ def install_conda_shortcut(target_path, conda_prefix):
     if not context.dry_run:
         create_shortcut(
             "%windir%\\System32\\cmd.exe",
-            "Conda Prompt",
+            "Anconda Prompt",
             '' + target_path,
             ' '.join(args),
             '' + expanduser('~'),
