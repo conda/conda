@@ -175,9 +175,9 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
 
 def make_install_plan(conda_prefix):
     try:
-        python_exe, python_version, site_packages_dir = _get_python_info(conda_prefix)
+        _, _, site_packages_dir = _get_python_info(conda_prefix)
     except EnvironmentError:
-        python_exe, python_version, site_packages_dir = None, None, None
+        _, _, site_packages_dir = None, None, None
 
     plan = []
 
@@ -741,12 +741,12 @@ def init_sh_user(target_path, conda_prefix, shell):
 
     rc_content = re.sub(
         r"^[ \t]*(export PATH=['\"]%s:\$PATH['\"])[ \t]*$" % re.escape(join(conda_prefix, 'bin')),
-        r"# \1  # commted out by conda initialize",
+        r"# \1  # commented out by conda initialize",
         rc_content,
         flags=re.MULTILINE,
     )
     rc_content = re.sub(
-        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*\/etc\/profile\.d\/conda\.sh).*?\n",
+        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh).*?\n",
         r"# \1  # commented out by conda initialize\n",
         rc_content,
         flags=re.MULTILINE,

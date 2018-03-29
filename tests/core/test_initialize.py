@@ -12,14 +12,14 @@ from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.cli.common import stdout_json
-from conda.common.compat import on_win
+from conda.common.compat import on_win, open
 from conda.common.io import env_var, captured
-from conda.common.path import get_python_short_path
+from conda.common.path import get_python_short_path, win_path_backout
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.core.initialize import Result, _get_python_info, install_conda_bat, install_conda_csh, \
     install_conda_fish, install_conda_sh, install_conda_xsh, make_entry_point, make_install_plan, \
-    make_entry_point_exe, install, initialize_dev, make_initialize_plan
+    make_entry_point_exe, install, initialize_dev, make_initialize_plan, init_sh_user
 from conda.models.enums import LinkType
 from tests.helpers import tempdir
 
@@ -474,9 +474,9 @@ def test_initialize_dev_bash():
 
     with env_var('CONDA_DRY_RUN', 'true', reset_context):
         with tempdir() as conda_temp_prefix:
-            new_py = join(conda_temp_prefix, get_python_short_path())
+            new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
             mkdir_p(dirname(new_py))
-            create_link(sys.executable, new_py, LinkType.hardlink)
+            create_link(abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink)
             with captured() as c:
                 initialize_dev('bash', dev_env_prefix=conda_temp_prefix)
 
@@ -530,9 +530,9 @@ def test_initialize_dev_bash():
 def test_initialize_dev_cmd_exe():
     with env_var('CONDA_DRY_RUN', 'true', reset_context):
         with tempdir() as conda_temp_prefix:
-            new_py = join(conda_temp_prefix, get_python_short_path())
+            new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
             mkdir_p(dirname(new_py))
-            create_link(sys.executable, new_py, LinkType.hardlink)
+            create_link(abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink)
             with captured() as c:
                 initialize_dev('cmd.exe', dev_env_prefix=conda_temp_prefix)
 
@@ -579,3 +579,65 @@ def test_initialize_dev_cmd_exe():
     stderr = "".join(s.strip('\n\r') for s in stderr.splitlines())
     for fn in modified_files:
         assert '%s  modified' % fn in stderr
+
+
+def test_init_sh_user():
+    with tempdir() as conda_temp_prefix:
+        target_path = join(conda_temp_prefix, '.bashrc')
+
+        initial_content = dals("""
+        export PATH="/some/other/conda/bin:$PATH"
+        export PATH="%(prefix)s/bin:$PATH"
+          export PATH="%(prefix)s/bin:$PATH"
+          
+        # >>> conda initialize >>>
+        __conda_setup="$('%(prefix)s/bin/conda' shell.bash hook 2> /dev/null)"
+        if [ $? -eq 0 ]; then
+        fi
+        unset __conda_setup
+        # <<< conda initialize <<<
+        
+        . etc/profile.d/conda.sh
+        . etc/profile.d/coda.sh
+        . /somewhere/etc/profile.d/conda.sh
+        source /etc/profile.d/conda.sh
+        
+        \t source %(prefix)s/etc/profile.d/conda.sh
+        """) % {
+            'prefix': win_path_backout(abspath(conda_temp_prefix)),
+        }
+
+        with open(target_path, 'w') as fh:
+            fh.write(initial_content)
+
+        init_sh_user(target_path, conda_temp_prefix, 'bash')
+
+        with open(target_path) as fh:
+            new_content = fh.read()
+
+        expected_new_content = dals("""
+        export PATH="/some/other/conda/bin:$PATH"
+        # export PATH="%(prefix)s/bin:$PATH"  # commented out by conda initialize
+        # export PATH="%(prefix)s/bin:$PATH"  # commented out by conda initialize
+        
+        # >>> conda initialize >>>
+        __conda_setup="$('%(prefix)s/bin/conda' shell.bash hook 2> /dev/null)"
+        if [ $? -eq 0 ]; then
+            eval "$__conda_setup"
+        else
+            export PATH="%(prefix)s/bin:$PATH"
+        fi
+        unset __conda_setup
+        # <<< conda initialize <<<
+        
+        # . etc/profile.d/conda.sh  # commented out by conda initialize
+        . etc/profile.d/coda.sh
+        # . /somewhere/etc/profile.d/conda.sh  # commented out by conda initialize
+        # source /etc/profile.d/conda.sh  # commented out by conda initialize
+        
+        # source %(prefix)s/etc/profile.d/conda.sh  # commented out by conda initialize
+        """) % {
+            'prefix': win_path_backout(abspath(conda_temp_prefix)),
+        }
+        print(new_content)
+        assert new_content == expected_new_content
