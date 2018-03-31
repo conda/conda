@@ -653,23 +653,24 @@ class InitializeTests(TestCase):
         with tempdir() as conda_temp_prefix:
             target_path = join(conda_temp_prefix, '.bashrc')
             conda_prefix = "c:\\Users\\Lars\\miniconda"
+            cygpath_conda_prefix = "/c/Users/Lars/miniconda"
 
             initial_content = dals("""
             source /c/conda/Scripts/activate root
             . $(cygpath 'c:\\conda\\Scripts\\activate') root
-            
+
             # >>> conda initialize >>>
             __conda_setup="$('%(prefix)s/bin/conda' shell.bash hook 2> /dev/null)"
             if [ $? -eq 0 ]; then
             fi
             unset __conda_setup
             # <<< conda initialize <<<
-    
+
             . etc/profile.d/conda.sh
             . etc/profile.d/coda.sh
             . /somewhere/etc/profile.d/conda.sh
             source /etc/profile.d/conda.sh
-    
+
             \t source %(prefix)s/etc/profile.d/conda.sh
             """) % {
                 'prefix': win_path_ok(abspath(conda_prefix)),
@@ -688,20 +689,21 @@ class InitializeTests(TestCase):
             expected_new_content = dals("""
             # source /c/conda/Scripts/activate root  # commented out by conda initialize
             # . $(cygpath 'c:\\conda\\Scripts\\activate') root  # commented out by conda initialize
-            
+
             # >>> conda initialize >>>
             # Contents within this block are managed by 'conda init'
-            eval "$('$(cygpath '%(prefix)s\\Scripts\\conda.exe')' shell.bash hook)"
+            eval "$('%(cygpath_conda_prefix)s/Scripts/conda.exe' shell.bash hook)"
             # <<< conda initialize <<<
-    
+
             # . etc/profile.d/conda.sh  # commented out by conda initialize
             . etc/profile.d/coda.sh
             # . /somewhere/etc/profile.d/conda.sh  # commented out by conda initialize
             # source /etc/profile.d/conda.sh  # commented out by conda initialize
-    
+
             # source %(prefix)s/etc/profile.d/conda.sh  # commented out by conda initialize
             """) % {
                 'prefix': win_path_ok(abspath(conda_prefix)),
+                'cygpath_conda_prefix': cygpath_conda_prefix,
             }
 
             assert new_content == expected_new_content
