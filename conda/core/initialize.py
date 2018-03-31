@@ -859,13 +859,13 @@ def init_cmd_exe_registry(target_path, conda_prefix):
         hook_path = join(conda_prefix, 'condacmd', 'conda-hook.bat')
         replace_str = "__CONDA_REPLACE_ME_123__"
         new_value = re.sub(
-            r"(& )?([^&;]*?conda-hook\.bat)",
+            r'(\".*?conda-hook\.bat\")',
             "\\1" + replace_str,
             prev_value,
             count=1,
             flags=re.IGNORECASE | re.UNICODE,
         )
-        new_value = new_value.replace(replace_str, hook_path)
+        new_value = new_value.replace(replace_str, '"%s"' % hook_path)
         if hook_path not in new_value:
             if new_value:
                 new_value += ' & ' + hook_path
