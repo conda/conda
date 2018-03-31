@@ -569,13 +569,6 @@ def make_entry_point_exe(target_path, conda_prefix):
     return Result.MODIFIED
 
 
-def _conda_exe(conda_prefix):
-    if on_win:
-        return "$(cygpath '%s')" % join(conda_prefix, 'Scripts', 'conda.exe')
-    else:
-        return join(conda_prefix, 'bin', 'conda')
-
-
 def install_anaconda_prompt(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'condacmd', 'Anaconda Prompt.lnk')
     # target: join(os.environ["HOMEPATH"], "Desktop", "Anaconda Prompt.lnk")
@@ -713,19 +706,13 @@ def install_conda_csh(target_path, conda_prefix):
     return _install_file(target_path, file_content)
 
 
-def init_sh_user(target_path, conda_prefix, shell):
-    # target_path: ~/.bash_profile
-    user_rc_path = target_path
-
-    with open(user_rc_path) as fh:
-        rc_content = fh.read()
-
-    rc_original_content = rc_content
-
-    conda_exe = _conda_exe(conda_prefix)
+def _bashrc_content(conda_prefix, shell):
     if on_win:
+        from ..activate import native_path_to_unix
+        conda_exe = native_path_to_unix(join(conda_prefix, 'Scripts', 'conda.exe'))
         conda_initialize_content = dals("""
         # >>> conda initialize >>>
+        # Contents within this block are managed by 'conda init'
         eval "$('%(conda_exe)s' shell.%(shell)s hook)"
         # <<< conda initialize <<<
         """) % {
@@ -733,8 +720,10 @@ def init_sh_user(target_path, conda_prefix, shell):
             'shell': shell,
         }
     else:
+        conda_exe = join(conda_prefix, 'bin', 'conda')
         conda_initialize_content = dals("""
         # >>> conda initialize >>>
+        # Contents within this block are managed by 'conda init'
         __conda_setup="$('%(conda_exe)s' shell.%(shell)s hook 2> /dev/null)"
         if [ $? -eq 0 ]; then
             eval "$__conda_setup"
@@ -748,6 +737,19 @@ def init_sh_user(target_path, conda_prefix, shell):
             'shell': shell,
             'conda_bin': dirname(conda_exe),
         }
+    return conda_initialize_content
+
+
+def init_sh_user(target_path, conda_prefix, shell):
+    # target_path: ~/.bash_profile
+    user_rc_path = target_path
+
+    with open(user_rc_path) as fh:
+        rc_content = fh.read()
+
+    rc_original_content = rc_content
+
+    conda_initialize_content = _bashrc_content(conda_prefix, shell)
 
     if not on_win:
         rc_content = re.sub(
@@ -815,7 +817,7 @@ def init_sh_system(target_path, conda_prefix):
             conda_sh_system_contents = fh.read()
     else:
         conda_sh_system_contents = ""
-    conda_sh_contents = 'eval "$(\'%s\' shell.posix hook)"\n' % _conda_exe(conda_prefix)
+    conda_sh_contents = _bashrc_content(conda_prefix, 'posix')
     if conda_sh_system_contents != conda_sh_contents:
         if context.verbosity:
             print('\n')
@@ -832,58 +834,79 @@ def init_sh_system(target_path, conda_prefix):
         return Result.NO_CHANGE
 
 
-def init_cmd_exe_registry(target_path, conda_prefix):
+def _read_windows_registry(target_path):  # pragma: no cover
     # HKEY_LOCAL_MACHINE\Software\Microsoft\Command Processor\AutoRun
     # HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun
+    # returns value_value, value_type  -or-  None, None if target does not exist
     main_key, the_rest = target_path.split('\\', 1)
     subkey_str, value_name = the_rest.rsplit('\\', 1)
     main_key = getattr(winreg, main_key)
-
     try:
-        key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_ALL_ACCESS)
+        key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_READ)
+    except EnvironmentError as e:
+        if e.errno != ENOENT:
+            raise
+        return None, None
+    try:
+        value_tuple = winreg.QueryValueEx(key, value_name)
+        value_value = value_tuple[0].strip()
+        value_type = value_tuple[1]
+        return value_value, value_type
+    finally:
+        winreg.CloseKey(key)
+
+
+def _write_windows_registry(target_path, value_value, value_type):  # pragma: no cover
+    main_key, the_rest = target_path.split('\\', 1)
+    subkey_str, value_name = the_rest.rsplit('\\', 1)
+    main_key = getattr(winreg, main_key)
+    try:
+        key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_WRITE)
     except EnvironmentError as e:
         if e.errno != ENOENT:
             raise
         key = winreg.CreateKey(main_key, subkey_str)
     try:
-        try:
-            value = winreg.QueryValueEx(key, value_name)
-            prev_value = value[0].strip()
-            value_type = value[1]
-        except EnvironmentError as e:
-            if e.errno != ENOENT:
-                raise
-            prev_value = ""
-            value_type = winreg.REG_EXPAND_SZ
-
-        hook_path = join(conda_prefix, 'condacmd', 'conda-hook.bat')
-        replace_str = "__CONDA_REPLACE_ME_123__"
-        new_value = re.sub(
-            r'(\".*?conda-hook\.bat\")',
-            "\\1" + replace_str,
-            prev_value,
-            count=1,
-            flags=re.IGNORECASE | re.UNICODE,
-        )
-        new_value = new_value.replace(replace_str, '"%s"' % hook_path)
-        if hook_path not in new_value:
-            if new_value:
-                new_value += ' & ' + hook_path
-            else:
-                new_value = hook_path
-
-        if prev_value != new_value:
-            if context.verbosity:
-                print('\n')
-                print(target_path)
-                print(make_diff(prev_value, new_value))
-            if not context.dry_run:
-                winreg.SetValueEx(key, value_name, 0, value_type, new_value)
-            return Result.MODIFIED
-        else:
-            return Result.NO_CHANGE
+        winreg.SetValueEx(key, value_name, 0, value_type, value_value)
     finally:
         winreg.CloseKey(key)
+
+
+def init_cmd_exe_registry(target_path, conda_prefix):
+    # HKEY_LOCAL_MACHINE\Software\Microsoft\Command Processor\AutoRun
+    # HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun
+
+    prev_value, value_type = _read_windows_registry(target_path)
+    if prev_value is None:
+        prev_value = ""
+        value_type = winreg.REG_EXPAND_SZ
+
+    hook_path = '"%s"' % join(conda_prefix, 'condacmd', 'conda-hook.bat')
+    replace_str = "__CONDA_REPLACE_ME_123__"
+    new_value = re.sub(
+        r'(\".*?conda-hook\.bat\")',
+        replace_str,
+        prev_value,
+        count=1,
+        flags=re.IGNORECASE | re.UNICODE,
+    )
+    new_value = new_value.replace(replace_str, hook_path)
+    if hook_path not in new_value:
+        if new_value:
+            new_value += ' & ' + hook_path
+        else:
+            new_value = hook_path
+
+    if prev_value != new_value:
+        if context.verbosity:
+            print('\n')
+            print(target_path)
+            print(make_diff(prev_value, new_value))
+        if not context.dry_run:
+            _write_windows_registry(target_path, new_value, value_type)
+        return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
 
 
 def remove_conda_in_sp_dir(target_path):
