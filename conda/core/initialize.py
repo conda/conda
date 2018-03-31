@@ -175,9 +175,9 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
 
 def make_install_plan(conda_prefix):
     try:
-        _, _, site_packages_dir = _get_python_info(conda_prefix)
+        python_exe, python_version, site_packages_dir = _get_python_info(conda_prefix)
     except EnvironmentError:
-        _, _, site_packages_dir = None, None, None
+        python_exe, python_version, site_packages_dir = None, None, None  # NOQA
 
     plan = []
 
