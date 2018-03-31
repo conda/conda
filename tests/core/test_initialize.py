@@ -14,7 +14,7 @@ from conda.base.context import context, reset_context
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win, open
 from conda.common.io import env_var, captured
-from conda.common.path import get_python_short_path, win_path_backout
+from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.core.initialize import Result, _get_python_info, install_conda_bat, install_conda_csh, \
@@ -581,7 +581,8 @@ def test_initialize_dev_cmd_exe():
         assert '%s  modified' % fn in stderr
 
 
-def test_init_sh_user():
+@pytest.mark.skipif(on_win, reason="unix-only test")
+def test_init_sh_user_unix():
     with tempdir() as conda_temp_prefix:
         target_path = join(conda_temp_prefix, '.bashrc')
 
@@ -641,3 +642,76 @@ def test_init_sh_user():
         }
         print(new_content)
         assert new_content == expected_new_content
+
+
+def test_init_sh_user_windows():
+    import ntpath
+    from conda.core import initialize
+    orig_on_win = initialize.on_win
+    orig_dirname = initialize.dirname
+    orig_abspath = initialize.abspath
+    origin_join = initialize.join
+    try:
+        initialize.on_win = True
+        initialize.dirname = ntpath.dirname
+        initialize.abspath = ntpath.abspath
+        initialize.join = ntpath.join
+        with tempdir() as conda_temp_prefix:
+            target_path = join(conda_temp_prefix, '.bashrc')
+            conda_prefix = "c:\\Users\\Lars\\miniconda"
+
+            initial_content = dals("""
+            source /c/conda/Scripts/activate root
+            . $(cygpath 'c:\\conda\\Scripts\\activate') root
+            
+            # >>> conda initialize >>>
+            __conda_setup="$('%(prefix)s/bin/conda' shell.bash hook 2> /dev/null)"
+            if [ $? -eq 0 ]; then
+            fi
+            unset __conda_setup
+            # <<< conda initialize <<<
+
+            . etc/profile.d/conda.sh
+            . etc/profile.d/coda.sh
+            . /somewhere/etc/profile.d/conda.sh
+            source /etc/profile.d/conda.sh
+
+            \t source %(prefix)s/etc/profile.d/conda.sh
+            """) % {
+                'prefix': win_path_ok(initialize.abspath(conda_prefix)),
+            }
+
+            with open(target_path, 'w') as fh:
+                fh.write(initial_content)
+
+            initialize.init_sh_user(target_path, conda_prefix, 'bash')
+
+            with open(target_path) as fh:
+                new_content = fh.read()
+
+            print(new_content)
+
+            expected_new_content = dals("""
+            # source /c/conda/Scripts/activate root  # commented out by conda initialize
+            # . $(cygpath 'c:\\conda\\Scripts\\activate') root  # commented out by conda initialize
+            
+            # >>> conda initialize >>>
+            eval "$('$(cygpath '%(prefix)s\\Scripts\\conda.exe')' shell.bash hook)"
+            # <<< conda initialize <<<
+
+            # . etc/profile.d/conda.sh  # commented out by conda initialize
+            . etc/profile.d/coda.sh
+            # . /somewhere/etc/profile.d/conda.sh  # commented out by conda initialize
+            # source /etc/profile.d/conda.sh  # commented out by conda initialize
+
+            # source %(prefix)s/etc/profile.d/conda.sh  # commented out by conda initialize
+            """) % {
+                'prefix': win_path_ok(initialize.abspath(conda_prefix)),
+            }
+
+            assert new_content == expected_new_content
+    finally:
+        initialize.on_win = orig_on_win
+        initialize.dirname = orig_dirname
+        initialize.abspath = orig_abspath
+        initialize.join = origin_join

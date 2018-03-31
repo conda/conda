@@ -723,34 +723,63 @@ def init_sh_user(target_path, conda_prefix, shell):
     rc_original_content = rc_content
 
     conda_exe = _conda_exe(conda_prefix)
-    conda_initialize_content = dals("""
-    # >>> conda initialize >>>
-    __conda_setup="$('%(conda_exe)s' shell.%(shell)s hook 2> /dev/null)"
-    if [ $? -eq 0 ]; then
-        eval "$__conda_setup"
-    else
-        export PATH="%(conda_bin)s:$PATH"
-    fi
-    unset __conda_setup
-    # <<< conda initialize <<<
-    """) % {
-        'conda_exe': conda_exe,
-        'shell': shell,
-        'conda_bin': dirname(conda_exe),
-    }
+    if on_win:
+        conda_initialize_content = dals("""
+        # >>> conda initialize >>>
+        eval "$('%(conda_exe)s' shell.%(shell)s hook)"
+        # <<< conda initialize <<<
+        """) % {
+            'conda_exe': conda_exe,
+            'shell': shell,
+        }
+    else:
+        conda_initialize_content = dals("""
+        # >>> conda initialize >>>
+        __conda_setup="$('%(conda_exe)s' shell.%(shell)s hook 2> /dev/null)"
+        if [ $? -eq 0 ]; then
+            eval "$__conda_setup"
+        else
+            export PATH="%(conda_bin)s:$PATH"
+        fi
+        unset __conda_setup
+        # <<< conda initialize <<<
+        """) % {
+            'conda_exe': conda_exe,
+            'shell': shell,
+            'conda_bin': dirname(conda_exe),
+        }
+
+    if not on_win:
+        rc_content = re.sub(
+            r"^[ \t]*(export PATH=['\"]%s:\$PATH['\"])[ \t]*$" % re.escape(join(conda_prefix,
+                                                                                'bin')),
+            r"# \1  # commented out by conda initialize",
+            rc_content,
+            flags=re.MULTILINE,
+        )
 
     rc_content = re.sub(
-        r"^[ \t]*(export PATH=['\"]%s:\$PATH['\"])[ \t]*$" % re.escape(join(conda_prefix, 'bin')),
+        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh.*?)$",
         r"# \1  # commented out by conda initialize",
         rc_content,
         flags=re.MULTILINE,
     )
-    rc_content = re.sub(
-        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh).*?\n",
-        r"# \1  # commented out by conda initialize\n",
-        rc_content,
-        flags=re.MULTILINE,
-    )
+
+    if on_win:
+        rc_content = re.sub(
+            r"^[ \t]*^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*Scripts[/\\]activate.*?)$",
+            r"# \1  # commented out by conda initialize",
+            rc_content,
+            flags=re.MULTILINE,
+        )
+    else:
+        rc_content = re.sub(
+            r"^[ \t]*^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*bin/activate.*?)$",
+            r"# \1  # commented out by conda initialize",
+            rc_content,
+            flags=re.MULTILINE,
+        )
+
     replace_str = "__CONDA_REPLACE_ME_123__"
     rc_content = re.sub(
         r"^# >>> conda initialize >>>$([\s\S]*?)# <<< conda initialize <<<\n$",
