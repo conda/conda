@@ -728,7 +728,9 @@ class InitializeTests(TestCase):
             initialize._read_windows_registry = orig_read_windows_registry
             initialize.join = orig_join
 
-        assert c.stdout.strip().splitlines()[-1] == r'+echo hello & "c:\Users\Lars\miniconda\condacmd\conda-hook.bat" & echo "world"'
+        expected = "echo hello & \"c:\\Users\\Lars\\miniconda\\condacmd\\conda-hook.bat\" & echo \"world\""
+        assert c.stdout.strip().splitlines()[-1][1:] == expected
+
 
     def test_init_sh_system(self):
         with tempdir() as td:
