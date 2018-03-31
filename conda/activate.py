@@ -10,7 +10,6 @@ from tempfile import NamedTemporaryFile
 
 from . import CONDA_PACKAGE_ROOT, CondaError
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-context.__init__()  # On import, context does not include SEARCH_PATH. This line fixes that.
 
 try:
     from cytoolz.itertoolz import concatv, drop
@@ -708,6 +707,8 @@ activator_map = {
 
 def main(argv=None):
     from .common.compat import init_std_stream_encoding
+
+    context.__init__()  # On import, context does not include SEARCH_PATH. This line fixes that.
 
     init_std_stream_encoding()
     argv = argv or sys.argv
