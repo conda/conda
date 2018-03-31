@@ -5,7 +5,7 @@ from distutils.sysconfig import get_python_lib
 from logging import getLogger
 import ntpath
 import os
-from os.path import join, realpath, isfile, abspath, dirname
+from os.path import abspath, dirname, isfile, join, realpath
 import sys
 from unittest import TestCase
 
@@ -16,14 +16,14 @@ from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win, open
-from conda.common.io import env_var, captured, env_vars
+from conda.common.io import captured, env_var
 from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
+from conda.core.initialize import Result, _get_python_info, init_sh_system, init_sh_user, \
+    initialize_dev, install, install_conda_bat, install_conda_csh, install_conda_fish, \
+    install_conda_sh, install_conda_xsh, make_entry_point, make_entry_point_exe, \
+    make_initialize_plan, make_install_plan
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
-from conda.core.initialize import Result, _get_python_info, install_conda_bat, install_conda_csh, \
-    install_conda_fish, install_conda_sh, install_conda_xsh, make_entry_point, make_install_plan, \
-    make_entry_point_exe, install, initialize_dev, make_initialize_plan, init_sh_user, \
-    init_sh_system
 from conda.models.enums import LinkType
 from tests.helpers import tempdir
 
@@ -730,7 +730,6 @@ class InitializeTests(TestCase):
 
         expected = "echo hello & \"c:\\Users\\Lars\\miniconda\\condacmd\\conda-hook.bat\" & echo \"world\""
         assert c.stdout.strip().splitlines()[-1][1:] == expected
-
 
     def test_init_sh_system(self):
         with tempdir() as td:
