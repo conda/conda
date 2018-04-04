@@ -499,30 +499,15 @@ def configure_parser_create(sub_parsers):
         help=help,
         epilog=example,
     )
-    if on_win:
-        p.add_argument(
-            "--shortcuts",
-            action="store_true",
-            help="Install start menu shortcuts",
-            dest="shortcuts",
-            default=NULL,
-        )
-        p.add_argument(
-            "--no-shortcuts",
-            action="store_false",
-            help="Don't install start menu shortcuts",
-            dest="shortcuts",
-            default=NULL,
-        )
-    add_parser_create_install_update(p)
-    add_parser_json(p)
     p.add_argument(
         "--clone",
         action="store",
         help='Path to (or name of) existing local environment.',
         metavar='ENV',
     )
-    p.add_argument(
+    (solver_mode_options, package_install_options, channel_customization_options,
+     networking_options, output_and_prompt_options) = add_parser_create_install_update(p)
+    solver_mode_options.add_argument(
         "--no-default-packages",
         action="store_true",
         help='Ignore create_default_packages in the .condarc file.',
@@ -598,23 +583,7 @@ def configure_parser_install(sub_parsers):
         help="Revert to the specified REVISION.",
         metavar='REVISION',
     )
-    if on_win:
-        p.add_argument(
-            "--shortcuts",
-            action="store_true",
-            help="Install start menu shortcuts",
-            dest="shortcuts",
-            default=True
-        )
-        p.add_argument(
-            "--no-shortcuts",
-            action="store_false",
-            help="Don't install start menu shortcuts",
-            dest="shortcuts",
-            default=True
-        )
     add_parser_create_install_update(p)
-    add_parser_json(p)
     p.set_defaults(func='.main_install.execute')
 
 
@@ -783,14 +752,24 @@ def configure_parser_remove(sub_parsers, name='remove'):
             epilog=example % name,
             add_help=False,
         )
+
+    add_parser_pscheck(p)
     add_parser_help(p)
-    add_parser_yes(p)
-    add_parser_json(p)
-    p.add_argument(
+
+    add_parser_prefix(p)
+
+    add_parser_channels(p)
+
+    solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
+    solver_mode_options.add_argument(
         "--all",
         action="store_true",
         help="%s all packages, i.e., the entire environment." % name.capitalize(),
     )
+    add_parser_no_pin(solver_mode_options)
+
+    networking_options = add_parser_networking(p)
+    add_parser_use_index_cache(networking_options)
 
     p.add_argument(
         "--force",
@@ -798,17 +777,10 @@ def configure_parser_remove(sub_parsers, name='remove'):
         help="Forces removal of a package without removing packages that depend on it. "
              "Using this option will usually leave your environment in a broken and "
              "inconsistent state.",
-    )
-    add_parser_no_pin(p)
-    add_parser_channels(p)
-    add_parser_prefix(p)
-    add_parser_quiet(p)
-    # Putting this one first makes it the default
-    add_parser_use_index_cache(p)
-    add_parser_use_local(p)
-    add_parser_offline(p)
-    add_parser_pscheck(p)
-    add_parser_insecure(p)
+    )  # TODO: rename flag to something more descriptive i.e. --force-remove
+
+    add_output_and_prompt_options(p)
+
     p.add_argument(
         'package_names',
         metavar='package_name',
@@ -925,7 +897,6 @@ def configure_parser_search(sub_parsers):
     add_parser_offline(p)
     add_parser_channels(p)
     add_parser_json(p)
-    add_parser_use_local(p)
     add_parser_insecure(p)
     p.add_argument(
         "--envs",
@@ -966,7 +937,7 @@ def configure_parser_update(sub_parsers, name='update'):
         p = sub_parsers.add_parser(
             'update',
             description=descr,
-            help=descr,
+            help=help,
             epilog=example % name,
         )
     else:
@@ -977,7 +948,6 @@ def configure_parser_update(sub_parsers, name='update'):
             epilog=example % name,
         )
     add_parser_create_install_update(p)
-    add_parser_json(p)
     p.add_argument(
         "--all",
         action="store_true",
@@ -993,14 +963,111 @@ def configure_parser_update(sub_parsers, name='update'):
 # #############################################################################################
 
 def add_parser_create_install_update(p):
-    add_parser_yes(p)
-    p.add_argument(
+    add_parser_prefix(p)
+
+    add_parser_pscheck(p)
+    add_parser_known(p)
+
+    solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
+    solver_mode_options.add_argument(
+        "--update-dependencies", "--update-deps",
+        action="store_true",
+        dest="update_deps",
+        default=NULL,
+        help="Update dependencies. Overrides the value given by "
+             "`conda config --show update_deps`.",
+    )
+    solver_mode_options.add_argument(
+        "--no-update-dependencies", "--no-update-deps",
+        action="store_false",
+        dest="update_deps",
+        default=NULL,
+        help="Don't update dependencies. Overrides the value given by "
+             "`conda config --show update_deps`.",
+    )
+    solver_mode_options.add_argument(
+        "--channel-priority", "--channel-pri", "--chan-pri",
+        action="store_true",
+        dest="channel_priority",
+        default=NULL,
+        help="Channel priority takes precedence over package version. "
+             "Overrides the value given by `conda config --show channel_priority`."
+    )
+    solver_mode_options.add_argument(
+        "--no-channel-priority", "--no-channel-pri", "--no-chan-pri",
+        action="store_false",
+        dest="channel_priority",
+        default=NULL,
+        help="Package version takes precedence over channel priority. "
+             "Overrides the value given by `conda config --show channel_priority`."
+    )
+    solver_mode_options.add_argument(
+        "--no-deps",
+        action="store_true",
+        help="Do not install, update, remove, or change dependencies. This WILL lead "
+             "to broken environments and inconsistent behavior. Use at your own risk.",
+    )
+    solver_mode_options.add_argument(
+        "--only-deps",
+        action="store_true",
+        help="Only install dependencies.",
+    )
+    add_parser_no_pin(solver_mode_options)
+    if on_win:
+        solver_mode_options.add_argument(
+            "--shortcuts",
+            action="store_true",
+            help=SUPPRESS,
+            dest="shortcuts",
+            default=NULL,
+        )
+        solver_mode_options.add_argument(
+            "--no-shortcuts",
+            action="store_false",
+            help="Don't install start menu shortcuts",
+            dest="shortcuts",
+            default=NULL,
+        )
+
+    package_install_options = p.add_argument_group("Install Behavior Modifiers",
+                                                   "Options to modify aspects of package "
+                                                   "installation.")
+    package_install_options.add_argument(
+        '-m', "--mkdir",
+        action="store_true",
+        help="Create the environment directory if necessary.",
+    )  # TODO: move to install only
+    package_install_options.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering of overlapping file paths within packages, "
+             "and suppress related warnings.",
+    )
+    add_parser_copy(package_install_options)
+
+    channel_customization_options = add_parser_channels(p)
+
+    networking_options = add_parser_networking(p)
+    add_parser_use_index_cache(networking_options)
+
+    output_and_prompt_options = add_output_and_prompt_options(p)
+    output_and_prompt_options.add_argument(
+        "--download-only",
+        action="store_true",
+        default=NULL,
+        help="Solve an environment and ensure package caches are populated, but exit "
+             "prior to unlinking and linking packages into the prefix.",
+    )
+    add_parser_show_channel_urls(output_and_prompt_options)
+
+    package_install_options.add_argument(
         '-f', "--force",
         action="store_true",
         default=NULL,
         help="Force install (even when package already installed).",
     )
-    add_parser_pscheck(p)
+
     # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
     # want to gobble up all arguments after --file.
     p.add_argument(
@@ -1010,73 +1077,6 @@ def add_parser_create_install_update(p):
         help="Read package versions from the given file. Repeated file "
              "specifications can be passed (e.g. --file=file1 --file=file2).",
     )
-    add_parser_known(p)
-    p.add_argument(
-        "--no-deps",
-        action="store_true",
-        help="Do not install, update, remove, or change dependencies. This WILL lead "
-             "to broken environments and inconsistent behavior. Use at your own risk.",
-    )
-    p.add_argument(
-        "--only-deps",
-        action="store_true",
-        help="Only install dependencies.",
-    )
-    p.add_argument(
-        '-m', "--mkdir",
-        action="store_true",
-        help="Create the environment directory if necessary.",
-    )
-    add_parser_use_index_cache(p)
-    add_parser_use_local(p)
-    add_parser_offline(p)
-    add_parser_no_pin(p)
-    add_parser_channels(p)
-    add_parser_prefix(p)
-    add_parser_quiet(p)
-    add_parser_copy(p)
-    add_parser_insecure(p)
-    p.add_argument(
-        "--update-dependencies", "--update-deps",
-        action="store_true",
-        dest="update_deps",
-        default=NULL,
-        help="Update dependencies. Overrides the value given by "
-             "`conda config --show update_deps`.",
-    )
-    p.add_argument(
-        "--no-update-dependencies", "--no-update-deps",
-        action="store_false",
-        dest="update_deps",
-        default=NULL,
-        help="Don't update dependencies. Overrides the value given by "
-             "`conda config --show update_deps`.",
-    )
-    p.add_argument(
-        "--channel-priority", "--channel-pri", "--chan-pri",
-        action="store_true",
-        dest="channel_priority",
-        default=NULL,
-        help="Channel priority takes precedence over package version. "
-             "Overrides the value given by `conda config --show channel_priority`."
-    )
-    p.add_argument(
-        "--no-channel-priority", "--no-channel-pri", "--no-chan-pri",
-        action="store_false",
-        dest="channel_priority",
-        default=NULL,
-        help="Package version takes precedence over channel priority. "
-             "Overrides the value given by `conda config --show channel_priority`."
-    )
-    p.add_argument(
-        "--clobber",
-        action="store_true",
-        default=NULL,
-        help="Allow clobbering of overlapping file paths within packages, "
-             "and suppress related warnings.",
-    )
-    add_parser_show_channel_urls(p)
-
     p.add_argument(
         'packages',
         metavar='package_spec',
@@ -1084,13 +1084,9 @@ def add_parser_create_install_update(p):
         nargs='*',
         help="Packages to install or update in the conda environment.",
     )
-    p.add_argument(
-        "--download-only",
-        action="store_true",
-        default=NULL,
-        help="Solve an environment and ensure package caches are populated, but exit "
-             "prior to unlinking and linking packages into the prefix.",
-    )
+
+    return (solver_mode_options, package_install_options, channel_customization_options,
+            networking_options, output_and_prompt_options)
 
 
 def add_parser_pscheck(p):
@@ -1101,21 +1097,12 @@ def add_parser_pscheck(p):
     )
 
 
-def add_parser_use_local(p):
-    p.add_argument(
-        "--use-local",
-        action="store_true",
-        default=NULL,
-        help="Use locally built packages.",
-    )
-
-
 def add_parser_offline(p):
     p.add_argument(
         "--offline",
         action='store_true',
         default=NULL,
-        help="Offline mode, don't connect to the Internet.",
+        help="Offline mode. Don't connect to the Internet.",
     )
 
 
@@ -1142,8 +1129,7 @@ def add_parser_show_channel_urls(p):
         "--no-show-channel-urls",
         action="store_false",
         dest="show_channel_urls",
-        help="Don't show channel urls. "
-             "Overrides the value given by `conda config --show show_channel_urls`.",
+        help=SUPPRESS,
     )
 
 
@@ -1171,7 +1157,8 @@ def add_parser_help(p):
 
 
 def add_parser_prefix(p):
-    npgroup = p.add_mutually_exclusive_group()
+    target_environment_group = p.add_argument_group("Target Environment Specification")
+    npgroup = target_environment_group.add_mutually_exclusive_group()
     npgroup.add_argument(
         '-n', "--name",
         action="store",
@@ -1181,7 +1168,7 @@ def add_parser_prefix(p):
     npgroup.add_argument(
         '-p', "--prefix",
         action="store",
-        help="Full path to environment prefix.",
+        help="Full path to environment location (i.e. prefix).",
         metavar='PATH',
     )
 
@@ -1202,23 +1189,23 @@ def add_parser_yes(p):
 
 def add_parser_json(p):
     p.add_argument(
-        "--json",
-        action="store_true",
+        "-v", "--verbose",
+        action=NullCountAction,
+        help="Use once for info, twice for debug, three times for trace.",
+        dest="verbosity",
         default=NULL,
-        help="Report all output as json. Suitable for using conda programmatically."
     )
     p.add_argument(
         "--debug",
         action="store_true",
         default=NULL,
-        help="Show debug output.",
+        help=SUPPRESS,
     )
     p.add_argument(
-        "--verbose", "-v",
-        action=NullCountAction,
-        help="Use once for info, twice for debug, three times for trace.",
-        dest="verbosity",
+        "--json",
+        action="store_true",
         default=NULL,
+        help="Report all output as json. Suitable for using conda programmatically."
     )
 
 
@@ -1231,8 +1218,17 @@ def add_parser_quiet(p):
     )
 
 
+def add_output_and_prompt_options(p):
+    output_and_prompt_options = p.add_argument_group("Output, Prompt, and Control Flow Options")
+    add_parser_quiet(output_and_prompt_options)
+    add_parser_json(output_and_prompt_options)
+    add_parser_yes(output_and_prompt_options)
+    return output_and_prompt_options
+
+
 def add_parser_channels(p):
-    p.add_argument(
+    channel_customization_options = p.add_argument_group("Channel Customization")
+    channel_customization_options.add_argument(
         '-c', '--channel',
         dest='channel',  # apparently conda-build uses this; someday rename to channels are remove context.channels alias to channel  # NOQA
         # TODO: if you ever change 'channel' to 'channels', make sure you modify the context.channels property accordingly # NOQA
@@ -1245,11 +1241,25 @@ def add_parser_channels(p):
         .condarc channel_alias value will be prepended.  The default channel_alias
         is http://conda.anaconda.org/.""",
     )
-    p.add_argument(
+    channel_customization_options.add_argument(
+        "--use-local",
+        action="store_true",
+        default=NULL,
+        help="Use locally built packages. Identical to '-c local'.",
+    )
+    channel_customization_options.add_argument(
         "--override-channels",
         action="store_true",
         help="""Do not search default or .condarc channels.  Requires --channel.""",
     )
+    return channel_customization_options
+
+
+def add_parser_networking(p):
+    networking_options = p.add_argument_group("Networking Options")
+    add_parser_offline(networking_options)
+    add_parser_insecure(networking_options)
+    return networking_options
 
 
 def add_parser_known(p):
