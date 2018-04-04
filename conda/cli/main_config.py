@@ -83,6 +83,21 @@ def parameter_description_builder(name):
     return builder
 
 
+def describe_all_parameters():
+    builder = []
+    skip_categories = ('CLI-Only', 'Hidden and Undocumented')
+    for category, parameter_names in iteritems(context.category_map):
+        if category in skip_categories:
+            continue
+        builder.append('# ######################################################')
+        builder.append('# ## {:^48} ##'.format(category))
+        builder.append('# ######################################################')
+        builder.append('')
+        builder.extend(concat(parameter_description_builder(name)
+                              for name in parameter_names))
+    return '\n'.join(builder)
+
+
 def execute_config(args, parser):
 
     json_warnings = []
@@ -120,17 +135,18 @@ def execute_config(args, parser):
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
                   cls=EntityEncoder))
         else:
-            # coerce channels
+            # Add in custom formatting
             if 'custom_channels' in d:
                 d['custom_channels'] = {
                     channel.name: "%s://%s" % (channel.scheme, channel.location)
                     for channel in itervalues(d['custom_channels'])
                 }
-            # TODO: custom_multichannels needs better formatting
             if 'custom_multichannels' in d:
-                d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls],
-                                                           ensure_ascii=False)
-                                             for k, chnls in iteritems(d['custom_multichannels'])}
+                from ..resolve import dashlist
+                d['custom_multichannels'] = {
+                    multichannel_name: dashlist(channels, indent=4)
+                    for multichannel_name, channels in iteritems(d['custom_multichannels'])
+                }
 
             print('\n'.join(format_dict(d)))
         context.validate_configuration()
@@ -152,8 +168,7 @@ def execute_config(args, parser):
                              sort_keys=True, indent=2, separators=(',', ': '),
                              cls=EntityEncoder))
         else:
-            print('\n'.join(concat(parameter_description_builder(name)
-                                   for name in paramater_names)))
+            print(describe_all_parameters())
         return
 
     if args.validate:
@@ -184,9 +199,7 @@ def execute_config(args, parser):
                                  % rc_path)
 
         with open(rc_path, 'w') as fh:
-            paramater_names = context.list_parameters()
-            fh.write('\n'.join(concat(parameter_description_builder(name)
-                                      for name in paramater_names)))
+            fh.write(describe_all_parameters())
         return
 
     # read existing condarc

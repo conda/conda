@@ -952,6 +952,8 @@ def configure_parser_update(sub_parsers, name='update'):
         "--all",
         action="store_true",
         help="Update all installed packages in the environment.",
+        dest='update_all',
+        default=NULL,
     )
     p.set_defaults(func='.main_update.execute')
 
@@ -970,36 +972,34 @@ def add_parser_create_install_update(p):
 
     solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
     solver_mode_options.add_argument(
-        "--update-dependencies", "--update-deps",
-        action="store_true",
-        dest="update_deps",
-        default=NULL,
-        help="Update dependencies. Overrides the value given by "
-             "`conda config --show update_deps`.",
-    )
-    solver_mode_options.add_argument(
-        "--no-update-dependencies", "--no-update-deps",
-        action="store_false",
-        dest="update_deps",
-        default=NULL,
-        help="Don't update dependencies. Overrides the value given by "
-             "`conda config --show update_deps`.",
-    )
-    solver_mode_options.add_argument(
-        "--channel-priority", "--channel-pri", "--chan-pri",
+        "--channel-priority",
         action="store_true",
         dest="channel_priority",
         default=NULL,
-        help="Channel priority takes precedence over package version. "
-             "Overrides the value given by `conda config --show channel_priority`."
+        help=SUPPRESS,
     )
     solver_mode_options.add_argument(
-        "--no-channel-priority", "--no-channel-pri", "--no-chan-pri",
+        "--no-channel-priority",
         action="store_false",
         dest="channel_priority",
         default=NULL,
         help="Package version takes precedence over channel priority. "
              "Overrides the value given by `conda config --show channel_priority`."
+    )
+    solver_mode_options.add_argument(
+        "--update-deps",
+        action="store_true",
+        dest="update_deps",
+        default=NULL,
+        help="Update dependencies.",
+    )
+    solver_mode_options.add_argument(
+        "--no-update-deps",
+        action="store_false",
+        dest="update_deps",
+        default=NULL,
+        help="Don't update dependencies. Overrides the value given by "
+             "`conda config --show update_deps`.",
     )
     solver_mode_options.add_argument(
         "--no-deps",
@@ -1013,21 +1013,6 @@ def add_parser_create_install_update(p):
         help="Only install dependencies.",
     )
     add_parser_no_pin(solver_mode_options)
-    if on_win:
-        solver_mode_options.add_argument(
-            "--shortcuts",
-            action="store_true",
-            help=SUPPRESS,
-            dest="shortcuts",
-            default=NULL,
-        )
-        solver_mode_options.add_argument(
-            "--no-shortcuts",
-            action="store_false",
-            help="Don't install start menu shortcuts",
-            dest="shortcuts",
-            default=NULL,
-        )
 
     package_install_options = p.add_argument_group("Install Behavior Modifiers",
                                                    "Options to modify aspects of package "
@@ -1045,6 +1030,21 @@ def add_parser_create_install_update(p):
              "and suppress related warnings.",
     )
     add_parser_copy(package_install_options)
+    if on_win:
+        package_install_options.add_argument(
+            "--shortcuts",
+            action="store_true",
+            help=SUPPRESS,
+            dest="shortcuts",
+            default=NULL,
+        )
+        package_install_options.add_argument(
+            "--no-shortcuts",
+            action="store_false",
+            help="Don't install start menu shortcuts",
+            dest="shortcuts",
+            default=NULL,
+        )
 
     channel_customization_options = add_parser_channels(p)
 
