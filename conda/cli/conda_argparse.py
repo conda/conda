@@ -247,7 +247,12 @@ def configure_parser_info(sub_parsers):
         epilog=example,
     )
     add_parser_json(p)
-    add_parser_offline(p)
+    p.add_argument(
+        "--offline",
+        action='store_true',
+        default=NULL,
+        help=SUPPRESS,
+    )
     p.add_argument(
         '-a', "--all",
         action="store_true",
@@ -305,7 +310,7 @@ def configure_parser_config(sub_parsers):
     # keys like "- conda - defaults"). Technically the parser here still won't
     # recognize it because it removes the indentation, but at least it will be
     # valid.
-    additional_descr = """
+    additional_descr = dedent("""
     See `conda config --describe` or %s/docs/config.html
     for details on all the options that can go in .condarc.
 
@@ -327,22 +332,15 @@ def configure_parser_config(sub_parsers):
 
         conda config --add channels conda-canary
 
-    Set the output verbosity to level 3 (highest):
+    Set the output verbosity to level 3 (highest) for the current activate environment:
 
-        conda config --set verbosity 3
+        conda config --set verbosity 3 --env
 
-    Get the channels defined in the system .condarc:
+    Add the 'conda-forge' channel as a backup to 'defaults':
 
-        conda config --get channels --system
+        conda config --append channels conda-forge
 
-    Add the 'foo' Binstar channel:
-
-        conda config --add channels foo
-
-    Disable the 'show_channel_urls' option:
-
-        conda config --set show_channel_urls no
-    """ % CONDA_HOMEPAGE_URL
+    """) % CONDA_HOMEPAGE_URL
 
     p = sub_parsers.add_parser(
         'config',
@@ -353,13 +351,15 @@ def configure_parser_config(sub_parsers):
     add_parser_json(p)
 
     # TODO: use argparse.FileType
-    location = p.add_mutually_exclusive_group()
+    config_file_location_group = p.add_argument_group(
+        'Config File Location Selection',
+        "Without one of these flags, the user config file at '%s' is used." % escaped_user_rc_path
+    )
+    location = config_file_location_group.add_mutually_exclusive_group()
     location.add_argument(
         "--system",
         action="store_true",
-        help="""Write to the system .condarc file ({system}). Otherwise writes to the user
-        config file ({user}).""".format(system=escaped_sys_rc_path,
-                                        user=escaped_user_rc_path),
+        help="Write to the system .condarc file at '%s'." % escaped_sys_rc_path,
     )
     location.add_argument(
         "--env",
@@ -374,48 +374,48 @@ def configure_parser_config(sub_parsers):
     location.add_argument(
         "--file",
         action="store",
-        help="""Write to the given file. Otherwise writes to the user config file ({user})
-or the file path given by the 'CONDARC' environment variable, if it is set
-(default: %(default)s).""".format(user=escaped_user_rc_path),
-        default=os.environ.get('CONDARC', user_rc_path)
+        help="Write to the given file."
     )
 
     # XXX: Does this really have to be mutually exclusive. I think the below
     # code will work even if it is a regular group (although combination of
     # --add and --remove with the same keys will not be well-defined).
-    action = p.add_mutually_exclusive_group(required=True)
-    action.add_argument(
+    _config_subcommands = p.add_argument_group("Config Subcommands")
+    config_subcommands = _config_subcommands.add_mutually_exclusive_group()
+    config_subcommands.add_argument(
         "--show",
         nargs='*',
         default=None,
         help="Display configuration values as calculated and compiled. "
              "If no arguments given, show information for all configuration values.",
     )
-    action.add_argument(
+    config_subcommands.add_argument(
         "--show-sources",
         action="store_true",
         help="Display all identified configuration sources.",
     )
-    action.add_argument(
+    config_subcommands.add_argument(
         "--validate",
         action="store_true",
         help="Validate all configuration sources.",
     )
-    action.add_argument(
+    config_subcommands.add_argument(
         "--describe",
         nargs='*',
         default=None,
         help="Describe given configuration parameters. If no arguments given, show "
              "information for all configuration parameters.",
     )
-    action.add_argument(
+    config_subcommands.add_argument(
         "--write-default",
         action="store_true",
         help="Write the default configuration to a file. "
-             "Equivalent to `conda config --describe > ~/.condarc` "
-             "when no --env, --system, or --file flags are given.",
+             "Equivalent to `conda config --describe > ~/.condarc`.",
     )
-    action.add_argument(
+
+    _config_modifiers = p.add_argument_group("Config Modifiers")
+    config_modifiers = _config_modifiers.add_mutually_exclusive_group()
+    config_modifiers.add_argument(
         "--get",
         nargs='*',
         action="store",
@@ -423,7 +423,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=None,
         metavar='KEY',
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--append",
         nargs=2,
         action="append",
@@ -431,7 +431,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar=('KEY', 'VALUE'),
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--prepend", "--add",
         nargs=2,
         action="append",
@@ -439,7 +439,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar=('KEY', 'VALUE'),
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--set",
         nargs=2,
         action="append",
@@ -447,7 +447,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar=('KEY', 'VALUE'),
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--remove",
         nargs=2,
         action="append",
@@ -456,7 +456,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar=('KEY', 'VALUE'),
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--remove-key",
         nargs=1,
         action="append",
@@ -464,7 +464,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar="KEY",
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--stdin",
         action="store_true",
         help="Apply configuration information given in yaml format piped through stdin.",
@@ -506,7 +506,7 @@ def configure_parser_create(sub_parsers):
         metavar='ENV',
     )
     (solver_mode_options, package_install_options, channel_customization_options,
-     networking_options, output_and_prompt_options) = add_parser_create_install_update(p)
+     output_and_prompt_options) = add_parser_create_install_update(p)
     solver_mode_options.add_argument(
         "--no-default-packages",
         action="store_true",
@@ -733,7 +733,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
 
     """)
 
-    uninstall_help = "Alias for conda remove.  See conda remove --help."
+    uninstall_help = "Alias for conda remove."
     if name == 'remove':
         p = sub_parsers.add_parser(
             name,
@@ -768,8 +768,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
     )
     add_parser_no_pin(solver_mode_options)
 
-    networking_options = add_parser_networking(p)
-    add_parser_use_index_cache(networking_options)
+    add_parser_networking(p)
 
     p.add_argument(
         "--force",
@@ -853,8 +852,7 @@ def configure_parser_search(sub_parsers):
     p.add_argument(
         '-i', "--info",
         action="store_true",
-        help="Provide detailed information about each package. "
-             "Similar to output of 'conda info package-name'."
+        help="Provide detailed information about each package."
     )
     p.add_argument(
         "--names-only",
@@ -862,7 +860,6 @@ def configure_parser_search(sub_parsers):
         help=SUPPRESS,
     )
     add_parser_known(p)
-    add_parser_use_index_cache(p)
     p.add_argument(
         '-o', "--outdated",
         action="store_true",
@@ -890,14 +887,16 @@ def configure_parser_search(sub_parsers):
     p.add_argument(
         "--reverse-dependency",
         action="store_true",
-        help="Perform a reverse dependency search. When using this flag, the --full-name "
-             "flag is recommended. Use 'conda info package' to see the dependencies of a "
-             "package.",
+        # help="Perform a reverse dependency search. Use 'conda search package --info' "
+        #      "to see the dependencies of a package.",
+        help=SUPPRESS,  # TODO: re-enable once we have --reverse-dependency working again
     )
-    add_parser_offline(p)
+
     add_parser_channels(p)
+
+    add_parser_networking(p)
+
     add_parser_json(p)
-    add_parser_insecure(p)
     p.add_argument(
         "--envs",
         action="store_true",
@@ -932,7 +931,7 @@ def configure_parser_update(sub_parsers, name='update'):
 
     """)
 
-    alias_help = "Alias for conda update.  See conda update --help."
+    alias_help = "Alias for conda update."
     if name == 'update':
         p = sub_parsers.add_parser(
             'update',
@@ -1048,8 +1047,7 @@ def add_parser_create_install_update(p):
 
     channel_customization_options = add_parser_channels(p)
 
-    networking_options = add_parser_networking(p)
-    add_parser_use_index_cache(networking_options)
+    add_parser_networking(p)
 
     output_and_prompt_options = add_output_and_prompt_options(p)
     output_and_prompt_options.add_argument(
@@ -1086,7 +1084,7 @@ def add_parser_create_install_update(p):
     )
 
     return (solver_mode_options, package_install_options, channel_customization_options,
-            networking_options, output_and_prompt_options)
+            output_and_prompt_options)
 
 
 def add_parser_pscheck(p):
@@ -1094,15 +1092,6 @@ def add_parser_pscheck(p):
         "--force-pscheck",
         action="store_true",
         help=SUPPRESS
-    )
-
-
-def add_parser_offline(p):
-    p.add_argument(
-        "--offline",
-        action='store_true',
-        default=NULL,
-        help="Offline mode. Don't connect to the Internet.",
     )
 
 
@@ -1219,7 +1208,7 @@ def add_parser_quiet(p):
 
 
 def add_output_and_prompt_options(p):
-    output_and_prompt_options = p.add_argument_group("Output, Prompt, and Control Flow Options")
+    output_and_prompt_options = p.add_argument_group("Output, Prompt, and Flow Control Options")
     add_parser_quiet(output_and_prompt_options)
     add_parser_json(output_and_prompt_options)
     add_parser_yes(output_and_prompt_options)
@@ -1257,8 +1246,26 @@ def add_parser_channels(p):
 
 def add_parser_networking(p):
     networking_options = p.add_argument_group("Networking Options")
-    add_parser_offline(networking_options)
-    add_parser_insecure(networking_options)
+    networking_options.add_argument(
+        "--offline",
+        action='store_true',
+        default=NULL,
+        help="Offline mode. Don't connect to the Internet.",
+    )
+    networking_options.add_argument(
+        "-k", "--insecure",
+        action="store_false",
+        dest="ssl_verify",
+        default=NULL,
+        help="Allow conda to perform \"insecure\" SSL connections and transfers. "
+             "Equivalent to setting 'ssl_verify' to 'false'."
+    )
+    networking_options.add_argument(
+        "-C", "--use-index-cache",
+        action="store_true",
+        default=False,
+        help="Use cache of channel index files, even if it has expired.",
+    )
     return networking_options
 
 
@@ -1269,24 +1276,4 @@ def add_parser_known(p):
         default=False,
         dest='unknown',
         help=SUPPRESS,
-    )
-
-
-def add_parser_use_index_cache(p):
-    p.add_argument(
-        "-C", "--use-index-cache",
-        action="store_true",
-        default=False,
-        help="Use cache of channel index files, even if it has expired.",
-    )
-
-
-def add_parser_insecure(p):
-    p.add_argument(
-        "-k", "--insecure",
-        action="store_false",
-        dest="ssl_verify",
-        default=NULL,
-        help="Allow conda to perform \"insecure\" SSL connections and transfers. "
-             "Equivalent to setting 'ssl_verify' to 'false'."
     )

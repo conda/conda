@@ -210,9 +210,8 @@ class Context(Configuration):
     freeze_installed = PrimitiveParameter(False)
 
     prune = PrimitiveParameter(False)
-    # force_remove = PrimitiveParameter(False)
-    # force_reinstall = PrimitiveParameter(False)
-
+    force_remove = PrimitiveParameter(False)
+    force_reinstall = PrimitiveParameter(False)
 
     target_prefix_override = PrimitiveParameter('')
 
@@ -669,11 +668,9 @@ class Context(Configuration):
 
             'update_deps',
             'update_all',
-            'freeze_installed',
 
             'prune',
-            # 'force_remove',
-            # 'force_reinstall',
+            'force_reinstall',
 
         )),
         ('Package Linking and Install-time Configuration', (
@@ -692,7 +689,7 @@ class Context(Configuration):
             'anaconda_upload',
             'conda_build',
         )),
-        ('Output, Prompt, and Control Flow Configuration', (
+        ('Output, Prompt, and Flow Control Configuration', (
             'always_yes',
             'changeps1',
             'json',
@@ -705,16 +702,18 @@ class Context(Configuration):
         ('CLI-only', (
             'no_deps',
             'only_deps',
+            'freeze_installed',
 
+            'force',
+            'force_remove',
             'clobber',
+
             'dry_run',
             'download_only',
-            'force',
             'ignore_pinned',
             'use_index_cache',
             'use_local',
             'use_pip',
-
         )),
         ('Hidden and Undocumented', (
             'allow_cycles',  # allow cyclical dependencies, or raise
@@ -758,8 +757,8 @@ class Context(Configuration):
             # 'target_prefix_override': 'Undocumented',
             'update_deps': 'Undocumented',
             'update_all': 'Undocumented',
-            'freeze_installed': 'Undocumented',
             'prune': 'Undocumented',
+            'force_reinstall': 'Undocumented',
             # 'use_local': 'Undocumented',
 
             'add_anaconda_token': dals("""
@@ -918,7 +917,7 @@ class Context(Configuration):
                 The maximum number of stacked active conda environments.
                 """),
             'migrated_channel_aliases': dals("""
-                A list of previously-used channel_alias values. Useful when switching between 
+                A list of previously-used channel_alias values. Useful when switching between
                 different Anaconda Repository instances.
                 """),
             'migrated_custom_channels': dals("""

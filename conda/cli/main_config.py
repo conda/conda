@@ -13,7 +13,7 @@ from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import PathConflict, SafetyChecks
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import isiterable, iteritems, itervalues, string_types, text_type
+from ..common.compat import isiterable, iteritems, itervalues, string_types
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_dump, yaml_load
@@ -85,7 +85,7 @@ def parameter_description_builder(name):
 
 def describe_all_parameters():
     builder = []
-    skip_categories = ('CLI-Only', 'Hidden and Undocumented')
+    skip_categories = ('CLI-only', 'Hidden and Undocumented')
     for category, parameter_names in iteritems(context.category_map):
         if category in skip_categories:
             continue
