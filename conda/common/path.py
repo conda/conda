@@ -15,10 +15,9 @@ from .._vendor.auxlib.decorators import memoize
 try:
     # Python 3
     from urllib.parse import unquote, urlsplit
-    from urllib.request import url2pathname
 except ImportError:  # pragma: no cover
     # Python 2
-    from urllib import unquote, url2pathname  # NOQA
+    from urllib import unquote  # NOQA
     from urlparse import urlsplit  # NOQA
 
 try:
