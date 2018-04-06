@@ -656,6 +656,10 @@ class IntegrationTests(TestCase):
 
             assert isfile(tar_old_path)
 
+            with pytest.raises(DryRunExit):
+                run_command(Commands.INSTALL, prefix, tar_old_path, "--dry-run")
+                assert not package_is_installed(prefix, 'flask-0.')
+
             # regression test for #2886 (part 1 of 2)
             # install tarball from package cache, default channel
             run_command(Commands.INSTALL, prefix, tar_old_path)
