@@ -584,13 +584,26 @@ def configure_parser_install(sub_parsers):
         help="Ensure that any user-requested package for the current operation is uninstalled and "
              "reinstalled, even if that package already exists in the environment.",
     )
+    solver_mode_options.add_argument(
+        "--update-all",
+        action="store_true",
+        help="Update all installed packages in the environment.",
+        dest='update_all',
+        default=NULL,
+    )
 
     package_install_options.add_argument(
         '-m', "--mkdir",
         action="store_true",
         help="Create the environment directory if necessary.",
     )
-
+    package_install_options.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering of overlapping file paths within packages, "
+             "and suppress related warnings.",
+    )
     p.set_defaults(func='.main_install.execute')
 
 
@@ -953,6 +966,7 @@ def configure_parser_update(sub_parsers, name='update'):
             epilog=example % name,
         )
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
+
     add_parser_prune(solver_mode_options)
     solver_mode_options.add_argument(
         "--force-reinstall",
@@ -962,11 +976,19 @@ def configure_parser_update(sub_parsers, name='update'):
              "reinstalled, even if that package already exists in the environment.",
     )
     solver_mode_options.add_argument(
-        "--all",
+        "--update-all", "--all",
         action="store_true",
         help="Update all installed packages in the environment.",
         dest='update_all',
         default=NULL,
+    )
+
+    package_install_options.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering of overlapping file paths within packages, "
+             "and suppress related warnings.",
     )
     p.set_defaults(func='.main_update.execute')
 
@@ -1257,17 +1279,10 @@ def add_parser_networking(p):
 def add_parser_package_install_options(p):
     package_install_options = p.add_argument_group("Package Linking and Install-time Options")
     package_install_options.add_argument(
-        "--clobber",
-        action="store_true",
-        default=NULL,
-        help="Allow clobbering of overlapping file paths within packages, "
-             "and suppress related warnings.",
-    )
-    package_install_options.add_argument(
         '-f', "--force",
         action="store_true",
         default=NULL,
-        help="Force install (even when package already installed).",
+        help=SUPPRESS,
     )
     package_install_options.add_argument(
         '--copy',
