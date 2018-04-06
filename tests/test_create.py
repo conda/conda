@@ -823,6 +823,7 @@ class IntegrationTests(TestCase):
     def test_install_update_deps_only_deps_flags(self):
         raise NotImplementedError()
 
+    @pytest.mark.skipif(on_win, reason="tensorflow package used in test not available on Windows")
     def test_install_freeze_installed_flag(self):
         with make_temp_env("bleach") as prefix:
             assert package_is_installed(prefix, "bleach-2")
