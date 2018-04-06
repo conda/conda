@@ -484,6 +484,9 @@ class Context(Configuration):
         elif 'update_all' in truthy_params:
             result = DepsModifier.UPDATE_ALL
             truthy_params.remove('update_all')
+        elif 'freeze_installed' in truthy_params:
+            result = DepsModifier.FREEZE_INSTALLED
+            truthy_params.remove('freeze_installed')
         else:
             result = None
 
@@ -665,13 +668,8 @@ class Context(Configuration):
             'disallowed_packages',
             'pinned_packages',
             'track_features',
-
-            'update_deps',
-            'update_all',
-
             'prune',
             'force_reinstall',
-
         )),
         ('Package Linking and Install-time Configuration', (
             'allow_softlinks',
@@ -703,6 +701,8 @@ class Context(Configuration):
             'no_deps',
             'only_deps',
             'freeze_installed',
+            'update_deps',
+            'update_all',
 
             'force',
             'force_remove',
@@ -739,28 +739,6 @@ class Context(Configuration):
     @memoizedproperty
     def description_map(self):
         return frozendict({
-            # 'allow_cycles': 'Undocumented',
-            # 'bld_path': 'Undocumented',
-            # 'conda_build': 'Undocumented',
-            # 'croot': 'Undocumented',
-            # 'debug': 'Undocumented',
-            # 'default_python': 'Undocumented',
-            # 'dry_run': 'Undocumented',
-            # 'enable_private_envs': 'Undocumented',
-            # 'error_upload_url': 'Undocumented',
-            # 'force_32bit': 'Undocumented',
-            # 'ignore_pinned': 'Undocumented',
-            # 'migrated_custom_channels': 'Undocumented',
-            # 'root_prefix': 'Undocumented',
-            # 'subdir': 'Undocumented',
-            # 'subdirs': 'Undocumented',
-            # 'target_prefix_override': 'Undocumented',
-            'update_deps': 'Undocumented',
-            'update_all': 'Undocumented',
-            'prune': 'Undocumented',
-            'force_reinstall': 'Undocumented',
-            # 'use_local': 'Undocumented',
-
             'add_anaconda_token': dals("""
                 In conjunction with the anaconda command-line client (installed with
                 `conda install anaconda-client`), and following logging into an Anaconda
@@ -894,6 +872,10 @@ class Context(Configuration):
                 named environment, the environment will be placed in the first writable
                 location.
                 """),
+            'force_reinstall': dals("""
+                Ensure that any user-requested package for the current operation is uninstalled
+                and reinstalled, even if that package already exists in the environment.
+                """),
             # 'force': dals("""
             #     Override any of conda's objections and safeguards for installing packages and
             #     potentially breaking environments. Also re-installs the package, even if the
@@ -964,6 +946,10 @@ class Context(Configuration):
                 the actual proxy server, and are of the form
                 'scheme://[user:password@]host[:port]'. The optional 'user:password' inclusion
                 enables HTTP Basic Auth with your proxy.
+                """),
+            'prune': dals("""
+                Remove packages that have previously been brought into an environment to satisfy
+                dependencies of user-requested packages, but are no longer needed.
                 """),
             'quiet': dals("""
                 Disable progress bar display and other output.

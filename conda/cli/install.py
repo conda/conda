@@ -232,7 +232,7 @@ def install(args, parser, command='install'):
         else:
             solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
             unlink_link_transaction = solver.solve_for_transaction(
-                force_reinstall=context.force,
+                force_reinstall=context.force_reinstall,
             )
 
     except ResolvePackageNotFound as e:

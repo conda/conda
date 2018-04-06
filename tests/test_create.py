@@ -42,7 +42,7 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
-    DisallowedPackageError
+    DisallowedPackageError, UnsatisfiableError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -764,7 +764,7 @@ class IntegrationTests(TestCase):
                 assert_package_is_installed(clone_prefix, 'python-3.5')
                 assert_package_is_installed(clone_prefix, 'decorator')
 
-    def test_install_prune(self):
+    def test_install_prune_flag(self):
         with make_temp_env("python=3 flask") as prefix:
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python-3')
@@ -773,21 +773,43 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous')
             assert package_is_installed(prefix, 'python-3')
 
-            with env_var("CONDA_PRUNE", "true", reset_context):
-                run_command(Commands.INSTALL, prefix, 'pytz')
+            run_command(Commands.INSTALL, prefix, 'pytz --prune')
 
             assert not package_is_installed(prefix, 'itsdangerous')
             assert package_is_installed(prefix, 'pytz')
             assert package_is_installed(prefix, 'python-3')
 
-    def test_no_deps_flag(self):
+    @pytest.mark.skipif(on_win, reason="readline is only a python dependency on unix")
+    def test_remove_force_remove_flag(self):
+        with make_temp_env("python") as prefix:
+            assert package_is_installed(prefix, 'readline')
+            assert package_is_installed(prefix, 'python')
+
+            run_command(Commands.REMOVE, prefix, 'readline --force-remove')
+            assert not package_is_installed(prefix, 'readline')
+            assert package_is_installed(prefix, 'python')
+
+    def test_install_force_reinstall_flag(self):
+        with make_temp_env("python") as prefix:
+            stdout, stderr = run_command(Commands.INSTALL, prefix,
+                                         "--json --dry-run --force-reinstall python",
+                                         use_exception_handler=True)
+            assert not stderr
+            output_obj = json.loads(stdout.strip())
+            unlink_actions = output_obj['actions']['UNLINK']
+            link_actions = output_obj['actions']['LINK']
+            assert len(unlink_actions) == len(link_actions) == 1
+            assert unlink_actions[0] == link_actions[0]
+            assert unlink_actions[0]['name'] == 'python'
+
+    def test_create_no_deps_flag(self):
         with make_temp_env("python=2 flask --no-deps") as prefix:
             assert package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python-2')
             assert not package_is_installed(prefix, 'openssl')
             assert not package_is_installed(prefix, 'itsdangerous')
 
-    def test_only_deps_flag(self):
+    def test_create_only_deps_flag(self):
         with make_temp_env("python=2 flask --only-deps") as prefix:
             assert not package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python')
@@ -795,6 +817,17 @@ class IntegrationTests(TestCase):
                 # python on windows doesn't actually have real dependencies
                 assert package_is_installed(prefix, 'openssl')
             assert package_is_installed(prefix, 'itsdangerous')
+
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 5, 1), reason="TODO")
+    def test_install_update_deps_only_deps_flags(self):
+        raise NotImplementedError()
+
+    def test_install_freeze_installed_flag(self):
+        with make_temp_env("bleach") as prefix:
+            assert package_is_installed(prefix, "bleach-2")
+            with pytest.raises(UnsatisfiableError):
+                run_command(Commands.INSTALL, prefix,
+                            "conda-forge::tensorflow>=1.4 --dry-run --freeze-installed")
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     def test_install_features(self):

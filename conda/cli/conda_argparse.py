@@ -575,6 +575,16 @@ def configure_parser_install(sub_parsers):
     )
 
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
+
+    add_parser_prune(solver_mode_options)
+    solver_mode_options.add_argument(
+        "--force-reinstall",
+        action="store_true",
+        default=NULL,
+        help="Ensure that any user-requested package for the current operation is uninstalled and "
+             "reinstalled, even if that package already exists in the environment.",
+    )
+
     package_install_options.add_argument(
         '-m', "--mkdir",
         action="store_true",
@@ -767,13 +777,13 @@ def configure_parser_remove(sub_parsers, name='remove'):
         help="%s features (instead of packages)." % name.capitalize(),
     )
     solver_mode_options.add_argument(
-        "--force",
+        "--force-remove", "--force",
         action="store_true",
         help="Forces removal of a package without removing packages that depend on it. "
              "Using this option will usually leave your environment in a broken and "
              "inconsistent state.",
         dest='force_remove',
-    )  # TODO: rename flag to something more descriptive i.e. --force-remove
+    )
     solver_mode_options.add_argument(
         "--no-pin",
         action="store_true",
@@ -781,6 +791,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
         default=NULL,
         help="Ignore pinned file.",
     )
+    add_parser_prune(solver_mode_options)
 
     add_parser_networking(p)
     add_output_and_prompt_options(p)
@@ -918,10 +929,6 @@ def configure_parser_update(sub_parsers, name='update'):
     use the --no-update-deps option. This may force conda to install older
     versions of the requested packages, and it does not prevent additional
     dependency packages from being installed.
-
-    If you wish to skip dependency checking altogether, use the '--force'
-    option. This may result in an environment with incompatible packages, so
-    this option must be used with great caution.
     """)
     example = dedent("""
     Examples:
@@ -945,8 +952,16 @@ def configure_parser_update(sub_parsers, name='update'):
             help=alias_help,
             epilog=example % name,
         )
-    add_parser_create_install_update(p)
-    p.add_argument(
+    solver_mode_options, package_install_options = add_parser_create_install_update(p)
+    add_parser_prune(solver_mode_options)
+    solver_mode_options.add_argument(
+        "--force-reinstall",
+        action="store_true",
+        default=NULL,
+        help="Ensure that any user-requested package for the current operation is uninstalled and "
+             "reinstalled, even if that package already exists in the environment.",
+    )
+    solver_mode_options.add_argument(
         "--all",
         action="store_true",
         help="Update all installed packages in the environment.",
@@ -1177,12 +1192,11 @@ def add_parser_solver_mode(p):
         help="Update dependencies.",
     )
     solver_mode_options.add_argument(
-        "--no-update-deps",
-        action="store_false",
-        dest="update_deps",
+        "--freeze-installed", "--no-update-deps",
+        action="store_true",
+        dest="freeze_installed",
         default=NULL,
-        help="Don't update dependencies. Overrides the value given by "
-             "`conda config --show update_deps`.",
+        help="Don't update or change already-installed dependencies.",
     )
     solver_mode_options.add_argument(
         "--no-deps",
@@ -1203,6 +1217,16 @@ def add_parser_solver_mode(p):
         help="Ignore pinned file.",
     )
     return solver_mode_options
+
+
+def add_parser_prune(p):
+    p.add_argument(
+        "--prune",
+        action="store_true",
+        default=NULL,
+        help="Remove packages that have previously been brought into the environment to satisfy "
+             "dependencies of user-requested packages, but are no longer needed.",
+    )
 
 
 def add_parser_networking(p):

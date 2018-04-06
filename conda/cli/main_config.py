@@ -69,16 +69,16 @@ def parameter_description_builder(name):
     if aliases:
         builder.append("  aliases: %s" % ', '.join(aliases))
     if string_delimiter:
-        builder.append("  string delimiter: '%s'" % string_delimiter)
+        builder.append("  env var string delimiter: '%s'" % string_delimiter)
 
     builder.extend('  ' + line for line in wrap(details['description'], 70))
 
     builder.append('')
+    builder = ['# ' + line for line in builder]
 
     builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
 
     builder = ['# ' + line for line in builder]
-    builder.append('')
     builder.append('')
     return builder
 
@@ -95,6 +95,7 @@ def describe_all_parameters():
         builder.append('')
         builder.extend(concat(parameter_description_builder(name)
                               for name in parameter_names))
+        builder.append('')
     return '\n'.join(builder)
 
 
