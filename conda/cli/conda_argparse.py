@@ -193,58 +193,52 @@ def configure_parser_clean(sub_parsers):
         help=descr,
         epilog=example,
     )
-    add_parser_yes(p)
-    add_parser_json(p)
-    add_parser_quiet(p)
-    p.add_argument(
+
+    removal_target_options = p.add_argument_group("Removal Targets")
+    removal_target_options.add_argument(
         "-a", "--all",
         action="store_true",
-        help="Remove index cache, lock files, tarballs, "
-             "unused cache packages, and source cache.",
+        help="Remove index cache, lock files, unused cache packages, and tarballs.",
     )
-    p.add_argument(
+    removal_target_options.add_argument(
         "-i", "--index-cache",
         action="store_true",
         help="Remove index cache.",
     )
-    p.add_argument(
+    removal_target_options.add_argument(
         "-l", "--lock",
         action="store_true",
         help="Remove all conda lock files.",
     )
-    p.add_argument(
+    removal_target_options.add_argument(
+        '-p', '--packages',
+        action='store_true',
+        help="Remove unused cached packages. Warning: This does not check for symlinked packages.",
+    )
+    removal_target_options.add_argument(
+        '-s', '--source-cache',
+        action='store_true',
+        # help="Remove files from the source cache of conda build.",
+        help=SUPPRESS,
+    )
+    removal_target_options.add_argument(
         "-t", "--tarballs",
         action="store_true",
         help="Remove cached package tarballs.",
     )
-    p.add_argument(
-        '-p', '--packages',
-        action='store_true',
-        help="""Remove unused cached packages. Warning: this does not check
-    for symlinked packages.""",
-    )
-    p.add_argument(
-        '-s', '--source-cache',
-        action='store_true',
-        help="""Remove files from the source cache of conda build.""",
-    )
+
+    add_output_and_prompt_options(p)
+
     p.set_defaults(func='.main_clean.execute')
 
 
 def configure_parser_info(sub_parsers):
     help = "Display information about current conda install."
 
-    example = dedent("""
-
-    Examples:
-
-        conda info -a
-    """)
     p = sub_parsers.add_parser(
         'info',
         description=help,
         help=help,
-        epilog=example,
     )
     add_parser_json(p)
     p.add_argument(
@@ -256,8 +250,14 @@ def configure_parser_info(sub_parsers):
     p.add_argument(
         '-a', "--all",
         action="store_true",
-        help="Show all information, (environments, license, and system "
-             "information.")
+        help="Show all information.",
+    )
+    p.add_argument(
+        '--base',
+        action='store_true',
+        help='Display base environment path.',
+    )
+    # TODO: deprecate 'conda info --envs' and create 'conda list --envs'
     p.add_argument(
         '-e', "--envs",
         action="store_true",
@@ -274,17 +274,6 @@ def configure_parser_info(sub_parsers):
         help="List environment variables.",
     )
     p.add_argument(
-        'packages',
-        action="store",
-        nargs='*',
-        help="Display information about packages.",
-    )
-    p.add_argument(
-        '--base',
-        action='store_true',
-        help='Display base environment path.',
-    )
-    p.add_argument(
         '--root',
         action='store_true',
         help=SUPPRESS,
@@ -295,6 +284,15 @@ def configure_parser_info(sub_parsers):
         action='store_true',
         help='Display list of channels with tokens exposed.',
     )
+
+    # TODO: deprecate 'conda info <PACKAGE>'
+    p.add_argument(
+        'packages',
+        action="store",
+        nargs='*',
+        help="Display information about packages.",
+    )
+
     p.set_defaults(func='.main_info.execute')
 
 
@@ -505,8 +503,7 @@ def configure_parser_create(sub_parsers):
         help='Path to (or name of) existing local environment.',
         metavar='ENV',
     )
-    (solver_mode_options, package_install_options, channel_customization_options,
-     output_and_prompt_options) = add_parser_create_install_update(p)
+    solver_mode_options, package_install_options = add_parser_create_install_update(p)
     solver_mode_options.add_argument(
         "--no-default-packages",
         action="store_true",
@@ -518,17 +515,10 @@ def configure_parser_create(sub_parsers):
 def configure_parser_help(sub_parsers):
     descr = "Displays a list of available conda commands and their help strings."
 
-    example = dedent("""
-    Examples:
-
-        conda help install
-    """)
-
     p = sub_parsers.add_parser(
         'help',
         description=descr,
         help=descr,
-        epilog=example,
     )
     p.add_argument(
         'command',
@@ -583,7 +573,14 @@ def configure_parser_install(sub_parsers):
         help="Revert to the specified REVISION.",
         metavar='REVISION',
     )
-    add_parser_create_install_update(p)
+
+    solver_mode_options, package_install_options = add_parser_create_install_update(p)
+    package_install_options.add_argument(
+        '-m', "--mkdir",
+        action="store_true",
+        help="Create the environment directory if necessary.",
+    )
+
     p.set_defaults(func='.main_install.execute')
 
 
@@ -752,12 +749,10 @@ def configure_parser_remove(sub_parsers, name='remove'):
             epilog=example % name,
             add_help=False,
         )
-
-    add_parser_pscheck(p)
     add_parser_help(p)
+    add_parser_pscheck(p)
 
     add_parser_prefix(p)
-
     add_parser_channels(p)
 
     solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
@@ -766,18 +761,28 @@ def configure_parser_remove(sub_parsers, name='remove'):
         action="store_true",
         help="%s all packages, i.e., the entire environment." % name.capitalize(),
     )
-    add_parser_no_pin(solver_mode_options)
-
-    add_parser_networking(p)
-
-    p.add_argument(
+    solver_mode_options.add_argument(
+        "--features",
+        action="store_true",
+        help="%s features (instead of packages)." % name.capitalize(),
+    )
+    solver_mode_options.add_argument(
         "--force",
         action="store_true",
         help="Forces removal of a package without removing packages that depend on it. "
              "Using this option will usually leave your environment in a broken and "
              "inconsistent state.",
+        dest='force_remove',
     )  # TODO: rename flag to something more descriptive i.e. --force-remove
+    solver_mode_options.add_argument(
+        "--no-pin",
+        action="store_true",
+        dest='ignore_pinned',
+        default=NULL,
+        help="Ignore pinned file.",
+    )
 
+    add_parser_networking(p)
     add_output_and_prompt_options(p)
 
     p.add_argument(
@@ -787,11 +792,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
         nargs='*',
         help="Package names to %s from the environment." % name,
     )
-    p.add_argument(
-        "--features",
-        action="store_true",
-        help="%s features (instead of packages)." % name.capitalize(),
-    )
+
     p.set_defaults(func='.main_remove.execute')
 
 
@@ -838,7 +839,32 @@ def configure_parser_search(sub_parsers):
         help=descr,
         epilog=example,
     )
-    add_parser_prefix(p)
+    p.add_argument(
+        "--envs",
+        action="store_true",
+        help="Search all of the current user's environments. If run as Administrator "
+             "(on Windows) or UID 0 (on unix), search all known environments on the system.",
+    )
+    p.add_argument(
+        '-i', "--info",
+        action="store_true",
+        help="Provide detailed information about each package."
+    )
+    p.add_argument(
+        '--subdir', '--platform',
+        action='store',
+        dest='subdir',
+        help="Search the given subdir. Should be formatted like 'osx-64', 'linux-32', "
+             "'win-64', and so on. The default is to search the current platform.",
+        default=NULL,
+    )
+    p.add_argument(
+        'match_spec',
+        default='*',
+        nargs='?',
+        help=SUPPRESS,
+    )
+
     p.add_argument(
         "--canonical",
         action="store_true",
@@ -850,11 +876,6 @@ def configure_parser_search(sub_parsers):
         help=SUPPRESS,
     )
     p.add_argument(
-        '-i', "--info",
-        action="store_true",
-        help="Provide detailed information about each package."
-    )
-    p.add_argument(
         "--names-only",
         action="store_true",
         help=SUPPRESS,
@@ -863,20 +884,6 @@ def configure_parser_search(sub_parsers):
     p.add_argument(
         '-o', "--outdated",
         action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        '--platform',
-        action='store',
-        dest='platform',
-        help="""Search the given platform. Should be formatted like 'osx-64', 'linux-32',
-        'win-64', and so on. The default is to search the current platform.""",
-        default=None,
-    )
-    p.add_argument(
-        'match_spec',
-        default='*',
-        nargs='?',
         help=SUPPRESS,
     )
     p.add_argument(
@@ -893,16 +900,8 @@ def configure_parser_search(sub_parsers):
     )
 
     add_parser_channels(p)
-
     add_parser_networking(p)
-
     add_parser_json(p)
-    p.add_argument(
-        "--envs",
-        action="store_true",
-        help="Search all of the current user's environments. If run as Administrator "
-             "(on Windows) or UID 0 (on unix), search all known environments on the system.",
-    )
     p.set_defaults(func='.main_search.execute')
 
 
@@ -965,10 +964,195 @@ def configure_parser_update(sub_parsers, name='update'):
 
 def add_parser_create_install_update(p):
     add_parser_prefix(p)
+    add_parser_channels(p)
+    solver_mode_options = add_parser_solver_mode(p)
+    package_install_options = add_parser_package_install_options(p)
+    add_parser_networking(p)
+
+    output_and_prompt_options = add_output_and_prompt_options(p)
+    output_and_prompt_options.add_argument(
+        "--download-only",
+        action="store_true",
+        default=NULL,
+        help="Solve an environment and ensure package caches are populated, but exit "
+             "prior to unlinking and linking packages into the prefix.",
+    )
+    add_parser_show_channel_urls(output_and_prompt_options)
 
     add_parser_pscheck(p)
     add_parser_known(p)
 
+    # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
+    # want to gobble up all arguments after --file.
+    p.add_argument(
+        "--file",
+        default=[],
+        action='append',
+        help="Read package versions from the given file. Repeated file "
+             "specifications can be passed (e.g. --file=file1 --file=file2).",
+    )
+    p.add_argument(
+        'packages',
+        metavar='package_spec',
+        action="store",
+        nargs='*',
+        help="Packages to install or update in the conda environment.",
+    )
+
+    return solver_mode_options, package_install_options
+
+
+def add_parser_pscheck(p):
+    p.add_argument(
+        "--force-pscheck",
+        action="store_true",
+        help=SUPPRESS
+    )
+
+
+def add_parser_show_channel_urls(p):
+    p.add_argument(
+        "--show-channel-urls",
+        action="store_true",
+        dest="show_channel_urls",
+        default=NULL,
+        help="Show channel urls. "
+             "Overrides the value given by `conda config --show show_channel_urls`.",
+    )
+    p.add_argument(
+        "--no-show-channel-urls",
+        action="store_false",
+        dest="show_channel_urls",
+        help=SUPPRESS,
+    )
+
+
+def add_parser_help(p):
+    """
+    So we can use consistent capitalization and periods in the help. You must
+    use the add_help=False argument to ArgumentParser or add_parser to use
+    this. Add this first to be consistent with the default argparse output.
+
+    """
+    p.add_argument(
+        '-h', '--help',
+        action=_HelpAction,
+        help="Show this help message and exit.",
+    )
+
+
+def add_parser_prefix(p):
+    target_environment_group = p.add_argument_group("Target Environment Specification")
+    npgroup = target_environment_group.add_mutually_exclusive_group()
+    npgroup.add_argument(
+        '-n', "--name",
+        action="store",
+        help="Name of environment.",
+        metavar="ENVIRONMENT",
+    )
+    npgroup.add_argument(
+        '-p', "--prefix",
+        action="store",
+        help="Full path to environment location (i.e. prefix).",
+        metavar='PATH',
+    )
+
+
+def add_parser_json(p):
+    output_and_prompt_options = p.add_argument_group("Output, Prompt, and Flow Control Options")
+    output_and_prompt_options.add_argument(
+        "--debug",
+        action="store_true",
+        default=NULL,
+        help=SUPPRESS,
+    )
+    output_and_prompt_options.add_argument(
+        "--json",
+        action="store_true",
+        default=NULL,
+        help="Report all output as json. Suitable for using conda programmatically."
+    )
+    output_and_prompt_options.add_argument(
+        "-v", "--verbose",
+        action=NullCountAction,
+        help="Use once for info, twice for debug, three times for trace.",
+        dest="verbosity",
+        default=NULL,
+    )
+    return output_and_prompt_options
+
+
+def add_output_and_prompt_options(p):
+    output_and_prompt_options = p.add_argument_group("Output, Prompt, and Flow Control Options")
+    output_and_prompt_options.add_argument(
+        "--debug",
+        action="store_true",
+        default=NULL,
+        help=SUPPRESS,
+    )
+    output_and_prompt_options.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Only display what would have been done.",
+    )
+    output_and_prompt_options.add_argument(
+        "--json",
+        action="store_true",
+        default=NULL,
+        help="Report all output as json. Suitable for using conda programmatically."
+    )
+    output_and_prompt_options.add_argument(
+        '-q', "--quiet",
+        action="store_true",
+        default=NULL,
+        help="Do not display progress bar.",
+    )
+    output_and_prompt_options.add_argument(
+        "-v", "--verbose",
+        action=NullCountAction,
+        help="Can be used multiple times. Once for INFO, twice for DEBUG, three times for TRACE.",
+        dest="verbosity",
+        default=NULL,
+    )
+    output_and_prompt_options.add_argument(
+        "-y", "--yes",
+        action="store_true",
+        default=NULL,
+        help="Do not ask for confirmation.",
+    )
+    return output_and_prompt_options
+
+
+def add_parser_channels(p):
+    channel_customization_options = p.add_argument_group("Channel Customization")
+    channel_customization_options.add_argument(
+        '-c', '--channel',
+        dest='channel',  # apparently conda-build uses this; someday rename to channels are remove context.channels alias to channel  # NOQA
+        # TODO: if you ever change 'channel' to 'channels', make sure you modify the context.channels property accordingly # NOQA
+        action="append",
+        help="""Additional channel to search for packages. These are URLs searched in the order
+        they are given (including file:// for local directories).  Then, the defaults
+        or channels from .condarc are searched (unless --override-channels is given).  You can use
+        'defaults' to get the default packages for conda, and 'system' to get the system
+        packages, which also takes .condarc into account.  You can also use any name and the
+        .condarc channel_alias value will be prepended.  The default channel_alias
+        is http://conda.anaconda.org/.""",
+    )
+    channel_customization_options.add_argument(
+        "--use-local",
+        action="store_true",
+        default=NULL,
+        help="Use locally built packages. Identical to '-c local'.",
+    )
+    channel_customization_options.add_argument(
+        "--override-channels",
+        action="store_true",
+        help="""Do not search default or .condarc channels.  Requires --channel.""",
+    )
+    return channel_customization_options
+
+
+def add_parser_solver_mode(p):
     solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
     solver_mode_options.add_argument(
         "--channel-priority",
@@ -1011,16 +1195,43 @@ def add_parser_create_install_update(p):
         action="store_true",
         help="Only install dependencies.",
     )
-    add_parser_no_pin(solver_mode_options)
-
-    package_install_options = p.add_argument_group("Install Behavior Modifiers",
-                                                   "Options to modify aspects of package "
-                                                   "installation.")
-    package_install_options.add_argument(
-        '-m', "--mkdir",
+    solver_mode_options.add_argument(
+        "--no-pin",
         action="store_true",
-        help="Create the environment directory if necessary.",
-    )  # TODO: move to install only
+        dest='ignore_pinned',
+        default=NULL,
+        help="Ignore pinned file.",
+    )
+    return solver_mode_options
+
+
+def add_parser_networking(p):
+    networking_options = p.add_argument_group("Networking Options")
+    networking_options.add_argument(
+        "-C", "--use-index-cache",
+        action="store_true",
+        default=False,
+        help="Use cache of channel index files, even if it has expired.",
+    )
+    networking_options.add_argument(
+        "-k", "--insecure",
+        action="store_false",
+        dest="ssl_verify",
+        default=NULL,
+        help="Allow conda to perform \"insecure\" SSL connections and transfers. "
+             "Equivalent to setting 'ssl_verify' to 'false'."
+    )
+    networking_options.add_argument(
+        "--offline",
+        action='store_true',
+        default=NULL,
+        help="Offline mode. Don't connect to the Internet.",
+    )
+    return networking_options
+
+
+def add_parser_package_install_options(p):
+    package_install_options = p.add_argument_group("Package Linking and Install-time Options")
     package_install_options.add_argument(
         "--clobber",
         action="store_true",
@@ -1028,7 +1239,18 @@ def add_parser_create_install_update(p):
         help="Allow clobbering of overlapping file paths within packages, "
              "and suppress related warnings.",
     )
-    add_parser_copy(package_install_options)
+    package_install_options.add_argument(
+        '-f', "--force",
+        action="store_true",
+        default=NULL,
+        help="Force install (even when package already installed).",
+    )
+    package_install_options.add_argument(
+        '--copy',
+        action="store_true",
+        default=NULL,
+        help="Install all packages using copies instead of hard- or soft-linking."
+    )
     if on_win:
         package_install_options.add_argument(
             "--shortcuts",
@@ -1044,229 +1266,7 @@ def add_parser_create_install_update(p):
             dest="shortcuts",
             default=NULL,
         )
-
-    channel_customization_options = add_parser_channels(p)
-
-    add_parser_networking(p)
-
-    output_and_prompt_options = add_output_and_prompt_options(p)
-    output_and_prompt_options.add_argument(
-        "--download-only",
-        action="store_true",
-        default=NULL,
-        help="Solve an environment and ensure package caches are populated, but exit "
-             "prior to unlinking and linking packages into the prefix.",
-    )
-    add_parser_show_channel_urls(output_and_prompt_options)
-
-    package_install_options.add_argument(
-        '-f', "--force",
-        action="store_true",
-        default=NULL,
-        help="Force install (even when package already installed).",
-    )
-
-    # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
-    # want to gobble up all arguments after --file.
-    p.add_argument(
-        "--file",
-        default=[],
-        action='append',
-        help="Read package versions from the given file. Repeated file "
-             "specifications can be passed (e.g. --file=file1 --file=file2).",
-    )
-    p.add_argument(
-        'packages',
-        metavar='package_spec',
-        action="store",
-        nargs='*',
-        help="Packages to install or update in the conda environment.",
-    )
-
-    return (solver_mode_options, package_install_options, channel_customization_options,
-            output_and_prompt_options)
-
-
-def add_parser_pscheck(p):
-    p.add_argument(
-        "--force-pscheck",
-        action="store_true",
-        help=SUPPRESS
-    )
-
-
-def add_parser_no_pin(p):
-    p.add_argument(
-        "--no-pin",
-        action="store_true",
-        dest='ignore_pinned',
-        default=NULL,
-        help="Ignore pinned file.",
-    )
-
-
-def add_parser_show_channel_urls(p):
-    p.add_argument(
-        "--show-channel-urls",
-        action="store_true",
-        dest="show_channel_urls",
-        default=NULL,
-        help="Show channel urls. "
-             "Overrides the value given by `conda config --show show_channel_urls`.",
-    )
-    p.add_argument(
-        "--no-show-channel-urls",
-        action="store_false",
-        dest="show_channel_urls",
-        help=SUPPRESS,
-    )
-
-
-def add_parser_copy(p):
-    p.add_argument(
-        '--copy',
-        action="store_true",
-        default=NULL,
-        help="Install all packages using copies instead of hard- or soft-linking."
-    )
-
-
-def add_parser_help(p):
-    """
-    So we can use consistent capitalization and periods in the help. You must
-    use the add_help=False argument to ArgumentParser or add_parser to use
-    this. Add this first to be consistent with the default argparse output.
-
-    """
-    p.add_argument(
-        '-h', '--help',
-        action=_HelpAction,
-        help="Show this help message and exit.",
-    )
-
-
-def add_parser_prefix(p):
-    target_environment_group = p.add_argument_group("Target Environment Specification")
-    npgroup = target_environment_group.add_mutually_exclusive_group()
-    npgroup.add_argument(
-        '-n', "--name",
-        action="store",
-        help="Name of environment.",
-        metavar="ENVIRONMENT",
-    )
-    npgroup.add_argument(
-        '-p', "--prefix",
-        action="store",
-        help="Full path to environment location (i.e. prefix).",
-        metavar='PATH',
-    )
-
-
-def add_parser_yes(p):
-    p.add_argument(
-        "-y", "--yes",
-        action="store_true",
-        default=NULL,
-        help="Do not ask for confirmation.",
-    )
-    p.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Only display what would have been done.",
-    )
-
-
-def add_parser_json(p):
-    p.add_argument(
-        "-v", "--verbose",
-        action=NullCountAction,
-        help="Use once for info, twice for debug, three times for trace.",
-        dest="verbosity",
-        default=NULL,
-    )
-    p.add_argument(
-        "--debug",
-        action="store_true",
-        default=NULL,
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        "--json",
-        action="store_true",
-        default=NULL,
-        help="Report all output as json. Suitable for using conda programmatically."
-    )
-
-
-def add_parser_quiet(p):
-    p.add_argument(
-        '-q', "--quiet",
-        action="store_true",
-        default=NULL,
-        help="Do not display progress bar.",
-    )
-
-
-def add_output_and_prompt_options(p):
-    output_and_prompt_options = p.add_argument_group("Output, Prompt, and Flow Control Options")
-    add_parser_quiet(output_and_prompt_options)
-    add_parser_json(output_and_prompt_options)
-    add_parser_yes(output_and_prompt_options)
-    return output_and_prompt_options
-
-
-def add_parser_channels(p):
-    channel_customization_options = p.add_argument_group("Channel Customization")
-    channel_customization_options.add_argument(
-        '-c', '--channel',
-        dest='channel',  # apparently conda-build uses this; someday rename to channels are remove context.channels alias to channel  # NOQA
-        # TODO: if you ever change 'channel' to 'channels', make sure you modify the context.channels property accordingly # NOQA
-        action="append",
-        help="""Additional channel to search for packages. These are URLs searched in the order
-        they are given (including file:// for local directories).  Then, the defaults
-        or channels from .condarc are searched (unless --override-channels is given).  You can use
-        'defaults' to get the default packages for conda, and 'system' to get the system
-        packages, which also takes .condarc into account.  You can also use any name and the
-        .condarc channel_alias value will be prepended.  The default channel_alias
-        is http://conda.anaconda.org/.""",
-    )
-    channel_customization_options.add_argument(
-        "--use-local",
-        action="store_true",
-        default=NULL,
-        help="Use locally built packages. Identical to '-c local'.",
-    )
-    channel_customization_options.add_argument(
-        "--override-channels",
-        action="store_true",
-        help="""Do not search default or .condarc channels.  Requires --channel.""",
-    )
-    return channel_customization_options
-
-
-def add_parser_networking(p):
-    networking_options = p.add_argument_group("Networking Options")
-    networking_options.add_argument(
-        "--offline",
-        action='store_true',
-        default=NULL,
-        help="Offline mode. Don't connect to the Internet.",
-    )
-    networking_options.add_argument(
-        "-k", "--insecure",
-        action="store_false",
-        dest="ssl_verify",
-        default=NULL,
-        help="Allow conda to perform \"insecure\" SSL connections and transfers. "
-             "Equivalent to setting 'ssl_verify' to 'false'."
-    )
-    networking_options.add_argument(
-        "-C", "--use-index-cache",
-        action="store_true",
-        default=False,
-        help="Use cache of channel index files, even if it has expired.",
-    )
-    return networking_options
+    return package_install_options
 
 
 def add_parser_known(p):
