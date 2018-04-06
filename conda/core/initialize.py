@@ -8,7 +8,7 @@ from itertools import chain
 import json
 from logging import getLogger
 import os
-from os.path import abspath, dirname, exists, expanduser, isdir, isfile, join
+from os.path import abspath, dirname, exists, expanduser, isdir, isfile, join, basename
 from random import randint
 import re
 import sys
@@ -712,7 +712,7 @@ def _bashrc_content(conda_prefix, shell):
         conda_exe = native_path_to_unix(join(conda_prefix, 'Scripts', 'conda.exe'))
         conda_initialize_content = dals("""
         # >>> conda initialize >>>
-        # Contents within this block are managed by 'conda init'
+        # !! Contents within this block are managed by 'conda init' !!
         eval "$('%(conda_exe)s' shell.%(shell)s hook)"
         # <<< conda initialize <<<
         """) % {
@@ -723,12 +723,16 @@ def _bashrc_content(conda_prefix, shell):
         conda_exe = join(conda_prefix, 'bin', 'conda')
         conda_initialize_content = dals("""
         # >>> conda initialize >>>
-        # Contents within this block are managed by 'conda init'
+        # !! Contents within this block are managed by 'conda init' !!
         __conda_setup="$('%(conda_exe)s' shell.%(shell)s hook 2> /dev/null)"
         if [ $? -eq 0 ]; then
             eval "$__conda_setup"
         else
-            export PATH="%(conda_bin)s:$PATH"
+            if [ -f "%(conda_prefix)s/etc/profile.d/conda.sh" ]; then
+                . "%(conda_prefix)s/etc/profile.d/conda.sh"
+            else
+                export PATH="%(conda_bin)s:$PATH"
+            fi
         fi
         unset __conda_setup
         # <<< conda initialize <<<
@@ -736,6 +740,7 @@ def _bashrc_content(conda_prefix, shell):
             'conda_exe': conda_exe,
             'shell': shell,
             'conda_bin': dirname(conda_exe),
+            'conda_prefix': conda_prefix,
         }
     return conda_initialize_content
 
@@ -753,13 +758,20 @@ def init_sh_user(target_path, conda_prefix, shell):
 
     if not on_win:
         rc_content = re.sub(
-            r"^[ \t]*(export PATH=['\"]%s:\$PATH['\"])[ \t]*$" % re.escape(join(conda_prefix,
-                                                                                'bin')),
+            r"^[ \t]*?(export PATH=[\'\"].*?%s\/%s:\$PATH[\'\"])"
+            r"" % (basename(conda_prefix), 'bin'),
             r"# \1  # commented out by conda initialize",
             rc_content,
             flags=re.MULTILINE,
         )
 
+    rc_content = re.sub(
+        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh.*?)\n"
+        r"(conda activate.*?)$",
+        r"# \1  # commented out by conda initialize\n# \2  # commented out by conda initialize",
+        rc_content,
+        flags=re.MULTILINE,
+    )
     rc_content = re.sub(
         r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/profile\.d\/conda\.sh.*?)$",
         r"# \1  # commented out by conda initialize",

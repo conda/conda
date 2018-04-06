@@ -626,12 +626,16 @@ class InitializeTests(TestCase):
             # export PATH="%(prefix)s/bin:$PATH"  # commented out by conda initialize
             
             # >>> conda initialize >>>
-            # Contents within this block are managed by 'conda init'
+            # !! Contents within this block are managed by 'conda init' !!
             __conda_setup="$('%(prefix)s/bin/conda' shell.bash hook 2> /dev/null)"
             if [ $? -eq 0 ]; then
                 eval "$__conda_setup"
             else
-                export PATH="%(prefix)s/bin:$PATH"
+                if [ -f "%(prefix)s/etc/profile.d/conda.sh" ]; then
+                    . "%(prefix)s/etc/profile.d/conda.sh"
+                else
+                    export PATH="%(prefix)s/bin:$PATH"
+                fi
             fi
             unset __conda_setup
             # <<< conda initialize <<<
@@ -691,7 +695,7 @@ class InitializeTests(TestCase):
             # . $(cygpath 'c:\\conda\\Scripts\\activate') root  # commented out by conda initialize
 
             # >>> conda initialize >>>
-            # Contents within this block are managed by 'conda init'
+            # !! Contents within this block are managed by 'conda init' !!
             eval "$('%(cygpath_conda_prefix)s/Scripts/conda.exe' shell.bash hook)"
             # <<< conda initialize <<<
 
@@ -739,5 +743,5 @@ class InitializeTests(TestCase):
             with open(target_path) as fh:
                 content = fh.read().strip().splitlines()
             assert content[0] == '# >>> conda initialize >>>'
-            assert content[1] == "# Contents within this block are managed by 'conda init'"
+            assert content[1] == "# !! Contents within this block are managed by 'conda init' !!"
             assert content[-1] == '# <<< conda initialize <<<'
