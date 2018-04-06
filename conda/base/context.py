@@ -112,7 +112,7 @@ class Context(Configuration):
     notify_outdated_conda = PrimitiveParameter(True)
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
-    prompt = PrimitiveParameter("({default_env}) ")
+    conda_prompt = PrimitiveParameter("({default_env}) ")
     create_default_packages = SequenceParameter(string_types)
     default_python = PrimitiveParameter(default_python_default(),
                                         element_type=string_types + (NoneType,),
@@ -831,6 +831,15 @@ class Context(Configuration):
                 General configuration parameters for conda-build.
                 """),
             # TODO: add shortened link to docs for conda_build at See https://conda.io/docs/user-guide/configuration/use-condarc.html#conda-build-configuration  # NOQA
+            'conda_prompt': dals("""
+                Template for prompt modification based on the active environment. Currently
+                supported template variables are '{prefix}', '{name}', and '{default_env}'.
+                '{prefix}' is the absolute path to the active environment. '{name}' is the
+                basename of the active environment prefix. '{default_env}' holds the value
+                of '{name}' if the active environment is a conda named environment ('-n'
+                flag), or otherwise holds the value of '{prefix}'. Templating uses python's
+                str.format() method.
+                """),
             'create_default_packages': dals("""
                 Packages that are by default added to a newly created environments.
                 """),  # TODO: This is a bad parameter name. Consider an alternate.
