@@ -1,3 +1,4 @@
+
 _conda_set_vars() {
     # set _CONDA_SHELL_FLAVOR
     if [ -n "${BASH_VERSION:+x}" ]; then

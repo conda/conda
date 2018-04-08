@@ -680,7 +680,7 @@ class CmdExeActivator(_Activator):
         self.run_script_tmpl = '@CALL "%s"'
 
         self.post_tmpl = "\n".join((
-            "@CALL %%_CONDA_EXE%% shell.cmd.exe post"))
+            "@CALL %%_CONDA_EXE%% shell.cmd.exe post",))
 
         super(CmdExeActivator, self).__init__(arguments)
 
@@ -708,7 +708,7 @@ class FishActivator(_Activator):
         self.run_script_tmpl = 'source "%s"'
 
         self.post_tmpl = "\n".join((
-            "eval (eval $_CONDA_EXE shell.fish post)"))
+            "eval (eval $_CONDA_EXE shell.fish post)",))
 
         super(FishActivator, self).__init__(arguments)
 
@@ -729,7 +729,7 @@ class PowershellActivator(_Activator):
         self.run_script_tmpl = '. "%s"'
 
         self.post_tmpl = "\n".join((
-                ""))
+                "",))
 
         super(PowershellActivator, self).__init__(arguments)
 
