@@ -190,12 +190,18 @@ class Solver(object):
             graph = PrefixGraph((index[dist] for dist in solution), itervalues(specs_map))
 
             removed_records = []
+            records_not_found = []
             for spec in specs_to_remove:
                 # If the spec was a track_features spec, then we need to also remove every
                 # package with a feature that matches the track_feature. The
                 # `graph.remove_spec()` method handles that for us.
                 log.trace("using PrefixGraph to remove records for %s", spec)
-                removed_records.extend(graph.remove_spec(spec))
+                spec_remove = graph.remove_spec(spec)
+                removed_records.extend(spec_remove)
+                if not spec_remove:
+                    records_not_found.append(spec.name)
+            if records_not_found:
+                raise PackagesNotFoundError(records_not_found)
 
             for rec in removed_records:
                 # We keep specs (minus the feature part) for the non provides_features packages
