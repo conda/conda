@@ -864,7 +864,7 @@ class Configuration(object):
         name = parameter.name.lstrip('_')
         aliases = tuple(alias for alias in parameter.aliases if alias != name)
 
-        description = self.get_descriptions()[name]
+        description = self.get_descriptions().get(name, '')
         et = parameter._element_type
         if type(et) == EnumMeta:
             et = [et]

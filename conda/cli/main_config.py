@@ -13,7 +13,7 @@ from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import PathConflict, SafetyChecks
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import isiterable, iteritems, itervalues, string_types, text_type
+from ..common.compat import isiterable, iteritems, itervalues, string_types
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_dump, yaml_load
@@ -69,18 +69,34 @@ def parameter_description_builder(name):
     if aliases:
         builder.append("  aliases: %s" % ', '.join(aliases))
     if string_delimiter:
-        builder.append("  string delimiter: '%s'" % string_delimiter)
+        builder.append("  env var string delimiter: '%s'" % string_delimiter)
 
     builder.extend('  ' + line for line in wrap(details['description'], 70))
 
     builder.append('')
+    builder = ['# ' + line for line in builder]
 
     builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
 
     builder = ['# ' + line for line in builder]
     builder.append('')
-    builder.append('')
     return builder
+
+
+def describe_all_parameters():
+    builder = []
+    skip_categories = ('CLI-only', 'Hidden and Undocumented')
+    for category, parameter_names in iteritems(context.category_map):
+        if category in skip_categories:
+            continue
+        builder.append('# ######################################################')
+        builder.append('# ## {:^48} ##'.format(category))
+        builder.append('# ######################################################')
+        builder.append('')
+        builder.extend(concat(parameter_description_builder(name)
+                              for name in parameter_names))
+        builder.append('')
+    return '\n'.join(builder)
 
 
 def execute_config(args, parser):
@@ -120,17 +136,18 @@ def execute_config(args, parser):
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
                   cls=EntityEncoder))
         else:
-            # coerce channels
+            # Add in custom formatting
             if 'custom_channels' in d:
                 d['custom_channels'] = {
                     channel.name: "%s://%s" % (channel.scheme, channel.location)
                     for channel in itervalues(d['custom_channels'])
                 }
-            # TODO: custom_multichannels needs better formatting
             if 'custom_multichannels' in d:
-                d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls],
-                                                           ensure_ascii=False)
-                                             for k, chnls in iteritems(d['custom_multichannels'])}
+                from ..resolve import dashlist
+                d['custom_multichannels'] = {
+                    multichannel_name: dashlist(channels, indent=4)
+                    for multichannel_name, channels in iteritems(d['custom_multichannels'])
+                }
 
             print('\n'.join(format_dict(d)))
         context.validate_configuration()
@@ -152,8 +169,7 @@ def execute_config(args, parser):
                              sort_keys=True, indent=2, separators=(',', ': '),
                              cls=EntityEncoder))
         else:
-            print('\n'.join(concat(parameter_description_builder(name)
-                                   for name in paramater_names)))
+            print(describe_all_parameters())
         return
 
     if args.validate:
@@ -184,9 +200,7 @@ def execute_config(args, parser):
                                  % rc_path)
 
         with open(rc_path, 'w') as fh:
-            paramater_names = context.list_parameters()
-            fh.write('\n'.join(concat(parameter_description_builder(name)
-                                      for name in paramater_names)))
+            fh.write(describe_all_parameters())
         return
 
     # read existing condarc

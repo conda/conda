@@ -82,7 +82,7 @@ def execute(args, parser):
         channel_urls = ()
         subdirs = ()
         solver = Solver(prefix, channel_urls, subdirs, specs_to_remove=specs)
-        txn = solver.solve_for_transaction(force_remove=args.force)
+        txn = solver.solve_for_transaction()
         handle_txn(txn, prefix, args, False, True)
 
     # Keep this code for dev reference until private envs can be re-enabled in

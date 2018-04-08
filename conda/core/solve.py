@@ -118,11 +118,12 @@ class Solver(object):
                 the solved state of the environment.
 
         """
-        prune = context.prune if prune is NULL else prune
-        ignore_pinned = context.ignore_pinned if ignore_pinned is NULL else ignore_pinned
         deps_modifier = context.deps_modifier if deps_modifier is NULL else deps_modifier
         if isinstance(deps_modifier, string_types):
             deps_modifier = DepsModifier(deps_modifier.lower())
+        prune = context.prune if prune is NULL else prune
+        ignore_pinned = context.ignore_pinned if ignore_pinned is NULL else ignore_pinned
+        force_remove = context.force_remove if force_remove is NULL else force_remove
         specs_to_remove = self.specs_to_remove
         specs_to_add = self.specs_to_add
 

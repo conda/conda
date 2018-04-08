@@ -142,7 +142,7 @@ def install(args, parser, command='install'):
         check_prefix(prefix, json=context.json)
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
-    if isupdate and not (args.file or args.all or args.packages):
+    if isupdate and not (args.file or args.update_all or args.packages):
         raise CondaValueError("""no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
@@ -193,7 +193,7 @@ def install(args, parser, command='install'):
 
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
-    if isupdate and not args.all:
+    if isupdate and not args.update_all:
         prefix_data = PrefixData(prefix)
         for spec in specs:
             spec = MatchSpec(spec)
@@ -232,7 +232,7 @@ def install(args, parser, command='install'):
         else:
             solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
             unlink_link_transaction = solver.solve_for_transaction(
-                force_reinstall=context.force,
+                force_reinstall=context.force_reinstall or context.force,
             )
 
     except ResolvePackageNotFound as e:

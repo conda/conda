@@ -21,8 +21,6 @@ def execute(args, parser):
     spec = MatchSpec(args.match_spec)
     if spec.get_exact_value('subdir'):
         subdirs = spec.get_exact_value('subdir'),
-    elif args.platform:
-        subdirs = args.platform,
     else:
         subdirs = context.subdirs
 

@@ -529,13 +529,13 @@ class UnsatisfiableError(CondaError):
                 chains[key] = ' -> '.join(deps)
             bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
             msg = '''The following specifications were found to be in conflict:%s
-Use "conda info <package>" to see the dependencies for each package.'''
+Use "conda search <package> --info" to see the dependencies for each package.'''
         else:
             bad_deps = [sorted(dep) for dep in bad_deps]
             bad_deps = [', '.join(dep) for dep in sorted(bad_deps)]
             msg = '''The following specifications were found to be incompatible with the
 others, or with the existing package set:%s
-Use "conda info <package>" to see the dependencies for each package.'''
+Use "conda search <package> --info" to see the dependencies for each package.'''
         msg = msg % dashlist(bad_deps)
         super(UnsatisfiableError, self).__init__(msg)
 
