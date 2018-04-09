@@ -116,17 +116,16 @@ class _Activator(object):
         elif command not in ('activate', 'deactivate', 'reactivate'):
             from .exceptions import ArgumentError
             raise ArgumentError("invalid command '%s'" % command)
-        elif command == 'activate' and len(remainder_args) > 1:
-            from .exceptions import ArgumentError
-            raise ArgumentError('activate does not accept more than one argument:\n'
-                                + str(remainder_args) + '\n')
         elif command != 'activate' and remainder_args:
             from .exceptions import ArgumentError
             raise ArgumentError('%s does not accept arguments\nremainder_args: %s\n'
                                 % (command, remainder_args))
 
         if command == 'activate':
-            self.env_name_or_prefix = remainder_args and remainder_args[0] or 'root'
+            if len(remainder_args) > 1:
+                self.env_name_or_prefix = " ".join(remainder_args)
+            else:
+                self.env_name_or_prefix = remainder_args and remainder_args[0] or 'root'
 
         self.command = command
 
