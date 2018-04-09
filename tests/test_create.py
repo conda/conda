@@ -710,21 +710,17 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python')
 
+            # regression test for #2154
+            with pytest.raises(PackagesNotFoundError) as exc:
+                run_command(Commands.REMOVE, prefix, 'python', 'foo', 'numpy')
+            assert repr(exc.value) == dals("""
+            PackagesNotFoundError: The following packages are missing from the target environment:
+              - foo
+              - numpy
+            """)
+
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
-
-    def test_remove_packages_nonexistent(self):
-        with make_temp_env("python numpy") as prefix:
-            assert_package_is_installed(prefix, 'python')
-            assert_package_is_installed(prefix, 'numpy')
-
-            stdout, stderr = run_command(Commands.REMOVE, prefix, 'numpy',
-                                         'foo', use_exception_handler=True)
-
-            assert stderr.strip() == dals("""
-PackagesNotFoundError: The following packages are missing from the target environment:
-  - foo
-  """).strip()
 
     @pytest.mark.skipif(on_win, reason="windows usually doesn't support symlinks out-of-the box")
     @patch('conda.core.link.hardlink_supported', side_effect=lambda x, y: False)

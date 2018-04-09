@@ -190,7 +190,6 @@ class Solver(object):
             graph = PrefixGraph((index[dist] for dist in solution), itervalues(specs_map))
 
             removed_records = []
-            records_not_found = []
             for spec in specs_to_remove:
                 # If the spec was a track_features spec, then we need to also remove every
                 # package with a feature that matches the track_feature. The
@@ -198,10 +197,6 @@ class Solver(object):
                 log.trace("using PrefixGraph to remove records for %s", spec)
                 spec_remove = graph.remove_spec(spec)
                 removed_records.extend(spec_remove)
-                if not spec_remove:
-                    records_not_found.append(spec.name)
-            if records_not_found:
-                raise PackagesNotFoundError(records_not_found)
 
             for rec in removed_records:
                 # We keep specs (minus the feature part) for the non provides_features packages
@@ -214,10 +209,13 @@ class Solver(object):
                 else:
                     specs_map.pop(rec.name, None)
 
-            solution = tuple(Dist(rec) for rec in graph.records)
+            unmatched_specs_to_remove = tuple(spec for spec in specs_to_remove if not any(
+                spec.match(rec) for rec in removed_records
+            ))
+            if unmatched_specs_to_remove:
+                raise PackagesNotFoundError(unmatched_specs_to_remove)
 
-            if not removed_records and not prune:
-                raise PackagesNotFoundError(tuple(spec.name for spec in specs_to_remove))
+            solution = tuple(Dist(rec) for rec in graph.records)
 
         # We handle as best as possible environments in inconsistent states. To do this,
         # we remove now from consideration the set of packages causing inconsistencies,
