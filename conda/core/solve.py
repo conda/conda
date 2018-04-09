@@ -202,6 +202,14 @@ class Solver(object):
                 else:
                     no_removed_records_specs.append(spec)
 
+            # ensure that each spec in specs_to_remove is actually associated with removed records
+            unmatched_specs_to_remove = tuple(
+                spec for spec in no_removed_records_specs
+                if not any(spec.match(rec) for rec in all_removed_records)
+            )
+            if unmatched_specs_to_remove:
+                raise PackagesNotFoundError(unmatched_specs_to_remove)
+
             for rec in all_removed_records:
                 # We keep specs (minus the feature part) for the non provides_features packages
                 # if they're in the history specs.  Otherwise, we pop them from the specs_map.
@@ -212,13 +220,6 @@ class Solver(object):
                     specs_map[spec.name] = spec
                 else:
                     specs_map.pop(rec.name, None)
-
-            unmatched_specs_to_remove = tuple(
-                spec for spec in no_removed_records_specs
-                if not any(spec.match(rec) for rec in all_removed_records)
-            )
-            if unmatched_specs_to_remove:
-                raise PackagesNotFoundError(unmatched_specs_to_remove)
 
             solution = tuple(Dist(rec) for rec in graph.records)
 
