@@ -4,6 +4,7 @@ from os.path import basename, dirname
 import re
 import sys
 
+from conda.common.constants import NULL
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
@@ -43,8 +44,9 @@ def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
             return choices[user_choice]
 
 
-def confirm_yn(message="Proceed", default='yes', dry_run_exit=True):
-    if dry_run_exit and context.dry_run:
+def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
+    dry_run = context.dry_run if dry_run is NULL else dry_run
+    if dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
     if context.always_yes:

@@ -131,7 +131,6 @@ class Context(Configuration):
     pinned_packages = SequenceParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
     disallowed_packages = SequenceParameter(string_types, aliases=('disallow',),
                                             string_delimiter='&')
-    remove_existing = PrimitiveParameter(False)
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
     use_pip = PrimitiveParameter(True)
@@ -677,7 +676,6 @@ class Context(Configuration):
             'always_copy',
             'always_softlink',
             'path_conflict',
-            'remove_existing',
             'rollback_enabled',
             'safety_checks',
             'shortcuts',
@@ -967,11 +965,6 @@ class Context(Configuration):
                 Once conda has connected to a remote resource and sent an HTTP request, the
                 read timeout is the number of seconds conda will wait for the server to send
                 a response.
-                """),
-            'remove_existing': dals("""
-                When creating a new conda environment using the 'conda create' command, if the
-                target prefix is an existing conda environment, remove it, and then proceed
-                with creating the new environment.
                 """),
             'report_errors': dals("""
                 Opt in, or opt out, of automatic error reporting to core maintainers. Error
