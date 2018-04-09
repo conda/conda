@@ -24,7 +24,7 @@ If you continue on, and especially if you are submitting a bug report,
 
    **please include all requested information below.**
 
-If a maintainer determines the  information is required to understand 
+If a maintainer determines the information is required to understand 
 your issue, and if it is not provided, your issue may be
 closed automatically.
 
