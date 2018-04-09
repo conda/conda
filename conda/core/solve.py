@@ -189,16 +189,20 @@ class Solver(object):
                                        for spec in _track_fts_specs))
             graph = PrefixGraph((index[dist] for dist in solution), itervalues(specs_map))
 
-            removed_records = []
+            all_removed_records = []
+            no_removed_records_specs = []
             for spec in specs_to_remove:
                 # If the spec was a track_features spec, then we need to also remove every
                 # package with a feature that matches the track_feature. The
                 # `graph.remove_spec()` method handles that for us.
                 log.trace("using PrefixGraph to remove records for %s", spec)
-                spec_remove = graph.remove_spec(spec)
-                removed_records.extend(spec_remove)
+                removed_records = graph.remove_spec(spec)
+                if removed_records:
+                    all_removed_records.extend(removed_records)
+                else:
+                    no_removed_records_specs.append(spec)
 
-            for rec in removed_records:
+            for rec in all_removed_records:
                 # We keep specs (minus the feature part) for the non provides_features packages
                 # if they're in the history specs.  Otherwise, we pop them from the specs_map.
                 rec_has_a_feature = set(rec.features or ()) & feature_names
@@ -209,9 +213,10 @@ class Solver(object):
                 else:
                     specs_map.pop(rec.name, None)
 
-            unmatched_specs_to_remove = tuple(spec for spec in specs_to_remove if not any(
-                spec.match(rec) for rec in removed_records
-            ))
+            unmatched_specs_to_remove = tuple(
+                spec for spec in no_removed_records_specs
+                if not any(spec.match(rec) for rec in all_removed_records)
+            )
             if unmatched_specs_to_remove:
                 raise PackagesNotFoundError(unmatched_specs_to_remove)
 

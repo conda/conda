@@ -1004,6 +1004,15 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous')
             assert package_is_installed(prefix, 'flask')
 
+    @pytest.mark.skipif(True, reason="Add this test back someday.")
+    # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
+    def test_shortcut_in_underscore_env_shows_message(self):
+        prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        with make_temp_env(prefix=prefix):
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut")
+            assert ("Environment name starts with underscore '_'.  "
+                    "Skipping menu installation." in stderr)
+
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
         prefix = make_temp_prefix("_" + str(uuid4())[:7])
