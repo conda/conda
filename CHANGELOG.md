@@ -1,9 +1,16 @@
 ## 4.5.1 (unreleased)
 
+### Improvements
+* add anaconda.org search message to PackagesNotFoundError (#7075)
+
 ### Bug Fixes
 * fix #6703,#6981 index out of bound when running deactivate on fish shell (#6993)
 * properly close over $_CONDA_EXE variable (#7004)
 * fix condarc map parsing with comments (#7021)
+* fix #6919 csh prompt (#7041)
+* add _file_created attribute (#7054)
+* fix handling of non-ascii characters in custom_multichannels (#7050)
+* fix #6877 handle non-zero return in CSH #7042
 
 
 ## 4.5.0 (2018-03-20)
