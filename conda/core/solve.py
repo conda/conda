@@ -208,7 +208,9 @@ class Solver(object):
                 if not any(spec.match(rec) for rec in all_removed_records)
             )
             if unmatched_specs_to_remove:
-                raise PackagesNotFoundError(unmatched_specs_to_remove)
+                raise PackagesNotFoundError(
+                    tuple(sorted(str(s) for s in unmatched_specs_to_remove))
+                )
 
             for rec in all_removed_records:
                 # We keep specs (minus the feature part) for the non provides_features packages
