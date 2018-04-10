@@ -1,3 +1,22 @@
+## 4.6.0 (unreleased)
+
+### Deprecations/Breaking Changes
+* resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
+
+### Improvements
+* import speedups (#7122)
+* --help cleanup (#7120)
+
+### Bug Fixes
+* fix #6919 csh prompt (#7041)
+* add _file_created attribute (#7054)
+* fix handling of non-ascii characters in custom_multichannels (#7050)
+* fix #6877 handle non-zero return in CSH (#7042)
+
+### Non-User-Facing Changes
+* resolve #6595 use OO inheritence in activate.py (#7049)
+
+
 ## 4.5.1 (unreleased)
 
 ### Bug Fixes
