@@ -387,7 +387,7 @@ class ProgressBar(object):
         elif enabled:
             bar_format = "{desc}{bar} | {percentage:3.0f}% "
             try:
-                self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, total=1)
+                self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, file=sys.stdout, total=1)
             except EnvironmentError as e:
                 if e.errno in (EPIPE, ESHUTDOWN):
                     self.enabled = False
