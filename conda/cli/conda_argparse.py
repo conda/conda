@@ -1116,6 +1116,12 @@ def add_parser_json(p):
         dest="verbosity",
         default=NULL,
     )
+    output_and_prompt_options.add_argument(
+        '-q', "--quiet",
+        action="store_true",
+        default=NULL,
+        help="Do not display progress bar.",
+    )
     return output_and_prompt_options
 
 

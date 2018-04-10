@@ -163,13 +163,19 @@ def execute_config(args, parser):
                 from ..resolve import dashlist
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
         else:
-            paramater_names = context.list_parameters()
+            paramater_names = None
         if context.json:
             print(json.dumps([context.describe_parameter(name) for name in paramater_names],
                              sort_keys=True, indent=2, separators=(',', ': '),
                              cls=EntityEncoder))
         else:
-            print(describe_all_parameters())
+            if paramater_names:
+                builder = []
+                builder.extend(concat(parameter_description_builder(name)
+                                      for name in paramater_names))
+                print('\n'.join(builder))
+            else:
+                print(describe_all_parameters())
         return
 
     if args.validate:
