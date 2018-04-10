@@ -691,6 +691,7 @@ class Context(Configuration):
         )),
         ('Output, Prompt, and Flow Control Configuration', (
             'always_yes',
+            'auto_activate_base',
             'changeps1',
             'json',
             'notify_outdated_conda',
@@ -785,6 +786,9 @@ class Context(Configuration):
                 """),
             'anaconda_upload': dals("""
                 Automatically upload packages built with conda build to anaconda.org.
+                """),
+            'auto_activate_base': dals("""
+                Automatically activate the base environment during shell initialization.
                 """),
             'auto_update_conda': dals("""
                 Automatically update conda when a newer or higher priority version is detected.
