@@ -6,7 +6,7 @@ pexpect
 pytest
 pytest-cov
 pytest-timeout
-radon
+conda-forge::radon
 responses
 
 # conda-build
