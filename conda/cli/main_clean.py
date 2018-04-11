@@ -14,6 +14,7 @@ import sys
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
+from ..gateways.disk.delete import delete_trash
 
 log = getLogger(__name__)
 
@@ -291,6 +292,8 @@ def execute(args, parser):
         from ..exceptions import ArgumentError
         raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
                             "--source-cache, --all} required")
+
+    delete_trash()
 
     if context.json:
         stdout_json(json_result)
