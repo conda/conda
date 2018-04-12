@@ -680,7 +680,24 @@ class CmdExeActivator(_Activator):
         self.run_script_tmpl = '@CALL "%s"'
 
         self.post_tmpl = "\n".join((
-            "@CALL %%_CONDA_EXE%% shell.cmd.exe post",))
+            ('@FOR /F "delims=" %%i IN ('
+                "'@CALL %_CONDA_EXE% shell.cmd.exe post %*'"
+             ') DO @SET "_TEMP_SCRIPT_PATH=%%i"'),
+            '@IF "%_TEMP_SCRIPT_PATH%"=="" GOTO :ErrorEnd',
+            '@CALL "%_TEMP_SCRIPT_PATH%"',
+            '@DEL /F /Q "%_TEMP_SCRIPT_PATH%"',
+            '@SET _TEMP_SCRIPT_PATH=',
+            '@SET _CONDA_POST=',
+            '',
+            '@GOTO :End',
+            '',
+            ':End',
+            '@SET _CONDA_EXE=',
+            '@GOTO :EOF',
+            '',
+            ':ErrorEnd',
+            '@SET _CONDA_EXE=',
+            '@EXIT /B 1'))
 
         super(CmdExeActivator, self).__init__(arguments)
 
