@@ -48,11 +48,6 @@ def configure_parser(sub_parsers):
         help='remove installed packages not defined in environment.yml',
     )
     p.add_argument(
-        '-q', '--quiet',
-        action='store_true',
-        default=False,
-    )
-    p.add_argument(
         'remote_definition',
         help='remote environment definition / IPython notebook',
         action='store',
