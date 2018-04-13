@@ -162,18 +162,25 @@ def execute_config(args, parser):
                 from ..exceptions import ArgumentError
                 from ..resolve import dashlist
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
-        else:
-            paramater_names = None
-        if context.json:
-            print(json.dumps([context.describe_parameter(name) for name in paramater_names],
-                             sort_keys=True, indent=2, separators=(',', ': '),
-                             cls=EntityEncoder))
-        else:
-            if paramater_names:
+            if context.json:
+                print(json.dumps([context.describe_parameter(name) for name in paramater_names],
+                                 sort_keys=True, indent=2, separators=(',', ': '),
+                                 cls=EntityEncoder))
+            else:
                 builder = []
                 builder.extend(concat(parameter_description_builder(name)
                                       for name in paramater_names))
                 print('\n'.join(builder))
+        else:
+            if context.json:
+                skip_categories = ('CLI-only', 'Hidden and Undocumented')
+                paramater_names = sorted(concat(
+                    parameter_names for category, parameter_names in context.category_map.items()
+                    if category not in skip_categories
+                ))
+                print(json.dumps([context.describe_parameter(name) for name in paramater_names],
+                                 sort_keys=True, indent=2, separators=(',', ': '),
+                                 cls=EntityEncoder))
             else:
                 print(describe_all_parameters())
         return
