@@ -10,9 +10,9 @@ from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
-                        DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ERROR_UPLOAD_URL,
-                        PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict, ROOT_ENV_NAME,
-                        SEARCH_PATH, SafetyChecks)
+                        DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS,
+                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -577,11 +577,14 @@ class Context(Configuration):
     @memoizedproperty
     def custom_channels(self):
         from ..models.channel import Channel
+        hard_coded_custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
+                                      for name, url in iteritems(DEFAULT_CUSTOM_CHANNELS))
         custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
                            for name, url in iteritems(self._custom_channels))
         channels_from_multichannels = concat(channel for channel
                                              in itervalues(self.custom_multichannels))
         all_channels = odict((x.name, x) for x in (ch for ch in concatv(
+            hard_coded_custom_channels,
             channels_from_multichannels,
             custom_channels,
         )))
