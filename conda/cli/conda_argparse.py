@@ -503,13 +503,6 @@ def configure_parser_create(sub_parsers):
         help='Path to (or name of) existing local environment.',
         metavar='ENV',
     )
-    p.add_argument(
-        "--remove-existing",
-        action="store_true",
-        help='If the target environment already exists, remove it, then create the new one.',
-        default=NULL,
-    )
-
     solver_mode_options, package_install_options = add_parser_create_install_update(p)
     solver_mode_options.add_argument(
         "--no-default-packages",
