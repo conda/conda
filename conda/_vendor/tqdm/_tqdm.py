@@ -21,12 +21,13 @@ from contextlib import contextmanager
 # For parallelism safety
 import multiprocessing as mp
 import threading as th
-
+from warnings import warn
 
 __author__ = {"github.com/": ["noamraph", "obiwanus", "kmike", "hadim",
                               "casperdcl", "lrq3000"]}
 __all__ = ['tqdm', 'trange',
-           'TqdmTypeError', 'TqdmKeyError', 'TqdmDeprecationWarning',
+           'TqdmTypeError', 'TqdmKeyError', 'TqdmWarning',
+           'TqdmExperimentalWarning', 'TqdmDeprecationWarning',
            'TqdmMonitorWarning']
 
 
@@ -38,16 +39,26 @@ class TqdmKeyError(KeyError):
     pass
 
 
-class TqdmDeprecationWarning(DeprecationWarning):
-    # not suppressed if raised
+class TqdmWarning(Warning):
+    """base class for all tqdm warnings.
+    Used for non-external-code-breaking errors, such as garbled printing.
+    """
     def __init__(self, msg, fp_write=None, *a, **k):
         if fp_write is not None:
-            fp_write("\nTqdmDeprecationWarning: " + str(msg).rstrip() + '\n')
+            fp_write("\n" + self.__class__.__name__ + ": " + str(msg).rstrip() + '\n')
         else:
-            super(TqdmDeprecationWarning, self).__init__(msg, *a, **k)
+            super(TqdmWarning, self).__init__(msg, *a, **k)
+
+class TqdmExperimentalWarning(TqdmWarning, FutureWarning):
+    """beta feature, unstable API and behaviour"""
+    pass
+
+class TqdmDeprecationWarning(TqdmWarning, DeprecationWarning):
+    # not suppressed if raised
+    pass
 
 
-class TqdmMonitorWarning(RuntimeWarning):
+class TqdmMonitorWarning(TqdmWarning, RuntimeWarning):
     """tqdm monitor errors which do not affect external functionality"""
     pass
 
@@ -223,10 +234,12 @@ class tqdm(object):
               rate_inv, rate_inv_fmt, elapsed, remaining, desc, postfix.
             Note that a trailing ": " is automatically removed after {desc}
             if the latter is empty.
-        postfix  : str, optional
+        postfix  : *, optional
             Similar to `prefix`, but placed at the end
             (e.g. for additional stats).
-            Note: postfix is a string for this method. Not a dict.
+            Note: postfix is usually a string (not a dict) for this method,
+            and will if possible be set to postfix = ', ' + postfix.
+            However other types are supported (#382).
         unit_divisor  : float, optional
             [default: 1000], ignored unless `unit_scale` is True.
         Returns
@@ -269,6 +282,11 @@ class tqdm(object):
             n_fmt = str(n)
             total_fmt = str(total)
 
+        try:
+            postfix = ', ' + postfix if postfix else ''
+        except TypeError:
+            pass
+
         # total is known: we can predict some stats
         if total:
             # fractional and percentage progress
@@ -287,8 +305,7 @@ class tqdm(object):
                 l_bar = ''
             l_bar += '{0:3.0f}%|'.format(percentage)
             r_bar = '| {0}/{1} [{2}<{3}, {4}{5}]'.format(
-                n_fmt, total_fmt, elapsed_str, remaining_str, rate_fmt,
-                ', ' + postfix if postfix else '')
+                n_fmt, total_fmt, elapsed_str, remaining_str, rate_fmt, postfix)
 
             if ncols == 0:
                 return l_bar[:-1] + r_bar[1:]
@@ -313,7 +330,7 @@ class tqdm(object):
                             'l_bar': l_bar,
                             'r_bar': r_bar,
                             'desc': prefix or '',
-                            'postfix': ', ' + postfix if postfix else '',
+                            'postfix': postfix,
                             # 'bar': full_bar  # replaced by procedure below
                             }
 
@@ -368,8 +385,7 @@ class tqdm(object):
         else:
             return ((prefix + ": ") if prefix else '') + \
                 '{0}{1} [{2}, {3}{4}]'.format(
-                    n_fmt, unit, elapsed_str, rate_fmt,
-                    ', ' + postfix if postfix else '')
+                    n_fmt, unit, elapsed_str, rate_fmt, postfix)
 
     def __new__(cls, *args, **kwargs):
         # Create a new instance
@@ -387,7 +403,6 @@ class tqdm(object):
             try:
                 cls.monitor = TMonitor(cls, cls.monitor_interval)
             except Exception as e:  # pragma: nocover
-                from warnings import warn
                 warn("tqdm:disabling monitor support"
                      " (monitor_interval = 0) due to:\n" + str(e),
                      TqdmMonitorWarning)
@@ -397,14 +412,10 @@ class tqdm(object):
 
     @classmethod
     def _get_free_pos(cls, instance=None):
-        """ Skips specified instance """
-        try:
-            return max(inst.pos for inst in cls._instances
-                       if inst is not instance) + 1
-        except ValueError as e:
-            if "arg is an empty sequence" in str(e):
-                return 0
-            raise  # pragma: no cover
+        """Skips specified instance"""
+        positions = set(abs(inst.pos) for inst in cls._instances
+                        if inst is not instance)
+        return min(set(range(len(positions) + 1)).difference(positions))
 
     @classmethod
     def _decr_instances(cls, instance):
@@ -412,23 +423,27 @@ class tqdm(object):
         Remove from list and reposition other bars
         so that newer bars won't overlap previous bars
         """
-        try:  # in case instance was explicitly positioned, it won't be in set
-            with cls._lock:
+        with cls._lock:
+            try:
                 cls._instances.remove(instance)
+            except KeyError:
+                if not instance.gui:  # pragma: no cover
+                    raise
+            else:
                 for inst in cls._instances:
-                    if inst.pos > instance.pos:
+                    # negative `pos` means fixed
+                    if inst.pos > abs(instance.pos):
                         inst.pos -= 1
-            # Kill monitor if no instances are left
-            if not cls._instances and cls.monitor:
-                try:
-                    cls.monitor.exit()
-                    del cls.monitor
-                except AttributeError:  # pragma: nocover
-                    pass
-                else:
-                    cls.monitor = None
-        except KeyError:
-            pass
+                        # TODO: check this doesn't overwrite another fixed bar
+        # Kill monitor if no instances are left
+        if not cls._instances and cls.monitor:
+            try:
+                cls.monitor.exit()
+                del cls.monitor
+            except AttributeError:  # pragma: nocover
+                pass
+            else:
+                cls.monitor = None
 
     @classmethod
     def write(cls, s, file=None, end="\n", nolock=False):
@@ -470,7 +485,6 @@ class tqdm(object):
                 inst.refresh(nolock=True)
         if not nolock:
             cls._lock.release()
-        # TODO: make list of all instances incl. absolutely positioned ones?
 
     @classmethod
     def set_lock(cls, lock):
@@ -529,21 +543,21 @@ class tqdm(object):
                     Data (may be grouped).
                 func  : function
                     To be applied on the (grouped) data.
-                *args, *kwargs  : optional
+                **kwargs  : optional
                     Transmitted to `df.apply()`.
                 """
+
                 # Precompute total iterations
                 total = getattr(df, 'ngroups', None)
                 if total is None:  # not grouped
-                    if isinstance(df, Series):
+                    if df_function == 'applymap':
+                        total = df.size
+                    elif isinstance(df, Series):
                         total = len(df)
-                    else:
-                        if kwargs.get('axis') == 1:
-                            total = len(df)
-                        else:
-                            total = df.size // len(df)
-                else:
-                    total += 1  # pandas calls update once too many
+                    else:  # DataFrame or Panel
+                        axis = kwargs.get('axis', 0)
+                        # when axis=0, total is shape[axis1]
+                        total = df.size // df.shape[axis]
 
                 # Init bar
                 if deprecated_t[0] is not None:
@@ -552,14 +566,27 @@ class tqdm(object):
                 else:
                     t = tclass(*targs, total=total, **tkwargs)
 
+                if len(args) > 0:
+                    # *args intentionally not supported (see #244, #299)
+                    TqdmDeprecationWarning(
+                        "Except func, normal arguments are intentionally" +
+                        " not supported by" +
+                        " `(DataFrame|Series|GroupBy).progress_apply`." +
+                        " Use keyword arguments instead.",
+                        fp_write=getattr(t.fp, 'write', sys.stderr.write))
+
                 # Define bar updating wrapper
                 def wrapper(*args, **kwargs):
-                    t.update()
+                    # update tbar correctly
+                    # it seems `pandas apply` calls `func` twice
+                    # on the first column/row to decide whether it can
+                    # take a fast or slow code path; so stop when t.total==t.n
+                    t.update(n=1 if t.total and t.n < t.total else 0)
                     return func(*args, **kwargs)
 
-                # Apply the provided function (in *args and **kwargs)
+                # Apply the provided function (in **kwargs)
                 # on the df using our wrapper (which provides bar updating)
-                result = getattr(df, df_function)(wrapper, *args, **kwargs)
+                result = getattr(df, df_function)(wrapper, **kwargs)
 
                 # Close bar and return pandas calculation result
                 t.close()
@@ -658,11 +685,13 @@ class tqdm(object):
             (current/instantaneous speed) [default: 0.3].
         bar_format  : str, optional
             Specify a custom bar string formatting. May impact performance.
-            If unspecified, will use '{l_bar}{bar}{r_bar}', where l_bar is
-            '{desc}: {percentage:3.0f}%|' and r_bar is
-            '| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
-            Possible vars: bar, n, n_fmt, total, total_fmt, percentage,
-            rate, rate_fmt, elapsed, remaining, l_bar, r_bar, desc.
+            [default: '{l_bar}{bar}{r_bar}'], where
+            l_bar='{desc}: {percentage:3.0f}%|' and
+            r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, '
+              '{rate_fmt}{postfix}]'
+            Possible vars: l_bar, bar, r_bar, n, n_fmt, total, total_fmt,
+              percentage, rate, rate_fmt, rate_noinv, rate_noinv_fmt,
+              rate_inv, rate_inv_fmt, elapsed, remaining, desc, postfix.
             Note that a trailing ": " is automatically removed after {desc}
             if the latter is empty.
         initial  : int, optional
@@ -672,10 +701,9 @@ class tqdm(object):
             Specify the line offset to print this bar (starting from 0)
             Automatic if unspecified.
             Useful to manage multiple bars at once (eg, from threads).
-        postfix  : dict, optional
+        postfix  : dict or *, optional
             Specify additional stats to display at the end of the bar.
-            Note: postfix is a dict ({'key': value} pairs) for this method,
-            not a string.
+            Calls `set_postfix(**postfix)` if possible (dict).
         unit_divisor  : float, optional
             [default: 1000], ignored unless `unit_scale` is True.
         gui  : bool, optional
@@ -778,7 +806,10 @@ class tqdm(object):
         self.bar_format = bar_format
         self.postfix = None
         if postfix:
-            self.set_postfix(refresh=False, **postfix)
+            try:
+                self.set_postfix(refresh=False, **postfix)
+            except TypeError:
+                self.postfix = postfix
 
         # Init the iterations counters
         self.last_print_n = initial
@@ -788,19 +819,18 @@ class tqdm(object):
         # not overwrite the outer progress bar
         if position is None:
             self.pos = self._get_free_pos(self)
-        else:
-            self.pos = position
-            self._instances.remove(self)
+        else:  # mark fixed positions as negative
+            self.pos = -position
 
         if not gui:
             # Initialize the screen printer
             self.sp = self.status_printer(self.fp)
             with self._lock:
                 if self.pos:
-                    self.moveto(self.pos)
+                    self.moveto(abs(self.pos))
                 self.sp(self.__repr__(elapsed=0))
                 if self.pos:
-                    self.moveto(-self.pos)
+                    self.moveto(-abs(self.pos))
 
         # Init the time counter
         self.last_print_t = self._time()
@@ -833,13 +863,13 @@ class tqdm(object):
             self.bar_format, self.postfix, self.unit_divisor)
 
     def __lt__(self, other):
-        return self.pos < other.pos
+        return abs(self.pos) < abs(other.pos)
 
     def __le__(self, other):
         return (self < other) or (self == other)
 
     def __eq__(self, other):
-        return self.pos == other.pos
+        return abs(self.pos) == abs(other.pos)
 
     def __ne__(self, other):
         return not (self == other)
@@ -905,11 +935,11 @@ Please use `tqdm_gui(...)` instead of `tqdm(..., gui=True)`
                         self.n = n
                         with self._lock:
                             if self.pos:
-                                self.moveto(self.pos)
+                                self.moveto(abs(self.pos))
                             # Print bar update
                             sp(self.__repr__())
                             if self.pos:
-                                self.moveto(-self.pos)
+                                self.moveto(-abs(self.pos))
 
                         # If no `miniters` was specified, adjust automatically
                         # to the max iteration rate seen so far between 2 prints
@@ -993,13 +1023,13 @@ Please use `tqdm_gui(...)` instead of `tqdm(..., gui=True)`
 
                 with self._lock:
                     if self.pos:
-                        self.moveto(self.pos)
+                        self.moveto(abs(self.pos))
 
                     # Print bar update
                     self.sp(self.__repr__())
 
                     if self.pos:
-                        self.moveto(-self.pos)
+                        self.moveto(-abs(self.pos))
 
                 # If no `miniters` was specified, adjust automatically to the
                 # maximum iteration rate seen so far between two prints.
@@ -1038,7 +1068,7 @@ Please use `tqdm_gui(...)` instead of `tqdm(..., gui=True)`
         self.disable = True
 
         # decrement instance pos and remove from internal set
-        pos = self.pos
+        pos = abs(self.pos)
         self._decr_instances(self)
 
         # GUI mode
@@ -1156,10 +1186,10 @@ Please use `tqdm_gui(...)` instead of `tqdm(..., gui=True)`
 
         if not nolock:
             self._lock.acquire()
-        self.moveto(self.pos)
+        self.moveto(abs(self.pos))
         self.sp('')
         self.fp.write('\r')  # place cursor back at the beginning of line
-        self.moveto(-self.pos)
+        self.moveto(-abs(self.pos))
         if not nolock:
             self._lock.release()
 
@@ -1172,9 +1202,9 @@ Please use `tqdm_gui(...)` instead of `tqdm(..., gui=True)`
 
         if not nolock:
             self._lock.acquire()
-        self.moveto(self.pos)
+        self.moveto(abs(self.pos))
         self.sp(self.__repr__())
-        self.moveto(-self.pos)
+        self.moveto(-abs(self.pos))
         if not nolock:
             self._lock.release()
 
