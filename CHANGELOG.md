@@ -21,7 +21,7 @@
 ## 4.5.1 (2018-04-13)
 
 ### Improvements
-* add anaconda.org search message to PackagesNotFoundError (#7075)
+* resolve #7075 add anaconda.org search message to PackagesNotFoundError (#7076)
 * add CondaError details to auto-upload reports (#7060)
 
 ### Bug Fixes
