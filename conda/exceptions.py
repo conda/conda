@@ -922,6 +922,10 @@ class ExceptionHandler(object):
             'traceback': _format_exc(exc_val, exc_tb),
             'conda_info': info_dict,
         }
+
+        if isinstance(exc_val, CondaError):
+            error_report['conda_error_components'] = exc_val.dump_map()
+
         return error_report
 
     def print_unexpected_error_report(self, error_report):

@@ -18,10 +18,11 @@
 * resolve #6595 use OO inheritence in activate.py (#7049)
 
 
-## 4.5.1 (unreleased)
+## 4.5.1 (2018-04-13)
 
 ### Improvements
 * add anaconda.org search message to PackagesNotFoundError (#7075)
+* add CondaError details to auto-upload reports (#7060)
 
 ### Bug Fixes
 * fix #6703,#6981 index out of bound when running deactivate on fish shell (#6993)
@@ -31,6 +32,7 @@
 * add _file_created attribute (#7054)
 * fix handling of non-ascii characters in custom_multichannels (#7050)
 * fix #6877 handle non-zero return in CSH (#7042)
+* fix #7040 update tqdm to version 4.22.0 (#7157)
 
 
 ## 4.5.0 (2018-03-20)
