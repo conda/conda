@@ -424,7 +424,7 @@ class CondaHTTPError(CondaError):
         elapsed_time = elapsed_time or '-'
 
         from ._vendor.auxlib.logz import stringify
-        response_details = (stringify(response) or '') if response else ''
+        response_details = (stringify(response, content_max_len=1024) or '') if response else ''
 
         url = maybe_unquote(url)
         if isinstance(elapsed_time, timedelta):

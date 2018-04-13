@@ -415,7 +415,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
                            timeout=timeout)
         if log.isEnabledFor(DEBUG):
-            log.debug(stringify(resp))
+            log.debug(stringify(resp, content_max_len=256))
         resp.raise_for_status()
 
     except InvalidSchema as e:
