@@ -90,52 +90,6 @@ class TestAddDeaultsToSpec(unittest.TestCase):
         specs = [s.split(' (')[0] for s in specs]
         self.assertEqual(specs, new_specs)
 
-    # def test_1(self):
-    #     self.linked = solve(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
-    #     for specs, added in [
-    #         (['python 3*'], []),
-    #         (['python'], ['python 2.7*']),
-    #         (['scipy'], ['python 2.7*']),
-    #         ]:
-    #         self.check(specs, added)
-    #
-    # def test_2(self):
-    #     self.linked = solve(['anaconda 1.5.0', 'python 2.6*', 'numpy 1.6*'])
-    #     for specs, added in [
-    #         (['python'], ['python 2.6*']),
-    #         (['numpy'], ['python 2.6*']),
-    #         (['pandas'], ['python 2.6*']),
-    #         # however, this would then be unsatisfiable
-    #         (['python 3*', 'numpy'], []),
-    #         ]:
-    #         self.check(specs, added)
-    #
-    # def test_3(self):
-    #     self.linked = solve(['anaconda 1.5.0', 'python 3.3*'])
-    #     for specs, added in [
-    #         (['python'], ['python 3.3*']),
-    #         (['numpy'], ['python 3.3*']),
-    #         (['scipy'], ['python 3.3*']),
-    #         ]:
-    #         self.check(specs, added)
-    #
-    # def test_4(self):
-    #     self.linked = []
-    #     for dp in ('2.7', '3.5'):
-    #         with env_var('CONDA_DEFAULT_PYTHON', dp, reset_context):
-    #             ps = ['python 2.7*'] if context.default_python == '2.7' else []
-    #             for specs, added in [
-    #                 (['python'], ps),
-    #                 (['numpy'], ps),
-    #                 (['scipy'], ps),
-    #                 (['anaconda'], ps),
-    #                 (['anaconda 1.5.0 np17py27_0'], []),
-    #                 (['sympy 0.7.2 py27_0'], []),
-    #                 (['scipy 0.12.0 np16py27_0'], []),
-    #                 (['anaconda', 'python 3*'], []),
-    #                 ]:
-    #                 self.check(specs, added)
-
 
 def test_display_actions_0():
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'False'

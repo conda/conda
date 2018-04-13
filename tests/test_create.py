@@ -711,6 +711,15 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'python')
 
+            # regression test for #2154
+            with pytest.raises(PackagesNotFoundError) as exc:
+                run_command(Commands.REMOVE, prefix, 'python', 'foo', 'numpy')
+            assert repr(exc.value) == dals("""
+            PackagesNotFoundError: The following packages are missing from the target environment:
+              - foo
+              - numpy
+            """)
+
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
 
@@ -1036,13 +1045,14 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'itsdangerous')
             assert package_is_installed(prefix, 'flask')
 
+    @pytest.mark.skipif(True, reason="Add this test back someday.")
     # @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
-    # def test_shortcut_in_underscore_env_shows_message(self):
-    #     prefix = make_temp_prefix("_" + str(uuid4())[:7])
-    #     with make_temp_env(prefix=prefix):
-    #         stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut")
-    #         assert ("Environment name starts with underscore '_'.  "
-    #                 "Skipping menu installation." in stderr)
+    def test_shortcut_in_underscore_env_shows_message(self):
+        prefix = make_temp_prefix("_" + str(uuid4())[:7])
+        with make_temp_env(prefix=prefix):
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "console_shortcut")
+            assert ("Environment name starts with underscore '_'.  "
+                    "Skipping menu installation." in stderr)
 
     @pytest.mark.skipif(not on_win, reason="shortcuts only relevant on Windows")
     def test_shortcut_not_attempted_with_no_shortcuts_arg(self):
