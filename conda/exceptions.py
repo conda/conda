@@ -285,7 +285,7 @@ class CondaEnvironmentError(CondaError, EnvironmentError):
 
 class DryRunExit(CondaExitZero):
     def __init__(self):
-        msg = 'Dry run exiting'
+        msg = 'Dry run. Exiting.'
         super(DryRunExit, self).__init__(msg)
 
 
@@ -293,11 +293,6 @@ class CondaSystemExit(CondaExitZero, SystemExit):
     def __init__(self, *args):
         msg = ' '.join(text_type(arg) for arg in self.args)
         super(CondaSystemExit, self).__init__(msg)
-
-
-class SubprocessExit(CondaExitZero):
-    def __init__(self, *args, **kwargs):
-        super(SubprocessExit, self).__init__(*args, **kwargs)
 
 
 class PaddingError(CondaError):
@@ -787,17 +782,25 @@ def maybe_raise(error, context):
 
 def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
+    rc = getattr(exc_val, 'return_code', None)
     if context.debug or context.verbosity > 0:
         sys.stderr.write(_format_exc(exc_val, exc_tb))
         sys.stderr.write('\n')
     elif context.json:
-        import json
-        stdoutlog = getLogger('conda.stdout')
-        exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
-        stdoutlog.info("%s\n" % exc_json)
+        if rc == 0:
+            # suppress DryRunExit and CondaSystemExit messages
+            pass
+        else:
+            import json
+            stdoutlog = getLogger('conda.stdout')
+            exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
+            stdoutlog.info("%s\n" % exc_json)
     else:
         stderrlog = getLogger('conda.stderr')
-        stderrlog.info("\n%r\n", exc_val)
+        if rc == 0:
+            stderrlog.info("\n%s\n", exc_val)
+        else:
+            stderrlog.info("\n%r\n", exc_val)
 
 
 def _format_exc(exc_val=None, exc_tb=None):
@@ -842,9 +845,6 @@ class ExceptionHandler(object):
         return context.error_upload_url
 
     def handle_exception(self, exc_val, exc_tb):
-        return_code = getattr(exc_val, 'return_code', None)
-        if return_code == 0:
-            return 0
         if isinstance(exc_val, CondaHTTPError):
             return self.handle_reportable_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, CondaError):
