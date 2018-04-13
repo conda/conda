@@ -107,8 +107,17 @@ end
 # Faster but less tested (?)
 function __fish_conda_commands
   string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_*.py
+  for f in $_CONDA_ROOT/bin/conda-*
+    if test -x "$f" -a ! -d "$f"
+      string replace -r '^.*/conda-' '' "$f"
+    end
+  end
   echo activate
   echo deactivate
+end
+
+function __fish_conda_env_commands
+  string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda_env/cli/main_*.py
 end
 
 function __fish_conda_envs
@@ -139,6 +148,7 @@ end
 
 # Conda commands
 complete -f -c conda -n '__fish_conda_needs_command' -a '(__fish_conda_commands)'
+complete -f -c conda -n '__fish_conda_using_command env' -a '(__fish_conda_env_commands)'
 
 # Commands that need environment as parameter
 complete -f -c conda -n '__fish_conda_using_command activate' -a '(__fish_conda_envs)'
