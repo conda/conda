@@ -4,14 +4,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict, namedtuple
 from logging import getLogger
 import os
-from os.path import basename, dirname, isdir, join, exists
+from os.path import basename, dirname, exists, isdir, join
 from subprocess import CalledProcessError
 import sys
 from tempfile import mkdtemp
 from traceback import format_exception_only
 import warnings
-
-import re
 
 from .package_cache_data import PackageCacheData
 from .path_actions import (CompilePycAction, CreateNonadminAction, CreatePrefixRecordAction,
@@ -31,8 +29,8 @@ from ..common.path import (explode_directories, get_all_directories, get_major_m
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
 from ..exceptions import (DisallowedPackageError, KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise,
-                          SystemPrefixClobberError)
+                          SharedLinkPathClobberError, SystemPrefixClobberError,
+                          UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info

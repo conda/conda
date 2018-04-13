@@ -8,11 +8,10 @@ from os import listdir
 from os.path import basename, dirname, join
 from tarfile import ReadError
 
-from conda._vendor.auxlib.decorators import memoizemethod
-
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
+from .._vendor.auxlib.decorators import memoizemethod
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, string_types,
