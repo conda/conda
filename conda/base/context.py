@@ -173,7 +173,8 @@ class Context(Configuration):
     channel_priority = PrimitiveParameter(True)
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',))  # channel for args.channel
-    _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
+    _custom_channels = MapParameter(string_types, DEFAULT_CUSTOM_CHANNELS,
+                                    aliases=('custom_channels',))
     _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
                                           aliases=('default_channels',))
@@ -577,14 +578,11 @@ class Context(Configuration):
     @memoizedproperty
     def custom_channels(self):
         from ..models.channel import Channel
-        hard_coded_custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
-                                      for name, url in iteritems(DEFAULT_CUSTOM_CHANNELS))
         custom_channels = (Channel.make_simple_channel(self.channel_alias, url, name)
                            for name, url in iteritems(self._custom_channels))
         channels_from_multichannels = concat(channel for channel
                                              in itervalues(self.custom_multichannels))
         all_channels = odict((x.name, x) for x in (ch for ch in concatv(
-            hard_coded_custom_channels,
             channels_from_multichannels,
             custom_channels,
         )))

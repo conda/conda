@@ -77,7 +77,7 @@ DEFAULT_CHANNELS_WIN = (
 )
 
 DEFAULT_CUSTOM_CHANNELS = {
-    'pkgs/pro': 'https://repo.anaconda.com/pkgs/pro',
+    'pkgs/pro': 'https://repo.anaconda.com',
 }
 
 # use the bool(sys.platform == "win32") definition here so we don't import .compat.on_win
