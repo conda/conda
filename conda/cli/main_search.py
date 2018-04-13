@@ -58,12 +58,23 @@ def execute(args, parser):
             print('\n'.join(builder))
         return 0
 
-    with Spinner("Loading channels", not context.verbosity and not context.quiet, context.json):
-        spec_channel = spec.get_exact_value('channel')
-        channel_urls = (spec_channel,) if spec_channel else context.channels
+    spec_channel = spec.get_exact_value('channel')
+    channel_urls = (spec_channel,) if spec_channel else context.channels
 
-        matches = sorted(SubdirData.query_all(channel_urls, subdirs, spec),
-                         key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
+    if args.reverse_dependency:
+        fabricated_record = _get_fabricated_reverse_dep_search_record(spec)
+        with Spinner("Searching", not context.verbosity and not context.quiet,
+                     context.json):
+            matches = sorted(
+                SubdirData.reverse_query_all(channel_urls, subdirs, fabricated_record),
+                key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build)
+            )
+
+    else:
+        with Spinner("Loading channels", not context.verbosity and not context.quiet,
+                     context.json):
+            matches = sorted(SubdirData.query_all(channel_urls, subdirs, spec),
+                             key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
     if not matches:
         channels_urls = tuple(calculate_channel_urls(
@@ -86,15 +97,6 @@ def execute(args, parser):
             pretty_record(record)
 
     else:
-        multiple_packages_error = False
-        if args.reverse_dependency:
-            if len(matches) > 1:
-                multiple_packages_error = True
-            else:
-                package_ref = matches[0]
-                matches = sorted(SubdirData.reverse_query_all(channel_urls, subdirs, package_ref),
-                                 key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
-
         builder = ['# %-13s %15s %15s  %-20s' % (
             "Name",
             "Version",
@@ -109,9 +111,29 @@ def execute(args, parser):
                 record.channel.name,
             ))
         print('\n'.join(builder))
-        if multiple_packages_error:
-            from ..exceptions import MultiplePackagesError
-            raise MultiplePackagesError(spec)
+
+
+def _get_fabricated_reverse_dep_search_record(spec):
+    name = spec.get_exact_value('name')
+    if name is None:  # pragma: no cover
+        from ..exceptions import CondaValueError
+        raise CondaValueError("Invalid spec for reverse dependency search. "
+                              "Name must be exact. %s" % spec)
+    fabricated_record = {'name': name}
+    if spec.get_raw_value('version'):  # pragma: no cover
+        version = spec.get_exact_value('version')
+        if not version:
+            from ..exceptions import CondaValueError
+            raise CondaValueError("Invalid spec for reverse dependency search. "
+                                  "Version must be exact. %s" % spec)
+        fabricated_record['version'] = version
+    else:
+        fabricated_record['version'] = '0'
+    fabricated_record.update({
+        'build': '0',
+        'build_number': 0,
+    })
+    return fabricated_record
 
 
 def pretty_record(record):
