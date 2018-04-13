@@ -75,7 +75,7 @@ class SubdirData(object):
     _cache_ = {}
 
     @staticmethod
-    def reverse_query_all(channels, subdirs, package_ref):
+    def reverse_query_all(package_ref, channels, subdirs):
         from .index import check_whitelist  # TODO: fix in-line import
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
         check_whitelist(channel_urls)

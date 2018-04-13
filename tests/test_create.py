@@ -43,7 +43,7 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
-    DisallowedPackageError, UnsatisfiableError
+    DisallowedPackageError, UnsatisfiableError, CondaValueError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -295,10 +295,17 @@ class IntegrationTests(TestCase):
                 stdout, stderr = run_command(Commands.SEARCH, prefix, "python --envs")
                 assert prefix in stdout
 
-            with pytest.raises(MultiplePackagesError):
-                run_command(Commands.SEARCH, prefix, "zope --reverse-dependency")
+            with pytest.raises(CondaValueError) as exc:
+                run_command(Commands.SEARCH, prefix, "zope* --reverse-dependency")
+            assert "Name must be exact." in repr(exc.value), repr(exc.value)
+            with pytest.raises(CondaValueError) as exc:
+                run_command(Commands.SEARCH, prefix, "zope=1.0 --reverse-dependency")
+            assert "Version must be exact." in repr(exc.value), repr(exc.value)
+            with pytest.raises(CondaValueError) as exc:
+                run_command(Commands.SEARCH, prefix, "zope=1.0.0=py27_0 --reverse-dependency")
+            assert "Only name and version can be specified." in repr(exc.value), repr(exc.value)
 
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "zope=1.0.0=py27_0 --reverse-dependency")
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "zope --reverse-dependency")
             assert not stderr
             assert "zope.interface" in stdout
 

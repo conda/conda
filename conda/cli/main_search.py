@@ -66,14 +66,14 @@ def execute(args, parser):
         with Spinner("Searching", not context.verbosity and not context.quiet,
                      context.json):
             matches = sorted(
-                SubdirData.reverse_query_all(channel_urls, subdirs, fabricated_record),
+                SubdirData.reverse_query_all(fabricated_record, channel_urls, subdirs),
                 key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build)
             )
 
     else:
         with Spinner("Loading channels", not context.verbosity and not context.quiet,
                      context.json):
-            matches = sorted(SubdirData.query_all(channel_urls, subdirs, spec),
+            matches = sorted(SubdirData.query_all(spec, channel_urls, subdirs),
                              key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
     if not matches:
@@ -115,12 +115,12 @@ def execute(args, parser):
 
 def _get_fabricated_reverse_dep_search_record(spec):
     name = spec.get_exact_value('name')
-    if name is None:  # pragma: no cover
+    if name is None:
         from ..exceptions import CondaValueError
         raise CondaValueError("Invalid spec for reverse dependency search. "
                               "Name must be exact. %s" % spec)
     fabricated_record = {'name': name}
-    if spec.get_raw_value('version'):  # pragma: no cover
+    if spec.get_raw_value('version'):
         version = spec.get_exact_value('version')
         if not version:
             from ..exceptions import CondaValueError
@@ -129,6 +129,13 @@ def _get_fabricated_reverse_dep_search_record(spec):
         fabricated_record['version'] = version
     else:
         fabricated_record['version'] = '0'
+    spec_keys = set(spec._match_components.keys())
+    spec_keys.discard('name')
+    spec_keys.discard('version')
+    if spec_keys:
+        from ..exceptions import CondaValueError
+        raise CondaValueError("Invalid spec for reverse dependency search. "
+                              "Only name and version can be specified. %s" % spec)
     fabricated_record.update({
         'build': '0',
         'build_number': 0,
