@@ -8,7 +8,7 @@ from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..common.constants import NULL
-from ..common.io import swallow_broken_pipe, timeout
+from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
 from ..models.match_spec import MatchSpec
@@ -52,14 +52,10 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
     if context.always_yes:
         return True
     try:
-        choice = timeout(30, confirm, message=message, choices=('yes', 'no'),
-                         default=default)
+        choice = confirm(message=message, choices=('yes', 'no'))
     except KeyboardInterrupt as e:  # pragma: no cover
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.")
-    if choice is None:
-        from ..exceptions import CondaSystemExit
-        raise CondaSystemExit("\nTimeout reached. No choice made. Exiting.")
     if choice == 'no':
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("Exiting.")
