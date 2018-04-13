@@ -7,6 +7,13 @@
 * import speedups (#7122)
 * --help cleanup (#7120)
 
+### Bug Fixes
+* fix #7107 verify hangs when a package is corrupted (#7131)
+* fix #7145 progress bar uses stderr instead of stdout (#7146)
+* fix typo in conda.fish (#7152)
+* fix #2154 conda remove should complain if requested removals don't exist (#7135)
+* fix #7094 exit early for --dry-run with explicit and clone (#7096)
+
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritence in activate.py (#7049)
 
