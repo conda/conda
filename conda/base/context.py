@@ -1134,6 +1134,10 @@ def determine_target_prefix(ctx, args=None):
             from ..exceptions import CondaValueError
             raise CondaValueError("'/' not allowed in environment name: %s" %
                                   prefix_name)
+        if ' ' in prefix_name:
+            from ..exceptions import CondaValueError
+            raise CondaValueError("Space not allowed in environment name: '%s'" %
+                                  prefix_name)
         if prefix_name in (ROOT_ENV_NAME, 'root'):
             return ctx.root_prefix
         else:
