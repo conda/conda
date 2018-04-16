@@ -63,7 +63,7 @@ _conda_activate() {
 _conda_deactivate() {
     \local ask_conda
     ask_conda="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix deactivate "$@")" || \return $?
-    \eval "$ask_conda"
+    \eval "${ask_conda}"
 
     _conda_hashr
 }
@@ -72,7 +72,7 @@ _conda_deactivate() {
 _conda_reactivate() {
     \local ask_conda
     ask_conda="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix reactivate)" || \return $?
-    \eval "$ask_conda"
+    \eval "${ask_conda}"
 
     _conda_hashr
 }

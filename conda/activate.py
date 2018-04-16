@@ -593,9 +593,9 @@ class PosixActivator(_Activator):
 
         self.postsep = ':'
         self.post_tmpl = "\n".join((
-            '\local ask_conda',
-            'ask_conda="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix post)" || \\return $?',
-            '\eval "${ask_conda}"'))
+            '\local ask_conda2',
+            'ask_conda2="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix post)" || \\return $?',
+            '\eval "${ask_conda2}"'))
 
         super(PosixActivator, self).__init__(arguments)
 
@@ -630,10 +630,10 @@ class CshActivator(_Activator):
 
         self.postsep = ':'
         self.post_tmpl = "\n".join((
-            ('set ask_conda="`('
+            ('set ask_conda2="`('
                 "setenv prompt '${prompt}' ; ${_CONDA_EXE}' shell.csh post"
              ')`" || exit ${status}'),
-            'eval "${ask_conda}"'))
+            'eval "${ask_conda2}"'))
 
         super(CshActivator, self).__init__(arguments)
 
@@ -691,11 +691,11 @@ class CmdExeActivator(_Activator):
         self.post_tmpl = "\n".join((
             ('@FOR /F "delims=" %%i IN ('
                 "'@CALL %_CONDA_EXE% shell.cmd.exe post %*'"
-             ') DO @SET "_TEMP_SCRIPT_PATH=%%i"'),
-            '@IF "%_TEMP_SCRIPT_PATH%"=="" GOTO :ErrorEnd',
-            '@CALL "%_TEMP_SCRIPT_PATH%"',
-            '@DEL /F /Q "%_TEMP_SCRIPT_PATH%"',
-            '@SET _TEMP_SCRIPT_PATH=',
+             ') DO @SET "_TEMP_SCRIPT_PATH2=%%i"'),
+            '@IF "%_TEMP_SCRIPT_PATH2%"=="" GOTO :ErrorEnd',
+            '@CALL "%_TEMP_SCRIPT_PATH2%"',
+            '@DEL /F /Q "%_TEMP_SCRIPT_PATH2%"',
+            '@SET _TEMP_SCRIPT_PATH2=',
             '@SET _CONDA_POST=',
             '',
             '@GOTO :End',

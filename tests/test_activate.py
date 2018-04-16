@@ -524,9 +524,9 @@ class ShellWrapperUnitTests(TestCase):
             \\export CONDA_POST='%(native_prefix)s:%(native_prefix)s'
             \\export CONDA_PROMPT_MODIFIER='(%(native_prefix)s) '
             \\export CONDA_SHLVL='1'
-            \\local ask_conda
-            ask_conda="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix post)" || \\return $?
-            \\eval "${ask_conda}"
+            \\local ask_conda2
+            ask_conda2="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix post)" || \\return $?
+            \\eval "${ask_conda2}"
             \\. "%(activate1)s"
             """) % {
                 'activate1': activator.path_conversion(scripts["activate_script"]),
@@ -568,9 +568,9 @@ class ShellWrapperUnitTests(TestCase):
             PS1='%(ps1)s'
             \\export CONDA_POST='%(native_prefix)s:'
             \\export CONDA_SHLVL='0'
-            \\local ask_conda
-            ask_conda="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix post)" || \\return $?
-            \\eval "${ask_conda}"
+            \\local ask_conda2
+            ask_conda2="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix post)" || \\return $?
+            \\eval "${ask_conda2}"
             """) % {
                 'deactivate1': activator.path_conversion(scripts["deactivate_script"]),
                 'ps1': os.environ.get('PS1', ''),
@@ -650,11 +650,11 @@ class ShellWrapperUnitTests(TestCase):
             @SET "CONDA_POST=%(native_prefix)s;%(native_prefix)s"
             @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
             @SET "CONDA_SHLVL=1"
-            @FOR /F "delims=" %%%%i IN ('@CALL %%_CONDA_EXE%% shell.cmd.exe post %%*') DO @SET "_TEMP_SCRIPT_PATH=%%%%i"
-            @IF "%%_TEMP_SCRIPT_PATH%%"=="" GOTO :ErrorEnd
-            @CALL "%%_TEMP_SCRIPT_PATH%%"
-            @DEL /F /Q "%%_TEMP_SCRIPT_PATH%%"
-            @SET _TEMP_SCRIPT_PATH=
+            @FOR /F "delims=" %%%%i IN ('@CALL %%_CONDA_EXE%% shell.cmd.exe post %%*') DO @SET "_TEMP_SCRIPT_PATH2=%%%%i"
+            @IF "%%_TEMP_SCRIPT_PATH2%%"=="" GOTO :ErrorEnd
+            @CALL "%%_TEMP_SCRIPT_PATH2%%"
+            @DEL /F /Q "%%_TEMP_SCRIPT_PATH2%%"
+            @SET _TEMP_SCRIPT_PATH2=
             @SET _CONDA_POST=
 
             @GOTO :End
@@ -712,11 +712,11 @@ class ShellWrapperUnitTests(TestCase):
             @SET CONDA_PYTHON_EXE=
             @SET "CONDA_POST=%(prefix)s;"
             @SET "CONDA_SHLVL=0"
-            @FOR /F "delims=" %%%%i IN ('@CALL %%_CONDA_EXE%% shell.cmd.exe post %%*') DO @SET "_TEMP_SCRIPT_PATH=%%%%i"
-            @IF "%%_TEMP_SCRIPT_PATH%%"=="" GOTO :ErrorEnd
-            @CALL "%%_TEMP_SCRIPT_PATH%%"
-            @DEL /F /Q "%%_TEMP_SCRIPT_PATH%%"
-            @SET _TEMP_SCRIPT_PATH=
+            @FOR /F "delims=" %%%%i IN ('@CALL %%_CONDA_EXE%% shell.cmd.exe post %%*') DO @SET "_TEMP_SCRIPT_PATH2=%%%%i"
+            @IF "%%_TEMP_SCRIPT_PATH2%%"=="" GOTO :ErrorEnd
+            @CALL "%%_TEMP_SCRIPT_PATH2%%"
+            @DEL /F /Q "%%_TEMP_SCRIPT_PATH2%%"
+            @SET _TEMP_SCRIPT_PATH2=
             @SET _CONDA_POST=
 
             @GOTO :End
@@ -801,8 +801,8 @@ class ShellWrapperUnitTests(TestCase):
             setenv CONDA_POST "%(prefix)s:%(prefix)s";
             setenv CONDA_PROMPT_MODIFIER "(%(native_prefix)s) ";
             setenv CONDA_SHLVL "1";
-            set ask_conda="`(setenv prompt '${prompt}' ; ${_CONDA_EXE}' shell.csh post)`" || exit ${status}
-            eval "${ask_conda}";
+            set ask_conda2="`(setenv prompt '${prompt}' ; ${_CONDA_EXE}' shell.csh post)`" || exit ${status}
+            eval "${ask_conda2}";
             source "%(activate1)s";
             """) % {
                 'prompt': '(%s) ' % self.prefix + os.environ.get('prompt', ''),
@@ -846,8 +846,8 @@ class ShellWrapperUnitTests(TestCase):
             set prompt='%(prompt)s';
             setenv CONDA_POST "%(prefix)s:";
             setenv CONDA_SHLVL "0";
-            set ask_conda="`(setenv prompt '${prompt}' ; ${_CONDA_EXE}' shell.csh post)`" || exit ${status}
-            eval "${ask_conda}";
+            set ask_conda2="`(setenv prompt '${prompt}' ; ${_CONDA_EXE}' shell.csh post)`" || exit ${status}
+            eval "${ask_conda2}";
             """) % {
                 'prefix': self.prefix,
                 'deactivate1': activator.path_conversion(scripts["deactivate_script"]),
