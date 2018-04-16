@@ -59,6 +59,9 @@ class _Activator(object):
     set_var_tmpl = None
     run_script_tmpl = None
 
+    postsep = None
+    post_tmpl = None
+
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
 
@@ -220,6 +223,8 @@ class _Activator(object):
                 'CONDA_DEFAULT_ENV': conda_default_env,
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
+            # clear the old prefix such that it doesn't get replaced in the path/post
+            old_prefix = None
 
         # get deactivate_scripts and whether post needs to occur
         deactivate_scripts = self._get_deactivate_scripts(old_prefix)
@@ -289,7 +294,7 @@ class _Activator(object):
         # prefix is already on the $PATH
         post = self._derive_post_from_deactivate(deactivate_scripts, export_vars,
                                                  old_prefix=old_prefix,
-                                                 new_prefix="")
+                                                 new_prefix=None)
 
         # update the prompt
         set_vars = {}
@@ -348,7 +353,7 @@ class _Activator(object):
 
         # create the export_vars
         export_vars = {}
-        old_prefix, new_prefix = conda_post.split(":")
+        old_prefix, new_prefix = conda_post.split(self.postsep)
         self._update_path(export_vars, old_prefix, new_prefix)
 
         # create the unset_vars
@@ -454,7 +459,7 @@ class _Activator(object):
             # prefix is already on the $PATH
             old_prefix = old_prefix if old_prefix else ''
             new_prefix = new_prefix if new_prefix else ''
-            export_vars["CONDA_POST"] = "%s:%s" % (old_prefix, new_prefix)
+            export_vars["CONDA_POST"] = self.postsep.join([old_prefix, new_prefix])
             return True
         else:
             # there are no deactivate scripts, we need to update the $PATH in the current process
@@ -586,6 +591,7 @@ class PosixActivator(_Activator):
         self.set_var_tmpl = "%s='%s'"
         self.run_script_tmpl = '\\. "%s"'
 
+        self.postsep = ':'
         self.post_tmpl = "\n".join((
             '\local ask_conda',
             'ask_conda="$(PS1="${PS1}" "${_CONDA_EXE}" shell.posix post)" || \\return $?',
@@ -622,6 +628,7 @@ class CshActivator(_Activator):
         self.set_var_tmpl = "set %s='%s'"
         self.run_script_tmpl = 'source "%s"'
 
+        self.postsep = ':'
         self.post_tmpl = "\n".join((
             ('set ask_conda="`('
                 "setenv prompt '${prompt}' ; ${_CONDA_EXE}' shell.csh post"
@@ -655,6 +662,7 @@ class XonshActivator(_Activator):
         self.set_var_tmpl = "$%s = '%s'"  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = 'source "%s"'
 
+        self.postsep = ':'
         self.post_tmpl = "\n".join((
             "pipeline2 = !(@(_CONDA_EXE) shell.xonsh post)",
             "stdout2 = _raise_pipeline_error(pipeline2)",
@@ -679,6 +687,7 @@ class CmdExeActivator(_Activator):
         self.set_var_tmpl = '@SET "%s=%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = '@CALL "%s"'
 
+        self.postsep = ';'
         self.post_tmpl = "\n".join((
             ('@FOR /F "delims=" %%i IN ('
                 "'@CALL %_CONDA_EXE% shell.cmd.exe post %*'"
@@ -691,13 +700,11 @@ class CmdExeActivator(_Activator):
             '',
             '@GOTO :End',
             '',
-            ':End',
-            '@SET _CONDA_EXE=',
-            '@GOTO :EOF',
-            '',
             ':ErrorEnd',
             '@SET _CONDA_EXE=',
-            '@EXIT /B 1'))
+            '@EXIT /B 1',
+            '',
+            ':End'))
 
         super(CmdExeActivator, self).__init__(arguments)
 
@@ -724,6 +731,7 @@ class FishActivator(_Activator):
         self.set_var_tmpl = 'set -gx %s "%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = 'source "%s"'
 
+        self.postsep = ':'
         self.post_tmpl = "\n".join((
             "eval (eval $_CONDA_EXE shell.fish post)",))
 
@@ -745,6 +753,7 @@ class PowershellActivator(_Activator):
         self.set_var_tmpl = '$env:%s = "%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = '. "%s"'
 
+        self.postsep = ';'
         self.post_tmpl = "\n".join((
                 "",))
 

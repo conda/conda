@@ -413,8 +413,8 @@ def _make_d(td, extension):
 def _make_conda_meta(td):
     directory = mkdir_p(join(td, 'conda-meta'))
 
-    # history = join(directory, 'history')
-    # touch(history)
+    history = join(directory, 'history')
+    touch(history)
 
     return directory
 
@@ -482,9 +482,8 @@ class ShellWrapperUnitTests(TestCase):
         scripts = _make_d(self.prefix, activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(('', 'shell.posix', 'activate', self.prefix))
+            assert activate_main(('', 'shell.posix', 'activate', self.prefix)) == 0
         assert not c.stderr
-        assert rc == 0
         activate_data = c.stdout
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
@@ -515,12 +514,10 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = PosixActivator()
             with captured() as c:
-                rc = activate_main(('', 'shell.posix', 'reactivate'))
+                assert activate_main(('', 'shell.posix', 'reactivate')) == 0
             assert not c.stderr
-            assert rc == 0
             reactivate_data = c.stdout
 
-            new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             assert reactivate_data == dals("""
             \\. "%(deactivate1)s"
             PS1='%(ps1)s'
@@ -538,13 +535,29 @@ class ShellWrapperUnitTests(TestCase):
                 'ps1': '(%s) ' % self.prefix + os.environ.get('PS1', ''),
             }
 
+            with env_vars({
+                'CONDA_POST': '%s:%s' % (self.prefix, self.prefix),
+            }):
+                post = PosixActivator()
+                with captured() as c:
+                    assert activate_main(('', 'shell.posix', 'post')) == 0
+                assert not c.stderr
+                post_data = c.stdout
+
+                path = post._replace_prefix_in_path(self.prefix, self.prefix)
+                path = post.pathsep_join(path)
+                assert post_data == dals("""
+                \\unset CONDA_POST
+                \\export PATH='%(path)s'
+                """) % {
+                    'path': path,
+                }
+
             with captured() as c:
-                rc = activate_main(('', 'shell.posix', 'deactivate'))
+                assert activate_main(('', 'shell.posix', 'deactivate')) == 0
             assert not c.stderr
-            assert rc == 0
             deactivate_data = c.stdout
 
-            # new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             assert deactivate_data == dals("""
             \\. "%(deactivate1)s"
             \\unset CONDA_DEFAULT_ENV
@@ -564,15 +577,32 @@ class ShellWrapperUnitTests(TestCase):
                 'native_prefix': self.prefix,
             }
 
+            with env_vars({
+                'CONDA_POST': '%s:' % self.prefix,
+            }):
+                post = PosixActivator()
+                with captured() as c:
+                    assert activate_main(('', 'shell.posix', 'post')) == 0
+                assert not c.stderr
+                post_data = c.stdout
+
+                path = post._remove_prefix_from_path(self.prefix)
+                path = post.pathsep_join(path)
+                assert post_data == dals("""
+                \\unset CONDA_POST
+                \\export PATH='%(path)s'
+                """) % {
+                    'path': path,
+                }
+
     @pytest.mark.skipif(not on_win, reason="cmd.exe only on Windows")
     def test_cmd_exe_basic(self):
         activator = CmdExeActivator()
         scripts = _make_d(self.prefix, activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(('', 'shell.cmd.exe', 'activate', '', self.prefix))
+            assert activate_main(('', 'shell.cmd.exe', 'activate', '', self.prefix)) == 0
         assert not c.stderr
-        assert rc == 0
         activate_result = c.stdout
 
         with open(activate_result) as fh:
@@ -615,19 +645,53 @@ class ShellWrapperUnitTests(TestCase):
                 reactivate_data = fh.read()
             rm_rf(reactivate_result)
 
-            new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             assert reactivate_data == dals("""
             @CALL "%(deactivate1)s"
+            @SET "CONDA_POST=%(native_prefix)s;%(native_prefix)s"
             @SET "CONDA_PROMPT_MODIFIER=(%(native_prefix)s) "
             @SET "CONDA_SHLVL=1"
-            @SET "PATH=%(new_path)s"
+            @FOR /F "delims=" %%%%i IN ('@CALL %%_CONDA_EXE%% shell.cmd.exe post %%*') DO @SET "_TEMP_SCRIPT_PATH=%%%%i"
+            @IF "%%_TEMP_SCRIPT_PATH%%"=="" GOTO :ErrorEnd
+            @CALL "%%_TEMP_SCRIPT_PATH%%"
+            @DEL /F /Q "%%_TEMP_SCRIPT_PATH%%"
+            @SET _TEMP_SCRIPT_PATH=
+            @SET _CONDA_POST=
+
+            @GOTO :End
+
+            :ErrorEnd
+            @SET _CONDA_EXE=
+            @EXIT /B 1
+
+            :End
             @CALL "%(activate1)s"
             """) % {
                 'activate1': activator.path_conversion(scripts["activate_script"]),
                 'deactivate1': activator.path_conversion(scripts["deactivate_script"]),
                 'native_prefix': self.prefix,
-                'new_path': activator.pathsep_join(new_path_parts),
             }
+
+            with env_vars({
+                'CONDA_POST': '%s;%s' % (self.prefix, self.prefix),
+            }):
+                post = CmdExeActivator()
+                with captured() as c:
+                    assert activate_main(('', 'shell.cmd.exe', 'post')) == 0
+                assert not c.stderr
+                post_result = c.stdout
+
+                with open(post_result) as fh:
+                    post_data = fh.read()
+                rm_rf(post_result)
+
+                path = activator._replace_prefix_in_path(self.prefix, self.prefix)
+                path = post.pathsep_join(path)
+                assert post_data == dals("""
+                @SET CONDA_POST=
+                @SET "PATH=%(path)s"
+                """) % {
+                    'path': path,
+                }
 
             with captured() as c:
                 assert activate_main(('', 'shell.cmd.exe', 'deactivate')) == 0
@@ -646,21 +710,57 @@ class ShellWrapperUnitTests(TestCase):
             @SET CONDA_PREFIX=
             @SET CONDA_PROMPT_MODIFIER=
             @SET CONDA_PYTHON_EXE=
+            @SET "CONDA_POST=%(prefix)s;"
             @SET "CONDA_SHLVL=0"
-            @SET "PATH=%(new_path)s"
+            @FOR /F "delims=" %%%%i IN ('@CALL %%_CONDA_EXE%% shell.cmd.exe post %%*') DO @SET "_TEMP_SCRIPT_PATH=%%%%i"
+            @IF "%%_TEMP_SCRIPT_PATH%%"=="" GOTO :ErrorEnd
+            @CALL "%%_TEMP_SCRIPT_PATH%%"
+            @DEL /F /Q "%%_TEMP_SCRIPT_PATH%%"
+            @SET _TEMP_SCRIPT_PATH=
+            @SET _CONDA_POST=
+
+            @GOTO :End
+
+            :ErrorEnd
+            @SET _CONDA_EXE=
+            @EXIT /B 1
+
+            :End
             """) % {
                 'new_path': new_path,
                 'deactivate1': activator.path_conversion(scripts["deactivate_script"]),
+                'prefix': self.prefix,
             }
+
+            with env_vars({
+                'CONDA_POST': '%s;' % self.prefix,
+            }):
+                post = CmdExeActivator()
+                with captured() as c:
+                    assert activate_main(('', 'shell.cmd.exe', 'post')) == 0
+                assert not c.stderr
+                post_result = c.stdout
+
+                with open(post_result) as fh:
+                    post_data = fh.read()
+                rm_rf(post_result)
+
+                path = activator._remove_prefix_from_path(self.prefix)
+                path = post.pathsep_join(path)
+                assert post_data == dals("""
+                @SET CONDA_POST=
+                @SET "PATH=%(path)s"
+                """) % {
+                    'path': path,
+                }
 
     def test_csh_basic(self):
         activator = CshActivator()
         scripts = _make_d(self.prefix, activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(('', 'shell.csh', 'activate', self.prefix))
+            assert activate_main(('', 'shell.csh', 'activate', self.prefix)) == 0
         assert not c.stderr
-        assert rc == 0
         activate_data = c.stdout
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
@@ -691,12 +791,10 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = CshActivator()
             with captured() as c:
-                rc = activate_main(('', 'shell.csh', 'reactivate'))
+                assert activate_main(('', 'shell.csh', 'reactivate')) == 0
             assert not c.stderr
-            assert rc == 0
             reactivate_data = c.stdout
 
-            new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             assert reactivate_data == dals("""
             source "%(deactivate1)s";
             set prompt='%(prompt)s';
@@ -715,13 +813,29 @@ class ShellWrapperUnitTests(TestCase):
                 'native_prefix': self.prefix,
             }
 
+            with env_vars({
+                'CONDA_POST': '%s:%s' % (self.prefix, self.prefix),
+            }):
+                post = CshActivator()
+                with captured() as c:
+                    assert activate_main(('', 'shell.csh', 'post')) == 0
+                assert not c.stderr
+                post_data = c.stdout
+
+                path = activator._replace_prefix_in_path(self.prefix, self.prefix)
+                path = post.pathsep_join(path)
+                assert post_data == dals("""
+                unsetenv CONDA_POST;
+                setenv PATH "%(path)s";
+                """) % {
+                    'path': path,
+                }
+
             with captured() as c:
-                rc = activate_main(('', 'shell.csh', 'deactivate'))
+                assert activate_main(('', 'shell.csh', 'deactivate')) == 0
             assert not c.stderr
-            assert rc == 0
             deactivate_data = c.stdout
 
-            new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             assert deactivate_data == dals("""
             source "%(deactivate1)s";
             unsetenv CONDA_DEFAULT_ENV;
@@ -736,19 +850,35 @@ class ShellWrapperUnitTests(TestCase):
             eval "${ask_conda}";
             """) % {
                 'prefix': self.prefix,
-                'new_path': new_path,
                 'deactivate1': activator.path_conversion(scripts["deactivate_script"]),
                 'prompt': os.environ.get('prompt', ''),
             }
+
+            with env_vars({
+                'CONDA_POST': '%s:' % self.prefix,
+            }):
+                post = CshActivator()
+                with captured() as c:
+                    assert activate_main(('', 'shell.csh', 'post')) == 0
+                assert not c.stderr
+                post_data = c.stdout
+
+                path = activator._remove_prefix_from_path(self.prefix)
+                path = post.pathsep_join(path)
+                assert post_data == dals("""
+                unsetenv CONDA_POST;
+                setenv PATH "%(path)s";
+                """) % {
+                    'path': path,
+                }
 
     def test_xonsh_basic(self):
         activator = XonshActivator()
         scripts = _make_d(self.prefix, activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(('', 'shell.xonsh', 'activate', self.prefix))
+            assert activate_main(('', 'shell.xonsh', 'activate', self.prefix)) == 0
         assert not c.stderr
-        assert rc == 0
         activate_result = c.stdout
 
         with open(activate_result) as fh:
@@ -789,7 +919,6 @@ class ShellWrapperUnitTests(TestCase):
                 reactivate_data = fh.read()
             rm_rf(reactivate_result)
 
-            new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             assert reactivate_data == dals("""
             source "%(deactivate1)s"
             $CONDA_POST = '%(native_prefix)s:%(native_prefix)s'
@@ -806,6 +935,28 @@ class ShellWrapperUnitTests(TestCase):
                 'native_prefix': self.prefix,
                 'new_path': activator.pathsep_join(new_path_parts),
             }
+
+            with env_vars({
+                'CONDA_POST': '%s:%s' % (self.prefix, self.prefix),
+            }):
+                post = XonshActivator()
+                with captured() as c:
+                    assert activate_main(('', 'shell.xonsh', 'post')) == 0
+                assert not c.stderr
+                post_result = c.stdout
+
+                with open(post_result) as fh:
+                    post_data = fh.read()
+                rm_rf(post_result)
+
+                path = activator._replace_prefix_in_path(self.prefix, self.prefix)
+                path = post.pathsep_join(path)
+                assert post_data == dals("""
+                del $CONDA_POST
+                $PATH = '%(path)s'
+                """) % {
+                    'path': path,
+                }
 
             with captured() as c:
                 assert activate_main(('', 'shell.xonsh', 'deactivate')) == 0
@@ -836,14 +987,35 @@ class ShellWrapperUnitTests(TestCase):
                 'prefix': self.prefix,
             }
 
+            with env_vars({
+                'CONDA_POST': '%s:' % self.prefix,
+            }):
+                post = XonshActivator()
+                with captured() as c:
+                    assert activate_main(('', 'shell.xonsh', 'post')) == 0
+                assert not c.stderr
+                post_result = c.stdout
+
+                with open(post_result) as fh:
+                    post_data = fh.read()
+                rm_rf(post_result)
+
+                path = activator._remove_prefix_from_path(self.prefix)
+                path = post.pathsep_join(path)
+                assert post_data == dals("""
+                del $CONDA_POST
+                $PATH = '%(path)s'
+                """) % {
+                    'path': path,
+                }
+
     def test_fish_basic(self):
         activator = FishActivator()
         scripts = _make_d(self.prefix, activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(('', 'shell.fish', 'activate', self.prefix))
+            assert activate_main(('', 'shell.fish', 'activate', self.prefix)) == 0
         assert not c.stderr
-        assert rc == 0
         activate_data = c.stdout
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
@@ -872,12 +1044,10 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = FishActivator()
             with captured() as c:
-                rc = activate_main(('', 'shell.fish', 'reactivate'))
+                assert activate_main(('', 'shell.fish', 'reactivate')) == 0
             assert not c.stderr
-            assert rc == 0
             reactivate_data = c.stdout
 
-            new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             assert reactivate_data == dals("""
             source "%(deactivate1)s";
             set -gx CONDA_POST "%(native_prefix)s:%(native_prefix)s";
@@ -892,15 +1062,29 @@ class ShellWrapperUnitTests(TestCase):
                 'native_prefix': self.prefix,
             }
 
+            with env_vars({
+                'CONDA_POST': '%s:%s' % (self.prefix, self.prefix),
+            }):
+                post = FishActivator()
+                with captured() as c:
+                    assert activate_main(('', 'shell.fish', 'post')) == 0
+                assert not c.stderr
+                post_data = c.stdout
+
+                path = activator._replace_prefix_in_path(self.prefix, self.prefix)
+                path = post.pathsep_join(path)
+                assert post_data == dals("""
+                set -e CONDA_POST;
+                set -gx PATH "%(path)s";
+                """) % {
+                    'path': path,
+                }
+
             with captured() as c:
-                rc = activate_main(('', 'shell.fish', 'deactivate'))
+                assert activate_main(('', 'shell.fish', 'deactivate')) == 0
             assert not c.stderr
-            assert rc == 0
             deactivate_data = c.stdout
 
-            print(deactivate_data)
-
-            new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             assert deactivate_data == dals("""
             source "%(deactivate1)s";
             set -e CONDA_DEFAULT_ENV;
@@ -912,20 +1096,36 @@ class ShellWrapperUnitTests(TestCase):
             set -gx CONDA_SHLVL "0";
             eval (eval $_CONDA_EXE shell.fish post);
             """) % {
-                'new_path': new_path,
                 'deactivate1': activator.path_conversion(scripts["deactivate_script"]),
                 'prefix': self.prefix,
-
             }
 
+            with env_vars({
+                'CONDA_POST': '%s:' % self.prefix,
+            }):
+                post = FishActivator()
+                with captured() as c:
+                    assert activate_main(('', 'shell.fish', 'post')) == 0
+                assert not c.stderr
+                post_data = c.stdout
+
+                path = activator._remove_prefix_from_path(self.prefix)
+                path = post.pathsep_join(path)
+                assert post_data == dals("""
+                set -e CONDA_POST;
+                set -gx PATH "%(path)s";
+                """) % {
+                    'path': path,
+                }
+
+    @pytest.mark.skipif(not on_win, reason="powershell only on Windows")
     def test_powershell_basic(self):
         activator = PowershellActivator()
         scripts = _make_d(self.prefix, activator.script_extension)
 
         with captured() as c:
-            rc = activate_main(('', 'shell.powershell', 'activate', self.prefix))
+            assert activate_main(('', 'shell.powershell', 'activate', self.prefix)) == 0
         assert not c.stderr
-        assert rc == 0
         activate_data = c.stdout
 
         new_path_parts = activator._add_prefix_to_path(self.prefix)
@@ -953,15 +1153,13 @@ class ShellWrapperUnitTests(TestCase):
         }):
             activator = PowershellActivator()
             with captured() as c:
-                rc = activate_main(('', 'shell.powershell', 'reactivate'))
+                assert activate_main(('', 'shell.powershell', 'reactivate')) == 0
             assert not c.stderr
-            assert rc == 0
             reactivate_data = c.stdout
 
-            new_path_parts = activator._replace_prefix_in_path(self.prefix, self.prefix)
             assert reactivate_data == dals("""
             . "%(deactivate1)s"
-            $env:CONDA_POST = "%(prefix)s:%(prefix)s"
+            $env:CONDA_POST = "%(prefix)s;%(prefix)s"
             $env:CONDA_PROMPT_MODIFIER = "(%(prefix)s) "
             $env:CONDA_SHLVL = "1"
 
@@ -970,18 +1168,31 @@ class ShellWrapperUnitTests(TestCase):
                 'activate1': scripts["activate_script"],
                 'deactivate1': scripts["deactivate_script"],
                 'prefix': self.prefix,
-                'new_path': activator.pathsep_join(new_path_parts),
             }
 
+            # with env_vars({
+            #     'CONDA_POST': '%s:%s' % (self.prefix, self.prefix),
+            # }):
+            #     post = PowershellActivator()
+            #     with captured() as c:
+            #         assert activate_main(('', 'shell.powershell', 'post')) == 0
+            #     assert not c.stderr
+            #     post_data = c.stdout
+
+            #     path = activator._replace_prefix_in_path(self.prefix, self.prefix)
+            #     path = post.pathsep_join(path)
+            #     assert post_data == dals("""
+            #     Remove-Variable CONDA_POST
+            #     $env:PATH = "%(path)s"
+            #     """) % {
+            #         'path': path,
+            #     }
+
             with captured() as c:
-                rc = activate_main(('', 'shell.powershell', 'deactivate'))
+                assert activate_main(('', 'shell.powershell', 'deactivate')) == 0
             assert not c.stderr
-            assert rc == 0
             deactivate_data = c.stdout
 
-            print(deactivate_data)
-
-            new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             assert deactivate_data == dals("""
             . "%(deactivate1)s"
             Remove-Variable CONDA_DEFAULT_ENV
@@ -989,15 +1200,31 @@ class ShellWrapperUnitTests(TestCase):
             Remove-Variable CONDA_PREFIX
             Remove-Variable CONDA_PROMPT_MODIFIER
             Remove-Variable CONDA_PYTHON_EXE
-            $env:CONDA_POST = "%(prefix)s:"
+            $env:CONDA_POST = "%(prefix)s;"
             $env:CONDA_SHLVL = "0"
 
             """) % {
-                'new_path': new_path,
                 'deactivate1': scripts["deactivate_script"],
                 'prefix': self.prefix,
-
             }
+
+            # with env_vars({
+            #     'CONDA_POST': '%s:' % self.prefix,
+            # }):
+            #     post = PowershellActivator()
+            #     with captured() as c:
+            #         assert activate_main(('', 'shell.powershell', 'post')) == 0
+            #     assert not c.stderr
+            #     post_data = c.stdout
+
+            #     path = activator._remove_prefix_from_path(self.prefix)
+            #     path = post.pathsep_join(path)
+            #     assert post_data == dals("""
+            #     Remove-Variable CONDA_POST
+            #     $env:PATH = "%(path)s"
+            #     """) % {
+            #         'path': path,
+            #     }
 
     def test_unicode(self):
         shell = 'shell.posix'
@@ -1008,7 +1235,7 @@ class ShellWrapperUnitTests(TestCase):
             with tempdir() as td:
                 with open(join(td, "stdout"), "wt") as stdout:
                     with captured(stdout=stdout) as c:
-                        rc = activate_main(('', shell, 'activate', self.prefix))
+                        activate_main(('', shell, 'activate', self.prefix))
 
 
 class InteractiveShell(object):
@@ -1092,12 +1319,15 @@ class InteractiveShell(object):
     def expect(self, pattern, timeout=-1, searchwindowsize=-1, async=False):
         return self.p.expect(pattern, timeout, searchwindowsize, async)
 
+    def expect_exact(self, *args, **kwargs):
+        return self.p.expect_exact(*args, **kwargs)
+
     def assert_env_var(self, env_var, value, use_exact=False):
         # value is actually a regex
         self.sendline(self.print_env_var % env_var)
         try:
             if use_exact:
-                self.p.expect_exact(value)
+                self.expect_exact(value)
                 self.expect('.*\n')
             else:
                 self.expect('%s\n' % value)
@@ -1128,12 +1358,10 @@ class ShellWrapperIntegrationTests(TestCase):
 
         prefix_dirname = str(uuid4())[:4] + ' ' + str(uuid4())[:4]
         self.prefix = join(tempdirdir, prefix_dirname)
-        mkdir_p(join(self.prefix, 'conda-meta'))
-        assert isdir(self.prefix)
-        touch(join(self.prefix, 'conda-meta', 'history'))
+        self.charizard = join(self.prefix, 'envs', 'charizard')
 
-        mkdir_p(join(self.prefix, 'envs', 'charizard', 'conda-meta'))
-        touch(join(self.prefix, 'envs', 'charizard', 'conda-meta', 'history'))
+        _make_conda_meta(self.prefix)
+        _make_conda_meta(self.charizard)
 
     def tearDown(self):
         rm_rf(self.prefix)
@@ -1243,12 +1471,15 @@ class ShellWrapperIntegrationTests(TestCase):
 
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
     def test_cmd_exe_basic_integration(self):
-        charizard = join(self.prefix, 'envs', 'charizard')
         with InteractiveShell('cmd.exe') as shell:
-            shell.sendline('where conda')
-            shell.p.expect_exact('conda.bat')
+            shell.sendline('set')
             shell.expect('.*\n')
-            shell.sendline('conda activate "%s"' % charizard)
+
+            shell.sendline('where conda')
+            shell.expect_exact('conda.bat')
+            shell.expect('.*\n')
+
+            # base is already active
             shell.assert_env_var('CONDA_SHLVL', '1\r')
             shell.sendline('conda activate "%s"' % self.prefix)
             shell.assert_env_var('CONDA_SHLVL', '2\r')
@@ -1261,8 +1492,6 @@ class ShellWrapperIntegrationTests(TestCase):
 
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '1\r')
-            shell.sendline('conda deactivate')
-            shell.assert_env_var('CONDA_SHLVL', '0\r')
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '0\r')
 
