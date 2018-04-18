@@ -414,9 +414,9 @@ class _Activator(object):
         ))))
 
     def _get_deactivate_scripts(self, prefix):
-        return self.path_conversion(glob(join(
+        return self.path_conversion(sorted(glob(join(
             prefix, 'etc', 'conda', 'deactivate.d', '*' + self.script_extension
-        )))
+        )), reverse=True))
 
 
 def expand(path):
