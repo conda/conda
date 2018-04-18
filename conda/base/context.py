@@ -10,9 +10,9 @@ from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
-                        DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ERROR_UPLOAD_URL,
-                        PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict, ROOT_ENV_NAME,
-                        SEARCH_PATH, SafetyChecks)
+                        DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS,
+                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -173,7 +173,8 @@ class Context(Configuration):
     channel_priority = PrimitiveParameter(True)
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',))  # channel for args.channel
-    _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
+    _custom_channels = MapParameter(string_types, DEFAULT_CUSTOM_CHANNELS,
+                                    aliases=('custom_channels',))
     _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
                                           aliases=('default_channels',))
