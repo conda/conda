@@ -11,7 +11,7 @@ from .channel import Channel
 from .dist import Dist
 from .records import PackageRecord, PackageRef
 from .version import BuildNumberMatch, VersionSpec
-from .._vendor.auxlib.collection import frozendict
+from .._vendor.auxlib.collection import AttrDict, frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
@@ -209,6 +209,29 @@ class MatchSpec(object):
             rec = PackageRecord.from_objects(rec)
         for field_name, v in iteritems(self._match_components):
             if not self._match_individual(rec, field_name, v):
+                return False
+        return True
+
+    def _match_dict(self, rec):
+        # Does not convert the info dict to a record.  Therefore there is no field verification,
+        # type coercion, or field "fixes" like deriving channel from url if channel does not exist.
+        # This method is doing a lot of bad things and should only be used for reverse dependency
+        # search.
+
+        def _match_individual(record, field_name, match_component):
+            try:
+                val = getattr(record, field_name)
+            except AttributeError:
+                return True
+            try:
+                return match_component.match(val)
+            except AttributeError:
+                return match_component == val
+
+        if isinstance(rec, dict):
+            rec = AttrDict(rec)
+        for field_name, v in iteritems(self._match_components):
+            if not _match_individual(rec, field_name, v):
                 return False
         return True
 

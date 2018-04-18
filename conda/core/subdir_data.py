@@ -89,7 +89,7 @@ class SubdirData(object):
         if not self._loaded:
             self.load()
         for prec in self._package_records:
-            if any(MatchSpec(dep).match(package_ref) for dep in prec.depends):
+            if any(MatchSpec(dep)._match_dict(package_ref) for dep in prec.depends):
                 yield prec
 
     @staticmethod

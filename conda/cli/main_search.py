@@ -127,8 +127,6 @@ def _get_fabricated_reverse_dep_search_record(spec):
             raise CondaValueError("Invalid spec for reverse dependency search. "
                                   "Version must be exact. %s" % spec)
         fabricated_record['version'] = version
-    else:
-        fabricated_record['version'] = '0'
     spec_keys = set(spec._match_components.keys())
     spec_keys.discard('name')
     spec_keys.discard('version')
@@ -136,10 +134,6 @@ def _get_fabricated_reverse_dep_search_record(spec):
         from ..exceptions import CondaValueError
         raise CondaValueError("Invalid spec for reverse dependency search. "
                               "Only name and version can be specified. %s" % spec)
-    fabricated_record.update({
-        'build': '0',
-        'build_number': 0,
-    })
     return fabricated_record
 
 
