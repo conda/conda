@@ -19,22 +19,23 @@ build:
     - Scripts/deactivate.bat    [win]
     - Scripts/activate          [win]
     - Scripts/deactivate        [win]
-  entry_points:
-    - conda = conda.cli:main
-    - conda-env = conda_env.cli.main:main
 
 requirements:
   build:
     - python
-    - m2-base              [win]
-    - m2-filesystem        [win]
-    - m2-git               [win]
+    - enum34               [py<34]
+    - futures              [py<34]
+    - menuinst >=1.4.11    [win]
+    - pycosat >=0.6.3
+    - pyopenssl >=16.2.0
+    - requests >=2.12.4,<3
+    - ruamel_yaml >=0.11.14
   run:
-    - python
     - conda-env >=2.6
+    - python
     - enum34               [py<34]
     - futures >=3.0.0      [py<34]
-    - menuinst             [win]
+    - menuinst >=1.4.11    [win]
     - pycosat >=0.6.3
     - pyopenssl >=16.2.0
     - requests >=2.12.4,<3

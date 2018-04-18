@@ -6,7 +6,5 @@ pytest-cov
 pytest-timeout
 radon
 responses
-anaconda-client
-nbformat
 codecov==2.0.5
 pexpect

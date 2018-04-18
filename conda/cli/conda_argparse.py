@@ -11,7 +11,7 @@ import sys
 from textwrap import dedent
 
 from .. import __version__
-from ..base.constants import CONDA_HOMEPAGE_URL
+from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL
 from ..common.constants import NULL
 
 log = getLogger(__name__)
@@ -57,6 +57,7 @@ def generate_parser():
     configure_parser_create(sub_parsers)
     configure_parser_help(sub_parsers)
     configure_parser_info(sub_parsers)
+    configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)
     configure_parser_list(sub_parsers)
     configure_parser_package(sub_parsers)
@@ -67,6 +68,25 @@ def generate_parser():
     configure_parser_update(sub_parsers, name='upgrade')
 
     return p
+
+
+def generate_pip_parser():
+    p = ArgumentParser(
+        description='conda is a tool for managing and deploying applications,'
+                    ' environments and packages.',
+    )
+    p.add_argument(
+        '-V', '--version',
+        action='version',
+        version='conda %s' % __version__,
+        help="Show the conda version number and exit."
+    )
+    sub_parsers = p.add_subparsers(
+        metavar='command',
+        dest='cmd',
+    )
+    configure_parser_info(sub_parsers)
+    configure_parser_init(sub_parsers)
 
 
 def do_call(args, parser):
@@ -510,6 +530,124 @@ def configure_parser_create(sub_parsers):
         help='Ignore create_default_packages in the .condarc file.',
     )
     p.set_defaults(func='.main_create.execute')
+
+
+def configure_parser_init(sub_parsers):
+    help = "Initialize conda for shell interaction. [Experimental]"
+    descr = help
+
+    epilog = dedent("""
+    Key parts of conda's functionality require that it interact directly with the shell
+    within which conda is being invoked. The `conda activate` and `conda deactivate` commands
+    specifically are shell-level commands. That is, they affect the state (e.g. environment
+    variables) of the shell context being interacted with. Other core commands, like
+    `conda create` and `conda install`, also necessarily interact with the shell environment.
+    They're therefore implemented in ways specific to each shell. Each shell must be configured
+    to make use of them.
+
+    This command makes changes to your system that are specific and customized for each shell.
+    To see the specific files and locations on your system that will be affected before, use the
+    '--dry-run' flag.  To see the exact changes that are being or will be made to each location,
+    use the '--verbose' flag.
+
+    IMPORTANT: After running `conda init`, most shells will need to be closed and restarted
+               for changes to take effect.
+
+    """)
+
+    # dev_example = dedent("""
+    #     # An example for creating an environment to develop on conda's own code. Clone the
+    #     # conda repo and install a dedicated miniconda within it. Remove all remnants of
+    #     # conda source files in the `site-packages` directory associated with
+    #     # `~/conda/devenv/bin/python`. Write a `conda.pth` file in that `site-packages`
+    #     # directory pointing to source code in `~/conda`, the current working directory.
+    #     # Write commands to stdout, suitable for bash `eval`, that sets up the current
+    #     # shell as a dev environment.
+    #
+    #         $ CONDA_PROJECT_ROOT="~/conda"
+    #         $ git clone git@github.com:conda/conda "$CONDA_PROJECT_ROOT"
+    #         $ cd "$CONDA_PROJECT_ROOT"
+    #         $ wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    #         $ bash Miniconda3-latest-Linux-x86_64.sh -bfp ./devenv
+    #         $ eval "$(./devenv/bin/python -m conda init --dev bash)"
+    #
+    #
+    # """)
+
+    p = sub_parsers.add_parser(
+        'init',
+        description=descr,
+        help=help,
+        epilog=epilog,
+    )
+
+    p.add_argument(
+        "--dev",
+        action="store_true",
+        help=SUPPRESS,
+        default=NULL,
+    )
+
+    p.add_argument(
+        "--all",
+        action="store_true",
+        help="Initialize all currently available shells.",
+        default=NULL,
+    )
+
+    setup_type_group = p.add_argument_group('setup type')
+    setup_type_group.add_argument(
+        "--install",
+        action="store_true",
+        help=SUPPRESS,
+        default=NULL,
+    )
+    setup_type_group.add_argument(
+        "--user",
+        action="store_true",
+        # help="Initialize conda for the current user (default).",
+        help=SUPPRESS,
+        default=NULL,
+    )
+    setup_type_group.add_argument(
+        "--no-user",
+        action="store_false",
+        # help="Don't initialize conda for the current user (default).",
+        help=SUPPRESS,
+        default=NULL,
+    )
+    setup_type_group.add_argument(
+        "--system",
+        action="store_true",
+        # help="Initialize conda for all users on the system.",
+        help=SUPPRESS,
+        default=NULL,
+    )
+
+    p.add_argument(
+        'shells',
+        nargs='*',
+        help="One or more shells to be initialized. If not given, the default value is "
+             "'bash' on unix and 'cmd.exe' on Windows. Use the '--all' flag to initialize "
+             "all shells. Currently compatible shells are {%s}"
+             % ", ".join(sorted(COMPATIBLE_SHELLS)),
+    )
+
+    if on_win:
+        p.add_argument(
+            "--anaconda-prompt",
+            action="store_true",
+            help="Add an 'Anaconda Prompt' icon to your desktop.",
+            default=NULL,
+        )
+
+    add_parser_json(p)
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Only display what would have been done.",
+    )
+    p.set_defaults(func='.main_init.execute')
 
 
 def configure_parser_help(sub_parsers):

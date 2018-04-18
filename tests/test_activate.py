@@ -960,7 +960,7 @@ class InteractiveShell(object):
     shells = {
         'posix': {
             'activator': 'posix',
-            'init_command': 'set -u && . conda/shell/etc/profile.d/conda.sh',
+            'init_command': 'env | sort && eval "$(python -m conda shell.posix hook)"',
             'print_env_var': 'echo "$%s"',
         },
         'bash': {
@@ -971,10 +971,11 @@ class InteractiveShell(object):
         },
         'zsh': {
             'base_shell': 'posix',  # inheritance implemented in __init__
+            'init_command': 'env | sort && eval "$(python -m conda shell.zsh hook)"',
         },
         'cmd.exe': {
             'activator': 'cmd.exe',
-            'init_command': None,
+            'init_command': 'conda\\shell\\condacmd\\conda-hook.bat',
             'print_env_var': '@echo %%%s%%',
         },
         'csh': {
@@ -987,7 +988,7 @@ class InteractiveShell(object):
         },
         'fish': {
             'activator': 'fish',
-            'init_command': 'source shell/etc/fish/conf.d/conda.fish',
+            'init_command': 'eval (python -m conda shell.fish hook)',
             'print_env_var': 'echo $%s',
         },
     }
@@ -1004,20 +1005,31 @@ class InteractiveShell(object):
     def __enter__(self):
         from pexpect.popen_spawn import PopenSpawn
 
-        cwd = os.getcwd()
+        # remove all CONDA_ env vars
         env = os.environ.copy()
+        env = {str(k): str(v) for k, v in iteritems(env)}
+        remove_these = {var_name for var_name in env if var_name.startswith('CONDA_')}
+        for var_name in remove_these:
+            del env[var_name]
+
+        p = PopenSpawn(self.shell_name, timeout=12, maxread=2000, searchwindowsize=None,
+                       logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
+                       codec_errors='strict')
+
+        # set state for context
         joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
-        env['PATH'] = joiner(self.activator.path_conversion(concatv(
-            self.activator._get_path_dirs(join(cwd, 'conda', 'shell')),
+        PATH = joiner(self.activator.path_conversion(concatv(
             (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
         )))
-        env['PYTHONPATH'] = CONDA_PACKAGE_ROOT
-        env = {str(k): str(v) for k, v in iteritems(env)}
+        env = {
+            'CONDA_AUTO_ACTIVATE_BASE': 'false',
+            'PYTHONPATH': CONDA_PACKAGE_ROOT,
+            'PATH': PATH,
+        }
+        for name, val in env.items():
+            p.sendline(self.activator.export_var_tmpl % (name, val))
 
-        p = PopenSpawn(self.shell_name, timeout=6, maxread=2000, searchwindowsize=None,
-                       logfile=sys.stdout, cwd=cwd, env=env, encoding=None,
-                       codec_errors='strict')
         if self.init_command:
             p.sendline(self.init_command)
         self.p = p

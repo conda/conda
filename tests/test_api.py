@@ -196,9 +196,10 @@ def test_PackageCacheData_contract():
 def test_PackageCacheData_return_value_contract():
     pc = PackageCacheData(context.pkgs_dirs[0])
 
-    single_pcrec = next(pc.iter_records())
-    get_result = pc.get(PackageRef.from_objects(single_pcrec))
-    assert isinstance(get_result, PackageCacheRecord)
+    single_pcrec = next(pc.iter_records(), None)
+    if single_pcrec:
+        get_result = pc.get(PackageRef.from_objects(single_pcrec))
+        assert isinstance(get_result, PackageCacheRecord)
 
     query_result = pc.query('openssl')
     assert isinstance(query_result, tuple)

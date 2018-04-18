@@ -8,50 +8,24 @@ defaults: &defaults
     - image: condatest/linux-64-python-3.6
       # Dockerfile at https://github.com/conda/conda-docker/blob/master/condatest/linux-64-python3.6/Dockerfile
 
-remove_conda: &remove_conda
-  name: remove conda
-  command: |
-    prefix=/opt/conda
-    BIN_DIR=bin
-    PYTHON_EXE="$prefix/$BIN_DIR/python"
-    site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
-    sudo /opt/conda/bin/conda config --system --set auto_update_conda false
-    sudo rm -rf \
-       $prefix/$BIN_DIR/activate* \
-       $prefix/$BIN_DIR/conda* \
-       $prefix/$BIN_DIR/deactivate* \
-       $prefix/etc/profile.d/conda.sh \
-       $prefix/conda-meta/conda-*.json \
-       $site_packages/conda*
-
 
 main_test: &main_test
   <<: *defaults
   steps:
-    - run: *remove_conda
     - checkout
     - run:
         name: unit tests
         command: |
           echo "local_repodata_ttl: 1800" >> ~/.condarc
-          mkdir -p ~/.conda
-          /opt/conda/bin/python utils/setup-testing.py --version
-          /opt/conda/bin/python -m conda info
-          export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
-          export TEST_PLATFORM=$(/opt/conda/bin/python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
-          export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-          ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
-          /opt/conda/bin/py.test $ADD_COV -m "not integration and not installed"
-        # PYTHON_MAJOR_VERSION and TEST_PLATFORM are used by coverage via setup.cfg
+          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+          conda info
+          py.test $ADD_COV -m "not integration and not installed"
     - run:
         name: integration tests
         command: |
-          export PYTHON_MAJOR_VERSION=$(/opt/conda/bin/python -c "import sys; print(sys.version_info[0])")
-          export TEST_PLATFORM=$(/opt/conda/bin/python -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
-          export PYTHONHASHSEED=$(/opt/conda/bin/python -c "import random as r; print(r.randint(0,4294967296))") && echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-          ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
-          /opt/conda/bin/py.test $ADD_COV --cov-append -m "integration and not installed" -v
-          /opt/conda/bin/python -m conda.common.io
+          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+          py.test $ADD_COV --cov-append -m "integration and not installed" -v
+          python -m conda.common.io
     - run:
         name: upload codecov
         command: /opt/conda/bin/codecov --env PYTHON_VERSION --flags integration --required
@@ -62,20 +36,12 @@ conda_build_test: &conda_build_test
   environment:
     CONDA_BUILD: master
   steps:
-    - run: *remove_conda
     - checkout
     - run:
-        name: install conda full
-        command: |
-          sudo su root -c ". utils/functions.sh && install_conda_shell_scripts /opt/conda ."
-          sudo su root -c ". utils/functions.sh && make_conda_entrypoint /opt/conda/bin/conda /opt/conda/bin/python ~circleci/conda 'from conda.cli import main'"
-          sudo su root -c ". utils/functions.sh && make_conda_entrypoint /opt/conda/bin/conda-env /opt/conda/bin/python ~circleci/conda 'from conda_env.cli.main import main'"
-          site_packages=$(/opt/conda/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
-          sudo su -c "echo /home/circleci/conda > $site_packages/conda.pth"
-          sudo /opt/conda/bin/conda install -yq conda-verify
-    - run:
         name: checkout conda-build
+        # TODO: transfer conda-verify install to Dockerfile
         command: |
+          sudo su root -c "/opt/conda/bin/conda install -yq conda-verify"
           cb_branch="${CONDA_BUILD:-master}"
           git clone -b $cb_branch --depth 750 https://github.com/conda/conda-build.git ~/conda-build
           cd ~/conda-build
@@ -93,10 +59,9 @@ conda_build_test: &conda_build_test
         name: configure and pre-populate cache
         # pre-populating the package cache helps avoid race conditions for testing in parallel
         command: |
+          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           echo "safety_checks: disabled" >> ~/.condarc
           echo "local_repodata_ttl: 1800" >> ~/.condarc
-          mkdir -p ~/.conda
-          . /opt/conda/etc/profile.d/conda.sh
           conda create -n blarg -yq --download-only python=2.7
           conda create -n blarg -yq --download-only python=3.4
           conda create -n blarg -yq --download-only python=3.5
@@ -124,11 +89,9 @@ conda_build_test: &conda_build_test
           # skipping cran-nmf because nmf was removed/archived in cran
           # for test_preferred_env see https://github.com/conda/conda/issues/3912#issuecomment-374820599
         command: |
-          . /opt/conda/etc/profile.d/conda.sh
-          conda activate base
+          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           conda info
           cd ~/conda-build
-          env | sort
           py.test --basetemp /tmp/cb -v --durations=20 -n 3 -m "not serial" tests -k "$CONDABUILD_SKIP"
 
     - run:
@@ -146,11 +109,8 @@ conda_build_test: &conda_build_test
           # env_creation_with_short_prefix_does_not_deadlock: error is prefix is too long
           # for test_preferred_env see https://github.com/conda/conda/issues/3912#issuecomment-374820599
         command: |
-          . /opt/conda/etc/profile.d/conda.sh
-          conda activate base
-          conda info
+          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           cd ~/conda-build
-          env | sort
           py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP"
           /opt/conda/bin/python -m conda.common.io
 
@@ -158,18 +118,15 @@ conda_build_test: &conda_build_test
 activate_tests: &activate_tests
   <<: *defaults
   steps:
-    - run: *remove_conda
     - checkout
-    - run:
-        name: setup
-        command: |
-          /opt/conda/bin/python -m conda._vendor.auxlib.packaging conda
-          /opt/conda/bin/python -c "import conda; print(conda.__version__)"
-          /opt/conda/bin/python -m conda info
     - run:
         name: activate tests
         command: |
-          ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
+          echo "auto_activate_base: false" >> ~/.condarc
+          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+          python -m conda._vendor.auxlib.packaging conda
+          conda deactivate
+          conda info
           /opt/conda/bin/py.test $ADD_COV -m "installed" -v --shell=bash --shell=zsh
 
 

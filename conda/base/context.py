@@ -108,6 +108,7 @@ class Context(Configuration):
     allow_cycles = PrimitiveParameter(True)  # allow cyclical dependencies, or raise
     allow_softlinks = PrimitiveParameter(False)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
+    auto_activate_base = PrimitiveParameter(True)
     notify_outdated_conda = PrimitiveParameter(True)
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
@@ -690,6 +691,7 @@ class Context(Configuration):
         )),
         ('Output, Prompt, and Flow Control Configuration', (
             'always_yes',
+            'auto_activate_base',
             'changeps1',
             'json',
             'notify_outdated_conda',
@@ -784,6 +786,9 @@ class Context(Configuration):
                 """),
             'anaconda_upload': dals("""
                 Automatically upload packages built with conda build to anaconda.org.
+                """),
+            'auto_activate_base': dals("""
+                Automatically activate the base environment during shell initialization.
                 """),
             'auto_update_conda': dals("""
                 Automatically update conda when a newer or higher priority version is detected.

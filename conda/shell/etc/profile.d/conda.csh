@@ -1,11 +1,4 @@
 
-# Recommended way to make the conda command available in csh is
-#   $ sudo ln -s <CONDA_ROOT>/etc/profile.d/conda.csh /etc/profile.d/conda.csh
-# or in ~/.cshrc add the line
-#   source <CONDA_ROOT>/etc/profile.d/conda.csh
-
-# This block should only be for dev work. Under normal installs, _CONDA_EXE will be templated
-# in at the top of this file.
 if (! $?_CONDA_EXE) then
   set _CONDA_EXE="${PWD}/conda/shell/bin/conda"
 else

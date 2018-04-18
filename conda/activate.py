@@ -8,8 +8,8 @@ import re
 import sys
 from tempfile import NamedTemporaryFile
 
+from . import CONDA_PACKAGE_ROOT, CondaError
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-context.__init__()  # On import, context does not include SEARCH_PATH. This line fixes that.
 
 try:
     from cytoolz.itertoolz import concatv, drop
@@ -53,6 +53,8 @@ class _Activator(object):
     set_var_tmpl = None
     run_script_tmpl = None
 
+    hook_source_path = None
+
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
 
@@ -87,10 +89,23 @@ class _Activator(object):
         return self._finalize(self._yield_commands(self.build_reactivate()),
                               self.tempfile_extension)
 
+    def hook(self, auto_activate_base=None):
+        builder = []
+        builder.append(self._hook_preamble())
+        with open(self.hook_source_path) as fsrc:
+            builder.append(fsrc.read())
+        if auto_activate_base is None and context.auto_activate_base or auto_activate_base:
+            builder.append("conda activate base\n")
+        return "\n".join(builder)
+
     def execute(self):
         # return value meant to be written to stdout
         self._parse_and_set_args(self._raw_arguments)
         return getattr(self, self.command)()
+
+    def _hook_preamble(self):
+        # must be implemented in subclass
+        raise NotImplementedError()
 
     def _parse_and_set_args(self, arguments):
         # the first index of arguments MUST be either activate, deactivate, or reactivate
@@ -113,7 +128,7 @@ class _Activator(object):
             class Help(CondaError):  # NOQA
                 pass
             raise Help("help requested for %s" % command)
-        elif command not in ('activate', 'deactivate', 'reactivate'):
+        elif command not in ('activate', 'deactivate', 'reactivate', 'hook'):
             from .exceptions import ArgumentError
             raise ArgumentError("invalid command '%s'" % command)
         elif command == 'activate' and len(remainder_args) > 1:
@@ -401,7 +416,7 @@ class _Activator(object):
         pass
 
     def _default_env(self, prefix):
-        if prefix == context.root_prefix:
+        if normpath(prefix) == normpath(context.root_prefix):
             return 'base'
         return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
 
@@ -503,6 +518,8 @@ class PosixActivator(_Activator):
         self.set_var_tmpl = "%s='%s'"
         self.run_script_tmpl = '\\. "%s"'
 
+        self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')
+
         super(PosixActivator, self).__init__(arguments)
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
@@ -517,6 +534,12 @@ class PosixActivator(_Activator):
         set_vars.update({
             'PS1': conda_prompt_modifier + ps1,
         })
+
+    def _hook_preamble(self):
+        if on_win:
+            return '_CONDA_EXE="$(cygpath \'%s\')"' % context.conda_exe
+        else:
+            return '_CONDA_EXE="%s"' % context.conda_exe
 
 
 class CshActivator(_Activator):
@@ -534,6 +557,8 @@ class CshActivator(_Activator):
         self.set_var_tmpl = "set %s='%s'"
         self.run_script_tmpl = 'source "%s"'
 
+        self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.csh')
+
         super(CshActivator, self).__init__(arguments)
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
@@ -544,6 +569,16 @@ class CshActivator(_Activator):
         set_vars.update({
             'prompt': conda_prompt_modifier + prompt,
         })
+
+    def _hook_preamble(self):
+        if on_win:
+            return ('setenv _CONDA_ROOT `cygpath %s`\n'
+                    'setenv _CONDA_EXE `cygpath %s`'
+                    % (context.conda_prefix, context.conda_exe))
+        else:
+            return ('setenv _CONDA_ROOT "%s"\n'
+                    'setenv _CONDA_EXE "%s"'
+                    % (context.conda_prefix, context.conda_exe))
 
 
 class XonshActivator(_Activator):
@@ -561,7 +596,12 @@ class XonshActivator(_Activator):
         self.set_var_tmpl = "$%s = '%s'"  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = 'source "%s"'
 
+        self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')
+
         super(XonshActivator, self).__init__(arguments)
+
+    def _hook_preamble(self):
+        return '_CONDA_EXE = "%s"' % context.conda_exe
 
 
 class CmdExeActivator(_Activator):
@@ -579,6 +619,10 @@ class CmdExeActivator(_Activator):
         self.set_var_tmpl = '@SET "%s=%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = '@CALL "%s"'
 
+        self.hook_source_path = None
+        # TODO: cmd.exe doesn't get a hook function? Or do we need to do something different?
+        #       Like, for cmd.exe only, put a special directory containing only conda.bat on PATH?
+
         super(CmdExeActivator, self).__init__(arguments)
 
     def _build_activate_shell_custom(self, export_vars):
@@ -587,6 +631,9 @@ class CmdExeActivator(_Activator):
             export_vars.update({
                 "PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),
             })
+
+    def _hook_preamble(self):
+        raise NotImplementedError()
 
 
 class FishActivator(_Activator):
@@ -604,7 +651,20 @@ class FishActivator(_Activator):
         self.set_var_tmpl = 'set -gx %s "%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = 'source "%s"'
 
+        self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d',
+                                     'conda.fish')
+
         super(FishActivator, self).__init__(arguments)
+
+    def _hook_preamble(self):
+        if on_win:
+            return ('set _CONDA_ROOT (cygpath %s)\n'
+                    'set _CONDA_EXE (cygpath %s)'
+                    % (context.conda_prefix, context.conda_exe))
+        else:
+            return ('set _CONDA_ROOT "%s"\n'
+                    'set _CONDA_EXE "%s"'
+                    % (context.conda_prefix, context.conda_exe))
 
 
 class PowershellActivator(_Activator):
@@ -622,12 +682,22 @@ class PowershellActivator(_Activator):
         self.set_var_tmpl = '$env:%s = "%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = '. "%s"'
 
+        self.hook_source_path = None  # TODO: doesn't yet exist
+
         super(PowershellActivator, self).__init__(arguments)
+
+    def _hook_preamble(self):
+        raise NotImplementedError()
 
 
 activator_map = {
     'posix': PosixActivator,
+    'ash': PosixActivator,
+    'bash': PosixActivator,
+    'dash': PosixActivator,
+    'zsh': PosixActivator,
     'csh': CshActivator,
+    'tcsh': CshActivator,
     'xonsh': XonshActivator,
     'cmd.exe': CmdExeActivator,
     'fish': FishActivator,
@@ -638,6 +708,8 @@ activator_map = {
 def main(argv=None):
     from .common.compat import init_std_stream_encoding
 
+    context.__init__()  # On import, context does not include SEARCH_PATH. This line fixes that.
+
     init_std_stream_encoding()
     argv = argv or sys.argv
     assert len(argv) >= 3
@@ -647,14 +719,12 @@ def main(argv=None):
     try:
         activator_cls = activator_map[shell]
     except KeyError:
-        from . import CondaError
         raise CondaError("%s is not a supported shell." % shell)
     activator = activator_cls(activator_args)
     try:
         print(activator.execute(), end='')
         return 0
     except Exception as e:
-        from . import CondaError
         if isinstance(e, CondaError):
             print(text_type(e), file=sys.stderr)
             return e.return_code
