@@ -14,7 +14,6 @@ from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDA
                         PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict, ROOT_ENV_NAME,
                         SEARCH_PATH, SafetyChecks)
 from .. import __version__ as CONDA_VERSION
-from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
@@ -419,12 +418,23 @@ class Context(Configuration):
         mkdir_p(trash_dir)
         return trash_dir
 
-    @property
+    @memoizedproperty
     def _user_data_dir(self):
         if on_win:
-            return user_data_dir(APP_NAME, APP_NAME)
+            from ..common.platform import is_admin_on_windows
+            if is_admin_on_windows():
+                from .._vendor.appdirs import site_data_dir
+                return site_data_dir(APP_NAME, APP_NAME)
+            else:
+                from .._vendor.appdirs import user_data_dir
+                return user_data_dir(APP_NAME, APP_NAME)
         else:
-            return expand(join('~', '.conda'))
+            if 'SUDO_UID' in os.environ:
+                from pwd import getpwuid
+                pwentry = getpwuid(os.getuid())
+                return expand(join(pwentry.pw_dir, '.conda'))
+            else:
+                return expand(join('~', '.conda'))
 
     @property
     def default_prefix(self):
