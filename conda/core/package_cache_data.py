@@ -156,9 +156,7 @@ class PackageCacheData(object):
                     package_cache.__is_writable = True
                     return package_cache
 
-        # TODO: raise NoWritablePackageCacheError()
-        raise CondaError("No writable package cache directories found in"
-                         "%s" % dashlist(pkgs_dirs))
+        raise NoWritablePkgsDirError(pkgs_dirs)
 
     @classmethod
     def writable_caches(cls, pkgs_dirs=None):
