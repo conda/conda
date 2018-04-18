@@ -17,7 +17,7 @@ from ..base.context import context
 from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, string_types,
                              text_type, with_metaclass)
 from ..common.constants import NULL
-from ..common.io import ProgressBar, dashlist, time_recorder
+from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
