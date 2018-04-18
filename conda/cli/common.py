@@ -7,6 +7,7 @@ import sys
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
+from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
@@ -43,18 +44,18 @@ def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
             return choices[user_choice]
 
 
-def confirm_yn(message="Proceed", default='yes'):
-    if context.dry_run:
+def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
+    dry_run = context.dry_run if dry_run is NULL else dry_run
+    if dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
     if context.always_yes:
         return True
     try:
-        choice = confirm(message=message, choices=('yes', 'no'),
-                         default=default)
+        choice = confirm(message=message, choices=('yes', 'no'))
     except KeyboardInterrupt as e:  # pragma: no cover
         from ..exceptions import CondaSystemExit
-        raise CondaSystemExit("\nOperation aborted.  Exiting.", e)
+        raise CondaSystemExit("\nOperation aborted.  Exiting.")
     if choice == 'no':
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("Exiting.")
