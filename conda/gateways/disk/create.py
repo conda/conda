@@ -351,3 +351,23 @@ def create_package_cache_directory(pkgs_dir):
         else:
             raise
     return True
+
+
+def create_envs_directory(envs_dir):
+    # returns False if envs directory cannot be created
+
+    # The magic file being used here could change in the future.  Don't write programs
+    # outside this code base that rely on the presence of this file.
+    # This value is duplicated in conda.base.context._first_writable_envs_dir().
+    envs_dir_magic_file = join(envs_dir, '.conda_envs_dir_test')
+    try:
+        log.trace("creating envs directory '%s'", envs_dir)
+        sudo_safe = expand(envs_dir).startswith(expand('~'))
+        touch(join(envs_dir, envs_dir_magic_file), mkdir=True, sudo_safe=sudo_safe)
+    except (IOError, OSError) as e:
+        if e.errno in (EACCES, EPERM):
+            log.trace("cannot create envs directory '%s'", envs_dir)
+            return False
+        else:
+            raise
+    return True

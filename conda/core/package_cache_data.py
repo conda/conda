@@ -8,11 +8,10 @@ from os import listdir
 from os.path import basename, dirname, join
 from tarfile import ReadError
 
-from conda._vendor.auxlib.decorators import memoizemethod
-
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
+from .._vendor.auxlib.decorators import memoizemethod
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, string_types,
@@ -22,7 +21,7 @@ from ..common.io import ProgressBar, time_recorder
 from ..common.path import expand, url_to_path
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
-from ..exceptions import NotWritableError
+from ..exceptions import NoWritablePkgsDirError, NotWritableError
 from ..gateways.disk.create import (create_package_cache_directory, extract_tarball,
                                     write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf
@@ -64,7 +63,7 @@ class PackageCacheData(object):
     def __init__(self, pkgs_dir):
         self.pkgs_dir = pkgs_dir
         self.__package_cache_records = None
-        self.__is_writable = None
+        self.__is_writable = NULL
 
         self._urls_data = UrlsData(pkgs_dir)
 
@@ -132,10 +131,8 @@ class PackageCacheData(object):
         if pkgs_dirs is None:
             pkgs_dirs = context.pkgs_dirs
 
-        return concat(pcache.query(package_ref_or_match_spec) for pcache in concatv(
-            cls.writable_caches(pkgs_dirs),
-            cls.read_only_caches(pkgs_dirs),
-        ))
+        return concat(pcache.query(package_ref_or_match_spec)
+                      for pcache in cls.all_caches_writable_first(pkgs_dirs))
 
     # ##########################################################################################
     # these class methods reach across all package cache directories (usually context.pkgs_dirs)
@@ -143,7 +140,23 @@ class PackageCacheData(object):
 
     @classmethod
     def first_writable(cls, pkgs_dirs=None):
-        return cls.writable_caches(pkgs_dirs)[0]
+        # Calling this method will *create* a package cache directory if one does not already
+        # exist. Any caller should intend to *use* that directory for *writing*, not just reading.
+        if pkgs_dirs is None:
+            pkgs_dirs = context.pkgs_dirs
+        for pkgs_dir in pkgs_dirs:
+            package_cache = cls(pkgs_dir)
+            i_wri = package_cache.is_writable
+            if i_wri is True:
+                return package_cache
+            elif i_wri is None:
+                # means package cache directory doesn't exist, need to try to create it
+                created = create_package_cache_directory(package_cache.pkgs_dir)
+                if created:
+                    package_cache.__is_writable = True
+                    return package_cache
+
+        raise NoWritablePkgsDirError(pkgs_dirs)
 
     @classmethod
     def writable_caches(cls, pkgs_dirs=None):
@@ -151,10 +164,6 @@ class PackageCacheData(object):
             pkgs_dirs = context.pkgs_dirs
         writable_caches = tuple(filter(lambda c: c.is_writable,
                                        (cls(pd) for pd in pkgs_dirs)))
-        if not writable_caches:
-            # TODO: raise NoWritablePackageCacheError()
-            raise CondaError("No writable package cache directories found in\n"
-                             "%s" % text_type(pkgs_dirs))
         return writable_caches
 
     @classmethod
@@ -164,6 +173,16 @@ class PackageCacheData(object):
         read_only_caches = tuple(filter(lambda c: not c.is_writable,
                                         (cls(pd) for pd in pkgs_dirs)))
         return read_only_caches
+
+    @classmethod
+    def all_caches_writable_first(cls, pkgs_dirs=None):
+        if pkgs_dirs is None:
+            pkgs_dirs = context.pkgs_dirs
+        pc_groups = groupby(
+            lambda pc: pc.is_writable,
+            (cls(pd) for pd in pkgs_dirs)
+        )
+        return tuple(concatv(pc_groups.get(True, ()), pc_groups.get(False, ())))
 
     @classmethod
     def get_all_extracted_entries(cls):
@@ -184,10 +203,9 @@ class PackageCacheData(object):
         # if ProgressiveFetchExtract did its job correctly, what we're looking for
         #   should be the matching dist_name in the first writable package cache
         # we'll search all caches for a match, but search writable caches first
-        caches = concatv(cls.writable_caches(), cls.read_only_caches())
         dist_str = package_ref.dist_str().rsplit(':', 1)[-1]
         pc_entry = next((cache._scan_for_dist_no_channel(dist_str)
-                         for cache in caches if cache), None)
+                         for cache in cls.all_caches_writable_first() if cache), None)
         if pc_entry is not None:
             return pc_entry
         raise CondaError("No package '%s' found in cache directories." % Dist(package_ref))
@@ -223,23 +241,21 @@ class PackageCacheData(object):
 
     @property
     def is_writable(self):
-        if self.__is_writable is None:
+        # returns None if package cache directory does not exist / has not been created
+        if self.__is_writable is NULL:
             return self._check_writable()
         return self.__is_writable
 
     def _check_writable(self):
-        if isdir(self.pkgs_dir):
+        magic_file = join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE)
+        if isfile(magic_file):
             i_wri = file_path_is_writable(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
+            self.__is_writable = i_wri
+            log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         else:
             log.trace("package cache directory '%s' does not exist", self.pkgs_dir)
-            i_wri = create_package_cache_directory(self.pkgs_dir)
-        log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
-        self.__is_writable = i_wri
+            self.__is_writable = i_wri = None
         return i_wri
-
-    def _ensure_exists(self):
-        if not isfile(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE)):
-            create_package_cache_directory(self.pkgs_dir)
 
     @staticmethod
     def _clean_tarball_path_and_get_md5sum(tarball_path, md5sum=None):
@@ -461,7 +477,6 @@ class ProgressiveFetchExtract(object):
         # otherwise, if we find a match in a non-writable cache, we link it to the first writable
         #   cache, and then extract
         first_writable_cache = PackageCacheData.first_writable()
-        first_writable_cache._ensure_exists()
         pcrec_from_writable_cache = next((
             pcrec for pcrec in concat(pcache.query(pref_or_spec)
                                       for pcache in PackageCacheData.writable_caches())

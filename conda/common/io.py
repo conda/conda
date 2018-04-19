@@ -32,6 +32,10 @@ log = getLogger(__name__)
 _FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s")
 
 
+def dashlist(iterable, indent=2):
+    return ''.join('\n' + ' ' * indent + '- ' + str(x) for x in iterable)
+
+
 class ContextDecorator(object):
     """Base class for a context manager class (implementing __enter__() and __exit__()) that also
     makes it a decorator.

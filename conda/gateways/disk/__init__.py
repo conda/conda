@@ -74,8 +74,16 @@ def mkdir_p_sudo_safe(path):
         mkdir_p_sudo_safe(base_dir)
     log.trace('making directory %s', path)
     mkdir(path)
-    if not on_win and os.environ.get('SUDO_UID') is not None:
-        uid = int(os.environ['SUDO_UID'])
-        gid = int(os.environ.get('SUDO_GID', -1))
-        log.trace("chowning %s:%s %s", uid, gid, path)
-        os.chown(path, uid, gid)
+    # # per the following issues, removing this code as of 4.6.0:
+    # #   - https://github.com/conda/conda/issues/6569
+    # #   - https://github.com/conda/conda/issues/6576
+    # #   - https://github.com/conda/conda/issues/7109
+    # if not on_win and os.environ.get('SUDO_UID') is not None:
+    #     uid = int(os.environ['SUDO_UID'])
+    #     gid = int(os.environ.get('SUDO_GID', -1))
+    #     log.trace("chowning %s:%s %s", uid, gid, path)
+    #     os.chown(path, uid, gid)
+    if not on_win:
+        # set newly-created directory permissions to 02775
+        # https://github.com/conda/conda/issues/6610#issuecomment-354478489
+        os.chmod(path, 0o2775)

@@ -14,8 +14,8 @@ from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
 from .base.constants import PathConflict, SafetyChecks
-from .common.compat import ensure_text_type, input, iteritems, iterkeys, on_win, string_types, PY2
-from .common.io import timeout
+from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
+from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
 from .common.url import maybe_unquote
 
@@ -687,6 +687,20 @@ class NotWritableError(CondaError, OSError):
                 'gid': os.getegid(),
             })
         super(NotWritableError, self).__init__(message, **kwargs)
+
+
+class NoWritableEnvsDirError(CondaError):
+
+    def __init__(self, envs_dirs, **kwargs):
+        message = "No writeable envs directories configured.%s" % dashlist(envs_dirs)
+        super(NoWritableEnvsDirError, self).__init__(message, envs_dirs=envs_dirs, **kwargs)
+
+
+class NoWritablePkgsDirError(CondaError):
+
+    def __init__(self, pkgs_dirs, **kwargs):
+        message = "No writeable pkgs directories configured.%s" % dashlist(pkgs_dirs)
+        super(NoWritablePkgsDirError, self).__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
 
 
 class CondaDependencyError(CondaError):
