@@ -187,7 +187,7 @@ class _Activator(object):
 
         activate_scripts = self._get_activate_scripts(prefix)
         conda_default_env = self._default_env(prefix)
-        conda_prompt_modifier = self._prompt_modifier(conda_default_env)
+        conda_prompt_modifier = self._prompt_modifier(prefix, conda_default_env)
 
         assert 0 <= old_conda_shlvl <= max_shlvl
         set_vars = {}
@@ -274,7 +274,7 @@ class _Activator(object):
         else:
             new_prefix = self.environ.get('CONDA_PREFIX_%d' % new_conda_shlvl)
             conda_default_env = self._default_env(new_prefix)
-            conda_prompt_modifier = self._prompt_modifier(conda_default_env)
+            conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
 
             unset_vars = (
                 'CONDA_PREFIX_%d' % new_conda_shlvl,
@@ -314,9 +314,11 @@ class _Activator(object):
         conda_default_env = self.environ.get('CONDA_DEFAULT_ENV', self._default_env(conda_prefix))
         new_path = self.pathsep_join(self._replace_prefix_in_path(conda_prefix, conda_prefix))
         set_vars = {}
-        conda_prompt_modifier = self._prompt_modifier(conda_default_env)
+
+        conda_prompt_modifier = self._prompt_modifier(conda_prefix, conda_default_env)
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
+
         # environment variables are set only to aid transition from conda 4.3 to conda 4.4
         return {
             'unset_vars': (),
@@ -324,7 +326,7 @@ class _Activator(object):
             'export_vars': {
                 'PATH': new_path,
                 'CONDA_SHLVL': conda_shlvl,
-                'CONDA_PROMPT_MODIFIER': self._prompt_modifier(conda_default_env),
+                'CONDA_PROMPT_MODIFIER': self._prompt_modifier(conda_prefix, conda_default_env),
             },
             'deactivate_scripts': self._get_deactivate_scripts(conda_prefix),
             'activate_scripts': self._get_activate_scripts(conda_prefix),
@@ -420,8 +422,15 @@ class _Activator(object):
             return 'base'
         return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
 
-    def _prompt_modifier(self, conda_default_env):
-        return "(%s) " % conda_default_env if context.changeps1 else ""
+    def _prompt_modifier(self, prefix, conda_default_env):
+        if context.changeps1:
+            return context.env_prompt.format(
+                default_env=conda_default_env,
+                prefix=prefix,
+                name=basename(prefix),
+            )
+        else:
+            return ""
 
     def _get_activate_scripts(self, prefix):
         return self.path_conversion(glob(join(
