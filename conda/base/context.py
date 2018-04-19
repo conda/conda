@@ -648,6 +648,7 @@ class Context(Configuration):
             'allow_non_channel_urls',
         )),
         ('Basic Conda Configuration', (  # TODO: Is there a better category name here?
+            'env_prompt',
             'envs_dirs',
             'pkgs_dirs',
             'max_shlvl',
@@ -831,15 +832,6 @@ class Context(Configuration):
                 General configuration parameters for conda-build.
                 """),
             # TODO: add shortened link to docs for conda_build at See https://conda.io/docs/user-guide/configuration/use-condarc.html#conda-build-configuration  # NOQA
-            'env_prompt': dals("""
-                Template for prompt modification based on the active environment. Currently
-                supported template variables are '{prefix}', '{name}', and '{default_env}'.
-                '{prefix}' is the absolute path to the active environment. '{name}' is the
-                basename of the active environment prefix. '{default_env}' holds the value
-                of '{name}' if the active environment is a conda named environment ('-n'
-                flag), or otherwise holds the value of '{prefix}'. Templating uses python's
-                str.format() method.
-                """),
             'create_default_packages': dals("""
                 Packages that are by default added to a newly created environments.
                 """),  # TODO: This is a bad parameter name. Consider an alternate.
@@ -887,6 +879,15 @@ class Context(Configuration):
                 The list of directories to search for named environments. When creating a new
                 named environment, the environment will be placed in the first writable
                 location.
+                """),
+            'env_prompt': dals("""
+                Template for prompt modification based on the active environment. Currently
+                supported template variables are '{prefix}', '{name}', and '{default_env}'.
+                '{prefix}' is the absolute path to the active environment. '{name}' is the
+                basename of the active environment prefix. '{default_env}' holds the value
+                of '{name}' if the active environment is a conda named environment ('-n'
+                flag), or otherwise holds the value of '{prefix}'. Templating uses python's
+                str.format() method.
                 """),
             'force_reinstall': dals("""
                 Ensure that any user-requested package for the current operation is uninstalled
