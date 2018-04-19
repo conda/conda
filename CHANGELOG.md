@@ -2,10 +2,18 @@
 
 ### Deprecations/Breaking Changes
 * resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
+* resolve #7061 remove pkgs/pro from defaults (#7162)
 
 ### Improvements
 * import speedups (#7122)
 * --help cleanup (#7120)
+* fish autocompletion for conda env (#7101)
+* remove reference to 'system' channel (#7163)
+* add http error body to debug information (#7160)
+* warn creating env name with space is not supported (#7168)
+* support complete MatchSpec syntax in environment.yml files (#7178)
+* resolve #4274 add option to remove an existing environment with 'conda create' (#7133)
+* add ability for conda prompt customization via 'env_prompt' config param (#7047)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
@@ -13,9 +21,11 @@
 * fix typo in conda.fish (#7152)
 * fix #2154 conda remove should complain if requested removals don't exist (#7135)
 * fix #7094 exit early for --dry-run with explicit and clone (#7096)
+* fix activation script sort order (#7176)
+* fix #7109 incorrect chown with sudo (#7180)
 
 ### Non-User-Facing Changes
-* resolve #6595 use OO inheritence in activate.py (#7049)
+* resolve #6595 use OO inheritance in activate.py (#7049)
 
 
 ## 4.5.1 (2018-04-13)
