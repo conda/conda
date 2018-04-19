@@ -27,6 +27,10 @@
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
 
+### Preview Releases
+
+* 4.6.0a1 at 72da497017c9802ed08116e77e01c2a84ada8ff9 on 2018-04-19
+
 
 ## 4.5.1 (2018-04-13)
 
