@@ -424,7 +424,7 @@ class _Activator(object):
 
     def _prompt_modifier(self, prefix, conda_default_env):
         if context.changeps1:
-            return context.conda_prompt.format(
+            return context.env_prompt.format(
                 default_env=conda_default_env,
                 prefix=prefix,
                 name=basename(prefix),
