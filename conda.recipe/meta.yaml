@@ -23,6 +23,7 @@ build:
 requirements:
   build:
     - python
+    - setuptools
     - enum34               [py<34]
     - futures              [py<34]
     - menuinst >=1.4.11    [win]

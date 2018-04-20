@@ -34,6 +34,18 @@ libraries. Conda is written entirely in Python, and is BSD licensed open
 source.
 
 """
+install_requires = [
+    "pycosat >=0.6.3",
+    "requests >=2.12.4",
+    "enum34 ; python_version<'3.4'",
+    "futures ; python_version<'3.4'",
+    "menuinst ; platform_system=='Windows'",
+]
+
+if os.getenv('CONDA_BUILD', None) == '1':
+    install_requires.append("ruamel_yaml >=0.11.14")
+else:
+    install_requires.append("ruamel.yaml >=0.11.14")
 
 
 def package_files(*root_directories):
@@ -84,13 +96,6 @@ setup(
             'conda=conda.cli.main_pip:main',
         ],
     },
-    install_requires=[
-        "pycosat >=0.6.3",
-        "requests >=2.12.4",
-        "ruamel.yaml >=0.11.14",
-        "enum34 ; python_version<'3.4'",
-        "future ; python_version<'3.4'",
-        "menuinst ; platform_system=='Windows'",
-    ],
+    install_requires=install_requires,
     zip_safe=False,
 )

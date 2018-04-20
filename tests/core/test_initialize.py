@@ -484,7 +484,7 @@ class InitializeTests(TestCase):
                 mkdir_p(dirname(new_py))
                 create_link(abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink)
                 with captured() as c:
-                    initialize_dev('bash', dev_env_prefix=conda_temp_prefix)
+                    initialize_dev('bash', dev_env_prefix=conda_temp_prefix, conda_source_root=dirname(CONDA_PACKAGE_ROOT))
 
         print(c.stdout)
         print(c.stderr, file=sys.stderr)
@@ -539,7 +539,7 @@ class InitializeTests(TestCase):
                 mkdir_p(dirname(new_py))
                 create_link(abspath(sys.executable), new_py, LinkType.hardlink if on_win else LinkType.softlink)
                 with captured() as c:
-                    initialize_dev('cmd.exe', dev_env_prefix=conda_temp_prefix)
+                    initialize_dev('cmd.exe', dev_env_prefix=conda_temp_prefix, conda_source_root=dirname(CONDA_PACKAGE_ROOT))
 
         print(c.stdout)
         print(c.stderr, file=sys.stderr)
