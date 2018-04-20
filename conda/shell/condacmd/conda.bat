@@ -1,4 +1,4 @@
-@IF NOT DEFINED CONDA_EXE @SET CONDA_EXE="%~dp0..\..\Scripts\conda.exe"
+@IF NOT DEFINED CONDA_EXE @SET CONDA_EXE="%~dp0..\Scripts\conda.exe"
 
 @IF "%1"=="activate" GOTO :DO_ACTIVATE
 @IF "%1"=="deactivate" GOTO :DO_DEACTIVATE
