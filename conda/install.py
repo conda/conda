@@ -24,6 +24,7 @@ import logging
 import os
 from os import chmod, makedirs, stat
 from os.path import dirname, isdir, isfile, join, normcase, normpath
+import sys
 
 from .base.constants import PREFIX_PLACEHOLDER
 from .common.compat import on_win, open
@@ -137,3 +138,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
                           "another concurrent process." .format(root_file, prefix_file))
             else:
                 raise
+
+
+print("WARNING: The conda.install module is deprecated and will be removed in a future release.",
+      file=sys.stderr)
