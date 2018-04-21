@@ -51,16 +51,10 @@ _conda_activate() {
         \unset CONDA_PS1_BACKUP
     fi
 
+    \local cmd="$1"
+    shift
     \local ask_conda
-    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix activate "$@")" || \return $?
-    \eval "$ask_conda"
-
-    _conda_hashr
-}
-
-_conda_deactivate() {
-    \local ask_conda
-    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix deactivate "$@")" || \return $?
+    ask_conda="$(PS1="$PS1" $_CONDA_EXE shell.posix "$cmd" "$@")" || \return $?
     \eval "$ask_conda"
 
     _conda_hashr
@@ -82,11 +76,8 @@ conda() {
         \local cmd="$1"
         shift
         case "$cmd" in
-            activate)
-                _conda_activate "$@"
-                ;;
-            deactivate)
-                _conda_deactivate "$@"
+            activate|stack|deactivate)
+                _conda_activate "$cmd" "$@"
                 ;;
             install|update|uninstall|remove)
                 $_CONDA_EXE "$cmd" "$@" && _conda_reactivate

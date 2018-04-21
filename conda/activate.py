@@ -81,6 +81,9 @@ class _Activator(object):
         return self._finalize(self._yield_commands(self.build_activate(self.env_name_or_prefix)),
                               self.tempfile_extension)
 
+    def stack(self):
+        return self._finalize(self._yield_commands(self.build_stack(self.env_name_or_prefix)),
+                              self.tempfile_extension)
     def deactivate(self):
         return self._finalize(self._yield_commands(self.build_deactivate()),
                               self.tempfile_extension)
@@ -128,19 +131,19 @@ class _Activator(object):
             class Help(CondaError):  # NOQA
                 pass
             raise Help("help requested for %s" % command)
-        elif command not in ('activate', 'deactivate', 'reactivate', 'hook'):
+        elif command not in ('activate', 'deactivate', 'reactivate', 'hook', 'stack'):
             from .exceptions import ArgumentError
             raise ArgumentError("invalid command '%s'" % command)
-        elif command == 'activate' and len(remainder_args) > 1:
+        elif command in ('activate', 'stack') and len(remainder_args) > 1:
             from .exceptions import ArgumentError
-            raise ArgumentError('activate does not accept more than one argument:\n'
+            raise ArgumentError(command + ' does not accept more than one argument:\n'
                                 + str(remainder_args) + '\n')
-        elif command != 'activate' and remainder_args:
+        elif command not in ('activate', 'stack') and remainder_args:
             from .exceptions import ArgumentError
             raise ArgumentError('%s does not accept arguments\nremainder_args: %s\n'
                                 % (command, remainder_args))
 
-        if command == 'activate':
+        if command in ('activate', 'stack'):
             self.env_name_or_prefix = remainder_args and remainder_args[0] or 'root'
 
         self.command = command
@@ -162,6 +165,12 @@ class _Activator(object):
             yield self.run_script_tmpl % script
 
     def build_activate(self, env_name_or_prefix):
+        return self._build_activate_stack(env_name_or_prefix, False)
+
+    def build_stack(self, env_name_or_prefix):
+        return self._build_activate_stack(env_name_or_prefix, True)
+
+    def _build_activate_stack(self, env_name_or_prefix, stack):
         if re.search(r'\\|/', env_name_or_prefix):
             prefix = expand(env_name_or_prefix)
             if not isdir(join(prefix, 'conda-meta')):
@@ -175,6 +184,7 @@ class _Activator(object):
 
         # query environment
         old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
+        new_conda_shlvl = old_conda_shlvl + 1
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
         max_shlvl = context.max_shlvl
 
@@ -192,45 +202,35 @@ class _Activator(object):
                 'CONDA_EXE': self.path_conversion(context.conda_exe),
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
-                'CONDA_SHLVL': old_conda_shlvl + 1,
+                'CONDA_SHLVL': new_conda_shlvl,
                 'CONDA_DEFAULT_ENV': conda_default_env,
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
             deactivate_scripts = ()
         else:
-            if max_shlvl >= 1:
-                assert 0 <= old_conda_shlvl <= max_shlvl, old_conda_shlvl
-                if self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl - 1)) == prefix:
-                    # in this case, user is attempting to activate the previous environment,
-                    #  i.e. step back down
-                    return self.build_deactivate()
-                if old_conda_shlvl >= max_shlvl:
-                    new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix))
-                    export_vars = {
-                        'PATH': new_path,
-                        'CONDA_PREFIX': prefix,
-                        'CONDA_DEFAULT_ENV': conda_default_env,
-                        'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
-                    }
-                    deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
-                else:
-                    new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
-                    export_vars = {
-                        'PATH': new_path,
-                        'CONDA_PREFIX': prefix,
-                        'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
-                        'CONDA_SHLVL': old_conda_shlvl + 1,
-                        'CONDA_DEFAULT_ENV': conda_default_env,
-                        'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
-                    }
-                    deactivate_scripts = ()
+            if self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl - 1)) == prefix:
+                # in this case, user is attempting to activate the previous environment,
+                #  i.e. step back down
+                return self.build_deactivate()
+            if stack:
+                new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
+                export_vars = {
+                    'PATH': new_path,
+                    'CONDA_PREFIX': prefix,
+                    'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
+                    'CONDA_SHLVL': new_conda_shlvl,
+                    'CONDA_DEFAULT_ENV': conda_default_env,
+                    'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                    'CONDA_STACKED_%d' % new_conda_shlvl: 'true',
+                }
+                deactivate_scripts = ()
             else:
                 new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix))
                 export_vars = {
                     'PATH': new_path,
                     'CONDA_PREFIX': prefix,
                     'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
-                    'CONDA_SHLVL': old_conda_shlvl + 1,
+                    'CONDA_SHLVL': new_conda_shlvl,
                     'CONDA_DEFAULT_ENV': conda_default_env,
                     'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
                 }
@@ -287,14 +287,20 @@ class _Activator(object):
             new_prefix = self.environ.get('CONDA_PREFIX_%d' % new_conda_shlvl)
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
-            if context.max_shlvl >= 1:
+
+            old_prefix_stacked = 'CONDA_STACKED_%d' % old_conda_shlvl in self.environ
+            if old_prefix_stacked:
                 new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
+                unset_vars = (
+                    'CONDA_PREFIX_%d' % new_conda_shlvl,
+                    'CONDA_STACKED_%d' % new_conda_shlvl,
+                )
             else:
                 new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, new_prefix))
+                unset_vars = (
+                    'CONDA_PREFIX_%d' % new_conda_shlvl,
+                )
 
-            unset_vars = (
-                'CONDA_PREFIX_%d' % new_conda_shlvl,
-            )
             export_vars = {
                 'PATH': new_path,
                 'CONDA_SHLVL': new_conda_shlvl,
