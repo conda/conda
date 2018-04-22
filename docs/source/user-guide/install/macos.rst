@@ -62,9 +62,9 @@ PATH causes errors such as "command not found."
 In each new bash session, before using conda, set the PATH and
 run the activation scripts of your conda packages by running::
 
-  source $HOME/miniconda3/bin/activate
+  source $HOME/miniconda/bin/activate
 
-NOTE: Replace ``$HOME/miniconda3/bin/activate``
+NOTE: Replace ``$HOME/miniconda/bin/activate``
 with the path to the activate script in your conda installation.
 
 To set the PATH permanently, you can add a line to your
@@ -74,7 +74,7 @@ which may produce errors.
 
 EXAMPLE::
 
-  export PATH="$HOME/miniconda3/bin:$PATH"
+  export PATH="$HOME/miniconda/bin:$PATH"
 
 
 Updating Anaconda or Miniconda
