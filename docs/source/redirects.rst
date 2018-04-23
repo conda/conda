@@ -68,6 +68,7 @@ Redirects
    user-guide/tasks/build-packages/sign-packages
    user-guide/tasks/use-mro-with-conda
    user-guide/tasks/use-r-with-conda
+   user-guide/tutorials/build-postgis
    using/cheatsheet
    using/envs
    using/index
