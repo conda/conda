@@ -115,8 +115,8 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 
       conda env create -f environment.yml
 
-The ``yml`` file sets the new environment's name. For details
-see :ref:`Creating an environment file manually
+The first line of the ``yml`` file sets the new environment's
+name. For details see :ref:`Creating an environment file manually
 <create-env-file-manually>`.
 
 #. Activate the new environment:
@@ -529,17 +529,6 @@ environments while changing ``.condarc`` affects them all.
 
 For details on creating an environment from this
 ``environment.yml`` file, see :ref:`create-env-from-file`.
-
-Creating an environment from the shared environment.yml file
-------------------------------------------------------------
-
-To create a new environment from ``environment.yml`` run:
-
-.. code::
-
-    conda create env -f environment.yml
-
-See `Creating an environment from an environment.yml file`_ for more details.
 
 Removing an environment
 =======================
