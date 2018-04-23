@@ -78,12 +78,12 @@ class _Activator(object):
             raise NotImplementedError()
 
     def activate(self):
-        return self._finalize(self._yield_commands(self.build_activate(self.env_name_or_prefix)),
-                              self.tempfile_extension)
+        if self.stack:
+            builder_result = self.build_stack(self.env_name_or_prefix)
+        else:
+            builder_result = self.build_activate(self.env_name_or_prefix)
+        return self._finalize(self._yield_commands(builder_result), self.tempfile_extension)
 
-    def stack(self):
-        return self._finalize(self._yield_commands(self.build_stack(self.env_name_or_prefix)),
-                              self.tempfile_extension)
     def deactivate(self):
         return self._finalize(self._yield_commands(self.build_deactivate()),
                               self.tempfile_extension)
@@ -121,30 +121,44 @@ class _Activator(object):
         help_flags = ('-h', '--help', '/?')
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
         help_requested = len(arguments) != len(non_help_args)
-        remainder_args = tuple(arg for arg in non_help_args if arg and arg != command)
+        remainder_args = list(arg for arg in non_help_args if arg and arg != command)
 
         if not command:
             from .exceptions import ArgumentError
-            raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
+            raise ArgumentError("'activate', 'deactivate', 'hook', or 'reactivate' "
+                                "command must be given")
         elif help_requested:
-            from . import CondaError
-            class Help(CondaError):  # NOQA
-                pass
-            raise Help("help requested for %s" % command)
-        elif command not in ('activate', 'deactivate', 'reactivate', 'hook', 'stack'):
+            from .exceptions import ActivateHelp, DeactivateHelp, GenericHelp
+            help_classes = {
+                'activate': ActivateHelp(),
+                'deactivate': DeactivateHelp(),
+                'hook': GenericHelp('hook'),
+                'reactivate': GenericHelp('reactivate'),
+            }
+            raise help_classes[command]
+        elif command not in ('activate', 'deactivate', 'reactivate', 'hook'):
             from .exceptions import ArgumentError
             raise ArgumentError("invalid command '%s'" % command)
-        elif command in ('activate', 'stack') and len(remainder_args) > 1:
-            from .exceptions import ArgumentError
-            raise ArgumentError(command + ' does not accept more than one argument:\n'
-                                + str(remainder_args) + '\n')
-        elif command not in ('activate', 'stack') and remainder_args:
-            from .exceptions import ArgumentError
-            raise ArgumentError('%s does not accept arguments\nremainder_args: %s\n'
-                                % (command, remainder_args))
 
-        if command in ('activate', 'stack'):
-            self.env_name_or_prefix = remainder_args and remainder_args[0] or 'root'
+        if command == 'activate':
+            try:
+                stack_idx = remainder_args.index('--stack')
+            except ValueError:
+                self.stack = False
+            else:
+                del remainder_args[stack_idx]
+                self.stack = True
+            if len(remainder_args) > 1:
+                from .exceptions import ArgumentError
+                raise ArgumentError(command + ' does not accept more than one argument:\n'
+                                    + str(remainder_args) + '\n')
+            self.env_name_or_prefix = remainder_args and remainder_args[0] or 'base'
+
+        else:
+            if remainder_args:
+                from .exceptions import ArgumentError
+                raise ArgumentError('%s does not accept arguments\nremainder_args: %s\n'
+                                    % (command, remainder_args))
 
         self.command = command
 

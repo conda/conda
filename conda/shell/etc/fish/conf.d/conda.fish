@@ -87,6 +87,8 @@ function conda --inherit-variable _CONDA_EXE
         switch $cmd
             case activate
                 eval (eval $_CONDA_EXE shell.fish activate $argv)
+            case stack
+                eval (eval $_CONDA_EXE shell.fish stack $argv)
             case deactivate
                 eval (eval $_CONDA_EXE shell.fish deactivate $argv)
             case install update remove uninstall
@@ -114,6 +116,7 @@ function __fish_conda_commands
   end
   echo activate
   echo deactivate
+  echo stack
 end
 
 function __fish_conda_env_commands
@@ -152,6 +155,7 @@ complete -f -c conda -n '__fish_conda_using_command env' -a '(__fish_conda_env_c
 
 # Commands that need environment as parameter
 complete -f -c conda -n '__fish_conda_using_command activate' -a '(__fish_conda_envs)'
+complete -f -c conda -n '__fish_conda_using_command stack' -a '(__fish_conda_envs)'
 
 # Commands that need package as parameter
 complete -f -c conda -n '__fish_conda_using_command remove' -a '(__fish_conda_packages)'

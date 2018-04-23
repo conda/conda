@@ -76,7 +76,7 @@ conda() {
         \local cmd="$1"
         shift
         case "$cmd" in
-            activate|stack|deactivate)
+            activate|deactivate)
                 _conda_activate "$cmd" "$@"
                 ;;
             install|update|uninstall|remove)
