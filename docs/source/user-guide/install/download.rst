@@ -83,7 +83,7 @@ macOS and Linux:
 Choosing a version of Python
 ================================
 
-* The latest version of Python 2 is 2.7, which is included with
+* The last version of Python 2 is 2.7, which is included with
   Anaconda and Miniconda.
 * The newest stable version of Python is 3.6, which is included
   with Anaconda3 and Miniconda3.
