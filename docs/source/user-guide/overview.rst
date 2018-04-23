@@ -2,7 +2,9 @@
 Overview
 ========
 
-Conda is an OS-agnostic, system-level binary package manager.
+This page provides an overview of how to use conda. For an
+overview of what conda is and what it does, please see the
+:doc:`front page <../index>`.
 
 The quickest way to start using conda is to go through the 
 30-minute :doc:`getting-started` guide.
