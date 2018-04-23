@@ -293,7 +293,7 @@ class _Activator(object):
                 new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
                 unset_vars = (
                     'CONDA_PREFIX_%d' % new_conda_shlvl,
-                    'CONDA_STACKED_%d' % new_conda_shlvl,
+                    'CONDA_STACKED_%d' % old_conda_shlvl,
                 )
             else:
                 new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, new_prefix))
