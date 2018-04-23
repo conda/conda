@@ -102,6 +102,8 @@ TIP: You can add much more to the ``conda create`` command.
 For details, run ``conda create --help``.
 
 
+.. _create-env-from-file:
+
 Creating an environment from an environment.yml file
 ====================================================
 
@@ -113,7 +115,9 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 
       conda env create -f environment.yml
 
-The name of the new environment will be gotten from the first line of the ``yml`` file. See `Creating an environment file manually`_ for more details.
+The ``yml`` file sets the new environment's name. For details
+see :ref:`Creating an environment file manually
+<create-env-file-manually>`.
 
 #. Activate the new environment:
 
@@ -473,6 +477,8 @@ current directory, it will be overwritten during this task.
 #. Email or copy the exported ``environment.yml`` file to the
    other person.
 
+.. _create-env-file-manually:
+
 Creating an environment file manually
 -------------------------------------
 
@@ -521,8 +527,9 @@ list <config-channels>` in the ``.condarc`` file. However,
 changing ``environment.yml`` affects only one of your conda
 environments while changing ``.condarc`` affects them all.
 
-<<<<<<< Updated upstream
-=======
+For details on creating an environment from this
+``environment.yml`` file, see :ref:`create-env-from-file`.
+
 Creating an environment from the shared environment.yml file
 ------------------------------------------------------------
 
@@ -533,8 +540,6 @@ To create a new environment from ``environment.yml`` run:
     conda create env -f environment.yml
 
 See `Creating an environment from an environment.yml file`_ for more details.
-
->>>>>>> Stashed changes
 
 Removing an environment
 =======================
