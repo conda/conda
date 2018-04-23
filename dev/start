@@ -29,3 +29,5 @@ case "$(uname)" in
     Darwin|Linux)  eval "$(./devenv/bin/python -m conda init --dev bash)" ;;
                *)  eval "$(./python -m conda init --dev bash)" ;;
 esac
+
+conda activate

@@ -64,22 +64,22 @@ class ActivateHelp(Help):
     def __init__(self):
         message = dals("""
         usage: conda activate [-h] [--stack] [env_name_or_prefix]
-        
+
         Activate a conda environment.
-        
+
         Options:
-        
+
         positional arguments:
           env_name_or_prefix    The environment name or prefix to activate. If the
                                 prefix is a relative path, it must start with './'
                                 (or '.\\' on Windows).
-        
+
         optional arguments:
           -h, --help            Show this help message and exit.
           --stack               Stack the environment being activated on top of the
-                                previous active environment, rather replacing the 
+                                previous active environment, rather replacing the
                                 current active environment with a new one. Currently,
-                                only the PATH environment variable is stacked. 
+                                only the PATH environment variable is stacked.
         """)
         super(ActivateHelp, self).__init__(message)
 

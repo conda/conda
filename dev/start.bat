@@ -7,3 +7,4 @@
 :ALREADY_INSTALLED
 @devenv\python -m conda init --dev cmd.exe > NUL
 @CALL dev-init
+@CALL conda activate

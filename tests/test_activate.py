@@ -18,7 +18,7 @@ from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixAc
     PowershellActivator, XonshActivator, activator_map, main as activate_main, native_path_to_unix
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context, reset_context
-from conda.common.compat import iteritems, on_win, string_types
+from conda.common.compat import iteritems, on_win, string_types, ensure_unicode
 from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
@@ -469,7 +469,6 @@ class ActivatorUnitTests(TestCase):
                 'CONDA_SHLVL': '2',
                 'CONDA_PREFIX_1': old_prefix,
                 'CONDA_PREFIX': td,
-                'CONDA_MAX_SHLVL': '0',
                 'PATH': new_path,
             }, reset_context):
                 activator = PosixActivator()
@@ -1125,9 +1124,8 @@ class InteractiveShell(object):
         },
     }
 
-    def __init__(self, shell_name, max_shlvl=2):
+    def __init__(self, shell_name):
         self.shell_name = shell_name
-        self.max_shlvl = max_shlvl
         base_shell = self.shells[shell_name].get('base_shell')
         shell_vals = self.shells.get(base_shell, {})
         shell_vals.update(self.shells[shell_name])
@@ -1158,7 +1156,6 @@ class InteractiveShell(object):
         self.original_path = PATH
         env = {
             'CONDA_AUTO_ACTIVATE_BASE': 'false',
-            'CONDA_MAX_SHLVL': self.max_shlvl,
             'PYTHONPATH': CONDA_PACKAGE_ROOT,
             'PATH': PATH,
         }
@@ -1195,6 +1192,14 @@ class InteractiveShell(object):
             print(self.p.after)
             raise
 
+    def get_env_var(self, env_var):
+        self.sendline('echo get_var_start')
+        self.sendline(self.print_env_var % env_var)
+        self.sendline('echo get_var_end')
+        self.expect('get_var_start(.*)get_var_end')
+        value = self.p.match.groups()[0]
+        return ensure_unicode(value).strip()
+
 
 def which(executable):
     from distutils.spawn import find_executable
@@ -1225,58 +1230,39 @@ class ShellWrapperIntegrationTests(TestCase):
         mkdir_p(join(self.prefix2, 'conda-meta'))
         touch(join(self.prefix2, 'conda-meta', 'history'))
 
+        self.prefix3 = join(self.prefix, 'envs', 'venusaur')
+        mkdir_p(join(self.prefix3, 'conda-meta'))
+        touch(join(self.prefix3, 'conda-meta', 'history'))
+
     def tearDown(self):
         rm_rf(self.prefix)
 
-    def basic_posix_max_shlvl_2(self, shell):
+    def basic_posix(self, shell):
+        num_paths = len(tuple(PosixActivator()._get_path_dirs(self.prefix)))
         shell.assert_env_var('CONDA_SHLVL', '0')
-        shell.sendline('conda activate base')
-        shell.assert_env_var('PS1', '(base).*')
-        shell.assert_env_var('CONDA_SHLVL', '1')
-        shell.sendline('conda activate "%s"' % self.prefix)
-        shell.assert_env_var('CONDA_SHLVL', '2')
-        shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
-
-        shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
-        shell.expect('Executing transaction: ...working... done.*\n', timeout=25)
-        shell.assert_env_var('?', '0', True)
-        # TODO: assert that reactivate worked correctly
-
-        # regression test for #6840
-        shell.sendline('conda install --blah')
-        shell.assert_env_var('?', '2', use_exact=True)
-        shell.sendline('conda list --blah')
-        shell.assert_env_var('?', '2', use_exact=True)
-
-        shell.sendline('conda deactivate')
-        shell.assert_env_var('CONDA_SHLVL', '1')
-        shell.sendline('conda deactivate')
-        shell.assert_env_var('CONDA_SHLVL', '0')
-
-        shell.sendline(shell.print_env_var % 'PS1')
-        shell.expect('.*\n')
-        assert 'CONDA_PROMPT_MODIFIER' not in str(shell.p.after)
-
-        shell.sendline('conda deactivate')
-        shell.assert_env_var('CONDA_SHLVL', '0')
-
-    def basic_posix_max_shlvl_0(self, shell):
-        shell.assert_env_var('CONDA_SHLVL', '0')
+        PATH0 = shell.get_env_var('PATH')
 
         shell.sendline('conda activate base')
         # shell.sendline('env | sort')
         shell.assert_env_var('PS1', '(base).*')
         shell.assert_env_var('CONDA_SHLVL', '1')
+        PATH1 = shell.get_env_var('PATH')
 
         shell.sendline('conda activate "%s"' % self.prefix)
         # shell.sendline('env | sort')
         shell.assert_env_var('CONDA_SHLVL', '2')
         shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
+        PATH2 = shell.get_env_var('PATH')
 
         shell.sendline('conda activate "%s"' % self.prefix2)
         # shell.sendline('env | sort')
         shell.assert_env_var('PS1', '(charizard).*')
         shell.assert_env_var('CONDA_SHLVL', '3')
+        PATH3 = shell.get_env_var('PATH')
+
+        assert len(PATH0.split(':')) + num_paths == len(PATH1.split(':'))
+        assert len(PATH0.split(':')) + num_paths == len(PATH2.split(':'))
+        assert len(PATH0.split(':')) + num_paths == len(PATH3.split(':'))
 
         shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
         shell.expect('Executing transaction: ...working... done.*\n', timeout=25)
@@ -1291,10 +1277,18 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '2')
+        PATH = shell.get_env_var('PATH')
+        assert len(PATH0.split(':')) + num_paths == len(PATH.split(':'))
+
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '1')
+        PATH = shell.get_env_var('PATH')
+        assert len(PATH0.split(':')) + num_paths == len(PATH.split(':'))
+
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '0')
+        PATH = shell.get_env_var('PATH')
+        assert len(PATH0.split(':')) == len(PATH.split(':'))
 
         shell.sendline(shell.print_env_var % 'PS1')
         shell.expect('.*\n')
@@ -1302,27 +1296,49 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '0')
+        PATH0 = shell.get_env_var('PATH')
+
+        shell.sendline('conda activate "%s"' % self.prefix2)
+        shell.assert_env_var('CONDA_SHLVL', '1')
+        PATH1 = shell.get_env_var('PATH')
+        assert len(PATH0.split(':')) + num_paths == len(PATH1.split(':'))
+
+        shell.sendline('conda activate "%s" --stack' % self.prefix3)
+        shell.assert_env_var('CONDA_SHLVL', '2')
+        PATH2 = shell.get_env_var('PATH')
+        assert 'charizard' in PATH2
+        assert 'venusaur' in PATH2
+        assert len(PATH0.split(':')) + num_paths * 2 == len(PATH2.split(':'))
+
+        shell.sendline('conda activate "%s"' % self.prefix)
+        shell.assert_env_var('CONDA_SHLVL', '3')
+        PATH3 = shell.get_env_var('PATH')
+        assert 'charizard' in PATH3
+        assert 'venusaur' not in PATH3
+        assert len(PATH0.split(':')) + num_paths * 2 == len(PATH3.split(':'))
+
+        shell.sendline('conda deactivate')
+        shell.assert_env_var('CONDA_SHLVL', '2')
+        PATH4 = shell.get_env_var('PATH')
+        assert 'charizard' in PATH4
+        assert 'venusaur' in PATH4
+        assert PATH4 == PATH2
 
     @pytest.mark.skipif(not which('bash'), reason='bash not installed')
-    def test_bash_basic_integration_max_shlvl_2(self):
+    def test_bash_basic_integration(self):
         with InteractiveShell('bash') as shell:
-            self.basic_posix_max_shlvl_2(shell)
-
-    @pytest.mark.skipif(not which('bash'), reason='bash not installed')
-    def test_bash_basic_integration_max_shlvl_0(self):
-        with InteractiveShell('bash', max_shlvl=0) as shell:
-            self.basic_posix_max_shlvl_0(shell)
+            self.basic_posix(shell)
 
     @pytest.mark.skipif(not which('dash') or on_win, reason='dash not installed')
     def test_dash_basic_integration(self):
         with InteractiveShell('dash') as shell:
             shell.sendline('env | sort')
-            self.basic_posix_max_shlvl_2(shell)
+            self.basic_posix(shell)
 
     @pytest.mark.skipif(not which('zsh'), reason='zsh not installed')
     def test_zsh_basic_integration(self):
         with InteractiveShell('zsh') as shell:
-            self.basic_posix_max_shlvl_2(shell)
+            self.basic_posix(shell)
 
     def basic_csh(self, shell):
         shell.assert_env_var('CONDA_SHLVL', '0')
@@ -1412,7 +1428,7 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_SHLVL', '0')
 
             shell.sendline("conda activate -h blah blah")
-            shell.expect('help requested for activate')
+            shell.expect('usage: conda activate')
 
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
     def test_cmd_exe_activate_error(self):
@@ -1422,4 +1438,4 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('errorlevel', '1\r')
 
             shell.sendline("conda activate -h blah blah")
-            shell.expect('help requested for activate')
+            shell.expect('usage: conda activate')

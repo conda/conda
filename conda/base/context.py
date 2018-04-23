@@ -120,7 +120,6 @@ class Context(Configuration):
     download_only = PrimitiveParameter(False)
     enable_private_envs = PrimitiveParameter(False)
     force_32bit = PrimitiveParameter(False)
-    max_shlvl = PrimitiveParameter(0)
     non_admin_enabled = PrimitiveParameter(True)
 
     # Safety & Security
@@ -651,7 +650,6 @@ class Context(Configuration):
             'env_prompt',
             'envs_dirs',
             'pkgs_dirs',
-            'max_shlvl',
         )),
         ('Network Configuration', (
             'client_ssl_cert',
@@ -911,11 +909,6 @@ class Context(Configuration):
                 respected). For a value of True or 1, respect the HTTP Cache-Control max-age
                 header. Any other positive integer values is the number of seconds to locally
                 cache repodata before checking the remote server for an update.
-                """),
-            'max_shlvl': dals("""
-                The maximum number of stacked active conda environments. Or, if set to 0, only
-                have active a single environment at a time. If this configuration parameter is
-                changed, your shell may need to be restarted for it to fully take effect.
                 """),
             'migrated_channel_aliases': dals("""
                 A list of previously-used channel_alias values. Useful when switching between

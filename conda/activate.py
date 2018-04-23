@@ -200,7 +200,6 @@ class _Activator(object):
         old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
         new_conda_shlvl = old_conda_shlvl + 1
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
-        max_shlvl = context.max_shlvl
 
         if old_conda_prefix == prefix and old_conda_shlvl > 0:
             return self.build_reactivate()
@@ -239,7 +238,9 @@ class _Activator(object):
                 }
                 deactivate_scripts = ()
             else:
-                new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix))
+                new_path = self.pathsep_join(
+                    self._replace_prefix_in_path(old_conda_prefix, prefix)
+                )
                 export_vars = {
                     'PATH': new_path,
                     'CONDA_PREFIX': prefix,
@@ -310,7 +311,9 @@ class _Activator(object):
                     'CONDA_STACKED_%d' % old_conda_shlvl,
                 )
             else:
-                new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, new_prefix))
+                new_path = self.pathsep_join(
+                    self._replace_prefix_in_path(old_conda_prefix, new_prefix)
+                )
                 unset_vars = (
                     'CONDA_PREFIX_%d' % new_conda_shlvl,
                 )
