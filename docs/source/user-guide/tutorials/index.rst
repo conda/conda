@@ -14,7 +14,6 @@ You also need to :ref:`install conda build <install-conda-build>`.
 
    build-pkgs-skeleton
    build-pkgs
-   build-postgis
    build-windows
    build-apps
    build-nltk
