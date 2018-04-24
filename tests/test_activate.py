@@ -516,7 +516,6 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PREFIX',
                         'CONDA_DEFAULT_ENV',
                         'CONDA_PYTHON_EXE',
-                        'CONDA_EXE',
                         'CONDA_PROMPT_MODIFIER',
                     )
 
@@ -652,7 +651,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             \\. "%(deactivate1)s"
             \\unset CONDA_DEFAULT_ENV
-            \\unset CONDA_EXE
             \\unset CONDA_PREFIX
             \\unset CONDA_PROMPT_MODIFIER
             \\unset CONDA_PYTHON_EXE
@@ -823,7 +821,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             source "%(deactivate1)s";
             unsetenv CONDA_DEFAULT_ENV;
-            unsetenv CONDA_EXE;
             unsetenv CONDA_PREFIX;
             unsetenv CONDA_PROMPT_MODIFIER;
             unsetenv CONDA_PYTHON_EXE;
@@ -911,7 +908,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             source "%(deactivate1)s"
             del $CONDA_DEFAULT_ENV
-            del $CONDA_EXE
             del $CONDA_PREFIX
             del $CONDA_PROMPT_MODIFIER
             del $CONDA_PYTHON_EXE
@@ -987,7 +983,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             source "%(deactivate1)s";
             set -e CONDA_DEFAULT_ENV;
-            set -e CONDA_EXE;
             set -e CONDA_PREFIX;
             set -e CONDA_PROMPT_MODIFIER;
             set -e CONDA_PYTHON_EXE;
@@ -1063,7 +1058,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             . "%(deactivate1)s"
             Remove-Variable CONDA_DEFAULT_ENV
-            Remove-Variable CONDA_EXE
             Remove-Variable CONDA_PREFIX
             Remove-Variable CONDA_PROMPT_MODIFIER
             Remove-Variable CONDA_PYTHON_EXE
