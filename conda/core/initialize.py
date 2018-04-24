@@ -148,8 +148,11 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         builder = []
         builder += ["unset %s" % unset_env_var for unset_env_var in unset_env_vars]
         builder += ["export %s='%s'" % (key, env_vars[key]) for key in sorted(env_vars)]
+        sys_executable = abspath(sys.executable)
+        if on_win:
+            sys_executable = "$(cygpath '%s')" % sys_executable
         builder += [
-            "eval \"$(%s -m conda shell.bash hook)\"" % abspath(sys.executable),
+            "eval \"$(\"%s\" -m conda shell.bash hook)\"" % sys_executable,
             "conda activate '%s'" % dev_env_prefix,
         ]
         print("\n".join(builder))
@@ -501,7 +504,7 @@ def print_plan_results(plan, stream=None):
     if not stream:
         stream = sys.stdout
     for step in plan:
-        print("%s\n  %s\n" % (step['kwargs']['target_path'], step.get('result')), file=stream)
+        print("%-14s%s" % (step.get('result'), step['kwargs']['target_path']), file=stream)
 
     changed = any(step.get('result') == Result.MODIFIED for step in plan)
     if changed:
