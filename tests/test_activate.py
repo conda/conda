@@ -1471,4 +1471,6 @@ class ShellWrapperIntegrationTests(TestCase):
             assert 'charizard' in PATH
 
             shell.sendline("deactivate")
+            shell.sendline("@echo break_here")
+            shell.expect("break_here")
             shell.assert_env_var('CONDA_SHLVL', '0')
