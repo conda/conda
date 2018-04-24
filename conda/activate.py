@@ -505,26 +505,38 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
         return path_identity(paths)
-    from subprocess import PIPE, Popen
+    from subprocess import CalledProcessError, PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
-    p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     single_path = isinstance(paths, string_types)
     joined = paths if single_path else ("%s" % os.pathsep).join(paths)
-
     if hasattr(joined, 'encode'):
         joined = joined.encode('utf-8')
-    stdout, stderr = p.communicate(input=joined)
-    rc = p.returncode
-    if rc != 0 or stderr:
-        from subprocess import CalledProcessError
-        message = "\n  stdout: %s\n  stderr: %s\n  rc: %s\n" % (stdout, stderr, rc)
-        print(message, file=sys.stderr)
-        raise CalledProcessError(rc, command, message)
-    if hasattr(stdout, 'decode'):
-        stdout = stdout.decode('utf-8')
-    stdout = stdout.strip()
+
+    try:
+        p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    except FileNotFoundError:
+        root_prefix = ""
+        def _translation(found_path):  # NOQA
+            found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
+            return root_prefix + "/" + found
+        stdout = re.sub(
+            r'(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*'
+            r'[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))',
+            _translation,
+            joined
+        ).replace(";/", ":/")
+    else:
+        stdout, stderr = p.communicate(input=joined)
+        rc = p.returncode
+        if rc != 0 or stderr:
+            message = "\n  stdout: %s\n  stderr: %s\n  rc: %s\n" % (stdout, stderr, rc)
+            print(message, file=sys.stderr)
+            raise CalledProcessError(rc, command, message)
+        if hasattr(stdout, 'decode'):
+            stdout = stdout.decode('utf-8')
+        stdout = stdout.strip()
     final = stdout and stdout.split(':') or ()
     return final[0] if single_path else tuple(final)
 
