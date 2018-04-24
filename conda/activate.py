@@ -289,7 +289,6 @@ class _Activator(object):
                 'CONDA_PREFIX',
                 'CONDA_DEFAULT_ENV',
                 'CONDA_PYTHON_EXE',
-                'CONDA_EXE',
                 'CONDA_PROMPT_MODIFIER',
             )
             export_vars = {
@@ -698,7 +697,7 @@ class FishActivator(_Activator):
 
         self.unset_var_tmpl = 'set -e %s'
         self.export_var_tmpl = 'set -gx %s "%s"'
-        self.set_var_tmpl = 'set -gx %s "%s"'  # TODO: determine if different than export_var_tmpl
+        self.set_var_tmpl = 'set -g %s "%s"'
         self.run_script_tmpl = 'source "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d',

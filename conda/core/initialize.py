@@ -366,25 +366,32 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                 },
             })
 
-    if shells & {'fish', }:
+    if 'fish' in shells:
+        if for_user:
+            config_fish_path = expand(join('~', '.config', 'config.fish'))
+            plan.append({
+                'function': init_fish_user.__name__,
+                'kwargs': {
+                    'target_path': config_fish_path,
+                    'conda_prefix': conda_prefix,
+                },
+            })
+        if for_system:
+            raise NotImplementedError()
+
+    if 'tcsh' in shells:
         if for_user:
             raise NotImplementedError()
         if for_system:
             raise NotImplementedError()
 
-    if shells & {'tcsh', }:
+    if 'powershell' in shells:
         if for_user:
             raise NotImplementedError()
         if for_system:
             raise NotImplementedError()
 
-    if shells & {'powershell', }:
-        if for_user:
-            raise NotImplementedError()
-        if for_system:
-            raise NotImplementedError()
-
-    if shells & {'cmd.exe', }:
+    if 'cmd.exe' in shells:
         if for_user:
             plan.append({
                 'function': init_cmd_exe_registry.__name__,
@@ -739,6 +746,83 @@ def install_conda_csh(target_path, conda_prefix):
     return _install_file(target_path, file_content)
 
 
+def _config_fish_content(conda_prefix):
+    if on_win:
+        from ..activate import native_path_to_unix
+        conda_exe = native_path_to_unix(join(conda_prefix, 'Scripts', 'conda.exe'))
+    else:
+        conda_exe = join(conda_prefix, 'bin', 'conda')
+    conda_initialize_content = dals("""
+    # >>> conda initialize >>>
+    # !! Contents within this block are managed by 'conda init' !!
+    eval (eval %(conda_exe)s shell.fish hook $argv)
+    # <<< conda initialize <<<
+    """) % {
+        'conda_exe': conda_exe,
+    }
+    return conda_initialize_content
+
+
+def init_fish_user(target_path, conda_prefix):
+    # target_path: ~/.config/config.fish
+    user_rc_path = target_path
+
+    with open(user_rc_path) as fh:
+        rc_content = fh.read()
+
+    rc_original_content = rc_content
+
+    conda_initialize_content = _config_fish_content(conda_prefix)
+
+    if not on_win:
+        rc_content = re.sub(
+            r"^[ \t]*?(set -gx PATH ([\'\"]?).*?%s\/bin\2 [^\n]*?\$PATH)"
+            r"" % basename(conda_prefix),
+            r"# \1  # commented out by conda initialize",
+            rc_content,
+            flags=re.MULTILINE,
+        )
+
+    rc_content = re.sub(
+        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conf\.d\/conda\.fish.*?)\n"
+        r"(conda activate.*?)$",
+        r"# \1  # commented out by conda initialize\n# \2  # commented out by conda initialize",
+        rc_content,
+        flags=re.MULTILINE,
+    )
+    rc_content = re.sub(
+        r"^[ \t]*[^#\n]?[ \t]*((?:source|\.) .*etc\/fish\/conda\.d\/conda\.fish.*?)$",
+        r"# \1  # commented out by conda initialize",
+        rc_content,
+        flags=re.MULTILINE,
+    )
+
+    replace_str = "__CONDA_REPLACE_ME_123__"
+    rc_content = re.sub(
+        r"^# >>> conda initialize >>>$([\s\S]*?)# <<< conda initialize <<<\n$",
+        replace_str,
+        rc_content,
+        flags=re.MULTILINE,
+    )
+    # TODO: maybe remove all but last of replace_str, if there's more than one occurrence
+    rc_content = rc_content.replace(replace_str, conda_initialize_content)
+
+    if "# >>> conda initialize >>>" not in rc_content:
+        rc_content += '\n%s\n' % conda_initialize_content
+
+    if rc_content != rc_original_content:
+        if context.verbosity:
+            print('\n')
+            print(target_path)
+            print(make_diff(rc_original_content, rc_content))
+        if not context.dry_run:
+            with open(user_rc_path, 'w') as fh:
+                fh.write(rc_content)
+        return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
+
+
 def _bashrc_content(conda_prefix, shell):
     if on_win:
         from ..activate import native_path_to_unix
@@ -791,8 +875,8 @@ def init_sh_user(target_path, conda_prefix, shell):
 
     if not on_win:
         rc_content = re.sub(
-            r"^[ \t]*?(export PATH=[\'\"].*?%s\/%s:\$PATH[\'\"])"
-            r"" % (basename(conda_prefix), 'bin'),
+            r"^[ \t]*?(export PATH=[\'\"].*?%s\/bin:\$PATH[\'\"])"
+            r"" % basename(conda_prefix),
             r"# \1  # commented out by conda initialize",
             rc_content,
             flags=re.MULTILINE,

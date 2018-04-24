@@ -2,6 +2,10 @@
 #
 # INSTALL
 #
+#     Run 'conda init fish' and restart your shell.
+#
+
+
 #     Source this file from the fish shell to enable activate / deactivate functions.
 #     In order to automatically load these functions on fish startup, append
 #
@@ -22,14 +26,8 @@
 #     to have the default environment running as in bash.
 #
 
-
-
-# source shell/etc/fish/conf.d/conda.fish
-
-# For testing only. $_CONDA_EXE is added as top line in this file under normal installs.
-test -n "$_CONDA_EXE"; or set _CONDA_EXE "$PWD/shell/bin/conda"
-
 test -n "$CONDA_SHLVL"; or set -gx CONDA_SHLVL "0"
+set -g _CONDA_ROOT (dirname (dirname $CONDA_EXE))
 
 function __conda_add_prompt
   if set -q CONDA_DEFAULT_ENV
@@ -78,24 +76,20 @@ function fish_right_prompt
 end
 
 
-function conda --inherit-variable _CONDA_EXE
+function conda --inherit-variable CONDA_EXE
     if [ (count $argv) -lt 1 ]
-        eval $_CONDA_EXE
+        eval $CONDA_EXE
     else
         set -l cmd $argv[1]
         set -e argv[1]
         switch $cmd
-            case activate
-                eval (eval $_CONDA_EXE shell.fish activate $argv)
-            case stack
-                eval (eval $_CONDA_EXE shell.fish stack $argv)
-            case deactivate
-                eval (eval $_CONDA_EXE shell.fish deactivate $argv)
+            case activate deactivate
+                eval (eval $CONDA_EXE shell.fish $cmd $argv)
             case install update remove uninstall
-                eval $_CONDA_EXE $cmd $argv
-                and eval (eval $_CONDA_EXE shell.fish reactivate)
+                eval $CONDA_EXE $cmd $argv
+                and eval (eval $CONDA_EXE shell.fish reactivate)
             case '*'
-                eval $_CONDA_EXE $cmd $argv
+                eval $CONDA_EXE $cmd $argv
         end
     end
 end
@@ -116,7 +110,6 @@ function __fish_conda_commands
   end
   echo activate
   echo deactivate
-  echo stack
 end
 
 function __fish_conda_env_commands
@@ -155,7 +148,6 @@ complete -f -c conda -n '__fish_conda_using_command env' -a '(__fish_conda_env_c
 
 # Commands that need environment as parameter
 complete -f -c conda -n '__fish_conda_using_command activate' -a '(__fish_conda_envs)'
-complete -f -c conda -n '__fish_conda_using_command stack' -a '(__fish_conda_envs)'
 
 # Commands that need package as parameter
 complete -f -c conda -n '__fish_conda_using_command remove' -a '(__fish_conda_packages)'

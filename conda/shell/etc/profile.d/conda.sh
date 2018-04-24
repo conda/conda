@@ -1,3 +1,4 @@
+
 __conda_hashr() {
     if [ -n "${ZSH_VERSION:+x}" ]; then
         \rehash
