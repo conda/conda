@@ -1,1 +1,1 @@
-echo "This file no longer exists: %~dp0"
+@CALL "%dp0..\..\condacmd\conda.bat" %*

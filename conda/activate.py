@@ -622,7 +622,7 @@ class CmdExeActivator(_Activator):
         self.path_conversion = path_identity
         self.script_extension = '.bat'
         self.tempfile_extension = '.bat'
-        self.shift_args = 1
+        self.shift_args = 0
         self.command_join = '\r\n' if on_win else '\n'
 
         self.unset_var_tmpl = '@SET %s='
