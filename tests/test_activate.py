@@ -1261,7 +1261,7 @@ class ShellWrapperIntegrationTests(TestCase):
         assert len(PATH0.split(':')) + num_paths == len(PATH3.split(':'))
 
         shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
-        shell.expect('Executing transaction: ...working... done.*\n', timeout=25)
+        shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
         shell.assert_env_var('?', '0', True)
         # TODO: assert that reactivate worked correctly
 
