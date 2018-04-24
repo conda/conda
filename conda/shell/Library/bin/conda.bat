@@ -1,1 +1,1 @@
-@CALL "%dp0..\..\condacmd\conda.bat" %*
+@CALL "%~dp0..\..\condacmd\conda.bat" %*
