@@ -9,8 +9,6 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-import pytest
-
 from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
@@ -18,12 +16,13 @@ from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixAc
     PowershellActivator, XonshActivator, activator_map, main as activate_main, native_path_to_unix
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context, reset_context
-from conda.common.compat import iteritems, on_win, string_types, ensure_unicode
+from conda.common.compat import ensure_text_type, iteritems, on_win, string_types
 from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
+import pytest
 from tests.helpers import tempdir
 
 try:
@@ -1202,7 +1201,7 @@ class InteractiveShell(object):
         self.sendline('echo get_var_end')
         self.expect('get_var_start(.*)get_var_end')
         value = self.p.match.groups()[0]
-        return ensure_unicode(value).strip()
+        return ensure_text_type(value).strip()
 
 
 def which(executable):
