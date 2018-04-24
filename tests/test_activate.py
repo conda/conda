@@ -1465,7 +1465,7 @@ class ShellWrapperIntegrationTests(TestCase):
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
     def test_legacy_activate_deactivate_cmd_exe(self):
         with InteractiveShell('cmd.exe') as shell:
-            shell.sendline("SET \"PATH=%s\\shell\\Scripts;%PATH%\"" % CONDA_PACKAGE_ROOT)
+            shell.sendline("SET \"PATH=%s\\shell\\Scripts;%%PATH%%\"" % CONDA_PACKAGE_ROOT)
             shell.sendline("activate \"%s\"" % self.prefix2)
             PATH = shell.get_env_var("PATH")
             assert 'charizard' in PATH
