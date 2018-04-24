@@ -148,8 +148,11 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         builder = []
         builder += ["unset %s" % unset_env_var for unset_env_var in unset_env_vars]
         builder += ["export %s='%s'" % (key, env_vars[key]) for key in sorted(env_vars)]
+        sys_executable = abspath(sys.executable)
+        if on_win:
+            sys_executable = "$(cygpath '%s')" % sys_executable
         builder += [
-            "eval \"$(%s -m conda shell.bash hook)\"" % abspath(sys.executable),
+            "eval \"$(\"%s\" -m conda shell.bash hook)\"" % sys_executable,
             "conda activate '%s'" % dev_env_prefix,
         ]
         print("\n".join(builder))
@@ -158,7 +161,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         builder += ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
         builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
-            '@CALL %s' % join(dev_env_prefix, 'condacmd', 'conda-hook.bat'),
+            '@CALL %s' % join(dev_env_prefix, 'condacmd', 'conda_hook.bat'),
             '@IF %errorlevel% NEQ 0 exit /b %errorlevel%',
             '@CALL conda.bat activate \"%s\"' % dev_env_prefix,
             '@IF %errorlevel% NEQ 0 exit /b %errorlevel%',
@@ -243,9 +246,23 @@ def make_install_plan(conda_prefix):
             },
         })
         plan.append({
+            'function': install_condacmd_conda_activate_bat.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'condacmd', 'conda_activate.bat'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+        plan.append({
+            'function': install_condacmd_conda_auto_activate_bat.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'condacmd', 'conda_auto_activate.bat'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+        plan.append({
             'function': install_condacmd_hook_bat.__name__,
             'kwargs': {
-                'target_path': join(conda_prefix, 'condacmd', 'conda-hook.bat'),
+                'target_path': join(conda_prefix, 'condacmd', 'conda_hook.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
@@ -487,7 +504,7 @@ def print_plan_results(plan, stream=None):
     if not stream:
         stream = sys.stdout
     for step in plan:
-        print("%s\n  %s\n" % (step['kwargs']['target_path'], step.get('result')), file=stream)
+        print("%-14s%s" % (step.get('result'), step['kwargs']['target_path']), file=stream)
 
     changed = any(step.get('result') == Result.MODIFIED for step in plan)
     if changed:
@@ -576,7 +593,8 @@ def install_anaconda_prompt(target_path, conda_prefix):
 
     args = (
         '/K',
-        '"%s"' % join(conda_prefix, 'condacmd', 'conda-hook.bat'),
+        '""%s" && "%s""' % (join(conda_prefix, 'condacmd', 'conda_hook.bat'),
+                            join(conda_prefix, 'condacmd', 'conda_auto_activate.bat')),
     )
     # The API for the call to 'create_shortcut' has 3
     # required arguments (path, description, filename)
@@ -626,9 +644,8 @@ def install_conda_sh(target_path, conda_prefix):
 def install_conda_bat(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Library', 'bin', 'conda.bat')
     conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Library', 'bin', 'conda.bat')
-    file_content = '@SET "_CONDA_EXE=%s"\n' % join(conda_prefix, 'Scripts', 'conda.exe')
     with open(conda_bat_src_path) as fsrc:
-        file_content += fsrc.read()
+        file_content = fsrc.read()
     return _install_file(target_path, file_content)
 
 
@@ -680,9 +697,25 @@ def install_condacmd_conda_bat(target_path, conda_prefix):
     return _install_file(target_path, file_content)
 
 
+def install_condacmd_conda_activate_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condacmd', 'conda_activate.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda_activate.bat')
+    with open(conda_bat_src_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_condacmd_conda_auto_activate_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condacmd', 'conda_auto_activate.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda_auto_activate.bat')
+    with open(conda_bat_src_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
 def install_condacmd_hook_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'conda-hook.bat')
-    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda-hook.bat')
+    # target_path: join(conda_prefix, 'condacmd', 'conda_hook.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda_hook.bat')
     with open(conda_bat_src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)
@@ -893,10 +926,10 @@ def init_cmd_exe_registry(target_path, conda_prefix):
         prev_value = ""
         value_type = winreg.REG_EXPAND_SZ
 
-    hook_path = '"%s"' % join(conda_prefix, 'condacmd', 'conda-hook.bat')
+    hook_path = '"%s"' % join(conda_prefix, 'condacmd', 'conda_hook.bat')
     replace_str = "__CONDA_REPLACE_ME_123__"
     new_value = re.sub(
-        r'(\".*?conda-hook\.bat\")',
+        r'(\".*?conda[-_]hook\.bat\")',
         replace_str,
         prev_value,
         count=1,

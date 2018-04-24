@@ -546,9 +546,9 @@ class PosixActivator(_Activator):
 
     def _hook_preamble(self):
         if on_win:
-            return '_CONDA_EXE="$(cygpath \'%s\')"' % context.conda_exe
+            return 'export CONDA_EXE="$(cygpath \'%s\')"' % context.conda_exe
         else:
-            return '_CONDA_EXE="%s"' % context.conda_exe
+            return 'export CONDA_EXE="%s"' % context.conda_exe
 
 
 class CshActivator(_Activator):
@@ -581,13 +581,15 @@ class CshActivator(_Activator):
 
     def _hook_preamble(self):
         if on_win:
-            return ('setenv _CONDA_ROOT `cygpath %s`\n'
+            return ('setenv CONDA_EXE `cygpath %s`\n'
+                    'setenv _CONDA_ROOT `cygpath %s`\n'
                     'setenv _CONDA_EXE `cygpath %s`'
-                    % (context.conda_prefix, context.conda_exe))
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
         else:
-            return ('setenv _CONDA_ROOT "%s"\n'
+            return ('setenv CONDA_EXE "%s"\n'
+                    'setenv _CONDA_ROOT "%s"\n'
                     'setenv _CONDA_EXE "%s"'
-                    % (context.conda_prefix, context.conda_exe))
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
 
 
 class XonshActivator(_Activator):
@@ -610,7 +612,7 @@ class XonshActivator(_Activator):
         super(XonshActivator, self).__init__(arguments)
 
     def _hook_preamble(self):
-        return '_CONDA_EXE = "%s"' % context.conda_exe
+        return 'CONDA_EXE = "%s"' % context.conda_exe
 
 
 class CmdExeActivator(_Activator):
@@ -620,7 +622,7 @@ class CmdExeActivator(_Activator):
         self.path_conversion = path_identity
         self.script_extension = '.bat'
         self.tempfile_extension = '.bat'
-        self.shift_args = 1
+        self.shift_args = 0
         self.command_join = '\r\n' if on_win else '\n'
 
         self.unset_var_tmpl = '@SET %s='
@@ -667,13 +669,15 @@ class FishActivator(_Activator):
 
     def _hook_preamble(self):
         if on_win:
-            return ('set _CONDA_ROOT (cygpath %s)\n'
-                    'set _CONDA_EXE (cygpath %s)'
-                    % (context.conda_prefix, context.conda_exe))
+            return ('set CONDA_EXE (cygpath "%s")\n'
+                    'set _CONDA_ROOT (cygpath "%s")\n'
+                    'set _CONDA_EXE (cygpath "%s")'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
         else:
-            return ('set _CONDA_ROOT "%s"\n'
+            return ('set CONDA_EXE "%s"\n'
+                    'set _CONDA_ROOT "%s"\n'
                     'set _CONDA_EXE "%s"'
-                    % (context.conda_prefix, context.conda_exe))
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
 
 
 class PowershellActivator(_Activator):
