@@ -669,12 +669,12 @@ class FishActivator(_Activator):
 
     def _hook_preamble(self):
         if on_win:
-            return ('set _CONDA_EXE (cygpath "%s")\n'
+            return ('set CONDA_EXE (cygpath "%s")\n'
                     'set _CONDA_ROOT (cygpath "%s")\n'
                     'set _CONDA_EXE (cygpath "%s")'
                     % (context.conda_exe, context.conda_prefix, context.conda_exe))
         else:
-            return ('set _CONDA_EXE "%s"\n'
+            return ('set CONDA_EXE "%s"\n'
                     'set _CONDA_ROOT "%s"\n'
                     'set _CONDA_EXE "%s"'
                     % (context.conda_exe, context.conda_prefix, context.conda_exe))
