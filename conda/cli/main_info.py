@@ -104,12 +104,6 @@ def print_package_info(packages):
 
 def get_info_dict(system=False):
     try:
-        from ..install import linked_data
-        root_pkgs = linked_data(context.root_prefix)
-    except:  # pragma: no cover
-        root_pkgs = {}
-
-    try:
         from requests import __version__ as requests_version
         # These environment variables can influence requests' behavior, along with configuration
         # in a .netrc file
@@ -127,11 +121,7 @@ def get_info_dict(system=False):
     try:
         from conda_env import __version__ as conda_env_version
     except:  # pragma: no cover
-        try:
-            cenv = [p for p in itervalues(root_pkgs) if p['name'] == 'conda-env']
-            conda_env_version = cenv[0]['version']
-        except:
-            conda_env_version = "not installed"
+        conda_env_version = "not installed"
 
     try:
         import conda_build
