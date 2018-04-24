@@ -207,7 +207,7 @@ class Context(Configuration):
     # ######################################################
     no_deps = PrimitiveParameter(False)  # CLI-only
     only_deps = PrimitiveParameter(False)   # CLI-only
-    update_deps = PrimitiveParameter(False)
+    update_deps = PrimitiveParameter(False, aliases=('update_dependencies',))
     update_all = PrimitiveParameter(False)
     freeze_installed = PrimitiveParameter(False)
 
