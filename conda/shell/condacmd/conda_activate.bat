@@ -5,7 +5,7 @@
     @SET CONDA_PS1_BACKUP=
 :FIXUP43
 
-FOR /F "delims=" %%i IN ('%CONDA_EXE% shell.cmd.exe %*') DO SET "_TEMP_SCRIPT_PATH=%%i"
+FOR /F "delims=" %%i IN ('@CALL %CONDA_EXE% shell.cmd.exe %*') DO SET "_TEMP_SCRIPT_PATH=%%i"
 @IF "%_TEMP_SCRIPT_PATH%"=="" @EXIT /B 1
 @IF "%CONDA_PROMPT_MODIFIER%" == "" GOTO skip_prompt_set_activate
     @CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
