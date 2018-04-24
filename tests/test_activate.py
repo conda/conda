@@ -1332,7 +1332,6 @@ class ShellWrapperIntegrationTests(TestCase):
     @pytest.mark.skipif(not which('dash') or on_win, reason='dash not installed')
     def test_dash_basic_integration(self):
         with InteractiveShell('dash') as shell:
-            shell.sendline('env | sort')
             self.basic_posix(shell)
 
     @pytest.mark.skipif(not which('zsh'), reason='zsh not installed')
@@ -1439,3 +1438,41 @@ class ShellWrapperIntegrationTests(TestCase):
 
             shell.sendline("conda activate -h blah blah")
             shell.expect('usage: conda activate')
+
+    @pytest.mark.skipif(not which('bash'), reason='bash not installed')
+    def test_legacy_activate_deactivate_bash(self):
+        with InteractiveShell('bash') as shell:
+            shell.sendline("export _CONDA_ROOT='%s/shell'" % CONDA_PACKAGE_ROOT)
+            shell.sendline("source activate \"%s\"" % self.prefix2)
+            PATH = shell.get_env_var("PATH")
+            assert 'charizard' in PATH
+
+            shell.sendline("source activate \"%s\"" % self.prefix3)
+            PATH = shell.get_env_var("PATH")
+            assert 'venusaur' in PATH
+
+            shell.sendline("source deactivate")
+            PATH = shell.get_env_var("PATH")
+            assert 'charizard' in PATH
+
+            shell.sendline("source deactivate")
+            shell.assert_env_var('CONDA_SHLVL', '0')
+
+    @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
+    def test_legacy_activate_deactivate_cmd_exe(self):
+        with InteractiveShell('cmd.exe') as shell:
+            shell.sendline("SET \"PATH=%s\\shell\\Scripts;%PATH%\"" % CONDA_PACKAGE_ROOT)
+            shell.sendline("activate \"%s\"" % self.prefix2)
+            PATH = shell.get_env_var("PATH")
+            assert 'charizard' in PATH
+
+            shell.sendline("activate \"%s\"" % self.prefix3)
+            PATH = shell.get_env_var("PATH")
+            assert 'venusaur' in PATH
+
+            shell.sendline("deactivate")
+            PATH = shell.get_env_var("PATH")
+            assert 'charizard' in PATH
+
+            shell.sendline("deactivate")
+            shell.assert_env_var('CONDA_SHLVL', '0')
