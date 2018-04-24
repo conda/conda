@@ -14,9 +14,10 @@ from .exceptions import ResolvePackageNotFound, UnsatisfiableError
 from .models.channel import Channel, MultiChannel
 from .models.dist import Dist
 from .models.enums import NoarchType
-from .models.records import PackageRef
+from .models.records import PackageRef, PackageRecord
 from .models.match_spec import MatchSpec
 from .models.version import VersionOrder
+from .core.subdir_data import make_feature_record
 
 try:
     from cytoolz.itertoolz import concat, groupby
@@ -46,15 +47,15 @@ class Resolve(object):
         groups = {}
         trackers = defaultdict(list)
 
-        for dist, info in iteritems(index):
-            groups.setdefault(info['name'], []).append(dist)
+        for _, info in iteritems(index):
+            groups.setdefault(info['name'], []).append(info)
             for feature_name in info.get('track_features') or ():
-                trackers[feature_name].append(dist)
+                trackers[feature_name].append(info)
 
-        self.groups = groups  # Dict[package_name, List[Dist]]
-        self.trackers = trackers  # Dict[track_feature, List[Dist]]
-        self.find_matches_ = {}  # Dict[MatchSpec, List[Dist]]
-        self.ms_depends_ = {}  # Dict[Dist, List[MatchSpec]]
+        self.groups = groups  # Dict[package_name, List[PackageRecord]]
+        self.trackers = trackers  # Dict[track_feature, List[PackageRecord]]
+        self.find_matches_ = {}  # Dict[MatchSpec, List[PackageRecord]]
+        self.ms_depends_ = {}  # Dict[PackageRecord, List[MatchSpec]]
         self._reduced_index_cache = {}
 
         if sort:
@@ -66,9 +67,10 @@ class Resolve(object):
             filter = {}
         else:
             filter.clear()
-        filter.update({Dist(fstr+'@'): False for fstr in iterkeys(self.trackers)})
+
+        filter.update({make_feature_record(fstr): False for fstr in iterkeys(self.trackers)})
         if features:
-            filter.update({Dist(fstr+'@'): True for fstr in features})
+            filter.update({make_feature_record(fstr): True for fstr in features})
         return filter
 
     def valid(self, spec_or_dist, filter, optional=True):
@@ -129,10 +131,11 @@ class Resolve(object):
             names.add(spec.name)
             if self.valid(spec, filter, optional):
                 return
-            dists = self.find_matches(spec) if isinstance(spec, MatchSpec) else [Dist(spec)]
+            assert isinstance(spec, MatchSpec)
+            precs = self.find_matches(spec)
             found = False
-            for dist in dists:
-                for m2 in self.ms_depends(dist):
+            for prec in precs:
+                for m2 in self.ms_depends(prec):
                     for x in chains_(m2, names):
                         found = True
                         yield (spec,) + x
@@ -166,7 +169,7 @@ class Resolve(object):
                 spec2.append(ms)
         for ms in spec2:
             filter = self.default_filter(feats)
-            # type: Map[Dist, bool]
+            # type: Map[PackageRecord, bool]
             bad_deps.extend(self.invalid_chains(ms, filter))
         if bad_deps:
             raise ResolvePackageNotFound(bad_deps)
@@ -329,14 +332,14 @@ class Resolve(object):
         reduced_index = {}
         slist = list(specs)
         for fstr in features:
-            dist = Dist(fstr + '@')
-            reduced_index[dist] = self.index[dist]
+            prec = make_feature_record(fstr)
+            reduced_index[prec] = prec
         while slist:
             this_spec = slist.pop()
-            for dist in self.find_matches(this_spec):
-                if reduced_index.get(dist) is None and self.valid(dist, filter):
-                    reduced_index[dist] = self.index[dist]
-                    for ms in self.ms_depends(dist):
+            for prec in self.find_matches(this_spec):
+                if reduced_index.get(prec) is None and self.valid(prec, filter):
+                    reduced_index[prec] = prec
+                    for ms in self.ms_depends(prec):
                         # We do not pull packages into the reduced index due
                         # to a track_features dependency. Remember, a feature
                         # specifies a "soft" dependency: it must be in the
@@ -350,17 +353,15 @@ class Resolve(object):
         self._reduced_index_cache[cache_key] = reduced_index
         return reduced_index
 
-    def match_any(self, mss, dist):
-        rec = self.index[dist]
-        return any(ms.match(rec) for ms in mss)
+    def match_any(self, mss, prec):
+        return any(ms.match(prec) for ms in mss)
 
-    def match(self, ms, fkey):
-        # type: (MatchSpec, Dist) -> bool
-        rec = self.index[fkey]
-        return MatchSpec(ms).match(rec)
+    def match(self, ms, prec):
+        # type: (MatchSpec, PackageRecord) -> bool
+        return MatchSpec(ms).match(prec)
 
     def find_matches(self, ms):
-        # type: (MatchSpec) -> List[Dist]
+        # type: (MatchSpec) -> List[PackageRecord]
         assert isinstance(ms, MatchSpec)
         res = self.find_matches_.get(ms, None)
         if res is None:
@@ -372,30 +373,28 @@ class Resolve(object):
                                                for feature_name in feature_names
                                                if feature_name in self.trackers))
             else:
-                res = self.index.keys()
+                res = self.index.values()
             res = [p for p in res if self.match(ms, p)]
             self.find_matches_[ms] = res
         return res
 
-    def ms_depends(self, dist):
-        # type: (Dist) -> List[MatchSpec]
-        deps = self.ms_depends_.get(dist)
+    def ms_depends(self, prec):
+        # type: (PackageRecord) -> List[MatchSpec]
+        deps = self.ms_depends_.get(prec)
         if deps is None:
-            rec = self.index[dist]
-            deps = [MatchSpec(d) for d in rec.combined_depends]
-            deps.extend(MatchSpec(track_features=feat) for feat in self.index[dist].features)
-            self.ms_depends_[dist] = deps
+            deps = [MatchSpec(d) for d in prec.combined_depends]
+            deps.extend(MatchSpec(track_features=feat) for feat in prec.features)
+            self.ms_depends_[prec] = deps
         return deps
 
-    def version_key(self, dist, vtype=None):
-        rec = self.index[dist]
-        channel = rec.channel
+    def version_key(self, prec, vtype=None):
+        channel = prec.channel
         channel_priority = self._channel_priorities_map.get(channel.name, 1)  # TODO: ask @mcg1969 why the default value is 1 here  # NOQA
         valid = 1 if channel_priority < MAX_CHANNEL_PRIORITY else 0
-        version_comparator = VersionOrder(rec.get('version', ''))
-        build_number = rec.get('build_number', 0)
-        build_string = rec.get('build')
-        ts = rec.get('timestamp', 0)
+        version_comparator = VersionOrder(prec.get('version', ''))
+        build_number = prec.get('build_number', 0)
+        build_string = prec.get('build')
+        ts = prec.get('timestamp', 0)
         if context.channel_priority:
             return valid, -channel_priority, version_comparator, build_number, ts, build_string
         else:
@@ -429,26 +428,24 @@ class Resolve(object):
     def get_pkgs(self, ms, emptyok=False):  # pragma: no cover
         # legacy method for conda-build
         ms = MatchSpec(ms)
-        dists = self.find_matches(ms)
-        if not dists and not emptyok:
+        precs = self.find_matches(ms)
+        if not precs and not emptyok:
             raise ResolvePackageNotFound([(ms,)])
-        return sorted(dists, key=self.version_key)
+        return sorted(precs, key=self.version_key)
 
     @staticmethod
     def to_sat_name(val):
         # val can be a Dist, PackageRef, or MatchSpec
-        if isinstance(val, Dist):
-            return val.full_name
+        if isinstance(val, PackageRef):
+            return val.dist_str()
         elif isinstance(val, MatchSpec):
             return '@s@' + text_type(val) + ('?' if val.optional else '')
-        elif isinstance(val, PackageRef):
-            return val.dist_str()
         else:
             raise NotImplementedError()
 
     @staticmethod
-    def to_feature_metric_id(dist, feat):
-        return '@fm@%s@%s' % (dist, feat)
+    def to_feature_metric_id(prec_dist_str, feat):
+        return '@fm@%s@%s' % (prec_dist_str, feat)
 
     def push_MatchSpec(self, C, spec):
         spec = MatchSpec(spec)
@@ -482,18 +479,18 @@ class Resolve(object):
                 ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
                 m = C.from_name(self.push_MatchSpec(C, ms2))
         if m is None:
-            dists = [dist.full_name for dist in libs]
+            sat_names = [self.to_sat_name(prec) for prec in libs]
             if spec.optional:
                 ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
-                dists.append('!' + self.to_sat_name(ms2))
-            m = C.Any(dists)
+                sat_names.append('!' + self.to_sat_name(ms2))
+            m = C.Any(sat_names)
         C.name_var(m, sat_name)
         return sat_name
 
     def gen_clauses(self):
         C = Clauses()
         for name, group in iteritems(self.groups):
-            group = [self.to_sat_name(dist) for dist in group]
+            group = [self.to_sat_name(prec) for prec in group]
             # Create one variable for each package
             for sat_name in group:
                 C.new_var(sat_name)
@@ -505,9 +502,9 @@ class Resolve(object):
             C.Require(C.ExactlyOne, group + [C.Not(m)])
 
         # If a package is installed, its dependencies must be as well
-        for dist in iterkeys(self.index):
-            nkey = C.Not(self.to_sat_name(dist))
-            for ms in self.ms_depends(dist):
+        for prec in itervalues(self.index):
+            nkey = C.Not(self.to_sat_name(prec))
+            for ms in self.ms_depends(prec):
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
         log.debug("gen_clauses returning with clause count: %s", len(C.clauses))
@@ -535,14 +532,14 @@ class Resolve(object):
         # - At least one package in the group DOES require the feature
         # - A package that tracks the feature is installed
         for name, group in iteritems(self.groups):
-            dist_feats = {dist.full_name: set(self.index[dist].features) for dist in group}
-            active_feats = set.union(*dist_feats.values()).intersection(self.trackers)
+            prec_feats = {self.to_sat_name(prec): set(prec.features) for prec in group}
+            active_feats = set.union(*prec_feats.values()).intersection(self.trackers)
             for feat in active_feats:
                 clause_id_for_feature = self.push_MatchSpec(C, MatchSpec(track_features=feat))
-                for dist, features in dist_feats.items():
+                for prec_sat_name, features in prec_feats.items():
                     if feat not in features:
-                        feature_metric_id = self.to_feature_metric_id(dist, feat)
-                        C.name_var(C.And(dist, clause_id_for_feature), feature_metric_id)
+                        feature_metric_id = self.to_feature_metric_id(prec_sat_name, feat)
+                        C.name_var(C.And(prec_sat_name, clause_id_for_feature), feature_metric_id)
                         eq[feature_metric_id] = 1
         return eq
 
@@ -563,16 +560,17 @@ class Resolve(object):
         eqb = {}  # build number
         eqt = {}  # timestamp
 
-        sdict = {}  # Dict[package_name, Dist]
+        sdict = {}  # Dict[package_name, PackageRecord]
 
         for s in specs:
             s = MatchSpec(s)  # needed for testing
             rec = sdict.setdefault(s.name, [])
-            if s.target:
-                dist = Dist(s.target)
-                if dist in self.index:
-                    if self.index[dist].get('priority', 0) < MAX_CHANNEL_PRIORITY:
-                        rec.append(dist)
+            # # TODO: this block is important! can't leave it commented out
+            # if s.target:
+            #     dist = Dist(s.target)
+            #     if dist in self.index:
+            #         if self.index[dist].get('priority', 0) < MAX_CHANNEL_PRIORITY:
+            #             rec.append(dist)
 
         for name, targets in iteritems(sdict):
             pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
@@ -580,8 +578,9 @@ class Resolve(object):
             # keep in mind that pkgs is already sorted according to version_key (a tuple,
             #    so composite sort key).  Later entries in the list are, by definition,
             #    greater in some way, so simply comparing with != suffices.
-            for version_key, dist in pkgs:
-                if targets and any(dist == t for t in targets):
+            for version_key, prec in pkgs:
+                assert isinstance(prec, PackageRecord)
+                if targets and any(prec == t for t in targets):
                     continue
                 if pkey is None:
                     ic = iv = ib = it = 0
@@ -600,14 +599,15 @@ class Resolve(object):
                 elif pkey[4] != version_key[4]:
                     it += 1
 
+                prec_sat_name = self.to_sat_name(prec)
                 if ic or include0:
-                    eqc[dist.full_name] = ic
+                    eqc[prec_sat_name] = ic
                 if iv or include0:
-                    eqv[dist.full_name] = iv
+                    eqv[prec_sat_name] = iv
                 if ib or include0:
-                    eqb[dist.full_name] = ib
+                    eqb[prec_sat_name] = ib
                 if it or include0:
-                    eqt[dist.full_name] = it
+                    eqt[prec_sat_name] = it
                 pkey = version_key
 
         return eqc, eqv, eqb, eqt
@@ -792,10 +792,7 @@ class Resolve(object):
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
         pkgs = self.solve(specs, returnall=returnall, _remove=False)
         self.restore_bad(pkgs, preserve)
-        if returnall:
-            return [[self.index[d] for d in dists] for dists in pkgs]
-        else:
-            return [self.index[dist] for dist in pkgs]
+        return pkgs
 
     def remove_specs(self, specs, installed):
         nspecs = []
@@ -832,11 +829,11 @@ class Resolve(object):
         specs, preserve = self.remove_specs(specs, installed)
         pkgs = self.solve(specs, _remove=True)
         self.restore_bad(pkgs, preserve)
-        return [self.index[dist] for dist in pkgs]
+        return pkgs
 
     @time_recorder("resolve_solve")
     def solve(self, specs, returnall=False, _remove=False):
-        # type: (List[str], bool) -> List[Dist]
+        # type: (List[str], bool) -> List[PackageRecord]
         if log.isEnabledFor(DEBUG):
             log.debug('Solving for: %s', dashlist(sorted(text_type(s) for s in specs)))
 
@@ -970,7 +967,11 @@ class Resolve(object):
         def stripfeat(sol):
             return sol.split('[')[0]
 
+        new_index = {self.to_sat_name(prec): prec for prec in itervalues(self.index)}
+
         if returnall:
-            return [sorted(Dist(stripfeat(dname)) for dname in psol) for psol in psolutions]
+            # return [sorted(Dist(stripfeat(dname)) for dname in psol) for psol in psolutions]
+            return [sorted((new_index[sat_name] for sat_name in psol), key=lambda x: x.name) for psol in psolutions]
         else:
-            return sorted(Dist(stripfeat(dname)) for dname in psolutions[0])
+            # return sorted(Dist(stripfeat(dname)) for dname in psolutions[0])
+            return sorted((new_index[sat_name] for sat_name in psolutions[0]), key=lambda x: x.name)

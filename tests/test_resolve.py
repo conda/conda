@@ -1128,13 +1128,13 @@ def test_channel_priority_1():
     with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
         # Should select the "record_2" because it has highest channel priority, even though
         # 'channel-1::pandas-0.11.1-np17py27_0.tar.bz2' would otherwise be preferred
-        installed1 = [index2[dist] for dist in r2.install(spec)]
+        installed1 = r2.install(spec)
         assert record_2 in installed1
         assert record_1 not in installed1
         assert record_0 not in installed1
 
         r3 = Resolve(index2, channels=reversed(channels))
-        installed2 = [index2[dist] for dist in r3.install(spec)]
+        installed2 = r3.install(spec)
         assert record_0 in installed2
         assert record_2 not in installed2
         assert record_1 not in installed2
@@ -1144,7 +1144,7 @@ def test_channel_priority_1():
         # Should also select the newer package because we have
         # turned off channel priority altogether
         r2._reduced_index_cache.clear()
-        installed3 = [index2[dist] for dist in r2.install(spec)]
+        installed3 = r2.install(spec)
         assert record_0 in installed3
         assert record_1 not in installed3
         assert record_2 not in installed3
