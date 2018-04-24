@@ -82,6 +82,8 @@ conda_build_test: &conda_build_test
             and not cran-nmf
             and not test_preferred_env
             and not test_name_with_version_specified
+            and not test_pypi_with_setup_options
+            and not test_pypi_with_extra_specs
           # skeleton_pypi skipped because of changes to PyPI API
           # expand_globs and build_expands_wildcards fail on circleci because of list ordering discrepancies
           # skipping numpy tests so circleci images don't need numpy (and mkl) installed
@@ -90,6 +92,8 @@ conda_build_test: &conda_build_test
           # skipping cran-nmf because nmf was removed/archived in cran
           # for test_preferred_env see https://github.com/conda/conda/issues/3912#issuecomment-374820599
           # test_name_with_version_specified because of the new PyPI
+          # test_pypi_with_setup_options because of the new PyPI
+          # test_pypi_with_extra_specs because of the new PyPI
         command: |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           conda info
