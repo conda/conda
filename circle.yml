@@ -159,5 +159,4 @@ workflows:
       - py27 main tests
       - 3.0 conda-build
       - 2.1 conda-build
-      - activate tests
       - flake8
