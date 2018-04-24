@@ -521,6 +521,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
         def _translation(found_path):  # NOQA
             found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
             return root_prefix + "/" + found
+        joined = ensure_fs_path_encoding(joined)
         stdout = re.sub(
             r'(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*'
             r'[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))',

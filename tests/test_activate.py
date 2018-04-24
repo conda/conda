@@ -741,7 +741,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             @CALL "%(deactivate1)s"
             @SET CONDA_DEFAULT_ENV=
-            @SET CONDA_EXE=
             @SET CONDA_PREFIX=
             @SET CONDA_PROMPT_MODIFIER=
             @SET CONDA_PYTHON_EXE=
