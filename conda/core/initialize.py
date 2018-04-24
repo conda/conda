@@ -228,13 +228,13 @@ def make_install_plan(conda_prefix):
     # shell wrappers
     # ######################################
     if on_win:
-        plan.append({
-            'function': install_conda_bat.__name__,
-            'kwargs': {
-                'target_path': join(conda_prefix, 'Library', 'bin', 'conda.bat'),
-                'conda_prefix': conda_prefix,
-            },
-        })
+        # plan.append({
+        #     'function': install_conda_bat.__name__,
+        #     'kwargs': {
+        #         'target_path': join(conda_prefix, 'Library', 'bin', 'conda.bat'),
+        #         'conda_prefix': conda_prefix,
+        #     },
+        # })
         plan.append({
             'function': install_condacmd_conda_bat.__name__,
             'kwargs': {
