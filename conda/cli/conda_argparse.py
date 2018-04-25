@@ -529,6 +529,11 @@ def configure_parser_create(sub_parsers):
         action="store_true",
         help='Ignore create_default_packages in the .condarc file.',
     )
+    p.add_argument(
+        '-m', "--mkdir",
+        action="store_true",
+        help=SUPPRESS,
+    )
     p.set_defaults(func='.main_create.execute')
 
 
