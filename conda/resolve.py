@@ -413,18 +413,6 @@ class Resolve(object):
             priorities_map[channel_name] = min(priority_counter, MAX_CHANNEL_PRIORITY - 1)
         return priorities_map
 
-    def package_quad(self, dist):
-        rec = self.index.get(dist, None)
-        if rec is None:
-            return dist.quad
-        else:
-            channel = rec.get('channel')
-            channel = channel.canonical_name if channel else DEFAULTS_CHANNEL_NAME
-            return rec['name'], rec['version'], rec['build'], channel
-
-    def package_name(self, dist):
-        return self.package_quad(dist)[0]
-
     def get_pkgs(self, ms, emptyok=False):  # pragma: no cover
         # legacy method for conda-build
         ms = MatchSpec(ms)
@@ -683,17 +671,16 @@ class Resolve(object):
     #     return res
 
     def environment_is_consistent(self, installed):
+        assert all(isinstance(prec, PackageRecord) for prec in installed)
         log.debug('Checking if the current environment is consistent')
         if not installed:
             return None, []
-        dists = {}  # Dict[Dist, Record]
+        record_map = {}  # Dict[sat_name, PackageRecord]
         specs = []
-        for dist in installed:
-            dist = Dist(dist)
-            rec = self.index[dist]
-            dists[dist] = rec
-            specs.append(MatchSpec(' '.join(self.package_quad(dist)[:3])))
-        r2 = Resolve(dists, True, True, channels=self.channels)
+        for prec in installed:
+            record_map[self.to_sat_name(prec)] = prec
+            specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
+        r2 = Resolve(record_map, True, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -723,14 +710,12 @@ class Resolve(object):
         log.debug('Checking if the current environment is consistent')
         if not installed:
             return None, []
-        dists = {}  # Dict[Dist, Record]
+        record_map = {}  # Dict[sat_name, PackageRecord]
         specs = []
-        for dist in installed:
-            dist = Dist(dist)
-            rec = self.index[dist]
-            dists[dist] = rec
-            specs.append(MatchSpec(' '.join(self.package_quad(dist)[:3])))
-        r2 = Resolve(dists, True, True, channels=self.channels)
+        for prec in installed:
+            record_map[self.to_sat_name(prec)] = prec
+            specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
+        r2 = Resolve(record_map, True, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -748,15 +733,15 @@ class Resolve(object):
             snames = set()
             eq_optional_c = r2.generate_removal_count(C, specs)
             solution, _ = C.minimize(eq_optional_c, C.sat())
-            snames.update(dists[Dist(q)]['name']
-                          for q in (C.from_index(s) for s in solution)
-                          if q and q[0] != '!' and '@' not in q)
+            snames.update(record_map[sat_name]['name']
+                          for sat_name in (C.from_index(s) for s in solution)
+                          if sat_name and sat_name[0] != '!' and '@' not in sat_name)
             # Existing behavior: keep all specs and their dependencies
             for spec in new_specs:
                 get_(MatchSpec(spec).name, snames)
-            if len(snames) < len(dists):
+            if len(snames) < len(record_map):
                 limit = snames
-                xtra = [dist for dist, rec in iteritems(dists) if rec['name'] not in snames]
+                xtra = [rec for sat_name, rec in iteritems(record_map) if rec['name'] not in snames]
                 log.debug('Limiting solver to the following packages: %s', ', '.join(limit))
         if xtra:
             log.debug('Packages to be preserved: %s', xtra)
@@ -764,8 +749,10 @@ class Resolve(object):
 
     def restore_bad(self, pkgs, preserve):
         if preserve:
-            sdict = {self.package_name(pkg): pkg for pkg in pkgs}
-            pkgs.extend(p for p in preserve if self.package_name(p) not in sdict)
+            assert all(isinstance(prec, PackageRecord) for prec in pkgs)
+            assert all(isinstance(prec, PackageRecord) for prec in preserve)
+            sdict = {prec.name: prec for prec in pkgs}
+            pkgs.extend(p for p in preserve if p.name not in sdict)
 
     def install_specs(self, specs, installed, update_deps=True):
         assert all(isinstance(prec, PackageRecord) for prec in installed)
@@ -773,17 +760,19 @@ class Resolve(object):
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
         limit, preserve = self.bad_installed(installed, specs)
-        for pkg in installed:
-            if pkg not in self.index:
+        for prec in installed:
+            if prec not in self.index:
                 continue
-            name, version, build, schannel = self.package_quad(pkg)
+            name, version, build = prec.name, prec.version, prec.build
+            schannel = prec.channel.canonical_name
             if name in snames or limit is not None and name not in limit:
                 continue
             # If update_deps=True, set the target package in MatchSpec so that
             # the solver can minimize the version change. If update_deps=False,
             # fix the version and build so that no change is possible.
             if update_deps:
-                spec = MatchSpec(name=name, target=pkg.full_name)
+                # TODO: fix target here
+                spec = MatchSpec(name=name, target=prec.dist_str())
             else:
                 spec = MatchSpec(name=name, version=version,
                                  build=build, channel=schannel)
@@ -796,6 +785,7 @@ class Resolve(object):
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
         pkgs = self.solve(specs, returnall=returnall, _remove=False)
         self.restore_bad(pkgs, preserve)
+        assert all(isinstance(prec, PackageRecord) for prec in pkgs)
         return pkgs
 
     def remove_specs(self, specs, installed):
@@ -817,17 +807,18 @@ class Resolve(object):
         snames = set(s.name for s in nspecs if s.name)
         limit, _ = self.bad_installed(installed, nspecs)
         preserve = []
-        for dist in installed:
-            nm, ver, build, schannel = self.package_quad(dist)
+        for prec in installed:
+            nm, ver, build = prec.name, prec.version, prec.build
             if nm in snames:
                 continue
             elif limit is not None:
-                preserve.append(dist)
+                preserve.append(prec)
             else:
+                # TODO: fix target here
                 nspecs.append(MatchSpec(name=nm,
                                         version='>='+ver if ver else None,
                                         optional=True,
-                                        target=dist.full_name))
+                                        target=prec.dist_str()))
         return nspecs, preserve
 
     def remove(self, specs, installed):
@@ -835,6 +826,7 @@ class Resolve(object):
         specs, preserve = self.remove_specs(specs, installed)
         pkgs = self.solve(specs, _remove=True)
         self.restore_bad(pkgs, preserve)
+        assert all(isinstance(prec, PackageRecord) for prec in pkgs)
         return pkgs
 
     @time_recorder("resolve_solve")

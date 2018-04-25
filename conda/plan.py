@@ -291,24 +291,24 @@ def _remove_actions(prefix, specs, index, force=False, pinned=True):  # pragma: 
 
     if force:
         mss = list(map(MatchSpec, specs))
-        nlinked = {r.package_name(dist): dist
+        nlinked = {dist.name: dist
                    for dist in linked_dists
                    if not any(r.match(ms, dist) for ms in mss)}
     else:
         add_defaults_to_specs(r, linked_dists, specs, update=True)
-        nlinked = {r.package_name(dist): dist
+        nlinked = {dist.name: dist
                    for dist in (Dist(fn) for fn in r.remove(specs, set(linked_dists)))}
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s", pinned_specs)
 
-    linked = {r.package_name(dist): dist for dist in linked_dists}
+    linked = {dist.name: dist for dist in linked_dists}
 
     actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
     for old_dist in reversed(r.dependency_sort(linked)):
         # dist = old_fn + '.tar.bz2'
-        name = r.package_name(old_dist)
+        name = old_dist.name
         if old_dist == nlinked.get(name):
             continue
         if pinned and any(r.match(ms, old_dist) for ms in pinned_specs):

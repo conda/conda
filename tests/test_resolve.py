@@ -1004,7 +1004,7 @@ def test_multiple_solution():
     index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
     res = r.solve(['pandas', 'python 2.7*', 'numpy 1.6*'], returnall=True)
-    res = set([y for x in res for y in x if r.package_name(y).startswith('pandas')])
+    res = set([y for x in res for y in x if y.name.startswith('pandas')])
     assert len(res) <= len(res1)
 
 
@@ -1029,7 +1029,10 @@ def test_broken_install():
 
     # Add an incompatible numpy; installation should be untouched
     installed1 = list(installed)
-    installed1[1] = Dist('channel-1::numpy-1.7.1-py33_p0.tar.bz2')
+    incompat_numpy_rec = next(
+        rec for rec in index.values() if rec['name'] == 'numpy' and rec['version'] == '1.7.1' and rec['build'] == 'py33_p0'
+    )
+    installed1[1] = incompat_numpy_rec
     assert set(r.install([], installed1)) == set(installed1)
     assert r.install(['numpy 1.6*'], installed1) == installed  # adding numpy spec again snaps the packages back to a consistent state
 
@@ -1404,7 +1407,7 @@ def test_channel_priority_2():
 def test_dependency_sort():
     specs = ['pandas','python 2.7*','numpy 1.6*']
     installed = r.install(specs)
-    must_have = {r.package_name(dist): dist for dist in installed}
+    must_have = {dist.name: dist for dist in installed}
     installed = r.dependency_sort(must_have)
 
     results_should_be = [
@@ -1447,7 +1450,6 @@ def test_update_deps():
     # scipy, and pandas should all be updated here. pytz is a new
     # dependency of pandas. But numpy does not _need_ to be updated
     # to get the latest version of pandas, so it stays put.
-    installed = [Dist(rec) for rec in installed]
     result = r.install(['pandas', 'python 2.7*'], installed=installed, update_deps=True, returnall=True)
     result = [[rec.dist_str() for rec in recs] for recs in result]
     assert result == [[
