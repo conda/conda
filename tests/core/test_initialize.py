@@ -358,11 +358,11 @@ class InitializeTests(TestCase):
             first_line, second_line, third_line, remainder = created_file_contents.split('\n', 3)
             if on_win:
                 win_conda_exe = join(conda_prefix, 'Scripts', 'conda.exe')
-                assert first_line == 'set CONDA_EXE (cygpath "%s")' % win_conda_exe
+                assert first_line == 'set -gx CONDA_EXE (cygpath "%s")' % win_conda_exe
                 assert second_line == 'set _CONDA_ROOT (cygpath "%s")' % conda_prefix
                 assert third_line == 'set _CONDA_EXE (cygpath "%s")' % win_conda_exe
             else:
-                assert first_line == 'set CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert first_line == 'set -gx CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
                 assert second_line == 'set _CONDA_ROOT "%s"' % conda_prefix
                 assert third_line == 'set _CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
 

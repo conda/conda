@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import ENOENT
 from glob import glob
 import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, normpath
@@ -403,6 +404,7 @@ class _Activator(object):
             yield join(prefix, 'bin')
 
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
+        prefix = self.path_conversion(prefix)
         if starting_path_dirs is None:
             starting_path_dirs = self._get_starting_path_list()
         return self.path_conversion(concatv(
@@ -414,37 +416,36 @@ class _Activator(object):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
     def _replace_prefix_in_path(self, old_prefix, new_prefix, starting_path_dirs=None):
+        old_prefix, new_prefix = self.path_conversion((old_prefix, new_prefix))
         if starting_path_dirs is None:
-            path_list = self._get_starting_path_list()
+            path_list = list(self.path_conversion(self._get_starting_path_list()))
         else:
-            path_list = list(starting_path_dirs)
-        if on_win:  # pragma: unix no cover
-            if old_prefix is not None:
-                # windows has a nasty habit of adding extra Library\bin directories
-                prefix_dirs = tuple(self._get_path_dirs(old_prefix))
-                try:
-                    first_idx = path_list.index(prefix_dirs[0])
-                except ValueError:
-                    first_idx = 0
-                else:
-                    last_idx = path_list.index(prefix_dirs[-1])
-                    del path_list[first_idx:last_idx+1]
-            else:
+            path_list = list(self.path_conversion(starting_path_dirs))
+
+        def paths_equal(path1, path2):
+            return normpath(abspath(path1.lower())) == normpath(abspath(path2.lower()))
+
+        def index_of_path(paths, test_path):
+            for q, path in enumerate(paths):
+                if paths_equal(path, test_path):
+                    return q
+            return None
+
+        if old_prefix is not None:
+            prefix_dirs = self.path_conversion(tuple(self._get_path_dirs(old_prefix)))
+            first_idx = index_of_path(path_list, prefix_dirs[0])
+            if first_idx is None:
                 first_idx = 0
-            if new_prefix is not None:
-                path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
-        else:
-            if old_prefix is not None:
-                try:
-                    idx = path_list.index(join(old_prefix, 'bin'))
-                except ValueError:
-                    idx = 0
-                else:
-                    del path_list[idx]
             else:
-                idx = 0
-            if new_prefix is not None:
-                path_list.insert(idx, join(new_prefix, 'bin'))
+                last_idx = index_of_path(path_list, prefix_dirs[-1])
+                assert last_idx is not None
+                del path_list[first_idx:last_idx + 1]
+        else:
+            first_idx = 0
+
+        if new_prefix is not None:
+            path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
+
         return self.path_conversion(path_list)
 
     def _build_activate_shell_custom(self, export_vars):
@@ -505,6 +506,8 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
         return path_identity(paths)
+    elif paths is None:
+        return None
     from subprocess import CalledProcessError, PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
@@ -516,7 +519,9 @@ def native_path_to_unix(paths):  # pragma: unix no cover
 
     try:
         p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    except FileNotFoundError:
+    except EnvironmentError as e:
+        if e.errno != ENOENT:
+            raise
         root_prefix = ""
         def _translation(found_path):  # NOQA
             found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
@@ -720,12 +725,12 @@ class FishActivator(_Activator):
 
     def _hook_preamble(self):
         if on_win:
-            return ('set CONDA_EXE (cygpath "%s")\n'
+            return ('set -gx CONDA_EXE (cygpath "%s")\n'
                     'set _CONDA_ROOT (cygpath "%s")\n'
                     'set _CONDA_EXE (cygpath "%s")'
                     % (context.conda_exe, context.conda_prefix, context.conda_exe))
         else:
-            return ('set CONDA_EXE "%s"\n'
+            return ('set -gx CONDA_EXE "%s"\n'
                     'set _CONDA_ROOT "%s"\n'
                     'set _CONDA_EXE "%s"'
                     % (context.conda_exe, context.conda_prefix, context.conda_exe))

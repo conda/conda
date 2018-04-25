@@ -8,7 +8,7 @@ from itertools import chain
 import json
 from logging import getLogger
 import os
-from os.path import abspath, dirname, exists, expanduser, isdir, isfile, join, basename
+from os.path import abspath, basename, dirname, exists, expanduser, isdir, isfile, join
 from random import randint
 import re
 import sys
@@ -18,7 +18,8 @@ from .. import CONDA_PACKAGE_ROOT, CondaError
 from .._vendor.auxlib.ish import dals
 from ..activate import CshActivator, FishActivator, PosixActivator, XonshActivator
 from ..base.context import context
-from ..common.compat import PY2, ensure_binary, ensure_unicode, on_mac, on_win, open
+from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_unicode, on_mac,
+                             on_win, open)
 from ..common.path import (expand, get_bin_directory_short_path, get_python_short_path,
                            get_python_site_packages_short_path, win_path_ok)
 from ..exceptions import CondaValueError
@@ -158,14 +159,16 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         print("\n".join(builder))
     elif shell == 'cmd.exe':
         builder = []
+        builder += ["@IF NOT \"%CONDA_PROMPT_MODIFIER%\" == \"\" @CALL "
+                    "SET \"PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%\""]
         builder += ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
         builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
             '@CALL \"%s\"' % join(dev_env_prefix, 'condacmd', 'conda_hook.bat'),
-            '@IF %errorlevel% NEQ 0 exit /b %errorlevel%',
+            '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
             '@CALL \"%s\" activate \"%s\"' % (join(dev_env_prefix, 'condacmd', 'conda.bat'),
                                               dev_env_prefix),
-            '@IF %errorlevel% NEQ 0 exit /b %errorlevel%',
+            '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
         ]
         if not context.dry_run:
             with open('dev-init.bat', 'w') as fh:
@@ -1089,7 +1092,7 @@ def make_conda_pth(target_path, conda_source_root):
             print(make_diff(conda_pth_contents_old, conda_pth_contents), file=sys.stderr)
         if not context.dry_run:
             with open(conda_pth_path, 'w') as fh:
-                fh.write(ensure_unicode(conda_pth_contents))
+                fh.write(ensure_fs_path_encoding(conda_pth_contents))
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE

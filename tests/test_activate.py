@@ -156,6 +156,40 @@ class ActivatorUnitTests(TestCase):
 
         assert final_path == new_path
 
+    @pytest.mark.skipif(not on_win, reason="windows-specific test")
+    def test_replace_prefix_in_path_2(self):
+        path1 = join("c:\\", "temp", "6663 31e0")
+        path2 = join("c:\\", "temp", "6663 31e0", "envs", "charizard")
+        one_more = join("d:\\", "one", "more")
+        #   old_prefix: c:\users\builder\appdata\local\temp\6663 31e0
+        #   new_prefix: c:\users\builder\appdata\local\temp\6663 31e0\envs\charizard
+        activator = CmdExeActivator()
+        old_path = activator.pathsep_join(activator._add_prefix_to_path(path1))
+        old_path = one_more + ";" + old_path
+        with env_var('PATH', old_path):
+            activator = PosixActivator()
+            path_elements = activator._replace_prefix_in_path(path1, path2)
+        if on_win:
+            path_elements = native_path_to_unix(path_elements)
+        assert path_elements[0] == one_more
+        assert len(path_elements) == len(old_path.split(os.pathsep))
+
+    @pytest.mark.skipif(not on_win, reason="windows-specific test")
+    def test_replace_prefix_in_path_3(self):
+        path1 = join("c:\\", "temp", "6663 31e0")
+        path2 = join("c:\\", "temp", "6663 31e0", "envs", "charizard")
+        one_more = join("d:\\", "one", "more")
+        #   old_prefix: c:\users\builder\appdata\local\temp\6663 31e0
+        #   new_prefix: c:\users\builder\appdata\local\temp\6663 31e0\envs\charizard
+        activator = CmdExeActivator()
+        old_path = activator.pathsep_join(activator._add_prefix_to_path(path1))
+        old_path = one_more + ";" + old_path
+        with env_var('PATH', old_path):
+            activator = CmdExeActivator()
+            path_elements = activator._replace_prefix_in_path(path1, path2)
+        assert path_elements[0] == one_more
+        assert len(path_elements) == len(old_path.split(os.pathsep))
+
     def test_default_env(self):
         activator = PosixActivator()
         assert ROOT_ENV_NAME == activator._default_env(context.root_prefix)
@@ -1241,7 +1275,7 @@ class ShellWrapperIntegrationTests(TestCase):
         rm_rf(self.prefix)
 
     def basic_posix(self, shell):
-        num_paths = len(tuple(PosixActivator()._get_path_dirs(self.prefix)))
+        num_paths_added = len(tuple(PosixActivator()._get_path_dirs(self.prefix)))
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH0 = shell.get_env_var('PATH')
 
@@ -1257,15 +1291,22 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
         PATH2 = shell.get_env_var('PATH')
 
+        shell.sendline('env | sort | grep CONDA')
+        shell.expect('CONDA_')
+        shell.sendline("echo \"PATH=$PATH\"")
+        shell.expect('PATH=')
         shell.sendline('conda activate "%s"' % self.prefix2)
-        # shell.sendline('env | sort')
+        shell.sendline('env | sort | grep CONDA')
+        shell.expect('CONDA_')
+        shell.sendline("echo \"PATH=$PATH\"")
+        shell.expect('PATH=')
         shell.assert_env_var('PS1', '(charizard).*')
         shell.assert_env_var('CONDA_SHLVL', '3')
         PATH3 = shell.get_env_var('PATH')
 
-        assert len(PATH0.split(':')) + num_paths == len(PATH1.split(':'))
-        assert len(PATH0.split(':')) + num_paths == len(PATH2.split(':'))
-        assert len(PATH0.split(':')) + num_paths == len(PATH3.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
 
         shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
         shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
@@ -1281,12 +1322,12 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '2')
         PATH = shell.get_env_var('PATH')
-        assert len(PATH0.split(':')) + num_paths == len(PATH.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH = shell.get_env_var('PATH')
-        assert len(PATH0.split(':')) + num_paths == len(PATH.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '0')
@@ -1304,21 +1345,21 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda activate "%s"' % self.prefix2)
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH1 = shell.get_env_var('PATH')
-        assert len(PATH0.split(':')) + num_paths == len(PATH1.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         shell.sendline('conda activate "%s" --stack' % self.prefix3)
         shell.assert_env_var('CONDA_SHLVL', '2')
         PATH2 = shell.get_env_var('PATH')
         assert 'charizard' in PATH2
         assert 'venusaur' in PATH2
-        assert len(PATH0.split(':')) + num_paths * 2 == len(PATH2.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH2.split(':'))
 
         shell.sendline('conda activate "%s"' % self.prefix)
         shell.assert_env_var('CONDA_SHLVL', '3')
         PATH3 = shell.get_env_var('PATH')
         assert 'charizard' in PATH3
         assert 'venusaur' not in PATH3
-        assert len(PATH0.split(':')) + num_paths * 2 == len(PATH3.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH3.split(':'))
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '2')
