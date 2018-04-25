@@ -1167,6 +1167,11 @@ def add_parser_create_install_update(p):
              "specifications can be passed (e.g. --file=file1 --file=file2).",
     )
     p.add_argument(
+        '-m', "--mkdir",
+        action="store_true",
+        help=SUPPRESS,
+    )
+    p.add_argument(
         'packages',
         metavar='package_spec',
         action="store",
