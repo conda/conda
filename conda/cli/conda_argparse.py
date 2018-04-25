@@ -529,6 +529,11 @@ def configure_parser_create(sub_parsers):
         action="store_true",
         help='Ignore create_default_packages in the .condarc file.',
     )
+    p.add_argument(
+        '-m', "--mkdir",
+        action="store_true",
+        help=SUPPRESS,
+    )
     p.set_defaults(func='.main_create.execute')
 
 
@@ -1165,11 +1170,6 @@ def add_parser_create_install_update(p):
         action='append',
         help="Read package versions from the given file. Repeated file "
              "specifications can be passed (e.g. --file=file1 --file=file2).",
-    )
-    p.add_argument(
-        '-m', "--mkdir",
-        action="store_true",
-        help=SUPPRESS,
     )
     p.add_argument(
         'packages',
