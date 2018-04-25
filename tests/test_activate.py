@@ -1465,6 +1465,8 @@ class ShellWrapperIntegrationTests(TestCase):
     def test_legacy_activate_deactivate_cmd_exe(self):
         with InteractiveShell('cmd.exe') as shell:
             shell.sendline("echo off")
+            shell.sendline("SET CONDA_EXE=python -m conda")
+
             shell.sendline("SET \"PATH=%s\\shell\\Scripts;%%PATH%%\"" % CONDA_PACKAGE_ROOT)
             shell.sendline("activate \"%s\"" % self.prefix2)
             PATH = shell.get_env_var("PATH")
