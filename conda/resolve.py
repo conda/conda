@@ -74,12 +74,12 @@ class Resolve(object):
             filter.update({make_feature_record(fstr): True for fstr in features})
         return filter
 
-    def valid(self, spec_or_dist, filter, optional=True):
+    def valid(self, spec_or_prec, filter, optional=True):
         """Tests if a package, MatchSpec, or a list of both has satisfiable
         dependencies, assuming cyclic dependencies are always valid.
 
         Args:
-            spec_or_dist: a package key, a MatchSpec, or an iterable of these.
+            spec_or_prec: a package record, a MatchSpec, or an iterable of these.
             filter: a dictionary of (fkey,valid) pairs, used to consider a subset
                 of dependencies, and to eliminate repeated searches.
             optional: if True (default), do not enforce optional specifications
@@ -97,14 +97,15 @@ class Resolve(object):
             return ((optional and ms.optional) or
                     any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
 
-        def v_fkey_(dist):
-            val = filter.get(dist)
+        def v_fkey_(prec):
+            assert isinstance(prec, PackageRecord)
+            val = filter.get(prec)
             if val is None:
-                filter[dist] = True
-                val = filter[dist] = all(v_ms_(ms) for ms in self.ms_depends(dist))
+                filter[prec] = True
+                val = filter[prec] = all(v_ms_(ms) for ms in self.ms_depends(prec))
             return val
 
-        result = v_(spec_or_dist)
+        result = v_(spec_or_prec)
         return result
 
     def invalid_chains(self, spec, filter, optional=True):
@@ -118,7 +119,7 @@ class Resolve(object):
 
         Args:
             spec: a package key or MatchSpec
-            filter: a dictionary of (dist, valid) pairs to be used when
+            filter: a dictionary of (prec, valid) pairs to be used when
                 testing for package validity.
             optional: if True (default), do not enforce optional specifications
                 when considering validity. If False, enforce them.
@@ -427,7 +428,7 @@ class Resolve(object):
 
     @staticmethod
     def to_sat_name(val):
-        # val can be a Dist, PackageRef, or MatchSpec
+        # val can be a PackageRef or MatchSpec
         if isinstance(val, PackageRef):
             return val.dist_str()
         elif isinstance(val, MatchSpec):
@@ -518,9 +519,9 @@ class Resolve(object):
 
     def generate_feature_metric(self, C):
         eq = {}  # a C.minimize() objective: Dict[varname, coeff]
-        # Given a pair (dist, feature), assign a "1" score IF:
-        # - The dist is installed
-        # - The dist does NOT require the feature
+        # Given a pair (prec, feature), assign a "1" score IF:
+        # - The prec is installed
+        # - The prec does NOT require the feature
         # - At least one package in the group DOES require the feature
         # - A package that tracks the feature is installed
         for name, group in iteritems(self.groups):
@@ -605,7 +606,7 @@ class Resolve(object):
         return eqc, eqv, eqb, eqt
 
     def dependency_sort(self, must_have):
-        # type: (Dict[package_name, PackageRecord]) -> List[Dist]
+        # type: (Dict[package_name, PackageRecord]) -> List[PackageRecord]
         assert isinstance(must_have, dict)
         assert all(isinstance(prec, PackageRecord) for prec in itervalues(must_have))
 
@@ -628,7 +629,7 @@ class Resolve(object):
 
         if on_win and 'conda' in digraph:
             for package_name, dist in iteritems(must_have):
-                record = self.index.get(dist)
+                record = self.index.get(prec)
                 if hasattr(record, 'noarch') and record.noarch == NoarchType.python:
                     digraph[package_name].add('conda')
 
@@ -639,41 +640,8 @@ class Resolve(object):
         result = [must_have.pop(key) for key in sorted_keys if key in must_have]
         # Take any key that were not sorted
         result.extend(must_have.values())
+        assert all(isinstance(prec, PackageRecord) for prec in result)
         return result
-
-    # def explicit(self, specs):
-    #     """
-    #     Given the specifications, return:
-    #       A. if one explicit specification is given, and
-    #          all dependencies of this package are explicit as well ->
-    #          return the filenames of those dependencies (as well as the
-    #          explicit specification)
-    #       B. if not one explicit specifications are given ->
-    #          return the filenames of those (not thier dependencies)
-    #       C. None in all other cases
-    #     """
-    #     def add_defaults_if_no_channel(string):
-    #         return 'defaults::' + string if '::' not in string else string
-    #
-    #     specs = list(map(MatchSpec, specs))
-    #     if len(specs) == 1:
-    #         ms = MatchSpec(specs[0])
-    #         fn = ms._to_filename_do_not_use()
-    #         if fn is None:
-    #             return None
-    #         fkey = Dist(add_defaults_if_no_channel(fn))
-    #         if fkey not in self.index:
-    #             return None
-    #         res = [ms2._to_filename_do_not_use() for ms2 in self.ms_depends(fkey)]
-    #         res.append(fn)
-    #     else:
-    #         res = [spec._to_filename_do_not_use() for spec in specs if str(spec) != 'conda']
-    #
-    #     if None in res:
-    #         return None
-    #     res = [Dist(add_defaults_if_no_channel(f)) for f in sorted(res)]
-    #     log.debug('explicit(%r) finished', specs)
-    #     return res
 
     def environment_is_consistent(self, installed):
         assert all(isinstance(prec, PackageRecord) for prec in installed)
