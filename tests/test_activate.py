@@ -169,26 +169,11 @@ class ActivatorUnitTests(TestCase):
         with env_var('PATH', old_path):
             activator = PosixActivator()
             path_elements = activator._replace_prefix_in_path(path1, path2)
-        if on_win:
-            path_elements = native_path_to_unix(path_elements)
-        assert path_elements[0] == one_more
-        assert len(path_elements) == len(old_path.split(os.pathsep))
+        old_path = native_path_to_unix(old_path.split(";"))
 
-    @pytest.mark.skipif(not on_win, reason="windows-specific test")
-    def test_replace_prefix_in_path_3(self):
-        path1 = join("c:\\", "temp", "6663 31e0")
-        path2 = join("c:\\", "temp", "6663 31e0", "envs", "charizard")
-        one_more = join("d:\\", "one", "more")
-        #   old_prefix: c:\users\builder\appdata\local\temp\6663 31e0
-        #   new_prefix: c:\users\builder\appdata\local\temp\6663 31e0\envs\charizard
-        activator = CmdExeActivator()
-        old_path = activator.pathsep_join(activator._add_prefix_to_path(path1))
-        old_path = one_more + ";" + old_path
-        with env_var('PATH', old_path):
-            activator = CmdExeActivator()
-            path_elements = activator._replace_prefix_in_path(path1, path2)
-        assert path_elements[0] == one_more
-        assert len(path_elements) == len(old_path.split(os.pathsep))
+        assert path_elements[0] == native_path_to_unix(one_more)
+        assert path_elements[1] == native_path_to_unix(next(activator._get_path_dirs(path2)))
+        assert len(path_elements) == len(old_path)
 
     def test_default_env(self):
         activator = PosixActivator()

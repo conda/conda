@@ -416,7 +416,7 @@ class _Activator(object):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
     def _replace_prefix_in_path(self, old_prefix, new_prefix, starting_path_dirs=None):
-        old_prefix, new_prefix = self.path_conversion((old_prefix, new_prefix))
+        old_prefix = self.path_conversion(old_prefix)
         if starting_path_dirs is None:
             path_list = list(self.path_conversion(self._get_starting_path_list()))
         else:
@@ -514,6 +514,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
 
     single_path = isinstance(paths, string_types)
     joined = paths if single_path else ("%s" % os.pathsep).join(paths)
+
     if hasattr(joined, 'encode'):
         joined = joined.encode('utf-8')
 
@@ -522,17 +523,18 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     except EnvironmentError as e:
         if e.errno != ENOENT:
             raise
+        # This code path should (hopefully) never be hit be real conda installs. It's here
+        # as a backup for tests run under cmd.exe with cygpath not available.
         root_prefix = ""
         def _translation(found_path):  # NOQA
-            found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
+            found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/").rstrip("/")
             return root_prefix + "/" + found
         joined = ensure_fs_path_encoding(joined)
         stdout = re.sub(
-            r'(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*'
-            r'[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))',
+            r'([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)',
             _translation,
             joined
-        ).replace(";/", ":/")
+        ).replace(";/", ":/").rstrip(";")
     else:
         stdout, stderr = p.communicate(input=joined)
         rc = p.returncode
