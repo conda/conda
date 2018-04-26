@@ -83,6 +83,7 @@ conda_build_test: &conda_build_test
             and not test_preferred_env
             and not test_name_with_version_specified
             and not test_pypi_with_setup_options
+            and not test_pypi_with_extra_specs
           # skeleton_pypi skipped because of changes to PyPI API
           # expand_globs and build_expands_wildcards fail on circleci because of list ordering discrepancies
           # skipping numpy tests so circleci images don't need numpy (and mkl) installed
@@ -92,6 +93,7 @@ conda_build_test: &conda_build_test
           # for test_preferred_env see https://github.com/conda/conda/issues/3912#issuecomment-374820599
           # test_name_with_version_specified because of the new PyPI
           # test_pypi_with_setup_options because of the new PyPI
+          # test_pypi_with_extra_specs because of the new PyPI
         command: |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           conda info
@@ -117,21 +119,6 @@ conda_build_test: &conda_build_test
           cd ~/conda-build
           py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP"
           /opt/conda/bin/python -m conda.common.io
-
-
-activate_tests: &activate_tests
-  <<: *defaults
-  steps:
-    - checkout
-    - run:
-        name: activate tests
-        command: |
-          echo "auto_activate_base: false" >> ~/.condarc
-          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-          python -m conda._vendor.auxlib.packaging conda
-          conda deactivate
-          conda info
-          /opt/conda/bin/py.test $ADD_COV -m "installed" -v --shell=bash --shell=zsh
 
 
 flake8: &flake8
@@ -164,8 +151,6 @@ jobs:
     environment:
       - CONDA_BUILD: 2.1.17
       - CONDA_INSTRUMENTATION_ENABLED: true
-
-  activate tests: *activate_tests
   flake8: *flake8
 
 
@@ -178,5 +163,4 @@ workflows:
       - py27 main tests
       - 3.0 conda-build
       - 2.1 conda-build
-      - activate tests
       - flake8

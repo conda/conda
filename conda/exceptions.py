@@ -55,6 +55,58 @@ class CommandArgumentError(ArgumentError):
         super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
 
 
+class Help(CondaError):
+    pass
+
+
+class ActivateHelp(Help):
+
+    def __init__(self):
+        message = dals("""
+        usage: conda activate [-h] [--stack] [env_name_or_prefix]
+
+        Activate a conda environment.
+
+        Options:
+
+        positional arguments:
+          env_name_or_prefix    The environment name or prefix to activate. If the
+                                prefix is a relative path, it must start with './'
+                                (or '.\\' on Windows).
+
+        optional arguments:
+          -h, --help            Show this help message and exit.
+          --stack               Stack the environment being activated on top of the
+                                previous active environment, rather replacing the
+                                current active environment with a new one. Currently,
+                                only the PATH environment variable is stacked.
+        """)
+        super(ActivateHelp, self).__init__(message)
+
+
+class DeactivateHelp(Help):
+
+    def __init__(self):
+        message = dals("""
+        usage: conda deactivate [-h]
+
+        Deactivate the current active conda environment.
+
+        Options:
+
+        optional arguments:
+          -h, --help            Show this help message and exit.
+        """)
+        super(DeactivateHelp, self).__init__(message)
+
+
+class GenericHelp(Help):
+
+    def __init__(self, command):
+        message = "help requested for %s" % command
+        super(GenericHelp, self).__init__(message)
+
+
 class CondaSignalInterrupt(CondaError):
     def __init__(self, signum):
         signal_name = get_signal_name(signum)
