@@ -7,7 +7,6 @@ from unittest import TestCase
 from conda.base.context import reset_context
 from conda.common.io import env_var
 
-from conda.egg_info import get_egg_info
 from conda.exports import text_type
 from contextlib import contextmanager
 from logging import getLogger, Handler

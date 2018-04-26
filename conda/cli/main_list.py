@@ -12,7 +12,6 @@ from ..base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import text_type
 from ..core.prefix_data import PrefixData, is_linked, linked
-from ..egg_info import get_egg_info
 from ..gateways.disk.test import is_conda_environment
 from ..history import History
 
