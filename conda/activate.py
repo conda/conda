@@ -525,10 +525,9 @@ def native_path_to_unix(paths):  # pragma: unix no cover
             raise
         # This code path should (hopefully) never be hit be real conda installs. It's here
         # as a backup for tests run under cmd.exe with cygpath not available.
-        root_prefix = ""
         def _translation(found_path):  # NOQA
-            found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/").rstrip("/")
-            return root_prefix + "/" + found
+            found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
+            return "/" + found.rstrip("/")
         joined = ensure_fs_path_encoding(joined)
         stdout = re.sub(
             r'([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)',
