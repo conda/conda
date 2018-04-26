@@ -351,6 +351,7 @@ class Resolve(object):
                         if 'track_features' not in ms:
                             slist.append(ms)
         self._reduced_index_cache[cache_key] = reduced_index
+        assert all(isinstance(prec, PackageRecord) for prec in reduced_index)
         return reduced_index
 
     def match_any(self, mss, prec):
@@ -376,6 +377,7 @@ class Resolve(object):
                 res = self.index.values()
             res = [p for p in res if self.match(ms, p)]
             self.find_matches_[ms] = res
+        assert all(isinstance(prec, PackageRecord) for prec in res)
         return res
 
     def ms_depends(self, prec):
@@ -601,8 +603,9 @@ class Resolve(object):
         return eqc, eqv, eqb, eqt
 
     def dependency_sort(self, must_have):
-        # type: (Dict[package_name, Dist]) -> List[Dist]
+        # type: (Dict[package_name, PackageRecord]) -> List[Dist]
         assert isinstance(must_have, dict)
+        assert all(isinstance(prec, PackageRecord) for prec in itervalues(must_have))
 
         digraph = {}  # Dict[package_name, Set[dependent_package_names]]
         for package_name, dist in iteritems(must_have):
@@ -968,8 +971,11 @@ class Resolve(object):
         new_index = {self.to_sat_name(prec): prec for prec in itervalues(self.index)}
 
         if returnall:
+            if len(psolutions) > 1:
+                raise RuntimeError()
+            # TODO: clean up this mess
             # return [sorted(Dist(stripfeat(dname)) for dname in psol) for psol in psolutions]
-            return [sorted((new_index[sat_name] for sat_name in psol), key=lambda x: x.name) for psol in psolutions]
-        else:
+            # return [sorted((new_index[sat_name] for sat_name in psol), key=lambda x: x.name) for psol in psolutions]
+
             # return sorted(Dist(stripfeat(dname)) for dname in psolutions[0])
-            return sorted((new_index[sat_name] for sat_name in psolutions[0]), key=lambda x: x.name)
+        return sorted((new_index[sat_name] for sat_name in psolutions[0]), key=lambda x: x.name)
