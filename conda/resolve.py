@@ -39,6 +39,8 @@ def dashlist(iterable, indent=2):
 class Resolve(object):
 
     def __init__(self, index, sort=False, processed=False, channels=()):
+        assert all(isinstance(prec, PackageRecord) for prec in itervalues(index))
+        assert all(isinstance(prec, PackageRecord) for prec in iterkeys(index))
         self.index = index
 
         self.channels = channels
@@ -382,6 +384,7 @@ class Resolve(object):
 
     def ms_depends(self, prec):
         # type: (PackageRecord) -> List[MatchSpec]
+        assert isinstance(prec, PackageRecord)
         deps = self.ms_depends_.get(prec)
         if deps is None:
             deps = [MatchSpec(d) for d in prec.combined_depends]
@@ -608,9 +611,9 @@ class Resolve(object):
         assert all(isinstance(prec, PackageRecord) for prec in itervalues(must_have))
 
         digraph = {}  # Dict[package_name, Set[dependent_package_names]]
-        for package_name, dist in iteritems(must_have):
-            if dist in self.index:
-                digraph[package_name] = set(ms.name for ms in self.ms_depends(dist))
+        for package_name, prec in iteritems(must_have):
+            if prec in self.index:
+                digraph[package_name] = set(ms.name for ms in self.ms_depends(prec))
 
         # There are currently at least three special cases to be aware of.
         # 1. The `toposort()` function, called below, contains special case code to remove
@@ -713,12 +716,13 @@ class Resolve(object):
         log.debug('Checking if the current environment is consistent')
         if not installed:
             return None, []
-        record_map = {}  # Dict[sat_name, PackageRecord]
+        sat_name_map = {}  # Dict[sat_name, PackageRecord]
         specs = []
         for prec in installed:
-            record_map[self.to_sat_name(prec)] = prec
+            sat_name_map[self.to_sat_name(prec)] = prec
             specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
-        r2 = Resolve(record_map, True, True, channels=self.channels)
+        new_index = {prec: prec for prec in itervalues(sat_name_map)}
+        r2 = Resolve(new_index, True, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -736,15 +740,15 @@ class Resolve(object):
             snames = set()
             eq_optional_c = r2.generate_removal_count(C, specs)
             solution, _ = C.minimize(eq_optional_c, C.sat())
-            snames.update(record_map[sat_name]['name']
+            snames.update(sat_name_map[sat_name]['name']
                           for sat_name in (C.from_index(s) for s in solution)
                           if sat_name and sat_name[0] != '!' and '@' not in sat_name)
             # Existing behavior: keep all specs and their dependencies
             for spec in new_specs:
                 get_(MatchSpec(spec).name, snames)
-            if len(snames) < len(record_map):
+            if len(snames) < len(sat_name_map):
                 limit = snames
-                xtra = [rec for sat_name, rec in iteritems(record_map) if rec['name'] not in snames]
+                xtra = [rec for sat_name, rec in iteritems(sat_name_map) if rec['name'] not in snames]
                 log.debug('Limiting solver to the following packages: %s', ', '.join(limit))
         if xtra:
             log.debug('Packages to be preserved: %s', xtra)
