@@ -16,7 +16,6 @@ from conda.core.solve import DepsModifier, Solver
 from conda.exceptions import UnsatisfiableError
 from conda.history import History
 from conda.models.channel import Channel
-from conda.models.dist import Dist
 from conda.models.records import PrefixRecord
 from conda.resolve import MatchSpec
 from ..helpers import get_index_r_1, get_index_r_2, get_index_r_3, get_index_r_4, get_index_r_5
@@ -109,12 +108,16 @@ def get_solver_aggregate_1(specs_to_add=(), specs_to_remove=(), prefix_records=(
         yield solver
 
 
+def convert_to_dist_str(solution):
+    return tuple(prec.dist_str() for prec in solution)
+
+
 def test_solve_1():
     specs = MatchSpec("numpy"),
 
     with get_solver(specs) as solver:
         final_state = solver.solve_final_state()
-        print([Dist(rec).full_name for rec in final_state])
+        # print(convert_to_dist_str(final_state))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -125,13 +128,13 @@ def test_solve_1():
             'channel-1::python-3.3.2-0',
             'channel-1::numpy-1.7.1-py33_0',
         )
-        assert tuple(final_state) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state) == order
 
     specs_to_add = MatchSpec("python=2"),
     with get_solver(specs_to_add=specs_to_add,
                     prefix_records=final_state, history_specs=specs) as solver:
         final_state = solver.solve_final_state()
-        print([Dist(rec).full_name for rec in final_state])
+        # print(convert_to_dist_str(final_state))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -142,7 +145,7 @@ def test_solve_1():
             'channel-1::python-2.7.5-0',
             'channel-1::numpy-1.7.1-py27_0',
         )
-        assert tuple(final_state) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state) == order
 
 
 def test_prune_1():
@@ -151,9 +154,10 @@ def test_prune_1():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_1])
+        print(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::libnvvm-1.0-p0',
+            'channel-1::mkl-rt-11.0-p0',
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -161,7 +165,6 @@ def test_prune_1():
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
             'channel-1::llvm-3.2-0',
-            'channel-1::mkl-rt-11.0-p0',
             'channel-1::python-2.7.3-7',
             'channel-1::bitarray-0.8.1-py27_0',
             'channel-1::llvmpy-0.11.2-py27_0',
@@ -176,29 +179,29 @@ def test_prune_1():
             'channel-1::mkl-11.0-np16py27_p0',
             'channel-1::accelerate-1.1.0-np16py27_p0',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
     specs_to_remove = MatchSpec("numbapro"),
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         unlink_precs, link_precs = solver.solve_for_diff(prune=False)
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in unlink_precs])
+        print(convert_to_dist_str(unlink_precs))
         unlink_order = (
             'channel-1::accelerate-1.1.0-np16py27_p0',
             'channel-1::numbapro-0.11.0-np16py27_p0',
         )
-        assert tuple(unlink_precs) == tuple(solver._index[Dist(d)] for d in unlink_order)
+        assert convert_to_dist_str(unlink_precs) == unlink_order
 
-        print([Dist(rec).full_name for rec in link_precs])
+        print(convert_to_dist_str(link_precs))
         link_order = ()
-        assert tuple(link_precs) == tuple(solver._index[Dist(d)] for d in link_order)
+        assert convert_to_dist_str(link_precs) == link_order
 
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         unlink_precs, link_precs = solver.solve_for_diff(prune=True)
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in unlink_precs])
+        print(convert_to_dist_str(unlink_precs))
         unlink_order = (
             'channel-1::accelerate-1.1.0-np16py27_p0',
             'channel-1::mkl-11.0-np16py27_p0',
@@ -216,14 +219,13 @@ def test_prune_1():
             'channel-1::llvm-3.2-0',
             'channel-1::libnvvm-1.0-p0',
         )
-        assert tuple(unlink_precs) == tuple(solver._index[Dist(d)] for d in unlink_order)
+        assert convert_to_dist_str(unlink_precs) == unlink_order
 
-        print([Dist(rec).full_name for rec in link_precs])
+        print(convert_to_dist_str(link_precs))
         link_order = (
             'channel-1::numpy-1.6.2-py27_4',
         )
-        assert tuple(link_precs) == tuple(solver._index[Dist(d)] for d in link_order)
-
+        assert convert_to_dist_str(link_precs) == link_order
 
 
 def test_force_remove_1():
@@ -231,7 +233,7 @@ def test_force_remove_1():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_1])
+        print(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -242,14 +244,14 @@ def test_force_remove_1():
             'channel-1::python-2.7.5-0',
             'channel-1::numpy-1.7.1-py27_0',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
     specs_to_remove = MatchSpec("python"),
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -258,31 +260,31 @@ def test_force_remove_1():
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     specs_to_remove = MatchSpec("python"),
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(force_remove=True)
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
+            'channel-1::numpy-1.7.1-py27_0',
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
             'channel-1::system-5.8-1',
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
-            'channel-1::numpy-1.7.1-py27_0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     with get_solver(prefix_records=final_state_2) as solver:
         final_state_3 = solver.solve_final_state(prune=True)
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_3])
+        print(convert_to_dist_str(final_state_3))
         order = ()
-        assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_3) == order
 
 
 def test_no_deps_1():
@@ -290,7 +292,7 @@ def test_no_deps_1():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        # print([Dist(rec).full_name for rec in final_state_1])
+        print(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -300,13 +302,13 @@ def test_no_deps_1():
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("numba"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -321,13 +323,13 @@ def test_no_deps_1():
             'channel-1::numpy-1.7.1-py27_0',
             'channel-1::numba-0.8.1-np17py27_0'
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("numba"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier='NO_DEPS')
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -338,7 +340,7 @@ def test_no_deps_1():
             'channel-1::python-2.7.5-0',
             'channel-1::numba-0.8.1-np17py27_0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
 
 def test_only_deps_1():
@@ -346,7 +348,7 @@ def test_only_deps_1():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_1, specs).open_url()
-        # print([Dist(rec).full_name for rec in final_state_1])
+        print(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -360,7 +362,7 @@ def test_only_deps_1():
             'channel-1::meta-0.4.2.dev-py27_0',
             'channel-1::numpy-1.7.1-py27_0',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
 
 def test_only_deps_2():
@@ -368,7 +370,7 @@ def test_only_deps_2():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_1])
+        print(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -379,13 +381,13 @@ def test_only_deps_2():
             'channel-1::python-2.7.3-7',
             'channel-1::numpy-1.5.1-py27_4',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("numba=0.5"),
     with get_solver(specs_to_add) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -401,13 +403,13 @@ def test_only_deps_2():
             'channel-1::numpy-1.7.1-py27_0',
             # 'channel-1::numba-0.5.0-np17py27_0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("numba=0.5"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -423,7 +425,7 @@ def test_only_deps_2():
             'channel-1::numpy-1.7.1-py27_0',
             # 'channel-1::numba-0.5.0-np17py27_0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
 
 def test_update_all_1():
@@ -431,7 +433,7 @@ def test_update_all_1():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_1])
+        print(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -442,13 +444,13 @@ def test_update_all_1():
             'channel-1::python-2.6.8-6',
             'channel-1::numpy-1.5.1-py26_4',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("numba=0.6"), MatchSpec("numpy")
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -463,13 +465,13 @@ def test_update_all_1():
             'channel-1::numpy-1.7.1-py26_0',
             'channel-1::numba-0.6.0-np17py26_0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("numba=0.6"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -484,7 +486,7 @@ def test_update_all_1():
             'channel-1::numpy-1.7.1-py26_0',
             'channel-1::numba-0.6.0-np17py26_0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
 
 def test_broken_install():
@@ -492,8 +494,8 @@ def test_broken_install():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_1])
-        order_original = [
+        print(convert_to_dist_str(final_state_1))
+        order_original = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -507,22 +509,24 @@ def test_broken_install():
             'channel-1::dateutil-2.1-py27_1',
             'channel-1::scipy-0.12.0-np16py27_0',
             'channel-1::pandas-0.11.0-np16py27_1',
-        ]
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order_original)
-        assert solver._r.environment_is_consistent(order_original)
+        )
+        assert convert_to_dist_str(final_state_1) == order_original
+        assert solver._r.environment_is_consistent(final_state_1)
 
     # Add an incompatible numpy; installation should be untouched
-    order_1 = list(order_original)
-    order_1[7] = "channel-1::numpy-1.7.1-py33_p0"
-    order_1_records = [solver._index[Dist(d)] for d in order_1]
-    assert not solver._r.environment_is_consistent(order_1)
+    final_state_1_modified = list(final_state_1)
+    numpy_matcher = MatchSpec("channel-1::numpy==1.7.1=py33_p0")
+    numpy_prec = next(prec for prec in solver._index if numpy_matcher.match(prec))
+    final_state_1_modified[7] = numpy_prec
+    assert not solver._r.environment_is_consistent(final_state_1_modified)
 
     specs_to_add = MatchSpec("flask"),
-    with get_solver(specs_to_add, prefix_records=order_1_records, history_specs=specs) as solver:
+    with get_solver(specs_to_add, prefix_records=final_state_1_modified, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
-        order = [
+        print(convert_to_dist_str(final_state_2))
+        order = (
+            "channel-1::numpy-1.7.1-py33_p0",
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -531,25 +535,24 @@ def test_broken_install():
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
             'channel-1::jinja2-2.6-py27_0',
-            "channel-1::numpy-1.7.1-py33_p0",
             'channel-1::pytz-2013b-py27_0',
+            'channel-1::scipy-0.12.0-np16py27_0',
             'channel-1::six-1.3.0-py27_0',
             'channel-1::werkzeug-0.8.3-py27_0',
             'channel-1::dateutil-2.1-py27_1',
             'channel-1::flask-0.9-py27_0',
-            'channel-1::scipy-0.12.0-np16py27_0',
             'channel-1::pandas-0.11.0-np16py27_1'
-        ]
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
-        assert not solver._r.environment_is_consistent(order)
+        )
+        assert convert_to_dist_str(final_state_2) == order
+        assert not solver._r.environment_is_consistent(final_state_2)
 
     # adding numpy spec again snaps the packages back to a consistent state
     specs_to_add = MatchSpec("flask"), MatchSpec("numpy 1.6.*"),
-    with get_solver(specs_to_add, prefix_records=order_1_records, history_specs=specs) as solver:
+    with get_solver(specs_to_add, prefix_records=final_state_1_modified, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
-        order = [
+        print(convert_to_dist_str(final_state_2))
+        order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -566,22 +569,23 @@ def test_broken_install():
             'channel-1::flask-0.9-py27_0',
             'channel-1::scipy-0.12.0-np16py27_0',
             'channel-1::pandas-0.11.0-np16py27_1',
-        ]
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
-        assert solver._r.environment_is_consistent(order)
+        )
+        assert convert_to_dist_str(final_state_2) == order
+        assert solver._r.environment_is_consistent(final_state_2)
 
     # Add an incompatible pandas; installation should be untouched, then fixed
-    order_2 = list(order_original)
-    order_2[12] = 'channel-1::pandas-0.11.0-np17py27_1'
-    order_2_records = [solver._index[Dist(d)] for d in order_2]
-    assert not solver._r.environment_is_consistent(order_2)
+    final_state_2_mod = list(final_state_1)
+    pandas_matcher = MatchSpec('channel-1::pandas==0.11.0=np17py27_1')
+    pandas_prec = next(prec for prec in solver._index if pandas_matcher.match(prec))
+    final_state_2_mod[12] = pandas_prec
+    assert not solver._r.environment_is_consistent(final_state_2_mod)
 
     specs_to_add = MatchSpec("flask"),
-    with get_solver(specs_to_add, prefix_records=order_2_records, history_specs=specs) as solver:
+    with get_solver(specs_to_add, prefix_records=final_state_2_mod, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
-        order = [
+        print(convert_to_dist_str(final_state_2))
+        order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -598,17 +602,17 @@ def test_broken_install():
             'channel-1::flask-0.9-py27_0',
             'channel-1::scipy-0.12.0-np16py27_0',
             'channel-1::pandas-0.11.0-np17py27_1',
-        ]
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
-        assert not solver._r.environment_is_consistent(order)
+        )
+        assert convert_to_dist_str(final_state_2) == order
+        assert not solver._r.environment_is_consistent(final_state_2)
 
     # adding pandas spec again snaps the packages back to a consistent state
     specs_to_add = MatchSpec("flask"), MatchSpec("pandas"),
-    with get_solver(specs_to_add, prefix_records=order_2_records, history_specs=specs) as solver:
+    with get_solver(specs_to_add, prefix_records=final_state_2_mod, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
-        order = [
+        print(convert_to_dist_str(final_state_2))
+        order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
@@ -625,9 +629,9 @@ def test_broken_install():
             'channel-1::flask-0.9-py27_0',
             'channel-1::scipy-0.12.0-np16py27_0',
             'channel-1::pandas-0.11.0-np16py27_1',
-        ]
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
-        assert solver._r.environment_is_consistent(order)
+        )
+        assert convert_to_dist_str(final_state_2) == order
+        assert solver._r.environment_is_consistent(final_state_2)
 
     # Actually I think this part might be wrong behavior:
     #    # Removing pandas should fix numpy, since pandas depends on it
@@ -687,15 +691,15 @@ def test_install_uninstall_features_1():
         with get_solver(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_1])
+            print(convert_to_dist_str(final_state_1))
             order = (
+                'channel-1::mkl-rt-11.0-p0',
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
                 'channel-1::sqlite-3.7.13-0',
                 'channel-1::system-5.8-1',
                 'channel-1::tk-8.5.13-0',
                 'channel-1::zlib-1.2.7-0',
-                'channel-1::mkl-rt-11.0-p0',
                 'channel-1::python-2.7.5-0',
                 'channel-1::numpy-1.6.2-py27_p4',
                 'channel-1::pytz-2013b-py27_0',
@@ -704,7 +708,7 @@ def test_install_uninstall_features_1():
                 'channel-1::scipy-0.12.0-np16py27_p0',
                 'channel-1::pandas-0.11.0-np16py27_1',
             )
-            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_1) == order
 
     # no more track_features in configuration
     # just remove the pandas package, but the mkl feature "stays in the environment"
@@ -714,15 +718,15 @@ def test_install_uninstall_features_1():
                     history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
+            'channel-1::mkl-rt-11.0-p0',
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
             'channel-1::system-5.8-1',
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
-            'channel-1::mkl-rt-11.0-p0',
             'channel-1::python-2.7.5-0',
             'channel-1::numpy-1.6.2-py27_p4',
             'channel-1::pytz-2013b-py27_0',
@@ -730,7 +734,7 @@ def test_install_uninstall_features_1():
             'channel-1::dateutil-2.1-py27_1',
             'channel-1::scipy-0.12.0-np16py27_p0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     # now remove the mkl feature
     specs_to_remove = MatchSpec(track_features="mkl"),
@@ -739,7 +743,7 @@ def test_install_uninstall_features_1():
                     history_specs=history_specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -754,7 +758,7 @@ def test_install_uninstall_features_1():
             'channel-1::dateutil-2.1-py27_1',
             # 'channel-1::scipy-0.12.0-np16py27_p0', scipy is out here because it wasn't a requested spec
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
 
 def test_install_uninstall_features_2():
@@ -763,7 +767,7 @@ def test_install_uninstall_features_2():
         with get_solver_4(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_1])
+            print(convert_to_dist_str(final_state_1))
             order = (
                 'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
                 'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
@@ -785,7 +789,7 @@ def test_install_uninstall_features_2():
                 'channel-4::python-dateutil-2.6.1-py27h4ca5741_1',
                 'channel-4::pandas-0.22.0-py27hf484d3e_0',
             )
-            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_1) == order
 
     # no more track_features in configuration
     # just remove the pandas package, but the nomkl feature "stays in the environment"
@@ -795,7 +799,7 @@ def test_install_uninstall_features_2():
                       history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
             'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
@@ -816,7 +820,7 @@ def test_install_uninstall_features_2():
             'channel-4::six-1.11.0-py27h5f960f1_1',
             'channel-4::python-dateutil-2.6.1-py27h4ca5741_1',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     # now remove the nomkl feature
     specs_to_remove = MatchSpec(track_features="nomkl"),
@@ -825,7 +829,7 @@ def test_install_uninstall_features_2():
                       history_specs=history_specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
             'channel-4::intel-openmp-2018.0.0-hc7b2577_8',
@@ -848,14 +852,14 @@ def test_install_uninstall_features_2():
             'channel-4::six-1.11.0-py27h5f960f1_1',
             'channel-4::python-dateutil-2.6.1-py27h4ca5741_1',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
 def test_auto_update_conda():
     specs = MatchSpec("conda=1.3"),
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_1])
+        print(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -868,14 +872,14 @@ def test_auto_update_conda():
             'channel-1::pyyaml-3.10-py27_0',
             'channel-1::conda-1.3.5-py27_0',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
     with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes"}, reset_context):
         specs_to_add = MatchSpec("pytz"),
         with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_2, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_2])
+            print(convert_to_dist_str(final_state_2))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -889,14 +893,14 @@ def test_auto_update_conda():
                 'channel-1::pyyaml-3.10-py27_0',
                 'channel-1::conda-1.3.5-py27_0',
             )
-            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_2) == order
 
     with env_vars({"CONDA_AUTO_UPDATE_CONDA": "yes", "CONDA_ROOT_PREFIX": TEST_PREFIX}, reset_context):
         specs_to_add = MatchSpec("pytz"),
         with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_2, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_2])
+            print(convert_to_dist_str(final_state_2))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -910,14 +914,14 @@ def test_auto_update_conda():
                 'channel-1::pyyaml-3.10-py27_0',
                 'channel-1::conda-1.5.2-py27_0',
             )
-            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_2) == order
 
     with env_vars({"CONDA_AUTO_UPDATE_CONDA": "no", "CONDA_ROOT_PREFIX": TEST_PREFIX}, reset_context):
         specs_to_add = MatchSpec("pytz"),
         with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_2, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_2])
+            print(convert_to_dist_str(final_state_2))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -931,7 +935,7 @@ def test_auto_update_conda():
                 'channel-1::pyyaml-3.10-py27_0',
                 'channel-1::conda-1.3.5-py27_0',
             )
-            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_2) == order
 
 
 def test_aggressive_update_packages():
@@ -940,8 +944,8 @@ def test_aggressive_update_packages():
         specs_to_add = tuple(MatchSpec(spec_str) for spec_str in specs_to_add)
         with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state()
-            print([Dist(rec).full_name for rec in final_state_2])
-            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+            print(convert_to_dist_str(final_state_2))
+            assert convert_to_dist_str(final_state_2) == order
         concat_specs = specs + specs_to_add
         return final_state_2, concat_specs
     # test with "libpng", "cmake": both have multiple versions and no requirements in "channel-1"
@@ -950,57 +954,57 @@ def test_aggressive_update_packages():
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, reset_context):
         base_state = solve(
             empty_state, ["libpng=1.2"],
-            [
+            (
                 'channel-1::libpng-1.2.50-0',
-            ])
+            ))
 
     # has "libpng" restricted to "=1.2" by history_specs
     state_1 = base_state
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, reset_context):
         solve(
             state_1, ["cmake=2.8.9"],
-            [
+            (
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.2.50-0',
-            ])
+            ))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, reset_context):
         state_1_2 = solve(
             state_1, ["cmake=2.8.9"],
-            [
+            (
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.2.50-0',
-            ])
+            ))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, reset_context):
         solve(
             state_1_2, ["cmake>2.8.9"],
-            [
+            (
                 'channel-1::cmake-2.8.10.2-0',
                 'channel-1::libpng-1.2.50-0',
-            ])
+            ))
 
     # use new history_specs to remove "libpng" version restriction
     state_2 = (base_state[0], (MatchSpec("libpng"),))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, reset_context):
         solve(
             state_2, ["cmake=2.8.9"],
-            [
+            (
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.5.13-1',
-            ])
+            ))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, reset_context):
         state_2_2 = solve(
             state_2, ["cmake=2.8.9"],
-            [
+            (
                 'channel-1::cmake-2.8.9-0',
                 'channel-1::libpng-1.2.50-0',
-            ])
+            ))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, reset_context):
         solve(
             state_2_2, ["cmake>2.8.9"],
-            [
+            (
                 'channel-1::cmake-2.8.10.2-0',
                 'channel-1::libpng-1.5.13-1',
-            ])
+            ))
 
 
 def test_update_deps_1():
@@ -1008,7 +1012,7 @@ def test_update_deps_1():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        # print([Dist(rec).full_name for rec in final_state_1])
+        # print(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1018,13 +1022,13 @@ def test_update_deps_1():
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("numpy=1.7.0"), MatchSpec("python=2.7.3")
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1036,13 +1040,13 @@ def test_update_deps_1():
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::numpy-1.7.0-py27_0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
         final_state_3 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_3])
+        print(convert_to_dist_str(final_state_3))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1056,13 +1060,13 @@ def test_update_deps_1():
             'channel-1::numpy-1.7.0-py27_0',
             'channel-1::iopro-1.5.0-np17py27_p0',
         )
-        assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_3) == order
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
         final_state_3 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_3])
+        print(convert_to_dist_str(final_state_3))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1076,27 +1080,27 @@ def test_update_deps_1():
             'channel-1::numpy-1.7.1-py27_0',  # with update_deps, numpy should switch from 1.7.0 to 1.7.1
             'channel-1::iopro-1.5.0-np17py27_p0',
         )
-        assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_3) == order
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
         final_state_3 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS_ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_3])
+        print(convert_to_dist_str(final_state_3))
         order = (
+            'channel-1::unixodbc-2.3.1-0',
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
             'channel-1::sqlite-3.7.13-0',
             'channel-1::system-5.8-1',
             'channel-1::tk-8.5.13-0',
-            'channel-1::unixodbc-2.3.1-0',
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',   # with update_deps, numpy should switch from 1.7.0 to 1.7.1
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::numpy-1.7.1-py27_0',  # with update_deps, numpy should switch from 1.7.0 to 1.7.1
             # 'channel-1::iopro-1.5.0-np17py27_p0',
         )
-        assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_3) == order
 
 
 def test_pinned_1():
@@ -1104,7 +1108,7 @@ def test_pinned_1():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_1])
+        print(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1115,25 +1119,25 @@ def test_pinned_1():
             'channel-1::python-3.3.2-0',
             'channel-1::numpy-1.7.1-py33_0',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
     with env_var("CONDA_PINNED_PACKAGES", "python=2.6&iopro<=1.4.2", reset_context):
         specs = MatchSpec("system=5.8=0"),
         with get_solver(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_1])
+            print(convert_to_dist_str(final_state_1))
             order = (
                 'channel-1::system-5.8-0',
             )
-            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_1) == order
 
         specs_to_add = MatchSpec("python"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state(ignore_pinned=True)
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_2])
+            print(convert_to_dist_str(final_state_2))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1143,14 +1147,14 @@ def test_pinned_1():
                 'channel-1::zlib-1.2.7-0',
                 'channel-1::python-3.3.2-0',
             )
-            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_2) == order
 
         specs_to_add = MatchSpec("python"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_2])
+            print(convert_to_dist_str(final_state_2))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1160,7 +1164,7 @@ def test_pinned_1():
                 'channel-1::zlib-1.2.7-0',
                 'channel-1::python-2.6.8-6',
             )
-            assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_2) == order
 
         specs_to_add = MatchSpec("numba"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"),
@@ -1168,7 +1172,7 @@ def test_pinned_1():
                         history_specs=history_specs) as solver:
             final_state_3 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_3])
+            print(convert_to_dist_str(final_state_3))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1183,7 +1187,7 @@ def test_pinned_1():
                 'channel-1::numpy-1.7.1-py26_0',
                 'channel-1::numba-0.8.1-np17py26_0',
             )
-            assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_3) == order
 
         specs_to_add = MatchSpec("python"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
@@ -1191,7 +1195,7 @@ def test_pinned_1():
                         history_specs=history_specs) as solver:
             final_state_4 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS)
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_4])
+            print(convert_to_dist_str(final_state_4))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1206,7 +1210,7 @@ def test_pinned_1():
                 'channel-1::numpy-1.7.1-py26_0',
                 'channel-1::numba-0.8.1-np17py26_0',
             )
-            assert tuple(final_state_4) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_4) == order
 
         specs_to_add = MatchSpec("python"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
@@ -1214,7 +1218,7 @@ def test_pinned_1():
                         history_specs=history_specs) as solver:
             final_state_5 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_5])
+            print(convert_to_dist_str(final_state_5))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1229,7 +1233,7 @@ def test_pinned_1():
                 'channel-1::numpy-1.7.1-py26_0',
                 'channel-1::numba-0.8.1-np17py26_0',
             )
-            assert tuple(final_state_5) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_5) == order
 
     # # TODO: re-enable when UPDATE_ALL gets prune behavior again, following completion of https://github.com/conda/constructor/issues/138
     # # now update without pinning
@@ -1264,7 +1268,7 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_1])
+        print(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1274,13 +1278,13 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("zope.interface"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1292,13 +1296,13 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
             'channel-1::nose-1.3.0-py27_0',
             'channel-1::zope.interface-4.0.5-py27_0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("zope.interface>4.1"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1310,7 +1314,7 @@ def test_no_update_deps_1():  # i.e. FREEZE_DEPS
             'channel-1::nose-1.3.0-py33_0',
             'channel-1::zope.interface-4.1.1.1-py33_0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
 
 def test_force_reinstall_1():
@@ -1318,7 +1322,7 @@ def test_force_reinstall_1():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_1])
+        print(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1328,7 +1332,7 @@ def test_force_reinstall_1():
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = specs
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
@@ -1351,7 +1355,7 @@ def test_force_reinstall_2():
         unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
         assert not unlink_dists
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in link_dists])
+        print(convert_to_dist_str(link_dists))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1361,7 +1365,7 @@ def test_force_reinstall_2():
             'channel-1::zlib-1.2.7-0',
             'channel-1::python-2.7.5-0',
         )
-        assert tuple(link_dists) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(link_dists) == order
 
 
 def test_timestamps_1():
@@ -1370,7 +1374,7 @@ def test_timestamps_1():
         unlink_dists, link_dists = solver.solve_for_diff(force_reinstall=True)
         assert not unlink_dists
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in link_dists])
+        print(convert_to_dist_str(link_dists))
         order = (
             'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
             'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
@@ -1387,7 +1391,7 @@ def test_timestamps_1():
             'channel-4::python-3.6.2-hca45abc_19',  # this package has a later timestamp but lower hash value
                                                     # than the alternate 'channel-4::python-3.6.2-hda45abc_19'
         )
-        assert tuple(link_dists) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(link_dists) == order
 
 
 def test_remove_with_constrained_dependencies():
@@ -1398,7 +1402,7 @@ def test_remove_with_constrained_dependencies():
         unlink_dists_1, link_dists_1 = solver.solve_for_diff()
         assert not unlink_dists_1
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in link_dists_1])
+        print(convert_to_dist_str(link_dists_1))
         assert not unlink_dists_1
         order = (
             'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
@@ -1444,20 +1448,20 @@ def test_remove_with_constrained_dependencies():
             'channel-4::conda-4.4.10-py36_0',
             'channel-4::conda-build-3.5.1-py36_0',
         )
-        assert tuple(link_dists_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(link_dists_1) == order
 
     specs_to_remove = MatchSpec("pycosat"),
     with get_solver_4(specs_to_remove=specs_to_remove, prefix_records=link_dists_1, history_specs=specs) as solver:
         unlink_dists_2, link_dists_2 = solver.solve_for_diff()
         assert not link_dists_2
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in unlink_dists_2])
+        print(convert_to_dist_str(unlink_dists_2))
         order = (
             'channel-4::conda-build-3.5.1-py36_0',
             'channel-4::conda-4.4.10-py36_0',
             'channel-4::pycosat-0.6.3-py36h0a5515d_0',
         )
-        assert tuple(unlink_dists_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(unlink_dists_2) == order
 
 
 def test_priority_1():
@@ -1466,7 +1470,7 @@ def test_priority_1():
         with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_1])
+            print(convert_to_dist_str(final_state_1))
             order = (
                 'channel-2::mkl-2017.0.1-0',
                 'channel-2::openssl-1.0.2l-0',
@@ -1481,13 +1485,13 @@ def test_priority_1():
                 'channel-2::python-dateutil-2.6.0-py27_0',
                 'channel-2::pandas-0.20.2-np113py27_0',
             )
-            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_1) == order
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
         with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_1])
+            print(convert_to_dist_str(final_state_1))
             order = (
                 'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
                 'channel-4::intel-openmp-2018.0.0-hc7b2577_8',
@@ -1510,7 +1514,7 @@ def test_priority_1():
                 'channel-4::python-dateutil-2.6.1-py27h4ca5741_1',
                 'channel-4::pandas-0.22.0-py27hf484d3e_0',
             )
-            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_1) == order
 
 
 def test_features_solve_1():
@@ -1522,10 +1526,10 @@ def test_features_solve_1():
         with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_1])
+            print(convert_to_dist_str(final_state_1))
             order = (
-                'channel-2::libgfortran-3.0.0-1',
                 'channel-2::nomkl-1.0-0',
+                'channel-2::libgfortran-3.0.0-1',
                 'channel-2::openssl-1.0.2l-0',
                 'channel-2::readline-6.2-2',
                 'channel-2::sqlite-3.13.0-0',
@@ -1535,20 +1539,20 @@ def test_features_solve_1():
                 'channel-2::python-2.7.13-0',
                 'channel-2::numpy-1.13.0-py27_nomkl_0',
             )
-            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_1) == order
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
         with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print([Dist(rec).full_name for rec in final_state_1])
+            print(convert_to_dist_str(final_state_1))
             order = (
+                'channel-2::nomkl-1.0-0',
                 'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
                 'channel-2::libffi-3.2.1-1',
                 'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
                 'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
                 'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-                'channel-2::nomkl-1.0-0',
                 'channel-4::libopenblas-0.2.20-h9ac9557_4',
                 'channel-4::ncurses-6.0-h9df7e31_2',
                 'channel-4::openssl-1.0.2n-hb7f436b_0',
@@ -1560,7 +1564,7 @@ def test_features_solve_1():
                 'channel-4::python-2.7.14-h1571d57_29',
                 'channel-4::numpy-1.14.1-py27_nomklh7cdd4dd_1',
             )
-            assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+            assert convert_to_dist_str(final_state_1) == order
 
 
 @pytest.mark.integration  # this test is slower, so we'll lump it into integration
@@ -1569,7 +1573,7 @@ def test_freeze_deps_1():
     with get_solver_2(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_1])
+        print(convert_to_dist_str(final_state_1))
         order = (
             'channel-2::openssl-1.0.2l-0',
             'channel-2::readline-6.2-2',
@@ -1580,13 +1584,13 @@ def test_freeze_deps_1():
             'channel-2::python-3.4.5-0',
             'channel-2::six-1.7.3-py34_0',
         )
-        assert tuple(final_state_1) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_1) == order
 
     specs_to_add = MatchSpec("bokeh"),
     with get_solver_2(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-2::mkl-2017.0.1-0',
             'channel-2::openssl-1.0.2l-0',
@@ -1609,7 +1613,7 @@ def test_freeze_deps_1():
             'channel-2::tornado-4.4.2-py34_0',
             'channel-2::bokeh-0.12.4-py34_0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     # now we can't install the latest bokeh 0.12.5, but instead we get bokeh 0.12.4
     specs_to_add = MatchSpec("bokeh"),
@@ -1617,7 +1621,7 @@ def test_freeze_deps_1():
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
             'channel-2::mkl-2017.0.1-0',
             'channel-2::openssl-1.0.2l-0',
@@ -1640,7 +1644,7 @@ def test_freeze_deps_1():
             'channel-2::tornado-4.4.2-py34_0',
             'channel-2::bokeh-0.12.4-py34_0',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
     specs_to_add = MatchSpec("bokeh=0.12.5"),
@@ -1648,14 +1652,14 @@ def test_freeze_deps_1():
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print([Dist(rec).full_name for rec in final_state_2])
+        print(convert_to_dist_str(final_state_2))
         order = (
+            'channel-2::xz-5.2.2-1',
             'channel-2::mkl-2017.0.1-0',
             'channel-2::openssl-1.0.2l-0',
             'channel-2::readline-6.2-2',
             'channel-2::sqlite-3.13.0-0',
             'channel-2::tk-8.5.18-0',
-            'channel-2::xz-5.2.2-1',
             'channel-2::yaml-0.1.6-0',
             'channel-2::zlib-1.2.8-3',
             'channel-2::python-2.7.13-0',
@@ -1675,7 +1679,7 @@ def test_freeze_deps_1():
             'channel-2::tornado-4.5.1-py27_0',
             'channel-2::bokeh-0.12.5-py27_1',
         )
-        assert tuple(final_state_2) == tuple(solver._index[Dist(d)] for d in order)
+        assert convert_to_dist_str(final_state_2) == order
 
     # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
     specs_to_add = MatchSpec("bokeh=0.12.5"),

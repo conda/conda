@@ -13,7 +13,7 @@ import warnings
 
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .common.compat import ensure_text_type, iteritems, open, text_type
-from .core.prefix_data import PrefixData, linked
+from .core.prefix_data import PrefixData
 from .exceptions import CondaFileIOError, CondaHistoryError
 from .gateways.disk.update import touch
 from .models.dist import Dist
@@ -101,7 +101,8 @@ class History(object):
                 warnings.warn("Error in %s: %s" % (self.path, e),
                               CondaHistoryWarning)
                 return
-            curr = set(map(str, linked(self.prefix)))
+            pd = PrefixData(self.prefix)
+            curr = set(prefix_rec.dist_str() for prefix_rec in pd.iter_records())
             self.write_changes(last, curr)
         except IOError as e:
             if e.errno == errno.EACCES:

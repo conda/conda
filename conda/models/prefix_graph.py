@@ -5,6 +5,7 @@ from logging import getLogger
 
 from .enums import NoarchType
 from .match_spec import MatchSpec
+from .records import PackageRecord
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, on_win
@@ -28,6 +29,7 @@ class PrefixGraph(object):
     """
 
     def __init__(self, records, specs=()):
+        assert all(isinstance(prec, PackageRecord) for prec in records), records
         specs = set(specs)
         records = tuple(records)
         graph = {}  # Dict[PrefixRecord, Set[PrefixRecord]]

@@ -5,6 +5,7 @@ from glob import glob
 from logging import getLogger
 from os.path import isfile, join, lexists
 
+from conda.models.prefix_graph import PrefixGraph
 from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import JSONDecodeError, itervalues, string_types, with_metaclass
@@ -15,7 +16,6 @@ from ..exceptions import (BasicClobberError, CondaDependencyError, CorruptedEnvi
 from ..gateways.disk.create import write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import file_path_is_writable
-from ..models.dist import Dist
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRef, PrefixRecord
 
@@ -96,11 +96,8 @@ class PrefixData(object):
         return itervalues(self._prefix_records)
 
     def iter_records_sorted(self):
-        from ..resolve import Resolve
-        index = {Dist(rec): rec for rec in self.iter_records()}
-        r = Resolve(index)
-        sorted_dists = r.dependency_sort({d.name: d for d in index})
-        return (index[d] for d in sorted_dists)
+        prefix_graph = PrefixGraph(self.iter_records())
+        return iter(prefix_graph.graph)
 
     def all_subdir_urls(self):
         subdir_urls = set()
@@ -168,37 +165,3 @@ def delete_prefix_from_linked_data(path):
         del PrefixData._cache_[linked_data_path]
         return True
     return False
-
-
-# exports
-def linked_data(prefix, ignore_channels=False):
-    """
-    Return a dictionary of the linked packages in prefix.
-    """
-    pd = PrefixData(prefix)
-    return {Dist(prefix_record): prefix_record for prefix_record in itervalues(pd._prefix_records)}
-
-
-# exports
-def linked(prefix, ignore_channels=False):
-    """
-    Return the set of canonical names of linked packages in prefix.
-    """
-    return set(linked_data(prefix, ignore_channels=ignore_channels).keys())
-
-
-# exports
-def is_linked(prefix, dist):
-    """
-    Return the install metadata for a linked package in a prefix, or None
-    if the package is not linked in the prefix.
-    """
-    # FIXME Functions that begin with `is_` should return True/False
-    pd = PrefixData(prefix)
-    prefix_record = pd.get(dist.name, None)
-    if prefix_record is None:
-        return None
-    elif MatchSpec(dist).match(prefix_record):
-        return prefix_record
-    else:
-        return None

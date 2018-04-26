@@ -17,7 +17,7 @@ from .path_actions import (CompilePycAction, CreateNonadminAction, CreatePrefixR
                            RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
                            RemoveMenuAction, UnlinkPathAction, UnregisterEnvironmentLocationAction,
                            UpdateHistoryAction)
-from .prefix_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
+from .prefix_data import PrefixData, get_python_version_for_prefix
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
@@ -439,20 +439,21 @@ class UnlinkLinkTransaction(object):
         if conda_final_setup is None:
             # means we're not unlinking then linking a new package, so look up current conda record
             conda_final_prefix = context.conda_prefix
-            pkg_names_already_lnkd = tuple(rec.name for rec in get_linked_data(conda_final_prefix)
-                                           or ())
+            pd = PrefixData(conda_final_prefix)
+            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = ()
             pkg_names_being_unlnkd = ()
-            _prefix_records = itervalues(get_linked_data(conda_final_prefix))
-            conda_linked_depends = next((record.depends for record in _prefix_records
-                                         if record.name == 'conda'), ())
+            conda_linked_depends = next(
+                (record.depends for record in pd.iter_records() if record.name == 'conda'),
+                ()
+            )
         else:
             conda_final_prefix = conda_final_setup.target_prefix
-            pkg_names_already_lnkd = tuple(rec.name for rec in get_linked_data(conda_final_prefix)
-                                           or ())
+            pd = PrefixData(conda_final_prefix)
+            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = tuple(prec.name for prec in conda_final_setup.link_precs or ())
-            pkg_names_being_unlnkd = tuple(prec.name
-                                           for prec in conda_final_setup.unlink_precs or ())
+            pkg_names_being_unlnkd = tuple(prec.name for prec in conda_final_setup.unlink_precs
+                                           or ())
             conda_linked_depends = conda_prec.depends
 
         for conda_dependency in conda_linked_depends:

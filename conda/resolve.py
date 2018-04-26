@@ -4,7 +4,7 @@ from collections import defaultdict
 from itertools import chain
 from logging import DEBUG, getLogger
 
-from .base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY
+from .base.constants import MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
@@ -13,10 +13,9 @@ from .common.toposort import toposort
 from .exceptions import ResolvePackageNotFound, UnsatisfiableError
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType
-from .models.records import PackageRef, PackageRecord
 from .models.match_spec import MatchSpec
+from .models.records import PackageRecord, PackageRef
 from .models.version import VersionOrder
-from .core.subdir_data import make_feature_record
 
 try:
     from cytoolz.itertoolz import concat, groupby
@@ -64,6 +63,9 @@ class Resolve(object):
                 groups[name] = sorted(group, key=self.version_key, reverse=True)
 
     def default_filter(self, features=None, filter=None):
+        # TODO: fix this import; this is bad
+        from .core.subdir_data import make_feature_record
+
         if filter is None:
             filter = {}
         else:
@@ -249,6 +251,9 @@ class Resolve(object):
         raise UnsatisfiableError(bad_deps)
 
     def get_reduced_index(self, specs):
+        # TODO: fix this import; this is bad
+        from .core.subdir_data import make_feature_record
+
         cache_key = frozenset(specs)
         if cache_key in self._reduced_index_cache:
             return self._reduced_index_cache[cache_key]
@@ -648,12 +653,12 @@ class Resolve(object):
         log.debug('Checking if the current environment is consistent')
         if not installed:
             return None, []
-        record_map = {}  # Dict[sat_name, PackageRecord]
+        sat_name_map = {}  # Dict[sat_name, PackageRecord]
         specs = []
         for prec in installed:
-            record_map[self.to_sat_name(prec)] = prec
+            sat_name_map[self.to_sat_name(prec)] = prec
             specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
-        r2 = Resolve(record_map, True, True, channels=self.channels)
+        r2 = Resolve({prec: prec for prec in installed}, True, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -715,10 +720,12 @@ class Resolve(object):
                 get_(MatchSpec(spec).name, snames)
             if len(snames) < len(sat_name_map):
                 limit = snames
-                xtra = [rec for sat_name, rec in iteritems(sat_name_map) if rec['name'] not in snames]
+                xtra = [rec for sat_name, rec in iteritems(sat_name_map)
+                        if rec['name'] not in snames]
                 log.debug('Limiting solver to the following packages: %s', ', '.join(limit))
         if xtra:
             log.debug('Packages to be preserved: %s', xtra)
+        assert all(isinstance(prec, PackageRecord) for prec in xtra or ())
         return limit, xtra
 
     def restore_bad(self, pkgs, preserve):
@@ -782,7 +789,7 @@ class Resolve(object):
         limit, _ = self.bad_installed(installed, nspecs)
         preserve = []
         for prec in installed:
-            nm, ver, build = prec.name, prec.version, prec.build
+            nm, ver = prec.name, prec.version
             if nm in snames:
                 continue
             elif limit is not None:
@@ -946,7 +953,8 @@ class Resolve(object):
                 raise RuntimeError()
             # TODO: clean up this mess
             # return [sorted(Dist(stripfeat(dname)) for dname in psol) for psol in psolutions]
-            # return [sorted((new_index[sat_name] for sat_name in psol), key=lambda x: x.name) for psol in psolutions]
+            # return [sorted((new_index[sat_name] for sat_name in psol), key=lambda x: x.name)
+            #         for psol in psolutions]
 
             # return sorted(Dist(stripfeat(dname)) for dname in psolutions[0])
         return sorted((new_index[sat_name] for sat_name in psolutions[0]), key=lambda x: x.name)

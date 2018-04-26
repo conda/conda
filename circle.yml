@@ -159,11 +159,6 @@ jobs:
     environment:
       - CONDA_BUILD: 3.0.21
       - CONDA_INSTRUMENTATION_ENABLED: true
-  2.1 conda-build:
-    <<: *conda_build_test
-    environment:
-      - CONDA_BUILD: 2.1.17
-      - CONDA_INSTRUMENTATION_ENABLED: true
 
   activate tests: *activate_tests
   flake8: *flake8
@@ -177,6 +172,5 @@ workflows:
       - py36 main tests
       - py27 main tests
       - 3.0 conda-build
-      - 2.1 conda-build
       - activate tests
       - flake8
