@@ -13,7 +13,7 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
-from .base.constants import PathConflict, SafetyChecks, COMPATIBLE_SHELLS
+from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
@@ -252,15 +252,17 @@ class CommandNotFoundError(CondaError):
             'render',
             'skeleton',
         }
-        # TODO: Point users to a page at conda-docs, which explains this context in more detail
+        from .base.context import context
+        from .cli.main import init_loggers
+        init_loggers(context)
         if command in activate_commands:
-            from .base.context import context
+            # TODO: Point users to a page at conda-docs, which explains this context in more detail
             builder = ["Your shell has not been properly configured to use 'conda %(command)s'."]
             builder.append(dals("""
             To initialize your shell, run
-            
+
                 $ conda init <SHELL_NAME>
-            
+
             Currently supported shells are:%(supported_shells)s
 
             See 'conda init --help' for more information and options.
@@ -280,9 +282,6 @@ class CommandNotFoundError(CondaError):
             close = get_close_matches(command, choices)
             if close:
                 message += "\nDid you mean 'conda %s'?" % close[0]
-        from .base.context import context
-        from .cli.main import init_loggers
-        init_loggers(context)
         super(CommandNotFoundError, self).__init__(message, command=command)
 
 
