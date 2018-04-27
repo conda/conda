@@ -1,8 +1,16 @@
 ## 4.6.0 (unreleased)
 
+### New Feature Highlights
+* resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
+  config (#7195)
+
 ### Deprecations/Breaking Changes
 * resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
 * resolve #7061 remove pkgs/pro from defaults (#7162)
+* resolve #7078 add deprecation warnings for 'conda.cli.activate',
+  'conda.compat', and 'conda.install' (#7079)
+* resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
+  config (#7195)
 
 ### Improvements
 * import speedups (#7122)
@@ -14,6 +22,8 @@
 * support complete MatchSpec syntax in environment.yml files (#7178)
 * resolve #4274 add option to remove an existing environment with 'conda create' (#7133)
 * add ability for conda prompt customization via 'env_prompt' config param (#7047)
+* resolve #7063 add license and license_family to MatchSpec for 'conda search' (#7064)
+* resolve #7189 progress bar formatting improvement (#7191)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
@@ -23,9 +33,11 @@
 * fix #7094 exit early for --dry-run with explicit and clone (#7096)
 * fix activation script sort order (#7176)
 * fix #7109 incorrect chown with sudo (#7180)
+* fix #7210 add suppressed --mkdir back to 'conda create' (fix for 4.6.0a1) (#7211)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
+* resolve #7220 pep8 project renamed to pycodestyle (#7221)
 
 ### Preview Releases
 
