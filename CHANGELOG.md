@@ -44,6 +44,14 @@
 * 4.6.0a1 at d5bec21d1f64c3bc66c2999cfc690681e9c46177 on 2018-04-20
 
 
+## 4.5.2 (2018-04-27)
+
+### Bug Fixes
+* fix #7107 verify hangs when a package is corrupted (#7223)
+* fix #7094 exit early for --dry-run with explicit and clone (#7224)
+* fix activation/deactivation script sort order (#7225)
+
+
 ## 4.5.1 (2018-04-13)
 
 ### Improvements
