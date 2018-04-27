@@ -5,27 +5,6 @@
 #     Run 'conda init fish' and restart your shell.
 #
 
-
-#     Source this file from the fish shell to enable activate / deactivate functions.
-#     In order to automatically load these functions on fish startup, append
-#
-#         source [CONDA_INSTALL_LOCATION]/etc/fish/conf.d/conda.fish
-#
-#     to the end of your ~/.config/config.fish file, or
-#
-#         sudo ln -s [CONDA_INSTALL_LOCATION]/etc/fish/conf.d/conda.fish /etc/fish/conf.d/conda.fish
-#
-#     If you are using fish as your default shell and want any environment activated by default also add
-#
-#         conda activate <env-name>
-#
-#     For example add 
-#    
-#         conda activate base
-#   
-#     to have the default environment running as in bash.
-#
-
 test -n "$CONDA_SHLVL"; or set -gx CONDA_SHLVL "0"
 set -g _CONDA_ROOT (dirname (dirname $CONDA_EXE))
 
@@ -85,7 +64,7 @@ function conda --inherit-variable CONDA_EXE
         switch $cmd
             case activate deactivate
                 eval (eval $CONDA_EXE shell.fish $cmd $argv)
-            case install update remove uninstall
+            case install update upgrade remove uninstall
                 eval $CONDA_EXE $cmd $argv
                 and eval (eval $CONDA_EXE shell.fish reactivate)
             case '*'
@@ -151,5 +130,6 @@ complete -f -c conda -n '__fish_conda_using_command activate' -a '(__fish_conda_
 
 # Commands that need package as parameter
 complete -f -c conda -n '__fish_conda_using_command remove' -a '(__fish_conda_packages)'
+complete -f -c conda -n '__fish_conda_using_command uninstall' -a '(__fish_conda_packages)'
 complete -f -c conda -n '__fish_conda_using_command upgrade' -a '(__fish_conda_packages)'
 complete -f -c conda -n '__fish_conda_using_command update' -a '(__fish_conda_packages)'

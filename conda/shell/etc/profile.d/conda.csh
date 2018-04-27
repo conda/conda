@@ -29,7 +29,7 @@ else
             eval "${ask_conda}"
             rehash
             breaksw
-        case "install" | "update" | "uninstall" | "remove":
+        case "install" | "update" | "upgrade" | "remove" | "uninstall":
             $_CONDA_EXE $argv[1-]
             set ask_conda="`(setenv prompt '${prompt}' ; '${_CONDA_EXE}' shell.csh reactivate)`" || exit ${status}
             eval "${ask_conda}"

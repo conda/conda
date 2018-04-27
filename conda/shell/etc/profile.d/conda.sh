@@ -42,7 +42,7 @@ conda() {
             activate|deactivate)
                 __conda_activate "$cmd" "$@"
                 ;;
-            install|update|uninstall|remove)
+            install|update|upgrade|remove|uninstall)
                 "$CONDA_EXE" "$cmd" "$@" && __conda_reactivate
                 ;;
             *) "$CONDA_EXE" "$cmd" "$@" ;;
