@@ -1,3 +1,11 @@
+## 4.5.2 (2018-04-27)
+
+### Bug Fixes
+* fix #7107 verify hangs when a package is corrupted (#7223)
+* fix #7094 exit early for --dry-run with explicit and clone (#7224)
+* fix activation/deactivation script sort order (#7225)
+
+
 ## 4.5.1 (2018-04-13)
 
 ### Improvements
