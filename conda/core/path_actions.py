@@ -5,9 +5,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
 from logging import getLogger
 from os.path import basename, dirname, getsize, join
-from random import random
 import re
-from time import sleep
 from uuid import uuid4
 
 from .envs_manager import USER_ENVIRONMENTS_TXT_FILE, register_env, unregister_env
@@ -17,7 +15,7 @@ from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..common.compat import iteritems, on_win, range, text_type
+from ..common.compat import iteritems, on_win, text_type
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def,
@@ -255,31 +253,13 @@ class LinkPathAction(CreateInPrefixPathAction):
 
     def verify(self):
         if self.link_type != LinkType.directory and not lexists(self.source_full_path):  # pragma: no cover  # NOQA
-            # This backoff loop is added because of some weird race condition conda-build
-            # experiences. Would be nice at some point to get to the bottom of why it happens.
-
-            # sum(((2 ** n) + random()) * 0.1 for n in range(2))
-            # with max_retries = 2, max total time ~= 0.4 sec
-            # with max_retries = 3, max total time ~= 0.8 sec
-            # with max_retries = 6, max total time ~= 6.5 sec
-            count = self.transaction_context.get('_verify_backoff_count', 0)
-            max_retries = 6 if count < 4 else 3
-            for n in range(max_retries):
-                sleep_time = ((2 ** n) + random()) * 0.1
-                log.trace("retrying lexists(%s) in %g sec", self.source_full_path, sleep_time)
-                sleep(sleep_time)
-                if lexists(self.source_full_path):
-                    break
-            else:
-                # only run the 6.5 second backoff time once
-                self.transaction_context['_verify_backoff_count'] = count + 1
-                return CondaVerificationError(dals("""
-                The package for %s located at %s
-                appears to be corrupted. The path '%s'
-                specified in the package manifest cannot be found.
-                """ % (self.package_info.index_json_record.name,
-                       self.package_info.extracted_package_dir,
-                       self.source_short_path)))
+            return CondaVerificationError(dals("""
+            The package for %s located at %s
+            appears to be corrupted. The path '%s'
+            specified in the package manifest cannot be found.
+            """ % (self.package_info.index_json_record.name,
+                   self.package_info.extracted_package_dir,
+                   self.source_short_path)))
 
         source_path_data = self.source_path_data
         try:
