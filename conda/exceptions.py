@@ -850,8 +850,7 @@ def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
     rc = getattr(exc_val, 'return_code', None)
     if context.debug or context.verbosity > 0:
-        sys.stderr.write(_format_exc(exc_val, exc_tb))
-        sys.stderr.write('\n')
+        print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
         if rc == 0:
             # suppress DryRunExit and CondaSystemExit messages
@@ -860,13 +859,13 @@ def print_conda_exception(exc_val, exc_tb=None):
             import json
             stdoutlog = getLogger('conda.stdout')
             exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
-            stdoutlog.info("%s\n" % exc_json)
+            stdoutlog.error("%s\n" % exc_json)
     else:
         stderrlog = getLogger('conda.stderr')
         if rc == 0:
-            stderrlog.info("\n%s\n", exc_val)
+            stderrlog.error("\n%s\n", exc_val)
         else:
-            stderrlog.info("\n%r\n", exc_val)
+            stderrlog.error("\n%r\n", exc_val)
 
 
 def _format_exc(exc_val=None, exc_tb=None):
