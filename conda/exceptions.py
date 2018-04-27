@@ -13,7 +13,7 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
-from .base.constants import PathConflict, SafetyChecks
+from .base.constants import PathConflict, SafetyChecks, COMPATIBLE_SHELLS
 from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
@@ -257,33 +257,17 @@ class CommandNotFoundError(CondaError):
             from .base.context import context
             builder = ["Your shell has not been properly configured to use 'conda %(command)s'."]
             builder.append(dals("""
-            If your shell is Bash or a Bourne variant, enable conda for the current user with
+            To initialize your shell, run
+            
+                $ conda init <SHELL_NAME>
+            
+            Currently supported shells are:%(supported_shells)s
 
-                $ echo ". %(root_prefix)s/etc/profile.d/conda.sh" >> ~/%(config_file)s
+            See 'conda init --help' for more information and options.
 
-            or, for all users, enable conda with
-
-                $ sudo ln -s %(root_prefix)s/etc/profile.d/conda.sh /etc/profile.d/conda.sh
-
-            The options above will permanently enable the 'conda' command, but they do NOT
-            put conda's base (root) environment on PATH.  To do so, run
-
-                $ conda activate
-
-            in your terminal, or to put the base environment on PATH permanently, run
-
-                $ echo "conda activate" >> ~/%(config_file)s
-
-            Previous to conda 4.4, the recommended way to activate conda was to modify PATH in
-            your ~/%(config_file)s file.  You should manually remove the line that looks like
-
-                export PATH="%(root_prefix)s/bin:$PATH"
-
-            ^^^ The above line should NO LONGER be in your ~/%(config_file)s file! ^^^
+            IMPORTANT: You may need to close and restart your shell after running 'conda init'.
             """) % {
-                'root_prefix': context.root_prefix,
-                'macos_fix': " ''" if sys.platform == 'darwin' else "",
-                'config_file': '.bash_profile' if sys.platform == 'darwin' else '.bashrc',
+                'supported_shells': dashlist(COMPATIBLE_SHELLS),
             })
             message = '\n'.join(builder)
         elif command in build_commands:
