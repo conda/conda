@@ -119,7 +119,7 @@ class InitializeTests(TestCase):
                         "function": "install_condacmd_conda_activate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\condacmd\\conda_activate.bat"
+                            "target_path": "/darwin\\condacmd\\_conda_activate.bat"
                         }
                     },
                     {
@@ -463,7 +463,7 @@ class InitializeTests(TestCase):
                 'conda-env-script.py',
                 'conda.bat',
                 'conda.bat',
-                'conda_activate.bat',
+                '_conda_activate.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
                 'activate.bat',
@@ -516,7 +516,7 @@ class InitializeTests(TestCase):
                 'conda-env-script.py',
                 'conda.bat',
                 'conda.bat',
-                'conda_activate.bat',
+                '_conda_activate.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
                 'activate.bat',
@@ -573,7 +573,7 @@ class InitializeTests(TestCase):
                 'conda-env-script.py',
                 'conda.bat',
                 'conda.bat',
-                'conda_activate.bat',
+                '_conda_activate.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
                 'activate.bat',

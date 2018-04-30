@@ -252,7 +252,7 @@ def make_install_plan(conda_prefix):
         plan.append({
             'function': install_condacmd_conda_activate_bat.__name__,
             'kwargs': {
-                'target_path': join(conda_prefix, 'condacmd', 'conda_activate.bat'),
+                'target_path': join(conda_prefix, 'condacmd', '_conda_activate.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
@@ -709,8 +709,8 @@ def install_condacmd_conda_bat(target_path, conda_prefix):
 
 
 def install_condacmd_conda_activate_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'conda_activate.bat')
-    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda_activate.bat')
+    # target_path: join(conda_prefix, 'condacmd', '_conda_activate.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', '_conda_activate.bat')
     with open(conda_bat_src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)

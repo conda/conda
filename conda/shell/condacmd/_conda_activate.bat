@@ -1,6 +1,8 @@
+@REM Helper routine for activation, deactivation, and reactivation.
+
 @IF "%CONDA_PS1_BACKUP%"=="" GOTO FIXUP43
-    REM Handle transition from shell activated with conda 4.3 to a subsequent activation
-    REM after conda updated to 4.4. See issue #6173.
+    @REM Handle transition from shell activated with conda 4.3 to a subsequent activation
+    @REM after conda updated to 4.4. See issue #6173.
     @SET "PROMPT=%CONDA_PS1_BACKUP%"
     @SET CONDA_PS1_BACKUP=
 :FIXUP43

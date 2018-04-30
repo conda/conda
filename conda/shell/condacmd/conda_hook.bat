@@ -1,3 +1,6 @@
+@REM The file name is conda_hook.bat rather than conda-hook.bat because conda will see
+@REM the latter as a 'conda hook' command.
+
 @IF DEFINED CONDA_SHLVL GOTO :EOF
 
 @FOR %%F in ("%~dp0") do @SET __condacmd_dir=%%~dpF
