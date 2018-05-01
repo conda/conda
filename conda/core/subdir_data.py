@@ -441,7 +441,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
                     $ echo '{}' > noarch/repodata.json
                     $ bzip2 -k noarch/repodata.json
                     """) % maybe_unquote(dirname(url))
-                    stderrlog.warn(help_message)
+                    stderrlog.warning(help_message)
                     return None
                 else:
                     help_message = dals("""

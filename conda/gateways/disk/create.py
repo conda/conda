@@ -176,7 +176,7 @@ def make_menu(prefix, file_path, remove=False):
     if not on_win:
         return
     elif basename(prefix).startswith('_'):
-        log.warn("Environment name starts with underscore '_'. Skipping menu installation.")
+        log.warning("Environment name starts with underscore '_'. Skipping menu installation.")
         return
 
     try:

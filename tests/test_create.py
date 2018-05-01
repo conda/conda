@@ -380,7 +380,7 @@ class IntegrationTests(TestCase):
                 for string in content and content.split('\0') or ():
                     json.loads(string)
             except Exception as e:
-                log.warn(
+                log.warning(
                     "Problem parsing json output.\n"
                     "  content: %s\n"
                     "  string: %s\n"

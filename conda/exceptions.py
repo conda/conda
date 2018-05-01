@@ -1003,7 +1003,7 @@ class ExceptionHandler(object):
                     message_builder.append(get_env_vars_str(error_report['conda_info']))
                     message_builder.append(get_main_info_str(error_report['conda_info']))
                 except Exception as e:
-                    log.warn("%r", e, exc_info=True)
+                    log.warning("%r", e, exc_info=True)
                     message_builder.append('conda info could not be constructed.')
                     message_builder.append('%r' % e)
             message_builder.append('')
@@ -1032,7 +1032,7 @@ class ExceptionHandler(object):
                     message_builder.append(get_env_vars_str(error_report['conda_info']))
                     message_builder.append(get_main_info_str(error_report['conda_info']))
                 except Exception as e:
-                    log.warn("%r", e, exc_info=True)
+                    log.warning("%r", e, exc_info=True)
                     message_builder.append('conda info could not be constructed.')
                     message_builder.append('%r' % e)
             message_builder.append('')

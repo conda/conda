@@ -46,7 +46,7 @@ def exp_backoff_fn(fn, *args, **kwargs):
                 # errno.ENOTEMPTY OSError(41, 'The directory is not empty')
                 raise
             else:
-                log.warn("Uncaught backoff with errno %s %d", errorcode[e.errno], e.errno)
+                log.warning("Uncaught backoff with errno %s %d", errorcode[e.errno], e.errno)
                 raise
         else:
             return result

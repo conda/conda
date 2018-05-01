@@ -37,7 +37,7 @@ def register_env(location):
             fh.write('\n')
     except EnvironmentError as e:
         if e.errno == EACCES:
-            log.warn("Unable to register environment. Path not writable.\n"
+            log.warning("Unable to register environment. Path not writable.\n"
                      "  environment location: %s\n"
                      "  registry file: %s", location, USER_ENVIRONMENTS_TXT_FILE)
         else:

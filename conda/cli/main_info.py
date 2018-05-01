@@ -347,7 +347,7 @@ def execute(args, parser):
                 # try:
                 # $ conda install -n root _license"""))
         except Exception as e:  # pragma: no cover
-            log.warn('%r', e)
+            log.warning('%r', e)
 
     if context.json:
         stdout_json(info_dict)
