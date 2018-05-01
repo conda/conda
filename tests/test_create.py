@@ -567,10 +567,10 @@ class IntegrationTests(TestCase):
             assert stderr == ''
             self.assertIsInstance(stdout, str)
 
-    def test_list_with_pip_egg(self):
+    def test_list_with_pip_no_binary(self):
         from conda.exports import rm_rf as _rm_rf
         with make_temp_env("python=3.5 pip") as prefix:
-            check_call(PYTHON_BINARY + " -m pip install --egg --no-binary flask flask==0.10.1",
+            check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==0.10.1",
                        cwd=prefix, shell=True)
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
@@ -832,7 +832,7 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'openssl')
             assert package_is_installed(prefix, 'itsdangerous')
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 5, 1), reason="TODO")
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 6, 1), reason="TODO")
     def test_install_update_deps_only_deps_flags(self):
         raise NotImplementedError()
 

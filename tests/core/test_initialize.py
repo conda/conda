@@ -19,9 +19,9 @@ from conda.common.compat import on_win, open
 from conda.common.io import captured, env_var, env_vars
 from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
 from conda.core.initialize import Result, _get_python_info, init_sh_system, init_sh_user, \
-    initialize_dev, install, install_conda_bat, install_conda_csh, install_conda_fish, \
+    initialize_dev, install, install_conda_csh, install_conda_fish, \
     install_conda_sh, install_conda_xsh, make_entry_point, make_entry_point_exe, \
-    make_initialize_plan, make_install_plan
+    make_initialize_plan, make_install_plan, install_condacmd_conda_bat
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
@@ -102,13 +102,6 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
-                        "function": "install_conda_bat",
-                        "kwargs": {
-                            "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Library\\bin\\conda.bat"
-                        }
-                    },
-                    {
                         "function": "install_condacmd_conda_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
@@ -137,17 +130,24 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
-                        "function": "install_activate_bat",
+                        "function": "install_Scripts_activate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
                             "target_path": "/darwin\\Scripts\\activate.bat"
                         }
                     },
                     {
+                        "function": "install_activate_bat",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "target_path": "/darwin\\condacmd\\activate.bat"
+                        }
+                    },
+                    {
                         "function": "install_deactivate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Scripts\\deactivate.bat"
+                            "target_path": "/darwin\\condacmd\\deactivate.bat"
                         }
                     },
                     {
@@ -423,11 +423,11 @@ class InitializeTests(TestCase):
             result = install_conda_csh(target_path, conda_prefix)
             assert result == Result.NO_CHANGE
 
-    def test_install_conda_bat(self):
+    def test_install_condacmd_conda_bat(self):
         with tempdir() as conda_temp_prefix:
             conda_prefix = abspath(sys.prefix)
-            target_path = join(conda_temp_prefix, 'Library', 'bin', 'conda.bat')
-            result = install_conda_bat(target_path, conda_prefix)
+            target_path = join(conda_temp_prefix, 'condacmd', 'conda.bat')
+            result = install_condacmd_conda_bat(target_path, conda_prefix)
             assert result == Result.MODIFIED
 
             with open(target_path) as fh:
@@ -435,11 +435,11 @@ class InitializeTests(TestCase):
 
             remainder = created_file_contents
 
-            with open(join(CONDA_PACKAGE_ROOT, 'shell', 'Library', 'bin', 'conda.bat')) as fh:
+            with open(join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda.bat')) as fh:
                 original_contents = fh.read()
             assert remainder == original_contents
 
-            result = install_conda_bat(target_path, conda_prefix)
+            result = install_condacmd_conda_bat(target_path, conda_prefix)
             assert result == Result.NO_CHANGE
 
     def test__get_python_info(self):
@@ -462,10 +462,10 @@ class InitializeTests(TestCase):
                 'conda-script.py',
                 'conda-env-script.py',
                 'conda.bat',
-                'conda.bat',
                 '_conda_activate.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
+                'activate.bat',
                 'activate.bat',
                 'deactivate.bat',
                 'activate',
@@ -515,10 +515,10 @@ class InitializeTests(TestCase):
                 'conda-script.py',
                 'conda-env-script.py',
                 'conda.bat',
-                'conda.bat',
                 '_conda_activate.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
+                'activate.bat',
                 'activate.bat',
                 'deactivate.bat',
                 'activate',
@@ -527,8 +527,10 @@ class InitializeTests(TestCase):
                 'conda.fish',
                 'conda.xsh',
                 'conda.csh',
-                'site-packages',
-                'conda-dev.pth',
+                'site-packages',  # remove conda in site-packages dir
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
             )
         else:
             modified_files = (
@@ -541,7 +543,9 @@ class InitializeTests(TestCase):
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
-                'conda-dev.pth',
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
             )
 
         stderr = c.stderr.replace('no change', 'modified')
@@ -572,10 +576,10 @@ class InitializeTests(TestCase):
                 'conda-script.py',
                 'conda-env-script.py',
                 'conda.bat',
-                'conda.bat',
                 '_conda_activate.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
+                'activate.bat',
                 'activate.bat',
                 'deactivate.bat',
                 'activate',
@@ -584,8 +588,11 @@ class InitializeTests(TestCase):
                 'conda.fish',
                 'conda.xsh',
                 'conda.csh',
-                'site-packages',
-                'conda-dev.pth',
+                'site-packages',  # remove conda in site-packages dir
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
+
             )
         else:
             modified_files = (
@@ -598,7 +605,10 @@ class InitializeTests(TestCase):
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
-                'conda-dev.pth',
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
+
             )
 
         stderr = c.stderr.replace('no change', 'modified')

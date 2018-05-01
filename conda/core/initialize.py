@@ -14,7 +14,7 @@ import re
 import sys
 from tempfile import NamedTemporaryFile
 
-from .. import CONDA_PACKAGE_ROOT, CondaError
+from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
 from ..activate import CshActivator, FishActivator, PosixActivator, XonshActivator
 from ..base.context import context
@@ -113,10 +113,23 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         },
     })
     plan.append({
-        'function': make_conda_pth.__name__,
+        'function': make_conda_egg_link.__name__,
         'kwargs': {
-            'target_path': join(site_packages_dir, 'conda-dev.pth'),
+            'target_path': join(site_packages_dir, 'conda.egg-link'),
             'conda_source_root': conda_source_root,
+        },
+    })
+    plan.append({
+        'function': modify_easy_install_pth.__name__,
+        'kwargs': {
+            'target_path': join(site_packages_dir, 'easy-install.pth'),
+            'conda_source_root': conda_source_root,
+        },
+    })
+    plan.append({
+        'function': make_dev_egg_info_file.__name__,
+        'kwargs': {
+            'target_path': join(conda_source_root, 'conda.egg-info'),
         },
     })
 
@@ -236,13 +249,6 @@ def make_install_plan(conda_prefix):
     # ######################################
     if on_win:
         plan.append({
-            'function': install_conda_bat.__name__,
-            'kwargs': {
-                'target_path': join(conda_prefix, 'Library', 'bin', 'conda.bat'),
-                'conda_prefix': conda_prefix,
-            },
-        })
-        plan.append({
             'function': install_condacmd_conda_bat.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'condacmd', 'conda.bat'),
@@ -271,16 +277,23 @@ def make_install_plan(conda_prefix):
             },
         })
         plan.append({
-            'function': install_activate_bat.__name__,
+            'function': install_Scripts_activate_bat.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'Scripts', 'activate.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
         plan.append({
+            'function': install_activate_bat.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'condacmd', 'activate.bat'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+        plan.append({
             'function': install_deactivate_bat.__name__,
             'kwargs': {
-                'target_path': join(conda_prefix, 'Scripts', 'deactivate.bat'),
+                'target_path': join(conda_prefix, 'condacmd', 'deactivate.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
@@ -652,15 +665,7 @@ def install_conda_sh(target_path, conda_prefix):
     return _install_file(target_path, file_content)
 
 
-def install_conda_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'Library', 'bin', 'conda.bat')
-    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Library', 'bin', 'conda.bat')
-    with open(conda_bat_src_path) as fsrc:
-        file_content = fsrc.read()
-    return _install_file(target_path, file_content)
-
-
-def install_activate_bat(target_path, conda_prefix):
+def install_Scripts_activate_bat(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Scripts', 'activate.bat')
     src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Scripts', 'activate.bat')
     with open(src_path) as fsrc:
@@ -668,9 +673,17 @@ def install_activate_bat(target_path, conda_prefix):
     return _install_file(target_path, file_content)
 
 
+def install_activate_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condacmd', 'activate.bat')
+    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'activate.bat')
+    with open(src_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
 def install_deactivate_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'Scripts', 'deactivate.bat')
-    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Scripts', 'deactivate.bat')
+    # target_path: join(conda_prefix, 'condacmd', 'deactivate.bat')
+    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'deactivate.bat')
     with open(src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)
@@ -1051,6 +1064,7 @@ def remove_conda_in_sp_dir(target_path):
         glob(join(site_packages_dir, "conda.*")),
         glob(join(site_packages_dir, "conda-*.egg")),
     ))
+    rm_rf_these = (p for p in rm_rf_these if not p.endswith('conda.egg-link'))
     for fn in rm_rf_these:
         print("rm -rf %s" % join(site_packages_dir, fn), file=sys.stderr)
         if not context.dry_run:
@@ -1058,7 +1072,6 @@ def remove_conda_in_sp_dir(target_path):
         modified = True
     others = (
         "conda",
-        "conda.egg-link",
         "conda_env",
     )
     for other in others:
@@ -1074,28 +1087,87 @@ def remove_conda_in_sp_dir(target_path):
         return Result.NO_CHANGE
 
 
-def make_conda_pth(target_path, conda_source_root):
-    # target_path: join(site_packages_dir, 'conda-dev.pth')
-    conda_pth_path = target_path
-    conda_pth_contents = conda_source_root
+def make_conda_egg_link(target_path, conda_source_root):
+    # target_path: join(site_packages_dir, 'conda.egg-link')
+    conda_egg_link_contents = conda_source_root + os.linesep
 
-    if isfile(conda_pth_path):
-        with open(conda_pth_path) as fh:
-            conda_pth_contents_old = fh.read()
+    if isfile(target_path):
+        with open(target_path) as fh:
+            conda_egg_link_contents_old = fh.read()
     else:
-        conda_pth_contents_old = ""
+        conda_egg_link_contents_old = ""
 
-    if conda_pth_contents_old != conda_pth_contents:
+    if conda_egg_link_contents_old != conda_egg_link_contents:
         if context.verbosity:
             print('\n', file=sys.stderr)
             print(target_path, file=sys.stderr)
-            print(make_diff(conda_pth_contents_old, conda_pth_contents), file=sys.stderr)
+            print(make_diff(conda_egg_link_contents_old, conda_egg_link_contents), file=sys.stderr)
         if not context.dry_run:
-            with open(conda_pth_path, 'w') as fh:
-                fh.write(ensure_fs_path_encoding(conda_pth_contents))
+            with open(target_path, 'w') as fh:
+                fh.write(ensure_fs_path_encoding(conda_egg_link_contents))
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
+
+
+def modify_easy_install_pth(target_path, conda_source_root):
+    # target_path: join(site_packages_dir, 'easy-install.pth')
+    easy_install_new_line = conda_source_root
+
+    if isfile(target_path):
+        with open(target_path) as fh:
+            old_contents = fh.read()
+    else:
+        old_contents = ""
+
+    old_contents_lines = old_contents.splitlines()
+    if easy_install_new_line in old_contents_lines:
+        return Result.NO_CHANGE
+
+    ln_end = os.sep + "conda"
+    old_contents_lines = tuple(ln for ln in old_contents_lines if not ln.endswith(ln_end))
+    new_contents = easy_install_new_line + '\n' + '\n'.join(old_contents_lines) + '\n'
+
+    if context.verbosity:
+        print('\n', file=sys.stderr)
+        print(target_path, file=sys.stderr)
+        print(make_diff(old_contents, new_contents), file=sys.stderr)
+    if not context.dry_run:
+        with open(target_path, 'w') as fh:
+            fh.write(ensure_fs_path_encoding(new_contents))
+    return Result.MODIFIED
+
+
+def make_dev_egg_info_file(target_path):
+    # target_path: join(conda_source_root, 'conda.egg-info')
+
+    if isfile(target_path):
+        with open(target_path) as fh:
+            old_contents = fh.read()
+    else:
+        old_contents = ""
+
+    new_contents = dals("""
+    Metadata-Version: 1.1
+    Name: conda
+    Version: %s
+    Platform: UNKNOWN
+    Summary: OS-agnostic, system-level binary package manager.
+    """) % CONDA_VERSION
+
+    if old_contents == new_contents:
+        return Result.NO_CHANGE
+
+    if context.verbosity:
+        print('\n', file=sys.stderr)
+        print(target_path, file=sys.stderr)
+        print(make_diff(old_contents, new_contents), file=sys.stderr)
+    if not context.dry_run:
+        if lexists(target_path):
+            rm_rf(target_path)
+        with open(target_path, 'w') as fh:
+            fh.write(new_contents)
+    return Result.MODIFIED
 
 
 def make_diff(old, new):

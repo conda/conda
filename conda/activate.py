@@ -198,7 +198,7 @@ class _Activator(object):
         prefix = normpath(prefix)
 
         # query environment
-        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
+        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
         new_conda_shlvl = old_conda_shlvl + 1
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
 
@@ -269,7 +269,7 @@ class _Activator(object):
     def build_deactivate(self):
         # query environment
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
-        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
+        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
         if not old_conda_prefix or old_conda_shlvl < 1:
             # no active environment, so cannot deactivate; do nothing
             return {
@@ -340,7 +340,7 @@ class _Activator(object):
 
     def build_reactivate(self):
         conda_prefix = self.environ.get('CONDA_PREFIX')
-        conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
+        conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
         if not conda_prefix or conda_shlvl < 1:
             # no active environment, so cannot reactivate; do nothing
             return {
