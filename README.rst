@@ -2,7 +2,7 @@
    conda.pydata.org. If you update this file, be sure to cd to the web
    directory and run ``make html; make live``
 
-.. image:: https://s3.amazonaws.com/conda-dev/conda_logo_2.svg
+.. image:: https://s3.amazonaws.com/conda-dev/conda_logo.svg
    :alt: Conda Logo
 
 ----------------------------------------
@@ -27,7 +27,7 @@
 
 .. image:: https://s3.amazonaws.com/conda-dev/conda-announce-signup-button.svg
    :alt: Join the Conda Announcment List
-   :target: http://conda.pydata.org/docs/announcements.html
+   :target: https://conda.io/docs/help-support.html#conda-announcements-list
 
 |
 
