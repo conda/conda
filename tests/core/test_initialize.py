@@ -527,8 +527,10 @@ class InitializeTests(TestCase):
                 'conda.fish',
                 'conda.xsh',
                 'conda.csh',
-                'site-packages',
-                'conda-dev.pth',
+                'site-packages',  # remove conda in site-packages dir
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
             )
         else:
             modified_files = (
@@ -541,7 +543,9 @@ class InitializeTests(TestCase):
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
-                'conda-dev.pth',
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
             )
 
         stderr = c.stderr.replace('no change', 'modified')
@@ -584,8 +588,11 @@ class InitializeTests(TestCase):
                 'conda.fish',
                 'conda.xsh',
                 'conda.csh',
-                'site-packages',
-                'conda-dev.pth',
+                'site-packages',  # remove conda in site-packages dir
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
+
             )
         else:
             modified_files = (
@@ -598,7 +605,10 @@ class InitializeTests(TestCase):
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
-                'conda-dev.pth',
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
+
             )
 
         stderr = c.stderr.replace('no change', 'modified')
