@@ -17,7 +17,7 @@ from .common.url import is_url, join_url, path_to_url, unquote
 from .core.index import get_index
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
-from .core.prefix_data import PrefixData, linked_data
+from .core.prefix_data import PrefixData
 from .exceptions import DisallowedPackageError, DryRunExit, PackagesNotFoundError, ParseError
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
@@ -33,7 +33,7 @@ def conda_installed_files(prefix, exclude_self_build=False):
     a given prefix.
     """
     res = set()
-    for dist, meta in iteritems(linked_data(prefix)):
+    for meta in PrefixData(prefix).iter_records():
         if exclude_self_build and 'file_hash' in meta:
             continue
         res.update(set(meta.get('files', ())))
@@ -165,40 +165,39 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     untracked_files = untracked(prefix1)
 
     # Discard conda, conda-env and any package that depends on them
-    drecs = linked_data(prefix1)
     filter = {}
     found = True
     while found:
         found = False
-        for dist, info in iteritems(drecs):
-            name = info['name']
+        for prec in PrefixData(prefix1).iter_records():
+            name = prec['name']
             if name in filter:
                 continue
             if name == 'conda':
-                filter['conda'] = dist
+                filter['conda'] = prec
                 found = True
                 break
             if name == "conda-env":
-                filter["conda-env"] = dist
+                filter["conda-env"] = prec
                 found = True
                 break
-            for dep in info.combined_depends:
+            for dep in prec.combined_depends:
                 if MatchSpec(dep).name in filter:
-                    filter[name] = dist
+                    filter[name] = prec
                     found = True
 
     if filter:
         if not quiet:
             fh = sys.stderr if context.json else sys.stdout
             print('The following packages cannot be cloned out of the root environment:', file=fh)
-            for pkg in itervalues(filter):
-                print(' - ' + pkg.dist_name, file=fh)
-            drecs = {dist: info for dist, info in iteritems(drecs) if info['name'] not in filter}
+            for prec in itervalues(filter):
+                print(' - ' + prec.dist_str(), file=fh)
+            drecs = {prec for prec in PrefixData(prefix1).iter_records() if prec['name'] not in filter}
 
     # Resolve URLs for packages that do not have URLs
     r = None
     index = {}
-    unknowns = [dist for dist, info in iteritems(drecs) if not info.get('url')]
+    unknowns = [prec for prec in drecs if not prec.get('url')]
     notfound = []
     if unknowns:
         index_args = index_args or {}

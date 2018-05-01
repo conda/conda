@@ -8,7 +8,7 @@ import os
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
 from conda.common.serialize import yaml_load_standard
-from conda.core.prefix_data import linked
+from conda.core.prefix_data import PrefixData
 from conda.models.match_spec import MatchSpec
 from conda_env.yaml import dump
 from . import compat, exceptions, yaml
@@ -44,7 +44,7 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
 
     Returns:     Environment object
     """
-    installed = linked(prefix, ignore_channels=ignore_channels)
+    installed = set(prec.dist_str() for prec in PrefixData(prefix).iter_records())
     conda_pkgs = copy(installed)
     # json=True hides the output, data is added to installed
     add_pip_installed(prefix, installed, json=True)

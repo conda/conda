@@ -37,8 +37,7 @@ from conda.common.path import get_bin_directory_short_path, get_python_site_pack
     pyc_path
 from conda.common.serialize import yaml_load
 from conda.common.url import path_to_url
-from conda.core.prefix_data import PrefixData, get_python_version_for_prefix, \
-    linked as install_linked, linked_data
+from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
@@ -174,7 +173,7 @@ def make_temp_channel(packages):
     with make_temp_env(*package_reqs) as prefix:
         for package in packages:
             assert_package_is_installed(prefix, package)
-        data = [p for p in itervalues(linked_data(prefix)) if p['name'] in package_names]
+        data = [p for p in PrefixData(prefix).iter_records() if p['name'] in package_names]
         run_command(Commands.REMOVE, prefix, *package_names)
         for package in packages:
             assert not package_is_installed(prefix, package)
@@ -232,7 +231,7 @@ def reload_config(prefix):
 
 
 def package_is_installed(prefix, package, exact=False):
-    packages = list(install_linked(prefix))
+    packages = list(prec.dist_str() for prec in PrefixData(prefix).iter_records())
     if '::' in package:
         packages = list(map(text_type, packages))
     else:
@@ -244,7 +243,7 @@ def package_is_installed(prefix, package, exact=False):
 
 def assert_package_is_installed(prefix, package, exact=False):
     if not package_is_installed(prefix, package, exact):
-        print(list(install_linked(prefix)))
+        print(list(prec.dist_str() for prec in PrefixData(prefix).iter_records()))
         raise AssertionError("package {0} is not in prefix".format(package))
 
 
@@ -622,7 +621,7 @@ class IntegrationTests(TestCase):
         with make_temp_env() as prefix, make_temp_channel(["flask-0.10.1"]) as channel:
             run_command(Commands.INSTALL, prefix, '-c', channel, 'flask=0.10.1', '--json')
             assert_package_is_installed(prefix, channel + '::' + 'flask-')
-            flask_fname = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]['fn']
+            flask_fname = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]['fn']
 
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0')
@@ -647,7 +646,7 @@ class IntegrationTests(TestCase):
     def test_tarball_install_and_bad_metadata(self):
         with make_temp_env("python flask=0.10.1 --json") as prefix:
             assert_package_is_installed(prefix, 'flask-0.10.1')
-            flask_data = [p for p in itervalues(linked_data(prefix)) if p['name'] == 'flask'][0]
+            flask_data = [p for p in PrefixData(prefix).iter_records() if p['name'] == 'flask'][0]
             run_command(Commands.REMOVE, prefix, 'flask')
             assert not package_is_installed(prefix, 'flask-0.10.1')
             assert_package_is_installed(prefix, 'python')

@@ -20,7 +20,6 @@ from .common.compat import itervalues, text_type
 from .common.io import env_var, time_recorder
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
-from .core.prefix_data import is_linked, linked_data
 from .core.solve import get_pinned_specs
 from .exceptions import CondaIndexError, RemoveError
 from .history import History
@@ -264,6 +263,7 @@ def add_unlink(actions, dist):
 def ensure_linked_actions(dists, prefix, index=None, force=False,
                           always_copy=False):  # pragma: no cover
     assert all(isinstance(d, Dist) for d in dists)
+    from .exports import is_linked
     actions = defaultdict(list)
     actions[PREFIX] = prefix
     actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,
@@ -285,6 +285,7 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
 
 
 def _remove_actions(prefix, specs, index, force=False, pinned=True):  # pragma: no cover
+    from .exports import linked_data
     r = Resolve(index)
     linked = linked_data(prefix)
     linked_dists = [d for d in linked]

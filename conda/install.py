@@ -27,11 +27,11 @@ from os.path import dirname, isdir, isfile, join, normcase, normpath
 import sys
 
 from .base.constants import PREFIX_PLACEHOLDER
-from .common.compat import on_win, open
+from .common.compat import itervalues, on_win, open
 from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
+from .models.match_spec import MatchSpec
+
 delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
-from .core.prefix_data import is_linked, linked, linked_data  # NOQA
-is_linked, linked, linked_data = is_linked, linked, linked_data
 from .core.package_cache_data import rm_fetched  # NOQA
 rm_fetched = rm_fetched
 
@@ -138,6 +138,41 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
                           "another concurrent process." .format(root_file, prefix_file))
             else:
                 raise
+
+
+def linked_data(prefix, ignore_channels=False):
+    """
+    Return a dictionary of the linked packages in prefix.
+    """
+    from .core.prefix_data import PrefixData
+    from .models.dist import Dist
+    pd = PrefixData(prefix)
+    return {Dist(prefix_record): prefix_record for prefix_record in itervalues(pd._prefix_records)}
+
+
+def linked(prefix, ignore_channels=False):
+    """
+    Return the set of canonical names of linked packages in prefix.
+    """
+    return set(linked_data(prefix, ignore_channels=ignore_channels).keys())
+
+
+# exports
+def is_linked(prefix, dist):
+    """
+    Return the install metadata for a linked package in a prefix, or None
+    if the package is not linked in the prefix.
+    """
+    # FIXME Functions that begin with `is_` should return True/False
+    from .core.prefix_data import PrefixData
+    pd = PrefixData(prefix)
+    prefix_record = pd.get(dist.name, None)
+    if prefix_record is None:
+        return None
+    elif MatchSpec(dist).match(prefix_record):
+        return prefix_record
+    else:
+        return None
 
 
 print("WARNING: The conda.install module is deprecated and will be removed in a future release.",

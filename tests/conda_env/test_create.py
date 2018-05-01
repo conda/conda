@@ -2,30 +2,26 @@
 from __future__ import absolute_import, division, print_function
 
 from argparse import ArgumentParser
-from unittest import TestCase
-
-from conda.base.context import reset_context
-from conda.common.io import env_var
-
-from conda.exports import text_type
 from contextlib import contextmanager
-from logging import getLogger, Handler
+from logging import Handler, getLogger
 from os.path import exists, join
 from shlex import split
 from shutil import rmtree
 from tempfile import mkdtemp
+from unittest import TestCase
 from uuid import uuid4
 
 import pytest
 
+from conda.base.context import reset_context
+from conda.common.io import env_var
+from conda.core.prefix_data import PrefixData
+from conda.exports import text_type
 from conda.install import on_win
+from conda_env.cli.main import do_call as do_call_conda_env
 from conda_env.cli.main_create import configure_parser as create_configure_parser
 from conda_env.cli.main_update import configure_parser as update_configure_parser
-from conda_env.cli.main import do_call as do_call_conda_env
-from conda.core.prefix_data import linked
-
 from . import support_file
-
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 
@@ -83,7 +79,10 @@ def make_temp_envs_dir():
 
 
 def package_is_installed(prefix, dist, exact=False, pip=False):
-    packages = list(get_egg_info(prefix) if pip else linked(prefix))
+    if pip:
+        packages = list(get_egg_info(prefix))
+    else:
+        packages = list(prec.dist_str() for prec in PrefixData(prefix).iter_records())
     if '::' not in text_type(dist):
         packages = [p.dist_name for p in packages]
     if exact:
@@ -93,7 +92,7 @@ def package_is_installed(prefix, dist, exact=False, pip=False):
 
 def assert_package_is_installed(prefix, package, exact=False, pip=False):
     if not package_is_installed(prefix, package, exact, pip):
-        print(list(linked(prefix)))
+        print(list(prec.dist_str() for prec in PrefixData(prefix).iter_records()))
         raise AssertionError("package {0} is not in prefix".format(package))
 
 
