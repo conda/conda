@@ -1,3 +1,3 @@
-echo >&2 "'source deactivate' is deprecated. Use 'conda deactivate."
+\echo >&2 "DeprecationWarning: 'source deactivate' is deprecated. Use 'conda deactivate'."
 \. "$_CONDA_ROOT/etc/profile.d/conda.sh" || return $?
 conda deactivate

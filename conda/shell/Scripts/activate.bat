@@ -17,9 +17,11 @@
 
 @if "%_args1_first%"=="+" if NOT "%_args1_last%"=="+" (
     @CALL conda.bat activate
-) else (
-    @CALL conda.bat activate %*
+    @GOTO :End
 )
 
+@CALL conda.bat activate %*
+
+:End
 @set _args1_first=
 @set _args1_last=
