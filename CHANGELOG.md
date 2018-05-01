@@ -2,7 +2,7 @@
 
 ### New Feature Highlights
 * resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
-  config (#7195)
+  config (#7195, #7226, #7233)
 
 ### Deprecations/Breaking Changes
 * resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
@@ -24,6 +24,7 @@
 * add ability for conda prompt customization via 'env_prompt' config param (#7047)
 * resolve #7063 add license and license_family to MatchSpec for 'conda search' (#7064)
 * resolve #7189 progress bar formatting improvement (#7191)
+* raise log level for errors to error (#7229)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
