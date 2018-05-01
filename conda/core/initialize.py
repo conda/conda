@@ -249,13 +249,6 @@ def make_install_plan(conda_prefix):
     # ######################################
     if on_win:
         plan.append({
-            'function': install_conda_bat.__name__,
-            'kwargs': {
-                'target_path': join(conda_prefix, 'Library', 'bin', 'conda.bat'),
-                'conda_prefix': conda_prefix,
-            },
-        })
-        plan.append({
             'function': install_condacmd_conda_bat.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'condacmd', 'conda.bat'),
@@ -280,6 +273,13 @@ def make_install_plan(conda_prefix):
             'function': install_condacmd_hook_bat.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'condacmd', 'conda_hook.bat'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+        plan.append({
+            'function': install_Scripts_activate_bat.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'Scripts', 'activate.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
@@ -665,10 +665,10 @@ def install_conda_sh(target_path, conda_prefix):
     return _install_file(target_path, file_content)
 
 
-def install_conda_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'Library', 'bin', 'conda.bat')
-    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Library', 'bin', 'conda.bat')
-    with open(conda_bat_src_path) as fsrc:
+def install_Scripts_activate_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'Scripts', 'activate.bat')
+    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'Scripts', 'activate.bat')
+    with open(src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)
 

@@ -12,4 +12,6 @@
 @SET __condacmd_dir=
 @SET __conda_root=
 
+@DOSKEY conda=%CONDA_BAT% $*
+
 @SET CONDA_SHLVL=0

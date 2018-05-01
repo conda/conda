@@ -1,1 +1,2 @@
-@CALL "%~dp0..\Library\bin\conda.bat" deactivate %*
+@ECHO 'deactivate' is deprecated. Use 'conda deactivate'. 1>&2
+conda.bat deactivate %*

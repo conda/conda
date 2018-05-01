@@ -258,6 +258,11 @@ class CommandNotFoundError(CondaError):
         if command in activate_commands:
             # TODO: Point users to a page at conda-docs, which explains this context in more detail
             builder = ["Your shell has not been properly configured to use 'conda %(command)s'."]
+            if on_win:
+                builder.append(dals("""
+                If using 'conda %(command)s' from a batch script, change your
+                invocation to 'CALL conda.bat %(command)s'.
+                """))
             builder.append(dals("""
             To initialize your shell, run
 
