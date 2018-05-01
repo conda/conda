@@ -140,14 +140,14 @@ class InitializeTests(TestCase):
                         "function": "install_activate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Scripts\\activate.bat"
+                            "target_path": "/darwin\\condacmd\\activate.bat"
                         }
                     },
                     {
                         "function": "install_deactivate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Scripts\\deactivate.bat"
+                            "target_path": "/darwin\\condacmd\\deactivate.bat"
                         }
                     },
                     {
