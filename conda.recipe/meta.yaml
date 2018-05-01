@@ -60,6 +60,7 @@ test:
     - conda_env
   commands:
 {% if on_win %}
+    - SET CONDA_SHLVL=
     - CALL %PREFIX%\condacmd\conda_hook.bat
     - CALL conda.bat activate base
     - FOR /F "delims=" %%i IN ('python -c "import sys; print(sys.version_info[0])"') DO set "PYTHON_MAJOR_VERSION=%%i"
@@ -74,6 +75,7 @@ test:
     - CALL conda.bat deactivate
     - py.test tests -m "not integration and not installed" -vv
 {% else %}
+    - unset CONDA_SHLVL
     - eval "$(python -m conda shell.bash hook)"
     - conda activate base
     - export PYTHON_MAJOR_VERSION=$(python -c "import sys; print(sys.version_info[0])")
