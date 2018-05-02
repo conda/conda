@@ -64,10 +64,10 @@ except ImportError:  # pragma: no cover
                 return self.handler(e)
 try:  # pragma: no cover
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
-    from ruamel_yaml.scanner import ScannerError
+    from ruamel_yaml.scanner import ReaderError, ScannerError
 except ImportError:  # pragma: no cover
     from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
-    from ruamel.yaml.scanner import ScannerError
+    from ruamel.yaml.scanner import ReaderError, ScannerError
 
 log = getLogger(__name__)
 
@@ -87,17 +87,14 @@ def pretty_map(dictionary, padding='  '):
     return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in iteritems(dictionary))
 
 
-class LoadError(CondaError):
-    def __init__(self, message, filepath, line, column):
-        self.line = line
-        self.filepath = filepath
-        self.column = column
-        msg = "Load Error: in %s on line %s, column %s. %s" % (filepath, line, column, message)
-        super(LoadError, self).__init__(msg)
-
-
 class ConfigurationError(CondaError):
     pass
+
+
+class ConfigurationLoadError(ConfigurationError):
+    def __init__(self, path, message_addition=''):
+        message = "Unable to load configuration file.\n  path: %(path)s\n"
+        super(ConfigurationLoadError, self).__init__(message + message_addition, path=path)
 
 
 class ValidationError(ConfigurationError):
@@ -351,7 +348,11 @@ class YamlRawParameter(RawParameter):
                 ruamel_yaml = yaml_load(fh)
             except ScannerError as err:
                 mark = err.problem_mark
-                raise LoadError("Invalid YAML", filepath, mark.line, mark.column)
+                raise ConfigurationLoadError(filepath, "reason: invalid yaml at line %s, column %s"
+                                                       "" % (mark.line, mark.column))
+            except ReaderError as err:
+                raise ConfigurationLoadError(filepath, "reason: invalid yaml at position %s"
+                                                       "" % err.position)
         return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
 
 

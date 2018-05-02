@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile
 
 from conda.base.context import context, reset_context
 from conda.cli.python_api import Commands, run_command
-from conda.common.configuration import LoadError
+from conda.common.configuration import ConfigurationLoadError
 from conda.common.serialize import yaml_load
 from conda.gateways.disk.delete import rm_rf
 
@@ -54,7 +54,7 @@ channels:
         with make_temp_condarc(condarc) as rc:
             rc_path = rc
             run_command(Commands.CONFIG, '--file', rc, '--add', 'channels', 'test')
-    except LoadError as err:
+    except ConfigurationLoadError as err:
         error1 = "Load Error: in "
         error2 = "on line 1, column 8. Invalid YAML"
         assert error1 in err.message
