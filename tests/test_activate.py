@@ -185,6 +185,17 @@ class ActivatorUnitTests(TestCase):
             p = mkdir_p(join(td, 'envs', 'named-env'))
             assert 'named-env' == activator._default_env(p)
 
+    def test_default_env_not_in_envs(self):
+        activator = PosixActivator()
+        with tempdir() as td:
+            my_envs_dir = join(td, 'myenvs-not-envs')
+            new_envs_dirs = tuple(x for x in [my_envs_dir] + [x for x in context.envs_dirs])
+            with patch('conda.activate.context._envs_dirs', new_envs_dirs):
+                assert ROOT_ENV_NAME == activator._default_env(context.root_prefix)
+
+                p = mkdir_p(join(my_envs_dir, 'named-env'))
+                assert 'named-env' == activator._default_env(p)
+
     def test_build_activate_shlvl_0(self):
         with tempdir() as td:
             mkdir_p(join(td, 'conda-meta'))

@@ -459,6 +459,8 @@ class _Activator(object):
     def _default_env(self, prefix):
         if normpath(prefix) == normpath(context.root_prefix):
             return 'base'
+        if dirname(normpath(prefix)) in [normpath(x) for x in context.envs_dirs]:
+            return basename(prefix)
         return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
 
     def _prompt_modifier(self, prefix, conda_default_env):
