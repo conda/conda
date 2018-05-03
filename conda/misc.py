@@ -10,6 +10,7 @@ import re
 import shutil
 import sys
 
+from conda.models.prefix_graph import PrefixGraph
 from .base.context import context
 from .common.compat import iteritems, itervalues, on_win, open
 from .common.path import expand
@@ -193,6 +194,8 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
             for prec in itervalues(filter):
                 print(' - ' + prec.dist_str(), file=fh)
             drecs = {prec for prec in PrefixData(prefix1).iter_records() if prec['name'] not in filter}
+    else:
+        drecs = {prec for prec in PrefixData(prefix1).iter_records()}
 
     # Resolve URLs for packages that do not have URLs
     r = None
@@ -218,26 +221,21 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
 
     # Assemble the URL and channel list
     urls = {}
-    for dist, info in iteritems(drecs):
-        fkey = dist
-        if fkey not in index:
-            index[fkey] = PackageRecord.from_objects(info, not_fetched=True)
-            r = None
-        urls[dist] = info['url']
+    for prec in drecs:
+        urls[prec] = prec['url']
 
     if r is None:
         r = Resolve(index)
-    dists = r.dependency_sort({d.quad[0]: d for d in urls.keys()})
-    urls = [urls[d] for d in dists]
+    precs = tuple(PrefixGraph(urls).graph)
+    urls = [urls[prec] for prec in precs]
 
-    precs = tuple(index[dist] for dist in dists)
     disallowed = tuple(MatchSpec(s) for s in context.disallowed_packages)
     for prec in precs:
         if any(d.match(prec) for d in disallowed):
             raise DisallowedPackageError(prec)
 
     if verbose:
-        print('Packages: %d' % len(dists))
+        print('Packages: %d' % len(precs))
         print('Files: %d' % len(untracked_files))
 
     if context.dry_run:

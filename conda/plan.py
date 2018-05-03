@@ -369,19 +369,15 @@ def revert_actions(prefix, revision=-1, index=None):
     # TODO: This is wrong!!!!!!!!!!
     user_requested_specs = itervalues(h.get_requested_specs_map())
     try:
-        state = {MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)}
+        target_state = {MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)}
     except IndexError:
         raise CondaIndexError("no such revision: %d" % revision)
-
-    curr = {MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state()}
-    if state == curr:
-        return UnlinkLinkTransaction()
 
     _supplement_index_with_prefix(index, prefix)
 
     not_found_in_index_specs = set()
     link_precs = set()
-    for spec in curr:
+    for spec in target_state:
         precs = tuple(prec for prec in itervalues(index) if spec.match(prec))
         if not precs:
             not_found_in_index_specs.add(spec)
