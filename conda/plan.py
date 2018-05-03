@@ -113,6 +113,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
     linktypes = {}
 
     for prec in actions.get(LINK, []):
+        assert isinstance(prec, PackageRecord)
         pkg = prec['name']
         channels[pkg][1] = channel_str(prec)
         packages[pkg][1] = prec['version'] + '-' + prec['build']
@@ -120,6 +121,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
         features[pkg][1] = ','.join(prec.get('features') or ())
     for prec in actions.get(UNLINK, []):
+        assert isinstance(prec, PackageRecord)
         pkg = prec['name']
         channels[pkg][0] = channel_str(prec)
         packages[pkg][0] = prec['version'] + '-' + prec['build']

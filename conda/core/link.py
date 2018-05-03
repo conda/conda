@@ -712,26 +712,26 @@ class UnlinkLinkTransaction(object):
             actions = defaultdict(list)
             if q == 0:
                 self._pfe.prepare()
-                for axn in self._pfe.cache_actions:
-                    actions['FETCH'].append(Dist(axn.url))
+                download_urls = set(axn.url for axn in self._pfe.cache_actions)
+                actions['FETCH'].extend(prec for prec in self._pfe.link_precs
+                                        if prec.url in download_urls)
 
             actions['PREFIX'] = setup.target_prefix
             for prec in setup.unlink_precs:
-                actions['UNLINK'].append(Dist(prec))
+                actions['UNLINK'].append(prec)
             for prec in setup.link_precs:
-                actions['LINK'].append(Dist(prec))
+                actions['LINK'].append(prec)
 
             legacy_action_groups.append(actions)
 
         return legacy_action_groups
 
     def print_transaction_summary(self):
-        from ..models.dist import Dist
         from ..plan import display_actions
         legacy_action_groups = self._make_legacy_action_groups()
 
         for actions, (prefix, stp) in zip(legacy_action_groups, iteritems(self.prefix_setups)):
-            pseudo_index = {Dist(prec): prec for prec in concatv(stp.unlink_precs, stp.link_precs)}
+            pseudo_index = {prec: prec for prec in concatv(stp.unlink_precs, stp.link_precs)}
             display_actions(actions, pseudo_index, show_channel_urls=context.show_channel_urls,
                             specs_to_remove=stp.remove_specs, specs_to_add=stp.update_specs)
 
