@@ -448,7 +448,7 @@ class Solver(object):
         """
         final_precs = self.solve_final_state(deps_modifier, prune, ignore_pinned, force_remove)
         unlink_precs, link_precs = diff_for_unlink_link_precs(
-            self.prefix, final_precs, specs_to_add=self.specs_to_add, force_reinstall=NULL
+            self.prefix, final_precs, self.specs_to_add, force_reinstall
         )
         return unlink_precs, link_precs
 

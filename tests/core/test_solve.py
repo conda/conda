@@ -215,8 +215,8 @@ def test_prune_1():
             'channel-1::meta-0.4.2.dev-py27_0',
             'channel-1::llvmpy-0.11.2-py27_0',
             'channel-1::bitarray-0.8.1-py27_0',
-            'channel-1::mkl-rt-11.0-p0',
             'channel-1::llvm-3.2-0',
+            'channel-1::mkl-rt-11.0-p0',
             'channel-1::libnvvm-1.0-p0',
         )
         assert convert_to_dist_str(unlink_precs) == unlink_order
