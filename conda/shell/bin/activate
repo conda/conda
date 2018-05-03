@@ -1,2 +1,2 @@
 \. "$_CONDA_ROOT/etc/profile.d/conda.sh" || return $?
-_conda_activate "$@"
+conda activate "$@"

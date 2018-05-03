@@ -9,8 +9,6 @@ from tempfile import gettempdir
 from unittest import TestCase
 from uuid import uuid4
 
-import pytest
-
 from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
@@ -18,12 +16,14 @@ from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixAc
     PowershellActivator, XonshActivator, activator_map, main as activate_main, native_path_to_unix
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context, reset_context
-from conda.common.compat import iteritems, on_win, string_types
+from conda.common.compat import ensure_text_type, iteritems, on_win, \
+    string_types
 from conda.common.io import captured, env_var, env_vars
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.update import touch
+import pytest
 from tests.helpers import tempdir
 
 try:
@@ -156,6 +156,25 @@ class ActivatorUnitTests(TestCase):
 
         assert final_path == new_path
 
+    @pytest.mark.skipif(not on_win, reason="windows-specific test")
+    def test_replace_prefix_in_path_2(self):
+        path1 = join("c:\\", "temp", "6663 31e0")
+        path2 = join("c:\\", "temp", "6663 31e0", "envs", "charizard")
+        one_more = join("d:\\", "one", "more")
+        #   old_prefix: c:\users\builder\appdata\local\temp\6663 31e0
+        #   new_prefix: c:\users\builder\appdata\local\temp\6663 31e0\envs\charizard
+        activator = CmdExeActivator()
+        old_path = activator.pathsep_join(activator._add_prefix_to_path(path1))
+        old_path = one_more + ";" + old_path
+        with env_var('PATH', old_path):
+            activator = PosixActivator()
+            path_elements = activator._replace_prefix_in_path(path1, path2)
+        old_path = native_path_to_unix(old_path.split(";"))
+
+        assert path_elements[0] == native_path_to_unix(one_more)
+        assert path_elements[1] == native_path_to_unix(next(activator._get_path_dirs(path2)))
+        assert len(path_elements) == len(old_path)
+
     def test_default_env(self):
         activator = PosixActivator()
         assert ROOT_ENV_NAME == activator._default_env(context.root_prefix)
@@ -202,6 +221,7 @@ class ActivatorUnitTests(TestCase):
                     assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                     assert builder['deactivate_scripts'] == ()
 
+    @pytest.mark.skipif(on_win, reason="cygpath isn't always on PATH")
     def test_build_activate_shlvl_1(self):
         with tempdir() as td:
             mkdir_p(join(td, 'conda-meta'))
@@ -212,33 +232,71 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_2))
 
             old_prefix = '/old/prefix'
-            with env_var('CONDA_SHLVL', '1'):
-                with env_var('CONDA_PREFIX', old_prefix):
+            activator = PosixActivator()
+            old_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
+
+            with env_vars({
+                'CONDA_SHLVL': '1',
+                'CONDA_PREFIX': old_prefix,
+                'PATH': old_path,
+                'CONDA_ENV_PROMPT': '({default_env})',
+            }, reset_context):
+                activator = PosixActivator()
+                builder = activator.build_activate(td)
+                new_path = activator.pathsep_join(activator._replace_prefix_in_path(old_prefix, td))
+                conda_prompt_modifier = "(%s)" % td
+                ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
+
+                assert td in new_path
+                assert old_prefix not in new_path
+
+                assert builder['unset_vars'] == ()
+
+                set_vars = {
+                    'PS1': ps1,
+                }
+                export_vars = {
+                    'PATH': new_path,
+                    'CONDA_PREFIX': td,
+                    'CONDA_PREFIX_1': old_prefix,
+                    'CONDA_SHLVL': 2,
+                    'CONDA_DEFAULT_ENV': td,
+                    'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                }
+                assert builder['set_vars'] == set_vars
+                assert builder['export_vars'] == export_vars
+                assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
+                assert builder['deactivate_scripts'] == ()
+
+                with env_vars({
+                    'PATH': new_path,
+                    'CONDA_PREFIX': td,
+                    'CONDA_PREFIX_1': old_prefix,
+                    'CONDA_SHLVL': 2,
+                    'CONDA_DEFAULT_ENV': td,
+                    'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                }):
                     activator = PosixActivator()
-                    builder = activator.build_activate(td)
-                    new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
-                    conda_prompt_modifier = "(%s) " % td
-                    ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
+                    builder = activator.build_deactivate()
 
-                    assert builder['unset_vars'] == ()
-
-                    set_vars = {
-                        'PS1': ps1,
+                    assert builder['unset_vars'] == (
+                        'CONDA_PREFIX_1',
+                    )
+                    assert builder['set_vars'] == {
+                        'PS1': '(/old/prefix)',
                     }
-                    export_vars = {
-                        'PATH': new_path,
-                        'CONDA_PREFIX': td,
-                        'CONDA_PREFIX_1': old_prefix,
-                        'CONDA_SHLVL': 2,
-                        'CONDA_DEFAULT_ENV': td,
-                        'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                    assert builder['export_vars'] == {
+                        'CONDA_DEFAULT_ENV': old_prefix,
+                        'CONDA_PREFIX': old_prefix,
+                        'CONDA_PROMPT_MODIFIER': '(%s)' % old_prefix,
+                        'CONDA_SHLVL': 1,
+                        'PATH': old_path,
                     }
-                    assert builder['set_vars'] == set_vars
-                    assert builder['export_vars'] == export_vars
-                    assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
+                    assert builder['activate_scripts'] == ()
                     assert builder['deactivate_scripts'] == ()
 
-    def test_build_activate_shlvl_2(self):
+    @pytest.mark.skipif(on_win, reason="cygpath isn't always on PATH")
+    def test_build_stack_shlvl_1(self):
         with tempdir() as td:
             mkdir_p(join(td, 'conda-meta'))
             activate_d_dir = mkdir_p(join(td, 'etc', 'conda', 'activate.d'))
@@ -247,36 +305,72 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            old_prefix = join(td, 'old')
-            deactivate_d_dir = mkdir_p(join(old_prefix, 'etc', 'conda', 'deactivate.d'))
-            deactivate_d_1 = join(deactivate_d_dir, 'see-me.sh')
-            deactivate_d_2 = join(deactivate_d_dir, 'dont-see-me.bat')
-            touch(join(deactivate_d_1))
-            touch(join(deactivate_d_2))
+            old_prefix = '/old/prefix'
+            activator = PosixActivator()
+            old_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
 
-            with env_var('CONDA_SHLVL', '2'):
-                with env_var('CONDA_PREFIX', old_prefix):
+            with env_vars({
+                'CONDA_SHLVL': '1',
+                'CONDA_PREFIX': old_prefix,
+                'PATH': old_path,
+                'CONDA_ENV_PROMPT': '({default_env})',
+            }, reset_context):
+                activator = PosixActivator()
+                builder = activator.build_stack(td)
+                new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
+                conda_prompt_modifier = "(%s)" % td
+                ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
+
+                assert builder['unset_vars'] == ()
+
+                assert td in new_path
+                assert old_prefix in new_path
+
+                set_vars = {
+                    'PS1': ps1,
+                }
+                export_vars = {
+                    'PATH': new_path,
+                    'CONDA_PREFIX': td,
+                    'CONDA_PREFIX_1': old_prefix,
+                    'CONDA_SHLVL': 2,
+                    'CONDA_DEFAULT_ENV': td,
+                    'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                    'CONDA_STACKED_2': 'true',
+                }
+                assert builder['set_vars'] == set_vars
+                assert builder['export_vars'] == export_vars
+                assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
+                assert builder['deactivate_scripts'] == ()
+
+                with env_vars({
+                    'PATH': new_path,
+                    'CONDA_PREFIX': td,
+                    'CONDA_PREFIX_1': old_prefix,
+                    'CONDA_SHLVL': 2,
+                    'CONDA_DEFAULT_ENV': td,
+                    'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                    'CONDA_STACKED_2': 'true',
+                }):
                     activator = PosixActivator()
-                    builder = activator.build_activate(td)
-                    new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
-                    conda_prompt_modifier = "(%s) " % td
-                    ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
+                    builder = activator.build_deactivate()
 
-                    assert builder['unset_vars'] == ()
-
-                    set_vars = {
-                        'PS1': ps1,
+                    assert builder['unset_vars'] == (
+                        'CONDA_PREFIX_1',
+                        'CONDA_STACKED_2',
+                    )
+                    assert builder['set_vars'] == {
+                        'PS1': '(/old/prefix)',
                     }
-                    export_vars = {
-                        'PATH': new_path,
-                        'CONDA_PREFIX': td,
-                        'CONDA_DEFAULT_ENV': td,
-                        'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                    assert builder['export_vars'] == {
+                        'CONDA_DEFAULT_ENV': old_prefix,
+                        'CONDA_PREFIX': old_prefix,
+                        'CONDA_PROMPT_MODIFIER': '(%s)' % old_prefix,
+                        'CONDA_SHLVL': 1,
+                        'PATH': old_path,
                     }
-                    assert builder['set_vars'] == set_vars
-                    assert builder['export_vars'] == export_vars
-                    assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
-                    assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
+                    assert builder['activate_scripts'] == ()
+                    assert builder['deactivate_scripts'] == ()
 
     def test_activate_same_environment(self):
         with tempdir() as td:
@@ -318,7 +412,8 @@ class ActivatorUnitTests(TestCase):
                     assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
                     assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
-    def test_build_deactivate_shlvl_2(self):
+    @pytest.mark.skipif(on_win, reason="cygpath isn't always on PATH")
+    def test_build_deactivate_shlvl_2_from_stack(self):
         with tempdir() as td:
             mkdir_p(join(td, 'conda-meta'))
             deactivate_d_dir = mkdir_p(join(td, 'etc', 'conda', 'deactivate.d'))
@@ -334,34 +429,93 @@ class ActivatorUnitTests(TestCase):
             touch(join(activate_d_1))
             touch(join(activate_d_2))
 
-            with env_var('CONDA_SHLVL', '2'):
-                with env_var('CONDA_PREFIX_1', old_prefix):
-                    with env_var('CONDA_PREFIX', td):
-                        activator = PosixActivator()
-                        original_path = tuple(activator._get_starting_path_list())
+            activator = PosixActivator()
+            original_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
+            with env_var('PATH', original_path):
+                activator = PosixActivator()
+                starting_path = activator.pathsep_join(activator._add_prefix_to_path(td))
 
-                        builder = activator.build_deactivate()
+                with env_vars({
+                    'CONDA_SHLVL': '2',
+                    'CONDA_PREFIX_1': old_prefix,
+                    'CONDA_PREFIX': td,
+                    'CONDA_STACKED_2': 'true',
+                    'PATH': starting_path,
+                }, reset_context):
+                    activator = PosixActivator()
+                    builder = activator.build_deactivate()
 
-                        assert builder['unset_vars'] == ('CONDA_PREFIX_1',)
+                    assert builder['unset_vars'] == (
+                        'CONDA_PREFIX_1',
+                        'CONDA_STACKED_2',
+                    )
 
-                        new_path = activator.pathsep_join(activator.path_conversion(original_path))
-                        conda_prompt_modifier = "(%s) " % old_prefix
-                        ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
+                    conda_prompt_modifier = "(%s) " % old_prefix
+                    ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
 
-                        set_vars = {
-                            'PS1': ps1,
-                        }
-                        export_vars = {
-                            'PATH': new_path,
-                            'CONDA_SHLVL': 1,
-                            'CONDA_PREFIX': old_prefix,
-                            'CONDA_DEFAULT_ENV': old_prefix,
-                            'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
-                        }
-                        assert builder['set_vars'] == set_vars
-                        assert builder['export_vars'] == export_vars
-                        assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
-                        assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
+                    set_vars = {
+                        'PS1': ps1,
+                    }
+                    export_vars = {
+                        'PATH': original_path,
+                        'CONDA_SHLVL': 1,
+                        'CONDA_PREFIX': old_prefix,
+                        'CONDA_DEFAULT_ENV': old_prefix,
+                        'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                    }
+                    assert builder['set_vars'] == set_vars
+                    assert builder['export_vars'] == export_vars
+                    assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
+                    assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
+
+    @pytest.mark.skipif(on_win, reason="cygpath isn't always on PATH")
+    def test_build_deactivate_shlvl_2_from_activate(self):
+        with tempdir() as td:
+            mkdir_p(join(td, 'conda-meta'))
+            deactivate_d_dir = mkdir_p(join(td, 'etc', 'conda', 'deactivate.d'))
+            deactivate_d_1 = join(deactivate_d_dir, 'see-me-deactivate.sh')
+            deactivate_d_2 = join(deactivate_d_dir, 'dont-see-me.bat')
+            touch(join(deactivate_d_1))
+            touch(join(deactivate_d_2))
+
+            old_prefix = join(td, 'old')
+            activate_d_dir = mkdir_p(join(old_prefix, 'etc', 'conda', 'activate.d'))
+            activate_d_1 = join(activate_d_dir, 'see-me-activate.sh')
+            activate_d_2 = join(activate_d_dir, 'dont-see-me.bat')
+            touch(join(activate_d_1))
+            touch(join(activate_d_2))
+
+            activator = PosixActivator()
+            original_path = activator.pathsep_join(activator._add_prefix_to_path(old_prefix))
+            new_path = activator.pathsep_join(activator._add_prefix_to_path(td))
+            with env_vars({
+                'CONDA_SHLVL': '2',
+                'CONDA_PREFIX_1': old_prefix,
+                'CONDA_PREFIX': td,
+                'PATH': new_path,
+            }, reset_context):
+                activator = PosixActivator()
+                builder = activator.build_deactivate()
+
+                assert builder['unset_vars'] == ('CONDA_PREFIX_1',)
+
+                conda_prompt_modifier = "(%s) " % old_prefix
+                ps1 = conda_prompt_modifier + os.environ.get('PS1', '')
+
+                set_vars = {
+                    'PS1': ps1,
+                }
+                export_vars = {
+                    'PATH': original_path,
+                    'CONDA_SHLVL': 1,
+                    'CONDA_PREFIX': old_prefix,
+                    'CONDA_DEFAULT_ENV': old_prefix,
+                    'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                }
+                assert builder['set_vars'] == set_vars
+                assert builder['export_vars'] == export_vars
+                assert builder['activate_scripts'] == (activator.path_conversion(activate_d_1),)
+                assert builder['deactivate_scripts'] == (activator.path_conversion(deactivate_d_1),)
 
     def test_build_deactivate_shlvl_1(self):
         with tempdir() as td:
@@ -382,7 +536,6 @@ class ActivatorUnitTests(TestCase):
                         'CONDA_PREFIX',
                         'CONDA_DEFAULT_ENV',
                         'CONDA_PYTHON_EXE',
-                        'CONDA_EXE',
                         'CONDA_PROMPT_MODIFIER',
                     )
 
@@ -518,7 +671,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             \\. "%(deactivate1)s"
             \\unset CONDA_DEFAULT_ENV
-            \\unset CONDA_EXE
             \\unset CONDA_PREFIX
             \\unset CONDA_PROMPT_MODIFIER
             \\unset CONDA_PYTHON_EXE
@@ -609,7 +761,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             @CALL "%(deactivate1)s"
             @SET CONDA_DEFAULT_ENV=
-            @SET CONDA_EXE=
             @SET CONDA_PREFIX=
             @SET CONDA_PROMPT_MODIFIER=
             @SET CONDA_PYTHON_EXE=
@@ -689,7 +840,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             source "%(deactivate1)s";
             unsetenv CONDA_DEFAULT_ENV;
-            unsetenv CONDA_EXE;
             unsetenv CONDA_PREFIX;
             unsetenv CONDA_PROMPT_MODIFIER;
             unsetenv CONDA_PYTHON_EXE;
@@ -777,7 +927,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             source "%(deactivate1)s"
             del $CONDA_DEFAULT_ENV
-            del $CONDA_EXE
             del $CONDA_PREFIX
             del $CONDA_PROMPT_MODIFIER
             del $CONDA_PYTHON_EXE
@@ -853,7 +1002,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             source "%(deactivate1)s";
             set -e CONDA_DEFAULT_ENV;
-            set -e CONDA_EXE;
             set -e CONDA_PREFIX;
             set -e CONDA_PROMPT_MODIFIER;
             set -e CONDA_PYTHON_EXE;
@@ -929,7 +1077,6 @@ class ShellWrapperUnitTests(TestCase):
             assert deactivate_data == dals("""
             . "%(deactivate1)s"
             Remove-Variable CONDA_DEFAULT_ENV
-            Remove-Variable CONDA_EXE
             Remove-Variable CONDA_PREFIX
             Remove-Variable CONDA_PROMPT_MODIFIER
             Remove-Variable CONDA_PYTHON_EXE
@@ -975,7 +1122,9 @@ class InteractiveShell(object):
         },
         'cmd.exe': {
             'activator': 'cmd.exe',
-            'init_command': 'conda\\shell\\condacmd\\conda-hook.bat',
+            'init_command': 'set CONDA_SHLVL= '
+                            '&& conda\\shell\\condacmd\\conda_hook.bat '
+                            '&& set CONDA_EXE="python -m conda"',
             'print_env_var': '@echo %%%s%%',
         },
         'csh': {
@@ -1022,6 +1171,7 @@ class InteractiveShell(object):
             (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
         )))
+        self.original_path = PATH
         env = {
             'CONDA_AUTO_ACTIVATE_BASE': 'false',
             'PYTHONPATH': CONDA_PACKAGE_ROOT,
@@ -1060,6 +1210,20 @@ class InteractiveShell(object):
             print(self.p.after)
             raise
 
+    def get_env_var(self, env_var):
+        if self.shell_name == 'cmd.exe':
+            self.sendline("@echo %%%s%%" % env_var)
+            self.expect("@echo %%%s%%\r\n([^\r]*)\r" % env_var)
+            value = self.p.match.groups()[0]
+            return ensure_text_type(value).strip()
+        else:
+            self.sendline('echo get_var_start')
+            self.sendline(self.print_env_var % env_var)
+            self.sendline('echo get_var_end')
+            self.expect('get_var_start(.*)get_var_end')
+            value = self.p.match.groups()[0]
+            return ensure_text_type(value).strip()
+
 
 def which(executable):
     from distutils.spawn import find_executable
@@ -1086,23 +1250,53 @@ class ShellWrapperIntegrationTests(TestCase):
         assert isdir(self.prefix)
         touch(join(self.prefix, 'conda-meta', 'history'))
 
-        mkdir_p(join(self.prefix, 'envs', 'charizard', 'conda-meta'))
-        touch(join(self.prefix, 'envs', 'charizard', 'conda-meta', 'history'))
+        self.prefix2 = join(self.prefix, 'envs', 'charizard')
+        mkdir_p(join(self.prefix2, 'conda-meta'))
+        touch(join(self.prefix2, 'conda-meta', 'history'))
+
+        self.prefix3 = join(self.prefix, 'envs', 'venusaur')
+        mkdir_p(join(self.prefix3, 'conda-meta'))
+        touch(join(self.prefix3, 'conda-meta', 'history'))
 
     def tearDown(self):
         rm_rf(self.prefix)
 
     def basic_posix(self, shell):
+        num_paths_added = len(tuple(PosixActivator()._get_path_dirs(self.prefix)))
         shell.assert_env_var('CONDA_SHLVL', '0')
+        PATH0 = shell.get_env_var('PATH')
+
         shell.sendline('conda activate base')
+        # shell.sendline('env | sort')
         shell.assert_env_var('PS1', '(base).*')
         shell.assert_env_var('CONDA_SHLVL', '1')
+        PATH1 = shell.get_env_var('PATH')
+
         shell.sendline('conda activate "%s"' % self.prefix)
+        # shell.sendline('env | sort')
         shell.assert_env_var('CONDA_SHLVL', '2')
         shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
+        PATH2 = shell.get_env_var('PATH')
+
+        shell.sendline('env | sort | grep CONDA')
+        shell.expect('CONDA_')
+        shell.sendline("echo \"PATH=$PATH\"")
+        shell.expect('PATH=')
+        shell.sendline('conda activate "%s"' % self.prefix2)
+        shell.sendline('env | sort | grep CONDA')
+        shell.expect('CONDA_')
+        shell.sendline("echo \"PATH=$PATH\"")
+        shell.expect('PATH=')
+        shell.assert_env_var('PS1', '(charizard).*')
+        shell.assert_env_var('CONDA_SHLVL', '3')
+        PATH3 = shell.get_env_var('PATH')
+
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
 
         shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
-        shell.expect('Executing transaction: ...working... done.*\n', timeout=25)
+        shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
         shell.assert_env_var('?', '0', True)
         # TODO: assert that reactivate worked correctly
 
@@ -1113,9 +1307,19 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('?', '2', use_exact=True)
 
         shell.sendline('conda deactivate')
+        shell.assert_env_var('CONDA_SHLVL', '2')
+        PATH = shell.get_env_var('PATH')
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
+
+        shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '1')
+        PATH = shell.get_env_var('PATH')
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
+
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '0')
+        PATH = shell.get_env_var('PATH')
+        assert len(PATH0.split(':')) == len(PATH.split(':'))
 
         shell.sendline(shell.print_env_var % 'PS1')
         shell.expect('.*\n')
@@ -1123,6 +1327,33 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '0')
+        PATH0 = shell.get_env_var('PATH')
+
+        shell.sendline('conda activate "%s"' % self.prefix2)
+        shell.assert_env_var('CONDA_SHLVL', '1')
+        PATH1 = shell.get_env_var('PATH')
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
+
+        shell.sendline('conda activate "%s" --stack' % self.prefix3)
+        shell.assert_env_var('CONDA_SHLVL', '2')
+        PATH2 = shell.get_env_var('PATH')
+        assert 'charizard' in PATH2
+        assert 'venusaur' in PATH2
+        assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH2.split(':'))
+
+        shell.sendline('conda activate "%s"' % self.prefix)
+        shell.assert_env_var('CONDA_SHLVL', '3')
+        PATH3 = shell.get_env_var('PATH')
+        assert 'charizard' in PATH3
+        assert 'venusaur' not in PATH3
+        assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH3.split(':'))
+
+        shell.sendline('conda deactivate')
+        shell.assert_env_var('CONDA_SHLVL', '2')
+        PATH4 = shell.get_env_var('PATH')
+        assert 'charizard' in PATH4
+        assert 'venusaur' in PATH4
+        assert PATH4 == PATH2
 
     @pytest.mark.skipif(not which('bash'), reason='bash not installed')
     def test_bash_basic_integration(self):
@@ -1132,7 +1363,6 @@ class ShellWrapperIntegrationTests(TestCase):
     @pytest.mark.skipif(not which('dash') or on_win, reason='dash not installed')
     def test_dash_basic_integration(self):
         with InteractiveShell('dash') as shell:
-            shell.sendline('env | sort')
             self.basic_posix(shell)
 
     @pytest.mark.skipif(not which('zsh'), reason='zsh not installed')
@@ -1228,7 +1458,7 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_SHLVL', '0')
 
             shell.sendline("conda activate -h blah blah")
-            shell.expect('help requested for activate')
+            shell.expect('usage: conda activate')
 
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
     def test_cmd_exe_activate_error(self):
@@ -1238,4 +1468,45 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('errorlevel', '1\r')
 
             shell.sendline("conda activate -h blah blah")
-            shell.expect('help requested for activate')
+            shell.expect('usage: conda activate')
+
+    @pytest.mark.skipif(not which('bash'), reason='bash not installed')
+    def test_legacy_activate_deactivate_bash(self):
+        with InteractiveShell('bash') as shell:
+            shell.sendline("export _CONDA_ROOT='%s/shell'" % CONDA_PACKAGE_ROOT)
+            shell.sendline("source activate \"%s\"" % self.prefix2)
+            PATH = shell.get_env_var("PATH")
+            assert 'charizard' in PATH
+
+            shell.sendline("source activate \"%s\"" % self.prefix3)
+            PATH = shell.get_env_var("PATH")
+            assert 'venusaur' in PATH
+
+            shell.sendline("source deactivate")
+            PATH = shell.get_env_var("PATH")
+            assert 'charizard' in PATH
+
+            shell.sendline("source deactivate")
+            shell.assert_env_var('CONDA_SHLVL', '0')
+
+    @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
+    def test_legacy_activate_deactivate_cmd_exe(self):
+        with InteractiveShell('cmd.exe') as shell:
+            shell.sendline("echo off")
+
+            shell.sendline("SET \"PATH=%s\\shell\\Scripts;%%PATH%%\"" % CONDA_PACKAGE_ROOT)
+            shell.sendline("activate \"%s\"" % self.prefix2)
+            PATH = shell.get_env_var("PATH")
+            assert 'charizard' in PATH
+
+            shell.sendline("activate \"%s\"" % self.prefix3)
+            PATH = shell.get_env_var("PATH")
+            assert 'venusaur' in PATH
+
+            shell.sendline("deactivate")
+            PATH = shell.get_env_var("PATH")
+            assert 'charizard' in PATH
+
+            shell.sendline("deactivate")
+            conda_shlvl = shell.get_env_var('CONDA_SHLVL')
+            assert int(conda_shlvl) == 0, conda_shlvl

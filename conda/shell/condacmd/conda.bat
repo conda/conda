@@ -1,1 +1,13 @@
-@CALL "%~dp0..\Library\bin\conda.bat" %*
+@IF NOT DEFINED CONDA_EXE @SET CONDA_EXE="%~dp0..\Scripts\conda.exe"
+
+@IF [%1]==[activate]   "%~dp0_conda_activate" %*
+@IF [%1]==[deactivate] "%~dp0_conda_activate" %*
+
+@CALL %CONDA_EXE% %*
+@IF %errorlevel% NEQ 0 EXIT /B %errorlevel%
+
+@IF [%1]==[install]   "%~dp0_conda_activate" reactivate
+@IF [%1]==[update]    "%~dp0_conda_activate" reactivate
+@IF [%1]==[upgrade]   "%~dp0_conda_activate" reactivate
+@IF [%1]==[remove]    "%~dp0_conda_activate" reactivate
+@IF [%1]==[uninstall] "%~dp0_conda_activate" reactivate

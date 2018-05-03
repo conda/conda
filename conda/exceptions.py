@@ -13,7 +13,7 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
-from .base.constants import PathConflict, SafetyChecks
+from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
@@ -53,6 +53,58 @@ class CommandArgumentError(ArgumentError):
     def __init__(self, message, **kwargs):
         command = ' '.join(ensure_text_type(s) for s in sys.argv)
         super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
+
+
+class Help(CondaError):
+    pass
+
+
+class ActivateHelp(Help):
+
+    def __init__(self):
+        message = dals("""
+        usage: conda activate [-h] [--stack] [env_name_or_prefix]
+
+        Activate a conda environment.
+
+        Options:
+
+        positional arguments:
+          env_name_or_prefix    The environment name or prefix to activate. If the
+                                prefix is a relative path, it must start with './'
+                                (or '.\\' on Windows).
+
+        optional arguments:
+          -h, --help            Show this help message and exit.
+          --stack               Stack the environment being activated on top of the
+                                previous active environment, rather replacing the
+                                current active environment with a new one. Currently,
+                                only the PATH environment variable is stacked.
+        """)
+        super(ActivateHelp, self).__init__(message)
+
+
+class DeactivateHelp(Help):
+
+    def __init__(self):
+        message = dals("""
+        usage: conda deactivate [-h]
+
+        Deactivate the current active conda environment.
+
+        Options:
+
+        optional arguments:
+          -h, --help            Show this help message and exit.
+        """)
+        super(DeactivateHelp, self).__init__(message)
+
+
+class GenericHelp(Help):
+
+    def __init__(self, command):
+        message = "help requested for %s" % command
+        super(GenericHelp, self).__init__(message)
 
 
 class CondaSignalInterrupt(CondaError):
@@ -200,38 +252,29 @@ class CommandNotFoundError(CondaError):
             'render',
             'skeleton',
         }
-        # TODO: Point users to a page at conda-docs, which explains this context in more detail
+        from .base.context import context
+        from .cli.main import init_loggers
+        init_loggers(context)
         if command in activate_commands:
-            from .base.context import context
+            # TODO: Point users to a page at conda-docs, which explains this context in more detail
             builder = ["Your shell has not been properly configured to use 'conda %(command)s'."]
+            if on_win:
+                builder.append(dals("""
+                If using 'conda %(command)s' from a batch script, change your
+                invocation to 'CALL conda.bat %(command)s'.
+                """))
             builder.append(dals("""
-            If your shell is Bash or a Bourne variant, enable conda for the current user with
+            To initialize your shell, run
 
-                $ echo ". %(root_prefix)s/etc/profile.d/conda.sh" >> ~/%(config_file)s
+                $ conda init <SHELL_NAME>
 
-            or, for all users, enable conda with
+            Currently supported shells are:%(supported_shells)s
 
-                $ sudo ln -s %(root_prefix)s/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+            See 'conda init --help' for more information and options.
 
-            The options above will permanently enable the 'conda' command, but they do NOT
-            put conda's base (root) environment on PATH.  To do so, run
-
-                $ conda activate
-
-            in your terminal, or to put the base environment on PATH permanently, run
-
-                $ echo "conda activate" >> ~/%(config_file)s
-
-            Previous to conda 4.4, the recommended way to activate conda was to modify PATH in
-            your ~/%(config_file)s file.  You should manually remove the line that looks like
-
-                export PATH="%(root_prefix)s/bin:$PATH"
-
-            ^^^ The above line should NO LONGER be in your ~/%(config_file)s file! ^^^
+            IMPORTANT: You may need to close and restart your shell after running 'conda init'.
             """) % {
-                'root_prefix': context.root_prefix,
-                'macos_fix': " ''" if sys.platform == 'darwin' else "",
-                'config_file': '.bash_profile' if sys.platform == 'darwin' else '.bashrc',
+                'supported_shells': dashlist(COMPATIBLE_SHELLS),
             })
             message = '\n'.join(builder)
         elif command in build_commands:
@@ -244,9 +287,6 @@ class CommandNotFoundError(CondaError):
             close = get_close_matches(command, choices)
             if close:
                 message += "\nDid you mean 'conda %s'?" % close[0]
-        from .base.context import context
-        from .cli.main import init_loggers
-        init_loggers(context)
         super(CommandNotFoundError, self).__init__(message, command=command)
 
 
@@ -798,8 +838,7 @@ def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
     rc = getattr(exc_val, 'return_code', None)
     if context.debug or context.verbosity > 0:
-        sys.stderr.write(_format_exc(exc_val, exc_tb))
-        sys.stderr.write('\n')
+        print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
         if rc == 0:
             # suppress DryRunExit and CondaSystemExit messages
@@ -808,13 +847,13 @@ def print_conda_exception(exc_val, exc_tb=None):
             import json
             stdoutlog = getLogger('conda.stdout')
             exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
-            stdoutlog.info("%s\n" % exc_json)
+            stdoutlog.error("%s\n" % exc_json)
     else:
         stderrlog = getLogger('conda.stderr')
         if rc == 0:
-            stderrlog.info("\n%s\n", exc_val)
+            stderrlog.error("\n%s\n", exc_val)
         else:
-            stderrlog.info("\n%r\n", exc_val)
+            stderrlog.error("\n%r\n", exc_val)
 
 
 def _format_exc(exc_val=None, exc_tb=None):

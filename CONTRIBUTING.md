@@ -30,7 +30,7 @@ To set up an environment to start developing on conda code, we recommend the fol
 
 3. Create a local development environment, and activate that environment
 
-       source ./dev/start.sh
+       source ./dev/start
 
    This command will create a project-specific base environment at `./devenv`. If
    the environment already exists, this command will just quickly activate the

@@ -11,6 +11,9 @@ log = getLogger(__name__)
 from . import CondaError  # NOQA
 CondaError = CondaError
 
+from .base.context import reset_context  # NOQA
+reset_context()  # initialize context when conda.exports is imported
+
 from . import compat, plan  # NOQA
 compat, plan = compat, plan
 

@@ -16,12 +16,12 @@ from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win, open
-from conda.common.io import captured, env_var
+from conda.common.io import captured, env_var, env_vars
 from conda.common.path import get_python_short_path, win_path_backout, win_path_ok
 from conda.core.initialize import Result, _get_python_info, init_sh_system, init_sh_user, \
-    initialize_dev, install, install_conda_bat, install_conda_csh, install_conda_fish, \
+    initialize_dev, install, install_conda_csh, install_conda_fish, \
     install_conda_sh, install_conda_xsh, make_entry_point, make_entry_point_exe, \
-    make_initialize_plan, make_install_plan
+    make_initialize_plan, make_install_plan, install_condacmd_conda_bat
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
@@ -102,13 +102,6 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
-                        "function": "install_conda_bat",
-                        "kwargs": {
-                            "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Library\\bin\\conda.bat"
-                        }
-                    },
-                    {
                         "function": "install_condacmd_conda_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
@@ -116,24 +109,45 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
-                        "function": "install_condacmd_hook_bat",
+                        "function": "install_condacmd_conda_activate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\condacmd\\conda-hook.bat"
+                            "target_path": "/darwin\\condacmd\\_conda_activate.bat"
                         }
                     },
                     {
-                        "function": "install_activate_bat",
+                        "function": "install_condacmd_conda_auto_activate_bat",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "target_path": "/darwin\\condacmd\\conda_auto_activate.bat"
+                        }
+                    },
+                    {
+                        "function": "install_condacmd_hook_bat",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "target_path": "/darwin\\condacmd\\conda_hook.bat"
+                        }
+                    },
+                    {
+                        "function": "install_Scripts_activate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
                             "target_path": "/darwin\\Scripts\\activate.bat"
                         }
                     },
                     {
+                        "function": "install_activate_bat",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "target_path": "/darwin\\condacmd\\activate.bat"
+                        }
+                    },
+                    {
                         "function": "install_deactivate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\Scripts\\deactivate.bat"
+                            "target_path": "/darwin\\condacmd\\deactivate.bat"
                         }
                     },
                     {
@@ -320,9 +334,9 @@ class InitializeTests(TestCase):
 
             first_line, remainder = created_file_contents.split('\n', 1)
             if on_win:
-                assert first_line == "_CONDA_EXE=\"$(cygpath '%s')\"" % context.conda_exe
+                assert first_line == "export CONDA_EXE=\"$(cygpath '%s')\"" % context.conda_exe
             else:
-                assert first_line == '_CONDA_EXE="%s"' % context.conda_exe
+                assert first_line == 'export CONDA_EXE="%s"' % context.conda_exe
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')) as fh:
                 original_contents = fh.read()
@@ -341,14 +355,16 @@ class InitializeTests(TestCase):
             with open(target_path) as fh:
                 created_file_contents = fh.read()
 
-            first_line, second_line, remainder = created_file_contents.split('\n', 2)
+            first_line, second_line, third_line, remainder = created_file_contents.split('\n', 3)
             if on_win:
                 win_conda_exe = join(conda_prefix, 'Scripts', 'conda.exe')
-                assert first_line == 'set _CONDA_ROOT (cygpath %s)' % conda_prefix
-                assert second_line == 'set _CONDA_EXE (cygpath %s)' % win_conda_exe
+                assert first_line == 'set -gx CONDA_EXE (cygpath "%s")' % win_conda_exe
+                assert second_line == 'set _CONDA_ROOT (cygpath "%s")' % conda_prefix
+                assert third_line == 'set _CONDA_EXE (cygpath "%s")' % win_conda_exe
             else:
-                assert first_line == 'set _CONDA_ROOT "%s"' % conda_prefix
-                assert second_line == 'set _CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert first_line == 'set -gx CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert second_line == 'set _CONDA_ROOT "%s"' % conda_prefix
+                assert third_line == 'set _CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d', 'conda.fish')) as fh:
                 original_contents = fh.read()
@@ -369,9 +385,9 @@ class InitializeTests(TestCase):
 
             first_line, remainder = created_file_contents.split('\n', 1)
             if on_win:
-                assert first_line == '_CONDA_EXE = "%s"' % join(conda_prefix, 'Scripts', 'conda.exe')
+                assert first_line == 'CONDA_EXE = "%s"' % join(conda_prefix, 'Scripts', 'conda.exe')
             else:
-                assert first_line == '_CONDA_EXE = "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert first_line == 'CONDA_EXE = "%s"' % join(conda_prefix, 'bin', 'conda')
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')) as fh:
                 original_contents = fh.read()
@@ -390,13 +406,15 @@ class InitializeTests(TestCase):
             with open(target_path) as fh:
                 created_file_contents = fh.read()
 
-            first_line, second_line, remainder = created_file_contents.split('\n', 2)
+            first_line, second_line, third_line, remainder = created_file_contents.split('\n', 3)
             if on_win:
-                assert first_line == 'setenv _CONDA_ROOT `cygpath %s`' % conda_prefix
-                assert second_line == 'setenv _CONDA_EXE `cygpath %s`' % join(conda_prefix, 'Scripts', 'conda.exe')
+                assert first_line == 'setenv CONDA_EXE `cygpath %s`' % join(conda_prefix, 'Scripts', 'conda.exe')
+                assert second_line == 'setenv _CONDA_ROOT `cygpath %s`' % conda_prefix
+                assert third_line == 'setenv _CONDA_EXE `cygpath %s`' % join(conda_prefix, 'Scripts', 'conda.exe')
             else:
-                assert first_line == 'setenv _CONDA_ROOT "%s"' % conda_prefix
-                assert second_line == 'setenv _CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert first_line == 'setenv CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
+                assert second_line == 'setenv _CONDA_ROOT "%s"' % conda_prefix
+                assert third_line == 'setenv _CONDA_EXE "%s"' % join(conda_prefix, 'bin', 'conda')
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.csh')) as fh:
                 original_contents = fh.read()
@@ -405,24 +423,23 @@ class InitializeTests(TestCase):
             result = install_conda_csh(target_path, conda_prefix)
             assert result == Result.NO_CHANGE
 
-    def test_install_conda_bat(self):
+    def test_install_condacmd_conda_bat(self):
         with tempdir() as conda_temp_prefix:
             conda_prefix = abspath(sys.prefix)
-            target_path = join(conda_temp_prefix, 'Library', 'bin', 'conda.bat')
-            result = install_conda_bat(target_path, conda_prefix)
+            target_path = join(conda_temp_prefix, 'condacmd', 'conda.bat')
+            result = install_condacmd_conda_bat(target_path, conda_prefix)
             assert result == Result.MODIFIED
 
             with open(target_path) as fh:
                 created_file_contents = fh.read()
 
-            first_line, remainder = created_file_contents.split('\n', 1)
-            assert first_line == '@SET "_CONDA_EXE=%s"' % join(conda_prefix, 'Scripts', 'conda.exe')
+            remainder = created_file_contents
 
-            with open(join(CONDA_PACKAGE_ROOT, 'shell', 'Library', 'bin', 'conda.bat')) as fh:
+            with open(join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda.bat')) as fh:
                 original_contents = fh.read()
             assert remainder == original_contents
 
-            result = install_conda_bat(target_path, conda_prefix)
+            result = install_condacmd_conda_bat(target_path, conda_prefix)
             assert result == Result.NO_CHANGE
 
     def test__get_python_info(self):
@@ -432,7 +449,7 @@ class InitializeTests(TestCase):
         assert site_packages_dir.endswith('site-packages')
 
     def test_install_1(self):
-        with env_var('CONDA_DRY_RUN', 'true', reset_context):
+        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, reset_context):
             with tempdir() as conda_temp_prefix:
                 with captured() as c:
                     install(conda_temp_prefix)
@@ -445,8 +462,10 @@ class InitializeTests(TestCase):
                 'conda-script.py',
                 'conda-env-script.py',
                 'conda.bat',
-                'conda.bat',
-                'conda-hook.bat',
+                '_conda_activate.bat',
+                'conda_auto_activate.bat',
+                'conda_hook.bat',
+                'activate.bat',
                 'activate.bat',
                 'deactivate.bat',
                 'activate',
@@ -470,15 +489,15 @@ class InitializeTests(TestCase):
         print(c.stderr, file=sys.stderr)
 
         assert c.stdout.count('modified') == len(modified_files)
-        stdout = "".join(s.strip('\n\r') for s in c.stdout.splitlines())
         for fn in modified_files:
-            assert '%s  modified' % fn in stdout
+            line = next(line for line in c.stdout.splitlines() if line.strip().endswith(fn))
+            assert line.strip().startswith('modified'), line
 
     def test_initialize_dev_bash(self):
         with pytest.raises(CondaValueError):
             initialize_dev('bash', conda_source_root=join('a', 'b', 'c'))
 
-        with env_var('CONDA_DRY_RUN', 'true', reset_context):
+        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, reset_context):
             with tempdir() as conda_temp_prefix:
                 new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
                 mkdir_p(dirname(new_py))
@@ -496,8 +515,10 @@ class InitializeTests(TestCase):
                 'conda-script.py',
                 'conda-env-script.py',
                 'conda.bat',
-                'conda.bat',
-                'conda-hook.bat',
+                '_conda_activate.bat',
+                'conda_auto_activate.bat',
+                'conda_hook.bat',
+                'activate.bat',
                 'activate.bat',
                 'deactivate.bat',
                 'activate',
@@ -506,8 +527,10 @@ class InitializeTests(TestCase):
                 'conda.fish',
                 'conda.xsh',
                 'conda.csh',
-                'site-packages',
-                'conda-dev.pth',
+                'site-packages',  # remove conda in site-packages dir
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
             )
         else:
             modified_files = (
@@ -520,20 +543,22 @@ class InitializeTests(TestCase):
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
-                'conda-dev.pth',
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
             )
 
         stderr = c.stderr.replace('no change', 'modified')
         assert stderr.count('modified') == len(modified_files)
 
-        stderr = "".join(s.strip('\n\r') for s in stderr.splitlines())
         for fn in modified_files:
-            assert '%s  modified' % fn in stderr
+            line = next(line for line in stderr.splitlines() if line.strip().endswith(fn))
+            assert line.strip().startswith('modified'), line
 
         assert "unset CONDA_SHLVL" in c.stdout
 
     def test_initialize_dev_cmd_exe(self):
-        with env_var('CONDA_DRY_RUN', 'true', reset_context):
+        with env_vars({'CONDA_DRY_RUN': 'true', 'CONDA_VERBOSITY': '0'}, reset_context):
             with tempdir() as conda_temp_prefix:
                 new_py = abspath(join(conda_temp_prefix, get_python_short_path()))
                 mkdir_p(dirname(new_py))
@@ -551,8 +576,10 @@ class InitializeTests(TestCase):
                 'conda-script.py',
                 'conda-env-script.py',
                 'conda.bat',
-                'conda.bat',
-                'conda-hook.bat',
+                '_conda_activate.bat',
+                'conda_auto_activate.bat',
+                'conda_hook.bat',
+                'activate.bat',
                 'activate.bat',
                 'deactivate.bat',
                 'activate',
@@ -561,8 +588,11 @@ class InitializeTests(TestCase):
                 'conda.fish',
                 'conda.xsh',
                 'conda.csh',
-                'site-packages',
-                'conda-dev.pth',
+                'site-packages',  # remove conda in site-packages dir
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
+
             )
         else:
             modified_files = (
@@ -575,15 +605,18 @@ class InitializeTests(TestCase):
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
-                'conda-dev.pth',
+                'conda.egg-link',
+                'easy-install.pth',
+                'conda.egg-info',
+
             )
 
         stderr = c.stderr.replace('no change', 'modified')
         assert stderr.count('modified') == len(modified_files)
 
-        stderr = "".join(s.strip('\n\r') for s in stderr.splitlines())
         for fn in modified_files:
-            assert '%s  modified' % fn in stderr
+            line = next(line for line in stderr.splitlines() if line.strip().endswith(fn))
+            assert line.strip().startswith('modified'), line
 
     @pytest.mark.skipif(on_win, reason="unix-only test")
     def test_init_sh_user_unix(self):
@@ -714,7 +747,7 @@ class InitializeTests(TestCase):
 
     def test_init_cmd_exe_registry(self):
         def _read_windows_registry_mock(target_path):
-            return 'echo hello & "yada\\yada\\conda-hook.bat" & echo "world"', None
+            return 'echo hello & "yada\\yada\\conda_hook.bat" & echo "world"', None
 
         from conda.core import initialize
         orig_read_windows_registry = initialize._read_windows_registry
@@ -732,7 +765,7 @@ class InitializeTests(TestCase):
             initialize._read_windows_registry = orig_read_windows_registry
             initialize.join = orig_join
 
-        expected = "echo hello & \"c:\\Users\\Lars\\miniconda\\condacmd\\conda-hook.bat\" & echo \"world\""
+        expected = "echo hello & \"c:\\Users\\Lars\\miniconda\\condacmd\\conda_hook.bat\" & echo \"world\""
         assert c.stdout.strip().splitlines()[-1][1:] == expected
 
     def test_init_sh_system(self):

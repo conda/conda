@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import ENOENT
 from glob import glob
 import os
 from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, normpath
@@ -78,8 +79,11 @@ class _Activator(object):
             raise NotImplementedError()
 
     def activate(self):
-        return self._finalize(self._yield_commands(self.build_activate(self.env_name_or_prefix)),
-                              self.tempfile_extension)
+        if self.stack:
+            builder_result = self.build_stack(self.env_name_or_prefix)
+        else:
+            builder_result = self.build_activate(self.env_name_or_prefix)
+        return self._finalize(self._yield_commands(builder_result), self.tempfile_extension)
 
     def deactivate(self):
         return self._finalize(self._yield_commands(self.build_deactivate()),
@@ -118,30 +122,44 @@ class _Activator(object):
         help_flags = ('-h', '--help', '/?')
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
         help_requested = len(arguments) != len(non_help_args)
-        remainder_args = tuple(arg for arg in non_help_args if arg and arg != command)
+        remainder_args = list(arg for arg in non_help_args if arg and arg != command)
 
         if not command:
             from .exceptions import ArgumentError
-            raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
+            raise ArgumentError("'activate', 'deactivate', 'hook', or 'reactivate' "
+                                "command must be given")
         elif help_requested:
-            from . import CondaError
-            class Help(CondaError):  # NOQA
-                pass
-            raise Help("help requested for %s" % command)
+            from .exceptions import ActivateHelp, DeactivateHelp, GenericHelp
+            help_classes = {
+                'activate': ActivateHelp(),
+                'deactivate': DeactivateHelp(),
+                'hook': GenericHelp('hook'),
+                'reactivate': GenericHelp('reactivate'),
+            }
+            raise help_classes[command]
         elif command not in ('activate', 'deactivate', 'reactivate', 'hook'):
             from .exceptions import ArgumentError
             raise ArgumentError("invalid command '%s'" % command)
-        elif command == 'activate' and len(remainder_args) > 1:
-            from .exceptions import ArgumentError
-            raise ArgumentError('activate does not accept more than one argument:\n'
-                                + str(remainder_args) + '\n')
-        elif command != 'activate' and remainder_args:
-            from .exceptions import ArgumentError
-            raise ArgumentError('%s does not accept arguments\nremainder_args: %s\n'
-                                % (command, remainder_args))
 
         if command == 'activate':
-            self.env_name_or_prefix = remainder_args and remainder_args[0] or 'root'
+            try:
+                stack_idx = remainder_args.index('--stack')
+            except ValueError:
+                self.stack = False
+            else:
+                del remainder_args[stack_idx]
+                self.stack = True
+            if len(remainder_args) > 1:
+                from .exceptions import ArgumentError
+                raise ArgumentError(command + ' does not accept more than one argument:\n'
+                                    + str(remainder_args) + '\n')
+            self.env_name_or_prefix = remainder_args and remainder_args[0] or 'base'
+
+        else:
+            if remainder_args:
+                from .exceptions import ArgumentError
+                raise ArgumentError('%s does not accept arguments\nremainder_args: %s\n'
+                                    % (command, remainder_args))
 
         self.command = command
 
@@ -162,6 +180,12 @@ class _Activator(object):
             yield self.run_script_tmpl % script
 
     def build_activate(self, env_name_or_prefix):
+        return self._build_activate_stack(env_name_or_prefix, False)
+
+    def build_stack(self, env_name_or_prefix):
+        return self._build_activate_stack(env_name_or_prefix, True)
+
+    def _build_activate_stack(self, env_name_or_prefix, stack):
         if re.search(r'\\|/', env_name_or_prefix):
             prefix = expand(env_name_or_prefix)
             if not isdir(join(prefix, 'conda-meta')):
@@ -174,23 +198,17 @@ class _Activator(object):
         prefix = normpath(prefix)
 
         # query environment
-        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
+        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
+        new_conda_shlvl = old_conda_shlvl + 1
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
-        max_shlvl = context.max_shlvl
 
         if old_conda_prefix == prefix and old_conda_shlvl > 0:
             return self.build_reactivate()
-        if self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl-1)) == prefix:
-            # in this case, user is attempting to activate the previous environment,
-            #  i.e. step back down
-            return self.build_deactivate()
 
         activate_scripts = self._get_activate_scripts(prefix)
         conda_default_env = self._default_env(prefix)
         conda_prompt_modifier = self._prompt_modifier(prefix, conda_default_env)
 
-        assert 0 <= old_conda_shlvl <= max_shlvl
-        set_vars = {}
         if old_conda_shlvl == 0:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
             export_vars = {
@@ -198,32 +216,43 @@ class _Activator(object):
                 'CONDA_EXE': self.path_conversion(context.conda_exe),
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
-                'CONDA_SHLVL': old_conda_shlvl + 1,
+                'CONDA_SHLVL': new_conda_shlvl,
                 'CONDA_DEFAULT_ENV': conda_default_env,
                 'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
             }
             deactivate_scripts = ()
-        elif old_conda_shlvl == max_shlvl:
-            new_path = self.pathsep_join(self._replace_prefix_in_path(old_conda_prefix, prefix))
-            export_vars = {
-                'PATH': new_path,
-                'CONDA_PREFIX': prefix,
-                'CONDA_DEFAULT_ENV': conda_default_env,
-                'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
-            }
-            deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
         else:
-            new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
-            export_vars = {
-                'PATH': new_path,
-                'CONDA_PREFIX': prefix,
-                'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
-                'CONDA_SHLVL': old_conda_shlvl + 1,
-                'CONDA_DEFAULT_ENV': conda_default_env,
-                'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
-            }
-            deactivate_scripts = ()
+            if self.environ.get('CONDA_PREFIX_%s' % (old_conda_shlvl - 1)) == prefix:
+                # in this case, user is attempting to activate the previous environment,
+                #  i.e. step back down
+                return self.build_deactivate()
+            if stack:
+                new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
+                export_vars = {
+                    'PATH': new_path,
+                    'CONDA_PREFIX': prefix,
+                    'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
+                    'CONDA_SHLVL': new_conda_shlvl,
+                    'CONDA_DEFAULT_ENV': conda_default_env,
+                    'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                    'CONDA_STACKED_%d' % new_conda_shlvl: 'true',
+                }
+                deactivate_scripts = ()
+            else:
+                new_path = self.pathsep_join(
+                    self._replace_prefix_in_path(old_conda_prefix, prefix)
+                )
+                export_vars = {
+                    'PATH': new_path,
+                    'CONDA_PREFIX': prefix,
+                    'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
+                    'CONDA_SHLVL': new_conda_shlvl,
+                    'CONDA_DEFAULT_ENV': conda_default_env,
+                    'CONDA_PROMPT_MODIFIER': conda_prompt_modifier,
+                }
+                deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
+        set_vars = {}
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)
 
@@ -240,7 +269,7 @@ class _Activator(object):
     def build_deactivate(self):
         # query environment
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
-        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
+        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
         if not old_conda_prefix or old_conda_shlvl < 1:
             # no active environment, so cannot deactivate; do nothing
             return {
@@ -253,17 +282,14 @@ class _Activator(object):
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
         new_conda_shlvl = old_conda_shlvl - 1
-        new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
-
         set_vars = {}
         if old_conda_shlvl == 1:
-            # TODO: warn conda floor
+            new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
             conda_prompt_modifier = ''
             unset_vars = (
                 'CONDA_PREFIX',
                 'CONDA_DEFAULT_ENV',
                 'CONDA_PYTHON_EXE',
-                'CONDA_EXE',
                 'CONDA_PROMPT_MODIFIER',
             )
             export_vars = {
@@ -272,13 +298,26 @@ class _Activator(object):
             }
             activate_scripts = ()
         else:
+            assert old_conda_shlvl > 1
             new_prefix = self.environ.get('CONDA_PREFIX_%d' % new_conda_shlvl)
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
 
-            unset_vars = (
-                'CONDA_PREFIX_%d' % new_conda_shlvl,
-            )
+            old_prefix_stacked = 'CONDA_STACKED_%d' % old_conda_shlvl in self.environ
+            if old_prefix_stacked:
+                new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
+                unset_vars = (
+                    'CONDA_PREFIX_%d' % new_conda_shlvl,
+                    'CONDA_STACKED_%d' % old_conda_shlvl,
+                )
+            else:
+                new_path = self.pathsep_join(
+                    self._replace_prefix_in_path(old_conda_prefix, new_prefix)
+                )
+                unset_vars = (
+                    'CONDA_PREFIX_%d' % new_conda_shlvl,
+                )
+
             export_vars = {
                 'PATH': new_path,
                 'CONDA_SHLVL': new_conda_shlvl,
@@ -301,7 +340,7 @@ class _Activator(object):
 
     def build_reactivate(self):
         conda_prefix = self.environ.get('CONDA_PREFIX')
-        conda_shlvl = int(self.environ.get('CONDA_SHLVL', 0))
+        conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
         if not conda_prefix or conda_shlvl < 1:
             # no active environment, so cannot reactivate; do nothing
             return {
@@ -365,6 +404,7 @@ class _Activator(object):
             yield join(prefix, 'bin')
 
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
+        prefix = self.path_conversion(prefix)
         if starting_path_dirs is None:
             starting_path_dirs = self._get_starting_path_list()
         return self.path_conversion(concatv(
@@ -376,37 +416,36 @@ class _Activator(object):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
     def _replace_prefix_in_path(self, old_prefix, new_prefix, starting_path_dirs=None):
+        old_prefix = self.path_conversion(old_prefix)
         if starting_path_dirs is None:
-            path_list = self._get_starting_path_list()
+            path_list = list(self.path_conversion(self._get_starting_path_list()))
         else:
-            path_list = list(starting_path_dirs)
-        if on_win:  # pragma: unix no cover
-            if old_prefix is not None:
-                # windows has a nasty habit of adding extra Library\bin directories
-                prefix_dirs = tuple(self._get_path_dirs(old_prefix))
-                try:
-                    first_idx = path_list.index(prefix_dirs[0])
-                except ValueError:
-                    first_idx = 0
-                else:
-                    last_idx = path_list.index(prefix_dirs[-1])
-                    del path_list[first_idx:last_idx+1]
-            else:
+            path_list = list(self.path_conversion(starting_path_dirs))
+
+        def paths_equal(path1, path2):
+            return normpath(abspath(path1.lower())) == normpath(abspath(path2.lower()))
+
+        def index_of_path(paths, test_path):
+            for q, path in enumerate(paths):
+                if paths_equal(path, test_path):
+                    return q
+            return None
+
+        if old_prefix is not None:
+            prefix_dirs = self.path_conversion(tuple(self._get_path_dirs(old_prefix)))
+            first_idx = index_of_path(path_list, prefix_dirs[0])
+            if first_idx is None:
                 first_idx = 0
-            if new_prefix is not None:
-                path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
-        else:
-            if old_prefix is not None:
-                try:
-                    idx = path_list.index(join(old_prefix, 'bin'))
-                except ValueError:
-                    idx = 0
-                else:
-                    del path_list[idx]
             else:
-                idx = 0
-            if new_prefix is not None:
-                path_list.insert(idx, join(new_prefix, 'bin'))
+                last_idx = index_of_path(path_list, prefix_dirs[-1])
+                assert last_idx is not None
+                del path_list[first_idx:last_idx + 1]
+        else:
+            first_idx = 0
+
+        if new_prefix is not None:
+            path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
+
         return self.path_conversion(path_list)
 
     def _build_activate_shell_custom(self, export_vars):
@@ -467,26 +506,44 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
         return path_identity(paths)
-    from subprocess import PIPE, Popen
+    elif paths is None:
+        return None
+    from subprocess import CalledProcessError, PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
-    p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     single_path = isinstance(paths, string_types)
     joined = paths if single_path else ("%s" % os.pathsep).join(paths)
 
     if hasattr(joined, 'encode'):
         joined = joined.encode('utf-8')
-    stdout, stderr = p.communicate(input=joined)
-    rc = p.returncode
-    if rc != 0 or stderr:
-        from subprocess import CalledProcessError
-        message = "\n  stdout: %s\n  stderr: %s\n  rc: %s\n" % (stdout, stderr, rc)
-        print(message, file=sys.stderr)
-        raise CalledProcessError(rc, command, message)
-    if hasattr(stdout, 'decode'):
-        stdout = stdout.decode('utf-8')
-    stdout = stdout.strip()
+
+    try:
+        p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    except EnvironmentError as e:
+        if e.errno != ENOENT:
+            raise
+        # This code path should (hopefully) never be hit be real conda installs. It's here
+        # as a backup for tests run under cmd.exe with cygpath not available.
+        def _translation(found_path):  # NOQA
+            found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
+            return "/" + found.rstrip("/")
+        joined = ensure_fs_path_encoding(joined)
+        stdout = re.sub(
+            r'([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)',
+            _translation,
+            joined
+        ).replace(";/", ":/").rstrip(";")
+    else:
+        stdout, stderr = p.communicate(input=joined)
+        rc = p.returncode
+        if rc != 0 or stderr:
+            message = "\n  stdout: %s\n  stderr: %s\n  rc: %s\n" % (stdout, stderr, rc)
+            print(message, file=sys.stderr)
+            raise CalledProcessError(rc, command, message)
+        if hasattr(stdout, 'decode'):
+            stdout = stdout.decode('utf-8')
+        stdout = stdout.strip()
     final = stdout and stdout.split(':') or ()
     return final[0] if single_path else tuple(final)
 
@@ -546,9 +603,9 @@ class PosixActivator(_Activator):
 
     def _hook_preamble(self):
         if on_win:
-            return '_CONDA_EXE="$(cygpath \'%s\')"' % context.conda_exe
+            return 'export CONDA_EXE="$(cygpath \'%s\')"' % context.conda_exe
         else:
-            return '_CONDA_EXE="%s"' % context.conda_exe
+            return 'export CONDA_EXE="%s"' % context.conda_exe
 
 
 class CshActivator(_Activator):
@@ -581,13 +638,15 @@ class CshActivator(_Activator):
 
     def _hook_preamble(self):
         if on_win:
-            return ('setenv _CONDA_ROOT `cygpath %s`\n'
+            return ('setenv CONDA_EXE `cygpath %s`\n'
+                    'setenv _CONDA_ROOT `cygpath %s`\n'
                     'setenv _CONDA_EXE `cygpath %s`'
-                    % (context.conda_prefix, context.conda_exe))
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
         else:
-            return ('setenv _CONDA_ROOT "%s"\n'
+            return ('setenv CONDA_EXE "%s"\n'
+                    'setenv _CONDA_ROOT "%s"\n'
                     'setenv _CONDA_EXE "%s"'
-                    % (context.conda_prefix, context.conda_exe))
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
 
 
 class XonshActivator(_Activator):
@@ -610,7 +669,7 @@ class XonshActivator(_Activator):
         super(XonshActivator, self).__init__(arguments)
 
     def _hook_preamble(self):
-        return '_CONDA_EXE = "%s"' % context.conda_exe
+        return 'CONDA_EXE = "%s"' % context.conda_exe
 
 
 class CmdExeActivator(_Activator):
@@ -620,7 +679,7 @@ class CmdExeActivator(_Activator):
         self.path_conversion = path_identity
         self.script_extension = '.bat'
         self.tempfile_extension = '.bat'
-        self.shift_args = 1
+        self.shift_args = 0
         self.command_join = '\r\n' if on_win else '\n'
 
         self.unset_var_tmpl = '@SET %s='
@@ -657,7 +716,7 @@ class FishActivator(_Activator):
 
         self.unset_var_tmpl = 'set -e %s'
         self.export_var_tmpl = 'set -gx %s "%s"'
-        self.set_var_tmpl = 'set -gx %s "%s"'  # TODO: determine if different than export_var_tmpl
+        self.set_var_tmpl = 'set -g %s "%s"'
         self.run_script_tmpl = 'source "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'fish', 'conf.d',
@@ -667,13 +726,15 @@ class FishActivator(_Activator):
 
     def _hook_preamble(self):
         if on_win:
-            return ('set _CONDA_ROOT (cygpath %s)\n'
-                    'set _CONDA_EXE (cygpath %s)'
-                    % (context.conda_prefix, context.conda_exe))
+            return ('set -gx CONDA_EXE (cygpath "%s")\n'
+                    'set _CONDA_ROOT (cygpath "%s")\n'
+                    'set _CONDA_EXE (cygpath "%s")'
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
         else:
-            return ('set _CONDA_ROOT "%s"\n'
+            return ('set -gx CONDA_EXE "%s"\n'
+                    'set _CONDA_ROOT "%s"\n'
                     'set _CONDA_EXE "%s"'
-                    % (context.conda_prefix, context.conda_exe))
+                    % (context.conda_exe, context.conda_prefix, context.conda_exe))
 
 
 class PowershellActivator(_Activator):
