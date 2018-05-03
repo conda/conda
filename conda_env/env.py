@@ -44,7 +44,7 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
 
     Returns:     Environment object
     """
-    installed = set(prec.dist_str() for prec in PrefixData(prefix).iter_records())
+    installed = set(PrefixData(prefix).iter_records())
     conda_pkgs = copy(installed)
     # json=True hides the output, data is added to installed
     add_pip_installed(prefix, installed, json=True)

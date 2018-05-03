@@ -10,9 +10,8 @@ import re
 import shutil
 import sys
 
-from conda.models.prefix_graph import PrefixGraph
 from .base.context import context
-from .common.compat import iteritems, itervalues, on_win, open
+from .common.compat import itervalues, on_win, open
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url, unquote
 from .core.index import get_index
@@ -24,7 +23,8 @@ from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.dist import Dist
 from .models.match_spec import MatchSpec
-from .models.records import PackageRecord
+from .models.prefix_graph import PrefixGraph
+from .plan import _get_best_prec_match
 from .resolve import Resolve
 
 
@@ -193,7 +193,7 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
             print('The following packages cannot be cloned out of the root environment:', file=fh)
             for prec in itervalues(filter):
                 print(' - ' + prec.dist_str(), file=fh)
-            drecs = {prec for prec in PrefixData(prefix1).iter_records() if prec['name'] not in filter}
+        drecs = {prec for prec in PrefixData(prefix1).iter_records() if prec['name'] not in filter}
     else:
         drecs = {prec for prec in PrefixData(prefix1).iter_records()}
 
@@ -205,17 +205,18 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     if unknowns:
         index_args = index_args or {}
         index = get_index(**index_args)
-        r = Resolve(index, sort=True)
-        for dist in unknowns:
-            name = dist.dist_name
-            fn = dist.to_filename()
-            fkeys = [d for d in r.index.keys() if r.index[d]['fn'] == fn]
-            if fkeys:
-                del drecs[dist]
-                dist_str = sorted(fkeys, key=r.version_key, reverse=True)[0]
-                drecs[Dist(dist_str)] = r.index[dist_str]
+
+        for prec in unknowns:
+            spec = MatchSpec(name=prec.name, version=prec.version, build=prec.build)
+            precs = tuple(prec for prec in itervalues(index) if spec.match(prec))
+            if not precs:
+                notfound.append(spec)
+            elif len(precs) > 1:
+                drecs.remove(prec)
+                drecs.add(_get_best_prec_match(precs))
             else:
-                notfound.append(fn)
+                drecs.remove(prec)
+                drecs.add(precs[0])
     if notfound:
         raise PackagesNotFoundError(notfound)
 
@@ -224,8 +225,6 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     for prec in drecs:
         urls[prec] = prec['url']
 
-    if r is None:
-        r = Resolve(index)
     precs = tuple(PrefixGraph(urls).graph)
     urls = [urls[prec] for prec in precs]
 

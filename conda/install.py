@@ -163,9 +163,9 @@ def linked_data(prefix, ignore_channels=False):
 
 def linked(prefix, ignore_channels=False):
     """
-    Return the set of canonical names of linked packages in prefix.
+    Return the Dists of linked packages in prefix.
     """
-    return set(linked_data(prefix, ignore_channels=ignore_channels).keys())
+    return set(linked_data(prefix, ignore_channels=ignore_channels))
 
 
 # exports

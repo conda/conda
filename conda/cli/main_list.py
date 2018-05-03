@@ -32,7 +32,7 @@ def get_packages(installed, regex):
         yield prefix_rec
 
 
-def list_packages(prefix, installed, regex=None, format='human',
+def list_packages(prefix, regex=None, format='human',
                   show_channel_urls=None):
     res = 0
     result = []
@@ -42,32 +42,25 @@ def list_packages(prefix, installed, regex=None, format='human',
         result.append('#')
         result.append('# %-23s %-15s %15s  Channel' % ("Name", "Version", "Build"))
 
-    for dist in get_packages(installed, regex):
+    installed = tuple(PrefixData(prefix).iter_records())
+
+    for prec in get_packages(installed, regex) if regex else installed:
         if format == 'canonical':
-            result.append(dist)
+            result.append(prec)
             continue
         if format == 'export':
-            result.append('='.join(dist.quad[:3]))
+            result.append('='.join((prec.name, prec.version, prec.build)))
             continue
 
-        try:
-            # Returns None if no meta-file found (e.g. pip install)
-            info = is_linked(prefix, dist)
-            if info is None:
-                result.append('%-25s %-15s %15s' % tuple(dist.quad[:3]))
-            else:
-                features = set(info.get('features') or ())
-                disp = '%(name)-25s %(version)-15s %(build)15s' % info  # NOQA lgtm [py/percent-format/wrong-arguments]
-                disp += '  %s' % disp_features(features)
-                schannel = info.get('schannel')
-                show_channel_urls = show_channel_urls or context.show_channel_urls
-                if (show_channel_urls or show_channel_urls is None
-                        and schannel != DEFAULTS_CHANNEL_NAME):
-                    disp += '  %s' % schannel
-                result.append(disp)
-        except (AttributeError, IOError, KeyError, ValueError) as e:
-            log.debug("exception for dist %s:\n%r", dist, e)
-            result.append('%-25s %-15s %15s' % tuple(dist.quad[:3]))
+        features = set(prec.get('features') or ())
+        disp = '%(name)-25s %(version)-15s %(build)15s' % prec  # NOQA lgtm [py/percent-format/wrong-arguments]
+        disp += '  %s' % disp_features(features)
+        schannel = prec.get('schannel')
+        show_channel_urls = show_channel_urls or context.show_channel_urls
+        if (show_channel_urls or show_channel_urls is None
+                and schannel != DEFAULTS_CHANNEL_NAME):
+            disp += '  %s' % schannel
+        result.append(disp)
 
     return res, result
 
@@ -89,9 +82,7 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
     #     log.debug("other installed python packages:\n%s", other_python)
     #     installed.update(other_python)
 
-    installed = tuple(PrefixData(prefix).iter_records())
-
-    exitcode, output = list_packages(prefix, installed, regex, format=format,
+    exitcode, output = list_packages(prefix, regex, format=format,
                                      show_channel_urls=show_channel_urls)
     if context.json:
         stdout_json(output)

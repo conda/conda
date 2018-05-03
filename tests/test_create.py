@@ -767,7 +767,7 @@ class IntegrationTests(TestCase):
             PrefixData._cache_ = {}
 
             with make_temp_env('-c conda-forge --clone "%s"' % prefix) as clone_prefix:
-                assert package_is_installed(clone_prefix, 'python-3.5')
+                assert package_is_installed(clone_prefix, 'python=3.5')
                 assert package_is_installed(clone_prefix, 'decorator')
 
     def test_install_prune_flag(self):
@@ -1031,7 +1031,7 @@ class IntegrationTests(TestCase):
 
     def test_update_deps_flag_present(self):
         with make_temp_env("python=2 itsdangerous=0.23") as prefix:
-            assert package_is_installed(prefix, 'python-2')
+            assert package_is_installed(prefix, 'python=2')
             assert package_is_installed(prefix, 'itsdangerous=0.23')
             assert not package_is_installed(prefix, 'flask')
 
