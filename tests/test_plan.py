@@ -504,11 +504,22 @@ The following packages will be DOWNGRADED:
 
 """
 
-    actions['LINK'], actions['UNLINK'] = actions['UNLINK'], actions['LINK']
-
     cython_prec = PackageRecord.from_objects(get_matchspec_from_index(index, 'channel-1::cython==0.19.1=py33_0'))
     dateutil_prec = PackageRecord.from_objects(get_matchspec_from_index(index, 'channel-1::dateutil==1.5=py33_0'))
     cython_prec.channel = dateutil_prec.channel = Channel("my_channel")
+
+    actions = defaultdict(list)
+    actions.update({
+        'LINK': [
+            cython_prec,
+            get_matchspec_from_index(index, 'channel-1::dateutil==2.1=py33_1'),
+        ],
+        'UNLINK': [
+            get_matchspec_from_index(index, 'channel-1::cython==0.19=py33_0'),
+            dateutil_prec,
+        ]
+    })
+
 
     with captured() as c:
         display_actions(actions, index)

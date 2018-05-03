@@ -29,10 +29,11 @@ import sys
 from .base.constants import PREFIX_PLACEHOLDER
 from .common.compat import itervalues, on_win, open
 from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
+from .models.dist import Dist
 from .models.match_spec import MatchSpec
 
 delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
-from .core.package_cache_data import rm_fetched  # NOQA
+from .core.package_cache_data import rm_fetched, PackageCacheData  # NOQA
 rm_fetched = rm_fetched
 
 log = logging.getLogger(__name__)
@@ -43,7 +44,17 @@ prefix_placeholder = PREFIX_PLACEHOLDER
 
 # backwards compatibility for conda-build
 def package_cache():
-    from .core.package_cache_data import package_cache
+    class package_cache(object):
+
+        def __contains__(self, dist):
+            return bool(PackageCacheData.first_writable().get(Dist(dist).to_package_ref(), None))
+
+        def keys(self):
+            return (Dist(v) for v in itervalues(PackageCacheData.first_writable()))
+
+        def __delitem__(self, dist):
+            PackageCacheData.first_writable().remove(Dist(dist).to_package_ref())
+
     return package_cache()
 
 

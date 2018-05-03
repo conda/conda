@@ -16,7 +16,7 @@ from .common.compat import ensure_text_type, iteritems, open, text_type
 from .core.prefix_data import PrefixData
 from .exceptions import CondaFileIOError, CondaHistoryError
 from .gateways.disk.update import touch
-from .models.dist import Dist
+from .models.dist import dist_str_to_quad
 from .resolve import MatchSpec
 
 try:
@@ -46,8 +46,7 @@ def pretty_diff(diff):
     removed = {}
     for s in diff:
         fn = s[1:]
-        dist = Dist(fn)
-        name, version, _, channel = dist.quad
+        name, version, _, channel = dist_str_to_quad(fn)
         if channel != DEFAULTS_CHANNEL_NAME:
             version += ' (%s)' % channel
         if s.startswith('-'):
@@ -250,7 +249,7 @@ class History(object):
             removed = {}
             if is_diff(content):
                 for pkg in content:
-                    name, version, build, channel = Dist(pkg[1:]).quad
+                    name, version, build, channel = dist_str_to_quad(pkg[1:])
                     if pkg.startswith('+'):
                         added[name.lower()] = (version, build, channel)
                     elif pkg.startswith('-'):

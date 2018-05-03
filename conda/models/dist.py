@@ -280,3 +280,14 @@ class Dist(Entity):
     @property
     def fn(self):
         return self.to_filename()
+
+
+def dist_str_to_quad(dist_str):
+    if dist_str.endswith(CONDA_TARBALL_EXTENSION):
+        dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
+    if '::' in dist_str:
+        channel_str, dist_str = dist_str.split("::", 1)
+    else:
+        channel_str = UNKNOWN_CHANNEL
+    name, version, build = dist_str.rsplit('-', 2)
+    return name, version, build, channel_str
