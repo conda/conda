@@ -64,10 +64,12 @@ except ImportError:  # pragma: no cover
                 return self.handler(e)
 try:  # pragma: no cover
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
-    from ruamel_yaml.scanner import ReaderError, ScannerError
+    from ruamel_yaml.reader import ReaderError
+    from ruamel_yaml.scanner import ScannerError
 except ImportError:  # pragma: no cover
     from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
-    from ruamel.yaml.scanner import ReaderError, ScannerError
+    from ruamel.yaml.reader import ReaderError
+    from ruamel.yaml.scanner import ScannerError
 
 log = getLogger(__name__)
 
@@ -348,10 +350,11 @@ class YamlRawParameter(RawParameter):
                 ruamel_yaml = yaml_load(fh)
             except ScannerError as err:
                 mark = err.problem_mark
-                raise ConfigurationLoadError(filepath, "reason: invalid yaml at line %s, column %s"
-                                                       "" % (mark.line, mark.column))
+                raise ConfigurationLoadError(filepath,
+                                             "  reason: invalid yaml at line %s, column %s"
+                                             "" % (mark.line, mark.column))
             except ReaderError as err:
-                raise ConfigurationLoadError(filepath, "reason: invalid yaml at position %s"
+                raise ConfigurationLoadError(filepath, "  reason: invalid yaml at position %s"
                                                        "" % err.position)
         return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
 

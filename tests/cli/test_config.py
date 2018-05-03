@@ -55,10 +55,7 @@ channels:
             rc_path = rc
             run_command(Commands.CONFIG, '--file', rc, '--add', 'channels', 'test')
     except ConfigurationLoadError as err:
-        error1 = "Load Error: in "
-        error2 = "on line 1, column 8. Invalid YAML"
-        assert error1 in err.message
-        assert error2 in err.message
+        assert "reason: invalid yaml at line" in err.message, err.message
 
 # Tests for the conda config command
 # FIXME This shoiuld be multiple individual tests
