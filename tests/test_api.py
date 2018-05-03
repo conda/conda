@@ -257,7 +257,6 @@ def test_PrefixData_contract():
     inspect_arguments(PrefixData.reload, reload_args)
 
 
-@pytest.mark.xfail(datetime.now() < datetime(2018, 5, 15), reason="PythonRecord is not yet a PackageRecord", strict=True)
 def test_PrefixData_return_value_contract():
     pd = PrefixData(context.conda_prefix)
 

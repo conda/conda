@@ -187,27 +187,27 @@ class PrefixData(object):
         def norm_package_name(name):
             return name.replace('.', '-').replace('_', '-').lower()
 
-        marker_file_endings = ('.egg-info/PKG-INFO', '.dist-info/RECORD', '.egg-info')
+        anchor_file_endings = ('.egg-info/PKG-INFO', '.dist-info/RECORD', '.egg-info')
         conda_python_packages = dict(
             ((mf, prefix_rec)
              for prefix_rec in known_python_records
              for mf in prefix_rec.files
-             if mf.endswith(marker_file_endings))
+             if mf.endswith(anchor_file_endings))
         )
 
-        non_conda_python_package_markers = []
+        non_conda_package_anchor_files = []
         site_packages_dir = get_python_site_packages_short_path(python_record.version)
         sp_dir_full_path = join(self.prefix_path, win_path_ok(site_packages_dir))
         sp_marker_endings = ('.dist-info', '.egg-info')
         for fn in listdir(sp_dir_full_path):
             if fn.endswith(sp_marker_endings):
                 if fn.endswith('.dist-info'):
-                    marker_file = "%s/%s/%s" % (site_packages_dir, fn, 'RECORD')
+                    anchor_file = "%s/%s/%s" % (site_packages_dir, fn, 'RECORD')
                 elif fn.endswith(".egg-info"):
                     if isfile(join(sp_dir_full_path, fn)):
-                        marker_file = "%s/%s" % (site_packages_dir, fn)
+                        anchor_file = "%s/%s" % (site_packages_dir, fn)
                     else:
-                        marker_file = "%s/%s/%s" % (site_packages_dir, fn, "PKG-INFO")
+                        anchor_file = "%s/%s/%s" % (site_packages_dir, fn, "PKG-INFO")
                 elif fn.endswith('.egg-link'):
                     continue
                 elif fn.endswith('.pth'):
@@ -215,35 +215,38 @@ class PrefixData(object):
                 else:
                     continue
 
-                if marker_file not in conda_python_packages:
-                    non_conda_python_package_markers.append(marker_file)
+                if anchor_file not in conda_python_packages:
+                    non_conda_package_anchor_files.append(anchor_file)
 
         from pip._vendor.distlib.database import EggInfoDistribution, InstalledDistribution  # TODO: only compatible with pip 9.0
         from pip._vendor.distlib.metadata import MetadataConflictError
         from pip._vendor.distlib.util import parse_requirement
 
-        def get_pydist(marker_file):
-            if ".dist-info" in marker_file:
-                dist_file = join(self.prefix_path, win_path_ok(marker_file.rsplit('/', 1)[0]))
+        def get_pydist(anchor_file):
+            if ".dist-info" in anchor_file:
+                sp_reference = basename(anchor_file.rsplit('/', 1)[0])
+                dist_file = join(self.prefix_path, win_path_ok(anchor_file.rsplit('/', 1)[0]))
                 dist_cls = InstalledDistribution
-            elif marker_file.endswith(".egg-info"):
-                dist_file = join(self.prefix_path, win_path_ok(marker_file))
+            elif anchor_file.endswith(".egg-info"):
+                sp_reference = basename(anchor_file)
+                dist_file = join(self.prefix_path, win_path_ok(anchor_file))
                 dist_cls = EggInfoDistribution
-            elif ".egg-info" in marker_file:
-                dist_file = join(self.prefix_path, win_path_ok(marker_file.rsplit('/', 1)[0]))
+            elif ".egg-info" in anchor_file:
+                sp_reference = basename(anchor_file.rsplit('/', 1)[0])
+                dist_file = join(self.prefix_path, win_path_ok(anchor_file.rsplit('/', 1)[0]))
                 dist_cls = EggInfoDistribution
             else:
                 raise NotImplementedError()
             try:
                 pydist = dist_cls(dist_file)
             except MetadataConflictError:
-                print("MetadataConflictError:", marker_file)
+                print("MetadataConflictError:", anchor_file)
                 pydist = None
-            return pydist
+            return sp_reference, pydist
 
         python_recs = []
-        for marker_file in non_conda_python_package_markers:
-            pydist = get_pydist(marker_file)
+        for anchor_file in non_conda_package_anchor_files:
+            sp_reference, pydist = get_pydist(anchor_file)
             if pydist is None:
                 continue
             # x.provides  =>  [u'skdata (0.0.4)']
@@ -253,13 +256,13 @@ class PrefixData(object):
             # TODO: normalize names against '.', '-', '_'
             # TODO: ensure that this dist is *actually* the dist that matches conda-meta
 
-            if marker_file.endswith(".egg-info"):
+            if anchor_file.endswith(".egg-info"):
                 paths_data = None
             else:
                 _paths_data = []
                 for _path, _hash, _size in pydist.list_installed_files():
                     if _hash:
-                        assert _hash.startswith('sha256='), (marker_file, _hash)
+                        assert _hash.startswith('sha256='), (anchor_file, _hash)
                         sha256 = _hash[7:]
                     else:
                         sha256 = None
@@ -280,29 +283,20 @@ class PrefixData(object):
             )
             # TODO: need to add python (with version?) to deps
 
-            package_type = PackageType.SHADOW_PIP_UPDATEABLE if depends else PackageType.SHADOW_PIP_FROZEN
-
-            python_rec = PythonRecord(
+            python_rec = PrefixRecord(
                 package_type=PackageType.SHADOW_PIP_FROZEN,
                 name=pydist.name.lower(),
                 version=pydist.version,
                 channel=Channel('pypi'),
                 subdir='pypi',
-                fn=basename(marker_file),
+                fn=sp_reference,
                 build='pypi_0',
                 build_number=0,
                 paths_data=paths_data,
-                depends=depends
+                depends=depends,
             )
             python_recs.append(python_rec)
             self.__prefix_records[python_rec.name] = python_rec
-
-
-class PythonRecord(PackageRef):
-
-    depends = ListField(string_types, default=())
-    paths_data = ComposableField(PathsData, required=False, nullable=True, default_in_dump=False)
-    package_type = EnumField(PackageType, required=False, nullable=True)
 
 
 def get_python_version_for_prefix(prefix):

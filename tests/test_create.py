@@ -564,9 +564,10 @@ class IntegrationTests(TestCase):
         with make_temp_env("python=3.5 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install --no-binary flask flask==0.10.1",
                        cwd=prefix, shell=True)
+            PrefixData._cache_.clear()
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
-            assert any(line.endswith("<pip>") for line in stdout_lines
+            assert any(line.endswith("pypi") for line in stdout_lines
                        if line.lower().startswith("flask"))
 
             # regression test for #5847
@@ -580,9 +581,10 @@ class IntegrationTests(TestCase):
         with make_temp_env("python=3.6 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install flask==0.10.1",
                        cwd=prefix, shell=True)
+            PrefixData._cache_.clear()
             stdout, stderr = run_command(Commands.LIST, prefix)
             stdout_lines = stdout.split('\n')
-            assert any(line.endswith("<pip>") for line in stdout_lines
+            assert any(line.endswith("pypi") for line in stdout_lines
                        if line.lower().startswith("flask"))
 
             # regression test for #3433

@@ -27,7 +27,7 @@ from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
-                                     StringField)
+                                     StringField, ValidationError)
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
 from ..exceptions import PathNotFoundError
@@ -179,6 +179,27 @@ class FilenameField(StringField):
             return self.unbox(instance, instance_type, fn)
 
 
+class PackageTypeField(EnumField):
+
+    def __init__(self):
+        super(PackageTypeField, self).__init__(PackageType, required=False, nullable=True,
+                                               default=None, default_in_dump=False)
+
+    def __get__(self, instance, instance_type):
+        val = super(PackageTypeField, self).__get__(instance, instance_type)
+        if val is None:
+            # look in noarch field
+            noarch_val = instance.noarch
+            if noarch_val:
+                type_map = {
+                    NoarchType.generic: PackageType.NOARCH_GENERIC,
+                    NoarchType.python: PackageType.NOARCH_PYTHON,
+                }
+                val = type_map[NoarchType.coerce(noarch_val)]
+                val = self.unbox(instance, instance_type, val)
+        return val
+
+
 class PathData(Entity):
     _path = StringField()
     prefix_placeholder = StringField(required=False, nullable=True, default=None,
@@ -257,7 +278,6 @@ class IndexJsonRecord(BasePackageRef):
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
 
     subdir = SubdirField()
-    # package_type = EnumField(NoarchType, required=False)  # previously noarch
     noarch = NoarchField(NoarchType, required=False, nullable=True, default=None,
                          default_in_dump=False)  # TODO: rename to package_type
     preferred_env = StringField(required=False, nullable=True, default=None, default_in_dump=False)
@@ -265,6 +285,7 @@ class IndexJsonRecord(BasePackageRef):
     license = StringField(required=False, nullable=True, default=None, default_in_dump=False)
     license_family = StringField(required=False, nullable=True, default=None,
                                  default_in_dump=False)
+    package_type = PackageTypeField()
 
     timestamp = TimestampField(required=False)
 
@@ -292,8 +313,6 @@ class PackageRecord(IndexJsonRecord, PackageRef):  # lgtm [py/conflicting-attrib
 
     date = StringField(required=False)
     size = IntegerField(required=False)
-
-    package_type = EnumField(PackageType, required=False, nullable=True)
 
     def __str__(self):
         return "%s/%s::%s==%s=%s" % (self.channel.canonical_name, self.subdir, self.name,
