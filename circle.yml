@@ -121,21 +121,6 @@ conda_build_test: &conda_build_test
           /opt/conda/bin/python -m conda.common.io
 
 
-activate_tests: &activate_tests
-  <<: *defaults
-  steps:
-    - checkout
-    - run:
-        name: activate tests
-        command: |
-          echo "auto_activate_base: false" >> ~/.condarc
-          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-          python -m conda._vendor.auxlib.packaging conda
-          conda deactivate
-          conda info
-          /opt/conda/bin/py.test $ADD_COV -m "installed" -v --shell=bash --shell=zsh
-
-
 flake8: &flake8
   <<: *defaults
   steps:
@@ -161,8 +146,6 @@ jobs:
     environment:
       - CONDA_BUILD: 3.0.21
       - CONDA_INSTRUMENTATION_ENABLED: true
-
-  activate tests: *activate_tests
   flake8: *flake8
 
 
@@ -174,5 +157,4 @@ workflows:
       - py36 main tests
       - py27 main tests
       - 3.0 conda-build
-      - activate tests
       - flake8
