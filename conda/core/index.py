@@ -74,17 +74,16 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
 def fetch_index(channel_urls, use_cache=False, index=None):
     log.debug('channel_urls=' + repr(channel_urls))
-    from ..models.dist import Dist
     index = {}
     for url in channel_urls:
         sd = SubdirData(Channel(url))
-        index.update((Dist(rec), rec) for rec in sd.iter_records())
+        index.update((rec, rec) for rec in sd.iter_records())
     return index
 
 
 def dist_str_in_index(index, dist_str):
-    from ..models.dist import Dist
-    return Dist(dist_str) in index
+    match_spec = MatchSpec.from_dist_str(dist_str)
+    return any(match_spec.match(prec) for prec in itervalues(index))
 
 
 def _supplement_index_with_prefix(index, prefix):

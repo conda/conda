@@ -218,6 +218,8 @@ class History(object):
         return the state, i.e. the set of distributions, for a given revision,
         defaults to latest (which is the same as the current state when
         the log file is up-to-date)
+
+        Returns a list of dist_strs
         """
         states = self.construct_states()
         if not states:
@@ -306,4 +308,4 @@ if __name__ == '__main__':
     # Don't use in context manager mode---it augments the history every time
     h = History(sys.prefix)
     pprint(h.get_user_requests())
-    print(h.get_requested_specs())
+    print(h.get_requested_specs_map())

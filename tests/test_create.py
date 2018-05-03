@@ -296,7 +296,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'flask=0.10.1')
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, '--force', 'flask=0.10')
+            run_command(Commands.INSTALL, prefix, '--force-reinstall', 'flask=0.10')
             assert package_is_installed(prefix, 'flask=0.10.1')
             assert package_is_installed(prefix, 'python=3')
 
@@ -312,7 +312,7 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.LIST, prefix, '--revisions')
             assert not stderr
             assert " (rev 4)\n" in stdout
-            assert not " (rev 5)\n" in stdout
+            assert " (rev 5)\n" not in stdout
 
             run_command(Commands.INSTALL, prefix, '--revision 0')
             assert not package_is_installed(prefix, 'flask')

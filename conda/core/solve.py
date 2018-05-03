@@ -419,7 +419,7 @@ class Solver(object):
         return solution
 
     def solve_for_diff(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
-                       force_remove=NULL, force_reinstall=False):
+                       force_remove=NULL, force_reinstall=NULL):
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -447,44 +447,13 @@ class Solver(object):
 
         """
         final_precs = self.solve_final_state(deps_modifier, prune, ignore_pinned, force_remove)
-        previous_records = IndexedSet(self._r.dependency_sort(
-            {prefix_rec.name: prefix_rec
-             for prefix_rec in PrefixData(self.prefix).iter_records()}
-        ))
-
-        unlink_precs = previous_records - final_precs
-        link_precs = final_precs - previous_records
-
-        def _add_to_unlink_and_link(rec):
-            link_precs.add(rec)
-            if prec in previous_records:
-                unlink_precs.add(rec)
-
-        # If force_reinstall is enabled, make sure any package in specs_to_add is unlinked then
-        # re-linked
-        if force_reinstall:
-            for spec in self.specs_to_add:
-                prec = next((rec for rec in final_precs if spec.match(rec)), None)
-                assert prec
-                _add_to_unlink_and_link(prec)
-
-        # add back 'noarch: python' packages to unlink and link if python version changes
-        python_spec = MatchSpec('python')
-        prev_python = next((rec for rec in previous_records if python_spec.match(rec)), None)
-        curr_python = next((rec for rec in final_precs if python_spec.match(rec)), None)
-        gmm = get_major_minor_version
-        if prev_python and curr_python and gmm(prev_python.version) != gmm(curr_python.version):
-            noarch_python_precs = (p for p in final_precs if p.noarch == NoarchType.python)
-            for prec in noarch_python_precs:
-                _add_to_unlink_and_link(prec)
-
-        unlink_precs = IndexedSet(reversed(sorted(unlink_precs,
-                                                  key=lambda x: previous_records.index(x))))
-        link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
+        unlink_precs, link_precs = diff_for_unlink_link_precs(
+            self.prefix, final_precs, specs_to_add=self.specs_to_add, force_reinstall=NULL
+        )
         return unlink_precs, link_precs
 
     def solve_for_transaction(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
-                              force_remove=NULL, force_reinstall=False):
+                              force_remove=NULL, force_reinstall=NULL):
         """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
 
@@ -609,6 +578,44 @@ def get_pinned_specs(prefix):
 
     return tuple(MatchSpec(s, optional=True) for s in
                  concatv(context.pinned_packages, from_file))
+
+
+def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reinstall=NULL):
+    assert isinstance(final_precs, IndexedSet)
+    final_precs = final_precs
+    previous_records = IndexedSet(PrefixGraph(PrefixData(prefix).iter_records()).graph)
+    force_reinstall = context.force_reinstall if force_reinstall is NULL else force_reinstall
+
+    unlink_precs = previous_records - final_precs
+    link_precs = final_precs - previous_records
+
+    def _add_to_unlink_and_link(rec):
+        link_precs.add(rec)
+        if prec in previous_records:
+            unlink_precs.add(rec)
+
+    # If force_reinstall is enabled, make sure any package in specs_to_add is unlinked then
+    # re-linked
+    if force_reinstall:
+        for spec in specs_to_add:
+            prec = next((rec for rec in final_precs if spec.match(rec)), None)
+            assert prec
+            _add_to_unlink_and_link(prec)
+
+    # add back 'noarch: python' packages to unlink and link if python version changes
+    python_spec = MatchSpec('python')
+    prev_python = next((rec for rec in previous_records if python_spec.match(rec)), None)
+    curr_python = next((rec for rec in final_precs if python_spec.match(rec)), None)
+    gmm = get_major_minor_version
+    if prev_python and curr_python and gmm(prev_python.version) != gmm(curr_python.version):
+        noarch_python_precs = (p for p in final_precs if p.noarch == NoarchType.python)
+        for prec in noarch_python_precs:
+            _add_to_unlink_and_link(prec)
+
+    unlink_precs = IndexedSet(reversed(sorted(unlink_precs,
+                                              key=lambda x: previous_records.index(x))))
+    link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
+    return unlink_precs, link_precs
 
 
 # NOTE: The remaining code in this module is being left for development reference until

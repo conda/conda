@@ -14,20 +14,23 @@ from logging import getLogger
 from os.path import abspath
 import sys
 
+from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context
 from .common.compat import itervalues, text_type
 from .common.io import env_var, time_recorder
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
-from .core.solve import get_pinned_specs
-from .exceptions import CondaIndexError, RemoveError
+from .core.solve import diff_for_unlink_link_precs, get_pinned_specs
+from .exceptions import CondaIndexError, PackagesNotFoundError, RemoveError
 from .history import History
 from .instructions import (CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK)
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
+from .models.match_spec import ChannelMatch
+from .models.prefix_graph import PrefixGraph
 from .models.records import PackageRecord
 from .models.version import normalized_version
 from .resolve import MatchSpec, Resolve, dashlist
@@ -343,38 +346,55 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
     #     return actions
 
 
+def _get_best_prec_match(precs):
+    assert precs
+    for chn in context.channels:
+        channel_matcher = ChannelMatch(chn)
+        prec_matches = tuple(prec for prec in precs if channel_matcher.match(prec.channel.name))
+        if prec_matches:
+            break
+    else:
+        prec_matches = precs
+    log.warn("Multiple packages found:%s", dashlist(prec_matches))
+    return prec_matches[0]
+
+
 def revert_actions(prefix, revision=-1, index=None):
     # TODO: If revision raise a revision error, should always go back to a safe revision
-    # change
     h = History(prefix)
+    # TODO: need a History method to get user-requested specs for revision number
+    #       Doing a revert right now messes up user-requested spec history.
+    #       Either need to wipe out history after ``revision``, or add the correct
+    #       history information to the new entry about to be created.
+    # TODO: This is wrong!!!!!!!!!!
     user_requested_specs = itervalues(h.get_requested_specs_map())
     try:
-        state = h.get_state(revision)
+        state = {MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)}
     except IndexError:
         raise CondaIndexError("no such revision: %d" % revision)
 
-    curr = h.get_state()
+    curr = {MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state()}
     if state == curr:
         return UnlinkLinkTransaction()
 
     _supplement_index_with_prefix(index, prefix)
-    r = Resolve(index)
 
-    state = r.dependency_sort({d.name: d for d in (Dist(s) for s in state)})
-    curr = set(Dist(s) for s in curr)
+    not_found_in_index_specs = set()
+    link_precs = set()
+    for spec in curr:
+        precs = tuple(prec for prec in itervalues(index) if spec.match(prec))
+        if not precs:
+            not_found_in_index_specs.add(spec)
+        elif len(precs) > 1:
+            link_precs.add(_get_best_prec_match(precs))
+        else:
+            link_precs.add(precs[0])
 
-    link_dists = tuple(d for d in state if not is_linked(prefix, d))
-    unlink_dists = set(curr) - set(state)
+    if not_found_in_index_specs:
+        raise PackagesNotFoundError(not_found_in_index_specs)
 
-    # check whether it is a safe revision
-    for dist in concatv(link_dists, unlink_dists):
-        if dist not in index:
-            from .exceptions import CondaRevisionError
-            msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
-            raise CondaRevisionError(msg)
-
-    unlink_precs = tuple(index[d] for d in unlink_dists)
-    link_precs = tuple(index[d] for d in link_dists)
+    final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
+    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
     stp = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs)
     txn = UnlinkLinkTransaction(stp)
     return txn
