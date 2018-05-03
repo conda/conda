@@ -22,7 +22,7 @@ from ..models.enums import PackageType, PathType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.records import (ComposableField, EnumField, ListField, PackageRef, PathDataV1,
-                              PathsData, PrefixRecord)
+                              PathsData, PrefixRecord, PathData)
 
 try:
     from cytoolz.itertoolz import concat, concatv
@@ -227,14 +227,17 @@ class PrefixData(object):
                 sp_reference = basename(anchor_file.rsplit('/', 1)[0])
                 dist_file = join(self.prefix_path, win_path_ok(anchor_file.rsplit('/', 1)[0]))
                 dist_cls = InstalledDistribution
+                package_type = PackageType.SHADOW_PYTHON_DIST_INFO
             elif anchor_file.endswith(".egg-info"):
                 sp_reference = basename(anchor_file)
                 dist_file = join(self.prefix_path, win_path_ok(anchor_file))
                 dist_cls = EggInfoDistribution
+                package_type = PackageType.SHADOW_PYTHON_EGG_INFO_FILE
             elif ".egg-info" in anchor_file:
                 sp_reference = basename(anchor_file.rsplit('/', 1)[0])
                 dist_file = join(self.prefix_path, win_path_ok(anchor_file.rsplit('/', 1)[0]))
                 dist_cls = EggInfoDistribution
+                package_type = PackageType.SHADOW_PYTHON_EGG_INFO_DIR
             else:
                 raise NotImplementedError()
             try:
@@ -242,11 +245,11 @@ class PrefixData(object):
             except MetadataConflictError:
                 print("MetadataConflictError:", anchor_file)
                 pydist = None
-            return sp_reference, pydist
+            return package_type, sp_reference, pydist
 
         python_recs = []
         for anchor_file in non_conda_package_anchor_files:
-            sp_reference, pydist = get_pydist(anchor_file)
+            package_type, sp_reference, pydist = get_pydist(anchor_file)
             if pydist is None:
                 continue
             # x.provides  =>  [u'skdata (0.0.4)']
@@ -256,9 +259,9 @@ class PrefixData(object):
             # TODO: normalize names against '.', '-', '_'
             # TODO: ensure that this dist is *actually* the dist that matches conda-meta
 
-            if anchor_file.endswith(".egg-info"):
+            if package_type == PackageType.SHADOW_PYTHON_EGG_INFO_FILE:
                 paths_data = None
-            else:
+            elif package_type == PackageType.SHADOW_PYTHON_DIST_INFO:
                 _paths_data = []
                 for _path, _hash, _size in pydist.list_installed_files():
                     if _hash:
@@ -269,11 +272,23 @@ class PrefixData(object):
                     _size = int(_size) if _size else None
                     _paths_data.append(PathDataV1(
                         _path=_path,
-                        path_type=PathType.hardlink,  # TODO
+                        path_type=PathType.hardlink,
                         sha256=sha256,
                         size_in_bytes=_size
                     ))
                 paths_data = PathsData(paths_version=1, paths=_paths_data)
+            elif package_type == PackageType.SHADOW_PYTHON_EGG_INFO_DIR:
+                _paths_data = []
+                # TODO: Don't use list_installed_files() here. Read SOURCES.txt directly.
+                for _path, _, _ in pydist.list_installed_files():
+                    _paths_data.append(PathData(
+                        _path=_path,
+                        path_type=PathType.hardlink,
+                    ))
+                paths_data = PathsData(paths_version=1, paths=_paths_data)
+            else:
+                raise NotImplementedError()
+
             # TODO: need to add entry points, "exports," and other files that might not be in RECORD
 
             depends = tuple(
@@ -284,7 +299,7 @@ class PrefixData(object):
             # TODO: need to add python (with version?) to deps
 
             python_rec = PrefixRecord(
-                package_type=PackageType.SHADOW_PIP_FROZEN,
+                package_type=package_type,
                 name=pydist.name.lower(),
                 version=pydist.version,
                 channel=Channel('pypi'),

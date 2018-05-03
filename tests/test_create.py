@@ -1245,12 +1245,28 @@ class IntegrationTests(TestCase):
             assert 'itsdangerous' in stdout
             assert not stderr
 
-            stdout, stderr = run_command(Commands.INSTALL, prefix, 'flask --dry-run --json', use_exception_handler=True)
+            stdout, stderr = run_command(Commands.INSTALL, prefix, 'flask --dry-run --json',
+                                         use_exception_handler=True)
             json_obj = json.loads(stdout)
             print(json_obj)
             assert any(rec["name"] == "flask" for rec in json_obj["actions"]["LINK"])
             assert not any(rec["name"] == "itsdangerous" for rec in json_obj["actions"]["LINK"])
             assert not stderr
+
+    def test_conda_pip_interop_pip_clobbers_conda(self):
+        # 1. conda install old six
+        # 2. pip install -U six
+        # 3. conda list shows new six and deletes old conda record
+        # 4. probably need to purge something with the history file too?
+        assert False
+
+    def test_conda_pip_interop_conda_updates_pip_package(self):
+        assert False
+
+    def test_conda_pip_interop_conda_doesnt_update_ancient_distutils_package(self):
+        # probably easiest just to use a conda package and remove the conda-meta record
+        assert False
+
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_1(self):
