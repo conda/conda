@@ -173,11 +173,11 @@ def make_temp_channel(packages):
 
     with make_temp_env(*package_reqs) as prefix:
         for package in packages:
-            assert package_is_installed(prefix, package)
+            assert package_is_installed(prefix, package.replace('-', '='))
         data = [p for p in PrefixData(prefix).iter_records() if p['name'] in package_names]
         run_command(Commands.REMOVE, prefix, *package_names)
         for package in packages:
-            assert not package_is_installed(prefix, package)
+            assert not package_is_installed(prefix, package.replace('-', '='))
         assert package_is_installed(prefix, 'python')
 
     repodata = {'info': {}, 'packages': {}}
@@ -682,12 +682,16 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'flask')
 
             # regression test for #2599
+            # ignore json files in conda-meta that don't conform to name-version-build.json
+            xz_prec = next(PrefixData(prefix).query("xz"))
+            dist_name = xz_prec.dist_str().split('::')[-1]
+            xz_prefix_data_json_path = join(prefix, 'conda-meta', dist_name + '.json')
+            copyfile(xz_prefix_data_json_path,
+                     join(prefix, 'conda-meta', 'xz.json'))
+            rm_rf(xz_prefix_data_json_path)
+            assert not lexists(xz_prefix_data_json_path)
             PrefixData._cache_ = {}
-            flask_metadata = glob(join(prefix, 'conda-meta', flask_fname[:-8] + '.json'))[-1]
-            bad_metadata = join(prefix, 'conda-meta', 'flask.json')
-            copyfile(flask_metadata, bad_metadata)
-            assert not package_is_installed(prefix, 'flask')
-            assert package_is_installed(prefix, 'flask=0')
+            assert not package_is_installed(prefix, 'xz')
 
     @pytest.mark.skipif(on_win, reason="windows python doesn't depend on readline")
     def test_update_with_pinned_packages(self):
