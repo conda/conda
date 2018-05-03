@@ -83,9 +83,10 @@ from .models.version import VersionOrder, normalized_version  # NOQA
 VersionOrder, normalized_version = VersionOrder, normalized_version  # NOQA
 
 import conda.base.context  # NOQA
-from .base.context import get_prefix, non_x86_linux_machines, sys_rc_path  # NOQA
+from .base.context import get_prefix, non_x86_linux_machines, reset_context, sys_rc_path  # NOQA
 non_x86_linux_machines, sys_rc_path = non_x86_linux_machines, sys_rc_path
 get_prefix = get_prefix
+reset_context = reset_context
 
 from ._vendor.auxlib.entity import EntityEncoder # NOQA
 EntityEncoder = EntityEncoder
@@ -105,6 +106,7 @@ root_dir = conda.base.context.context.root_prefix
 root_writable = conda.base.context.context.root_writable
 subdir = conda.base.context.context.subdir
 conda_private = conda.base.context.context.conda_private
+conda_build = conda.base.context.context.conda_build
 from .models.channel import get_conda_build_local_url  # NOQA
 get_rc_urls = lambda: list(conda.base.context.context.channels)
 get_local_urls = lambda: list(get_conda_build_local_url()) or []
@@ -126,6 +128,9 @@ PathType = PathType
 from .models.records import PackageRecord  # NOQA
 PackageRecord = IndexRecord = PackageRecord
 
+from .models.dist import Dist  # NOQA
+Dist = Dist
+
 from .compat import TemporaryDirectory  # NOQA
 TemporaryDirectory = TemporaryDirectory
 
@@ -134,6 +139,16 @@ ACTIVE_SUBPROCESSES, subprocess_call = ACTIVE_SUBPROCESSES, subprocess_call
 
 from .core.subdir_data import cache_fn_url  # NOQA
 cache_fn_url = cache_fn_url
+
+from .core.package_cache_data import ProgressiveFetchExtract  # NOQA
+ProgressiveFetchExtract = ProgressiveFetchExtract
+
+
+from .exceptions import CondaHTTPError, LinkError, LockError, NoPackagesFoundError, PaddingError  # NOQA
+from .exceptions import UnsatisfiableError  # NOQA
+CondaHTTPError, LinkError, LockError = CondaHTTPError, LinkError, LockError
+NoPackagesFoundError, PaddingError = NoPackagesFoundError, PaddingError
+UnsatisfiableError = UnsatisfiableError
 
 
 class Completer(object):  # pragma: no cover
