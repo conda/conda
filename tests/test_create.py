@@ -1236,6 +1236,23 @@ class IntegrationTests(TestCase):
                                          use_exception_handler=True)
             assert "not-a-real-package" in stderr
 
+    def test_conda_pip_interop_dependency_satisfied_by_pip(self):
+        with make_temp_env("python") as prefix:
+            check_call(PYTHON_BINARY + " -m pip install itsdangerous",
+                       cwd=prefix, shell=True)
+
+            PrefixData._cache_.clear()
+            stdout, stderr = run_command(Commands.LIST, prefix)
+            assert 'itsdangerous' in stdout
+            assert not stderr
+
+            stdout, stderr = run_command(Commands.INSTALL, prefix, 'flask --dry-run --json', use_exception_handler=True)
+            json_obj = json.loads(stdout)
+            print(json_obj)
+            assert any(rec["name"] == "flask" for rec in json_obj["actions"]["LINK"])
+            assert not any(rec["name"] == "itsdangerous" for rec in json_obj["actions"]["LINK"])
+            assert not stderr
+
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_1(self):
         with make_temp_env() as prefix:

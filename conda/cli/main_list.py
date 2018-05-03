@@ -26,12 +26,10 @@ def print_export_header(subdir):
 
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
-    for dist in sorted(installed, key=lambda x: x.quad[0].lower()):
-        name = dist.quad[0]
-        if pat and pat.search(name) is None:
+    for prefix_rec in sorted(installed, key=lambda x: x.name.lower()):
+        if pat and pat.search(str(prefix_rec)) is None:
             continue
-
-        yield dist
+        yield prefix_rec
 
 
 def list_packages(prefix, installed, regex=None, format='human',
@@ -84,12 +82,14 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
         if format == 'export':
             print_export_header(context.subdir)
 
-    installed = linked(prefix)
-    log.debug("installed conda packages:\n%s", installed)
-    if piplist and context.use_pip and format == 'human':
-        other_python = get_egg_info(prefix)
-        log.debug("other installed python packages:\n%s", other_python)
-        installed.update(other_python)
+    # installed = linked(prefix)
+    # log.debug("installed conda packages:\n%s", installed)
+    # if piplist and context.use_pip and format == 'human':
+    #     other_python = get_egg_info(prefix)
+    #     log.debug("other installed python packages:\n%s", other_python)
+    #     installed.update(other_python)
+
+    installed = tuple(PrefixData(prefix).iter_records())
 
     exitcode, output = list_packages(prefix, installed, regex, format=format,
                                      show_channel_urls=show_channel_urls)
