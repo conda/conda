@@ -425,6 +425,7 @@ class IntegrationTests(TestCase):
             self.assertEquals(stderr, '')
             self.assertIsInstance(stdout, str)
 
+    @pytest.mark.skipif(True, reason="pip 10 dropped --egg")
     def test_list_with_pip_egg(self):
         with make_temp_env("python=3.5 pip") as prefix:
             check_call(PYTHON_BINARY + " -m pip install --egg --no-binary flask flask==0.10.1",
