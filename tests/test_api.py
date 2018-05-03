@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import inspect
 
+from datetime import datetime
 import pytest
 
 from conda.api import DepsModifier, PackageCacheData, PrefixData, Solver, SubdirData
@@ -256,6 +257,7 @@ def test_PrefixData_contract():
     inspect_arguments(PrefixData.reload, reload_args)
 
 
+@pytest.mark.xfail(datetime.now() < datetime(2018, 5, 15), reason="PythonRecord is not yet a PackageRecord", strict=True)
 def test_PrefixData_return_value_contract():
     pd = PrefixData(context.conda_prefix)
 

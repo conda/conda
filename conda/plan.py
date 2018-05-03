@@ -28,6 +28,7 @@ from .instructions import (CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PRE
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
+from .models.records import PackageRecord
 from .models.version import normalized_version
 from .resolve import MatchSpec, Resolve, dashlist
 from .utils import human_bytes
@@ -44,9 +45,8 @@ def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
-    for dist, extra in dists_extras:
-        name, version, build, _ = dist.quad
-        line = fmt % (name + '-' + version, build)
+    for prec, extra in dists_extras:
+        line = fmt % (prec.name + '-' + prec.version, prec.build)
         if extra:
             line += extra
         print(line)
@@ -91,18 +91,17 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         print("\nThe following packages will be downloaded:\n")
 
         disp_lst = []
-        for dist in actions[FETCH]:
-            dist = Dist(dist)
-            info = index[dist]
-            extra = '%15s' % human_bytes(info['size'])
-            schannel = channel_filt(channel_str(info))
+        for prec in actions[FETCH]:
+            assert isinstance(prec, PackageRecord)
+            extra = '%15s' % human_bytes(prec['size'])
+            schannel = channel_filt(prec.channel.canonical_name)
             if schannel:
                 extra += '  ' + schannel
-            disp_lst.append((dist, extra))
+            disp_lst.append((prec, extra))
         print_dists(disp_lst)
 
         if index and len(actions[FETCH]) > 1:
-            num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[FETCH])
+            num_bytes = sum(prec['size'] for prec in actions[FETCH])
             print(' ' * 4 + '-' * 60)
             print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
 
@@ -113,23 +112,19 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
     records = defaultdict(lambda: list((None, None)))
     linktypes = {}
 
-    for arg in actions.get(LINK, []):
-        dist = Dist(arg)
-        rec = index[dist]
-        pkg = rec['name']
-        channels[pkg][1] = channel_str(rec)
-        packages[pkg][1] = rec['version'] + '-' + rec['build']
-        records[pkg][1] = rec
+    for prec in actions.get(LINK, []):
+        pkg = prec['name']
+        channels[pkg][1] = channel_str(prec)
+        packages[pkg][1] = prec['version'] + '-' + prec['build']
+        records[pkg][1] = prec
         linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
-        features[pkg][1] = ','.join(rec.get('features') or ())
-    for arg in actions.get(UNLINK, []):
-        dist = Dist(arg)
-        rec = index[dist]
-        pkg = rec['name']
-        channels[pkg][0] = channel_str(rec)
-        packages[pkg][0] = rec['version'] + '-' + rec['build']
-        records[pkg][0] = rec
-        features[pkg][0] = ','.join(rec.get('features') or ())
+        features[pkg][1] = ','.join(prec.get('features') or ())
+    for prec in actions.get(UNLINK, []):
+        pkg = prec['name']
+        channels[pkg][0] = channel_str(prec)
+        packages[pkg][0] = prec['version'] + '-' + prec['build']
+        records[pkg][0] = prec
+        features[pkg][0] = ','.join(prec.get('features') or ())
 
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
