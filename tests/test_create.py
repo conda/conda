@@ -685,15 +685,17 @@ class IntegrationTests(TestCase):
 
             # regression test for #2599
             # ignore json files in conda-meta that don't conform to name-version-build.json
-            xz_prec = next(PrefixData(prefix).query("xz"))
-            dist_name = xz_prec.dist_str().split('::')[-1]
-            xz_prefix_data_json_path = join(prefix, 'conda-meta', dist_name + '.json')
-            copyfile(xz_prefix_data_json_path,
-                     join(prefix, 'conda-meta', 'xz.json'))
-            rm_rf(xz_prefix_data_json_path)
-            assert not lexists(xz_prefix_data_json_path)
-            PrefixData._cache_ = {}
-            assert not package_is_installed(prefix, 'xz')
+            if not on_win:
+                # xz is only a python dependency on unix
+                xz_prec = next(PrefixData(prefix).query("xz"))
+                dist_name = xz_prec.dist_str().split('::')[-1]
+                xz_prefix_data_json_path = join(prefix, 'conda-meta', dist_name + '.json')
+                copyfile(xz_prefix_data_json_path,
+                         join(prefix, 'conda-meta', 'xz.json'))
+                rm_rf(xz_prefix_data_json_path)
+                assert not lexists(xz_prefix_data_json_path)
+                PrefixData._cache_ = {}
+                assert not package_is_installed(prefix, 'xz')
 
     @pytest.mark.skipif(on_win, reason="windows python doesn't depend on readline")
     def test_update_with_pinned_packages(self):

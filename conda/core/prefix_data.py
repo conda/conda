@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from glob import glob
 from logging import getLogger
 from os import listdir
-from os.path import basename, isdir, isfile, join, lexists
+from os.path import basename, isdir, isfile, join, lexists, dirname
 
 from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
 from ..base.context import context
@@ -236,8 +236,8 @@ class PrefixData(object):
 
         def get_pydist(anchor_file):
             if ".dist-info" in anchor_file:
-                sp_reference = basename(anchor_file.rsplit('/', 1)[0])
-                dist_file = join(self.prefix_path, win_path_ok(anchor_file.rsplit('/', 1)[0]))
+                sp_reference = basename(dirname(anchor_file))
+                dist_file = join(self.prefix_path, win_path_ok(dirname(anchor_file)))
                 dist_cls = InstalledDistribution
                 package_type = PackageType.SHADOW_PYTHON_DIST_INFO
             elif anchor_file.endswith(".egg-info"):
@@ -246,8 +246,8 @@ class PrefixData(object):
                 dist_cls = EggInfoDistribution
                 package_type = PackageType.SHADOW_PYTHON_EGG_INFO_FILE
             elif ".egg-info" in anchor_file:
-                sp_reference = basename(anchor_file.rsplit('/', 1)[0])
-                dist_file = join(self.prefix_path, win_path_ok(anchor_file.rsplit('/', 1)[0]))
+                sp_reference = basename(dirname(anchor_file))
+                dist_file = join(self.prefix_path, win_path_ok(dirname(anchor_file)))
                 dist_cls = EggInfoDistribution
                 package_type = PackageType.SHADOW_PYTHON_EGG_INFO_DIR
             elif anchor_file.endswith(".egg-link"):
