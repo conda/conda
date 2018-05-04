@@ -30,7 +30,6 @@ class PrefixGraph(object):
 
     def __init__(self, records, specs=()):
         records = tuple(records)
-        assert all(isinstance(prec, PackageRecord) for prec in records), records
         specs = set(specs)
         graph = {}  # Dict[PrefixRecord, Set[PrefixRecord]]
         self.spec_matches = spec_matches = {}  # Dict[PrefixRecord, Set[MatchSpec]]

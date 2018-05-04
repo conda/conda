@@ -37,8 +37,6 @@ def dashlist(iterable, indent=2):
 class Resolve(object):
 
     def __init__(self, index, sort=False, processed=False, channels=()):
-        assert all(isinstance(prec, PackageRecord) for prec in itervalues(index))
-        assert all(isinstance(prec, PackageRecord) for prec in iterkeys(index))
         self.index = index
 
         self.channels = channels
@@ -100,7 +98,6 @@ class Resolve(object):
                     any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
 
         def v_fkey_(prec):
-            assert isinstance(prec, PackageRecord)
             val = filter.get(prec)
             if val is None:
                 filter[prec] = True
@@ -135,7 +132,6 @@ class Resolve(object):
             names.add(spec.name)
             if self.valid(spec, filter, optional):
                 return
-            assert isinstance(spec, MatchSpec)
             precs = self.find_matches(spec)
             found = False
             for prec in precs:
@@ -358,7 +354,6 @@ class Resolve(object):
                         if 'track_features' not in ms:
                             slist.append(ms)
         self._reduced_index_cache[cache_key] = reduced_index
-        assert all(isinstance(prec, PackageRecord) for prec in reduced_index)
         return reduced_index
 
     def match_any(self, mss, prec):
@@ -370,7 +365,6 @@ class Resolve(object):
 
     def find_matches(self, ms):
         # type: (MatchSpec) -> List[PackageRecord]
-        assert isinstance(ms, MatchSpec)
         res = self.find_matches_.get(ms, None)
         if res is None:
             if ms.get_exact_value('name'):
@@ -384,12 +378,10 @@ class Resolve(object):
                 res = self.index.values()
             res = [p for p in res if self.match(ms, p)]
             self.find_matches_[ms] = res
-        assert all(isinstance(prec, PackageRecord) for prec in res)
         return res
 
     def ms_depends(self, prec):
         # type: (PackageRecord) -> List[MatchSpec]
-        assert isinstance(prec, PackageRecord)
         deps = self.ms_depends_.get(prec)
         if deps is None:
             deps = [MatchSpec(d) for d in prec.combined_depends]
@@ -578,7 +570,6 @@ class Resolve(object):
             #    so composite sort key).  Later entries in the list are, by definition,
             #    greater in some way, so simply comparing with != suffices.
             for version_key, prec in pkgs:
-                assert isinstance(prec, PackageRecord)
                 if targets and any(prec == t for t in targets):
                     continue
                 if pkey is None:
@@ -614,7 +605,6 @@ class Resolve(object):
     def dependency_sort(self, must_have):
         # type: (Dict[package_name, PackageRecord]) -> List[PackageRecord]
         assert isinstance(must_have, dict)
-        assert all(isinstance(prec, PackageRecord) for prec in itervalues(must_have))
 
         digraph = {}  # Dict[package_name, Set[dependent_package_names]]
         for package_name, prec in iteritems(must_have):
@@ -646,11 +636,9 @@ class Resolve(object):
         result = [must_have.pop(key) for key in sorted_keys if key in must_have]
         # Take any key that were not sorted
         result.extend(must_have.values())
-        assert all(isinstance(prec, PackageRecord) for prec in result)
         return result
 
     def environment_is_consistent(self, installed):
-        assert all(isinstance(prec, PackageRecord) for prec in installed)
         log.debug('Checking if the current environment is consistent')
         if not installed:
             return None, []
@@ -685,7 +673,6 @@ class Resolve(object):
             return specs
 
     def bad_installed(self, installed, new_specs):
-        assert all(isinstance(prec, PackageRecord) for prec in installed)
         log.debug('Checking if the current environment is consistent')
         if not installed:
             return None, []
@@ -726,18 +713,14 @@ class Resolve(object):
                 log.debug('Limiting solver to the following packages: %s', ', '.join(limit))
         if xtra:
             log.debug('Packages to be preserved: %s', xtra)
-        assert all(isinstance(prec, PackageRecord) for prec in xtra or ())
         return limit, xtra
 
     def restore_bad(self, pkgs, preserve):
         if preserve:
-            assert all(isinstance(prec, PackageRecord) for prec in pkgs)
-            assert all(isinstance(prec, PackageRecord) for prec in preserve)
             sdict = {prec.name: prec for prec in pkgs}
             pkgs.extend(p for p in preserve if p.name not in sdict)
 
     def install_specs(self, specs, installed, update_deps=True):
-        assert all(isinstance(prec, PackageRecord) for prec in installed)
         specs = list(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
@@ -762,16 +745,12 @@ class Resolve(object):
         return specs, preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
-        if installed:
-            assert all(isinstance(prec, PackageRecord) for prec in installed)
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
         pkgs = self.solve(specs, returnall=returnall, _remove=False)
         self.restore_bad(pkgs, preserve)
-        assert all(isinstance(prec, PackageRecord) for prec in pkgs)
         return pkgs
 
     def remove_specs(self, specs, installed):
-        assert all(isinstance(prec, PackageRecord) for prec in installed)
         nspecs = []
         # There's an imperfect thing happening here. "specs" nominally contains
         # a list of package names or track_feature values to be removed. But
@@ -804,11 +783,9 @@ class Resolve(object):
         return nspecs, preserve
 
     def remove(self, specs, installed):
-        assert all(isinstance(prec, PackageRecord) for prec in installed)
         specs, preserve = self.remove_specs(specs, installed)
         pkgs = self.solve(specs, _remove=True)
         self.restore_bad(pkgs, preserve)
-        assert all(isinstance(prec, PackageRecord) for prec in pkgs)
         return pkgs
 
     @time_recorder("resolve_solve")
