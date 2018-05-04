@@ -258,92 +258,11 @@ def add_unlink(actions, dist):
     actions[UNLINK].append(dist)
 
 
-# force_linked_actions has now been folded into this function, and is enabled by
-# supplying an index and setting force=True
-def ensure_linked_actions(dists, prefix, index=None, force=False,
-                          always_copy=False):  # pragma: no cover
-    assert all(isinstance(d, Dist) for d in dists)
-    from .exports import is_linked
-    actions = defaultdict(list)
-    actions[PREFIX] = prefix
-    actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,
-                           RM_EXTRACTED, EXTRACT,
-                           UNLINK, LINK, SYMLINK_CONDA)
-
-    for dist in dists:
-        if not force and is_linked(prefix, dist):
-            continue
-        actions[LINK].append(dist)
-    return actions
-
-
 # -------------------------------------------------------------------
 
 
 def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
     return
-
-
-def _remove_actions(prefix, specs, index, force=False, pinned=True):  # pragma: no cover
-    from .exports import linked_data
-    r = Resolve(index)
-    linked = linked_data(prefix)
-    linked_dists = [d for d in linked]
-
-    if force:
-        mss = list(map(MatchSpec, specs))
-        nlinked = {dist.name: dist
-                   for dist in linked_dists
-                   if not any(r.match(ms, dist) for ms in mss)}
-    else:
-        add_defaults_to_specs(r, linked_dists, specs, update=True)
-        nlinked = {dist.name: dist
-                   for dist in (Dist(fn) for fn in r.remove(specs, set(linked_dists)))}
-
-    if pinned:
-        pinned_specs = get_pinned_specs(prefix)
-        log.debug("Pinned specs=%s", pinned_specs)
-
-    linked = {dist.name: dist for dist in linked_dists}
-
-    actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
-    for old_dist in reversed(r.dependency_sort(linked)):
-        # dist = old_fn + '.tar.bz2'
-        name = old_dist.name
-        if old_dist == nlinked.get(name):
-            continue
-        if pinned and any(r.match(ms, old_dist) for ms in pinned_specs):
-            msg = "Cannot remove %s because it is pinned. Use --no-pin to override."
-            raise RemoveError(msg % old_dist.to_filename())
-        if (abspath(prefix) == sys.prefix and name == 'conda' and name not in nlinked
-                and not context.force):
-            if any(s.split(' ', 1)[0] == 'conda' for s in specs):
-                raise RemoveError("'conda' cannot be removed from the base environment")
-            else:
-                raise RemoveError("Error: this 'remove' command cannot be executed because it\n"
-                                  "would require removing 'conda' dependencies")
-        add_unlink(actions, old_dist)
-    actions['SPECS'].extend(specs)
-    actions['ACTION'] = 'REMOVE'
-    return actions
-
-
-def remove_actions(prefix, specs, index, force=False, pinned=True):
-    return _remove_actions(prefix, specs, index, force, pinned)
-    # TODO: can't do this yet because   py.test tests/test_create.py -k test_remove_features
-    # if force:
-    #     return _remove_actions(prefix, specs, index, force, pinned)
-    # else:
-    #     specs = set(MatchSpec(s) for s in specs)
-    #     unlink_dists, link_dists = solve_for_actions(prefix, get_resolve_object(index.copy(), prefix),  # NOQA
-    #                                                  specs_to_remove=specs)
-    #
-    #     actions = get_blank_actions(prefix)
-    #     actions['UNLINK'].extend(unlink_dists)
-    #     actions['LINK'].extend(link_dists)
-    #     actions['SPECS'].extend(specs)
-    #     actions['ACTION'] = 'REMOVE'
-    #     return actions
 
 
 def _get_best_prec_match(precs):
