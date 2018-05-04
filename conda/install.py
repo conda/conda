@@ -26,8 +26,9 @@ from os import chmod, makedirs, stat
 from os.path import dirname, isdir, isfile, join, normcase, normpath
 import sys
 
+from conda.models.enums import PackageType
 from .base.constants import PREFIX_PLACEHOLDER
-from .common.compat import itervalues, on_win, open
+from .common.compat import itervalues, on_win, open, iteritems
 from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
 from .models.dist import Dist
 from .models.match_spec import MatchSpec
@@ -165,7 +166,9 @@ def linked(prefix, ignore_channels=False):
     """
     Return the Dists of linked packages in prefix.
     """
-    return set(linked_data(prefix, ignore_channels=ignore_channels))
+    conda_package_types = PackageType.conda_package_types()
+    ld = iteritems(linked_data(prefix, ignore_channels=ignore_channels))
+    return set(dist for dist, prefix_rec in ld if prefix_rec.package_type in conda_package_types)
 
 
 # exports

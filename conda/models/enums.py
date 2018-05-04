@@ -130,6 +130,14 @@ class PackageType(Enum):
     SHADOW_PYTHON_EGG_INFO_FILE = 'shadow_python_egg_info_file'
     SHADOW_PYTHON_EGG_LINK = 'shadow_python_egg_link'
 
+    @staticmethod
+    def conda_package_types():
+        return {
+            None,
+            PackageType.NOARCH_GENERIC,
+            PackageType.NOARCH_PYTHON,
+        }
+
 
 class NoarchType(Enum):
     generic = 'generic'
