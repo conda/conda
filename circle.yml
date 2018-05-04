@@ -139,10 +139,10 @@ conda_build_test: &conda_build_test
           /opt/conda/bin/python -m conda.common.io
 
     - run:
-      name: conda-build conda
-      command: |
-        eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-        conda build ~/conda/conda.recipe
+        name: conda-build conda
+        command: |
+          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+          conda build ~/conda/conda.recipe
 
 
 flake8: &flake8
