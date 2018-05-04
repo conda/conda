@@ -34,7 +34,6 @@ from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
-from ..models.dist import Dist
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord, PackageRef
 
@@ -51,7 +50,7 @@ except ImportError:  # pragma: no cover
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderrlog')
 
-REPODATA_PICKLE_VERSION = 18
+REPODATA_PICKLE_VERSION = 24
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
 
@@ -148,7 +147,6 @@ class SubdirData(object):
         _internal_state = self._load()
         self._internal_state = _internal_state
         self._package_records = _internal_state['_package_records']
-        self._package_dists = _internal_state['_package_dists']  # only needed as an optimization for conda-build  # NOQA
         self._names_index = _internal_state['_names_index']
         self._track_features_index = _internal_state['_track_features_index']
         self._loaded = True
@@ -158,11 +156,6 @@ class SubdirData(object):
         if not self._loaded:
             self.load()
         return iter(self._package_records)
-
-    def iter_dists_records(self):
-        if not self._loaded:
-            self.load()
-        return zip(self._package_dists, self._package_records)
 
     def _load(self):
         try:
@@ -175,7 +168,6 @@ class SubdirData(object):
                           self.url_w_subdir, self.cache_path_json)
                 return {
                     '_package_records': (),
-                    '_package_dists': (),
                     '_names_index': defaultdict(list),
                     '_track_features_index': defaultdict(list),
                 }
@@ -311,7 +303,6 @@ class SubdirData(object):
         schannel = self.channel.canonical_name
 
         self._package_records = _package_records = []
-        self._package_dists = _package_dists = []  # creating and caching these here is an optimization for conda-build  # NOQA
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
@@ -322,7 +313,6 @@ class SubdirData(object):
             'cache_path_base': self.cache_path_base,
 
             '_package_records': _package_records,
-            '_package_dists': _package_dists,
             '_names_index': _names_index,
             '_track_features_index': _track_features_index,
 
@@ -353,7 +343,6 @@ class SubdirData(object):
             package_record = PackageRecord(**info)
 
             _package_records.append(package_record)
-            _package_dists.append(Dist(package_record))
             _names_index[package_record.name].append(package_record)
             for ftr_name in package_record.track_features:
                 _track_features_index[ftr_name].append(package_record)
@@ -589,14 +578,6 @@ def make_feature_record(feature_name):
         build_number=0,
         fn=pkg_name,
     )
-
-
-def collect_all_repodata_as_index(use_cache, channel_urls):
-    index = {}
-    for url in channel_urls:
-        sd = SubdirData(Channel(url))
-        index.update(sd.iter_dists_records())
-    return index
 
 
 def cache_fn_url(url):

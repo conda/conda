@@ -557,7 +557,7 @@ class EnumField(Field):
             return None
         try:
             # try to box using val as an Enum name
-            return val if isinstance(val, self._type) else self._type(val)
+            return self._type(val)
         except ValueError as e1:
             try:
                 # try to box using val as an Enum value

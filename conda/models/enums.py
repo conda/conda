@@ -122,9 +122,21 @@ class LeasedPathType(Enum):
 class PackageType(Enum):
     NOARCH_GENERIC = 'noarch_generic'
     NOARCH_PYTHON = 'noarch_python'
-    NOARCH_PRELINK_PYTHON = 'noarch_prelink_python'
     SHADOW_PRIVATE_ENV = 'shadow_private_env'
-    SHADOW_PIP = 'shadow_pip'
+    # SHADOW_PIP_FROZEN = 'shadow_pip_frozen'  # insufficient information to modify the package
+    # SHADOW_PIP_UPDATEABLE = 'shadow_pip_updateable'  # sufficient information to fully remove the package on disk (e.g. ALL paths owned by package are known), so that it can be replaced with a conda package
+    SHADOW_PYTHON_DIST_INFO = 'shadow_python_dist_info'
+    SHADOW_PYTHON_EGG_INFO_DIR = 'shadow_python_egg_info_dir'
+    SHADOW_PYTHON_EGG_INFO_FILE = 'shadow_python_egg_info_file'
+    SHADOW_PYTHON_EGG_LINK = 'shadow_python_egg_link'
+
+    @staticmethod
+    def conda_package_types():
+        return {
+            None,
+            PackageType.NOARCH_GENERIC,
+            PackageType.NOARCH_PYTHON,
+        }
 
 
 class NoarchType(Enum):

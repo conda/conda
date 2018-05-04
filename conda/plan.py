@@ -14,21 +14,24 @@ from logging import getLogger
 from os.path import abspath
 import sys
 
+from ._vendor.boltons.setutils import IndexedSet
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context
 from .common.compat import itervalues, text_type
 from .common.io import env_var, time_recorder
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
-from .core.prefix_data import is_linked, linked_data
-from .core.solve import get_pinned_specs
-from .exceptions import CondaIndexError, RemoveError
+from .core.solve import diff_for_unlink_link_precs, get_pinned_specs
+from .exceptions import CondaIndexError, PackagesNotFoundError, RemoveError
 from .history import History
 from .instructions import (CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
                            RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK)
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
+from .models.match_spec import ChannelMatch
+from .models.prefix_graph import PrefixGraph
+from .models.records import PackageRecord
 from .models.version import normalized_version
 from .resolve import MatchSpec, Resolve, dashlist
 from .utils import human_bytes
@@ -45,9 +48,8 @@ def print_dists(dists_extras):
     fmt = "    %-27s|%17s"
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
-    for dist, extra in dists_extras:
-        name, version, build, _ = dist.quad
-        line = fmt % (name + '-' + version, build)
+    for prec, extra in dists_extras:
+        line = fmt % (prec.name + '-' + prec.version, prec.build)
         if extra:
             line += extra
         print(line)
@@ -92,18 +94,17 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         print("\nThe following packages will be downloaded:\n")
 
         disp_lst = []
-        for dist in actions[FETCH]:
-            dist = Dist(dist)
-            info = index[dist]
-            extra = '%15s' % human_bytes(info['size'])
-            schannel = channel_filt(channel_str(info))
+        for prec in actions[FETCH]:
+            assert isinstance(prec, PackageRecord)
+            extra = '%15s' % human_bytes(prec['size'])
+            schannel = channel_filt(prec.channel.canonical_name)
             if schannel:
                 extra += '  ' + schannel
-            disp_lst.append((dist, extra))
+            disp_lst.append((prec, extra))
         print_dists(disp_lst)
 
         if index and len(actions[FETCH]) > 1:
-            num_bytes = sum(index[Dist(dist)]['size'] for dist in actions[FETCH])
+            num_bytes = sum(prec['size'] for prec in actions[FETCH])
             print(' ' * 4 + '-' * 60)
             print(" " * 43 + "Total: %14s" % human_bytes(num_bytes))
 
@@ -114,23 +115,21 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
     records = defaultdict(lambda: list((None, None)))
     linktypes = {}
 
-    for arg in actions.get(LINK, []):
-        dist = Dist(arg)
-        rec = index[dist]
-        pkg = rec['name']
-        channels[pkg][1] = channel_str(rec)
-        packages[pkg][1] = rec['version'] + '-' + rec['build']
-        records[pkg][1] = rec
+    for prec in actions.get(LINK, []):
+        assert isinstance(prec, PackageRecord)
+        pkg = prec['name']
+        channels[pkg][1] = channel_str(prec)
+        packages[pkg][1] = prec['version'] + '-' + prec['build']
+        records[pkg][1] = prec
         linktypes[pkg] = LinkType.hardlink  # TODO: this is a lie; may have to give this report after UnlinkLinkTransaction.verify()  # NOQA
-        features[pkg][1] = ','.join(rec.get('features') or ())
-    for arg in actions.get(UNLINK, []):
-        dist = Dist(arg)
-        rec = index[dist]
-        pkg = rec['name']
-        channels[pkg][0] = channel_str(rec)
-        packages[pkg][0] = rec['version'] + '-' + rec['build']
-        records[pkg][0] = rec
-        features[pkg][0] = ','.join(rec.get('features') or ())
+        features[pkg][1] = ','.join(prec.get('features') or ())
+    for prec in actions.get(UNLINK, []):
+        assert isinstance(prec, PackageRecord)
+        pkg = prec['name']
+        channels[pkg][0] = channel_str(prec)
+        packages[pkg][0] = prec['version'] + '-' + prec['build']
+        records[pkg][0] = prec
+        features[pkg][0] = ','.join(prec.get('features') or ())
 
     new = {p for p in packages if not packages[p][0]}
     removed = {p for p in packages if not packages[p][1]}
@@ -264,6 +263,7 @@ def add_unlink(actions, dist):
 def ensure_linked_actions(dists, prefix, index=None, force=False,
                           always_copy=False):  # pragma: no cover
     assert all(isinstance(d, Dist) for d in dists)
+    from .exports import is_linked
     actions = defaultdict(list)
     actions[PREFIX] = prefix
     actions['op_order'] = (CHECK_FETCH, RM_FETCHED, FETCH, CHECK_EXTRACT,
@@ -285,30 +285,31 @@ def add_defaults_to_specs(r, linked, specs, update=False, prefix=None):
 
 
 def _remove_actions(prefix, specs, index, force=False, pinned=True):  # pragma: no cover
+    from .exports import linked_data
     r = Resolve(index)
     linked = linked_data(prefix)
     linked_dists = [d for d in linked]
 
     if force:
         mss = list(map(MatchSpec, specs))
-        nlinked = {r.package_name(dist): dist
+        nlinked = {dist.name: dist
                    for dist in linked_dists
                    if not any(r.match(ms, dist) for ms in mss)}
     else:
         add_defaults_to_specs(r, linked_dists, specs, update=True)
-        nlinked = {r.package_name(dist): dist
+        nlinked = {dist.name: dist
                    for dist in (Dist(fn) for fn in r.remove(specs, set(linked_dists)))}
 
     if pinned:
         pinned_specs = get_pinned_specs(prefix)
         log.debug("Pinned specs=%s", pinned_specs)
 
-    linked = {r.package_name(dist): dist for dist in linked_dists}
+    linked = {dist.name: dist for dist in linked_dists}
 
     actions = ensure_linked_actions(r.dependency_sort(nlinked), prefix)
     for old_dist in reversed(r.dependency_sort(linked)):
         # dist = old_fn + '.tar.bz2'
-        name = r.package_name(old_dist)
+        name = old_dist.name
         if old_dist == nlinked.get(name):
             continue
         if pinned and any(r.match(ms, old_dist) for ms in pinned_specs):
@@ -345,38 +346,51 @@ def remove_actions(prefix, specs, index, force=False, pinned=True):
     #     return actions
 
 
+def _get_best_prec_match(precs):
+    assert precs
+    for chn in context.channels:
+        channel_matcher = ChannelMatch(chn)
+        prec_matches = tuple(prec for prec in precs if channel_matcher.match(prec.channel.name))
+        if prec_matches:
+            break
+    else:
+        prec_matches = precs
+    log.warn("Multiple packages found:%s", dashlist(prec_matches))
+    return prec_matches[0]
+
+
 def revert_actions(prefix, revision=-1, index=None):
     # TODO: If revision raise a revision error, should always go back to a safe revision
-    # change
     h = History(prefix)
+    # TODO: need a History method to get user-requested specs for revision number
+    #       Doing a revert right now messes up user-requested spec history.
+    #       Either need to wipe out history after ``revision``, or add the correct
+    #       history information to the new entry about to be created.
+    # TODO: This is wrong!!!!!!!!!!
     user_requested_specs = itervalues(h.get_requested_specs_map())
     try:
-        state = h.get_state(revision)
+        target_state = {MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)}
     except IndexError:
         raise CondaIndexError("no such revision: %d" % revision)
 
-    curr = h.get_state()
-    if state == curr:
-        return UnlinkLinkTransaction()
-
     _supplement_index_with_prefix(index, prefix)
-    r = Resolve(index)
 
-    state = r.dependency_sort({d.name: d for d in (Dist(s) for s in state)})
-    curr = set(Dist(s) for s in curr)
+    not_found_in_index_specs = set()
+    link_precs = set()
+    for spec in target_state:
+        precs = tuple(prec for prec in itervalues(index) if spec.match(prec))
+        if not precs:
+            not_found_in_index_specs.add(spec)
+        elif len(precs) > 1:
+            link_precs.add(_get_best_prec_match(precs))
+        else:
+            link_precs.add(precs[0])
 
-    link_dists = tuple(d for d in state if not is_linked(prefix, d))
-    unlink_dists = set(curr) - set(state)
+    if not_found_in_index_specs:
+        raise PackagesNotFoundError(not_found_in_index_specs)
 
-    # check whether it is a safe revision
-    for dist in concatv(link_dists, unlink_dists):
-        if dist not in index:
-            from .exceptions import CondaRevisionError
-            msg = "Cannot revert to {}, since {} is not in repodata".format(revision, dist)
-            raise CondaRevisionError(msg)
-
-    unlink_precs = tuple(index[d] for d in unlink_dists)
-    link_precs = tuple(index[d] for d in link_dists)
+    final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
+    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
     stp = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs)
     txn = UnlinkLinkTransaction(stp)
     return txn
@@ -537,7 +551,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
         solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
         if index:
-            solver._index = index
+            solver._index = {prec: prec for prec in itervalues(index)}
         txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
         prefix_setup = txn.prefix_setups[prefix]
         actions = get_blank_actions(prefix)

@@ -13,10 +13,10 @@ import warnings
 
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .common.compat import ensure_text_type, iteritems, open, text_type
-from .core.prefix_data import PrefixData, linked
+from .core.prefix_data import PrefixData
 from .exceptions import CondaFileIOError, CondaHistoryError
 from .gateways.disk.update import touch
-from .models.dist import Dist
+from .models.dist import dist_str_to_quad
 from .resolve import MatchSpec
 
 try:
@@ -46,8 +46,7 @@ def pretty_diff(diff):
     removed = {}
     for s in diff:
         fn = s[1:]
-        dist = Dist(fn)
-        name, version, _, channel = dist.quad
+        name, version, _, channel = dist_str_to_quad(fn)
         if channel != DEFAULTS_CHANNEL_NAME:
             version += ' (%s)' % channel
         if s.startswith('-'):
@@ -101,7 +100,8 @@ class History(object):
                 warnings.warn("Error in %s: %s" % (self.path, e),
                               CondaHistoryWarning)
                 return
-            curr = set(map(str, linked(self.prefix)))
+            pd = PrefixData(self.prefix)
+            curr = set(prefix_rec.dist_str() for prefix_rec in pd.iter_records())
             self.write_changes(last, curr)
         except IOError as e:
             if e.errno == errno.EACCES:
@@ -218,6 +218,8 @@ class History(object):
         return the state, i.e. the set of distributions, for a given revision,
         defaults to latest (which is the same as the current state when
         the log file is up-to-date)
+
+        Returns a list of dist_strs
         """
         states = self.construct_states()
         if not states:
@@ -249,7 +251,7 @@ class History(object):
             removed = {}
             if is_diff(content):
                 for pkg in content:
-                    name, version, build, channel = Dist(pkg[1:]).quad
+                    name, version, build, channel = dist_str_to_quad(pkg[1:])
                     if pkg.startswith('+'):
                         added[name.lower()] = (version, build, channel)
                     elif pkg.startswith('-'):
@@ -306,4 +308,4 @@ if __name__ == '__main__':
     # Don't use in context manager mode---it augments the history every time
     h = History(sys.prefix)
     pprint(h.get_user_requests())
-    print(h.get_requested_specs())
+    print(h.get_requested_specs_map())

@@ -689,13 +689,13 @@ def configure_parser_install(sub_parsers):
     versions of the requested packages, and it does not prevent additional
     dependency packages from being installed.
 
-    If you wish to skip dependency checking altogether, use the '--force'
+    If you wish to skip dependency checking altogether, use the '--no-deps'
     option. This may result in an environment with incompatible packages, so
     this option must be used with great caution.
 
     conda can also be called with a list of explicit conda package filenames
     (e.g. ./lxml-3.2.0-py27_0.tar.bz2). Using conda in this mode implies the
-    --force option, and should likewise be used with great caution. Explicit
+    --no-deps option, and should likewise be used with great caution. Explicit
     filenames and package specifications cannot be mixed in a single command.
     """)
     example = dedent("""
