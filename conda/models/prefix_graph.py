@@ -5,7 +5,6 @@ from logging import getLogger
 
 from .enums import NoarchType
 from .match_spec import MatchSpec
-from .records import PackageRecord
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, on_win

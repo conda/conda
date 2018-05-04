@@ -14,7 +14,7 @@ from .exceptions import ResolvePackageNotFound, UnsatisfiableError
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType
 from .models.match_spec import MatchSpec
-from .models.records import PackageRecord, PackageRef
+from .models.records import PackageRef
 from .models.version import VersionOrder
 
 try:
