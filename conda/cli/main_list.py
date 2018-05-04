@@ -14,6 +14,7 @@ from ..common.compat import text_type
 from ..core.prefix_data import PrefixData
 from ..gateways.disk.test import is_conda_environment
 from ..history import History
+from ..models.dist import Dist
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def list_packages(prefix, regex=None, format='human',
 
     for prec in get_packages(installed, regex) if regex else installed:
         if format == 'canonical':
-            result.append(prec.dist_str())
+            result.append(Dist(prec) if context.json else prec.dist_str())
             continue
         if format == 'export':
             result.append('='.join((prec.name, prec.version, prec.build)))
@@ -74,13 +75,6 @@ def print_packages(prefix, regex=None, format='human', piplist=False,
     if not json:
         if format == 'export':
             print_export_header(context.subdir)
-
-    # installed = linked(prefix)
-    # log.debug("installed conda packages:\n%s", installed)
-    # if piplist and context.use_pip and format == 'human':
-    #     other_python = get_egg_info(prefix)
-    #     log.debug("other installed python packages:\n%s", other_python)
-    #     installed.update(other_python)
 
     exitcode, output = list_packages(prefix, regex, format=format,
                                      show_channel_urls=show_channel_urls)

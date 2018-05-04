@@ -85,6 +85,7 @@ conda_build_test: &conda_build_test
             and not test_pypi_with_setup_options
             and not test_pypi_with_extra_specs
             and not test_ensure_valid_spec_on_run_and_test
+            and not test_get_installed_version
           # skeleton_pypi skipped because of changes to PyPI API
           # expand_globs and build_expands_wildcards fail on circleci because of list ordering discrepancies
           # skipping numpy tests so circleci images don't need numpy (and mkl) installed
@@ -95,6 +96,7 @@ conda_build_test: &conda_build_test
           # test_name_with_version_specified because of the new PyPI
           # test_pypi_with_setup_options because of the new PyPI
           # test_pypi_with_extra_specs because of the new PyPI
+          # test_get_installed_version invalid test when using 'conda init --dev'
         command: |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           conda info

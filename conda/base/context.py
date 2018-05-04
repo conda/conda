@@ -134,7 +134,6 @@ class Context(Configuration):
                                             string_delimiter='&')
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
-    use_pip = PrimitiveParameter(True)
     use_index_cache = PrimitiveParameter(False)
 
     _root_prefix = PrimitiveParameter("", aliases=('root_dir', 'root_prefix'))
@@ -716,7 +715,6 @@ class Context(Configuration):
             'ignore_pinned',
             'use_index_cache',
             'use_local',
-            'use_pip',
         )),
         ('Hidden and Undocumented', (
             'allow_cycles',  # allow cyclical dependencies, or raise
@@ -1012,11 +1010,6 @@ class Context(Configuration):
                 """),
             'use_index_cache': dals("""
                 Use cache of channel index files, even if it has expired.
-                """),
-            'use_pip': dals("""
-                Include non-conda-installed python packages with conda list. This does not
-                affect any conda command or functionality other than the output of the
-                command conda list.
                 """),
             'verbosity': dals("""
                 Sets output log level. 0 is warn. 1 is info. 2 is debug. 3 is trace.

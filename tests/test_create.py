@@ -1798,7 +1798,6 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.LIST, prefix, '--json')
             stdout_json = json.loads(stdout)
             packages = [pkg_info(package) for package in stdout_json]
-            import pdb; pdb.set_trace()
             python_package = next(p for p in packages if p['name'] == 'python')
             assert python_package['version'].startswith('3')
 
