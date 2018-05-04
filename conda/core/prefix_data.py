@@ -181,7 +181,8 @@ class PrefixData(object):
         # 2. determine if they are conda packages
         # 3. load as pip packages if not
         python_record = next(
-            (prefix_rec for prefix_rec in itervalues(self.__prefix_records) if prefix_rec.name == 'python'),
+            (prefix_rec for prefix_rec in itervalues(self.__prefix_records)
+             if prefix_rec.name == 'python'),
             None
         )
         if not python_record:
@@ -228,7 +229,8 @@ class PrefixData(object):
         for conda_anchor_file in clobbered_conda_anchor_files:
             del self._prefix_records[conda_python_packages[conda_anchor_file].name]
 
-        from pip._vendor.distlib.database import EggInfoDistribution, InstalledDistribution  # TODO: only compatible with pip 9.0
+        # TODO: only compatible with pip 9.0; consider writing this by hand
+        from pip._vendor.distlib.database import EggInfoDistribution, InstalledDistribution
         from pip._vendor.distlib.metadata import MetadataConflictError
         from pip._vendor.distlib.util import parse_requirement
 
@@ -264,8 +266,8 @@ class PrefixData(object):
             if pydist is None:
                 return None
             # x.provides  =>  [u'skdata (0.0.4)']
-            # x.run_requires  =>  set([u'joblib', u'scikit-learn', u'lockfile', u'numpy', u'nose (>=1.0)'])
-            # >>> list(x.list_installed_files())  =>  [(u'skdata/__init__.py', u'sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU', u'0'), (u'skdata/base.py', u'sha256=04MW02dky5T4nZb6Q0M351aRbAwLxd8voCK3nrAU-g0', u'5019'), (u'skdata/brodatz.py', u'sha256=NIPWLawJ59Fr037r0oT_gHe46WCo3UivuQ-cwxRU3ow', u'8492'), (u'skdata/caltech.py', u'sha256=cIfyMMRYggZ3Jkgc15tsYi_ZsZ7NpRqWh7mZ8bl6Fo0', u'8047'), (u'skdata/data_home.py', u'sha256=o5ChOI4v3Jd16JM3qWZlhrs5q-g_0yKa5-Oq44HC_K4', u'1297'), (u'skdata/diabetes.py', u'sha256=ny5Ihpc_eiIRYgzFn3Lm81fV0SZ1nyZQnqEmwb2PrS0', u'995'), (u'skdata/digits.py', u'sha256=DipeWAb3APpjXfmKmSumkfEFzuBW8XJ0
+            # x.run_requires  =>  set([u'joblib', u'scikit-learn', u'lockfile', u'numpy', u'nose (>=1.0)'])  # NOQA
+            # >>> list(x.list_installed_files())  =>  [(u'skdata/__init__.py', u'sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU', u'0'), (u'skdata/base.py', u'sha256=04MW02dky5T4nZb6Q0M351aRbAwLxd8voCK3nrAU-g0', u'5019'), (u'skdata/brodatz.py', u'sha256=NIPWLawJ59Fr037r0oT_gHe46WCo3UivuQ-cwxRU3ow', u'8492'), (u'skdata/caltech.py', u'sha256=cIfyMMRYggZ3Jkgc15tsYi_ZsZ7NpRqWh7mZ8bl6Fo0', u'8047'), (u'skdata/data_home.py', u'sha256=o5ChOI4v3Jd16JM3qWZlhrs5q-g_0yKa5-Oq44HC_K4', u'1297'), (u'skdata/diabetes.py', u'sha256=ny5Ihpc_eiIRYgzFn3Lm81fV0SZ1nyZQnqEmwb2PrS0', u'995'), (u'skdata/digits.py', u'sha256=DipeWAb3APpjXfmKmSumkfEFzuBW8XJ0  # NOQA
 
             # TODO: normalize names against '.', '-', '_'
             # TODO: ensure that this dist is *actually* the dist that matches conda-meta
@@ -300,11 +302,11 @@ class PrefixData(object):
             else:
                 raise NotImplementedError()
 
-            # TODO: need to add entry points, "exports," and other files that might not be in RECORD
+            # TODO: need to add entry points, "exports," and other files that might not be in RECORD  # NOQA
 
             depends = tuple(
                 req.name for req in
-                # vars(req) => {'source': u'nose (>=1.0)', 'requirement': u'nose (>= 1.0)', 'extras': None, 'name': u'nose', 'url': None, 'constraints': [(u'>=', u'1.0')]}
+                # vars(req) => {'source': u'nose (>=1.0)', 'requirement': u'nose (>= 1.0)', 'extras': None, 'name': u'nose', 'url': None, 'constraints': [(u'>=', u'1.0')]}  # NOQA
                 (parse_requirement(r) for r in pydist.run_requires)
             )
             # TODO: need to add python (with version?) to deps

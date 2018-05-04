@@ -28,7 +28,6 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_index_json,
                                   read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
-from ..models.dist import Dist
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord, PackageRef
 from ..utils import human_bytes

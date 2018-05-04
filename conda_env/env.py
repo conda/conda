@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
-from copy import copy
 from itertools import chain
 import os
 
@@ -9,13 +8,11 @@ from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
 from conda.common.serialize import yaml_load_standard
 from conda.core.prefix_data import PrefixData
-from conda.history import History
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda_env.yaml import dump
 from . import compat, exceptions, yaml
-from .pip_util import add_pip_installed
 
 try:
     from cytoolz.itertoolz import concatv, groupby

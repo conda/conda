@@ -702,7 +702,6 @@ class UnlinkLinkTransaction(object):
     def _make_legacy_action_groups(self):
         # this code reverts json output for plan back to previous behavior
         #   relied on by Anaconda Navigator and nb_conda
-        from ..models.dist import Dist
         legacy_action_groups = []
 
         if self._pfe is None:

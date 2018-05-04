@@ -6,7 +6,7 @@ import logging
 from os.path import isdir
 import sys
 
-from .common import check_non_admin, specs_from_args, stdout_json
+from .common import check_non_admin, specs_from_args
 from .install import handle_txn
 from ..base.context import context
 from ..core.envs_manager import unregister_env

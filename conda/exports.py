@@ -220,9 +220,11 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
     index = {prec: prec for prec in itervalues(index)}
     return _display_actions(actions, index, show_channel_urls, specs_to_remove, specs_to_add)
 
-from .models.dist import Dist
+
+from .models.dist import Dist  # NOQA
 from .core.index import dist_str_in_index, fetch_index as _fetch_index, get_index as _get_index  # NOQA
 dist_str_in_index = dist_str_in_index
+
 
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None):

@@ -21,11 +21,9 @@ from .core.prefix_data import PrefixData
 from .exceptions import DisallowedPackageError, DryRunExit, PackagesNotFoundError, ParseError
 from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
-from .models.dist import Dist
 from .models.match_spec import MatchSpec
 from .models.prefix_graph import PrefixGraph
 from .plan import _get_best_prec_match
-from .resolve import Resolve
 
 
 def conda_installed_files(prefix, exclude_self_build=False):
@@ -198,7 +196,6 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
         drecs = {prec for prec in PrefixData(prefix1).iter_records()}
 
     # Resolve URLs for packages that do not have URLs
-    r = None
     index = {}
     unknowns = [prec for prec in drecs if not prec.get('url')]
     notfound = []

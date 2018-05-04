@@ -562,8 +562,9 @@ class Resolve(object):
 
         for s in specs:
             s = MatchSpec(s)  # needed for testing
-            rec = sdict.setdefault(s.name, [])
+            sdict.setdefault(s.name, [])
             # # TODO: this block is important! can't leave it commented out
+            # rec = sdict.setdefault(s.name, [])
             # if s.target:
             #     dist = Dist(s.target)
             #     if dist in self.index:

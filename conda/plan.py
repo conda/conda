@@ -11,7 +11,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import getLogger
-from os.path import abspath
 import sys
 
 from ._vendor.boltons.setutils import IndexedSet
@@ -21,11 +20,10 @@ from .common.compat import itervalues, text_type
 from .common.io import env_var, time_recorder
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
-from .core.solve import diff_for_unlink_link_precs, get_pinned_specs
-from .exceptions import CondaIndexError, PackagesNotFoundError, RemoveError
+from .core.solve import diff_for_unlink_link_precs
+from .exceptions import CondaIndexError, PackagesNotFoundError
 from .history import History
-from .instructions import (CHECK_EXTRACT, CHECK_FETCH, EXTRACT, FETCH, LINK, PREFIX,
-                           RM_EXTRACTED, RM_FETCHED, SYMLINK_CONDA, UNLINK)
+from .instructions import (FETCH, LINK, SYMLINK_CONDA, UNLINK)
 from .models.channel import Channel, prioritize_channels
 from .models.dist import Dist
 from .models.enums import LinkType
@@ -33,7 +31,7 @@ from .models.match_spec import ChannelMatch
 from .models.prefix_graph import PrefixGraph
 from .models.records import PackageRecord
 from .models.version import normalized_version
-from .resolve import MatchSpec, Resolve, dashlist
+from .resolve import MatchSpec, dashlist
 from .utils import human_bytes
 
 try:
@@ -407,7 +405,6 @@ def _inject_UNLINKLINKTRANSACTION(plan, index, prefix, axn, specs):  # pragma: n
 
 
 def _handle_menuinst(unlink_dists, link_dists):  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concatv
     from .common.compat import on_win
     if not on_win:
         return unlink_dists, link_dists
