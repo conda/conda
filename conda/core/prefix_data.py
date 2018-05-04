@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from glob import glob
 from logging import getLogger
 from os import listdir
-from os.path import basename, isfile, join, lexists
+from os.path import basename, isfile, join, lexists, normpath, isdir
 
 from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
 from ..base.context import context
@@ -196,11 +196,12 @@ class PrefixData(object):
         )
 
         non_conda_package_anchor_files = []
+        egg_link_files = []
         site_packages_dir = get_python_site_packages_short_path(python_record.version)
         sp_dir_full_path = join(self.prefix_path, win_path_ok(site_packages_dir))
-        sp_marker_endings = ('.dist-info', '.egg-info')
+        sp_anchor_endings = ('.dist-info', '.egg-info', '.egg-link')
         for fn in listdir(sp_dir_full_path):
-            if fn.endswith(sp_marker_endings):
+            if fn.endswith(sp_anchor_endings):
                 if fn.endswith('.dist-info'):
                     anchor_file = "%s/%s/%s" % (site_packages_dir, fn, 'RECORD')
                 elif fn.endswith(".egg-info"):
@@ -209,6 +210,8 @@ class PrefixData(object):
                     else:
                         anchor_file = "%s/%s/%s" % (site_packages_dir, fn, "PKG-INFO")
                 elif fn.endswith('.egg-link'):
+                    anchor_file = "%s/%s" % (site_packages_dir, fn)
+                    egg_link_files.append(anchor_file)
                     continue
                 elif fn.endswith('.pth'):
                     continue
@@ -238,6 +241,8 @@ class PrefixData(object):
                 dist_file = join(self.prefix_path, win_path_ok(anchor_file.rsplit('/', 1)[0]))
                 dist_cls = EggInfoDistribution
                 package_type = PackageType.SHADOW_PYTHON_EGG_INFO_DIR
+            elif anchor_file.endswith(".egg-link"):
+                raise NotImplementedError()
             else:
                 raise NotImplementedError()
             try:
@@ -247,11 +252,10 @@ class PrefixData(object):
                 pydist = None
             return package_type, sp_reference, pydist
 
-        python_recs = []
-        for anchor_file in non_conda_package_anchor_files:
+        def get_python_rec(anchor_file):
             package_type, sp_reference, pydist = get_pydist(anchor_file)
             if pydist is None:
-                continue
+                return None
             # x.provides  =>  [u'skdata (0.0.4)']
             # x.run_requires  =>  set([u'joblib', u'scikit-learn', u'lockfile', u'numpy', u'nose (>=1.0)'])
             # >>> list(x.list_installed_files())  =>  [(u'skdata/__init__.py', u'sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU', u'0'), (u'skdata/base.py', u'sha256=04MW02dky5T4nZb6Q0M351aRbAwLxd8voCK3nrAU-g0', u'5019'), (u'skdata/brodatz.py', u'sha256=NIPWLawJ59Fr037r0oT_gHe46WCo3UivuQ-cwxRU3ow', u'8492'), (u'skdata/caltech.py', u'sha256=cIfyMMRYggZ3Jkgc15tsYi_ZsZ7NpRqWh7mZ8bl6Fo0', u'8047'), (u'skdata/data_home.py', u'sha256=o5ChOI4v3Jd16JM3qWZlhrs5q-g_0yKa5-Oq44HC_K4', u'1297'), (u'skdata/diabetes.py', u'sha256=ny5Ihpc_eiIRYgzFn3Lm81fV0SZ1nyZQnqEmwb2PrS0', u'995'), (u'skdata/digits.py', u'sha256=DipeWAb3APpjXfmKmSumkfEFzuBW8XJ0
@@ -310,8 +314,25 @@ class PrefixData(object):
                 paths_data=paths_data,
                 depends=depends,
             )
-            python_recs.append(python_rec)
+            return python_rec
+
+        for anchor_file in non_conda_package_anchor_files:
+            python_rec = get_python_rec(anchor_file)
             self.__prefix_records[python_rec.name] = python_rec
+
+        for egg_link_file in egg_link_files:
+            with open(join(self.prefix_path, win_path_ok(egg_link_file))) as fh:
+                egg_link_contents = fh.readlines()[0].strip()
+            egg_info_fns = glob(join(egg_link_contents, "*.egg-info"))
+            if not egg_info_fns:
+                continue
+            assert len(egg_info_fns) == 1, (egg_link_file, egg_info_fns)
+            egg_info_full_path = join(egg_link_contents, egg_info_fns[0])
+            if isdir(egg_info_full_path):
+                egg_info_full_path = join(egg_info_full_path, "PKG-INFO")
+                python_rec = get_python_rec(egg_info_full_path)
+                python_rec.package_type = PackageType.SHADOW_PYTHON_EGG_LINK
+                self.__prefix_records[python_rec.name] = python_rec
 
 
 def get_python_version_for_prefix(prefix):
