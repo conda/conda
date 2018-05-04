@@ -29,25 +29,30 @@ class DistType(EntityType):
     def __call__(cls, *args, **kwargs):
         if len(args) == 1 and not kwargs:
             value = args[0]
-            if isinstance(value, Dist):
-                return value
-            elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
-                return value.dist
+            if value in Dist._cache_:
+                return Dist._cache_[value]
+            elif isinstance(value, Dist):
+                dist = value
             elif isinstance(value, PackageRecord):
-                return Dist.from_string(value.fn, channel_override=value.channel.canonical_name)
+                dist = Dist.from_string(value.fn, channel_override=value.channel.canonical_name)
+            elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
+                dist = value.dist
             elif isinstance(value, PackageInfo):
-                return Dist.from_string(value.repodata_record.fn,
+                dist = Dist.from_string(value.repodata_record.fn,
                                         channel_override=value.channel.canonical_name)
             elif isinstance(value, Channel):
-                return Dist.from_url(value.url())
+                dist = Dist.from_url(value.url())
             else:
-                return Dist.from_string(value)
+                dist = Dist.from_string(value)
+            Dist._cache_[value] = dist
+            return dist
         else:
             return super(DistType, cls).__call__(*args, **kwargs)
 
 
 @with_metaclass(DistType)
 class Dist(Entity):
+    _cache_ = {}
     _lazy_validate = True
 
     channel = StringField(required=False, nullable=True, immutable=True)

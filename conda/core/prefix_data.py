@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from glob import glob
 from logging import getLogger
 from os import listdir
-from os.path import basename, isfile, join, lexists, normpath, isdir
+from os.path import basename, isdir, isfile, join, lexists
 
 from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
 from ..base.context import context
@@ -21,8 +21,7 @@ from ..models.channel import Channel
 from ..models.enums import PackageType, PathType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
-from ..models.records import (ComposableField, EnumField, ListField, PackageRef, PathDataV1,
-                              PathsData, PrefixRecord, PathData)
+from ..models.records import (PackageRef, PathData, PathDataV1, PathsData, PrefixRecord)
 
 try:
     from cytoolz.itertoolz import concat, concatv
@@ -54,6 +53,7 @@ class PrefixData(object):
     def __init__(self, prefix_path):
         self.prefix_path = prefix_path
         self.__prefix_records = None
+        self.__is_writable = NULL
 
     def load(self):
         self.__prefix_records = {}
@@ -91,7 +91,8 @@ class PrefixData(object):
 
         filename = prefix_record.fn[:-len(CONDA_TARBALL_EXTENSION)] + '.json'
         conda_meta_full_path = join(self.prefix_path, 'conda-meta', filename)
-        rm_rf(conda_meta_full_path)
+        if self.is_writable:
+            rm_rf(conda_meta_full_path)
 
         del self._prefix_records[package_name]
 
@@ -163,10 +164,14 @@ class PrefixData(object):
 
     @property
     def is_writable(self):
-        test_path = join(self.prefix_path, PREFIX_MAGIC_FILE)
-        if not isfile(test_path):
-            return None
-        return file_path_is_writable(test_path)
+        if self.__is_writable == NULL:
+            test_path = join(self.prefix_path, PREFIX_MAGIC_FILE)
+            if not isfile(test_path):
+                is_writable = None
+            else:
+                is_writable = file_path_is_writable(test_path)
+            self.__is_writable = is_writable
+        return self.__is_writable
 
     def _has_python(self):
         return 'python' in self._prefix_records
@@ -189,14 +194,13 @@ class PrefixData(object):
 
         anchor_file_endings = ('.egg-info/PKG-INFO', '.dist-info/RECORD', '.egg-info')
         conda_python_packages = dict(
-            ((mf, prefix_rec)
+            ((af, prefix_rec)
              for prefix_rec in known_python_records
-             for mf in prefix_rec.files
-             if mf.endswith(anchor_file_endings))
+             for af in prefix_rec.files
+             if af.endswith(anchor_file_endings))
         )
 
-        non_conda_package_anchor_files = []
-        egg_link_files = []
+        all_sp_anchor_files = set()
         site_packages_dir = get_python_site_packages_short_path(python_record.version)
         sp_dir_full_path = join(self.prefix_path, win_path_ok(site_packages_dir))
         sp_anchor_endings = ('.dist-info', '.egg-info', '.egg-link')
@@ -211,15 +215,18 @@ class PrefixData(object):
                         anchor_file = "%s/%s/%s" % (site_packages_dir, fn, "PKG-INFO")
                 elif fn.endswith('.egg-link'):
                     anchor_file = "%s/%s" % (site_packages_dir, fn)
-                    egg_link_files.append(anchor_file)
-                    continue
                 elif fn.endswith('.pth'):
                     continue
                 else:
                     continue
+                all_sp_anchor_files.add(anchor_file)
 
-                if anchor_file not in conda_python_packages:
-                    non_conda_package_anchor_files.append(anchor_file)
+        _conda_anchor_files = set(conda_python_packages)
+        clobbered_conda_anchor_files = _conda_anchor_files - all_sp_anchor_files
+        non_conda_anchor_files = all_sp_anchor_files - _conda_anchor_files
+
+        for conda_anchor_file in clobbered_conda_anchor_files:
+            del self._prefix_records[conda_python_packages[conda_anchor_file].name]
 
         from pip._vendor.distlib.database import EggInfoDistribution, InstalledDistribution  # TODO: only compatible with pip 9.0
         from pip._vendor.distlib.metadata import MetadataConflictError
@@ -316,7 +323,11 @@ class PrefixData(object):
             )
             return python_rec
 
-        for anchor_file in non_conda_package_anchor_files:
+        egg_link_files = []
+        for anchor_file in non_conda_anchor_files:
+            if anchor_file.endswith('.egg-link'):
+                egg_link_files.append(anchor_file)
+                continue
             python_rec = get_python_rec(anchor_file)
             self.__prefix_records[python_rec.name] = python_rec
 
@@ -330,9 +341,9 @@ class PrefixData(object):
             egg_info_full_path = join(egg_link_contents, egg_info_fns[0])
             if isdir(egg_info_full_path):
                 egg_info_full_path = join(egg_info_full_path, "PKG-INFO")
-                python_rec = get_python_rec(egg_info_full_path)
-                python_rec.package_type = PackageType.SHADOW_PYTHON_EGG_LINK
-                self.__prefix_records[python_rec.name] = python_rec
+            python_rec = get_python_rec(egg_info_full_path)
+            python_rec.package_type = PackageType.SHADOW_PYTHON_EGG_LINK
+            self.__prefix_records[python_rec.name] = python_rec
 
 
 def get_python_version_for_prefix(prefix):

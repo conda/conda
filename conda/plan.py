@@ -551,7 +551,7 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
 
         solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
         if index:
-            solver._index = index
+            solver._index = {prec: prec for prec in itervalues(index)}
         txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
         prefix_setup = txn.prefix_setups[prefix]
         actions = get_blank_actions(prefix)
