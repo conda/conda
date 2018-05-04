@@ -198,7 +198,7 @@ class PrefixData(object):
             ((af, prefix_rec)
              for prefix_rec in known_python_records
              for af in prefix_rec.files
-             if af.endswith(anchor_file_endings))
+             if af.endswith(anchor_file_endings) and 'site-packages' in af)
         )
 
         all_sp_anchor_files = set()
