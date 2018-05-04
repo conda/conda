@@ -629,7 +629,7 @@ class ProgressiveFetchExtract(object):
         if len(desc) > 20:
             desc = desc[:20]
         size = getattr(prec_or_spec, 'size', None)
-        desc = "%-20s | %7s | " % (desc, size and human_bytes(size) or '')
+        desc = "%-20s | %8s | " % (desc, size and human_bytes(size) or '')
 
         progress_bar = ProgressBar(desc, not context.verbosity and not context.quiet, context.json)
 

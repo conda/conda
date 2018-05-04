@@ -253,8 +253,12 @@ class PackageRef(BasePackageRef):
 
     @property
     def _pkey(self):
-        return (self.channel.canonical_name, self.subdir, self.name, self.version,
-                self.build_number, self.build)
+        try:
+            return self.__pkey
+        except AttributeError:
+            __pkey = self.__pkey = (self.channel.name, self.subdir, self.name,
+                                    self.version, self.build_number, self.build)
+            return __pkey
 
     def __hash__(self):
         return hash(self._pkey)

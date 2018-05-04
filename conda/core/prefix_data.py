@@ -177,9 +177,6 @@ class PrefixData(object):
         return 'python' in self._prefix_records
 
     def _load_site_packages(self):
-        # 1. identify all package names in site-packages
-        # 2. determine if they are conda packages
-        # 3. load as pip packages if not
         python_record = next(
             (prefix_rec for prefix_rec in itervalues(self.__prefix_records)
              if prefix_rec.name == 'python'),
@@ -205,6 +202,8 @@ class PrefixData(object):
         site_packages_dir = get_python_site_packages_short_path(python_record.version)
         sp_dir_full_path = join(self.prefix_path, win_path_ok(site_packages_dir))
         sp_anchor_endings = ('.dist-info', '.egg-info', '.egg-link')
+        if not isdir(sp_dir_full_path):
+            return
         for fn in listdir(sp_dir_full_path):
             if fn.endswith(sp_anchor_endings):
                 if fn.endswith('.dist-info'):
@@ -226,6 +225,10 @@ class PrefixData(object):
         clobbered_conda_anchor_files = _conda_anchor_files - all_sp_anchor_files
         non_conda_anchor_files = all_sp_anchor_files - _conda_anchor_files
 
+        # If there's a mismatch for anchor files between what conda expects for a package
+        # based on conda-meta, and for what is actually in site-packages, then we'll delete
+        # the in-memory record for the conda package.  In the future, we should consider
+        # also deleting the record on disk in the conda-meta/ directory.
         for conda_anchor_file in clobbered_conda_anchor_files:
             del self._prefix_records[conda_python_packages[conda_anchor_file].name]
 
