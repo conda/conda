@@ -44,8 +44,7 @@ conda_build_test: &conda_build_test
           sudo su root -c "/opt/conda/bin/conda install -yq conda-verify"
           cb_branch="${CONDA_BUILD:-master}"
           git clone -b $cb_branch https://github.com/conda/conda-build.git ~/conda-build
-          cd ~/conda-build
-          sudo /opt/conda/bin/pip install --no-deps -U .
+          sudo /opt/conda/bin/pip install --no-deps -U ~/conda-build
           git clone https://github.com/conda/conda_build_test_recipe.git ~/conda_build_test_recipe
           /opt/conda/bin/conda info
           sudo chown -R $(id -nu):$(id -ng) /opt/conda  # conda-build tests assume writable base prefix
@@ -138,6 +137,12 @@ conda_build_test: &conda_build_test
           cd ~/conda-build
           py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP"
           /opt/conda/bin/python -m conda.common.io
+
+    - run:
+      name: conda-build conda
+      command: |
+        eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+        conda build ~/conda/conda.recipe
 
 
 flake8: &flake8
