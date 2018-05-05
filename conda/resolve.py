@@ -262,21 +262,25 @@ class Resolve(object):
         snames = set()
 
         def filter_group(matches):
-            match1 = next(ms for ms in matches)
+            match1 = next(iter(matches))
             name = match1.name
             group = self.groups.get(name, [])
 
             # Prune packages that don't match any of the patterns
             # or which have unsatisfiable dependencies
             nold = nnew = 0
-            for fkey in group:
-                if filter.setdefault(fkey, True):
+            for prec in group:
+                if filter.setdefault(prec, True):
                     nold += 1
-                    sat = (self.match_any(matches, fkey) and
-                           all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
-                               for ms in self.ms_depends(fkey)))
-                    filter[fkey] = sat
-                    nnew += sat
+                    prec_satisfies_any_spec = (
+                        any(ms.match(prec) for ms in matches)
+                        and all(
+                            any(filter.get(dep_prec, True) for dep_prec in self.find_matches(dep_spec))
+                            for dep_spec in self.ms_depends(prec)
+                        )
+                    )
+                    filter[prec] = prec_satisfies_any_spec
+                    nnew += prec_satisfies_any_spec
 
             reduced = nnew < nold
             if reduced:
@@ -295,9 +299,9 @@ class Resolve(object):
             if reduced or name not in snames:
                 snames.add(name)
                 cdeps = {}
-                for fkey in group:
-                    if filter.get(fkey, True):
-                        for m2 in self.ms_depends(fkey):
+                for prec in group:
+                    if filter.get(prec, True):
+                        for m2 in self.ms_depends(prec):
                             if m2.get_exact_value('name') and not m2.optional:
                                 cdeps.setdefault(m2.name, []).append(m2)
                 for deps in itervalues(cdeps):
@@ -316,7 +320,7 @@ class Resolve(object):
         # chance after their first "False" reduction. This catches more instances
         # where one package's filter affects another. But we don't have to be
         # perfect about this, so performance matters.
-        for iter in range(2):
+        for _ in range(2):
             snames.clear()
             slist = list(specs)
             found = False
@@ -669,8 +673,8 @@ class Resolve(object):
         if solution:
             return ()
         else:
-            specs = minimal_unsatisfiable_subset(specs, sat=mysat)
-            return specs
+            unsatisfiable_specs = minimal_unsatisfiable_subset(specs, sat=mysat)
+            return unsatisfiable_specs
 
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')

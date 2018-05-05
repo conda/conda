@@ -256,7 +256,7 @@ class PackageRef(BasePackageRef):
         try:
             return self.__pkey
         except AttributeError:
-            __pkey = self.__pkey = (self.channel.canonical_name, self.subdir, self.name,
+            __pkey = self.__pkey = (self.channel.name, self.subdir, self.name,
                                     self.version, self.build_number, self.build)
             return __pkey
 
@@ -267,6 +267,9 @@ class PackageRef(BasePackageRef):
         return self._pkey == other._pkey
 
     def dist_str(self):
+        return "%s::%s-%s-%s" % (self.channel.name, self.name, self.version, self.build)
+
+    def dist_str_canonical_channel(self):
         return "%s::%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build)
 
 

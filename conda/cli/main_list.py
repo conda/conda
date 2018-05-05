@@ -47,7 +47,7 @@ def list_packages(prefix, regex=None, format='human',
 
     for prec in get_packages(installed, regex) if regex else installed:
         if format == 'canonical':
-            result.append(Dist(prec) if context.json else prec.dist_str())
+            result.append(Dist(prec) if context.json else prec.dist_str_canonical_channel())
             continue
         if format == 'export':
             result.append('='.join((prec.name, prec.version, prec.build)))
