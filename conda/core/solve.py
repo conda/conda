@@ -9,7 +9,7 @@ from os.path import join
 import sys
 from textwrap import dedent
 
-from .index import get_reduced_index
+from .index import get_reduced_index, _supplement_index_with_system
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
@@ -585,6 +585,7 @@ class Solver(object):
             self.channels.update(additional_channels)
             reduced_index = get_reduced_index(self.prefix, self.channels,
                                               self.subdirs, prepared_specs)
+            _supplement_index_with_system(reduced_index)
             self._prepared_specs = prepared_specs
             self._index = reduced_index
             self._r = Resolve(reduced_index, channels=self.channels)

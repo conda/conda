@@ -6,6 +6,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from itertools import chain
 from logging import getLogger
 
+from conda.models.enums import PackageType
+
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
@@ -16,7 +18,7 @@ from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, time_reco
 from ..exceptions import ChannelNotAllowed
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
-from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord
+from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord, PackageRecord
 from ..resolve import dashlist
 
 try:
@@ -123,6 +125,38 @@ def _supplement_index_with_features(index, features=()):
     for feature in chain(context.track_features, features):
         rec = make_feature_record(feature)
         index[rec] = rec
+
+
+def _make_virtual_package(name, version=None):
+    return PackageRecord(
+            package_type=PackageType.SHADOW_SYSTEM,
+            name=name,
+            version=version or '0',
+            build='0',
+            channel='@',
+            subdir=context.subdir,
+            md5="12345678901234567890123456789012",
+            build_number=0,
+            fn=name,
+        )
+
+def _supplement_index_with_system(index):
+
+    for flag in context.cpu_flags:
+        pkg_name = "cpu-flag-%s@" % flag
+        prec = _make_virtual_package(pkg_name)
+        index[prec] = prec
+
+    if context.libc_family_version[0]:
+        libc_family, libc_version = context.libc_family_version
+        pkg_name = "system-libc-%s@" % libc_family
+        prec = _make_virtual_package(pkg_name, libc_version)
+        index[prec] = prec
+
+    system_name, system_release_version = context.platform_system_release
+    pkg_name = "system-platform-%s@" % system_name.lower()
+    prec = _make_virtual_package(pkg_name, system_release_version)
+    index[prec] = prec
 
 
 def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_local=False):

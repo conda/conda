@@ -862,11 +862,10 @@ class FeatureMatch(MatchInterface):
         if not value:
             return frozenset()
         elif isinstance(value, string_types):
-            return frozenset(f for f in (
-                ff.strip() for ff in value.replace(' ', ',').split(',')
-            ) if f)
+            feature_gen = (ff.strip() for ff in value.replace(' ', ',').split(','))
         else:
-            return frozenset(f for f in (ff.strip() for ff in value) if f)
+            feature_gen = (ff.strip() for ff in value)
+        return frozenset(f for f in feature_gen if f)
 
     def match(self, other):
         other = self._convert(other)

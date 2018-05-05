@@ -36,6 +36,7 @@ from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
+from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
 
@@ -567,6 +568,7 @@ def make_feature_record(feature_name):
     # necessary for the SAT solver to do the right thing with features
     pkg_name = "%s@" % feature_name
     return PackageRecord(
+        package_type=PackageType.SHADOW_TRACK_FEATURES,
         name=pkg_name,
         version='0',
         build='0',

@@ -129,6 +129,8 @@ class PackageType(Enum):
     SHADOW_PYTHON_EGG_INFO_DIR = 'shadow_python_egg_info_dir'
     SHADOW_PYTHON_EGG_INFO_FILE = 'shadow_python_egg_info_file'
     SHADOW_PYTHON_EGG_LINK = 'shadow_python_egg_link'
+    SHADOW_TRACK_FEATURES = 'shadow_track_features'
+    SHADOW_SYSTEM = 'shadow_system'
 
     @staticmethod
     def conda_package_types():

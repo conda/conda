@@ -153,30 +153,33 @@ class Resolve(object):
             specs: An iterable of strings or MatchSpec objects to be tested.
 
         Returns:
-            Nothing, but if there is a conflict, an error is thrown.
+            A list of non-track_features specs and a set of feature names.
 
         Note that this does not attempt to resolve circular dependencies.
         """
-        spec2 = []
+        non_track_feature_specs = []
         bad_deps = []
-        feats = set()
+        feature_names = set()
+
+        # Here we're filtering track_features specs out from all other specs.
+        # We're assuming that track_features specs have no components other than track_features.
+        # This may not be a valid assumption.
         for s in specs:
             ms = MatchSpec(s)
             if ms.get_exact_value('track_features'):
-                feature_names = ms.get_exact_value('track_features')
-                feats.update(feature_names)
-            elif ms.name[-1] == '@':
-                # TODO: remove
-                feats.add(ms.name[:-1])
+                feature_names.update(ms.get_exact_value('track_features'))
             else:
-                spec2.append(ms)
-        for ms in spec2:
-            filter = self.default_filter(feats)
+                non_track_feature_specs.append(ms)
+
+        for ms in non_track_feature_specs:
+            filter = self.default_filter(feature_names)
             # type: Map[PackageRecord, bool]
             bad_deps.extend(self.invalid_chains(ms, filter))
+
         if bad_deps:
             raise ResolvePackageNotFound(bad_deps)
-        return spec2, feats
+
+        return non_track_feature_specs, feature_names
 
     def find_conflicts(self, specs):
         """Perform a deeper analysis on conflicting specifications, by attempting
@@ -441,24 +444,24 @@ class Resolve(object):
         return '@fm@%s@%s' % (prec_dist_str, feat)
 
     def push_MatchSpec(self, C, spec):
+        # TODO: What is the goal/purpose of this method?
         spec = MatchSpec(spec)
         sat_name = self.to_sat_name(spec)
         m = C.from_name(sat_name)
+        # TODO: What *is* `m`?
         if m is not None:
             # the spec has already been pushed onto the clauses stack
             return sat_name
 
         simple = spec._is_single()
-        nm = spec.get_exact_value('name')
-        tf = frozenset(_tf for _tf in (
-            f.strip() for f in spec.get_exact_value('track_features') or ()
-        ) if _tf)
+        spec_name = spec.get_exact_value('name')  # NOTE: can be None
+        spec_track_featues = spec.get_exact_value('track_features')  # NOTE: can be None
 
-        if nm:
-            tgroup = libs = self.groups.get(nm, [])
-        elif tf:
-            assert len(tf) == 1
-            k = next(iter(tf))
+        if spec_name:
+            tgroup = libs = self.groups.get(spec_name, [])
+        elif spec_track_featues:
+            assert len(spec_track_featues) == 1
+            k = next(iter(spec_track_featues))
             tgroup = libs = self.trackers.get(k, [])
         else:
             tgroup = libs = self.index.keys()
@@ -469,12 +472,12 @@ class Resolve(object):
             if spec.optional:
                 m = True
             elif not simple:
-                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
+                ms2 = MatchSpec(track_features=spec_track_featues) if spec_track_featues else MatchSpec(spec_name)
                 m = C.from_name(self.push_MatchSpec(C, ms2))
         if m is None:
             sat_names = [self.to_sat_name(prec) for prec in libs]
             if spec.optional:
-                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
+                ms2 = MatchSpec(track_features=spec_track_featues) if spec_track_featues else MatchSpec(spec_name)
                 sat_names.append('!' + self.to_sat_name(ms2))
             m = C.Any(sat_names)
         C.name_var(m, sat_name)
