@@ -20,9 +20,6 @@ compat, plan = compat, plan
 from .core.solve import Solver  # NOQA
 Solver = Solver
 
-from .plan import display_actions  # NOQA
-display_actions = display_actions
-
 from .cli.common import specs_from_args, spec_from_line, specs_from_url  # NOQA
 from .cli.conda_argparse import add_parser_prefix, add_parser_channels  # NOQA
 add_parser_channels, add_parser_prefix = add_parser_channels, add_parser_prefix
@@ -32,7 +29,8 @@ specs_from_url = specs_from_url
 from .cli.conda_argparse import ArgumentParser  # NOQA
 ArgumentParser = ArgumentParser
 
-from .common.compat import PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
+from .common.compat import PY3, StringIO, input, iteritems, string_types, text_type, \
+    itervalues  # NOQA
 PY3, StringIO,  input, iteritems, string_types, text_type = PY3, StringIO,  input, iteritems, string_types, text_type  # NOQA
 from .gateways.connection.session import CondaSession  # NOQA
 CondaSession = CondaSession
@@ -48,8 +46,6 @@ from .gateways.connection.download import TmpDownload  # NOQA
 TmpDownload = TmpDownload
 handle_proxy_407 = lambda x, y: warn("handle_proxy_407 is deprecated. "
                                      "Now handled by CondaSession.")
-from .core.index import dist_str_in_index, fetch_index, get_index  # NOQA
-dist_str_in_index, fetch_index, get_index = dist_str_in_index, fetch_index, get_index  # NOQA
 from .core.package_cache_data import download, rm_fetched  # NOQA
 download, rm_fetched = download, rm_fetched
 
@@ -58,9 +54,6 @@ package_cache, prefix_placeholder, symlink_conda = package_cache, prefix_placeho
 
 from .gateways.disk.delete import delete_trash, move_to_trash  # NOQA
 delete_trash, move_to_trash = delete_trash, move_to_trash
-
-from .core.prefix_data import is_linked, linked, linked_data  # NOQA
-is_linked, linked, linked_data = is_linked, linked, linked_data
 
 from .misc import untracked, walk_prefix  # NOQA
 untracked, walk_prefix = untracked, walk_prefix
@@ -225,3 +218,35 @@ def verify(_):
 from .plan import execute_actions, execute_instructions, execute_plan, install_actions  # NOQA
 execute_actions, execute_instructions = execute_actions, execute_instructions
 execute_plan, install_actions = execute_plan, install_actions
+
+
+from .install import linked_data, linked, is_linked  # NOQA
+linked_data, linked, is_linked = linked_data, linked, is_linked
+
+
+from .plan import display_actions as _display_actions  # NOQA
+def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), specs_to_add=()):
+    if 'FETCH' in actions:
+        actions['FETCH'] = [index[d] for d in actions['FETCH']]
+    if 'LINK' in actions:
+        actions['LINK'] = [index[d] for d in actions['LINK']]
+    if 'UNLINK' in actions:
+        actions['UNLINK'] = [index[d] for d in actions['UNLINK']]
+    index = {prec: prec for prec in itervalues(index)}
+    return _display_actions(actions, index, show_channel_urls, specs_to_remove, specs_to_add)
+
+
+from .models.dist import Dist  # NOQA
+from .core.index import dist_str_in_index, fetch_index as _fetch_index, get_index as _get_index  # NOQA
+dist_str_in_index = dist_str_in_index
+
+
+def get_index(channel_urls=(), prepend=True, platform=None,
+              use_local=False, use_cache=False, unknown=None, prefix=None):
+    index = _get_index(channel_urls, prepend, platform, use_local, use_cache, unknown, prefix)
+    return {Dist(prec): prec for prec in itervalues(index)}
+
+
+def fetch_index(channel_urls, use_cache=False, index=None):
+    index = _fetch_index(channel_urls, use_cache, index)
+    return {Dist(prec): prec for prec in itervalues(index)}

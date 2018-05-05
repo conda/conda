@@ -2,31 +2,27 @@
 from __future__ import absolute_import, division, print_function
 
 from argparse import ArgumentParser
-from unittest import TestCase
-
-from conda.base.context import reset_context
-from conda.common.io import env_var
-
-from conda.egg_info import get_egg_info
-from conda.exports import text_type
 from contextlib import contextmanager
-from logging import getLogger, Handler
+from logging import Handler, getLogger
 from os.path import exists, join
 from shlex import split
 from shutil import rmtree
 from tempfile import mkdtemp
+from unittest import TestCase
 from uuid import uuid4
 
 import pytest
 
+from conda.base.context import reset_context
+from conda.common.io import dashlist, env_var
+from conda.core.prefix_data import PrefixData
 from conda.install import on_win
+from conda.models.enums import PackageType
+from conda.models.match_spec import MatchSpec
+from conda_env.cli.main import do_call as do_call_conda_env
 from conda_env.cli.main_create import configure_parser as create_configure_parser
 from conda_env.cli.main_update import configure_parser as update_configure_parser
-from conda_env.cli.main import do_call as do_call_conda_env
-from conda.core.prefix_data import linked
-
 from . import support_file
-
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 
@@ -83,19 +79,27 @@ def make_temp_envs_dir():
         rmtree(envs_dir, ignore_errors=True)
 
 
-def package_is_installed(prefix, dist, exact=False, pip=False):
-    packages = list(get_egg_info(prefix) if pip else linked(prefix))
-    if '::' not in text_type(dist):
-        packages = [p.dist_name for p in packages]
-    if exact:
-        return dist in packages
-    return any(p.startswith(dist) for p in packages)
-
-
-def assert_package_is_installed(prefix, package, exact=False, pip=False):
-    if not package_is_installed(prefix, package, exact, pip):
-        print(list(linked(prefix)))
-        raise AssertionError("package {0} is not in prefix".format(package))
+def package_is_installed(prefix, spec, pip=None):
+    spec = MatchSpec(spec)
+    prefix_recs = tuple(PrefixData(prefix).query(spec))
+    if len(prefix_recs) > 1:
+        raise AssertionError("Multiple packages installed.%s"
+                             % (dashlist(prec.dist_str() for prec in prefix_recs)))
+    is_installed = bool(len(prefix_recs))
+    if is_installed and pip is True:
+        assert prefix_recs[0].package_type in (
+            PackageType.SHADOW_PYTHON_DIST_INFO,
+            PackageType.SHADOW_PYTHON_EGG_INFO_DIR,
+            PackageType.SHADOW_PYTHON_EGG_INFO_FILE,
+            PackageType.SHADOW_PYTHON_EGG_LINK,
+        )
+    if is_installed and pip is False:
+        assert prefix_recs[0].package_type in (
+            None,
+            PackageType.NOARCH_GENERIC,
+            PackageType.NOARCH_PYTHON,
+        )
+    return is_installed
 
 
 @pytest.mark.integration
@@ -116,11 +120,11 @@ class IntegrationTests(TestCase):
 
                 run_command(Commands.CREATE, env_name, support_file('example/environment_pinned.yml'))
                 assert exists(python_path)
-                assert_package_is_installed(prefix, 'flask-0.9')
+                assert package_is_installed(prefix, 'flask=0.9')
 
                 run_command(Commands.UPDATE, env_name, support_file('example/environment_pinned_updated.yml'))
-                assert_package_is_installed(prefix, 'flask-0.10.1')
-                assert not package_is_installed(prefix, 'flask-0.9')
+                assert package_is_installed(prefix, 'flask=0.10.1')
+                assert not package_is_installed(prefix, 'flask=0.9')
 
     def test_create_advanced_pip(self):
         with make_temp_envs_dir() as envs_dir:
@@ -132,11 +136,12 @@ class IntegrationTests(TestCase):
                 run_command(Commands.CREATE, env_name,
                             support_file('advanced-pip/environment.yml'))
                 assert exists(python_path)
-                assert_package_is_installed(prefix, 'argh', exact=False, pip=True)
-                assert_package_is_installed(prefix, 'module-to-install-in-editable-mode', exact=False, pip=True)
+                PrefixData._cache_.clear()
+                assert package_is_installed(prefix, 'argh', pip=True)
+                assert package_is_installed(prefix, 'module-to-install-in-editable-mode', pip=True)
                 try:
-                    assert_package_is_installed(prefix, 'six', exact=False, pip=True)
+                    assert package_is_installed(prefix, 'six', pip=True)
                 except AssertionError:
                     # six may now be conda-installed because of packaging changes
-                    assert_package_is_installed(prefix, 'six', exact=False, pip=False)
-                assert_package_is_installed(prefix, 'xmltodict-0.10.2-<pip>', exact=True, pip=True)
+                    assert package_is_installed(prefix, 'six', pip=False)
+                assert package_is_installed(prefix, 'xmltodict=0.10.2', pip=True)

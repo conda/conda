@@ -1,18 +1,23 @@
 from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
-from copy import copy
 from itertools import chain
 import os
 
 from conda.base.context import context
 from conda.cli import common  # TODO: this should never have to import form conda.cli
 from conda.common.serialize import yaml_load_standard
-from conda.core.prefix_data import linked
+from conda.core.prefix_data import PrefixData
+from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
+from conda.models.prefix_graph import PrefixGraph
 from conda_env.yaml import dump
 from . import compat, exceptions, yaml
-from .pip_util import add_pip_installed
+
+try:
+    from cytoolz.itertoolz import concatv, groupby
+except ImportError:  # pragma: no cover
+    from conda._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
 
 def load_from_directory(directory):
@@ -31,7 +36,6 @@ def load_from_directory(directory):
     raise exceptions.EnvironmentFileNotFound(files[0])
 
 
-# TODO This should lean more on conda instead of divining it from the outside
 # TODO tests!!!
 def from_environment(name, prefix, no_builds=False, ignore_channels=False):
     """
@@ -44,26 +48,35 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
 
     Returns:     Environment object
     """
-    installed = linked(prefix, ignore_channels=ignore_channels)
-    conda_pkgs = copy(installed)
-    # json=True hides the output, data is added to installed
-    add_pip_installed(prefix, installed, json=True)
+    # requested_specs_map = History(prefix).get_requested_specs_map()
+    precs = tuple(PrefixGraph(PrefixData(prefix).iter_records()).graph)
+    grouped_precs = groupby(lambda x: x.package_type, precs)
+    conda_precs = sorted(concatv(
+        grouped_precs.get(None, ()),
+        grouped_precs.get(PackageType.NOARCH_GENERIC, ()),
+        grouped_precs.get(PackageType.NOARCH_PYTHON, ()),
+    ), key=lambda x: x.name)
 
-    pip_pkgs = sorted(installed - conda_pkgs)
+    pip_precs = sorted(concatv(
+        grouped_precs.get(PackageType.SHADOW_PYTHON_DIST_INFO, ()),
+        grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_INFO_DIR, ()),
+        grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_INFO_FILE, ()),
+        # grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_LINK, ()),
+    ), key=lambda x: x.name)
 
     if no_builds:
-        dependencies = ['='.join((a.name, a.version)) for a in sorted(conda_pkgs)]
+        dependencies = ['='.join((a.name, a.version)) for a in conda_precs]
     else:
-        dependencies = ['='.join((a.name, a.version, a.build)) for a in sorted(conda_pkgs)]
-    if len(pip_pkgs) > 0:
-        dependencies.append({'pip': ['=='.join(a.rsplit('-', 2)[:2]) for a in pip_pkgs]})
-    # conda uses ruamel_yaml which returns a ruamel_yaml.comments.CommentedSeq
-    # this doesn't dump correctly using pyyaml
+        dependencies = ['='.join((a.name, a.version, a.build)) for a in conda_precs]
+    if pip_precs:
+        dependencies.append({'pip': ["%s==%s" % (a.name, a.version) for a in pip_precs]})
+
     channels = list(context.channels)
     if not ignore_channels:
-        for dist in conda_pkgs:
-            if dist.channel not in channels:
-                channels.insert(0, dist.channel)
+        for prec in conda_precs:
+            canonical_name = prec.channel.canonical_name
+            if canonical_name not in channels:
+                channels.insert(0, canonical_name)
     return Environment(name=name, dependencies=dependencies, channels=channels, prefix=prefix)
 
 

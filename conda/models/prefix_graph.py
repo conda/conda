@@ -28,8 +28,8 @@ class PrefixGraph(object):
     """
 
     def __init__(self, records, specs=()):
-        specs = set(specs)
         records = tuple(records)
+        specs = set(specs)
         graph = {}  # Dict[PrefixRecord, Set[PrefixRecord]]
         self.spec_matches = spec_matches = {}  # Dict[PrefixRecord, Set[MatchSpec]]
         for node in records:

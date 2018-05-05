@@ -27,7 +27,7 @@ from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSy
                           UnsatisfiableError)
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
-from ..plan import (revert_actions)
+from ..plan import revert_actions
 from ..resolve import ResolvePackageNotFound
 
 log = getLogger(__name__)

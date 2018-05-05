@@ -122,7 +122,7 @@ class DefaultConfigChannelTests(TestCase):
             'https://repo.anaconda.com/pkgs/free/noarch',
         ]
 
-    def test_bare_channel(self):
+    def test_bare_channel_http(self):
         url = "http://conda-01"
         channel = Channel(url)
         assert channel.scheme == "http"
@@ -130,6 +130,22 @@ class DefaultConfigChannelTests(TestCase):
         assert channel.platform is None
         assert channel.canonical_name == url
         assert channel.name is None
+
+        assert channel.base_url == url
+        assert channel.url() == join_url(url, context.subdir)
+        assert channel.urls() == [
+            join_url(url, context.subdir),
+            join_url(url, 'noarch'),
+        ]
+
+    def test_bare_channel_file(self):
+        url = "file:///conda-01"
+        channel = Channel(url)
+        assert channel.scheme == "file"
+        assert channel.location == "/"
+        assert channel.platform is None
+        assert channel.canonical_name == url
+        assert channel.name == "conda-01"
 
         assert channel.base_url == url
         assert channel.url() == join_url(url, context.subdir)

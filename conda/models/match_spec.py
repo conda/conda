@@ -181,6 +181,22 @@ class MatchSpec(object):
         self.target = target
         self._match_components = self._build_components(**kwargs)
 
+    @classmethod
+    def from_dist_str(cls, dist_str):
+        parts = {}
+        if dist_str.endswith(CONDA_TARBALL_EXTENSION):
+            dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
+        if '::' in dist_str:
+            channel_str, dist_str = dist_str.split("::", 1)
+            parts['channel'] = channel_str
+        name, version, build = dist_str.rsplit('-', 2)
+        parts.update({
+            'name': name,
+            'version': version,
+            'build': build,
+        })
+        return cls(**parts)
+
     def get_exact_value(self, field_name):
         v = self._match_components.get(field_name)
         return v and v.exact_value

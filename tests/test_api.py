@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import inspect
 
+from datetime import datetime
 import pytest
 
 from conda.api import DepsModifier, PackageCacheData, PrefixData, Solver, SubdirData

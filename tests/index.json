@@ -13427,6 +13427,7 @@
     "requires": [
       "python 2.7"
     ],
+    "size": 5994338,
     "version": "1.7.1"
   },
   "numpy-1.7.1-py27_p0.tar.bz2": {
@@ -20375,6 +20376,7 @@
     "requires": [
       "python 2.7"
     ],
+    "size": 4374752,
     "version": "0.7.2"
   },
   "sympy-0.7.2-py33_0.tar.bz2": {

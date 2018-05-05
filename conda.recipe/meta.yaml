@@ -41,7 +41,7 @@ requirements:
     - requests >=2.12.4,<3
     - ruamel_yaml >=0.11.14
   run_constrained:
-    - conda-build >=2.1
+    - conda-build >=3
     - cytoolz >=0.8.1
     - setuptools >=36.4
 

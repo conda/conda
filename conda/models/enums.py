@@ -122,9 +122,19 @@ class LeasedPathType(Enum):
 class PackageType(Enum):
     NOARCH_GENERIC = 'noarch_generic'
     NOARCH_PYTHON = 'noarch_python'
-    NOARCH_PRELINK_PYTHON = 'noarch_prelink_python'
     SHADOW_PRIVATE_ENV = 'shadow_private_env'
-    SHADOW_PIP = 'shadow_pip'
+    SHADOW_PYTHON_DIST_INFO = 'shadow_python_dist_info'
+    SHADOW_PYTHON_EGG_INFO_DIR = 'shadow_python_egg_info_dir'
+    SHADOW_PYTHON_EGG_INFO_FILE = 'shadow_python_egg_info_file'
+    SHADOW_PYTHON_EGG_LINK = 'shadow_python_egg_link'
+
+    @staticmethod
+    def conda_package_types():
+        return {
+            None,
+            PackageType.NOARCH_GENERIC,
+            PackageType.NOARCH_PYTHON,
+        }
 
 
 class NoarchType(Enum):

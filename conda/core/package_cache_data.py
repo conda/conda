@@ -28,7 +28,6 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_index_json,
                                   read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
-from ..models.dist import Dist
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord, PackageRef
 from ..utils import human_bytes
@@ -209,7 +208,7 @@ class PackageCacheData(object):
                          for cache in cls.all_caches_writable_first() if cache), None)
         if pc_entry is not None:
             return pc_entry
-        raise CondaError("No package '%s' found in cache directories." % Dist(package_ref))
+        raise CondaError("No package '%s' found in cache directories." % package_ref.dist_str())
 
     @classmethod
     def tarball_file_in_cache(cls, tarball_path, md5sum=None, exclude_caches=()):
@@ -630,7 +629,7 @@ class ProgressiveFetchExtract(object):
         if len(desc) > 20:
             desc = desc[:20]
         size = getattr(prec_or_spec, 'size', None)
-        desc = "%-20s | %7s | " % (desc, size and human_bytes(size) or '')
+        desc = "%-20s | %8s | " % (desc, size and human_bytes(size) or '')
 
         progress_bar = ProgressBar(desc, not context.verbosity and not context.quiet, context.json)
 
@@ -695,15 +694,3 @@ def rm_fetched(dist):
 def download(url, dst_path, session=None, md5=None, urlstxt=False, retries=3):
     from ..gateways.connection.download import download as gateway_download
     gateway_download(url, dst_path, md5)
-
-
-class package_cache(object):
-
-    def __contains__(self, dist):
-        return bool(PackageCacheData.first_writable().get(Dist(dist).to_package_ref(), None))
-
-    def keys(self):
-        return (Dist(v) for v in itervalues(PackageCacheData.first_writable()))
-
-    def __delitem__(self, dist):
-        PackageCacheData.first_writable().remove(Dist(dist).to_package_ref())
