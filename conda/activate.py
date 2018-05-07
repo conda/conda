@@ -11,6 +11,7 @@ from tempfile import NamedTemporaryFile
 
 from . import CONDA_PACKAGE_ROOT, CondaError
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
+from .common.path import paths_equal
 
 try:
     from cytoolz.itertoolz import concatv, drop
@@ -415,10 +416,6 @@ class _Activator(object):
     def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
-    @staticmethod
-    def _paths_equal(path1, path2):
-        return normpath(abspath(path1.lower())) == normpath(abspath(path2.lower()))
-
     def _replace_prefix_in_path(self, old_prefix, new_prefix, starting_path_dirs=None):
         old_prefix = self.path_conversion(old_prefix)
         if starting_path_dirs is None:
@@ -428,7 +425,8 @@ class _Activator(object):
 
         def index_of_path(paths, test_path):
             for q, path in enumerate(paths):
-                if self._paths_equal(path, test_path):
+                # TODO: check why lower is used in yhis call ?
+                if paths_equal(path.lower(), test_path.lower()):
                     return q
             return None
 
@@ -458,11 +456,11 @@ class _Activator(object):
         pass
 
     def _default_env(self, prefix):
-        if self._paths_equal(prefix, context.root_prefix):
+        if paths_equal(prefix, context.root_prefix):
             return ROOT_ENV_NAME
 
         for env_dir in context.envs_dirs:
-            if self._paths_equal(dirname(prefix), env_dir):
+            if paths_equal(dirname(prefix), env_dir):
                 return basename(prefix)
 
         return prefix
