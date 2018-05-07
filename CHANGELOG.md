@@ -1,3 +1,8 @@
+## 4.5.3 (2018-05-07)
+
+### Bug Fixes
+* fix #7240 conda's configuration context is not initialized in conda.exports (#7244)
+
 ## 4.5.2 (2018-04-27)
 
 ### Bug Fixes
