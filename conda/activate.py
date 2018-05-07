@@ -426,7 +426,6 @@ class _Activator(object):
         else:
             path_list = list(self.path_conversion(starting_path_dirs))
 
-
         def index_of_path(paths, test_path):
             for q, path in enumerate(paths):
                 if self._paths_equal(path, test_path):
@@ -568,13 +567,11 @@ if PY2:  # pragma: py3 no cover
     string_types = basestring,  # NOQA
     text_type = unicode  # NOQA
 
-
     def iteritems(d, **kw):
         return d.iteritems(**kw)
 else:  # pragma: py2 no cover
     string_types = str,
     text_type = str
-
 
     def iteritems(d, **kw):
         return iter(d.items(**kw))
