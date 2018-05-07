@@ -3,6 +3,7 @@
 ### New Feature Highlights
 * resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
   config (#7195, #7226, #7233)
+* resolve #7087 add non-conda-installed python packages into PrefixData (#7067)
 
 ### Deprecations/Breaking Changes
 * resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
@@ -11,6 +12,7 @@
   'conda.compat', and 'conda.install' (#7079)
 * resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
   config (#7195)
+* resolve #6979, #7086 remove Dist from majority of project (#7216, #7252)
 
 ### Improvements
 * import speedups (#7122)
@@ -25,6 +27,8 @@
 * resolve #7063 add license and license_family to MatchSpec for 'conda search' (#7064)
 * resolve #7189 progress bar formatting improvement (#7191)
 * raise log level for errors to error (#7229)
+* add to conda.exports (#7217)
+
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
