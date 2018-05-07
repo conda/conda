@@ -415,6 +415,10 @@ class _Activator(object):
     def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
+    @staticmethod
+    def _paths_equal(path1, path2):
+        return normpath(abspath(path1.lower())) == normpath(abspath(path2.lower()))
+
     def _replace_prefix_in_path(self, old_prefix, new_prefix, starting_path_dirs=None):
         old_prefix = self.path_conversion(old_prefix)
         if starting_path_dirs is None:
@@ -422,12 +426,10 @@ class _Activator(object):
         else:
             path_list = list(self.path_conversion(starting_path_dirs))
 
-        def paths_equal(path1, path2):
-            return normpath(abspath(path1.lower())) == normpath(abspath(path2.lower()))
 
         def index_of_path(paths, test_path):
             for q, path in enumerate(paths):
-                if paths_equal(path, test_path):
+                if self._paths_equal(path, test_path):
                     return q
             return None
 
@@ -457,12 +459,14 @@ class _Activator(object):
         pass
 
     def _default_env(self, prefix):
-        if normpath(prefix) == normpath(context.root_prefix):
+        if self._paths_equal(prefix, context.root_prefix):
             return ROOT_ENV_NAME
-        elif dirname(normpath(prefix)) in (normpath(x) for x in context.envs_dirs):
-            return basename(prefix)
-        else:
-            return prefix
+
+        for env_dir in context.envs_dirs:
+            if self._paths_equal(dirname(prefix), env_dir):
+                return basename(prefix)
+
+        return prefix
 
     def _prompt_modifier(self, prefix, conda_default_env):
         if context.changeps1:

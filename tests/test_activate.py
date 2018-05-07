@@ -186,7 +186,7 @@ class ActivatorUnitTests(TestCase):
         activator = PosixActivator()
         with tempdir() as td:
             my_envs_dir = join(td, 'myenvs-not-envs')
-            new_envs_dirs = tuple(x for x in [my_envs_dir] + [x for x in context.envs_dirs])
+            new_envs_dirs = (my_envs_dir,) + tuple(context.envs_dirs)
             with patch('conda.activate.context._envs_dirs', new_envs_dirs):
                 assert ROOT_ENV_NAME == activator._default_env(context.root_prefix)
 
