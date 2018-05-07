@@ -458,10 +458,13 @@ class _Activator(object):
 
     def _default_env(self, prefix):
         if normpath(prefix) == normpath(context.root_prefix):
-            return 'base'
-        if dirname(normpath(prefix)) in [normpath(x) for x in context.envs_dirs]:
+            return ROOT_ENV_NAME
+        elif dirname(normpath(prefix)) in (normpath(x) for x in context.envs_dirs):
             return basename(prefix)
-        return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
+        elif basename(dirname(prefix)) == 'envs':
+            return basename(prefix)
+        else:
+            return prefix
 
     def _prompt_modifier(self, prefix, conda_default_env):
         if context.changeps1:
@@ -525,11 +528,13 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     except EnvironmentError as e:
         if e.errno != ENOENT:
             raise
+
         # This code path should (hopefully) never be hit be real conda installs. It's here
         # as a backup for tests run under cmd.exe with cygpath not available.
         def _translation(found_path):  # NOQA
             found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
             return "/" + found.rstrip("/")
+
         joined = ensure_fs_path_encoding(joined)
         stdout = re.sub(
             r'([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)',
@@ -561,11 +566,13 @@ if PY2:  # pragma: py3 no cover
     string_types = basestring,  # NOQA
     text_type = unicode  # NOQA
 
+
     def iteritems(d, **kw):
         return d.iteritems(**kw)
 else:  # pragma: py2 no cover
     string_types = str,
     text_type = str
+
 
     def iteritems(d, **kw):
         return iter(d.items(**kw))
