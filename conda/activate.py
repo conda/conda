@@ -461,8 +461,6 @@ class _Activator(object):
             return ROOT_ENV_NAME
         elif dirname(normpath(prefix)) in (normpath(x) for x in context.envs_dirs):
             return basename(prefix)
-        elif basename(dirname(prefix)) == 'envs':
-            return basename(prefix)
         else:
             return prefix
 
