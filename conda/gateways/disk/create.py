@@ -139,15 +139,16 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
         with tarfile.open(fileobj=fileobj) as tar_file:
             def members_with_progress():
                 for member in tar_file:
-                    if progress_update_callback:
-                        rel_pos = fileobj.tell() / f_size
-                        progress_update_callback(rel_pos)
+                    rel_pos = fileobj.tell() / f_size
+                    progress_update_callback(rel_pos)
                     yield member
-                if progress_update_callback:
-                    progress_update_callback(1.0)
+                progress_update_callback(1.0)
 
             try:
-                tar_file.extractall(path=destination_directory, members=members_with_progress())
+                if progress_update_callback:
+                    tar_file.extractall(path=destination_directory, members=members_with_progress())
+                else:
+                    tar_file.extractall(path=destination_directory)
             except EnvironmentError as e:
                 if e.errno == ELOOP:
                     raise CaseInsensitiveFileSystemError(
