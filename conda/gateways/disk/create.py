@@ -5,7 +5,7 @@ from errno import EACCES, ELOOP, EPERM
 from io import open
 from logging import getLogger
 import os
-from os import X_OK, access
+from os import X_OK, access, fstat
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 import sys
@@ -134,27 +134,29 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
 
     assert not lexists(destination_directory), destination_directory
 
-    with tarfile.open(tarball_full_path) as t:
-        members = t.getmembers()
-        num_members = len(members)
-
-        def members_with_progress():
-            for q, member in enumerate(members):
+    with open(tarball_full_path, 'rb') as fileobj:
+        f_size = max(1, fstat(fileobj.fileno()).st_size)
+        with tarfile.open(fileobj=fileobj) as tar_file:
+            def members_with_progress():
+                for member in tar_file:
+                    if progress_update_callback:
+                        rel_pos = fileobj.tell() / f_size
+                        progress_update_callback(rel_pos)
+                    yield member
                 if progress_update_callback:
-                    progress_update_callback(q / num_members)
-                yield member
+                    progress_update_callback(1.0)
 
-        try:
-            t.extractall(path=destination_directory, members=members_with_progress())
-        except EnvironmentError as e:
-            if e.errno == ELOOP:
-                raise CaseInsensitiveFileSystemError(
-                    package_location=tarball_full_path,
-                    extract_location=destination_directory,
-                    caused_by=e,
-                )
-            else:
-                raise
+            try:
+                tar_file.extractall(path=destination_directory, members=members_with_progress())
+            except EnvironmentError as e:
+                if e.errno == ELOOP:
+                    raise CaseInsensitiveFileSystemError(
+                        package_location=tarball_full_path,
+                        extract_location=destination_directory,
+                        caused_by=e,
+                    )
+                else:
+                    raise
 
     if sys.platform.startswith('linux') and os.getuid() == 0:
         # When extracting as root, tarfile will by restore ownership
