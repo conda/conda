@@ -127,6 +127,31 @@ def create_application_entry_point(source_full_path, target_full_path, python_fu
     make_executable(target_full_path)
 
 
+class ProgressFileWrapper(object):
+    def __init__(self, fileobj, progress_update_callback):
+        self.progress_file = fileobj
+        self.progress_update_callback = progress_update_callback
+        self.progress_file_size = max(1, fstat(fileobj.fileno()).st_size)
+
+    def __getattr__(self, name):
+        return getattr(self.progress_file, name)
+
+    def __setattr__(self, name, value):
+        if name.startswith("progress_"):
+            super(ProgressFileWrapper, self).__setattr__(name, value)
+        else:
+            setattr(self.progress_file, name, value)
+
+    def read(self, size=-1):
+        data = self.progress_file.read(size)
+        self.progress_update()
+        return data
+
+    def progress_update(self):
+        rel_pos = self.progress_file.tell() / self.progress_file_size
+        self.progress_update_callback(rel_pos)
+
+
 def extract_tarball(tarball_full_path, destination_directory=None, progress_update_callback=None):
     if destination_directory is None:
         destination_directory = tarball_full_path[:-8]
@@ -135,20 +160,11 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
     assert not lexists(destination_directory), destination_directory
 
     with open(tarball_full_path, 'rb') as fileobj:
-        f_size = max(1, fstat(fileobj.fileno()).st_size)
+        if progress_update_callback:
+            fileobj = ProgressFileWrapper(fileobj, progress_update_callback)
         with tarfile.open(fileobj=fileobj) as tar_file:
-            def members_with_progress():
-                for member in tar_file:
-                    rel_pos = fileobj.tell() / f_size
-                    progress_update_callback(rel_pos)
-                    yield member
-                progress_update_callback(1.0)
-
             try:
-                if progress_update_callback:
-                    tar_file.extractall(path=destination_directory, members=members_with_progress())
-                else:
-                    tar_file.extractall(path=destination_directory)
+                tar_file.extractall(path=destination_directory)
             except EnvironmentError as e:
                 if e.errno == ELOOP:
                     raise CaseInsensitiveFileSystemError(
