@@ -810,7 +810,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None):
             raise LinkError(message)
         else:
             log.warning("%s script failed for package %s\n"
-                     "consider notifying the package maintainer", action, prec.dist_str())
+                "consider notifying the package maintainer", action, prec.dist_str())
             return False
     else:
         messages(prefix)
