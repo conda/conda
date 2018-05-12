@@ -355,6 +355,7 @@ class Resolve(object):
                         # reduced index helps. Of course, if _another_
                         # package pulls it in by dependency, that's fine.
                         if 'track_features' not in ms:
+                            # TODO: I don't think the above line is relevant anymore. Talk to @mcg1969 about this.  # NOQA
                             slist.append(ms)
         self._reduced_index_cache[cache_key] = reduced_index
         return reduced_index

@@ -6,7 +6,7 @@ from logging import getLogger
 import operator as op
 import re
 
-from ..common.compat import string_types, zip, zip_longest, text_type
+from ..common.compat import string_types, zip, zip_longest, text_type, with_metaclass
 from ..exceptions import CondaValueError, InvalidVersionSpecError
 
 try:
@@ -401,81 +401,146 @@ opdict = {'==': op.__eq__, '!=': op.__ne__, '<=': op.__le__,
           '>=': op.__ge__, '<': op.__lt__, '>': op.__gt__}
 
 
-class VersionSpec(object):
-    def exact_match_(self, vspec):
-        return self.spec == vspec
 
-    def regex_match_(self, vspec):
-        return bool(self.regex.match(vspec))
+class VersionSpecType(type):
 
-    def veval_match_(self, vspec):
-        return self.op(VersionOrder(vspec), self.cmp)
+    def __call__(cls, vspec, *args, **kwargs):
 
-    def all_match_(self, vspec):
-        return all(s.match(vspec) for s in self.tup)
+        if not args and not kwargs:
+            if isinstance(vspec, VersionSpec):
+                return vspec
 
-    def any_match_(self, vspec):
-        return any(s.match(vspec) for s in self.tup)
+            if isinstance(vspec, string_types) and regex_split_re.match(vspec):
+                vspec = treeify(vspec)
 
-    def triv_match_(self, vspec):
-        return True
+            if isinstance(vspec, tuple):
+                clz = AnyMatchVersionSpec if vspec[0] == '|' else AllMatchVersionSpec
+                tup = tuple(VersionSpec(s) for s in vspec[1:])
+                vspec_str = untreeify((vspec[0],) + tuple(t.spec for t in tup))
+                # self.depth = 2
+                return clz(vspec_str, tup)
 
-    def __new__(cls, spec):
-        if isinstance(spec, cls):
-            return spec
-        if isinstance(spec, string_types) and regex_split_re.match(spec):
-            spec = treeify(spec)
+            vspec_str = text_type(vspec).strip()
+            if vspec_str.startswith('^') or vspec_str.endswith('$'):
+                if not vspec_str.startswith('^') or not vspec_str.endswith('$'):
+                    raise InvalidVersionSpecError(vspec_str)
+                return RegexVersionSpec(vspec_str, re.compile(vspec_str))
 
-        self = object.__new__(cls)
-        if isinstance(spec, tuple):
-            self.tup = tup = tuple(VersionSpec(s) for s in spec[1:])
-            self.match = self.any_match_ if spec[0] == '|' else self.all_match_
-            self.spec = untreeify((spec[0],) + tuple(t.spec for t in tup))
-            self.depth = 2
-            return self
+            if vspec_str.startswith(('=', '<', '>', '!')):
+                m = version_relation_re.match(vspec_str)
+                if m is None:
+                    raise InvalidVersionSpecError(vspec_str)
+                op, b = m.groups()
+                return VEvalMatchVersionSpec(vspec_str, opdict[op], VersionOrder(b))
 
-        self.depth = 0
-        self.spec = spec = text_type(spec).strip()
-        if spec.startswith('^') or spec.endswith('$'):
-            if not spec.startswith('^') or not spec.endswith('$'):
-                raise InvalidVersionSpecError(spec)
-            self.regex = re.compile(spec)
-            self.match = self.regex_match_
-        elif spec.startswith(('=', '<', '>', '!')):
-            m = version_relation_re.match(spec)
-            if m is None:
-                raise InvalidVersionSpecError(spec)
-            op, b = m.groups()
-            self.op = opdict[op]
-            self.cmp = VersionOrder(b)
-            self.match = self.veval_match_
-        elif spec == '*':
-            self.match = self.triv_match_
-        elif '*' in spec.rstrip('*'):
-            self.spec = spec
-            rx = spec.replace('.', r'\.')
-            rx = rx.replace('+', r'\+')
-            rx = rx.replace('*', r'.*')
-            rx = r'^(?:%s)$' % rx
-            self.regex = re.compile(rx)
-            self.match = self.regex_match_
-        elif spec.endswith('*'):
-            if not spec.endswith('.*'):
-                self.spec = spec = spec[:-1] + '.*'
-            self.op = VersionOrder.startswith
-            self.cmp = VersionOrder(spec.rstrip('*').rstrip('.'))
-            self.match = self.veval_match_
-        elif '@' not in spec:
-            self.op = opdict["=="]
-            self.cmp = VersionOrder(spec)
-            self.match = self.veval_match_
+            if vspec_str == '*':
+                import pdb; pdb.set_trace()
+                return TrivMatchVersionSpec(vspec_str)
+
+            if '*' in vspec_str.rstrip('*'):
+                rx = vspec_str.replace('.', r'\.').replace('+', r'\+').replace('*', r'.*')
+                rx = r'^(?:%s)$' % rx
+                return RegexVersionSpec(vspec_str, re.compile(rx))
+
+            if vspec_str.endswith('*'):
+                if not vspec_str.endswith('.*'):
+                    vspec_str = vspec_str[:-1] + '.*'
+                return VEvalMatchVersionSpec(vspec_str, VersionOrder.startswith,
+                                             VersionOrder(vspec_str.rstrip('*').rstrip('.')))
+
+            if '@' not in vspec_str:
+                return VEvalMatchVersionSpec(vspec_str, opdict["=="], VersionOrder(vspec_str))
+
+            return ExactMatchVersionSpec(vspec_str)
+
         else:
-            self.match = self.exact_match_
-        return self
+            return super(VersionSpecType, cls).__call__(vspec, *args, **kwargs)
+
+
+@with_metaclass(VersionSpecType)
+class VersionSpec(object):
+
+    def __init__(self, vspec_str):
+        self.vspec_str = vspec_str
+
+    @property
+    def spec(self):
+        return self.vspec_str
+
+    # def exact_match_(self, vspec):
+    #     return self.spec == vspec
+
+    # def regex_match_(self, vspec):
+    #     return bool(self.regex.match(vspec))
+
+    # def veval_match_(self, vspec):
+    #     return self.op(VersionOrder(vspec), self.cmp)
+
+    # def all_match_(self, vspec):
+    #     return all(s.match(vspec) for s in self.tup)
+
+    # def any_match_(self, vspec):
+    #     return any(s.match(vspec) for s in self.tup)
+
+    # def triv_match_(self, vspec):
+    #     return True
+
+    # def __new__(cls, spec):
+    #     if isinstance(spec, cls):
+    #         return spec
+    #     if isinstance(spec, string_types) and regex_split_re.match(spec):
+    #         spec = treeify(spec)
+    #
+    #     self = object.__new__(cls)
+    #     if isinstance(spec, tuple):
+    #         self.tup = tup = tuple(VersionSpec(s) for s in spec[1:])
+    #         self.match = self.any_match_ if spec[0] == '|' else self.all_match_
+    #         self.spec = untreeify((spec[0],) + tuple(t.spec for t in tup))
+    #         self.depth = 2
+    #         return self
+    #
+    #     self.depth = 0
+    #     self.spec = spec = text_type(spec).strip()
+    #     if spec.startswith('^') or spec.endswith('$'):
+    #         if not spec.startswith('^') or not spec.endswith('$'):
+    #             raise InvalidVersionSpecError(spec)
+    #         self.regex = re.compile(spec)
+    #         self.match = self.regex_match_
+    #     elif spec.startswith(('=', '<', '>', '!')):
+    #         m = version_relation_re.match(spec)
+    #         if m is None:
+    #             raise InvalidVersionSpecError(spec)
+    #         op, b = m.groups()
+    #         self.op = opdict[op]
+    #         self.cmp = VersionOrder(b)
+    #         self.match = self.veval_match_
+    #     elif spec == '*':
+    #         self.match = self.triv_match_
+    #     elif '*' in spec.rstrip('*'):
+    #         self.spec = spec
+    #         rx = spec.replace('.', r'\.')
+    #         rx = rx.replace('+', r'\+')
+    #         rx = rx.replace('*', r'.*')
+    #         rx = r'^(?:%s)$' % rx
+    #         self.regex = re.compile(rx)
+    #         self.match = self.regex_match_
+    #     elif spec.endswith('*'):
+    #         if not spec.endswith('.*'):
+    #             self.spec = spec = spec[:-1] + '.*'
+    #         self.op = VersionOrder.startswith
+    #         self.cmp = VersionOrder(spec.rstrip('*').rstrip('.'))
+    #         self.match = self.veval_match_
+    #     elif '@' not in spec:
+    #         self.op = opdict["=="]
+    #         self.cmp = VersionOrder(spec)
+    #         self.match = self.veval_match_
+    #     else:
+    #         self.match = self.exact_match_
+    #     return self
 
     def is_exact(self):
-        return (self.match == self.exact_match_
-                or self.match == self.veval_match_ and self.op == op.__eq__)
+        return (isinstance(self, ExactMatchVersionSpec)
+                or isinstance(self, VEvalMatchVersionSpec) and self.op == op.__eq__)
 
     def __eq__(self, other):
         try:
@@ -506,8 +571,65 @@ class VersionSpec(object):
         return self.is_exact() and self.spec or None
 
     def merge(self, other):
-        assert isinstance(other, self.__class__)
+        assert isinstance(other, VersionSpec)
         return self.__class__('%s,%s' % (self.raw_value, other.raw_value))
+
+
+class RegexVersionSpec(VersionSpec):
+
+    def __init__(self, vspec_str, regex):
+        super(RegexVersionSpec, self).__init__(vspec_str)
+        self.regex = regex
+
+    def match(self, vspec):
+        return bool(self.regex.match(vspec))
+
+
+class AnyMatchVersionSpec(VersionSpec):
+
+    def __init__(self, vspec_str, tup):
+        super(AnyMatchVersionSpec, self).__init__(vspec_str)
+        self.tup = tup
+
+    def match(self, vspec):
+        return any(s.match(vspec) for s in self.tup)
+
+
+class AllMatchVersionSpec(VersionSpec):
+
+    def __init__(self, vspec_str, tup):
+        super(AllMatchVersionSpec, self).__init__(vspec_str)
+        self.tup = tup
+
+    def match(self, vspec):
+        return all(s.match(vspec) for s in self.tup)
+
+
+class ExactMatchVersionSpec(VersionSpec):
+
+    def match(self, vspec_str):
+        return self.spec == vspec_str
+
+
+class VEvalMatchVersionSpec(VersionSpec):
+
+    def __init__(self, vspec_str, op, cmp):
+        super(VEvalMatchVersionSpec, self).__init__(vspec_str)
+        self.op = op
+        self.cmp = cmp
+
+    def match(self, vspec_str):
+        return self.op(VersionOrder(vspec_str), self.cmp)
+
+
+class TrivMatchVersionSpec(VersionSpec):
+
+
+    def match(self, vspec_str):
+        return True
+
+
+
 
 
 class BuildNumberMatch(object):

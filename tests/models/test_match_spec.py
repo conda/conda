@@ -978,3 +978,8 @@ class MatchSpecMergeTests(TestCase):
         with pytest.raises(ValueError):
             MatchSpec.merge(specs)
 
+
+class MatchSpecMarkerTests(TestCase):
+
+    def test_match_spec_markers_1(self):
+        spec = "conda-forge::python[version='1.2.3,<=8',build=py27_1] if "
