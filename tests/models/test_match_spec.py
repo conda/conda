@@ -920,3 +920,9 @@ class MatchSpecMergeTests(TestCase):
         assert str(merged[0]) in str_specs
         assert str(merged[1]) in str_specs
         assert str(merged[0]) != str(merged[1])
+
+
+class MatchSpecMarkerTests(TestCase):
+
+    def test_match_spec_markers_1(self):
+        spec = "conda-forge::python[version='1.2.3,<=8',build=py27_1] if "
