@@ -206,6 +206,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                                                package_info.extracted_package_dir,
                                                source_path_data.path,
                                                target_prefix, target_short_path,
+                                               requested_link_type,
                                                placeholder, fmode, source_path_data)
             else:
                 return LinkPathAction(transaction_context, package_info,
@@ -356,11 +357,14 @@ class PrefixReplaceLinkAction(LinkPathAction):
     def __init__(self, transaction_context, package_info,
                  extracted_package_dir, source_short_path,
                  target_prefix, target_short_path,
+                 link_type,
                  prefix_placeholder, file_mode, source_path_data):
+        # This link_type used in execute(). Make sure we always respect LinkType.copy request.
+        link_type = LinkType.copy if link_type == LinkType.copy else LinkType.hardlink
         super(PrefixReplaceLinkAction, self).__init__(transaction_context, package_info,
                                                       extracted_package_dir, source_short_path,
                                                       target_prefix, target_short_path,
-                                                      LinkType.copy, source_path_data)
+                                                      link_type, source_path_data)
         self.prefix_placeholder = prefix_placeholder
         self.file_mode = file_mode
         self.intermediate_path = None
@@ -409,7 +413,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
             self.verify()
         source_path = self.intermediate_path or self.source_full_path
         log.trace("linking %s => %s", source_path, self.target_full_path)
-        create_link(source_path, self.target_full_path, LinkType.hardlink)
+        create_link(source_path, self.target_full_path, self.link_type)
         self._execute_successful = True
 
 
