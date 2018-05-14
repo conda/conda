@@ -8,8 +8,6 @@ from os.path import join
 import sys
 from textwrap import dedent
 
-from conda.base.constants import UNKNOWN_CHANNEL
-
 from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
@@ -17,6 +15,7 @@ from .subdir_data import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
+from ..base.constants import UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
 from ..common.constants import NULL
