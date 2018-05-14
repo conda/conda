@@ -1,3 +1,18 @@
+## 4.5.4 (2018-05-14)
+
+### Improvements
+* resolve #7189 progress bar improvement (#7191 via #7274)
+
+### Bug Fixes
+* fix twofold tarball extraction, improve progress update (#7275)
+* fix #7253 always respect copy LinkType (#7269)
+
+### Contributors
+* @jakirkham
+* @kalefranz
+* @mbargull
+
+
 ## 4.5.3 (2018-05-07)
 
 ### Bug Fixes
