@@ -5,7 +5,7 @@ from errno import EACCES, ELOOP, EPERM
 from io import open
 from logging import getLogger
 import os
-from os import X_OK, access
+from os import X_OK, access, fstat
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 import sys
@@ -127,6 +127,31 @@ def create_application_entry_point(source_full_path, target_full_path, python_fu
     make_executable(target_full_path)
 
 
+class ProgressFileWrapper(object):
+    def __init__(self, fileobj, progress_update_callback):
+        self.progress_file = fileobj
+        self.progress_update_callback = progress_update_callback
+        self.progress_file_size = max(1, fstat(fileobj.fileno()).st_size)
+
+    def __getattr__(self, name):
+        return getattr(self.progress_file, name)
+
+    def __setattr__(self, name, value):
+        if name.startswith("progress_"):
+            super(ProgressFileWrapper, self).__setattr__(name, value)
+        else:
+            setattr(self.progress_file, name, value)
+
+    def read(self, size=-1):
+        data = self.progress_file.read(size)
+        self.progress_update()
+        return data
+
+    def progress_update(self):
+        rel_pos = self.progress_file.tell() / self.progress_file_size
+        self.progress_update_callback(rel_pos)
+
+
 def extract_tarball(tarball_full_path, destination_directory=None, progress_update_callback=None):
     if destination_directory is None:
         destination_directory = tarball_full_path[:-8]
@@ -134,27 +159,21 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
 
     assert not lexists(destination_directory), destination_directory
 
-    with tarfile.open(tarball_full_path) as t:
-        members = t.getmembers()
-        num_members = len(members)
-
-        def members_with_progress():
-            for q, member in enumerate(members):
-                if progress_update_callback:
-                    progress_update_callback(q / num_members)
-                yield member
-
-        try:
-            t.extractall(path=destination_directory, members=members_with_progress())
-        except EnvironmentError as e:
-            if e.errno == ELOOP:
-                raise CaseInsensitiveFileSystemError(
-                    package_location=tarball_full_path,
-                    extract_location=destination_directory,
-                    caused_by=e,
-                )
-            else:
-                raise
+    with open(tarball_full_path, 'rb') as fileobj:
+        if progress_update_callback:
+            fileobj = ProgressFileWrapper(fileobj, progress_update_callback)
+        with tarfile.open(fileobj=fileobj) as tar_file:
+            try:
+                tar_file.extractall(path=destination_directory)
+            except EnvironmentError as e:
+                if e.errno == ELOOP:
+                    raise CaseInsensitiveFileSystemError(
+                        package_location=tarball_full_path,
+                        extract_location=destination_directory,
+                        caused_by=e,
+                    )
+                else:
+                    raise
 
     if sys.platform.startswith('linux') and os.getuid() == 0:
         # When extracting as root, tarfile will by restore ownership
