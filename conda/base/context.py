@@ -207,6 +207,7 @@ class Context(Configuration):
     no_deps = PrimitiveParameter(False)  # CLI-only
     only_deps = PrimitiveParameter(False)   # CLI-only
     update_deps = PrimitiveParameter(False, aliases=('update_dependencies',))
+    update_specs = PrimitiveParameter(False)
     update_all = PrimitiveParameter(False)
     freeze_installed = PrimitiveParameter(False)
 
@@ -464,6 +465,7 @@ class Context(Configuration):
             'no_deps',
             'only_deps',
             'update_deps',
+            'update_specs',
             'update_all',
             'freeze_installed',
         )
@@ -488,6 +490,9 @@ class Context(Configuration):
         elif 'freeze_installed' in truthy_params:
             result = DepsModifier.FREEZE_INSTALLED
             truthy_params.remove('freeze_installed')
+        elif 'update_secs' in truthy_params:
+            result = DepsModifier.UPDATE_SPECS
+            truthy_params.remove('update_secs')
         else:
             result = None
 
@@ -705,6 +710,7 @@ class Context(Configuration):
             'freeze_installed',
             'update_deps',
             'update_all',
+            'update_specs',
 
             'force',
             'force_remove',

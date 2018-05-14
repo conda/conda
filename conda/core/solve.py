@@ -45,7 +45,17 @@ class DepsModifier(Enum):
     UPDATE_DEPS = 'update_deps'
     UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
     UPDATE_ALL = 'update_all'
+    UPDATE_SPECS = 'update_specs'
     FREEZE_INSTALLED = 'freeze_installed'  # freeze is a better name for --no-update-deps
+
+    @classmethod
+    def update_modifiers(cls):
+        return (
+            cls.UPDATE_ALL,
+            cls.UPDATE_DEPS,
+            cls.UPDATE_DEPS_ONLY_DEPS,
+            cls.UPDATE_SPECS,
+        )
 
 
 class Solver(object):
@@ -237,6 +247,17 @@ class Solver(object):
                 # pop and save matching spec in specs_map
                 add_back_map[prec.name] = (prec, specs_map.pop(prec.name, None))
             solution = tuple(prec for prec in solution if prec not in inconsistent_precs)
+
+        # Check if specs are satisfied by current environment. If they are, exit early.
+        if (deps_modifier not in DepsModifier.update_modifiers()
+                and not specs_to_remove and not inconsistent_precs):
+            for spec in specs_to_add:
+                if not next(prefix_data.query(spec), None):
+                    break
+            else:
+                # All specs match a package in the current environment.
+                # Return early, with a solution that should just be PrefixData().iter_records()
+                return solution
 
         # For the remaining specs in specs_map, add target to each spec. `target` is a reference
         # to the package currently existing in the environment. Setting target instructs the

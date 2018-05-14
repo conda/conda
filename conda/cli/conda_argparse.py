@@ -1380,6 +1380,14 @@ def add_parser_solver_mode(p):
         help="Only install dependencies.",
     )
     solver_mode_options.add_argument(
+        "--update-specs",
+        action="store_true",
+        dest="update_specs",
+        default=NULL,
+        help="Update the requested specs to the latest satisfiable versions.",
+    )
+
+    solver_mode_options.add_argument(
         "--no-pin",
         action="store_true",
         dest='ignore_pinned',

@@ -19,7 +19,7 @@ from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
-from ..core.solve import Solver
+from ..core.solve import Solver, DepsModifier
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotFoundError, DryRunExit,
                           EnvironmentLocationNotFound,
@@ -230,8 +230,13 @@ def install(args, parser, command='install'):
                               unknown=index_args['unknown'], prefix=prefix)
             unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
         else:
+            if isupdate:
+                deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
+            else:
+                deps_modifier = context.deps_modifier
             solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
             unlink_link_transaction = solver.solve_for_transaction(
+                deps_modifier=deps_modifier,
                 force_reinstall=context.force_reinstall or context.force,
             )
 
