@@ -8,6 +8,8 @@ from os.path import join
 import sys
 from textwrap import dedent
 
+from conda.base.constants import UNKNOWN_CHANNEL
+
 from .index import get_reduced_index
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
@@ -509,25 +511,31 @@ class Solver(object):
                 #   History right now. Do we need to include other categories from the solve?
 
         if context.notify_outdated_conda and not context.quiet:
-            conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
-            if not any(conda_newer_spec.match(prec) for prec in link_precs):
-                conda_newer_records = sorted(
-                    SubdirData.query_all(conda_newer_spec, self.channels, self.subdirs),
-                    key=lambda x: VersionOrder(x.version)
-                )
-                if conda_newer_records:
-                    latest_version = conda_newer_records[-1].version
-                    print(dedent("""
-
-                    ==> WARNING: A newer version of conda exists. <==
-                      current version: %s
-                      latest version: %s
-
-                    Please update conda by running
-
-                        $ conda update -n base conda
-
-                    """) % (CONDA_VERSION, latest_version), file=sys.stderr)
+            current_conda_prefix_rec = PrefixData(context.conda_prefix).get('conda', None)
+            if current_conda_prefix_rec:
+                channel_name = current_conda_prefix_rec.channel.canonical_name
+                if channel_name == UNKNOWN_CHANNEL:
+                    conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
+                else:
+                    conda_newer_spec = MatchSpec('%s::conda >%s' % (channel_name, CONDA_VERSION))
+                if not any(conda_newer_spec.match(prec) for prec in link_precs):
+                    conda_newer_records = sorted(
+                        SubdirData.query_all(conda_newer_spec, self.channels, self.subdirs),
+                        key=lambda x: VersionOrder(x.version)
+                    )
+                    if conda_newer_records:
+                        latest_version = conda_newer_records[-1].version
+                        print(dedent("""
+    
+                        ==> WARNING: A newer version of conda exists. <==
+                          current version: %s
+                          latest version: %s
+    
+                        Please update conda by running
+    
+                            $ conda update -n base conda
+    
+                        """) % (CONDA_VERSION, latest_version), file=sys.stderr)
 
         return UnlinkLinkTransaction(stp)
 
