@@ -42,6 +42,11 @@ conda() {
             activate|deactivate)
                 __conda_activate "$cmd" "$@"
                 ;;
+            exec)
+                \local env=$1
+                shift
+                _conda_activate "$env" && exec $@
+                ;;
             install|update|upgrade|remove|uninstall)
                 "$CONDA_EXE" "$cmd" "$@" && __conda_reactivate
                 ;;
