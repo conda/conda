@@ -15,6 +15,7 @@ from .subdir_data import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
+from ..base.constants import UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, string_types, text_type
 from ..common.constants import NULL
@@ -509,25 +510,31 @@ class Solver(object):
                 #   History right now. Do we need to include other categories from the solve?
 
         if context.notify_outdated_conda and not context.quiet:
-            conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
-            if not any(conda_newer_spec.match(prec) for prec in link_precs):
-                conda_newer_records = sorted(
-                    SubdirData.query_all(conda_newer_spec, self.channels, self.subdirs),
-                    key=lambda x: VersionOrder(x.version)
-                )
-                if conda_newer_records:
-                    latest_version = conda_newer_records[-1].version
-                    print(dedent("""
+            current_conda_prefix_rec = PrefixData(context.conda_prefix).get('conda', None)
+            if current_conda_prefix_rec:
+                channel_name = current_conda_prefix_rec.channel.canonical_name
+                if channel_name == UNKNOWN_CHANNEL:
+                    conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
+                else:
+                    conda_newer_spec = MatchSpec('%s::conda >%s' % (channel_name, CONDA_VERSION))
+                if not any(conda_newer_spec.match(prec) for prec in link_precs):
+                    conda_newer_records = sorted(
+                        SubdirData.query_all(conda_newer_spec, self.channels, self.subdirs),
+                        key=lambda x: VersionOrder(x.version)
+                    )
+                    if conda_newer_records:
+                        latest_version = conda_newer_records[-1].version
+                        print(dedent("""
 
-                    ==> WARNING: A newer version of conda exists. <==
-                      current version: %s
-                      latest version: %s
+                        ==> WARNING: A newer version of conda exists. <==
+                          current version: %s
+                          latest version: %s
 
-                    Please update conda by running
+                        Please update conda by running
 
-                        $ conda update -n base conda
+                            $ conda update -n base conda
 
-                    """) % (CONDA_VERSION, latest_version), file=sys.stderr)
+                        """) % (CONDA_VERSION, latest_version), file=sys.stderr)
 
         return UnlinkLinkTransaction(stp)
 
