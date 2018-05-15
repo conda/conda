@@ -525,15 +525,15 @@ class Solver(object):
                     if conda_newer_records:
                         latest_version = conda_newer_records[-1].version
                         print(dedent("""
-    
+
                         ==> WARNING: A newer version of conda exists. <==
                           current version: %s
                           latest version: %s
-    
+
                         Please update conda by running
-    
+
                             $ conda update -n base conda
-    
+
                         """) % (CONDA_VERSION, latest_version), file=sys.stderr)
 
         return UnlinkLinkTransaction(stp)
