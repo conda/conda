@@ -727,7 +727,7 @@ def configure_parser_install(sub_parsers):
         help="Ensure that any user-requested package for the current operation is uninstalled and "
              "reinstalled, even if that package already exists in the environment.",
     )
-
+    add_parser_update_modifiers(solver_mode_options)
     package_install_options.add_argument(
         '-m', "--mkdir",
         action="store_true",
@@ -1111,6 +1111,7 @@ def configure_parser_update(sub_parsers, name='update'):
         help="Ensure that any user-requested package for the current operation is uninstalled and "
              "reinstalled, even if that package already exists in the environment.",
     )
+    add_parser_update_modifiers(solver_mode_options)
 
     package_install_options.add_argument(
         "--clobber",
@@ -1326,7 +1327,6 @@ def add_parser_channels(p):
 def add_parser_solver_mode(p):
     solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
     deps_modifiers = solver_mode_options.add_mutually_exclusive_group()
-    update_modifiers = solver_mode_options.add_mutually_exclusive_group()
     solver_mode_options.add_argument(
         "--channel-priority",
         action="store_true",
@@ -1341,45 +1341,6 @@ def add_parser_solver_mode(p):
         default=NULL,
         help="Package version takes precedence over channel priority. "
              "Overrides the value given by `conda config --show channel_priority`."
-    )
-    update_modifiers.add_argument(
-        "--freeze-installed", "--no-update-deps",
-        action="store_const",
-        const=UpdateModifier.FREEZE_INSTALLED,
-        dest="update_modifier",
-        default=NULL,
-        help="Don't update or change already-installed dependencies.",
-    )
-    update_modifiers.add_argument(
-        "--update-deps",
-        action="store_const",
-        const=UpdateModifier.UPDATE_DEPS,
-        dest="update_modifier",
-        default=NULL,
-        help="Update dependencies.",
-    )
-    # update_modifiers.add_argument(
-    #     "--update-specs",
-    #     action="store_true",
-    #     dest="update_specs",
-    #     default=NULL,
-    #     help="Update the requested specs to the latest satisfiable versions.",
-    # )
-    update_modifiers.add_argument(
-        "--no-update-specs",
-        action="store_const",
-        const=UpdateModifier.NOT_SET,
-        dest="update_modifier",
-        default=NULL,
-        help="Do not update the requested specs to the latest satisfiable versions.",
-    )
-    update_modifiers.add_argument(
-        "--update-all",
-        action="store_const",
-        const=UpdateModifier.UPDATE_ALL,
-        dest="update_modifier",
-        help="Update all installed packages in the environment.",
-        default=NULL,
     )
     deps_modifiers.add_argument(
         "--no-deps",
@@ -1406,6 +1367,42 @@ def add_parser_solver_mode(p):
         help="Ignore pinned file.",
     )
     return solver_mode_options
+
+
+def add_parser_update_modifiers(solver_mode_options):
+    update_modifiers = solver_mode_options.add_mutually_exclusive_group()
+    update_modifiers.add_argument(
+        "--freeze-installed", "--no-update-deps",
+        action="store_const",
+        const=UpdateModifier.FREEZE_INSTALLED,
+        dest="update_modifier",
+        default=NULL,
+        help="Do not update or change already-installed dependencies.",
+    )
+    update_modifiers.add_argument(
+        "--update-deps",
+        action="store_const",
+        const=UpdateModifier.UPDATE_DEPS,
+        dest="update_modifier",
+        default=NULL,
+        help="Update dependencies.",
+    )
+    update_modifiers.add_argument(
+        "--no-update-specs",
+        action="store_const",
+        const=UpdateModifier.NOT_SET,
+        dest="update_modifier",
+        default=NULL,
+        help="Do not update the requested specs to the latest satisfiable versions.",
+    )
+    update_modifiers.add_argument(
+        "--update-all", "--all",
+        action="store_const",
+        const=UpdateModifier.UPDATE_ALL,
+        dest="update_modifier",
+        help="Update all installed packages in the environment.",
+        default=NULL,
+    )
 
 
 def add_parser_prune(p):
