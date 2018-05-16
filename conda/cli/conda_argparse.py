@@ -1388,12 +1388,14 @@ def add_parser_update_modifiers(solver_mode_options):
         help="Update dependencies.",
     )
     update_modifiers.add_argument(
-        "--no-update-specs",
+        "-S", "--satisfied-skip-solve",
         action="store_const",
-        const=UpdateModifier.NOT_SET,
+        const=UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE,
         dest="update_modifier",
         default=NULL,
-        help="Do not update the requested specs to the latest satisfiable versions.",
+        help="Exit early and do not run the solver if the requested specs are satisfied. "
+             "Also skips aggressive updates as configured by 'aggressive_update_packages'. "
+             "Similar to the default behavior of 'pip install'.",
     )
     update_modifiers.add_argument(
         "--update-all", "--all",

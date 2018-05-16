@@ -142,6 +142,18 @@ class Solver(object):
         # `solution` and `specs_map` are mutated throughout this method
         prefix_data = PrefixData(self.prefix)
         solution = tuple(prec for prec in prefix_data.iter_records())
+
+        # Check if specs are satisfied by current environment. If they are, exit early.
+        if (update_modifier == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
+                and not specs_to_remove and not prune):
+            for spec in specs_to_add:
+                if not next(prefix_data.query(spec), None):
+                    break
+            else:
+                # All specs match a package in the current environment.
+                # Return early, with a solution that should just be PrefixData().iter_records()
+                return IndexedSet(PrefixGraph(solution).graph)
+
         specs_from_history_map = History(self.prefix).get_requested_specs_map()
         if prune:  # or update_modifier == UpdateModifier.UPDATE_ALL  # pending conda/constructor#138  # NOQA
             # Users are struggling with the prune functionality in --update-all, due to
@@ -237,17 +249,6 @@ class Solver(object):
                 add_back_map[prec.name] = (prec, specs_map.pop(prec.name, None))
             solution = tuple(prec for prec in solution if prec not in inconsistent_precs)
 
-        # Check if specs are satisfied by current environment. If they are, exit early.
-        if update_modifier in (UpdateModifier.NOT_SET, UpdateModifier.FREEZE_INSTALLED):
-            if not specs_to_remove and not inconsistent_precs:
-                for spec in specs_to_add:
-                    if not next(prefix_data.query(spec), None):
-                        break
-                else:
-                    # All specs match a package in the current environment.
-                    # Return early, with a solution that should just be PrefixData().iter_records()
-                    return solution
-
         # For the remaining specs in specs_map, add target to each spec. `target` is a reference
         # to the package currently existing in the environment. Setting target instructs the
         # solver to not disturb that package if it's not necessary.
@@ -306,8 +307,7 @@ class Solver(object):
         if not context.offline:
             for spec in context.aggressive_update_packages:
                 if spec.name in specs_map:
-                    old_spec = specs_map[spec.name]
-                    specs_map[spec.name] = MatchSpec(old_spec, target=None)
+                    specs_map[spec.name] = spec
             if (context.auto_update_conda and paths_equal(self.prefix, context.root_prefix)
                     and any(prec.name == "conda" for prec in solution)):
                 specs_map["conda"] = MatchSpec("conda")

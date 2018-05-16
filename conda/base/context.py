@@ -459,7 +459,7 @@ class Context(Configuration):
     @property
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
-        return tuple(MatchSpec(s, optional=True) for s in self._aggressive_update_packages)
+        return tuple(MatchSpec(s) for s in self._aggressive_update_packages)
 
     @property
     def target_prefix(self):

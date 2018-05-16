@@ -1104,6 +1104,79 @@ def test_update_deps_1():
         assert convert_to_dist_str(final_state_3) == order
 
 
+def test_fast_update_with_update_modifier_not_set():
+    specs = MatchSpec("python=2"), MatchSpec("openssl==1.0.2l"), MatchSpec("sqlite=3.21"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # PrefixDag(final_state_1, specs).open_url()
+        print(convert_to_dist_str(final_state_1))
+        order1 = (
+            'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+            'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+            'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.0-h9df7e31_2',
+            'channel-4::openssl-1.0.2l-h077ae2c_5',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1-heed3624_0',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.21.0-h1bed415_2',
+            'channel-4::python-2.7.14-h89e7a4a_22',
+        )
+        assert convert_to_dist_str(final_state_1) == order1
+
+    specs_to_add = MatchSpec("python"),
+    with get_solver_4(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print(convert_to_dist_str(final_state_2))
+        order = (
+            'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+            'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+            'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.0-h9df7e31_2',
+            'channel-4::openssl-1.0.2n-hb7f436b_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::xz-5.2.3-h55aa19d_2',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1-heed3624_0',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.21.0-h1bed415_2',
+            'channel-4::python-3.6.4-hc3d631a_1',  # python is upgraded
+        )
+        assert convert_to_dist_str(final_state_2) == order
+
+    specs_to_add = MatchSpec("sqlite"),
+    with get_solver_4(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print(convert_to_dist_str(final_state_2))
+        order = (
+            'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+            'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+            'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.0-h9df7e31_2',
+            'channel-4::openssl-1.0.2n-hb7f436b_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1-heed3624_0',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.22.0-h1bed415_0',  # sqlite is upgraded
+            'channel-4::python-2.7.14-h89e7a4a_22',  # python is not upgraded
+        )
+        assert convert_to_dist_str(final_state_2) == order
+
+    specs_to_add = MatchSpec("sqlite"), MatchSpec("python"),
+    with get_solver_4(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state(update_modifier=UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE)
+        # PrefixDag(final_state_2, specs).open_url()
+        print(convert_to_dist_str(final_state_2))
+        assert convert_to_dist_str(final_state_2) == order1
+
+
 def test_pinned_1():
     specs = MatchSpec("numpy"),
     with get_solver(specs) as solver:

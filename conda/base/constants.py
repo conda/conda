@@ -147,7 +147,7 @@ class PathConflict(Enum):
 
 class DepsModifier(Enum):
     """Flags to enable alternate handling of dependencies."""
-    NOT_SET = 'not_set'
+    NOT_SET = 'not_set'  # default
     NO_DEPS = 'no_deps'
     ONLY_DEPS = 'only_deps'
 
@@ -156,7 +156,7 @@ class DepsModifier(Enum):
 
 
 class UpdateModifier(Enum):
-    NOT_SET = 'not_set'
+    SPECS_SATISFIED_SKIP_SOLVE = 'specs_satisfied_skip_solve'
     FREEZE_INSTALLED = 'freeze_installed'  # freeze is a better name for --no-update-deps
     UPDATE_DEPS = 'update_deps'
     UPDATE_SPECS = 'update_specs'  # default

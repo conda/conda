@@ -39,7 +39,7 @@ def test_DepsModifier_contract():
 
 
 def test_UpdateModifier_contract():
-    assert UpdateModifier.NOT_SET
+    assert UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
     assert UpdateModifier.FREEZE_INSTALLED
     assert UpdateModifier.UPDATE_DEPS
     assert UpdateModifier.UPDATE_SPECS
