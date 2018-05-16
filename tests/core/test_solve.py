@@ -958,14 +958,15 @@ def test_aggressive_update_packages():
                 'channel-1::libpng-1.2.50-0',
             ))
 
-    # has "libpng" restricted to "=1.2" by history_specs
+    # # ~~has "libpng" restricted to "=1.2" by history_specs~~ NOPE!
+    # In conda 4.6 making aggressive_update *more* aggressive, making it override history specs.
     state_1 = base_state
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, reset_context):
         solve(
             state_1, ["cmake=2.8.9"],
             (
                 'channel-1::cmake-2.8.9-0',
-                'channel-1::libpng-1.2.50-0',
+                'channel-1::libpng-1.5.13-1',
             ))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, reset_context):
         state_1_2 = solve(
@@ -979,7 +980,7 @@ def test_aggressive_update_packages():
             state_1_2, ["cmake>2.8.9"],
             (
                 'channel-1::cmake-2.8.10.2-0',
-                'channel-1::libpng-1.2.50-0',
+                'channel-1::libpng-1.5.13-1',
             ))
 
     # use new history_specs to remove "libpng" version restriction
