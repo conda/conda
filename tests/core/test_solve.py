@@ -12,7 +12,7 @@ import pytest
 from conda.base.context import context, reset_context, Context
 from conda.common.io import env_var, env_vars, stderr_log_level
 from conda.core.prefix_data import PrefixData
-from conda.core.solve import DepsModifier, Solver
+from conda.core.solve import DepsModifier, Solver, UpdateModifier
 from conda.exceptions import UnsatisfiableError
 from conda.history import History
 from conda.models.channel import Channel
@@ -469,7 +469,7 @@ def test_update_all_1():
 
     specs_to_add = MatchSpec("numba=0.6"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-        final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
+        final_state_2 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
         order = (
@@ -1064,7 +1064,7 @@ def test_update_deps_1():
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
-        final_state_3 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS)
+        final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_3))
         order = (
@@ -1084,7 +1084,8 @@ def test_update_deps_1():
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
-        final_state_3 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS_ONLY_DEPS)
+        final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS,
+                                                 deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_3))
         order = (
@@ -1193,7 +1194,7 @@ def test_pinned_1():
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_3,
                         history_specs=history_specs) as solver:
-            final_state_4 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS)
+            final_state_4 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
             # PrefixDag(final_state_1, specs).open_url()
             print(convert_to_dist_str(final_state_4))
             order = (
@@ -1216,7 +1217,7 @@ def test_pinned_1():
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
                         history_specs=history_specs) as solver:
-            final_state_5 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
+            final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
             # PrefixDag(final_state_1, specs).open_url()
             print(convert_to_dist_str(final_state_5))
             order = (
@@ -1241,7 +1242,7 @@ def test_pinned_1():
     # history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
     # with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
     #                 history_specs=history_specs) as solver:
-    #     final_state_5 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
+    #     final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
     #     # PrefixDag(final_state_1, specs).open_url()
     #     print([Dist(rec).full_name for rec in final_state_5])
     #     order = (
@@ -1686,7 +1687,7 @@ def test_freeze_deps_1():
     with get_solver_2(specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         with pytest.raises(UnsatisfiableError):
-            solver.solve_final_state(deps_modifier=DepsModifier.FREEZE_INSTALLED)
+            solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
 
 
 class PrivateEnvTests(TestCase):

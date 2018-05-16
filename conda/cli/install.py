@@ -14,7 +14,7 @@ from . import common
 from .common import check_non_admin
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
 from ..core.index import calculate_channel_urls, get_index
@@ -142,7 +142,8 @@ def install(args, parser, command='install'):
         check_prefix(prefix, json=context.json)
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
-    if isupdate and not (args.file or args.update_all or args.packages):
+    if isupdate and not (args.file or args.packages
+                         or context.update_modifier == UpdateModifier.UPDATE_ALL):
         raise CondaValueError("""no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
@@ -193,7 +194,7 @@ def install(args, parser, command='install'):
 
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
-    if isupdate and not args.update_all:
+    if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
         prefix_data = PrefixData(prefix)
         for spec in specs:
             spec = MatchSpec(spec)

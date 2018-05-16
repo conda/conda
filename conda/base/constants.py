@@ -145,6 +145,27 @@ class PathConflict(Enum):
         return self.value
 
 
+class DepsModifier(Enum):
+    """Flags to enable alternate handling of dependencies."""
+    NOT_SET = 'not_set'
+    NO_DEPS = 'no_deps'
+    ONLY_DEPS = 'only_deps'
+
+    def __str__(self):
+        return self.value
+
+
+class UpdateModifier(Enum):
+    NOT_SET = 'not_set'
+    FREEZE_INSTALLED = 'freeze_installed'  # freeze is a better name for --no-update-deps
+    UPDATE_DEPS = 'update_deps'
+    UPDATE_SPECS = 'update_specs'  # default
+    UPDATE_ALL = 'update_all'
+
+    def __str__(self):
+        return self.value
+
+
 # Magic files for permissions determination
 PACKAGE_CACHE_MAGIC_FILE = 'urls.txt'
 PREFIX_MAGIC_FILE = join('conda-meta', 'history')
