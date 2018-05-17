@@ -540,15 +540,15 @@ class Solver(object):
                 # that should resolve release timing issues between defaults and conda-forge.
                 add_channel = "-c defaults " if channel_name == "defaults" else ""
                 print(dedent("""
-            
+
                 ==> WARNING: A newer version of conda exists. <==
                   current version: %s
                   latest version: %s
-            
+
                 Please update conda by running
-            
+
                     $ conda update -n base %sconda
-            
+
                 """) % (CONDA_VERSION, latest_version, add_channel), file=sys.stderr)
 
     def _prepare(self, prepared_specs):
