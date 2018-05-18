@@ -1,5 +1,5 @@
 #!/bin/sh
-set -euxo pipefail
+set -uo pipefail
 
 # Invoke with:
 #   $ bash ./tests/integration/proxy/proxy-test.sh
@@ -9,7 +9,7 @@ set -euxo pipefail
 #   * docker is required, and executable without sudo
 #   * squidusers file has condauser:condapass for credentials
 #   * to look at logs for squid proxy, use:
-#       $ cat ./tests/integration/proxy/squid_logs/*
+#       $ cat ./tests/integration/proxy/squid_log/*
 #
 # REFERENCES:
 #   https://veesp.com/en/blog/squid-authentication
@@ -18,11 +18,12 @@ set -euxo pipefail
 
 SRC_DIR="$PWD"
 
-[ -f "$SRC_DIR/conda/__main__.py" ] && [ -f "$SRC_DIR/tests/conftest.py" ] || (echo "Current working directory must be conda project root." && exit 1)
+[ -f "$SRC_DIR/conda/__main__.py" ] && [ -f "$SRC_DIR/conftest.py" ] || (echo "Current working directory must be conda project root." && exit 1)
 which docker > /dev/null || (echo "docker required but not found" && exit 1)
 docker --version > /dev/null || (echo "Cannot execute docker. Apparently needs sudo?" && exit 1)
 
 
+rm -rf "$SRC_DIR"/tests/integration/proxy/squid_log/*
 CID=$(docker run \
     --detach \
     --rm \
@@ -32,10 +33,14 @@ CID=$(docker run \
     -p 3128:3128 \
     kalefranz/squid)
 
+echo "waiting for proxy to start"
+( tail -f -n0 "$SRC_DIR/tests/integration/proxy/squid_log/cache.log" & ) | grep -q "Accepting HTTP Socket connections at"
+
 
 _fail() {
-  docker rm --force $CID
-  echo "$1"
+  echo -e "$1"
+  echo "removing container $CID"
+  docker rm --force $CID > /dev/null
   exit 1
 }
 
@@ -47,7 +52,7 @@ export CONDA_LOCAL_REPODATA_TTL=0
 export CONDA_PKGS_DIRS="$SRC_DIR/tests/integration/proxy/temp"
 mkdir -p "$CONDA_PKGS_DIRS" || _fail "permissions error"
 touch "$CONDA_PKGS_DIRS/permissions-check" || _fail "permissions error"
-rm -rf "$CONDA_PKGS_DIRS/*"
+rm -rf "$CONDA_PKGS_DIRS"/*
 
 
 # ###########################################################
@@ -56,16 +61,18 @@ rm -rf "$CONDA_PKGS_DIRS/*"
 export CONDARC="$SRC_DIR/tests/integration/proxy/condarc.proxybad"
 
 # test for repodata failure
+echo "test expecting repodata failure"
 captured="$(conda search zlib 2>&1)"
 rc=$?
-[ $rc -eq 1 ] || _fail "'conda search zlib' was expected to fail"
-rm -rf "$CONDA_PKGS_DIRS/*"
+[ $rc -eq 1 ] || _fail "'conda search zlib' was expected to fail\n$captured"
+rm -rf "$CONDA_PKGS_DIRS"/*
 
 # test for package download failure
-captured="$(conda install --mkdir -y -q -p \"$CONDA_PKGS_DIRS/test-env\" https://repo.continuum.io/pkgs/main/osx-64/six-1.11.0-py36h0e22d5e_1.tar.bz2 2>&1)"
+echo "test expecting package download failure"
+captured="$(conda install --mkdir -y -q -p $CONDA_PKGS_DIRS/test-env https://repo.continuum.io/pkgs/main/osx-64/six-1.11.0-py36h0e22d5e_1.tar.bz2 2>&1)"
 rc=$?
-[ $rc -eq 1 ] || _fail "'conda install' was expected to fail"
-rm -rf "$CONDA_PKGS_DIRS/*"
+[ $rc -eq 1 ] || _fail "'conda install' was expected to fail\n$captured"
+rm -rf "$CONDA_PKGS_DIRS"/*
 
 
 # ###########################################################
@@ -74,16 +81,30 @@ rm -rf "$CONDA_PKGS_DIRS/*"
 export CONDARC="$SRC_DIR/tests/integration/proxy/condarc.proxygood"
 
 # test for repodata success
+echo "test expecting repodata success"
 captured="$(conda search zlib 2>&1)"
 rc=$?
-[ $rc -eq 0 ] || _fail "'conda search zlib' was expected to succeed"
-echo "$captured" | grep -q 1.2.11 || _fail "'conda search zlib' was expected to contain zlib version 1.2.11"
-rm -rf "$CONDA_PKGS_DIRS/*"
+[ $rc -eq 0 ] || _fail "'conda search zlib' was expected to succeed\n$captured"
+echo "$captured" | grep -q 1.2.11 || _fail "'conda search zlib' was expected to contain zlib version 1.2.11"\n$captured
+rm -rf "$CONDA_PKGS_DIRS"/*
 
 # test for package download success
-captured="$(conda install --mkdir -y -q -p \"$CONDA_PKGS_DIRS/test-env\" https://repo.continuum.io/pkgs/main/osx-64/six-1.11.0-py36h0e22d5e_1.tar.bz2 2>&1)"
+echo "test expecting package download success"
+captured="$(conda install --mkdir -y -q -p $CONDA_PKGS_DIRS/test-env https://repo.continuum.io/pkgs/main/osx-64/six-1.11.0-py36h0e22d5e_1.tar.bz2 2>&1)"
 rc=$?
-[ $rc -eq 0 ] || _fail "'conda install' was expected to succeed"
-[ -f "$CONDA_PKGS_DIRS/test-env/conda-meta/history" ] || _fail "history file expected"
-[ -f "$CONDA_PKGS_DIRS/test-env/lib/python3.6/site-packages/six.py" ] || _fail "six.py file expected"
-rm -rf "$CONDA_PKGS_DIRS/*"
+[ $rc -eq 0 ] || _fail "'conda install' was expected to succeed\n$captured"
+[ -f "$CONDA_PKGS_DIRS/test-env/conda-meta/history" ] || _fail "history file expected\n$captured"
+[ -f "$CONDA_PKGS_DIRS/test-env/lib/python3.6/site-packages/six.py" ] || _fail "six.py file expected\n$captured"
+rm -rf "$CONDA_PKGS_DIRS"/*
+
+
+# ###########################################################
+# clean up
+# ###########################################################
+
+echo "removing container $CID"
+docker rm --force $CID > /dev/null
+
+echo
+echo ">>>>> ALL TESTS COMPLETED <<<<<"
+echo
