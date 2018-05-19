@@ -283,7 +283,17 @@ def win_path_to_unix(path, root_prefix=""):
         return ''
     cygpath = os.environ.get('CYGPATH', 'cygpath.exe')
     try:
-        path = subprocess.check_output([cygpath, '-up', path]).decode('ascii').split('\n')[0]
+        if root_prefix != "":
+            root_prefix = subprocess.check_output([cygpath,
+                                                   '-up',
+                                                   root_prefix]).decode('ascii').split('\n')[0]
+            if root_prefix.ends_wth('/'):
+                return root_prefix + path
+            else:
+                return root_prefix + '/' + path
+        else:
+            path = subprocess.check_output([cygpath, '-up', path]).decode('ascii').split('\n')[0]
+        print(path)
     except Exception as e:
         log.debug('%r' % e, exc_info=True)
         # Convert a path or ;-separated string of paths into a unix representation
