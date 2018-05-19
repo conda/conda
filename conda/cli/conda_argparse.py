@@ -301,12 +301,11 @@ def configure_parser_info(sub_parsers):
         help='Display list of channels with tokens exposed.',
     )
 
-    # TODO: deprecate 'conda info <PACKAGE>'
     p.add_argument(
         'packages',
         action="store",
         nargs='*',
-        help="Display information about packages.",
+        help=SUPPRESS,
     )
 
     p.set_defaults(func='.main_info.execute')
