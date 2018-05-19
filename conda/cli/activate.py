@@ -89,7 +89,8 @@ def binpath_from_arg(arg, shell, going_to_shell=True):
     prefix = prefix_from_arg(arg, shell)
     # convert paths to shell-native paths
     if going_to_shell:
-        return [shelldict['path_to'](path) for path in _get_prefix_paths(prefix)]
+        return [shelldict['path_to'](path, root_prefix=prefix)
+                for path in _get_prefix_paths(prefix)]
     else:
         return [path for path in _get_prefix_paths(prefix)]
 
