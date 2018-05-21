@@ -94,9 +94,10 @@ class ConfigurationError(CondaError):
 
 
 class ConfigurationLoadError(ConfigurationError):
-    def __init__(self, path, message_addition=''):
+    def __init__(self, path, message_addition='', **kwargs):
         message = "Unable to load configuration file.\n  path: %(path)s\n"
-        super(ConfigurationLoadError, self).__init__(message + message_addition, path=path)
+        super(ConfigurationLoadError, self).__init__(message + message_addition, path=path,
+                                                     **kwargs)
 
 
 class ValidationError(ConfigurationError):
@@ -350,13 +351,17 @@ class YamlRawParameter(RawParameter):
                 ruamel_yaml = yaml_load(fh)
             except ScannerError as err:
                 mark = err.problem_mark
-                raise ConfigurationLoadError(filepath,
-                                             "  reason: invalid yaml at line %s, column %s"
-                                             "" % (mark.line, mark.column))
+                raise ConfigurationLoadError(
+                    filepath,
+                    "  reason: invalid yaml at line %(line)s, column %(column)s",
+                    line=mark.line,
+                    column=mark.column
+                )
             except ReaderError as err:
-                raise ConfigurationLoadError(filepath, "  reason: invalid yaml at position %s"
-                                                       "" % err.position)
-        return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
+                raise ConfigurationLoadError(filepath,
+                                             "  reason: invalid yaml at position %(position)s",
+                                             position=err.position)
+            return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
 
 
 def load_file_configs(search_path):
