@@ -494,14 +494,14 @@ class Solver(object):
             UnlinkLinkTransaction:
 
         """
-        with Spinner("Solving environment", not context.verbosity and not context.quiet,
-                     context.json):
-            if self.prefix == context.root_prefix and context.enable_private_envs:
-                # This path has the ability to generate a multi-prefix transaction. The basic logic
-                # is in the commented out get_install_transaction() function below. Exercised at
-                # the integration level in the PrivateEnvIntegrationTests in test_create.py.
-                raise NotImplementedError()
-            else:
+        if self.prefix == context.root_prefix and context.enable_private_envs:
+            # This path has the ability to generate a multi-prefix transaction. The basic logic
+            # is in the commented out get_install_transaction() function below. Exercised at
+            # the integration level in the PrivateEnvIntegrationTests in test_create.py.
+            raise NotImplementedError()
+        else:
+            with Spinner("Solving environment", not context.verbosity and not context.quiet,
+                         context.json):
                 unlink_precs, link_precs = self.solve_for_diff(deps_modifier, prune, ignore_pinned,
                                                                force_remove, force_reinstall)
                 stp = PrefixSetup(self.prefix, unlink_precs, link_precs,
@@ -509,34 +509,47 @@ class Solver(object):
                 # TODO: Only explicitly requested remove and update specs are being included in
                 #   History right now. Do we need to include other categories from the solve?
 
-        if context.notify_outdated_conda and not context.quiet:
-            current_conda_prefix_rec = PrefixData(context.conda_prefix).get('conda', None)
-            if current_conda_prefix_rec:
-                channel_name = current_conda_prefix_rec.channel.canonical_name
-                if channel_name == UNKNOWN_CHANNEL:
-                    conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
-                else:
-                    conda_newer_spec = MatchSpec('%s::conda >%s' % (channel_name, CONDA_VERSION))
-                if not any(conda_newer_spec.match(prec) for prec in link_precs):
-                    conda_newer_records = sorted(
-                        SubdirData.query_all(conda_newer_spec, self.channels, self.subdirs),
-                        key=lambda x: VersionOrder(x.version)
-                    )
-                    if conda_newer_records:
-                        latest_version = conda_newer_records[-1].version
-                        print(dedent("""
+            self._notify_conda_outdated(link_precs)
+            return UnlinkLinkTransaction(stp)
 
-                        ==> WARNING: A newer version of conda exists. <==
-                          current version: %s
-                          latest version: %s
+    def _notify_conda_outdated(self, link_precs):
+        if not context.notify_outdated_conda or context.quiet:
+            return
+        current_conda_prefix_rec = PrefixData(context.conda_prefix).get('conda', None)
+        if current_conda_prefix_rec:
+            channel_name = current_conda_prefix_rec.channel.canonical_name
+            if channel_name == UNKNOWN_CHANNEL:
+                channel_name = "defaults"
 
-                        Please update conda by running
+            # only look for a newer conda in the channel conda is currently installed from
+            conda_newer_spec = MatchSpec('%s::conda>%s' % (channel_name, CONDA_VERSION))
 
-                            $ conda update -n base conda
+            if paths_equal(self.prefix, context.conda_prefix):
+                if any(conda_newer_spec.match(prec) for prec in link_precs):
+                    return
 
-                        """) % (CONDA_VERSION, latest_version), file=sys.stderr)
+            conda_newer_precs = sorted(
+                SubdirData.query_all(conda_newer_spec, self.channels, self.subdirs),
+                key=lambda x: VersionOrder(x.version)
+                # VersionOrder is fine here rather than r.version_key because all precs
+                # should come from the same channel
+            )
+            if conda_newer_precs:
+                latest_version = conda_newer_precs[-1].version
+                # If conda comes from defaults, ensure we're giving instructions to users
+                # that should resolve release timing issues between defaults and conda-forge.
+                add_channel = "-c defaults " if channel_name == "defaults" else ""
+                print(dedent("""
 
-        return UnlinkLinkTransaction(stp)
+                ==> WARNING: A newer version of conda exists. <==
+                  current version: %s
+                  latest version: %s
+
+                Please update conda by running
+
+                    $ conda update -n base %sconda
+
+                """) % (CONDA_VERSION, latest_version, add_channel), file=sys.stderr)
 
     def _prepare(self, prepared_specs):
         # All of this _prepare() method is hidden away down here. Someday we may want to further
