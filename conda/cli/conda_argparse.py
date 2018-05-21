@@ -11,7 +11,7 @@ import sys
 from textwrap import dedent
 
 from .. import __version__
-from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL
+from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, UpdateModifier
 from ..common.constants import NULL
 
 log = getLogger(__name__)
@@ -727,14 +727,7 @@ def configure_parser_install(sub_parsers):
         help="Ensure that any user-requested package for the current operation is uninstalled and "
              "reinstalled, even if that package already exists in the environment.",
     )
-    solver_mode_options.add_argument(
-        "--update-all",
-        action="store_true",
-        help="Update all installed packages in the environment.",
-        dest='update_all',
-        default=NULL,
-    )
-
+    add_parser_update_modifiers(solver_mode_options)
     package_install_options.add_argument(
         '-m', "--mkdir",
         action="store_true",
@@ -1118,13 +1111,7 @@ def configure_parser_update(sub_parsers, name='update'):
         help="Ensure that any user-requested package for the current operation is uninstalled and "
              "reinstalled, even if that package already exists in the environment.",
     )
-    solver_mode_options.add_argument(
-        "--update-all", "--all",
-        action="store_true",
-        help="Update all installed packages in the environment.",
-        dest='update_all',
-        default=NULL,
-    )
+    add_parser_update_modifiers(solver_mode_options)
 
     package_install_options.add_argument(
         "--clobber",
@@ -1339,6 +1326,7 @@ def add_parser_channels(p):
 
 def add_parser_solver_mode(p):
     solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
+    deps_modifiers = solver_mode_options.add_mutually_exclusive_group()
     solver_mode_options.add_argument(
         "--channel-priority",
         action="store_true",
@@ -1354,30 +1342,22 @@ def add_parser_solver_mode(p):
         help="Package version takes precedence over channel priority. "
              "Overrides the value given by `conda config --show channel_priority`."
     )
-    solver_mode_options.add_argument(
-        "--update-deps",
-        action="store_true",
-        dest="update_deps",
-        default=NULL,
-        help="Update dependencies.",
-    )
-    solver_mode_options.add_argument(
-        "--freeze-installed", "--no-update-deps",
-        action="store_true",
-        dest="freeze_installed",
-        default=NULL,
-        help="Don't update or change already-installed dependencies.",
-    )
-    solver_mode_options.add_argument(
+    deps_modifiers.add_argument(
         "--no-deps",
-        action="store_true",
+        action="store_const",
+        const=DepsModifier.NO_DEPS,
+        dest="deps_modifier",
         help="Do not install, update, remove, or change dependencies. This WILL lead "
              "to broken environments and inconsistent behavior. Use at your own risk.",
+        default=NULL,
     )
-    solver_mode_options.add_argument(
+    deps_modifiers.add_argument(
         "--only-deps",
-        action="store_true",
+        action="store_const",
+        const=DepsModifier.ONLY_DEPS,
+        dest="deps_modifier",
         help="Only install dependencies.",
+        default=NULL,
     )
     solver_mode_options.add_argument(
         "--no-pin",
@@ -1387,6 +1367,44 @@ def add_parser_solver_mode(p):
         help="Ignore pinned file.",
     )
     return solver_mode_options
+
+
+def add_parser_update_modifiers(solver_mode_options):
+    update_modifiers = solver_mode_options.add_mutually_exclusive_group()
+    update_modifiers.add_argument(
+        "--freeze-installed", "--no-update-deps",
+        action="store_const",
+        const=UpdateModifier.FREEZE_INSTALLED,
+        dest="update_modifier",
+        default=NULL,
+        help="Do not update or change already-installed dependencies.",
+    )
+    update_modifiers.add_argument(
+        "--update-deps",
+        action="store_const",
+        const=UpdateModifier.UPDATE_DEPS,
+        dest="update_modifier",
+        default=NULL,
+        help="Update dependencies.",
+    )
+    update_modifiers.add_argument(
+        "-S", "--satisfied-skip-solve",
+        action="store_const",
+        const=UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE,
+        dest="update_modifier",
+        default=NULL,
+        help="Exit early and do not run the solver if the requested specs are satisfied. "
+             "Also skips aggressive updates as configured by 'aggressive_update_packages'. "
+             "Similar to the default behavior of 'pip install'.",
+    )
+    update_modifiers.add_argument(
+        "--update-all", "--all",
+        action="store_const",
+        const=UpdateModifier.UPDATE_ALL,
+        dest="update_modifier",
+        help="Update all installed packages in the environment.",
+        default=NULL,
+    )
 
 
 def add_parser_prune(p):

@@ -14,12 +14,12 @@ from . import common
 from .common import check_non_admin
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
-from ..core.solve import Solver
+from ..core.solve import Solver, DepsModifier
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotFoundError, DryRunExit,
                           EnvironmentLocationNotFound,
@@ -142,7 +142,8 @@ def install(args, parser, command='install'):
         check_prefix(prefix, json=context.json)
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
-    if isupdate and not (args.file or args.update_all or args.packages):
+    if isupdate and not (args.file or args.packages
+                         or context.update_modifier == UpdateModifier.UPDATE_ALL):
         raise CondaValueError("""no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
@@ -193,7 +194,7 @@ def install(args, parser, command='install'):
 
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
-    if isupdate and not args.update_all:
+    if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
         prefix_data = PrefixData(prefix)
         for spec in specs:
             spec = MatchSpec(spec)
@@ -230,8 +231,13 @@ def install(args, parser, command='install'):
                               unknown=index_args['unknown'], prefix=prefix)
             unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
         else:
+            if isupdate:
+                deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
+            else:
+                deps_modifier = context.deps_modifier
             solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
             unlink_link_transaction = solver.solve_for_transaction(
+                deps_modifier=deps_modifier,
                 force_reinstall=context.force_reinstall or context.force,
             )
 

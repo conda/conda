@@ -4,12 +4,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from .common.constants import NULL
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
 from .core.prefix_data import PrefixData as _PrefixData
-from .core.solve import DepsModifier as _DepsModifier, Solver as _Solver
+from .core.solve import (DepsModifier as _DepsModifier, Solver as _Solver,
+                         UpdateModifier as _UpdateModifier)
 from .core.subdir_data import SubdirData as _SubdirData
 from .models.channel import Channel
 
 DepsModifier = _DepsModifier
 """Flags to enable alternate handling of dependencies."""
+
+UpdateModifier = _UpdateModifier
+"""Flags to enable alternate handling for updates of existing packages in the environment."""
 
 
 class Solver(object):
@@ -45,8 +49,8 @@ class Solver(object):
         """
         self._internal = _Solver(prefix, channels, subdirs, specs_to_add, specs_to_remove)
 
-    def solve_final_state(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
-                          force_remove=NULL):
+    def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                          ignore_pinned=NULL, force_remove=NULL):
         """
         **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -79,11 +83,11 @@ class Solver(object):
                 the solved state of the environment.
 
         """
-        return self._internal.solve_final_state(deps_modifier, prune, ignore_pinned,
-                                                force_remove)
+        return self._internal.solve_final_state(update_modifier, deps_modifier, prune,
+                                                ignore_pinned, force_remove)
 
-    def solve_for_diff(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
-                       force_remove=NULL, force_reinstall=False):
+    def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=False):
         """
         **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -113,11 +117,11 @@ class Solver(object):
                 dependency order from roots to leaves.
 
         """
-        return self._internal.solve_for_diff(deps_modifier, prune, ignore_pinned,
+        return self._internal.solve_for_diff(update_modifier, deps_modifier, prune, ignore_pinned,
                                              force_remove, force_reinstall)
 
-    def solve_for_transaction(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
-                              force_remove=NULL, force_reinstall=False):
+    def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=False):
         """
         **Beta** While in beta, expect both major and minor changes across minor releases.
 
@@ -140,8 +144,8 @@ class Solver(object):
             UnlinkLinkTransaction:
 
         """
-        return self._internal.solve_for_transaction(deps_modifier, prune, ignore_pinned,
-                                                    force_remove, force_reinstall)
+        return self._internal.solve_for_transaction(update_modifier, deps_modifier, prune,
+                                                    ignore_pinned, force_remove, force_reinstall)
 
 
 class SubdirData(object):

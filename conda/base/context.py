@@ -11,8 +11,8 @@ import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
                         DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS,
-                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
-                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks)
+                        DepsModifier, ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE,
+                        PathConflict, ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -204,11 +204,16 @@ class Context(Configuration):
     # ######################################################
     # ##               Solver Configuration               ##
     # ######################################################
-    no_deps = PrimitiveParameter(False)  # CLI-only
-    only_deps = PrimitiveParameter(False)   # CLI-only
-    update_deps = PrimitiveParameter(False, aliases=('update_dependencies',))
-    update_all = PrimitiveParameter(False)
-    freeze_installed = PrimitiveParameter(False)
+    deps_modifier = PrimitiveParameter(DepsModifier.NOT_SET)
+    update_modifier = PrimitiveParameter(UpdateModifier.UPDATE_SPECS)
+
+    # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
+    # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
+    #
+    # freeze_installed = PrimitiveParameter(False)
+    # update_deps = PrimitiveParameter(False, aliases=('update_dependencies',))
+    # update_specs = PrimitiveParameter(False)
+    # update_all = PrimitiveParameter(False)
 
     prune = PrimitiveParameter(False)
     force_remove = PrimitiveParameter(False)
@@ -454,49 +459,7 @@ class Context(Configuration):
     @property
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
-        return tuple(MatchSpec(s, optional=True) for s in self._aggressive_update_packages)
-
-    @property
-    def deps_modifier(self):
-        from ..core.solve import DepsModifier
-
-        param_names = (
-            'no_deps',
-            'only_deps',
-            'update_deps',
-            'update_all',
-            'freeze_installed',
-        )
-        params_map = {name: getattr(self, name) for name in param_names}
-        truthy_params = {name for name, value in iteritems(params_map) if value}
-
-        if {'update_deps', 'only_deps'} <= truthy_params:
-            result = DepsModifier.UPDATE_DEPS_ONLY_DEPS
-            truthy_params -= {'update_deps', 'only_deps'}
-        elif 'update_deps' in truthy_params:
-            result = DepsModifier.UPDATE_DEPS
-            truthy_params.remove('update_deps')
-        elif 'only_deps' in truthy_params:
-            result = DepsModifier.ONLY_DEPS
-            truthy_params.remove('only_deps')
-        elif 'no_deps' in truthy_params:
-            result = DepsModifier.NO_DEPS
-            truthy_params.remove('no_deps')
-        elif 'update_all' in truthy_params:
-            result = DepsModifier.UPDATE_ALL
-            truthy_params.remove('update_all')
-        elif 'freeze_installed' in truthy_params:
-            result = DepsModifier.FREEZE_INSTALLED
-            truthy_params.remove('freeze_installed')
-        else:
-            result = None
-
-        if truthy_params:
-            from .. import CondaError
-            params_map = {k: v for k, v in iteritems(params_map) if v}
-            raise CondaError("Invalid Configuration State: %s" % params_map)
-
-        return result
+        return tuple(MatchSpec(s) for s in self._aggressive_update_packages)
 
     @property
     def target_prefix(self):
@@ -700,11 +663,8 @@ class Context(Configuration):
             'verbosity',
         )),
         ('CLI-only', (
-            'no_deps',
-            'only_deps',
-            'freeze_installed',
-            'update_deps',
-            'update_all',
+            'deps_modifier',
+            'update_modifier',
 
             'force',
             'force_remove',

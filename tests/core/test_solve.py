@@ -12,7 +12,7 @@ import pytest
 from conda.base.context import context, reset_context, Context
 from conda.common.io import env_var, env_vars, stderr_log_level
 from conda.core.prefix_data import PrefixData
-from conda.core.solve import DepsModifier, Solver
+from conda.core.solve import DepsModifier, Solver, UpdateModifier
 from conda.exceptions import UnsatisfiableError
 from conda.history import History
 from conda.models.channel import Channel
@@ -469,7 +469,7 @@ def test_update_all_1():
 
     specs_to_add = MatchSpec("numba=0.6"),
     with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-        final_state_2 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
+        final_state_2 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
         order = (
@@ -958,14 +958,15 @@ def test_aggressive_update_packages():
                 'channel-1::libpng-1.2.50-0',
             ))
 
-    # has "libpng" restricted to "=1.2" by history_specs
+    # # ~~has "libpng" restricted to "=1.2" by history_specs~~ NOPE!
+    # In conda 4.6 making aggressive_update *more* aggressive, making it override history specs.
     state_1 = base_state
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"}, reset_context):
         solve(
             state_1, ["cmake=2.8.9"],
             (
                 'channel-1::cmake-2.8.9-0',
-                'channel-1::libpng-1.2.50-0',
+                'channel-1::libpng-1.5.13-1',
             ))
     with env_vars({"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""}, reset_context):
         state_1_2 = solve(
@@ -979,7 +980,7 @@ def test_aggressive_update_packages():
             state_1_2, ["cmake>2.8.9"],
             (
                 'channel-1::cmake-2.8.10.2-0',
-                'channel-1::libpng-1.2.50-0',
+                'channel-1::libpng-1.5.13-1',
             ))
 
     # use new history_specs to remove "libpng" version restriction
@@ -1064,7 +1065,7 @@ def test_update_deps_1():
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
-        final_state_3 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS)
+        final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_3))
         order = (
@@ -1084,7 +1085,8 @@ def test_update_deps_1():
 
     specs_to_add = MatchSpec("iopro"),
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
-        final_state_3 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS_ONLY_DEPS)
+        final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS,
+                                                 deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_3))
         order = (
@@ -1101,6 +1103,79 @@ def test_update_deps_1():
             # 'channel-1::iopro-1.5.0-np17py27_p0',
         )
         assert convert_to_dist_str(final_state_3) == order
+
+
+def test_fast_update_with_update_modifier_not_set():
+    specs = MatchSpec("python=2"), MatchSpec("openssl==1.0.2l"), MatchSpec("sqlite=3.21"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # PrefixDag(final_state_1, specs).open_url()
+        print(convert_to_dist_str(final_state_1))
+        order1 = (
+            'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+            'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+            'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.0-h9df7e31_2',
+            'channel-4::openssl-1.0.2l-h077ae2c_5',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1-heed3624_0',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.21.0-h1bed415_2',
+            'channel-4::python-2.7.14-h89e7a4a_22',
+        )
+        assert convert_to_dist_str(final_state_1) == order1
+
+    specs_to_add = MatchSpec("python"),
+    with get_solver_4(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print(convert_to_dist_str(final_state_2))
+        order = (
+            'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+            'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+            'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.0-h9df7e31_2',
+            'channel-4::openssl-1.0.2n-hb7f436b_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::xz-5.2.3-h55aa19d_2',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1-heed3624_0',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.21.0-h1bed415_2',
+            'channel-4::python-3.6.4-hc3d631a_1',  # python is upgraded
+        )
+        assert convert_to_dist_str(final_state_2) == order
+
+    specs_to_add = MatchSpec("sqlite"),
+    with get_solver_4(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print(convert_to_dist_str(final_state_2))
+        order = (
+            'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
+            'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+            'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.0-h9df7e31_2',
+            'channel-4::openssl-1.0.2n-hb7f436b_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1-heed3624_0',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.22.0-h1bed415_0',  # sqlite is upgraded
+            'channel-4::python-2.7.14-h89e7a4a_22',  # python is not upgraded
+        )
+        assert convert_to_dist_str(final_state_2) == order
+
+    specs_to_add = MatchSpec("sqlite"), MatchSpec("python"),
+    with get_solver_4(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state(update_modifier=UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE)
+        # PrefixDag(final_state_2, specs).open_url()
+        print(convert_to_dist_str(final_state_2))
+        assert convert_to_dist_str(final_state_2) == order1
 
 
 def test_pinned_1():
@@ -1193,7 +1268,7 @@ def test_pinned_1():
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_3,
                         history_specs=history_specs) as solver:
-            final_state_4 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_DEPS)
+            final_state_4 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
             # PrefixDag(final_state_1, specs).open_url()
             print(convert_to_dist_str(final_state_4))
             order = (
@@ -1216,7 +1291,7 @@ def test_pinned_1():
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
                         history_specs=history_specs) as solver:
-            final_state_5 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
+            final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
             # PrefixDag(final_state_1, specs).open_url()
             print(convert_to_dist_str(final_state_5))
             order = (
@@ -1241,7 +1316,7 @@ def test_pinned_1():
     # history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"), MatchSpec("numba"),
     # with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_4,
     #                 history_specs=history_specs) as solver:
-    #     final_state_5 = solver.solve_final_state(deps_modifier=DepsModifier.UPDATE_ALL)
+    #     final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
     #     # PrefixDag(final_state_1, specs).open_url()
     #     print([Dist(rec).full_name for rec in final_state_5])
     #     order = (
@@ -1686,7 +1761,7 @@ def test_freeze_deps_1():
     with get_solver_2(specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         with pytest.raises(UnsatisfiableError):
-            solver.solve_final_state(deps_modifier=DepsModifier.FREEZE_INSTALLED)
+            solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
 
 
 class PrivateEnvTests(TestCase):

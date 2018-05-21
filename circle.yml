@@ -66,6 +66,7 @@ conda_build_test: &conda_build_test
           conda create -n blarg -yq --download-only python=3.4
           conda create -n blarg -yq --download-only python=3.5
           conda create -n blarg -yq --download-only python=3.6
+          conda create -n blarg -yq --download-only python setuptools cython
           conda create -n blarg -yq --download-only libpng=1.6.17
 
     - run:
