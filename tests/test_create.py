@@ -739,7 +739,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
     def test_remove_features(self):
-        with make_temp_env("python=2 numpy nomkl") as prefix:
+        with make_temp_env("python=2 numpy=1.13 nomkl") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert package_is_installed(prefix, 'numpy')
             assert package_is_installed(prefix, 'nomkl')
