@@ -1,0 +1,4 @@
+report_errors: false
+proxy_servers:
+  http: http://condauser:condapass@127.0.0.1:3128
+  https: http://condauser:condapass@127.0.0.1:3128

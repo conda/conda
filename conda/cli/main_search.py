@@ -6,12 +6,12 @@ from collections import defaultdict
 from .install import calculate_channel_urls
 from ..base.context import context
 from ..cli.common import stdout_json
+from ..common.compat import text_type
 from ..common.io import Spinner
-from ..compat import text_type
 from ..core.envs_manager import query_all_prefixes
 from ..core.subdir_data import SubdirData
-from ..models.records import PackageRecord
 from ..models.match_spec import MatchSpec
+from ..models.records import PackageRecord
 from ..models.version import VersionOrder
 from ..resolve import dashlist
 from ..utils import human_bytes
