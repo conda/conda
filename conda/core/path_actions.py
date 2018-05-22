@@ -13,7 +13,7 @@ from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
-from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..base.constants import CONDA_TARBALL_EXTENSION, SafetyChecks
 from ..base.context import context
 from ..common.compat import iteritems, on_win, text_type
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
