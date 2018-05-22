@@ -370,9 +370,10 @@ class PrefixReplaceLinkAction(LinkPathAction):
         self.intermediate_path = None
 
     def verify(self):
-        validation_error = super(PrefixReplaceLinkAction, self).verify()
-        if validation_error:
-            return validation_error
+        if not context.safety_checks == SafetyChecks.disabled:
+            validation_error = super(PrefixReplaceLinkAction, self).verify()
+            if validation_error:
+                return validation_error
 
         if islink(self.source_full_path):
             log.trace("ignoring prefix update for symlink with source path %s",
@@ -396,15 +397,16 @@ class PrefixReplaceLinkAction(LinkPathAction):
             raise PaddingError(self.target_full_path, self.prefix_placeholder,
                                len(self.prefix_placeholder))
 
-        sha256_in_prefix = compute_sha256sum(self.intermediate_path)
+        if not context.safety_checks == SafetyChecks.disabled:
+            sha256_in_prefix = compute_sha256sum(self.intermediate_path)
 
-        self.prefix_path_data = PathDataV1.from_objects(
-            self.prefix_path_data,
-            file_mode=self.file_mode,
-            path_type=PathType.hardlink,
-            prefix_placeholder=self.prefix_placeholder,
-            sha256_in_prefix=sha256_in_prefix,
-        )
+            self.prefix_path_data = PathDataV1.from_objects(
+                self.prefix_path_data,
+                file_mode=self.file_mode,
+                path_type=PathType.hardlink,
+                prefix_placeholder=self.prefix_placeholder,
+                sha256_in_prefix=sha256_in_prefix,
+            )
 
         self._verified = True
 
