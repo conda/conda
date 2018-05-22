@@ -846,11 +846,11 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     def test_install_features(self):
-        with make_temp_env("python=2 numpy nomkl") as prefix:
+        with make_temp_env("python=2 numpy=1.13 nomkl") as prefix:
             numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
 
-        with make_temp_env("python=2 numpy") as prefix:
+        with make_temp_env("python=2 numpy=1.13") as prefix:
             numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 3 or 'nomkl' not in numpy_details[3]
 
