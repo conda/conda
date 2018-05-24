@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict, namedtuple
 from logging import getLogger
 import os
-from os.path import basename, dirname, isdir, join
+from os.path import basename, dirname, exists, isdir, join
 from subprocess import CalledProcessError
 import sys
 from tempfile import mkdtemp
@@ -29,7 +29,8 @@ from ..common.path import (explode_directories, get_all_directories, get_major_m
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
 from ..exceptions import (DisallowedPackageError, KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
+                          SharedLinkPathClobberError, SystemPrefixClobberError,
+                          UnknownPackageClobberError, maybe_raise)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
@@ -412,6 +413,7 @@ class UnlinkLinkTransaction(object):
         # 2. make sure we're not removing a conda dependency from conda's env
         # 3. enforce context.disallowed_packages
         # 4. make sure we're not removing pinned packages without no-pin flag
+        # 5. make sure we're not going to touch in any way the system python at /usr/bin/python
         # TODO: Verification 4
 
         conda_prefixes = (join(context.root_prefix, 'envs', '_conda_'), context.root_prefix)
@@ -471,6 +473,22 @@ class UnlinkLinkTransaction(object):
             for prec in prefix_setup.link_precs:
                 if any(d.match(prec) for d in disallowed):
                     yield DisallowedPackageError(prec)
+
+        # 5. make sure we're not going to touch in any way the system python at /usr/bin/python
+        for prefix_setup in itervalues(prefix_setups):
+            if prefix_setup.target_prefix == '/usr' and exists('/usr/bin/python'):
+                python_unlink_prec = next((prec for prec in prefix_setup.unlink_precs
+                                           if prec.name == 'python'), None)
+                python_link_prec = next((prec for prec in prefix_setup.link_precs
+                                         if prec.name == 'python'), None)
+                if python_unlink_prec or python_link_prec:
+                    prefix_data = PrefixData(prefix_setup.target_prefix)
+                    python_record = prefix_data.get('python', None)
+                    if not python_record:
+                        yield SystemPrefixClobberError(
+                            "A python interpreter exists at /usr/bin/python, and it was not\n"
+                            "conda-installed. Refusing to mutate environment with prefix '/usr'."
+                        )
 
     @classmethod
     def _verify(cls, prefix_setups, prefix_action_groups):

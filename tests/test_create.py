@@ -42,7 +42,7 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
-    DisallowedPackageError, UnsatisfiableError
+    DisallowedPackageError, UnsatisfiableError, SystemPrefixClobberError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -726,6 +726,16 @@ class IntegrationTests(TestCase):
 
             run_command(Commands.REMOVE, prefix, '--all')
             assert not exists(prefix)
+
+    @pytest.mark.skipif(on_win, reason="unix-only test")
+    def test_dont_clobber_system_python(self):
+        if not exists('/usr/bin/python'):
+            return
+        prefix = '/usr'
+        with pytest.raises(CondaError) as exc:
+            run_command(Commands.INSTALL, prefix, 'itsdangerous')
+        assert isinstance(exc.value, CondaMultiError)
+        assert any(isinstance(err, SystemPrefixClobberError) for err in exc.value.errors)
 
     @pytest.mark.skipif(on_win, reason="windows usually doesn't support symlinks out-of-the box")
     @patch('conda.core.link.hardlink_supported', side_effect=lambda x, y: False)

@@ -221,6 +221,14 @@ class SharedLinkPathClobberError(ClobberError):
         )
 
 
+class SystemPrefixClobberError(CondaError):
+    # NOTE: specifically *not* inheriting from ClobberError because this should always raise
+    #       regardless of context.path_conflict
+
+    def __init__(self, message, **kwargs):
+        super(SystemPrefixClobberError, self).__init__(message, **kwargs)
+
+
 class CommandNotFoundError(CondaError):
     def __init__(self, command):
         activate_commands = {
