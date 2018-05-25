@@ -1544,7 +1544,7 @@ variables are booleans.
      - True if the platform is Windows and the Python
        architecture is 64-bit.
    * - py
-     - The Python version as a 2-digit string, such as ``'27'``.
+     - The Python version as an int, such as ``27`` or ``36``.
        See the CONDA_PY :ref:`environment variable <build-envs>`.
    * - py3k
      - True if the Python major version is 3.
