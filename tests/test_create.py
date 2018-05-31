@@ -1168,11 +1168,10 @@ class IntegrationTests(TestCase):
                                          use_exception_handler=True)
             assert "not-a-real-package" in stderr
 
-    @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
-    def test_search_gawk_not_win_1(self):
-        with make_temp_env() as prefix:
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json", use_exception_handler=True)
-            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "not-a-real-package", "--json",
+                                         use_exception_handler=True)
+            assert not stderr
+            json_obj = json_loads(stdout.strip())
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
