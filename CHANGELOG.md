@@ -28,7 +28,7 @@
 * resolve #7189 progress bar formatting improvement (#7191)
 * raise log level for errors to error (#7229)
 * add to conda.exports (#7217)
-
+* resolve #6845 add option -S / --satisfied-skip-solve to exit early for satisfied specs (#7291)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
@@ -43,6 +43,7 @@
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
 * resolve #7220 pep8 project renamed to pycodestyle (#7221)
+* proxy test routine (#7308)
 
 ### Preview Releases
 
