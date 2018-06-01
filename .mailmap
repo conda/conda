@@ -8,8 +8,8 @@
 # This file is up-to-date if the command git log --format="%aN <%aE>" | sort -u
 # gives no duplicates.
 
-Aaron Meurer <aaron.meurer@continuum.io> Aaron Meurer <asmeurer@gmail.com>
 ARF1 <arik@funke.eu> ARF <none@none>
+Aaron Meurer <aaron.meurer@continuum.io> Aaron Meurer <asmeurer@gmail.com>
 Armin Burgmeier <aburgmeier@bloomberg.net> Armin Burgmeier <armin@arbur.net>
 Bruno Oliveira <nicoddemus@gmail.com> Bruno Oliveira <bruno@esss.com.br>
 Bryan Van de Ven <bryanv@continuum.io> Bryan Van de Ven <bryan@ubuntu.(none)>
@@ -31,7 +31,6 @@ Kale Franz <kfranz@continuum.io> Kale Franz <kalefranz@users.noreply.github.com>
 Kevin Deldycke <kevin@deldycke.com> Kevin Deldycke <kdeldycke@scaleway.com>
 Korijn van Golen <korijn@gmail.com> Korijn van Golen <k.vangolen@clinicalgraphics.com>
 Maggie Mari <maggie.mari@continuum.io> Maggie-M <maggie.mari@continuum.io>
-majidaldo <majidaldosar-github@yahoo.com> majidaldo <majidaldosari-github@yahoo.com>
 Marcel Bargull <mbargull@users.noreply.github.com> Marcel Bargull <marcel.bargull@udo.edu>
 Marcos Vanetta <marcosvanetta@gmail.com> malev <marcosvanetta@gmail.com>
 Mark Wiebe <mwiebe@continuum.io> Mark Wiebe <mwwiebe@gmail.com>
@@ -49,8 +48,8 @@ Skipper Seabold <jsseabold@gmail.com> Skipper Seabold <sseabold@civisanalytics.c
 Sophia Castellarin <scastellarin@continuum.io> sophia <scastellarin95@gmail.com>
 Tian Zhang <zhangtian1000@gmail.com> tester <tester@test-machine.local>
 Tian Zhang <zhangtian1000@gmail.com> tester <zhangtian1000@gmail.com>
+Tian Zhang <zhangtian1000@gmail.com> Tian Zhang <zhangtian1000@gmail.com>
 Travis Swicegood <travis@domain51.com> Travis Swicegood <development@domain51.com>
 Tyler Kim <tkim139@illinois.edu> Tyler Kim <tyler.kimothy@gmail.com>
 Wolfgang Ulmer <wolfgang.ulmer@de.bosch.com> Wolfgang Ulmer <wulmer@web.de>
-
-
+majidaldo <majidaldosar-github@yahoo.com> majidaldo <majidaldosari-github@yahoo.com>
