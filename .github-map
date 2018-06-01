@@ -1,78 +1,26 @@
- | Flavio Martins <flaviomartins@acm.org>
- | Geir Ove Myhr <Geir.Ove.Myhr@lr.org>
- | George Hartzell <hartzell@alerce.com>
- | Jacques Kvam <jwkvam@gmail.com>
- | Jake Smith <jacoblsmith@gmail.com>
- | James Domingo <jdomingo@umn.edu>
- | James Sexton <TwistedLadder@gmail.com>
- | James Winegar <jameswinegar@users.noreply.github.com>
- | Joel Kim <kim.dohhyoung@gmail.com>
- | Josh Mayer <jmayer@hbk.com>
- | jusjusjus <jschwabedal@gmail.com>
- | Justyn Harriman <justyn@nextdoor.com>
- | kanehira <etcxngsy813@gmail.com>
- | Kurt Wheeler <kurt.wheeler91@gmail.com>
- | lambdalisue <lambdalisue@hashnote.net>
- | Luc J. Bourhis <luc_j_bourhis@mac.com>
- | makbigc <makszechun@gmail.com>
- | Mansour Moufid <mansourmoufid@gmail.com>
- | Marcelo Duarte Trevisani <marceloduartetrevisani@gmail.com>
- | Marco Rossi <developer@marco-rossi.com>
- | Mario Juric <mjuric@astro.washington.edu>
- | Martin Dengler <martin@martindengler.com>
- | Matthieu Guillaumin <matthieg@amazon.com>
- | Michaël Defferrard <michael.defferrard@epfl.ch>
- | Michele Mastropietro <michele.mastropietro@gmail.com>
- | Nick Eubank <nickeubank@users.noreply.github.com>
- | Nixon Kwok <nixon.kwok@thinkboxsoftware.com>
- | Ofek Lev <ofekmeister@gmail.com>
- | Orion Poplawski <orion@nwra.com>
- | Patricio Hubmann <phubmann@machinalis.com>
- | Peter Williams <peter@newton.cx>
- | peter1000 <peter.margo@gmx.de>
- | Philippe Ombredanne <pombredanne@gmail.com>
- | Rafael de Barros <rdebarros@gmail.com>
- | Ramsey D'silva <rdsilva@mackenzieinvestments.com>
- | Robert Johansson <jrjohansson@gmail.com>
- | Rüdiger Busche <ruedigerbusche@web.de>
- | Sachin G Biradar <sachin@wirelessprvnat-172-16-196-108.near.illinois.edu>
- | Shannon Green <sgreen@cochlear.com>
- | Teake Nutma <t.a.nutma@rug.nl>
- | Trent Nelson <trent@trent.me>
- | ugurthemaster <ugurthemaster@gmail.com>
- | Vlad Zagorodniy <vladzzag@gmail.com>
- | Wolfgang Ulmer <wolfgang.ulmer@de.bosch.com>
- | Zahari <zaharid@gmail.com>
- | Øystein Idema Torget <oysteinidema.torget@statkraft.com>
 3kwa | Eugene Van den Bulke <eugene.vandenbulke@gmail.com>
 aburgm | Armin Burgmeier <aburgmeier@bloomberg.net>
+akanehira | kanehira <etcxngsy813@gmail.com>
 alanhdu | Alan Du <alanhdu@gmail.com>
 aldanor | Ivan Smirnov <i.s.smirnov@gmail.com>
-alexbw | Alex Wiltschko <alex.bw@gmail.com>
 almarklein | Almar Klein <almar.klein@gmail.com>
 amelio-vazquez-reina | Amelio Vazquez-Reina <amelio.vazquez.reina@gmail.com>
 anntzer | Antony Lee <anntzer.lee@gmail.com>
 ARF1 | ARF1 <arik@funke.eu>
 arkottke | Albert Kottke <albert.kottke@gmail.com>
-asmeurer | Aaron Meurer <aaron.meurer@continuum.io>
-aterrel | Andy R. Terrel <andy.terrel@gmail.com>
 AvdN | Anthon van der Neut <anthon@mnt.org>
 basnijholt | Bas Nijholt <basnijholt@gmail.com>
 bchapman | Brennan Chapman <brennan@moonbotstudios.com>
 bearnshaw | Berton Earnshaw <berton.earnshaw@gmail.com>
+Bezier89 | James Sexton <TwistedLadder@gmail.com>
 bilderbuchi | Christoph Buchner <bilderbuchi@users.noreply.github.com>
-bkreider | Bradley Kreider <bkreider@continuum.io>
 blake-nicholson | Blake Nicholson <blake.nicholson@principled.io>
 blindgaenger | blindgaenger <me@blindgaenger.net>
 bluekeyes | Billy Keyes <bluekeyes@gmail.com>
 bradsaracik | Brad S <35494318+bradsaracik@users.noreply.github.com>
 brentp | Brent Pedersen <bpederse@gmail.com>
-bryevdv | Bryan Van de Ven <bryanv@continuum.io>
-campos-ddc | Diogo de Campos <campos@esss.com.br>
 certik | Ondřej Čertík <ondrej.certik@gmail.com>
-chdoig | Christine Doig <christine.doig.cardet@gmail.com>
 chrislf | Chris Linton-Ford <chris.lintonford@gmail.com>
-csoja | Crystal Soja <crystal.soja@continuum.io>
 cstich | Christoph Stich <christoph.n.stich@gmail.com>
 daineseh | Dainese Hsiao <daineseh@gmail.com>
 dan-blanchard | Dan Blanchard <dan.blanchard@gmail.com>
@@ -80,92 +28,95 @@ dawehner | Daniel Wehner <dawehner@users.noreply.github.com>
 ddale | Darren Dale <dsdale24@gmail.com>
 dedalusj | Jacopo <dedalusj@gmail.com>
 delicb | Bojan Delic <bojan@delic.in.rs>
-desilinguist | Nitin Madnani <nmadnani@gmail.com>
 dfroger | David Froger <david.froger@inria.fr>
 dhirschfeld | David Hirschfeld <david.hirschfeld@gazprom-mt.com>
 dmkent | David Kent <davidkent@fastmail.com.au>
-dorzel | Dylan Orzel <dylan.orzel@gmail.com>
-dsludwig | Derek Ludwig <dludwig@continuum.io>
 edwardreed81 | Ed Reed <ed.r.reed@lmco.com>
-electronwill | Will Warner <electronwill@gmail.com>
+elehcim | Michele Mastropietro <michele.mastropietro@gmail.com>
+eliteraspberries | Mansour Moufid <mansourmoufid@gmail.com>
 ericdill | Eric Dill <edill@bnl.gov>
 esc | Valentin Haenel <valentin@haenel.co>
 faph | Florenz A. P. Hollebrandse <faph@users.noreply.github.com>
+flaviomartins | Flavio Martins <flaviomartins@acm.org>
 frol | Vlad Frolov <frolvlad@gmail.com>
 goanpeca | Gonzalo Peña-Castellanos <goanpeca@gmail.com>
-gqmelo | Guilherme Quentel Melo <gqmelo@gmail.com>
+gomyhr | Geir Ove Myhr <Geir.Ove.Myhr@lr.org>
 groutr | Ryan Grout <rgrout@continuum.io>
 guoci | guoci <zguoci@gmail.com>
-hajs | Henning Schroder <henning.schroeder@gmail.com>
-HugoTian | Zhang Tian <zhangtian1000@gmail.com>
-ijstokes | Ian Stokes-Rees <ijstokes@continuum.io>
-ilanschnell | Ilan Schnell <ilan@continuum.io>
+hartzell | George Hartzell <hartzell@alerce.com>
+hubmann | Patricio Hubmann <phubmann@machinalis.com>
 immerrr | immerrr <immerrr@gmail.com>
+jacoblsmith | Jake Smith <jacoblsmith@gmail.com>
 jacoblsmsith | Jacob Smith <jacoblsmith@gmail.com>
-jaimergp | Jaime RGP <jaime.rogue@gmail.com>
 jakirkham | John Kirkham <kirkhamj@janelia.hhmi.org>
+jameswinegar | James Winegar <jameswinegar@users.noreply.github.com>
+JarnoRFB | Rüdiger Busche <ruedigerbusche@web.de>
 jerowe | Jillian Rowe <jillian.e.rowe@gmail.com>
-jhunkeler | Joseph Hunkeler <jhunkeler@gmail.com>
+jharriman | Justyn Harriman <justyn@nextdoor.com>
+jimm-domingo | James Domingo <jdomingo@umn.edu>
 jjhelmus | Jonathan J. Helmus <jjhelmus@gmail.com>
-jni | Juan Nunez-Iglesias <juan.n@unimelb.edu.au>
-joelhullcio | joel.hull@continuum.io <joel.hull@continuum.io>
+joelkim | Joel Kim <kim.dohhyoung@gmail.com>
+josham | Josh Mayer <jmayer@hbk.com>
+jrjohansson | Robert Johansson <jrjohansson@gmail.com>
 jrovegno | jrovegno <tatadeluxe@gmail.com>
-jseabold | Skipper Seabold <jsseabold@gmail.com>
-Juanlu001 | Juan Luis Cano Rodríguez <juanlu001@gmail.com>
-kalefranz | Kale Franz <kfranz@continuum.io>
+jusjusjus | jusjusjus <jschwabedal@gmail.com>
+jwkvam | Jacques Kvam <jwkvam@gmail.com>
 kdeldycke | Kevin Deldycke <kevin@deldycke.com>
 Korijn | Korijn van Golen <korijn@gmail.com>
-lidavidm | David Li <li.davidm96@gmail.com>
+kurtwheeler | Kurt Wheeler <kurt.wheeler91@gmail.com>
+lambdalisue | lambdalisue <lambdalisue@hashnote.net>
+luc-j-bourhis | Luc J. Bourhis <luc_j_bourhis@mac.com>
+m-rossi | Marco Rossi <developer@marco-rossi.com>
 Maggie-M | Maggie Mari <maggie.mari@continuum.io>
 majidaldo | majidaldo <majidaldosar-github@yahoo.com>
-malev | Marcos Vanetta <marcosvanetta@gmail.com>
+makbigc | makbigc <makszechun@gmail.com>
+marcelotrevisani | Marcelo Duarte Trevisani <marceloduartetrevisani@gmail.com>
 MaxNoe | Maximilian Noethe <maximilian.noethe@tu-dortmund.de>
 mbargull | Marcel Bargull <mbargull@users.noreply.github.com>
-mcg1969 | Michael Grant <mgrant@continuum.io>
+mdeff | Michaël Defferrard <michael.defferrard@epfl.ch>
+mdengler | Martin Dengler <martin@martindengler.com>
 megies | Tobias Megies <megies@geophysik.uni-muenchen.de>
-melund | Morten Enemark Lund <melund@gmail.com>
+mguillau | Matthieu Guillaumin <matthieg@amazon.com>
 mheilman | Michael Heilman <mheilman@civisanalytics.com>
 mika-fischer | Mika Fischer <mika.fischer@zoopnet.de>
 mikecroucher | Mike Croucher <michael.p.croucher@googlemail.com>
-mingwandroid | Ray Donnelly <mingw.android@gmail.com>
 minrk | MinRK <benjaminrk@gmail.com>
-mmarchetti | Michael Marchetti <mmarchetti@continuum.io>
-msarahan | Michael Sarahan <msarahan@continuum.io>
-mutirri | irritum <kamil.kwiek@continuum.io>
-mwiebe | Mark Wiebe <mwiebe@continuum.io>
+mjuric | Mario Juric <mjuric@astro.washington.edu>
 natefoo | Nate Coraor <nate@bx.psu.edu>
 nehaljwani | Nehal J Wani <nehaljw.kkd1@gmail.com>
 NewbiZ | Aurelien Vallee <vallee.aurelien@gmail.com>
-nicoddemus | Bruno Oliveira <nicoddemus@gmail.com>
-njalerikson | Odegard, Ken <ken.odegard@gmail.com>
+nickeubank | Nick Eubank <nickeubank@users.noreply.github.com>
+NixonK | Nixon Kwok <nixon.kwok@thinkboxsoftware.com>
 nouiz | Frederic Bastien <nouiz@nouiz.org>
+ofek | Ofek Lev <ofekmeister@gmail.com>
+opoplawski | Orion Poplawski <orion@nwra.com>
+oyse | Øystein Idema Torget <oysteinidema.torget@statkraft.com>
 pelson | Phil Elson <pelson.pub@gmail.com>
-petebachant | Pete Bachant <petebachant@gmail.com>
+peter1000 | peter1000 <peter.margo@gmx.de>
 petercable | Peter Cable <petercable@gmail.com>
-quasiben | Benjamin Zaitlen <quasiben@gmail.com>
+pkgw | Peter Williams <peter@newton.cx>
+pombredanne | Philippe Ombredanne <pombredanne@gmail.com>
+ramseydsilva | Ramsey D'silva <rdsilva@mackenzieinvestments.com>
 rcthomas | Rollin Thomas <rcthomas@lbl.gov>
-remram44 | Remi Rampin <remirampin@gmail.com>
 rgommers | Ralf Gommers <ralf.gommers@googlemail.com>
 rvianello | Riccardo Vianello <riccardo.vianello@gmail.com>
+sachinbiradar9 | Sachin G Biradar <sachin@wirelessprvnat-172-16-196-108.near.illinois.edu>
 scopatz | Anthony Scopatz <scopatz@gmail.com>
-scw | Shaun Walbridge <shaun.walbridge@gmail.com>
-sdvillal | santi <sdvillal@gmail.com>
 shadowwalkersb | shadow_walker <shadowwalkersb@gmail.com>
+ShannonGreen | Shannon Green <sgreen@cochlear.com>
 shoyer | Stephan Hoyer <shoyer@gmail.com>
-soapy1 | Sophia Castellarin <scastellarin@continuum.io>
 soxofaan | Stefaan Lippens <stefaan@netlog.com>
-srossross | srossross <srossross@gmail.com>
-stefanseefeld | Stefan Seefeld <stefan@seefeld.name>
 stuarteberg | Stuart Berg <bergs@janelia.hhmi.org>
 tadeu | Tadeu Manoel <tadeu@esss.com.br>
 takluyver | Thomas Kluyver <takowl@gmail.com>
 tdhopper| Tim Hopper <tdhopper@gmail.com>
-teoliphant | Travis E. Oliphant <teoliphant@gmail.com>
+teake | Teake Nutma <t.a.nutma@rug.nl>
 tomkinsc | Chris Tomkins-Tinch <tomkinsc@gmail.com>
+tpn | Trent Nelson <trent@trent.me>
 tpowellcio | Troy Powell <tpowell@MathBook Pro.(none)>
-tswicegood | Travis Swicegood <travis@domain51.com>
 twiecki | Thomas Wiecki <thomas.wiecki@gmail.com>
 tyler-thetyrant | Tyler Kim <tkim139@illinois.edu>
 ukoethe | Ullrich Koethe <ullrich.koethe@iwr.uni-heidelberg.de>
-vestuto | Jason Vestuto <jvestuto@continuum.io>
-wojdyr | Marcin Wojdyr <q@gmail.com>
+wulmer | Wolfgang Ulmer <wolfgang.ulmer@de.bosch.com>
+Zaharid | Zahari <zaharid@gmail.com>
+zzag | Vlad Zagorodniy <vladzzag@gmail.com>

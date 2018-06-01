@@ -78,3 +78,17 @@ In these steps, we assume `git` is installed and available on `PATH`.
    This command will create a project-specific base environment at `.\devenv`. If
    the environment already exists, this command will just quickly activate the
    already-created `.\devenv` environment.
+
+
+## Conda Contributor License Agreement
+
+### Process
+
+New contributors should email kfranz@anaconda.com to request a Contributor License Agreement
+that can be electronically signed. A signed contributor license agreement for a pull request author
+needs to be on file with Anaconda, Inc. for pull requests to be merged. A record of signatories is
+kept in the `.cla-signers` file in the project root.
+
+### Individual Contributor License Agreement
+
+TODO: Include full CLA text here.

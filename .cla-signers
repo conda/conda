@@ -1,8 +1,8 @@
 # New contributors should email kfranz@anaconda.com to request a Contributor License Agreement
-# link that can be electronically signed. A signed contributor license agreement for a
-# pull request author needs to be on file with Anaconda, Inc. for pull requests to be merged.
-# This file, while not an official record, is used by conda-bot for the purposes of CLA status
-# on pull requests.
+# that can be electronically signed. A signed contributor license agreement for a pull request
+# author needs to be on file with Anaconda, Inc. for pull requests to be merged. This file,
+# while not an official record, is used by conda-bot for the purposes of CLA status on pull
+# requests.
 
 alexbw | Alex Wiltschko <alex.bw@gmail.com> | 2018-05-23
 asmeurer | Aaron Meurer <aaron.meurer@continuum.io> | Anaconda, Inc.
@@ -33,6 +33,7 @@ lidavidm | David Li <li.davidm96@gmail.com> | Anaconda, Inc.
 Maggie-M | Maggie Mari <maggie.mari@continuum.io> | Anaconda, Inc.
 malev | Marcos Vanetta <marcosvanetta@gmail.com> | Anaconda, Inc.
 mcg1969 | Michael Grant <mgrant@continuum.io> | Anaconda, Inc.
+melund | Morten Enemark Lund <melund@gmail.com> | 2018-06-01
 mingwandroid | Ray Donnelly <mingw.android@gmail.com> | Anaconda, Inc.
 mmarchetti | Michael Marchetti <mmarchetti@continuum.io> | Anaconda, Inc.
 msarahan | Michael Sarahan <msarahan@continuum.io> | Anaconda, Inc.
@@ -42,12 +43,15 @@ nicoddemus | Bruno Oliveira <nicoddemus@gmail.com> | 2018-05-23
 njalerikson | Odegard, Ken <ken.odegard@gmail.com> | 2018-06-01
 petebachant | Pete Bachant <petebachant@gmail.com> | 2018-05-23
 quasiben | Benjamin Zaitlen <quasiben@gmail.com> | Anaconda, Inc.
+rafaelhbarros | Rafael de Barros <rdebarros@gmail.com> | Anaconda, Inc.
 remram44 | Remi Rampin <remirampin@gmail.com> | 2018-06-01
 scw | Shaun Walbridge <shaun.walbridge@gmail.com> | 2018-05-24
 sdvillal | santi <sdvillal@gmail.com> | 2018-06-01
 soapy1 | Sophia Castellarin <scastellarin@continuum.io> | Anaconda, Inc.
 srossross | srossross <srossross@gmail.com> | Anaconda, Inc.
+stefanseefeld | Stefan Seefeld <stefan@seefeld.name> | Anaconda, Inc.
 teoliphant | Travis E. Oliphant <teoliphant@gmail.com> | Anaconda, Inc.
 tswicegood | Travis Swicegood <travis@domain51.com> | Anaconda, Inc.
+ugurthemaster | ugurthemaster <ugurthemaster@gmail.com> | all commits reviewed and exempt
 vestuto | Jason Vestuto <jvestuto@continuum.io> | Anaconda, Inc.
 wojdyr | Marcin Wojdyr <q@gmail.com> | 2018-06-01
