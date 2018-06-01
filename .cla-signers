@@ -1,9 +1,16 @@
+# New contributors should email kfranz@anaconda.com to request a Contributor License Agreement
+# link that can be electronically signed. A signed contributor license agreement for a
+# pull request author needs to be on file with Anaconda, Inc. for pull requests to be merged.
+# This file, while not an official record, is used by conda-bot for the purposes of CLA status
+# on pull requests.
+
 alexbw | Alex Wiltschko <alex.bw@gmail.com> | 2018-05-23
 asmeurer | Aaron Meurer <aaron.meurer@continuum.io> | Anaconda, Inc.
 aterrel | Andy R. Terrel <andy.terrel@gmail.com> | Anaconda, Inc.
 bkreider | Bradley Kreider <bkreider@continuum.io> | Anaconda, Inc.
 bluekeyes | Billy Keyes <bluekeyes@gmail.com> | 2018-05-23
 bryevdv | Bryan Van de Ven <bryanv@continuum.io> | Anaconda, Inc.
+campos-ddc | Diogo de Campos <campos@esss.com.br> | 2018-06-01
 chdoig | Christine Doig <christine.doig.cardet@gmail.com> | Anaconda, Inc.
 csoja | Crystal Soja <crystal.soja@continuum.io> | Anaconda, Inc.
 desilinguist | Nitin Madnani <nmadnani@gmail.com> | 2018-05-24
@@ -20,6 +27,7 @@ jhunkeler | Joseph Hunkeler <jhunkeler@gmail.com> | 2018-06-01
 jni | Juan Nunez-Iglesias <juan.n@unimelb.edu.au> | 2018-06-01
 joelhullcio | joel.hull@continuum.io <joel.hull@continuum.io> | Anaconda, Inc.
 jseabold | Skipper Seabold <jsseabold@gmail.com> | 2018-06-01
+Juanlu001 | Juan Luis Cano Rodríguez <juanlu001@gmail.com> | 2018-06-01
 kalefranz | Kale Franz <kfranz@continuum.io> | Anaconda, Inc.
 lidavidm | David Li <li.davidm96@gmail.com> | Anaconda, Inc.
 Maggie-M | Maggie Mari <maggie.mari@continuum.io> | Anaconda, Inc.
