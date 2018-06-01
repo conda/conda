@@ -1,3 +1,10 @@
+## 4.5.4 (unreleased)
+
+### Bug Fixes
+* fix #7165 conda version check should be restricted to channel conda is from (#7289, #7303)
+* fix #7341 ValueError n cannot be negative (#7360)
+
+
 ## 4.5.4 (2018-05-14)
 
 ### Improvements
