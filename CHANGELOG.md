@@ -51,6 +51,28 @@
 * 4.6.0a2 at c467517ca652371ebc4224f0d49315b7ec225108 on 2018-05-01
 
 
+## 4.5.5 (unreleased)
+
+### Bug Fixes
+* fix #7165 conda version check should be restricted to channel conda is from (#7289, #7303)
+* fix #7341 ValueError n cannot be negative (#7360)
+
+
+## 4.5.4 (2018-05-14)
+
+### Improvements
+* resolve #7189 progress bar improvement (#7191 via #7274)
+
+### Bug Fixes
+* fix twofold tarball extraction, improve progress update (#7275)
+* fix #7253 always respect copy LinkType (#7269)
+
+### Contributors
+* @jakirkham
+* @kalefranz
+* @mbargull
+
+
 ## 4.5.3 (2018-05-07)
 
 ### Bug Fixes

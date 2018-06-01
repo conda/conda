@@ -132,6 +132,7 @@ class ProgressFileWrapper(object):
         self.progress_file = fileobj
         self.progress_update_callback = progress_update_callback
         self.progress_file_size = max(1, fstat(fileobj.fileno()).st_size)
+        self.progress_max_pos = 0
 
     def __getattr__(self, name):
         return getattr(self.progress_file, name)
@@ -148,7 +149,10 @@ class ProgressFileWrapper(object):
         return data
 
     def progress_update(self):
-        rel_pos = self.progress_file.tell() / self.progress_file_size
+        pos = max(self.progress_max_pos, self.progress_file.tell())
+        pos = min(pos, self.progress_file_size)
+        self.progress_max_pos = pos
+        rel_pos = pos / self.progress_file_size
         self.progress_update_callback(rel_pos)
 
 
