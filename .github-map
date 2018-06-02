@@ -1,4 +1,6 @@
-3kwa | Eugene Van den Bulke <eugene.vandenbulke@gmail.com>
+# This is a temporary file that holds github username to git id mappings. As user's sign
+# the CLA, the entry here is moved to the .cla-signers file.
+
 aburgm | Armin Burgmeier <aburgmeier@bloomberg.net>
 akanehira | kanehira <etcxngsy813@gmail.com>
 alanhdu | Alan Du <alanhdu@gmail.com>
@@ -24,9 +26,7 @@ chrislf | Chris Linton-Ford <chris.lintonford@gmail.com>
 cstich | Christoph Stich <christoph.n.stich@gmail.com>
 daineseh | Dainese Hsiao <daineseh@gmail.com>
 dan-blanchard | Dan Blanchard <dan.blanchard@gmail.com>
-dawehner | Daniel Wehner <dawehner@users.noreply.github.com>
 ddale | Darren Dale <dsdale24@gmail.com>
-dedalusj | Jacopo <dedalusj@gmail.com>
 delicb | Bojan Delic <bojan@delic.in.rs>
 dfroger | David Froger <david.froger@inria.fr>
 dhirschfeld | David Hirschfeld <david.hirschfeld@gazprom-mt.com>
@@ -39,7 +39,6 @@ esc | Valentin Haenel <valentin@haenel.co>
 faph | Florenz A. P. Hollebrandse <faph@users.noreply.github.com>
 flaviomartins | Flavio Martins <flaviomartins@acm.org>
 frol | Vlad Frolov <frolvlad@gmail.com>
-goanpeca | Gonzalo Peña-Castellanos <goanpeca@gmail.com>
 gomyhr | Geir Ove Myhr <Geir.Ove.Myhr@lr.org>
 groutr | Ryan Grout <rgrout@continuum.io>
 guoci | guoci <zguoci@gmail.com>
@@ -83,7 +82,6 @@ mikecroucher | Mike Croucher <michael.p.croucher@googlemail.com>
 minrk | MinRK <benjaminrk@gmail.com>
 mjuric | Mario Juric <mjuric@astro.washington.edu>
 natefoo | Nate Coraor <nate@bx.psu.edu>
-nehaljwani | Nehal J Wani <nehaljw.kkd1@gmail.com>
 NewbiZ | Aurelien Vallee <vallee.aurelien@gmail.com>
 nickeubank | Nick Eubank <nickeubank@users.noreply.github.com>
 NixonK | Nixon Kwok <nixon.kwok@thinkboxsoftware.com>
@@ -113,7 +111,6 @@ tdhopper| Tim Hopper <tdhopper@gmail.com>
 teake | Teake Nutma <t.a.nutma@rug.nl>
 tomkinsc | Chris Tomkins-Tinch <tomkinsc@gmail.com>
 tpn | Trent Nelson <trent@trent.me>
-tpowellcio | Troy Powell <tpowell@MathBook Pro.(none)>
 twiecki | Thomas Wiecki <thomas.wiecki@gmail.com>
 tyler-thetyrant | Tyler Kim <tkim139@illinois.edu>
 ukoethe | Ullrich Koethe <ullrich.koethe@iwr.uni-heidelberg.de>
