@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 
 __conda_hashr() {
     if [ -n "${ZSH_VERSION:+x}" ]; then

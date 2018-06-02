@@ -1,9 +1,6 @@
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
-# NOTE:
-#     This module is deprecated.  Don't import from this here when writing
-#     new code.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import hashlib

@@ -1,3 +1,5 @@
+@REM Copyright (C) 2012 Anaconda, Inc
+@REM SPDX-License-Identifier: BSD-3-Clause
 @IF NOT DEFINED CONDA_EXE @SET CONDA_EXE="%~dp0..\Scripts\conda.exe"
 
 @IF [%1]==[activate]   "%~dp0_conda_activate" %*

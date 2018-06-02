@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from .binstar import BinstarSpec
 from .yaml_file import YamlFileSpec
 from .notebook import NotebookSpec

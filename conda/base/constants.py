@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 This file should hold most string literals and magic numbers used throughout the code base.
 The exception is if a literal is specifically meant to be private to and isolated within a module.
