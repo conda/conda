@@ -1275,7 +1275,7 @@ class IntegrationTests(TestCase):
         assert False
 
     @pytest.mark.skipif(datetime.now() < datetime(2018, 7, 1), reason="TODO")
-    def test_conda_pip_interop_conda_doesnt_update_ancient_distutils_package(self):
+    def gittest_conda_pip_interop_conda_doesnt_update_ancient_distutils_package(self):
         # probably easiest just to use a conda package and remove the conda-meta record
         assert False
 
