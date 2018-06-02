@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Code in ``conda.core`` is the core logic.  It is strictly forbidden from having side effects.
 No printing to stdout or stderr, no disk manipulation, no http requests.
