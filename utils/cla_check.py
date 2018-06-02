@@ -23,7 +23,9 @@ def get_cla_signers():
                 continue
             yield line
 
+
 signers_map = {}
+
 
 for line in get_cla_signers():
     username, contributor_name, _ = line.split('|')
@@ -31,7 +33,6 @@ for line in get_cla_signers():
     contributor_name = contributor_name.strip()
     if username:
         signers_map[contributor_name] = username
-
 
 
 def get_github_map_line():
@@ -94,12 +95,8 @@ sent = [
 ]
 
 
-
 for contributor in contributors:
     if contributor not in signers_map:
         github_username = github_username_map[contributor]
         if github_username not in sent:
             print(contributor)
-
-
-
