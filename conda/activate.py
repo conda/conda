@@ -605,10 +605,7 @@ class PosixActivator(_Activator):
 
     def _hook_preamble(self):
         if on_win:
-            return ('export CONDA_EXE="$(cygpath \'%s\')"\n'
-                    'export CONDA_BAT="%s"'
-                    % (context.conda_exe, join(context.conda_prefix, 'condacmd', 'conda.bat'))
-                    )
+            return 'export CONDA_EXE="$(cygpath \'%s\')"' % context.conda_exe
         else:
             return 'export CONDA_EXE="%s"' % context.conda_exe
 
