@@ -87,10 +87,15 @@ def test_remove_link_to_dir():
     with tempdir() as td:
         dst_link = join(td, "test_link")
         src_dir = join(td, "test_dir")
+        test_file = join(td, "test_file")
         mkdir_p(src_dir)
+        touch(test_file)
         assert isdir(src_dir)
         assert not islink(src_dir)
         assert not islink(dst_link)
+        if not softlink_supported(test_file, td) and on_win:
+            pytest.skip("softlink not supported")
+
         symlink(src_dir, dst_link)
         assert islink(dst_link)
         assert rm_rf(dst_link)
