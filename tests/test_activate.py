@@ -1157,14 +1157,9 @@ class InteractiveShell(object):
 
         # remove all CONDA_ env vars
         env = os.environ.copy()
-        env = {str(k): str(v) for k, v in iteritems(env)}
         remove_these = {var_name for var_name in env if var_name.startswith('CONDA_')}
         for var_name in remove_these:
             del env[var_name]
-
-        p = PopenSpawn(self.shell_name, timeout=12, maxread=2000, searchwindowsize=None,
-                       logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
-                       codec_errors='strict')
 
         # set state for context
         joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
@@ -1173,13 +1168,18 @@ class InteractiveShell(object):
             self.activator._get_starting_path_list(),
         )))
         self.original_path = PATH
-        env = {
+        env.update({
             'CONDA_AUTO_ACTIVATE_BASE': 'false',
             'PYTHONPATH': CONDA_PACKAGE_ROOT,
             'PATH': PATH,
-        }
-        for name, val in env.items():
-            p.sendline(self.activator.export_var_tmpl % (name, val))
+        })
+        env = {str(k): str(v) for k, v in iteritems(env)}
+        # for name, val in env.items():
+        #     p.sendline(self.activator.export_var_tmpl % (name, val))
+
+        p = PopenSpawn(self.shell_name, timeout=12, maxread=2000, searchwindowsize=None,
+                       logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
+                       codec_errors='strict')
 
         if self.init_command:
             p.sendline(self.init_command)
