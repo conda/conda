@@ -87,11 +87,7 @@ def _get_activated_env_vars_unix(env_location):
 def get_activated_env_vars():
     env_location = context.target_prefix
     if on_win:
-        in_posix_like_shell = os.getenv('TEMP', os.getenv('TMP', '')).startswith('/')
-        if in_posix_like_shell:
-            env_var_map = _get_activated_env_vars_unix(env_location)
-        else:
-            env_var_map = _get_activated_env_vars_win(env_location)
+        env_var_map = _get_activated_env_vars_win(env_location)
     else:
         env_var_map = _get_activated_env_vars_unix(env_location)
     env_var_map = {str(k): str(v) for k, v in iteritems(env_var_map)}
