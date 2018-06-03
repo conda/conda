@@ -8,10 +8,10 @@ from subprocess import Popen
 import sys
 from tempfile import NamedTemporaryFile
 
-from conda.exceptions import CommandNotFoundError
 from .. import CondaError
 from ..base.context import context
 from ..common.compat import ensure_binary, iteritems, on_win
+from ..exceptions import CommandNotFoundError
 from ..gateways.disk.delete import rm_rf
 from ..gateways.subprocess import subprocess_call
 
@@ -72,7 +72,7 @@ def _get_activated_env_vars_unix(env_location):
         "sh -c \'"
         "eval \"$(\"{0}\" shell.posix hook)\"".format(conda_exe),
         "&&",
-        "conda activate {0}".format(env_location),
+        "conda activate \"{0}\"".format(env_location),
         "&&",
         "\"$CONDA_PYTHON_EXE\" -c \"import os, json; print(json.dumps(dict(os.environ)))\"",
         "\'",

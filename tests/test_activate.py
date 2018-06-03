@@ -1296,10 +1296,17 @@ class ShellWrapperIntegrationTests(TestCase):
         assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
         assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
 
-        shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
+        shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
         shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
         shell.assert_env_var('?', '0', True)
         # TODO: assert that reactivate worked correctly
+
+        shell.sendline('sqlite3 -version')
+        shell.expect('3\.21\..*\n')
+
+        # conda run integration test
+        shell.sendline('conda run sqlite3 -- -version')
+        shell.expect('3\.21\..*\n')
 
         # regression test for #6840
         shell.sendline('conda install --blah')
@@ -1441,10 +1448,17 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_SHLVL', '2\r')
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
 
-            shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
-            shell.expect('Executing transaction: ...working... done.*\n', timeout=25)
+            shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
+            shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
             shell.assert_env_var('errorlevel', '0', True)
             # TODO: assert that reactivate worked correctly
+
+            shell.sendline('sqlite3 -version')
+            shell.expect('3\.21\..*\n')
+
+            # conda run integration test
+            shell.sendline('conda run sqlite3 -- -version')
+            shell.expect('3\.21\..*\n')
 
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '1\r')
