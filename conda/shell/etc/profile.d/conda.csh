@@ -1,5 +1,5 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
+echo "Copyright (C) 2012 Anaconda, Inc" > /dev/null
+echo "SPDX-License-Identifier: BSD-3-Clause" > /dev/null
 
 if (! $?_CONDA_EXE) then
   set _CONDA_EXE="${PWD}/conda/shell/bin/conda"

@@ -228,6 +228,7 @@ class CommandNotFoundError(CondaError):
         activate_commands = {
             'activate',
             'deactivate',
+            'run',
         }
         conda_commands = {
             'clean',
