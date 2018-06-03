@@ -9,7 +9,7 @@ import pytest
 
 from conda.compat import TemporaryDirectory
 from conda.common.compat import on_win
-from conda.gateways.disk.create import create_link
+from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import move_to_trash, rm_rf
 from conda.gateways.disk.link import islink, symlink
 from conda.gateways.disk.test import softlink_supported
@@ -87,17 +87,20 @@ def test_remove_link_to_dir():
     with tempdir() as td:
         dst_link = join(td, "test_link")
         src_dir = join(td, "test_dir")
-        _write_file(src_dir, "welcome to the ministry of silly walks")
-        symlink(src_dir, dst_link)
+        mkdir_p(src_dir)
+        assert isdir(src_dir)
         assert not islink(src_dir)
+        assert not islink(dst_link)
+        symlink(src_dir, dst_link)
         assert islink(dst_link)
         assert rm_rf(dst_link)
         assert not isdir(dst_link)
         assert not islink(dst_link)
+        assert not lexists(dst_link)
+        assert isdir(src_dir)
         assert rm_rf(src_dir)
         assert not isdir(src_dir)
         assert not islink(src_dir)
-        assert not lexists(dst_link)
 
 
 def test_rm_rf_does_not_follow_symlinks():
