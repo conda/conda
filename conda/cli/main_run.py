@@ -111,7 +111,7 @@ def find_executable(executable_name):
 
 def _find_executable_win(target_prefix, executable_name):
     from ..activate import _Activator
-    pathext = os.environ["PATHEXT"].split(';')
+    pathext = tuple(os.environ["PATHEXT"].split(';'))
     if executable_name.endswith(pathext):
         for path_dir in _Activator._get_path_dirs(target_prefix):
             executable_path = join(path_dir, executable_name)
