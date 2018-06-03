@@ -942,10 +942,18 @@ def configure_parser_remove(sub_parsers, name='remove'):
 
 def configure_parser_run(sub_parsers):
     help = "Run an executable in a conda environment. [Experimental]"
-    descr = help
+    descr = help + dedent("""
+
+    Use '--' (double dash) to separate CLI flags for 'conda run' from CLI flags sent to
+    the process being launched.
+
+    Example usage:
+
+        $ conda create -y -n my-python-2-env python=2
+        $ conda run -n my-python-2-env python -- --version
+    """)
 
     epilog = dedent("""
-
     """)
 
     p = sub_parsers.add_parser(

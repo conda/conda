@@ -4,9 +4,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 import os
 from os.path import isfile, join
+from subprocess import Popen
+import sys
 
 from ..base.context import context
-from ..common.compat import on_win
+from ..common.compat import on_win, iteritems
 from ..gateways.subprocess import subprocess_call
 
 # OLD conda-run help
@@ -75,6 +77,7 @@ def get_activated_env_vars():
     result = subprocess_call(cmd)
     assert not result.stderr
     env_var_map = json.loads(result.stdout)
+    env_var_map = {str(k): str(v) for k, v in iteritems(env_var_map)}
     return env_var_map
 
 
@@ -107,17 +110,38 @@ def _find_executable_win(executable_name):
 
 def _find_executable_unix(executable_name):
     executable_path = join(context.target_prefix, 'bin', executable_name)
-    if isfile(executable_path):  # TODO: add add is_executable()
+    if isfile(executable_path) and os.access(executable_path, os.X_OK):
         return executable_path
     return None
 
 
+def _exec_win(executable_path, extra_args=(), env_vars=None):
+    env_vars = os.environ.copy() if env_vars is None else env_vars
+    args = [executable_path]
+    args.extend(extra_args)
+    p = Popen(args, env=env_vars)
+    try:
+        p.communicate()
+    except KeyboardInterrupt:
+        p.wait()
+    finally:
+        sys.exit(p.returncode)
+
+
+def _exec_unix(executable_path, extra_args=(), env_vars=None):
+    env_vars = os.environ.copy() if env_vars is None else env_vars
+    args = [executable_path]
+    args.extend(extra_args)
+    os.execve(executable_path, args, env_vars)
+
+
 def execute(args, parser):
     executable_path = find_executable(args.executable_name)
-
-    env_var_map = {str(k): str(v) for k, v in get_activated_env_vars().items()}
-    extra_args = (executable_path,) + args.extra_args
-    os.execve(executable_path, extra_args, env_var_map)
+    env_vars = get_activated_env_vars()
+    if on_win:
+        _exec_win(executable_path, args.extra_args, env_vars)
+    else:
+        _exec_unix(executable_path, args.extra_args, env_vars)
 
 
 
