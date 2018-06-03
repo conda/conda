@@ -37,13 +37,14 @@ log = getLogger(__name__)
 class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
 
-    def __call__(cls, prefix_path):
+    def __call__(cls, prefix_path, pip_interop_enabled=None):
         if prefix_path in PrefixData._cache_:
             return PrefixData._cache_[prefix_path]
         elif isinstance(prefix_path, PrefixData):
             return prefix_path
         else:
-            prefix_data_instance = super(PrefixDataType, cls).__call__(prefix_path)
+            prefix_data_instance = super(PrefixDataType, cls).__call__(prefix_path,
+                                                                       pip_interop_enabled)
             PrefixData._cache_[prefix_path] = prefix_data_instance
             return prefix_data_instance
 
@@ -54,6 +55,7 @@ class PrefixData(object):
 
     def __init__(self, prefix_path, pip_interop_enabled=None):
         # pip_interop_enabled is a temporary paramater; DO NOT USE
+        # TODO: when removing pip_interop_enabled, also remove from meta class
         self.prefix_path = prefix_path
         self.__prefix_records = None
         self.__is_writable = NULL
