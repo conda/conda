@@ -1123,9 +1123,9 @@ class InteractiveShell(object):
         },
         'cmd.exe': {
             'activator': 'cmd.exe',
-            'init_command': 'set CONDA_SHLVL= '
-                            '&& conda\\shell\\condacmd\\conda_hook.bat '
-                            '&& set CONDA_EXE="python -m conda"',
+            'init_command': 'set "CONDA_SHLVL=" '
+                            '&& @CALL conda\\shell\\condacmd\\conda_hook.bat '
+                            '&& set "CONDA_EXE=python -m conda"',
             'print_env_var': '@echo %%%s%%',
         },
         'csh': {
