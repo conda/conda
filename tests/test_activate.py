@@ -1166,6 +1166,7 @@ class InteractiveShell(object):
         PATH = joiner(self.activator.path_conversion(concatv(
             (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
+            (which(self.shell_name),),
         )))
         self.original_path = PATH
         env.update({
@@ -1174,8 +1175,6 @@ class InteractiveShell(object):
             'PATH': PATH,
         })
         env = {str(k): str(v) for k, v in iteritems(env)}
-        # for name, val in env.items():
-        #     p.sendline(self.activator.export_var_tmpl % (name, val))
 
         p = PopenSpawn(self.shell_name, timeout=12, maxread=2000, searchwindowsize=None,
                        logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,

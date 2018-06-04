@@ -38,7 +38,6 @@ build: false
 
 test_script:
   - CALL dev-init.bat
-  - py.test %ADD_COV% -m "not integration and not installed" -v
-  - py.test %ADD_COV% --cov-append -m "integration and not installed" -v
+  - py.test %ADD_COV% --cov-append -m "integration and not installed" -vv -k test_bash_basic_integration
   - codecov --env PYTHON_VERSION --required
   - python -m conda.common.io
