@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 from glob import glob
 import os
-from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, normpath
+from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, normcase
 import re
 import sys
 from tempfile import NamedTemporaryFile
@@ -197,7 +197,6 @@ class _Activator(object):
             prefix = context.root_prefix
         else:
             prefix = locate_prefix_by_name(env_name_or_prefix)
-        prefix = normpath(prefix)
 
         # query environment
         old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
@@ -386,7 +385,7 @@ class _Activator(object):
             path_split = path.split(os.pathsep)
             library_bin = r"%s\Library\bin" % (sys.prefix)
             # ^^^ deliberately the same as: https://github.com/AnacondaRecipes/python-feedstock/blob/8e8aee4e2f4141ecfab082776a00b374c62bb6d6/recipe/0005-Win32-Ensure-Library-bin-is-in-os.environ-PATH.patch#L20  # NOQA
-            if normpath(path_split[0]) == normpath(library_bin):
+            if paths_equal(path_split[0], library_bin):
                 return path_split[1:]
             else:
                 return path_split
@@ -424,9 +423,6 @@ class _Activator(object):
         else:
             path_list = list(self.path_conversion(starting_path_dirs))
 
-        def paths_equal(path1, path2):
-            return normpath(abspath(path1.lower())) == normpath(abspath(path2.lower()))
-
         def index_of_path(paths, test_path):
             for q, path in enumerate(paths):
                 if paths_equal(path, test_path):
@@ -459,7 +455,7 @@ class _Activator(object):
         pass
 
     def _default_env(self, prefix):
-        if normpath(prefix) == normpath(context.root_prefix):
+        if paths_equal(prefix, context.root_prefix):
             return 'base'
         return basename(prefix) if basename(dirname(prefix)) == 'envs' else prefix
 
@@ -552,6 +548,13 @@ def native_path_to_unix(paths):  # pragma: unix no cover
 
 def path_identity(paths):
     return paths if isinstance(paths, string_types) else tuple(paths)
+
+
+def paths_equal(path1, path2):
+    if on_win:
+        return normcase(abspath(path1)) == normcase(abspath(path2))
+    else:
+        return abspath(path1) == abspath(path2)
 
 
 on_win = bool(sys.platform == "win32")
