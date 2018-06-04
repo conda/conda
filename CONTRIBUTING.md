@@ -88,10 +88,11 @@ In case you're new to CLAs, this is rather standard procedure for larger project
 
 ### Process
 
-New contributors should email kfranz@anaconda.com to request a Contributor License Agreement
-that can be electronically signed. A signed contributor license agreement for a pull request
-author needs to be on file with Anaconda, Inc. for pull requests to be merged. A record of
-signatories is kept in the `.cla-signers` file in the project root.
+New contributors should email kfranz@anaconda.com to request a Contributor License Agreement that
+can be electronically signed. A signed contributor license agreement for a pull request author
+needs to be on file with Anaconda, Inc. for pull requests to be merged. A record of signatories is
+kept in the [`.cla-signers`](https://github.com/conda/conda/blob/master/.cla-signers) file in the
+project root.
 
 ### Individual Contributor License Agreement – Conda Code Organization
 
