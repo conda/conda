@@ -12,7 +12,7 @@ from textwrap import wrap
 
 from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import PathConflict, SafetyChecks
+from ..base.constants import PathConflict, SafetyChecks, DepsModifier, UpdateModifier
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, iteritems, itervalues, string_types
 from ..common.configuration import pretty_list, pretty_map
@@ -349,6 +349,8 @@ def execute_config(args, parser):
 
         yaml.representer.RoundTripRepresenter.add_representer(SafetyChecks, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(PathConflict, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(DepsModifier, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
 
         try:
             with open(rc_path, 'w') as rc:
