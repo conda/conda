@@ -6,8 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from functools import reduce
 from logging import getLogger
 import os
-from os.path import abspath, basename, expanduser, expandvars, join, normpath, split, splitext, \
-    normcase
+from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
 
