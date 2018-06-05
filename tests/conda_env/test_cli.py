@@ -16,7 +16,7 @@ from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import EnvironmentLocationNotFound
 from conda.install import rm_rf
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
-from conda_env.exceptions import SpecNotFound, EnvironmentFileNotFound
+from conda_env.exceptions import EnvironmentFileNotFound
 from conda_env.yaml import load as yaml_load
 
 environment_1 = '''
@@ -40,9 +40,11 @@ test_env_name_1 = "env-1"
 test_env_name_2 = "snowflakes"
 test_env_name_3 = "env_foo"
 
+
 def escape_for_winpath(p):
     if p:
         return p.replace('\\', '\\\\')
+
 
 class Commands:
     ENV_CREATE = "create"
@@ -53,6 +55,7 @@ class Commands:
     CREATE = "create"
     INFO = "info"
     INSTALL = "install"
+
 
 def run_env_command(command, prefix, *arguments):
     """
@@ -174,8 +177,7 @@ class IntegrationTests(unittest.TestCase):
         o, e = run_conda_command(Commands.INFO, None, "--json")
         parsed = json.loads(o)
         self.assertNotEqual(
-            len([env for env in parsed['envs'] if env.endswith(test_env_name_1)]),
-            0
+            len([env for env in parsed['envs'] if env.endswith(test_env_name_1)]), 0
         )
 
     def test_update(self):
@@ -330,6 +332,7 @@ class NewIntegrationTests(unittest.TestCase):
         # check explicit that we have same file
         check2, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
         self.assertEqual(check1, check2)
+
 
 if __name__ == '__main__':
     unittest.main()
