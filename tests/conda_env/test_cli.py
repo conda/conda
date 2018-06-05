@@ -16,7 +16,7 @@ from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import EnvironmentLocationNotFound
 from conda.install import rm_rf
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
-from conda_env.exceptions import SpecNotFound
+from conda_env.exceptions import SpecNotFound, EnvironmentFileNotFound
 from conda_env.yaml import load as yaml_load
 
 environment_1 = '''
@@ -149,7 +149,17 @@ class IntegrationTests(unittest.TestCase):
         try:
             run_env_command(Commands.ENV_CREATE, None)
         except Exception as e:
-            self.assertIsInstance(e, SpecNotFound)
+            self.assertIsInstance(e, EnvironmentFileNotFound)
+
+    def test_conda_env_create_no_existent_file(self):
+        '''
+        Test `conda env create --file=not_a_file.txt` with a file that does not
+        exist.
+        '''
+        try:
+            run_env_command(Commands.ENV_CREATE, None, '--file not_a_file.txt')
+        except Exception as e:
+            self.assertIsInstance(e, EnvironmentFileNotFound)
 
     def test_create_valid_env(self):
         '''
@@ -185,7 +195,7 @@ class IntegrationTests(unittest.TestCase):
         try:
             run_env_command(Commands.ENV_CREATE, test_env_name_1, "create")
         except Exception as e:
-            self.assertIsInstance(e, SpecNotFound, str(e))
+            self.assertIsInstance(e, EnvironmentFileNotFound, str(e))
 
 
 def env_is_created(env_name):
