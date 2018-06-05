@@ -5,8 +5,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from os.path import abspath, basename, exists, isdir
+from os.path import abspath, basename, exists, isdir, isfile, join
 
+from conda.common.path import paths_equal
 from . import common
 from .common import check_non_admin
 from .. import CondaError
@@ -16,12 +17,14 @@ from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
-from ..core.solve import Solver, DepsModifier
+from ..core.solve import DepsModifier, Solver
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
                           CondaValueError, DirectoryNotFoundError, DryRunExit,
                           EnvironmentLocationNotFound,
                           PackageNotInstalledError, PackagesNotFoundError, TooManyArgumentsError,
-                          UnsatisfiableError)
+                          UnsatisfiableError, NoBaseEnvironmentError,
+                          DirectoryNotACondaEnvironmentError)
+from ..gateways.disk.create import mkdir_p
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..plan import revert_actions
@@ -147,6 +150,25 @@ def install(args, parser, command='install'):
 # $ conda update --prefix %s anaconda
 """ % prefix)
 
+    if not newenv:
+        if isdir(prefix):
+            if not isfile(join(prefix, 'conda-meta', 'history')):
+                if paths_equal(prefix, context.conda_prefix):
+                    raise NoBaseEnvironmentError()
+                else:
+                    raise DirectoryNotACondaEnvironmentError(prefix)
+            else:
+                # fall-through expected under normal operation
+                pass
+        else:
+            if args.mkdir:
+                try:
+                    mkdir_p(prefix)
+                except EnvironmentError as e:
+                    raise CondaOSError("Could not create directory: %s" % prefix, caused_by=e)
+            else:
+                raise EnvironmentLocationNotFound(prefix)
+
     args_packages = [s.strip('"\'') for s in args.packages]
     if newenv and not args.no_default_packages:
         # Override defaults if they are specified at the command line
@@ -210,15 +232,6 @@ def install(args, parser, command='install'):
         touch_nonadmin(prefix)
         print_activate(args.name if args.name else prefix)
         return
-
-    if not isdir(prefix) and not newenv:
-        if args.mkdir:
-            try:
-                os.makedirs(prefix)
-            except OSError:
-                raise CondaOSError("Error: could not create directory: %s" % prefix)
-        else:
-            raise EnvironmentLocationNotFound(prefix)
 
     try:
         if isinstall and args.revision:

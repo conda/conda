@@ -319,6 +319,29 @@ class EnvironmentNameNotFound(CondaError):
         super(EnvironmentNameNotFound, self).__init__(message, environment_name=environment_name)
 
 
+class NoBaseEnvironmentError(CondaError):
+
+    def __init__(self):
+        message = dals("""
+        This conda installation has no default base environment. Use
+        'conda create' to create new environments and 'conda activate' to
+        activate environments.
+        """)
+        super(NoBaseEnvironmentError, self).__init__(message)
+
+
+class DirectoryNotACondaEnvironmentError(CondaError):
+
+    def __init__(self, target_directory):
+        message = dals("""
+        The target directory exists, but it is not a conda environment.
+        Use 'conda create' to convert the directory to a conda environment.
+          target directory: %(target_directory)s
+        """)
+        super(DirectoryNotACondaEnvironmentError, self).__init__(message,
+                                                                 target_directory=target_directory)
+
+
 class CondaEnvironmentError(CondaError, EnvironmentError):
     def __init__(self, message, *args):
         msg = '%s' % message
@@ -350,9 +373,9 @@ class LinkError(CondaError):
 
 
 class CondaOSError(CondaError, OSError):
-    def __init__(self, message):
+    def __init__(self, message, **kwargs):
         msg = '%s' % message
-        super(CondaOSError, self).__init__(msg)
+        super(CondaOSError, self).__init__(msg, **kwargs)
 
 
 class ProxyError(CondaError):
