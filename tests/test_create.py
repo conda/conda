@@ -703,7 +703,7 @@ class IntegrationTests(TestCase):
         # regression test for #6914
         with make_temp_env("python=2.7.12") as prefix:
             assert package_is_installed(prefix, "readline=6.2")
-            rm_rf(join(prefix, 'conda-meta', 'history'))
+            open(join(prefix, 'conda-meta', 'history'), 'w').close()
             PrefixData._cache_.clear()
             run_command(Commands.UPDATE, prefix, "readline")
             assert package_is_installed(prefix, "readline")
@@ -1571,6 +1571,10 @@ class IntegrationTests(TestCase):
         try:
             prefix = make_temp_prefix()
             assert isdir(prefix)
+            with pytest.raises(DirectoryNotACondaEnvironmentError):
+                run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
+
+            run_command(Commands.CREATE, prefix)
             run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
             assert package_is_installed(prefix, "python=3.5.2")
 
