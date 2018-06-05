@@ -149,11 +149,11 @@ jobs:
       - image: condatest/linux-64-python-2.7
     environment:
       - CONDA_INSTRUMENTATION_ENABLED: true
-  3.0 conda-build:
-    <<: *conda_build_test
-    environment:
-      - CONDA_BUILD: 3.0.21
-      - CONDA_INSTRUMENTATION_ENABLED: true
+#  3.0 conda-build:
+#    <<: *conda_build_test
+#    environment:
+#      - CONDA_BUILD: 3.0.21
+#      - CONDA_INSTRUMENTATION_ENABLED: true
   3.10 conda-build:
     <<: *conda_build_test
     environment:
@@ -169,6 +169,6 @@ workflows:
     jobs:
       - py36 main tests
       - py27 main tests
-      - 3.0 conda-build
+#      - 3.0 conda-build
       - 3.10 conda-build
       - flake8

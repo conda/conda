@@ -1734,10 +1734,12 @@ class IntegrationTests(TestCase):
             result = subprocess_call("%s info -a" % join(prefix, conda_exe))
             print(result.stdout)
 
-            result = subprocess_call("%s install python" % join(prefix, conda_exe), env={"SHLVL": "1"},
-                                     raise_on_error=False)
-            assert result.rc == 1
-            assert "NoBaseEnvironmentError: This conda installation has no default base environment." in result.stderr
+            if not on_win:
+                # Windows has: Fatal Python error: failed to get random numbers to initialize Python
+                result = subprocess_call("%s install python" % join(prefix, conda_exe), env={"SHLVL": "1"},
+                                         raise_on_error=False)
+                assert result.rc == 1
+                assert "NoBaseEnvironmentError: This conda installation has no default base environment." in result.stderr
 
     def test_conda_downgrade(self):
         # Create an environment with the current conda under test, but include an earlier
