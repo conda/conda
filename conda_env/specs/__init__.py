@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
+# Standard library imports
+import os
+
+# Local imports
 from .binstar import BinstarSpec
-from .yaml_file import YamlFileSpec
 from .notebook import NotebookSpec
 from .requirements import RequirementsSpec
-from ..exceptions import SpecNotFound
+from .yaml_file import YamlFileSpec
+from ..exceptions import EnvironmentFileNotFound, SpecNotFound
+
 
 all_specs = [
     BinstarSpec,
@@ -16,6 +22,12 @@ all_specs = [
 
 
 def detect(**kwargs):
+    # Check file existence if --file was provided
+    filename = kwargs.get('filename')
+    if filename and not os.path.isfile(filename):
+        raise EnvironmentFileNotFound(filename=filename)
+
+    # Check specifications
     specs = []
     for SpecClass in all_specs:
         spec = SpecClass(**kwargs)
