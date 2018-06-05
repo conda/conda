@@ -296,7 +296,7 @@ def execute(args, parser):
             print(json.dumps({"channels": context.channels}))
         return 0
 
-    options = 'envs', 'system', 'license'
+    options = 'envs', 'system'
 
     if args.all or context.json:
         for option in options:
@@ -333,18 +333,6 @@ def execute(args, parser):
             for name, value in sorted(iteritems(info_dict['env_vars'])):
                 print("%s: %s" % (name, value))
             print()
-
-    if args.license and not context.json:
-        try:
-            from _license import show_info
-            show_info()  # pragma: no cover
-        except ImportError:
-            print(dedent("""
-                WARNING: could not import _license.show_info
-                # try:
-                # $ conda install -n root _license"""))
-        except Exception as e:  # pragma: no cover
-            log.warn('%r', e)
 
     if context.json:
         stdout_json(info_dict)

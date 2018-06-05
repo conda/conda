@@ -286,11 +286,6 @@ def configure_parser_info(sub_parsers):
         help="List all known conda environments.",
     )
     p.add_argument(
-        '-l', "--license",
-        action="store_true",
-        help="Display information about the local conda licenses list.",
-    )
-    p.add_argument(
         '-s', "--system",
         action="store_true",
         help="List environment variables.",
