@@ -319,6 +319,7 @@ class PackageRecord(IndexJsonRecord, PackageRef):  # lgtm [py/conflicting-attrib
 
     date = StringField(required=False)
     size = IntegerField(required=False)
+    revoked = BooleanField(False, required=False, default_in_dump=False)
 
     def __str__(self):
         return "%s/%s::%s==%s=%s" % (self.channel.canonical_name, self.subdir, self.name,

@@ -16677,6 +16677,7 @@
     "version": "2.2.0.1"
   },
   "pyzmq-2.2.0.1-py26_1.tar.bz2": {
+    "revoked": true,
     "build": "py26_1",
     "build_number": 1,
     "depends": [

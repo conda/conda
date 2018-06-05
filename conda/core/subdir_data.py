@@ -28,7 +28,7 @@ from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, it
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
-from ..exceptions import CondaDependencyError, CondaHTTPError, NotWritableError
+from ..exceptions import CondaDependencyError, CondaHTTPError, CondaUpgradeError, NotWritableError
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)
 from ..gateways.connection.session import CondaSession
@@ -52,7 +52,7 @@ except ImportError:  # pragma: no cover
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderrlog')
 
-REPODATA_PICKLE_VERSION = 25
+REPODATA_PICKLE_VERSION = 26
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
 
@@ -147,6 +147,14 @@ class SubdirData(object):
 
     def load(self):
         _internal_state = self._load()
+        if _internal_state["repodata_version"] > 1:
+            raise CondaUpgradeError(dals("""
+                The current version of conda is too old to read repodata from
+                %s.
+                (This version only supports repodata_version 1.)
+                Please update condato use this channel.
+                """) % self.url_w_subdir)
+
         self._internal_state = _internal_state
         self._package_records = _internal_state['_package_records']
         self._names_index = _internal_state['_names_index']
@@ -325,6 +333,7 @@ class SubdirData(object):
             '_add_pip': add_pip,
             '_pickle_version': REPODATA_PICKLE_VERSION,
             '_schannel': schannel,
+            'repodata_version': json_obj.get('repodata_version', 0),
         }
 
         meta_in_common = {  # just need to make this once, then apply with .update()

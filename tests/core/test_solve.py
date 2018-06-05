@@ -228,6 +228,47 @@ def test_prune_1():
         assert convert_to_dist_str(link_precs) == link_order
 
 
+def test_revoke_1():
+    specs = MatchSpec("python=2.6"), MatchSpec("pyzmq"),
+
+    with get_solver(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # PrefixDag(final_state_1, specs).open_url()
+        print(convert_to_dist_str(final_state_1))
+        order = (
+            'channel-1::openssl-1.0.1c-0',
+            'channel-1::readline-6.2-0',
+            'channel-1::sqlite-3.7.13-0',
+            'channel-1::system-5.8-1',
+            'channel-1::tk-8.5.13-0',
+            'channel-1::util-linux-2.21-0',
+            'channel-1::zlib-1.2.7-0',
+            'channel-1::python-2.6.8-6',
+            'channel-1::zeromq-2.2.0-1',
+            'channel-1::pyzmq-2.2.0.1-py26_0',  # py26_1 is revoked
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    with env_var("CONDA_INCLUDE_REVOKED", "true", reset_context):
+        with get_solver(specs) as solver:
+            final_state_1 = solver.solve_final_state()
+            # PrefixDag(final_state_1, specs).open_url()
+            print(convert_to_dist_str(final_state_1))
+            order = (
+                'channel-1::openssl-1.0.1c-0',
+                'channel-1::readline-6.2-0',
+                'channel-1::sqlite-3.7.13-0',
+                'channel-1::system-5.8-1',
+                'channel-1::tk-8.5.13-0',
+                'channel-1::util-linux-2.21-0',
+                'channel-1::zlib-1.2.7-0',
+                'channel-1::python-2.6.8-6',
+                'channel-1::zeromq-2.2.0-1',
+                'channel-1::pyzmq-2.2.0.1-py26_1',  # now include_revoked is true
+            )
+            assert convert_to_dist_str(final_state_1) == order
+
+
 def test_force_remove_1():
     specs = MatchSpec("numpy[build=*py27*]"),
     with get_solver(specs) as solver:

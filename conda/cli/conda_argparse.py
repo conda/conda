@@ -1337,6 +1337,12 @@ def add_parser_solver_mode(p):
         help=SUPPRESS,
     )
     solver_mode_options.add_argument(
+        "--include-revoked",
+        action="store_true",
+        default=NULL,
+        help="Include revoked packages in solution.",
+    )
+    solver_mode_options.add_argument(
         "--no-channel-priority",
         action="store_false",
         dest="channel_priority",

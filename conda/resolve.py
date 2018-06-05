@@ -499,6 +499,8 @@ class Resolve(object):
             nkey = C.Not(self.to_sat_name(prec))
             for ms in self.ms_depends(prec):
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
+            if prec.revoked and not context.include_revoked:
+                C.Require(C.All, (nkey,))
 
         log.debug("gen_clauses returning with clause count: %s", len(C.clauses))
         return C

@@ -208,6 +208,7 @@ class Context(Configuration):
     # ######################################################
     deps_modifier = PrimitiveParameter(DepsModifier.NOT_SET)
     update_modifier = PrimitiveParameter(UpdateModifier.UPDATE_SPECS)
+    include_revoked = PrimitiveParameter(False)
 
     # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
     # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
@@ -632,6 +633,7 @@ class Context(Configuration):
             'channel_priority',
             'create_default_packages',
             'disallowed_packages',
+            'include_revoked',
             'pinned_packages',
             'track_features',
             'prune',
@@ -850,6 +852,9 @@ class Context(Configuration):
             'force_reinstall': dals("""
                 Ensure that any user-requested package for the current operation is uninstalled
                 and reinstalled, even if that package already exists in the environment.
+                """),
+            'include_revoked': dals("""
+                Include revoked packages in solution.
                 """),
             # 'force': dals("""
             #     Override any of conda's objections and safeguards for installing packages and
