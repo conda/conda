@@ -285,6 +285,10 @@ def configure_parser_info(sub_parsers):
         action="store_true",
         help="List all known conda environments.",
     )
+    p.add_argument(	
+        '-l', "--license",	
+        action="store_true",	
+        help=SUPPRESS,
     p.add_argument(
         '-s', "--system",
         action="store_true",
