@@ -106,7 +106,7 @@ conda_build_test: &conda_build_test
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           conda info
           cd ~/conda-build
-          py.test --basetemp /tmp/cb -v --durations=20 -n 3 -m "not serial" tests -k "$CONDABUILD_SKIP"
+          py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP"
 
     - run:
         name: conda-build tests [serial]
