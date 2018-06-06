@@ -289,6 +289,7 @@ def configure_parser_info(sub_parsers):
         '-l', "--license",	
         action="store_true",	
         help=SUPPRESS,
+    )
     p.add_argument(
         '-s', "--system",
         action="store_true",
