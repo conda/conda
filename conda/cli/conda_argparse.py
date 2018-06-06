@@ -288,7 +288,7 @@ def configure_parser_info(sub_parsers):
     p.add_argument(
         '-l', "--license",
         action="store_true",
-        help="Display information about the local conda licenses list.",
+        help=SUPPRESS,
     )
     p.add_argument(
         '-s', "--system",
