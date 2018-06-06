@@ -1,6 +1,33 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+"""
+Sections in this module are
+
+  1. top-level functions
+  2. plan creators
+  3. plan runners
+  4. individual operations
+  5. helper functions
+
+The top-level functions compose and execute full plans.
+
+A plan is created by composing various individual operations.  The plan data structure is a
+list of dicts, where each dict represents an individual operation.  The dict contains two
+keys--`function` and `kwargs`--where function is the name of the individual operation function
+within this module.
+
+Each individual operation must
+
+  a) return a `Result` (i.e. NEEDS_SUDO, MODIFIED, or NO_CHANGE)
+  b) have no side effects if context.dry_run is True
+  c) be verbose and descriptive about the changes being made or proposed is context.verbosity >= 1
+
+The plan runner functions take the plan (list of dicts) as an argument, and then coordinate the
+execution of each individual operation.  The docstring for `run_plan_elevated()` has details on
+how that strategy is implemented.
+
+"""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from difflib import unified_diff
@@ -50,6 +77,10 @@ class Result:
     NO_CHANGE = "no change"
 
 
+# #####################################################
+# top-level functions
+# #####################################################
+
 def install(conda_prefix):
     plan = make_install_plan(conda_prefix)
     run_plan(plan)
@@ -77,22 +108,6 @@ def initialize(conda_prefix, shells, for_user, for_system, anaconda_prompt):
     if any(step['result'] == Result.NEEDS_SUDO for step in plan):
         print("Operation failed.", file=sys.stderr)
         return 1
-
-
-def _get_python_info(prefix):
-    python_exe = join(prefix, get_python_short_path())
-    result = subprocess_call("%s --version" % python_exe)
-    stdout, stderr = result.stdout.strip(), result.stderr.strip()
-    if stderr:
-        python_version = stderr.split()[1]
-    elif stdout:  # pragma: no cover
-        python_version = stdout.split()[1]
-    else:  # pragma: no cover
-        raise ValueError("No python version information available.")
-
-    site_packages_dir = join(prefix,
-                             win_path_ok(get_python_site_packages_short_path(python_version)))
-    return python_exe, python_version, site_packages_dir
 
 
 def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
@@ -194,6 +209,10 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
     else:
         raise NotImplementedError()
 
+
+# #####################################################
+# plan creators
+# #####################################################
 
 def make_install_plan(conda_prefix):
     try:
@@ -453,6 +472,10 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
     return plan
 
 
+# #####################################################
+# plan runners
+# #####################################################
+
 def run_plan(plan):
     for step in plan:
         previous_result = step.get('result', None)
@@ -467,6 +490,23 @@ def run_plan(plan):
 
 
 def run_plan_elevated(plan):
+    """
+    The strategy of this function differs between unix and Windows.  Both strategies use a
+    subprocess call, where the subprocess is run with elevated privileges.  The executable
+    invoked with the subprocess is `python -m conda.core.initialize`, so see the
+    `if __name__ == "__main__"` at the bottom of this module.
+
+    For unix platforms, we convert the plan list to json, and then call this module with
+    `sudo python -m conda.core.initialize` while piping the plan json to stdin.  We collect json
+    from stdout for the results of the plan execution with elevated privileges.
+
+    For Windows, we create a temporary file that holds the json content of the plan.  The
+    subprocess reads the content of the file, modifies the content of the file with updated
+    execution status, and then closes the file.  This process then reads the content of that file
+    for the individual operation execution results, and then deletes the file.
+
+    """
+
     if any(step['result'] == Result.NEEDS_SUDO for step in plan):
         if on_win:
             from menuinst.win_elevate import runAsAdmin
@@ -539,6 +579,10 @@ def print_plan_results(plan, stream=None):
     else:
         print("No action taken.", file=stream)
 
+
+# #####################################################
+# individual operations
+# #####################################################
 
 def make_entry_point(target_path, conda_prefix, module, func):
     # target_path: join(conda_prefix, 'bin', 'conda')
@@ -1172,8 +1216,28 @@ def make_dev_egg_info_file(target_path):
     return Result.MODIFIED
 
 
+# #####################################################
+# helper functions
+# #####################################################
+
 def make_diff(old, new):
     return '\n'.join(unified_diff(old.splitlines(), new.splitlines()))
+
+
+def _get_python_info(prefix):
+    python_exe = join(prefix, get_python_short_path())
+    result = subprocess_call("%s --version" % python_exe)
+    stdout, stderr = result.stdout.strip(), result.stderr.strip()
+    if stderr:
+        python_version = stderr.split()[1]
+    elif stdout:  # pragma: no cover
+        python_version = stdout.split()[1]
+    else:  # pragma: no cover
+        raise ValueError("No python version information available.")
+
+    site_packages_dir = join(prefix,
+                             win_path_ok(get_python_site_packages_short_path(python_version)))
+    return python_exe, python_version, site_packages_dir
 
 
 if __name__ == "__main__":
