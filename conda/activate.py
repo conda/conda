@@ -43,12 +43,11 @@ class _Activator(object):
     # information to the __init__ method of this class.
 
     # The following instance variables must be defined by each implementation.
-    shell = None
     pathsep_join = None
+    sep = None
     path_conversion = None
     script_extension = None
     tempfile_extension = None  # None means write instructions to stdout rather than a temp file
-    shift_args = None
     command_join = None
 
     unset_var_tmpl = None
@@ -120,7 +119,7 @@ class _Activator(object):
             raise ArgumentError("'activate', 'deactivate', or 'reactivate' command must be given")
 
         command = arguments[0]
-        arguments = tuple(drop(self.shift_args + 1, arguments))
+        arguments = tuple(drop(1, arguments))
         help_flags = ('-h', '--help', '/?')
         non_help_args = tuple(arg for arg in arguments if arg not in help_flags)
         help_requested = len(arguments) != len(non_help_args)
@@ -212,9 +211,10 @@ class _Activator(object):
 
         if old_conda_shlvl == 0:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
+            conda_python_exe, conda_exe = self.path_conversion((sys.executable, context.conda_exe))
             export_vars = {
-                'CONDA_PYTHON_EXE': self.path_conversion(sys.executable),
-                'CONDA_EXE': self.path_conversion(context.conda_exe),
+                'CONDA_PYTHON_EXE': conda_python_exe,
+                'CONDA_EXE': conda_exe,
                 'PATH': new_path,
                 'CONDA_PREFIX': prefix,
                 'CONDA_SHLVL': new_conda_shlvl,
@@ -404,20 +404,31 @@ class _Activator(object):
         else:
             yield join(prefix, 'bin')
 
+    def _get_path_dirs2(self, prefix):
+        if on_win:  # pragma: unix no cover
+            yield prefix
+            yield self.sep.join((prefix, 'Library', 'mingw-w64', 'bin'))
+            yield self.sep.join((prefix, 'Library', 'usr', 'bin'))
+            yield self.sep.join((prefix, 'Library', 'bin'))
+            yield self.sep.join((prefix, 'Scripts'))
+            yield self.sep.join((prefix, 'bin'))
+        else:
+            yield self.sep.join((prefix, 'bin'))
+
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
         prefix = self.path_conversion(prefix)
         if starting_path_dirs is None:
-            starting_path_dirs = self._get_starting_path_list()
-        return self.path_conversion(concatv(
-            self._get_path_dirs(prefix),
-            starting_path_dirs,
-        ))
+            path_list = list(self.path_conversion(self._get_starting_path_list()))
+        else:
+            path_list = list(self.path_conversion(starting_path_dirs))
+        path_list[0:0] = list(self._get_path_dirs2(prefix))
+        return tuple(path_list)
 
     def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
     def _replace_prefix_in_path(self, old_prefix, new_prefix, starting_path_dirs=None):
-        old_prefix = self.path_conversion(old_prefix)
+        old_prefix, new_prefix = self.path_conversion((old_prefix, new_prefix))
         if starting_path_dirs is None:
             path_list = list(self.path_conversion(self._get_starting_path_list()))
         else:
@@ -430,7 +441,7 @@ class _Activator(object):
             return None
 
         if old_prefix is not None:
-            prefix_dirs = self.path_conversion(tuple(self._get_path_dirs(old_prefix)))
+            prefix_dirs = tuple(self._get_path_dirs2(old_prefix))
             first_idx = index_of_path(path_list, prefix_dirs[0])
             if first_idx is None:
                 first_idx = 0
@@ -442,9 +453,9 @@ class _Activator(object):
             first_idx = 0
 
         if new_prefix is not None:
-            path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
+            path_list[first_idx:first_idx] = list(self._get_path_dirs2(new_prefix))
 
-        return self.path_conversion(path_list)
+        return tuple(path_list)
 
     def _build_activate_shell_custom(self, export_vars):
         # A method that can be overriden by shell-specific implementations.
@@ -578,10 +589,10 @@ class PosixActivator(_Activator):
 
     def __init__(self, arguments=None):
         self.pathsep_join = ':'.join
+        self.sep = '/'
         self.path_conversion = native_path_to_unix
         self.script_extension = '.sh'
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
-        self.shift_args = 0
         self.command_join = '\n'
 
         self.unset_var_tmpl = '\\unset %s'
@@ -620,10 +631,10 @@ class CshActivator(_Activator):
 
     def __init__(self, arguments=None):
         self.pathsep_join = ':'.join
+        self.sep = '/'
         self.path_conversion = native_path_to_unix
         self.script_extension = '.csh'
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
-        self.shift_args = 0
         self.command_join = ';\n'
 
         self.unset_var_tmpl = 'unsetenv %s'
@@ -661,10 +672,10 @@ class XonshActivator(_Activator):
 
     def __init__(self, arguments=None):
         self.pathsep_join = ':'.join
+        self.sep = '/'
         self.path_conversion = native_path_to_unix
         self.script_extension = '.xsh'
         self.tempfile_extension = '.xsh'
-        self.shift_args = 0
         self.command_join = '\n'
 
         self.unset_var_tmpl = 'del $%s'
@@ -684,10 +695,10 @@ class CmdExeActivator(_Activator):
 
     def __init__(self, arguments=None):
         self.pathsep_join = ';'.join
+        self.sep = '\\'
         self.path_conversion = path_identity
         self.script_extension = '.bat'
         self.tempfile_extension = '.bat'
-        self.shift_args = 0
         self.command_join = '\r\n' if on_win else '\n'
 
         self.unset_var_tmpl = '@SET %s='
@@ -716,10 +727,10 @@ class FishActivator(_Activator):
 
     def __init__(self, arguments=None):
         self.pathsep_join = '" "'.join
+        self.sep = '/'
         self.path_conversion = native_path_to_unix
         self.script_extension = '.fish'
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
-        self.shift_args = 0
         self.command_join = ';\n'
 
         self.unset_var_tmpl = 'set -e %s'
@@ -749,10 +760,10 @@ class PowershellActivator(_Activator):
 
     def __init__(self, arguments=None):
         self.pathsep_join = ';'.join
+        self.sep = '\\'
         self.path_conversion = path_identity
         self.script_extension = '.ps1'
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
-        self.shift_args = 0
         self.command_join = '\n'
 
         self.unset_var_tmpl = 'Remove-Variable %s'

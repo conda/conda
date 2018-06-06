@@ -1156,29 +1156,30 @@ class InteractiveShell(object):
         from pexpect.popen_spawn import PopenSpawn
 
         # remove all CONDA_ env vars
-        env = os.environ.copy()
+        env = {str(k): str(v) for k, v in iteritems(os.environ)}
         remove_these = {var_name for var_name in env if var_name.startswith('CONDA_')}
         for var_name in remove_these:
             del env[var_name]
+
+        p = PopenSpawn(self.shell_name, timeout=12, maxread=2000, searchwindowsize=None,
+                       logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
+                       codec_errors='strict')
 
         # set state for context
         joiner = os.pathsep.join if self.shell_name == 'fish' else self.activator.pathsep_join
         PATH = joiner(self.activator.path_conversion(concatv(
             (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
-            (which(self.shell_name),),
+            (dirname(which(self.shell_name)),),
         )))
         self.original_path = PATH
-        env.update({
+        env = {
             'CONDA_AUTO_ACTIVATE_BASE': 'false',
             'PYTHONPATH': CONDA_PACKAGE_ROOT,
             'PATH': PATH,
-        })
-        env = {str(k): str(v) for k, v in iteritems(env)}
-
-        p = PopenSpawn(self.shell_name, timeout=12, maxread=2000, searchwindowsize=None,
-                       logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
-                       codec_errors='strict')
+        }
+        for name, val in iteritems(env):
+            p.sendline(self.activator.export_var_tmpl % (name, val))
 
         if self.init_command:
             p.sendline(self.init_command)
@@ -1362,8 +1363,8 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' in PATH4
         assert PATH4 == PATH2
 
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 7, 1), strict=True,
-                       reason="Appveyor config changed. Need to debug.")
+    # @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 7, 1), strict=True,
+    #                    reason="Appveyor config changed. Need to debug.")
     @pytest.mark.skipif(not which('bash'), reason='bash not installed')
     def test_bash_basic_integration(self):
         with InteractiveShell('bash') as shell:
