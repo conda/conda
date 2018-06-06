@@ -11,7 +11,6 @@ from os import listdir
 from os.path import exists, expanduser, isfile, join
 import re
 import sys
-from textwrap import dedent
 
 from .common import print_envs_list, stdout_json
 from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
