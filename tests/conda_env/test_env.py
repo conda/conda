@@ -25,8 +25,20 @@ class FakeStream(object):
         self.output += chunk.decode('utf-8')
 
 
+def get_environment(filename):
+    return env.from_file(support_file(filename))
+
+
 def get_simple_environment():
-    return env.from_file(support_file('simple.yml'))
+    return get_environment('simple.yml')
+
+
+def get_valid_keys_environment():
+    return get_environment('valid_keys.yml')
+
+
+def get_invalid_keys_environment():
+    return get_environment('invalid_keys.yml')
 
 
 class from_file_TestCase(unittest.TestCase):
@@ -214,6 +226,18 @@ class EnvironmentTestCase(unittest.TestCase):
         assert 'bar' not in e.dependencies['conda']
         e.dependencies.add('bar')
         assert 'bar' in e.dependencies['conda']
+
+    def test_valid_keys(self):
+        e = get_valid_keys_environment()
+        e_dict = e.to_dict()
+        for key in env.VALID_KEYS:
+            assert key in e_dict
+
+    def test_invalid_keys(self):
+        e = get_invalid_keys_environment()
+        e_dict = e.to_dict()
+        assert 'name' in e_dict
+        assert len(e_dict) == 1
 
 
 class DirectoryTestCase(unittest.TestCase):
