@@ -211,7 +211,8 @@ class _Activator(object):
 
         if old_conda_shlvl == 0:
             new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
-            conda_python_exe, conda_exe = self.path_conversion((sys.executable, context.conda_exe))
+            conda_python_exe = self.path_conversion(sys.executable)
+            conda_exe = self.path_conversion(context.conda_exe)
             export_vars = {
                 'CONDA_PYTHON_EXE': conda_python_exe,
                 'CONDA_EXE': conda_exe,
@@ -428,7 +429,8 @@ class _Activator(object):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
     def _replace_prefix_in_path(self, old_prefix, new_prefix, starting_path_dirs=None):
-        old_prefix, new_prefix = self.path_conversion((old_prefix, new_prefix))
+        old_prefix = self.path_conversion(old_prefix)
+        new_prefix = self.path_conversion(new_prefix)
         if starting_path_dirs is None:
             path_list = list(self.path_conversion(self._get_starting_path_list()))
         else:
