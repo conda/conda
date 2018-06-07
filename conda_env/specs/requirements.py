@@ -12,6 +12,7 @@ class RequirementsSpec(object):
     and returns an Environment object from it.
     '''
     msg = None
+    extensions = set(['.txt',])
 
     def __init__(self, filename=None, name=None, **kwargs):
         self.filename = filename
