@@ -8,28 +8,31 @@ from .binstar import BinstarSpec
 from .notebook import NotebookSpec
 from .requirements import RequirementsSpec
 from .yaml_file import YamlFileSpec
-from ..exceptions import EnvironmentFileNotFound, SpecNotFound
-
-
-all_specs = [
-    BinstarSpec,
-    NotebookSpec,
-    YamlFileSpec,
-    RequirementsSpec
-]
+from ..exceptions import (EnvironmentFileExtensionNotValid, EnvironmentFileNotFound,
+                          SpecNotFound)
 
 
 def detect(**kwargs):
-    # Check file existence if --file was provided
+    # Check file existence
     filename = kwargs.get('filename')
     if filename and not os.path.isfile(filename):
         raise EnvironmentFileNotFound(filename=filename)
 
+    # Check extensions
+    all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
+    fname, ext = os.path.splitext(filename)
+    if ext == '' or ext not in all_valid_exts:
+        raise EnvironmentFileExtensionNotValid(filename)
+    elif ext in YamlFileSpec.extensions:
+        specs = [YamlFileSpec]
+    elif ext in RequirementsSpec.extensions:
+        specs = [RequirementsSpec]
+    else:
+        specs = [NotebookSpec, BinstarSpec]
+
     # Check specifications
-    specs = []
-    for SpecClass in all_specs:
+    for SpecClass in specs:
         spec = SpecClass(**kwargs)
-        specs.append(spec)
         if spec.can_handle():
             return spec
 
