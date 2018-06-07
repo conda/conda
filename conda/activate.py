@@ -517,7 +517,7 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
         return path_identity(paths)
-    elif paths is None:
+    if paths is None:
         return None
     from subprocess import CalledProcessError, PIPE, Popen
     from shlex import split
