@@ -6,13 +6,13 @@ from conda import CondaError
 
 class CondaEnvException(CondaError):
     def __init__(self, message, *args, **kwargs):
-        msg = "Conda Env Exception: %s" % message
+        msg = "%s" % message
         super(CondaEnvException, self).__init__(msg, *args, **kwargs)
 
 
 class EnvironmentFileNotFound(CondaEnvException):
     def __init__(self, filename, *args, **kwargs):
-        msg = '{} file not found'.format(filename)
+        msg = "'{}' file not found".format(filename)
         self.filename = filename
         super(EnvironmentFileNotFound, self).__init__(msg, *args, **kwargs)
 
