@@ -17,6 +17,13 @@ class EnvironmentFileNotFound(CondaEnvException):
         super(EnvironmentFileNotFound, self).__init__(msg, *args, **kwargs)
 
 
+class EnvironmentFileExtensionNotValid(CondaEnvException):
+    def __init__(self, filename, *args, **kwargs):
+        msg = "'{}' file extension must be one of '.txt', '.yaml' or '.yml'".format(filename)
+        self.filename = filename
+        super(EnvironmentFileExtensionNotValid, self).__init__(msg, *args, **kwargs)
+
+
 class NoBinstar(CondaError):
     def __init__(self):
         msg = 'The anaconda-client cli must be installed to perform this action'
