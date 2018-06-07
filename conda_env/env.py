@@ -23,6 +23,32 @@ except ImportError:  # pragma: no cover
     from conda._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
 
+VALID_KEYS = ('name', 'dependencies', 'prefix', 'channels')
+
+
+def validate_keys(data, kwargs):
+    """Check for unknown keys, remove them and print a warning."""
+    invalid_keys = []
+    new_data = data.copy()
+    for key in data.keys():
+        if key not in VALID_KEYS:
+            invalid_keys.append(key)
+            new_data.pop(key)
+
+    if invalid_keys:
+        filename = kwargs.get('filename')
+        verb = 'are' if len(invalid_keys) != 1 else 'is'
+        plural = 's' if len(invalid_keys) != 1 else ''
+        print("\nEnvironmentSectionNotValid: The following section{plural} on "
+              "'{filename}' {verb} invalid and will be ignored:"
+              "".format(filename=filename, plural=plural, verb=verb))
+        for key in invalid_keys:
+            print(' - {}'.format(key))
+        print('')
+
+    return new_data
+
+
 def load_from_directory(directory):
     """Load and return an ``Environment`` from a given ``directory``"""
     files = ['environment.yml', 'environment.yaml']
@@ -86,9 +112,12 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
 def from_yaml(yamlstr, **kwargs):
     """Load and return a ``Environment`` from a given ``yaml string``"""
     data = yaml_load_standard(yamlstr)
+    data = validate_keys(data, kwargs)
+
     if kwargs is not None:
         for key, value in kwargs.items():
             data[key] = value
+
     return Environment(**data)
 
 
