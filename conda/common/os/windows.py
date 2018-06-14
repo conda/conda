@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 
-from ...compat import on_win
+from ..compat import on_win
 
 
 _ctypes = None

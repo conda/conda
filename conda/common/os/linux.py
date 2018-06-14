@@ -10,7 +10,7 @@ from logging import getLogger
 import sys
 
 from ..._vendor.auxlib.decorators import memoize
-from ...compat import iteritems
+from ..compat import iteritems
 
 
 log = getLogger(__name__)
