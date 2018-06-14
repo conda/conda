@@ -73,6 +73,9 @@ def pretty_content(content):
 
 class History(object):
 
+    com_pat = re.compile(r'#\s*cmd:\s*(.+)')
+    spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)?')
+
     def __init__(self, prefix):
         self.prefix = prefix
         self.meta_dir = join(prefix, 'conda-meta')
@@ -154,11 +157,11 @@ class History(object):
                 # Otherwise it is a condition and has to be appended to the
                 # last valid spec on the specs list
                 specs[-1] = ','.join([specs[-1], spec])
-        # specs = specs_string.split(',')
+
         return specs
 
-    @staticmethod
-    def _parse_comment_line(line):
+    @classmethod
+    def _parse_comment_line(cls, line):
         """
         Parse comment lines in the history file.
 
@@ -170,16 +173,14 @@ class History(object):
           - "# install specs: python>=3.5.1,jupyter >=1.0.0,<2.0,matplotlib >=1.5.1,<2.0"
         """
         item = {}
-        com_pat = re.compile(r'#\s*cmd:\s*(.+)')
-        spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)?')
-        m = com_pat.match(line)
+        m = cls.com_pat.match(line)
         if m:
             argv = m.group(1).split()
             if argv[0].endswith('conda'):
                 argv[0] = 'conda'
             item['cmd'] = argv
 
-        m = spec_pat.match(line)
+        m = cls.spec_pat.match(line)
         if m:
             action, specs_string = m.groups()
             specs_string = specs_string or ""
