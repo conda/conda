@@ -6,6 +6,7 @@ from .helpers import mock
 from .test_create import make_temp_prefix
 
 from conda import history
+from conda.resolve import MatchSpec
 
 
 class HistoryTestCase(unittest.TestCase):
@@ -79,3 +80,33 @@ class UserRequestsTestCase(unittest.TestCase):
                           'unlink_dists': (),
                           'link_dists': ['+pyflakes-1.0.0-py27_0'],
                           })
+
+    def test_conda_comment_version_parsin(self):
+        test_cases = [
+            "# conda version: 4.5.1",
+            "# conda version: 4.5.1rc1",
+            "# conda version: 4.5.1dev0",
+        ]
+        for line in test_cases:
+            item = history.History._parse_comment_line(line)
+            assert not item
+
+    def test_action_command_comment_parsing(self):
+        test_cases = [
+            # New format (>=4.5)
+            "# update specs: [\"param[version='>=1.5.1,<2.0']\"]",
+            # Old format (<4.5)
+            '# install specs: param >=1.5.1,<2.0',
+            '# install specs: python>=3.5.1,jupyter >=1.0.0,<2.0,matplotlib >=1.5.1,<2.0,numpy >=1.11.0,<2.0,pandas >=0.19.2,<1.0,psycopg2 >=2.6.1,<3.0,pyyaml >=3.12,<4.0,scipy >=0.17.0,<1.0',
+        ]
+        for line in test_cases:
+            item = history.History._parse_comment_line(line)
+            specs = item.get('specs')
+            for spec in specs:
+                try:
+                    MatchSpec(spec)
+                except Exception as e:
+                    print('Specs item:', item)
+                    print('Specs:', specs)
+                    print('Invalid Spec:', spec)
+                    raise Exception(e)
