@@ -16,8 +16,10 @@ from conda.core.envs_manager import list_all_known_prefixes
 from conda.exceptions import EnvironmentLocationNotFound
 from conda.install import rm_rf
 from conda_env.cli.main import create_parser, do_call as do_call_conda_env
-from conda_env.exceptions import EnvironmentFileNotFound
+from conda_env.exceptions import EnvironmentFileExtensionNotValid, EnvironmentFileNotFound
 from conda_env.yaml import load as yaml_load
+
+from . import support_file
 
 environment_1 = '''
 name: env-1
@@ -34,6 +36,16 @@ dependencies:
   - flask
 channels:
   - malev
+'''
+
+environment_3_invalid = '''
+name: env-1
+dependecies:
+  - python
+  - flask
+channels:
+  - malev
+foo: bar
 '''
 
 test_env_name_1 = "env-1"
@@ -264,7 +276,7 @@ class NewIntegrationTests(unittest.TestCase):
 
         snowflake, e,  = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix="yml", delete=False) as env_yaml:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
             env_yaml.write(snowflake)
             env_yaml.flush()
             env_yaml.close()
@@ -292,7 +304,7 @@ class NewIntegrationTests(unittest.TestCase):
 
         snowflake, e = run_conda_command(Commands.LIST, test_env_name_2, "-e")
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
             env_txt.write(snowflake)
             env_txt.flush()
             env_txt.close()
@@ -320,7 +332,7 @@ class NewIntegrationTests(unittest.TestCase):
 
         check1, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix="yml", delete=False) as env_yaml:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
             env_yaml.write(snowflake)
             env_yaml.flush()
             env_yaml.close()
@@ -332,6 +344,16 @@ class NewIntegrationTests(unittest.TestCase):
         # check explicit that we have same file
         check2, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
         self.assertEqual(check1, check2)
+
+    def test_non_existent_file(self):
+        with self.assertRaises(EnvironmentFileNotFound):
+            run_env_command(Commands.ENV_CREATE, 'i_do_not_exist.yml')
+
+    def test_invalid_extensions(self):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".ymla", delete=False) as env_yaml:
+            with self.assertRaises(EnvironmentFileExtensionNotValid):
+                run_env_command(Commands.ENV_CREATE, env_yaml.name)
+
 
 
 if __name__ == '__main__':

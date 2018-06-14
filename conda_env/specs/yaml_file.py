@@ -7,6 +7,7 @@ from ..exceptions import EnvironmentFileNotFound
 
 class YamlFileSpec(object):
     _environment = None
+    extensions = set(('.yaml', '.yml'))
 
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
