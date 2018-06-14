@@ -15,7 +15,7 @@ from random import sample
 import re
 from shlex import split
 from shutil import copyfile, rmtree
-from subprocess import check_call
+from subprocess import check_call, CalledProcessError
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
@@ -24,7 +24,8 @@ from uuid import uuid4
 import pytest
 import requests
 
-from conda import CondaError, CondaMultiError, plan, __version__ as CONDA_VERSION
+from conda import CondaError, CondaMultiError, plan, __version__ as CONDA_VERSION, \
+    CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda._vendor.auxlib.ish import dals
 from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE, SafetyChecks
@@ -42,7 +43,7 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
 from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllowed, \
     PackagesNotFoundError, RemoveError, conda_exception_handler, PackageNotInstalledError, \
-    DisallowedPackageError, UnsatisfiableError
+    DisallowedPackageError, UnsatisfiableError, DirectoryNotACondaEnvironmentError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -702,7 +703,7 @@ class IntegrationTests(TestCase):
         # regression test for #6914
         with make_temp_env("python=2.7.12") as prefix:
             assert package_is_installed(prefix, "readline=6.2")
-            rm_rf(join(prefix, 'conda-meta', 'history'))
+            open(join(prefix, 'conda-meta', 'history'), 'w').close()
             PrefixData._cache_.clear()
             run_command(Commands.UPDATE, prefix, "readline")
             assert package_is_installed(prefix, "readline")
@@ -1570,6 +1571,10 @@ class IntegrationTests(TestCase):
         try:
             prefix = make_temp_prefix()
             assert isdir(prefix)
+            with pytest.raises(DirectoryNotACondaEnvironmentError):
+                run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
+
+            run_command(Commands.CREATE, prefix)
             run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
             assert package_is_installed(prefix, "python=3.5.2")
 
@@ -1694,6 +1699,47 @@ class IntegrationTests(TestCase):
                 with pytest.raises(CondaMultiError):
                     run_command(Commands.INSTALL, prefix, 'flask=0.11.1')
                 assert package_is_installed(prefix, 'flask=0.10.1')
+
+    def test_directory_not_a_conda_environment(self):
+        prefix = make_temp_prefix(str(uuid4())[:7])
+        try:
+            with pytest.raises(DirectoryNotACondaEnvironmentError):
+                run_command(Commands.INSTALL, prefix, "sqlite")
+        finally:
+            rm_rf(prefix)
+
+    def test_init_dev_and_NoBaseEnvironmentError(self):
+        conda_exe = join('Scripts', 'conda.exe') if on_win else join('bin', 'conda')
+        python_exe = 'python.exe' if on_win else join('bin', 'python')
+        with make_temp_env("conda=4.5.0", name='_' + str(uuid4())[:8]) as prefix:
+            result = subprocess_call("%s --version" % join(prefix, conda_exe))
+            assert result.rc == 0
+            assert not result.stderr
+            assert result.stdout.startswith("conda ")
+            conda_version = result.stdout.strip()[6:]
+            assert conda_version == "4.5.0"
+
+            result = subprocess_call("%s -m conda init --dev" % join(prefix, python_exe),
+                                     path=dirname(CONDA_PACKAGE_ROOT))
+
+            result = subprocess_call("%s --version" % join(prefix, conda_exe))
+            assert result.rc == 0
+            assert not result.stderr
+            assert result.stdout.startswith("conda ")
+            conda_version = result.stdout.strip()[6:]
+            assert conda_version == CONDA_VERSION
+
+            rm_rf(join(prefix, 'conda-meta', 'history'))
+
+            result = subprocess_call("%s info -a" % join(prefix, conda_exe))
+            print(result.stdout)
+
+            if not on_win:
+                # Windows has: Fatal Python error: failed to get random numbers to initialize Python
+                result = subprocess_call("%s install python" % join(prefix, conda_exe), env={"SHLVL": "1"},
+                                         raise_on_error=False)
+                assert result.rc == 1
+                assert "NoBaseEnvironmentError: This conda installation has no default base environment." in result.stderr
 
     def test_conda_downgrade(self):
         # Create an environment with the current conda under test, but include an earlier
