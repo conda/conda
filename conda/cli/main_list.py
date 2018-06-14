@@ -43,7 +43,8 @@ def list_packages(prefix, regex=None, format='human',
         result.append('#')
         result.append('# %-23s %-15s %15s  Channel' % ("Name", "Version", "Build"))
 
-    installed = sorted(PrefixData(prefix).iter_records(), key=lambda x: x.name)
+    installed = sorted(PrefixData(prefix, pip_interop_enabled=True).iter_records(),
+                       key=lambda x: x.name)
 
     for prec in get_packages(installed, regex) if regex else installed:
         if format == 'canonical':

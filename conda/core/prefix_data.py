@@ -37,13 +37,14 @@ log = getLogger(__name__)
 class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
 
-    def __call__(cls, prefix_path):
+    def __call__(cls, prefix_path, pip_interop_enabled=None):
         if prefix_path in PrefixData._cache_:
             return PrefixData._cache_[prefix_path]
         elif isinstance(prefix_path, PrefixData):
             return prefix_path
         else:
-            prefix_data_instance = super(PrefixDataType, cls).__call__(prefix_path)
+            prefix_data_instance = super(PrefixDataType, cls).__call__(prefix_path,
+                                                                       pip_interop_enabled)
             PrefixData._cache_[prefix_path] = prefix_data_instance
             return prefix_data_instance
 
@@ -52,16 +53,22 @@ class PrefixDataType(type):
 class PrefixData(object):
     _cache_ = {}
 
-    def __init__(self, prefix_path):
+    def __init__(self, prefix_path, pip_interop_enabled=None):
+        # pip_interop_enabled is a temporary paramater; DO NOT USE
+        # TODO: when removing pip_interop_enabled, also remove from meta class
         self.prefix_path = prefix_path
         self.__prefix_records = None
         self.__is_writable = NULL
+        self._pip_interop_enabled = (context.pip_interop_enabled
+                                     if pip_interop_enabled is None
+                                     else pip_interop_enabled)
 
     def load(self):
         self.__prefix_records = {}
         for meta_file in glob(join(self.prefix_path, 'conda-meta', '*.json')):
             self._load_single_record(meta_file)
-        self._load_site_packages()
+        if self._pip_interop_enabled:
+            self._load_site_packages()
 
     def reload(self):
         self.load()
@@ -375,8 +382,3 @@ def delete_prefix_from_linked_data(path):
         del PrefixData._cache_[linked_data_path]
         return True
     return False
-
-
-if __name__ == '__main__':
-    pd = PrefixData('/Users/kfranz/anaconda')
-    pd._load_site_packages()

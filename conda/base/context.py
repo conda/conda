@@ -124,6 +124,8 @@ class Context(Configuration):
     force_32bit = PrimitiveParameter(False)
     non_admin_enabled = PrimitiveParameter(True)
 
+    pip_interop_enabled = PrimitiveParameter(False)
+
     # Safety & Security
     _aggressive_update_packages = SequenceParameter(string_types,
                                                     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
@@ -686,6 +688,7 @@ class Context(Configuration):
             'enable_private_envs',
             'error_upload_url',  # should remain undocumented
             'force_32bit',
+            'pip_interop_enabled',  # temporary feature flag
             'root_prefix',
             'subdir',
             'subdirs',

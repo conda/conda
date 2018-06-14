@@ -14,7 +14,7 @@ from uuid import uuid4
 import pytest
 
 from conda.base.context import reset_context
-from conda.common.io import dashlist, env_var
+from conda.common.io import dashlist, env_var, env_vars
 from conda.core.prefix_data import PrefixData
 from conda.install import on_win
 from conda.models.enums import PackageType
@@ -128,7 +128,10 @@ class IntegrationTests(TestCase):
 
     def test_create_advanced_pip(self):
         with make_temp_envs_dir() as envs_dir:
-            with env_var('CONDA_ENVS_DIRS', envs_dir, reset_context):
+            with env_vars({
+                'CONDA_ENVS_DIRS': envs_dir,
+                'CONDA_PIP_INTEROP_ENABLED': 'true',
+            }, reset_context):
                 env_name = str(uuid4())[:8]
                 prefix = join(envs_dir, env_name)
                 python_path = join(prefix, PYTHON_BINARY)
