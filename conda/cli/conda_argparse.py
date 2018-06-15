@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from argparse import (ArgumentParser as ArgumentParserBase, RawDescriptionHelpFormatter, SUPPRESS,
-                      _CountAction, _HelpAction, ZERO_OR_MORE, REMAINDER, ONE_OR_MORE)
+from argparse import (ArgumentParser as ArgumentParserBase, ONE_OR_MORE,
+                      RawDescriptionHelpFormatter, SUPPRESS, _CountAction, _HelpAction)
 from logging import getLogger
 import os
 from os.path import abspath, expanduser, join
@@ -140,13 +140,7 @@ class ArgumentParser(ArgumentParserBase):
                             raise CommandNotFoundError(cmd)
                         args = [find_executable('conda-' + cmd)]
                         args.extend(sys.argv[2:])
-                        p = Popen(args)
-                        try:
-                            p.communicate()
-                        except KeyboardInterrupt:
-                            p.wait()
-                        finally:
-                            sys.exit(p.returncode)
+                        _exec(args, os.environ)
 
         super(ArgumentParser, self).error(message)
 
@@ -161,6 +155,24 @@ class ArgumentParser(ArgumentParserBase):
                 builder.append("conda commands available from other packages:")
                 builder.extend('  %s' % cmd for cmd in sorted(other_commands))
                 print('\n'.join(builder))
+
+
+def _exec(executable_args, env_vars):
+    return (_exec_win if on_win else _exec_unix)(executable_args, env_vars)
+
+
+def _exec_win(executable_args, env_vars):
+    p = Popen(executable_args, env=env_vars)
+    try:
+        p.communicate()
+    except KeyboardInterrupt:
+        p.wait()
+    finally:
+        sys.exit(p.returncode)
+
+
+def _exec_unix(executable_args, env_vars):
+    os.execvpe(executable_args[0], executable_args, env_vars)
 
 
 class NullCountAction(_CountAction):
