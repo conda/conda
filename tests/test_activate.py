@@ -1272,12 +1272,14 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('PS1', '(base).*')
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH1 = shell.get_env_var('PATH').strip(':')
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         shell.sendline('conda activate "%s"' % self.prefix)
         # shell.sendline('env | sort')
         shell.assert_env_var('CONDA_SHLVL', '2')
         shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
         PATH2 = shell.get_env_var('PATH').strip(':')
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
 
         shell.sendline('env | sort | grep CONDA')
         shell.expect('CONDA_')
@@ -1291,9 +1293,6 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('PS1', '(charizard).*')
         shell.assert_env_var('CONDA_SHLVL', '3')
         PATH3 = shell.get_env_var('PATH').strip(':')
-
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
         assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
 
         shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
