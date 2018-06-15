@@ -4,45 +4,22 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
-import ctypes
 from genericpath import exists
 from glob import glob
 from logging import getLogger
-import os
 import sys
 
-from .compat import iteritems, on_win
-from .._vendor.auxlib.decorators import memoize
+from ..._vendor.auxlib.decorators import memoize
+from ..compat import iteritems
+
 
 log = getLogger(__name__)
-
-
-def is_admin_on_windows():  # pragma: unix no cover
-    # http://stackoverflow.com/a/1026626/2127762
-    if not on_win:  # pragma: no cover
-        return False
-    try:
-        from ctypes import windll
-        return windll.shell32.IsUserAnAdmin() != 0
-    except ImportError as e:  # pragma: no cover
-        log.debug('%r', e)
-        return 'unknown'
-    except Exception as e:  # pragma: no cover
-        log.info('%r', e)
-        return 'unknown'
-
-
-def is_admin():
-    if on_win:
-        return is_admin_on_windows()
-    else:
-        return os.geteuid() == 0 or os.getegid() == 0
 
 
 @memoize
 def linux_get_libc_version():
     """
-    If on linux, returns (libc_family, version), otherwise (None, None)
+    If on linux, returns (libc_family, version), otherwise (None, None).
     """
 
     if not sys.platform.startswith('linux'):
@@ -96,22 +73,3 @@ def linux_get_libc_version():
         log.warning("Failed to detect non-glibc family, assuming %s (%s)", family, version)
         return family, version
     return family, version
-
-
-def get_free_space(dir_name):
-    """Return folder/drive free space (in bytes).
-    :param dir_name: the dir name need to check
-    :return: amount of free space
-
-    Examples:
-        >>> get_free_space(os.getcwd()) > 0
-        True
-    """
-    if on_win:
-        free_bytes = ctypes.c_ulonglong(0)
-        ctypes.windll.kernel32.GetDiskFreeSpaceExW(ctypes.c_wchar_p(dir_name), None, None,
-                                                   ctypes.pointer(free_bytes))
-        return free_bytes.value
-    else:
-        st = os.statvfs(dir_name)
-        return st.f_bavail * st.f_frsize

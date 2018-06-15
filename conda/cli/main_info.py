@@ -175,7 +175,7 @@ def get_info_dict(system=False):
         netrc_file=netrc_file,
     )
     if on_win:
-        from ..common.platform import is_admin_on_windows
+        from ..common.os.windows import is_admin_on_windows
         info_dict['is_windows_admin'] = is_admin_on_windows()
     else:
         info_dict['UID'] = os.geteuid()
