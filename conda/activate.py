@@ -560,7 +560,12 @@ def native_path_to_unix(paths):  # pragma: unix no cover
 
 
 def path_identity(paths):
-    return paths if isinstance(paths, string_types) else tuple(paths)
+    if isinstance(paths, string_types):
+        return paths
+    elif paths is None:
+        return None
+    else:
+        return tuple(paths)
 
 
 def paths_equal(path1, path2):
