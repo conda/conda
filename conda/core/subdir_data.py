@@ -150,9 +150,9 @@ class SubdirData(object):
         if _internal_state["repodata_version"] > MAX_REPODATA_VERSION:
             raise CondaUpgradeError(dals("""
                 The current version of conda is too old to read repodata from
-                
+
                   %s
-                
+
                 (This version only supports repodata_version 1.)
                 Please update conda to use this channel.
                 """) % self.url_w_subdir)
@@ -349,13 +349,12 @@ class SubdirData(object):
         if _internal_state["repodata_version"] > MAX_REPODATA_VERSION:
             raise CondaUpgradeError(dals("""
                 The current version of conda is too old to read repodata from
-                
+
                     %s
-                
+
                 (This version only supports repodata_version 1.)
                 Please update conda to use this channel.
                 """) % self.url_w_subdir)
-
 
         meta_in_common = {  # just need to make this once, then apply with .update()
             'arch': json_obj.get('info', {}).get('arch'),
