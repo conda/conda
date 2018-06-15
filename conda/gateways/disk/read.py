@@ -146,11 +146,12 @@ def read_package_metadata(extracted_package_directory):
     else:
         with open(path, 'r') as f:
             data = json.loads(f.read())
-            if data['package_metadata_version'] != 1:
+            if data.get('package_metadata_version') != 1:
                 raise CondaUpgradeError(dals("""
                 The current version of conda is too old to install this package. (This version
                 only supports link.json schema version 1.)  Please update conda to install
-                this package."""))
+                this package.
+                """))
         package_metadata = PackageMetadata(**data)
         return package_metadata
 

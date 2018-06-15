@@ -151,7 +151,7 @@ class SubdirData(object):
             raise CondaUpgradeError(dals("""
                 The current version of conda is too old to read repodata from
 
-                  %s
+                    %s
 
                 (This version only supports repodata_version 1.)
                 Please update conda to use this channel.
