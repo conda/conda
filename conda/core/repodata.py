@@ -31,7 +31,7 @@ from ..common.compat import ensure_binary, ensure_text_type, ensure_unicode, tex
 from ..common.url import join_url, maybe_unquote
 from ..connection import CondaSession
 from ..core.package_cache import PackageCache
-from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError
+from ..exceptions import CondaDependencyError, CondaHTTPError, CondaIndexError, CondaUpgradeError
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel
@@ -469,6 +469,16 @@ def fetch_repodata(url, schannel, priority,
                                    mod_etag_headers.get('_etag'), mod_etag_headers.get('_mod'))
     if repodata is None:
         return None
+
+    if repodata.setdefault('repodata_version', 0) > 1:
+        raise CondaUpgradeError(dals("""
+        The current version of conda is too old to read repodata from
+
+            %s
+
+        (This version only supports repodata_version 1.)
+        Please update conda to use this channel.
+        """) % url)
 
     with open(cache_path, 'w') as fo:
         json.dump(repodata, fo, indent=2, sort_keys=True, cls=EntityEncoder)
