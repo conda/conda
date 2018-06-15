@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import json
 import os
-from os.path import isfile, join
 from subprocess import Popen
 import sys
 from tempfile import NamedTemporaryFile
@@ -94,46 +93,44 @@ def get_activated_env_vars():
     return env_var_map
 
 
-def find_executable(executable_name):
-    target_prefix = context.target_prefix
-    if on_win:
-        executable_path = _find_executable_win(target_prefix, executable_name)
-    else:
-        executable_path = _find_executable_unix(target_prefix, executable_name)
-    if executable_path is None:
-        raise ExecutableNotFound(target_prefix, executable_name)
-    return executable_path
+# def find_executable(executable_name):
+#     target_prefix = context.target_prefix
+#     if on_win:
+#         executable_path = _find_executable_win(target_prefix, executable_name)
+#     else:
+#         executable_path = _find_executable_unix(target_prefix, executable_name)
+#     if executable_path is None:
+#         raise ExecutableNotFound(target_prefix, executable_name)
+#     return executable_path
+#
+#
+# def _find_executable_win(target_prefix, executable_name):
+#     from ..activate import _Activator
+#     pathext = tuple(os.environ["PATHEXT"].split(';'))
+#     if executable_name.endswith(pathext):
+#         for path_dir in _Activator._get_path_dirs(target_prefix):
+#             executable_path = join(path_dir, executable_name)
+#             if isfile(executable_path):
+#                 return executable_path
+#     else:
+#         for path_dir in _Activator._get_path_dirs(target_prefix):
+#             for ext in pathext:
+#                 executable_path = join(path_dir, executable_name + ext)
+#                 if isfile(executable_path):
+#                     return executable_path
+#     return None
+#
+#
+# def _find_executable_unix(target_prefix, executable_name):
+#     executable_path = join(target_prefix, 'bin', executable_name)
+#     if isfile(executable_path) and os.access(executable_path, os.X_OK):
+#         return executable_path
+#     return None
 
 
-def _find_executable_win(target_prefix, executable_name):
-    from ..activate import _Activator
-    pathext = tuple(os.environ["PATHEXT"].split(';'))
-    if executable_name.endswith(pathext):
-        for path_dir in _Activator._get_path_dirs(target_prefix):
-            executable_path = join(path_dir, executable_name)
-            if isfile(executable_path):
-                return executable_path
-    else:
-        for path_dir in _Activator._get_path_dirs(target_prefix):
-            for ext in pathext:
-                executable_path = join(path_dir, executable_name + ext)
-                if isfile(executable_path):
-                    return executable_path
-    return None
-
-
-def _find_executable_unix(target_prefix, executable_name):
-    executable_path = join(target_prefix, 'bin', executable_name)
-    if isfile(executable_path) and os.access(executable_path, os.X_OK):
-        return executable_path
-    return None
-
-
-def _exec_win(executable_path, extra_args=(), env_vars=None):
+def _exec_win(executable_args, env_vars=None):
     env_vars = os.environ.copy() if env_vars is None else env_vars
-    args = [executable_path]
-    args.extend(extra_args)
-    p = Popen(args, env=env_vars)
+    p = Popen(executable_args, env=env_vars)
     try:
         p.communicate()
     except KeyboardInterrupt:
@@ -142,20 +139,15 @@ def _exec_win(executable_path, extra_args=(), env_vars=None):
         sys.exit(p.returncode)
 
 
-def _exec_unix(executable_path, extra_args=(), env_vars=None):
+def _exec_unix(executable_args, env_vars=None):
     env_vars = os.environ.copy() if env_vars is None else env_vars
-    args = [executable_path]
-    args.extend(extra_args)
-    os.execve(executable_path, args, env_vars)
+    os.execvpe(executable_args[0], executable_args, env_vars)
 
 
 def execute(args, parser):
-    executable_path = find_executable(args.executable_name)
     env_vars = get_activated_env_vars()
-    if on_win:
-        _exec_win(executable_path, args.extra_args, env_vars)
-    else:
-        _exec_unix(executable_path, args.extra_args, env_vars)
+    _exec = _exec_win if on_win else _exec_unix
+    _exec(args.executable_call + args.unknown_args, env_vars)
 
 
 if __name__ == "__main__":

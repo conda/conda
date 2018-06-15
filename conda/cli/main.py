@@ -68,17 +68,17 @@ def _main(*args, **kwargs):
     if len(args) == 1:
         args = args + ('-h',)
 
-    try:
-        idx = args.index("--")
-    except ValueError:
-        extra_args = ()
-    else:
-        extra_args = args[idx+1:] if idx < len(args)-1 else ()
-        args = args[:idx]
-
     p = generate_parser()
-    args = p.parse_args(args[1:])
-    args.extra_args = extra_args
+    args, unknown_args = p.parse_known_args(args[1:])
+    if unknown_args:
+        if args.cmd == "run":
+            args.unknown_args = unknown_args
+        else:
+            from ..exceptions import ArgumentError
+            raise ArgumentError("Unknown arguments for command '%(command)s': %(unknown_args)s",
+                                command=args.cmd, unknown_args=unknown_args)
+    else:
+        args.unknown_args = []
 
     from ..base.context import context
     context.__init__(argparse_args=args)
