@@ -11,7 +11,6 @@ import sys
 import time
 import warnings
 
-from . import __version__ as CONDA_VERSION
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .common.compat import ensure_text_type, iteritems, open, text_type
 from .core.prefix_data import PrefixData, linked
@@ -348,7 +347,6 @@ class History(object):
                     fh.write("# remove specs: %s\n" % remove_specs)
                 if update_specs:
                     fh.write("# update specs: %s\n" % update_specs)
-                fh.write("# conda version: %s" % CONDA_VERSION)
 
 
 if __name__ == '__main__':
