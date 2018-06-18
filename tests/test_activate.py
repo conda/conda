@@ -1304,7 +1304,7 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.expect('3\.21\..*\n')
 
         # conda run integration test
-        shell.sendline('conda run sqlite3 -- -version')
+        shell.sendline('conda run sqlite3 -version')
         shell.expect('3\.21\..*\n')
 
         # regression test for #6840
@@ -1362,8 +1362,6 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' in PATH4
         assert PATH4 == PATH2
 
-    # @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 7, 1), strict=True,
-    #                    reason="Appveyor config changed. Need to debug.")
     @pytest.mark.skipif(not which('bash'), reason='bash not installed')
     def test_bash_basic_integration(self):
         with InteractiveShell('bash') as shell:
@@ -1456,7 +1454,7 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.expect('3\.21\..*\n')
 
             # conda run integration test
-            shell.sendline('conda run sqlite3 -- -version')
+            shell.sendline('conda run sqlite3 -version')
             shell.expect('3\.21\..*\n')
 
             shell.sendline('conda deactivate')

@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from argparse import (ArgumentParser as ArgumentParserBase, RawDescriptionHelpFormatter, SUPPRESS,
-                      _CountAction, _HelpAction)
+from argparse import (ArgumentParser as ArgumentParserBase, REMAINDER, RawDescriptionHelpFormatter,
+                      SUPPRESS, _CountAction, _HelpAction)
 from logging import getLogger
 import os
 from os.path import abspath, expanduser, join
@@ -140,13 +140,7 @@ class ArgumentParser(ArgumentParserBase):
                             raise CommandNotFoundError(cmd)
                         args = [find_executable('conda-' + cmd)]
                         args.extend(sys.argv[2:])
-                        p = Popen(args)
-                        try:
-                            p.communicate()
-                        except KeyboardInterrupt:
-                            p.wait()
-                        finally:
-                            sys.exit(p.returncode)
+                        _exec(args, os.environ)
 
         super(ArgumentParser, self).error(message)
 
@@ -161,6 +155,24 @@ class ArgumentParser(ArgumentParserBase):
                 builder.append("conda commands available from other packages:")
                 builder.extend('  %s' % cmd for cmd in sorted(other_commands))
                 print('\n'.join(builder))
+
+
+def _exec(executable_args, env_vars):
+    return (_exec_win if on_win else _exec_unix)(executable_args, env_vars)
+
+
+def _exec_win(executable_args, env_vars):
+    p = Popen(executable_args, env=env_vars)
+    try:
+        p.communicate()
+    except KeyboardInterrupt:
+        p.wait()
+    finally:
+        sys.exit(p.returncode)
+
+
+def _exec_unix(executable_args, env_vars):
+    os.execvpe(executable_args[0], executable_args, env_vars)
 
 
 class NullCountAction(_CountAction):
@@ -964,14 +976,20 @@ def configure_parser_run(sub_parsers):
     )
 
     add_parser_prefix(p)
-    add_parser_json(p)
-
     p.add_argument(
-        'executable_name',
-        action="store",
-        help="Executable name.",
+        "-v", "--verbose",
+        action=NullCountAction,
+        help="Use once for info, twice for debug, three times for trace.",
+        dest="verbosity",
+        default=NULL,
     )
 
+    p.add_argument(
+        'executable_call',
+        nargs=REMAINDER,
+        help="Executable name, with additional arguments to be passed to the executable "
+             "on invocation.",
+    )
     p.set_defaults(func='.main_run.execute')
 
 
