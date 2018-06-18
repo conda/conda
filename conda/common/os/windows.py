@@ -4,9 +4,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import enum
-import os
-import sys
-import traceback
 
 from logging import getLogger
 
@@ -82,16 +79,17 @@ def run_as_admin(cmd_line):
     - http://stackoverflow.com/a/19719292/1170370 on 20160407 MCS.
     - msdn.microsoft.com/en-us/library/windows/desktop/bb762153(v=vs.85).aspx
     """
-    params = " ".join(['"%s"' % (x, ) for x in cmd_line[1:]])
-    hinstance = ctypes.windll.shell32.ShellExecuteW(
-        None, 'runas', cmd_line[0], params, None, SW.HIDE
-    )
+    code = None
+    if _ctypes:
+        params = " ".join(['"%s"' % (x, ) for x in cmd_line[1:]])
+        hinstance = _ctypes.windll.shell32.ShellExecuteW(
+            None, 'runas', cmd_line[0], params, None, SW.HIDE
+        )
+        print(hinstance)
+        if hinstance <= 32:
+            code = None
+            # RuntimeError(ERROR(hinstance))
+        else:
+            code = hinstance
 
-    if hinstance <= 32:
-        code = None
-        # RuntimeError(ERROR(hinstance))
-    else:
-        code = hinstance
-
-    print(code)
     return code
