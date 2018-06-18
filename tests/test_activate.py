@@ -1123,9 +1123,9 @@ class InteractiveShell(object):
         },
         'cmd.exe': {
             'activator': 'cmd.exe',
-            'init_command': 'set CONDA_SHLVL= '
-                            '&& conda\\shell\\condacmd\\conda_hook.bat '
-                            '&& set CONDA_EXE="python -m conda"',
+            'init_command': 'set "CONDA_SHLVL=" '
+                            '&& @CALL conda\\shell\\condacmd\\conda_hook.bat '
+                            '&& set "CONDA_EXE=python -m conda"',
             'print_env_var': '@echo %%%s%%',
         },
         'csh': {
@@ -1156,8 +1156,7 @@ class InteractiveShell(object):
         from pexpect.popen_spawn import PopenSpawn
 
         # remove all CONDA_ env vars
-        env = os.environ.copy()
-        env = {str(k): str(v) for k, v in iteritems(env)}
+        env = {str(k): str(v) for k, v in iteritems(os.environ)}
         remove_these = {var_name for var_name in env if var_name.startswith('CONDA_')}
         for var_name in remove_these:
             del env[var_name]
@@ -1171,6 +1170,7 @@ class InteractiveShell(object):
         PATH = joiner(self.activator.path_conversion(concatv(
             (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
+            (dirname(which(self.shell_name)),),
         )))
         self.original_path = PATH
         env = {
@@ -1178,7 +1178,7 @@ class InteractiveShell(object):
             'PYTHONPATH': CONDA_PACKAGE_ROOT,
             'PATH': PATH,
         }
-        for name, val in env.items():
+        for name, val in iteritems(env):
             p.sendline(self.activator.export_var_tmpl % (name, val))
 
         if self.init_command:
@@ -1272,12 +1272,14 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('PS1', '(base).*')
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH1 = shell.get_env_var('PATH').strip(':')
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         shell.sendline('conda activate "%s"' % self.prefix)
         # shell.sendline('env | sort')
         shell.assert_env_var('CONDA_SHLVL', '2')
         shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
         PATH2 = shell.get_env_var('PATH').strip(':')
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
 
         shell.sendline('env | sort | grep CONDA')
         shell.expect('CONDA_')
@@ -1291,15 +1293,19 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('PS1', '(charizard).*')
         shell.assert_env_var('CONDA_SHLVL', '3')
         PATH3 = shell.get_env_var('PATH').strip(':')
-
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
         assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
 
-        shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
+        shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
         shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
         shell.assert_env_var('?', '0', True)
         # TODO: assert that reactivate worked correctly
+
+        shell.sendline('sqlite3 -version')
+        shell.expect('3\.21\..*\n')
+
+        # conda run integration test
+        shell.sendline('conda run sqlite3 -- -version')
+        shell.expect('3\.21\..*\n')
 
         # regression test for #6840
         shell.sendline('conda install --blah')
@@ -1356,8 +1362,8 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' in PATH4
         assert PATH4 == PATH2
 
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 7, 1), strict=True,
-                       reason="Appveyor config changed. Need to debug.")
+    # @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 7, 1), strict=True,
+    #                    reason="Appveyor config changed. Need to debug.")
     @pytest.mark.skipif(not which('bash'), reason='bash not installed')
     def test_bash_basic_integration(self):
         with InteractiveShell('bash') as shell:
@@ -1441,10 +1447,17 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_SHLVL', '2\r')
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
 
-            shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
-            shell.expect('Executing transaction: ...working... done.*\n', timeout=25)
+            shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
+            shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
             shell.assert_env_var('errorlevel', '0', True)
             # TODO: assert that reactivate worked correctly
+
+            shell.sendline('sqlite3 -version')
+            shell.expect('3\.21\..*\n')
+
+            # conda run integration test
+            shell.sendline('conda run sqlite3 -- -version')
+            shell.expect('3\.21\..*\n')
 
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '1\r')

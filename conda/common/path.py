@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from functools import reduce
 from logging import getLogger
 import os
-from os.path import abspath, basename, expanduser, expandvars, join, normpath, split, splitext
+from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
 
@@ -59,7 +59,10 @@ def paths_equal(path1, path2):
         True
 
     """
-    return normpath(abspath(path1)) == normpath(abspath(path2))
+    if on_win:
+        return normcase(abspath(path1)) == normcase(abspath(path2))
+    else:
+        return abspath(path1) == abspath(path2)
 
 
 @memoize

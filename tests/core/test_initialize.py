@@ -332,10 +332,12 @@ class InitializeTests(TestCase):
             with open(target_path) as fh:
                 created_file_contents = fh.read()
 
-            first_line, remainder = created_file_contents.split('\n', 1)
             if on_win:
+                first_line, second_line, remainder = created_file_contents.split('\n', 2)
                 assert first_line == "export CONDA_EXE=\"$(cygpath '%s')\"" % context.conda_exe
+                assert second_line == "export CONDA_BAT=\"%s\"" % join(context.conda_prefix, 'condacmd', 'conda.bat')
             else:
+                first_line, remainder = created_file_contents.split('\n', 1)
                 assert first_line == 'export CONDA_EXE="%s"' % context.conda_exe
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')) as fh:

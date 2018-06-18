@@ -6,8 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 from logging import getLogger
 import os
-from os.path import (abspath, basename, expanduser, isdir, isfile, join, normpath,
-                     split as path_split)
+from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 from platform import machine
 import sys
 
@@ -476,13 +475,13 @@ class Context(Configuration):
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))
         elif conda_in_private_env():
-            return normpath(join(self.conda_prefix, '..', '..'))
+            return abspath(join(self.conda_prefix, '..', '..'))
         else:
             return self.conda_prefix
 
     @property
     def conda_prefix(self):
-        return normpath(sys.prefix)
+        return abspath(sys.prefix)
 
     @property
     def conda_exe(self):
@@ -1060,7 +1059,7 @@ def locate_prefix_by_name(name, envs_dirs=None):
             continue
         prefix = join(envs_dir, name)
         if isdir(prefix):
-            return prefix
+            return abspath(prefix)
 
     from ..exceptions import EnvironmentNameNotFound
     raise EnvironmentNameNotFound(name)

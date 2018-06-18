@@ -65,30 +65,12 @@ def generate_parser():
     configure_parser_package(sub_parsers)
     configure_parser_remove(sub_parsers)
     configure_parser_remove(sub_parsers, name='uninstall')
+    configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers)
     configure_parser_update(sub_parsers, name='upgrade')
 
     return p
-
-
-def generate_pip_parser():
-    p = ArgumentParser(
-        description='conda is a tool for managing and deploying applications,'
-                    ' environments and packages.',
-    )
-    p.add_argument(
-        '-V', '--version',
-        action='version',
-        version='conda %s' % __version__,
-        help="Show the conda version number and exit."
-    )
-    sub_parsers = p.add_subparsers(
-        metavar='command',
-        dest='cmd',
-    )
-    configure_parser_info(sub_parsers)
-    configure_parser_init(sub_parsers)
 
 
 def do_call(args, parser):
@@ -956,6 +938,41 @@ def configure_parser_remove(sub_parsers, name='remove'):
     )
 
     p.set_defaults(func='.main_remove.execute')
+
+
+def configure_parser_run(sub_parsers):
+    help = "Run an executable in a conda environment. [Experimental]"
+    descr = help + dedent("""
+
+    Use '--' (double dash) to separate CLI flags for 'conda run' from CLI flags sent to
+    the process being launched.
+
+    Example usage:
+
+        $ conda create -y -n my-python-2-env python=2
+        $ conda run -n my-python-2-env python -- --version
+    """)
+
+    epilog = dedent("""
+    """)
+
+    p = sub_parsers.add_parser(
+        'run',
+        description=descr,
+        help=help,
+        epilog=epilog,
+    )
+
+    add_parser_prefix(p)
+    add_parser_json(p)
+
+    p.add_argument(
+        'executable_name',
+        action="store",
+        help="Executable name.",
+    )
+
+    p.set_defaults(func='.main_run.execute')
 
 
 def configure_parser_search(sub_parsers):
