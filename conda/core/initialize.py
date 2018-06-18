@@ -509,7 +509,8 @@ def run_plan_elevated(plan):
 
     if any(step['result'] == Result.NEEDS_SUDO for step in plan):
         if on_win:
-            from menuinst.win_elevate import runAsAdmin
+            # from menuinst.win_elevate import runAsAdmin
+            from ..common.os.windows import run_as_admin
             # https://github.com/ContinuumIO/menuinst/blob/master/menuinst/windows/win_elevate.py  # no stdin / stdout / stderr pipe support  # NOQA
             # https://github.com/saltstack/salt-windows-install/blob/master/deps/salt/python/App/Lib/site-packages/win32/Demos/pipes/runproc.py  # NOQA
             # https://github.com/twonds/twisted/blob/master/twisted/internet/_dumbwin32proc.py
@@ -525,7 +526,8 @@ def run_plan_elevated(plan):
                     # the default mode is 'w+b', and universal new lines don't work in that mode
                     tf.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
                     temp_path = tf.name
-                rc = runAsAdmin((sys.executable, '-m',  'conda.initialize',  '"%s"' % temp_path))
+                # rc = runAsAdmin((sys.executable, '-m',  'conda.initialize',  '"%s"' % temp_path))
+                rc = run_as_admin((sys.executable, '-m',  'conda.initialize',  '"%s"' % temp_path))
                 assert rc == 0
 
                 with open(temp_path) as fh:
