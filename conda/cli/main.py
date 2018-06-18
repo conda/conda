@@ -69,16 +69,7 @@ def _main(*args, **kwargs):
         args = args + ('-h',)
 
     p = generate_parser()
-    args, unknown_args = p.parse_known_args(args[1:])
-    if unknown_args:
-        if args.cmd == "run":
-            args.unknown_args = unknown_args
-        else:
-            from ..exceptions import ArgumentError
-            raise ArgumentError("Unknown arguments for command '%(command)s': %(unknown_args)s",
-                                command=args.cmd, unknown_args=unknown_args)
-    else:
-        args.unknown_args = []
+    args = p.parse_args(args[1:])
 
     from ..base.context import context
     context.__init__(argparse_args=args)

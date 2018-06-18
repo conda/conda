@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from argparse import (ArgumentParser as ArgumentParserBase, ONE_OR_MORE,
-                      RawDescriptionHelpFormatter, SUPPRESS, _CountAction, _HelpAction)
+from argparse import (ArgumentParser as ArgumentParserBase, REMAINDER, RawDescriptionHelpFormatter,
+                      SUPPRESS, _CountAction, _HelpAction)
 from logging import getLogger
 import os
 from os.path import abspath, expanduser, join
@@ -986,7 +986,7 @@ def configure_parser_run(sub_parsers):
 
     p.add_argument(
         'executable_call',
-        nargs=ONE_OR_MORE,
+        nargs=REMAINDER,
         help="Executable name, with additional arguments to be passed to the executable "
              "on invocation.",
     )

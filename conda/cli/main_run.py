@@ -36,8 +36,10 @@ def _get_activated_env_vars_win(env_location):
             tf.write(ensure_binary(
                 "@%CONDA_PYTHON_EXE% -c \"import os, json; print(json.dumps(dict(os.environ)))\""
             ))
+        # TODO: refactor into single function along with code in conda.core.link.run_script
         cmd_builder = [
-            "cmd.exe /K \"",
+            "%s" % os.getenv('COMSPEC', 'cmd.exe'),
+            "/C \"",
             "@SET PROMPT= ",
             "&&",
             "@SET CONDA_CHANGEPS1=false"
@@ -83,4 +85,4 @@ def _get_activated_env_vars_unix(env_location):
 def execute(args, parser):
     from .conda_argparse import _exec
     env_vars = get_activated_env_vars()
-    _exec(args.executable_call + args.unknown_args, env_vars)
+    _exec(args.executable_call, env_vars)
