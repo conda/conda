@@ -3,8 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import enum
-
+from enum import IntEnum
 from logging import getLogger
 
 from ..compat import on_win
@@ -18,7 +17,7 @@ if on_win:
 log = getLogger(__name__)
 
 
-class SW(enum.IntEnum):
+class SW(IntEnum):
     HIDE = 0
     MAXIMIZE = 3
     MINIMIZE = 6
@@ -33,7 +32,7 @@ class SW(enum.IntEnum):
     SHOWNORMAL = 1
 
 
-class ERROR(enum.IntEnum):
+class ERROR(IntEnum):
     ZERO = 0
     FILE_NOT_FOUND = 2
     PATH_NOT_FOUND = 3
@@ -73,17 +72,26 @@ def is_admin_on_windows():  # pragma: unix no cover
     return result
 
 
-def run_as_admin(cmd_line):
+def run_as_admin(args):
     """
+    NOTES:
+        - no stdin / stdout / stderr pipe support
+        - does not automatically quote arguments (i.e. for paths that may contain spaces)
     See:
     - http://stackoverflow.com/a/19719292/1170370 on 20160407 MCS.
     - msdn.microsoft.com/en-us/library/windows/desktop/bb762153(v=vs.85).aspx
+    - https://github.com/ContinuumIO/menuinst/blob/master/menuinst/windows/win_elevate.py
+    - https://github.com/saltstack/salt-windows-install/blob/master/deps/salt/python/App/Lib/site-packages/win32/Demos/pipes/runproc.py  # NOQA
+    - https://github.com/twonds/twisted/blob/master/twisted/internet/_dumbwin32proc.py
+    - https://stackoverflow.com/a/19982092/2127762
+    - https://www.codeproject.com/Articles/19165/Vista-UAC-The-Definitive-Guide
     """
     code = None
     if _ctypes:
-        params = " ".join(['"%s"' % (x, ) for x in cmd_line[1:]])
+        arg0 = args[0]
+        param_str = ' '.join(args[1:] if len(args) > 1 else ())
         hinstance = _ctypes.windll.shell32.ShellExecuteW(
-            None, 'runas', cmd_line[0], params, None, SW.HIDE
+            None, 'runas', arg0, param_str, None, SW.HIDE
         )
         print(hinstance)
         if hinstance <= 32:

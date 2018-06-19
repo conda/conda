@@ -509,26 +509,17 @@ def run_plan_elevated(plan):
 
     if any(step['result'] == Result.NEEDS_SUDO for step in plan):
         if on_win:
-            # from menuinst.win_elevate import runAsAdmin
             from ..common.os.windows import run_as_admin
-            # https://github.com/ContinuumIO/menuinst/blob/master/menuinst/windows/win_elevate.py  # no stdin / stdout / stderr pipe support  # NOQA
-            # https://github.com/saltstack/salt-windows-install/blob/master/deps/salt/python/App/Lib/site-packages/win32/Demos/pipes/runproc.py  # NOQA
-            # https://github.com/twonds/twisted/blob/master/twisted/internet/_dumbwin32proc.py
-            # https://stackoverflow.com/a/19982092/2127762
-            # https://www.codeproject.com/Articles/19165/Vista-UAC-The-Definitive-Guide
-
-            # from menuinst.win_elevate import isUserAdmin, runAsAdmin
-            # I do think we can pipe to stdin, so we're going to have to write to a temp file and read in the elevated process  # NOQA
-
             temp_path = None
             try:
                 with NamedTemporaryFile('w+b', suffix='.json', delete=False) as tf:
                     # the default mode is 'w+b', and universal new lines don't work in that mode
                     tf.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
                     temp_path = tf.name
-                # rc = runAsAdmin((sys.executable, '-m',  'conda.initialize',  '"%s"' % temp_path))
-                rc = run_as_admin((sys.executable, '-m',  'conda.initialize',  '"%s"' % temp_path))
-                assert rc == 0
+                python_exe = '"%s"' % abspath(sys.executable)
+                rc = run_as_admin((python_exe, '-m',  'conda.initialize',  '"%s"' % temp_path))
+                if rc:
+                    print("ERROR during elevated execution.\n  rc: %s" % rc, file=sys.stderr)
 
                 with open(temp_path) as fh:
                     _plan = json.loads(ensure_unicode(fh.read()))
