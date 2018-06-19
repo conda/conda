@@ -211,6 +211,10 @@ class MatchSpecTests(TestCase):
         # assert m("numpy-1.10-py38_0[channel=defaults]") == "defaults::numpy==1.10=py38_0"
         # assert m("*/win-32::numpy-1.10-py38_0[channel=defaults]") == "defaults/win-32::numpy==1.10=py38_0"
 
+        # namespace tests
+        assert m("python:numpy") == "python:numpy"
+        assert m("https://repo.anaconda.com/pkgs/free/win-32:python:numpy") == "pkgs/free/win-32:python:numpy"
+
     @pytest.mark.skip(reason="key-value features interface has been disabled in conda 4.4")
     def test_key_value_features_canonical_string_forms(self):
         assert m("numpy[build=py3*_2, track_features=mkl]") == "numpy[build=py3*_2,provides_features='blas=mkl']"
@@ -444,6 +448,21 @@ class MatchSpecTests(TestCase):
 
         assert MatchSpec("*[license='*gpl*']").match(record)
         assert MatchSpec("*[license='*v3+']").match(record)
+
+    def test_namespace_matching(self):
+        record = PackageRecord(**{
+            'name': 'numpy',
+            'version': '1.11.0',
+            'build': 'py34_7',
+            'build_number': 7,
+            'depends': [
+                'python 3.4*'
+            ],
+        })
+
+        assert MatchSpec("numpy=1.11").match(record)
+        assert MatchSpec("python:numpy=1.11").match(record)
+        assert not MatchSpec("r:numpy=1.11").match(record)
 
 
 class TestArg2Spec(TestCase):

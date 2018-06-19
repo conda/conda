@@ -166,6 +166,7 @@ class MatchSpec(object):
     FIELD_NAMES = (
         'channel',
         'subdir',
+        'namespace',
         'name',
         'version',
         'build',
@@ -284,8 +285,18 @@ class MatchSpec(object):
             else:
                 brackets.append("subdir=%s" % subdir_matcher)
 
+        namespace_matcher = self._match_components.get('namespace')
+        if namespace_matcher:
+            namespace_matcher = text_type(namespace_matcher)
+        if namespace_matcher:
+            if builder:
+                builder.append(':')
+            builder.append("%s:" % namespace_matcher)
+        elif builder:
+            builder.append("::")
+
         name_matcher = self._match_components.get('name', '*')
-        builder.append(('::%s' if builder else '%s') % name_matcher)
+        builder.append(text_type(name_matcher))
 
         version_exact = False
         version = self._match_components.get('version')
@@ -316,7 +327,7 @@ class MatchSpec(object):
             else:
                 brackets.append("build=%s" % build)
 
-        _skip = ('channel', 'subdir', 'name', 'version', 'build')
+        _skip = ('channel', 'subdir', 'namespace', 'name', 'version', 'build')
         for key in self.FIELD_NAMES:
             if key not in _skip and key in self._match_components:
                 if key == 'url' and channel_matcher:
@@ -370,7 +381,7 @@ class MatchSpec(object):
     @staticmethod
     def _build_components(**kwargs):
         def _make(field_name, value):
-            if field_name not in PackageRecord.__fields__:
+            if field_name not in PackageRecord.__fields__ and field_name != 'namespace':
                 raise CondaValueError('Cannot match on field %s' % (field_name,))
             elif isinstance(value, string_types):
                 value = text_type(value)
@@ -585,9 +596,13 @@ def _parse_spec_str(spec_str):
     m5_len = len(m5)
     if m5_len == 3:
         channel_str, namespace, spec_str = m5
+        if not namespace:
+            namespace = None
     elif m5_len == 2:
         namespace, spec_str = m5
         channel_str = None
+        if not namespace:
+            namespace = None
     elif m5_len:
         spec_str = m5[0]
         channel_str, namespace = None, None
@@ -647,8 +662,7 @@ def _parse_spec_str(spec_str):
     if subdir is not None:
         components['subdir'] = subdir
     if namespace is not None:
-        # components['namespace'] = namespace
-        pass
+        components['namespace'] = namespace
     if version is not None:
         components['version'] = version
     if build is not None:
@@ -897,12 +911,13 @@ class CaseInsensitiveStrMatch(LowerStrMatch):
 
 
 _implementors = {
+    'channel': ChannelMatch,
+    'namespace': LowerStrMatch,
     'name': LowerStrMatch,
-    'track_features': FeatureMatch,
-    'features': FeatureMatch,
     'version': VersionSpec,
     'build_number': BuildNumberMatch,
-    'channel': ChannelMatch,
+    'track_features': FeatureMatch,
+    'features': FeatureMatch,
     'license': CaseInsensitiveStrMatch,
     'license_family': CaseInsensitiveStrMatch,
 }

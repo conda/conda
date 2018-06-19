@@ -305,6 +305,17 @@ class IndexJsonRecord(BasePackageRef):
         return tuple(itervalues(result))
 
 
+NAMESPACES = {
+    "python": "python",
+    "r-base": "r",
+    "mro-base": "r",
+    "openjdk": "java",
+    "ruby": "ruby",
+    "lua": "lua",
+    "nodejs": "nodejs",
+    "perl": "perl",
+}
+
 # conflicting attribute due to subdir on both IndexJsonRecord and PackageRef
 # probably unavoidable for now
 class PackageRecord(IndexJsonRecord, PackageRef):  # lgtm [py/conflicting-attributes]
@@ -323,6 +334,18 @@ class PackageRecord(IndexJsonRecord, PackageRef):  # lgtm [py/conflicting-attrib
     def __str__(self):
         return "%s/%s::%s==%s=%s" % (self.channel.canonical_name, self.subdir, self.name,
                                      self.version, self.build)
+
+    @property
+    def namespace(self):
+        from .match_spec import MatchSpec
+        spaces = {MatchSpec(spec).name for spec in self.depends} & set(NAMESPACES)
+        len_spaces = len(spaces)
+        if len_spaces == 0:
+            return "global"
+        elif len_spaces == 1:
+            return NAMESPACES[next(iter(spaces))]
+        else:
+            raise NotImplementedError()
 
 
 class Md5Field(StringField):
