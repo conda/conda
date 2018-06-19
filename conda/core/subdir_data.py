@@ -37,7 +37,7 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord, PackageRef
+from ..models.records import PackageRecord
 
 try:
     from cytoolz.itertoolz import concat, take
@@ -115,7 +115,7 @@ class SubdirData(object):
                     if param.match(prec):
                         yield prec
         else:
-            assert isinstance(param, PackageRef)
+            assert isinstance(param, PackageRecord)
             for prec in self._names_index[param.name]:
                 if prec == param:
                     yield prec

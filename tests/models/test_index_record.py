@@ -6,7 +6,7 @@ from unittest import TestCase
 from conda.base.context import context
 from conda.common.compat import text_type
 from conda.models.channel import Channel
-from conda.models.records import IndexJsonRecord, PackageRecord, PrefixRecord
+from conda.models.records import PackageRecord, PrefixRecord
 
 log = getLogger(__name__)
 
@@ -32,6 +32,7 @@ class PrefixRecordTests(TestCase):
         channel_str = text_type(Channel("https://repo.anaconda.com/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2"))
         assert channel_str == "https://repo.anaconda.com/pkgs/free/win-32"
         assert dict(pr.dump()) == dict(
+            namespace='global',
             name='austin',
             version='1.2.3',
             build='py34_2',

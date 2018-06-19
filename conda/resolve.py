@@ -17,7 +17,7 @@ from .exceptions import ResolvePackageNotFound, UnsatisfiableError
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType
 from .models.match_spec import MatchSpec
-from .models.records import PackageRef
+from .models.records import PackageRecord
 from .models.version import VersionOrder
 
 try:
@@ -429,7 +429,7 @@ class Resolve(object):
     @staticmethod
     def to_sat_name(val):
         # val can be a PackageRef or MatchSpec
-        if isinstance(val, PackageRef):
+        if isinstance(val, PackageRecord):
             return val.dist_str()
         elif isinstance(val, MatchSpec):
             return '@s@' + text_type(val) + ('?' if val.optional else '')

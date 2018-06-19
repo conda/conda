@@ -163,7 +163,7 @@ class LinkPathAction(CreateInPrefixPathAction):
 
         def make_file_link_action(source_path_data):
             # TODO: this inner function is still kind of a mess
-            noarch = package_info.index_json_record.noarch
+            noarch = package_info.repodata_record.noarch
             if noarch == NoarchType.python:
                 sp_dir = transaction_context['target_site_packages_short_path']
                 target_short_path = get_python_noarch_target_path(source_path_data.path, sp_dir)
@@ -233,7 +233,7 @@ class LinkPathAction(CreateInPrefixPathAction):
             The package for %s located at %s
             appears to be corrupted. The path '%s'
             specified in the package manifest cannot be found.
-            """ % (self.package_info.index_json_record.name,
+            """ % (self.package_info.repodata_record.name,
                    self.package_info.extracted_package_dir,
                    self.source_short_path)))
 
@@ -272,7 +272,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                 has a sha256 mismatch.
                   reported sha256: %s
                   actual sha256: %s
-                """ % (self.package_info.index_json_record.name,
+                """ % (self.package_info.repodata_record.name,
                        self.package_info.extracted_package_dir,
                        self.source_short_path,
                        reported_sha256,
@@ -292,7 +292,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                     has an incorrect size.
                       reported size: %s bytes
                       actual size: %s bytes
-                    """ % (self.package_info.index_json_record.name,
+                    """ % (self.package_info.repodata_record.name,
                            self.package_info.extracted_package_dir,
                            self.source_short_path,
                            reported_size_in_bytes,
@@ -762,7 +762,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
 
         self.prefix_record = PrefixRecord.from_objects(
             self.package_info.repodata_record,
-            self.package_info.index_json_record,
+            # self.package_info.index_json_record,
             self.package_info.package_metadata,
             requested_spec=text_type(self.requested_spec),
             paths_data=paths_data,
@@ -779,7 +779,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
     def reverse(self):
         log.trace("reversing linked package record creation %s", self.target_full_path)
         # TODO: be careful about failure here, and being too strict
-        PrefixData(self.target_prefix).remove(self.package_info.index_json_record.name)
+        PrefixData(self.target_prefix).remove(self.package_info.repodata_record.name)
 
 
 class UpdateHistoryAction(CreateInPrefixPathAction):
@@ -1107,7 +1107,7 @@ class ExtractPackageAction(PathAction):
         extract_tarball(self.source_full_path, self.target_full_path,
                         progress_update_callback=progress_update_callback)
 
-        index_json_record = read_index_json(self.target_full_path)
+        raw_index_json = read_index_json(self.target_full_path)
 
         if isinstance(self.record_or_spec, MatchSpec):
             url = self.record_or_spec.get_raw_value('url')
@@ -1115,10 +1115,10 @@ class ExtractPackageAction(PathAction):
             channel = Channel(url) if has_platform(url, context.known_subdirs) else Channel(None)
             fn = basename(url)
             md5 = self.md5sum or compute_md5sum(self.source_full_path)
-            repodata_record = PackageRecord.from_objects(index_json_record, url=url,
+            repodata_record = PackageRecord.from_objects(raw_index_json, url=url,
                                                          channel=channel, fn=fn, md5=md5)
         else:
-            repodata_record = PackageRecord.from_objects(self.record_or_spec, index_json_record)
+            repodata_record = PackageRecord.from_objects(self.record_or_spec, raw_index_json)
 
         repodata_record_path = join(self.target_full_path, 'info', 'repodata_record.json')
         write_as_json_to_file(repodata_record_path, repodata_record)

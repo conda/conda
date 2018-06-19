@@ -13,7 +13,7 @@ from conda.common.compat import isiterable, odict
 from conda.common.constants import NULL
 from conda.core.link import UnlinkLinkTransaction
 from conda.models.channel import Channel
-from conda.models.records import PackageCacheRecord, PackageRecord, PackageRef, PrefixRecord
+from conda.models.records import PackageCacheRecord, PackageRecord, PrefixRecord
 
 
 class PositionalArgument:
@@ -95,15 +95,15 @@ def test_Solver_return_value_contract():
     solver = Solver('/', (Channel('pkgs/main'),), specs_to_add=('openssl',))
     solve_final_state_rv = solver.solve_final_state()
     assert isiterable(solve_final_state_rv)
-    assert all(isinstance(pref, PackageRef) for pref in solve_final_state_rv)
+    assert all(isinstance(pref, PackageRecord) for pref in solve_final_state_rv)
 
     solve_for_diff_rv = solver.solve_for_diff()
     assert len(solve_for_diff_rv) == 2
     unlink_precs, link_precs = solve_for_diff_rv
     assert isiterable(unlink_precs)
-    assert all(isinstance(pref, PackageRef) for pref in unlink_precs)
+    assert all(isinstance(pref, PackageRecord) for pref in unlink_precs)
     assert isiterable(link_precs)
-    assert all(isinstance(pref, PackageRef) for pref in link_precs)
+    assert all(isinstance(pref, PackageRecord) for pref in link_precs)
 
     solve_for_transaction_rv = solver.solve_for_transaction()
     assert isinstance(solve_for_transaction_rv, UnlinkLinkTransaction)
@@ -208,7 +208,7 @@ def test_PackageCacheData_return_value_contract():
 
     single_pcrec = next(pc.iter_records(), None)
     if single_pcrec:
-        get_result = pc.get(PackageRef.from_objects(single_pcrec))
+        get_result = pc.get(PackageRecord.from_objects(single_pcrec))
         assert isinstance(get_result, PackageCacheRecord)
 
     query_result = pc.query('openssl')
@@ -270,7 +270,7 @@ def test_PrefixData_return_value_contract():
     pd = PrefixData(context.conda_prefix)
 
     single_prefix_rec = next(pd.iter_records())
-    get_result = pd.get(PackageRef.from_objects(single_prefix_rec))
+    get_result = pd.get(PackageRecord.from_objects(single_prefix_rec))
     assert isinstance(get_result, PrefixRecord)
 
     query_result = pd.query('openssl')

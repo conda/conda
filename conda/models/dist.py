@@ -8,7 +8,7 @@ from logging import getLogger
 import re
 
 from .channel import Channel
-from .records import PackageRecord, PackageRef
+from .records import PackageRecord
 from .package_info import PackageInfo
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
@@ -80,7 +80,7 @@ class Dist(Entity):
                                    platform=platform)
 
     def to_package_ref(self):
-        return PackageRef(
+        return PackageRecord(
             channel=self.channel,
             subdir=self.platform,
             name=self.name,

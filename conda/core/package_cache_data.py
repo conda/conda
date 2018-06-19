@@ -31,7 +31,7 @@ from ..gateways.disk.read import (compute_md5sum, isdir, isfile, islink, read_in
                                   read_index_json_from_tarball, read_repodata_json)
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
-from ..models.records import PackageCacheRecord, PackageRecord, PackageRef
+from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes
 
 try:
@@ -98,7 +98,7 @@ class PackageCacheData(object):
         return self
 
     def get(self, package_ref, default=NULL):
-        assert isinstance(package_ref, PackageRef)
+        assert isinstance(package_ref, PackageRecord)
         try:
             return self._package_cache_records[package_ref]
         except KeyError:
@@ -122,7 +122,7 @@ class PackageCacheData(object):
             return (pcrec for pcrec in itervalues(self._package_cache_records)
                     if param.match(pcrec))
         else:
-            assert isinstance(param, PackageRef)
+            assert isinstance(param, PackageRecord)
             return (pcrec for pcrec in itervalues(self._package_cache_records) if pcrec == param)
 
     def iter_records(self):
@@ -312,7 +312,7 @@ class PackageCacheData(object):
 
             # try reading info/index.json
             try:
-                index_json_record = read_index_json(extracted_package_dir)
+                raw_json_record = read_index_json(extracted_package_dir)
             except (IOError, OSError, JSONDecodeError) as e:
                 # IOError / OSError if info/index.json doesn't exist
                 # JsonDecodeError if info/index.json is partially extracted or corrupted
@@ -344,7 +344,7 @@ class PackageCacheData(object):
                                 rm_rf(package_tarball_full_path)
                                 rm_rf(extracted_package_dir)
                         try:
-                            index_json_record = read_index_json(extracted_package_dir)
+                            raw_json_record = read_index_json(extracted_package_dir)
                         except (IOError, OSError, JSONDecodeError):
                             # At this point, we can assume the package tarball is bad.
                             # Remove everything and move on.
@@ -352,7 +352,7 @@ class PackageCacheData(object):
                             rm_rf(extracted_package_dir)
                             return None
                     else:
-                        index_json_record = read_index_json_from_tarball(package_tarball_full_path)
+                        raw_json_record = read_index_json_from_tarball(package_tarball_full_path)
                 except (EOFError, ReadError) as e:
                     # EOFError: Compressed file ended before the end-of-stream marker was reached
                     # tarfile.ReadError: file could not be opened successfully
@@ -371,7 +371,7 @@ class PackageCacheData(object):
 
             url = self._urls_data.get_url(package_filename)
             package_cache_record = PackageCacheRecord.from_objects(
-                index_json_record,
+                raw_json_record,
                 url=url,
                 md5=md5,
                 package_tarball_full_path=package_tarball_full_path,
@@ -553,8 +553,8 @@ class ProgressiveFetchExtract(object):
     def __init__(self, link_prefs):
         """
         Args:
-            link_prefs (Tuple[PackageRef]):
-                A sequence of :class:`PackageRef`s to ensure available in a known
+            link_prefs (Tuple[PackageRecord]):
+                A sequence of :class:`PackageRecord`s to ensure available in a known
                 package cache, typically for a follow-on :class:`UnlinkLinkTransaction`.
                 Here, "available" means the package tarball is both downloaded and extracted
                 to a package directory.

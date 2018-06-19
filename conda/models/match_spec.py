@@ -11,7 +11,7 @@ import re
 
 from .channel import Channel
 from .dist import Dist
-from .records import PackageRecord, PackageRef
+from .records import PackageRecord
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -46,7 +46,7 @@ class MatchSpecType(type):
             elif isinstance(spec_arg, Mapping):
                 parsed = dict(spec_arg, **kwargs)
                 return super(MatchSpecType, cls).__call__(**parsed)
-            elif isinstance(spec_arg, PackageRef):
+            elif isinstance(spec_arg, PackageRecord):
                 parsed = {
                     'channel': spec_arg.channel,
                     'subdir': spec_arg.subdir,

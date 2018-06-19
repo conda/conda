@@ -669,8 +669,8 @@ class RemoveError(CondaError):
 
 class DisallowedPackageError(CondaError):
     def __init__(self, package_ref, **kwargs):
-        from .models.records import PackageRef
-        package_ref = PackageRef.from_objects(package_ref)
+        from .models.records import PackageRecord
+        package_ref = PackageRecord.from_objects(package_ref)
         message = ("The package '%(dist_str)s' is disallowed by configuration.\n"
                    "See 'conda config --show disallowed_packages'.")
         super(DisallowedPackageError, self).__init__(message, package_ref=package_ref,
@@ -698,8 +698,8 @@ class CondaTypeError(CondaError, TypeError):
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles, **kwargs):
         from .resolve import dashlist
-        from .models.records import PackageRef
-        packages_with_cycles = tuple(PackageRef.from_objects(p) for p in packages_with_cycles)
+        from .models.records import PackageRecord
+        packages_with_cycles = tuple(PackageRecord.from_objects(p) for p in packages_with_cycles)
         message = "Cyclic dependencies exist among these items: %s" % dashlist(
             p.dist_str() for p in packages_with_cycles
         )

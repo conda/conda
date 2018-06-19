@@ -13,7 +13,7 @@ from conda.common.compat import on_win
 from conda.exceptions import CondaValueError
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.records import PackageRecord, PackageRecord, PackageRef
+from conda.models.records import PackageRecord
 from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
 from conda.models.version import VersionSpec
 
@@ -238,7 +238,7 @@ class MatchSpecTests(TestCase):
         url = "https://conda.anaconda.org/conda-canary/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
         assert m(url) == "*[url=%s]" % url
 
-        pref1 = PackageRef(
+        pref1 = PackageRecord(
             channel=Channel(None),
             name="conda",
             version="4.3.21.post699+1dab973",
@@ -247,7 +247,7 @@ class MatchSpecTests(TestCase):
             fn="conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
             url=url,
         )
-        pref2 = PackageRef.from_objects(pref1, md5="1234")
+        pref2 = PackageRecord.from_objects(pref1, md5="1234")
         assert MatchSpec(url=url).match(pref1)
         assert MatchSpec(m(url)).match(pref1)
         assert MatchSpec(m(url)).match(pref1.dump())

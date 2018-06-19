@@ -25,8 +25,8 @@ from ...common.compat import ensure_text_type, open
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathType
-from ...models.records import IndexJsonRecord, PackageRecord, PathData, PathDataV1, PathsData
 from ...models.package_info import PackageInfo, PackageMetadata
+from ...models.records import PathData, PathDataV1, PathsData
 
 log = getLogger(__name__)
 
@@ -91,7 +91,7 @@ def find_first_existing(*globs):
 
 def read_package_info(record, package_cache_record):
     epd = package_cache_record.extracted_package_dir
-    index_json_record = read_index_json(epd)
+    raw_index_json = read_index_json(epd)
     icondata = read_icondata(epd)
     package_metadata = read_package_metadata(epd)
     paths_data = read_paths_json(epd)
@@ -102,7 +102,6 @@ def read_package_info(record, package_cache_record):
         repodata_record=record,
         url=package_cache_record.url,
 
-        index_json_record=index_json_record,
         icondata=icondata,
         package_metadata=package_metadata,
         paths_data=paths_data,
@@ -111,20 +110,18 @@ def read_package_info(record, package_cache_record):
 
 def read_index_json(extracted_package_directory):
     with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
-        record = IndexJsonRecord(**json.load(fi))
-    return record
+        return json.load(fi)
 
 
 def read_index_json_from_tarball(package_tarball_full_path):
     with tarfile.open(package_tarball_full_path) as tf:
         contents = tf.extractfile('info/index.json').read()
-        return IndexJsonRecord(**json.loads(ensure_text_type(contents)))
+        return json.loads(ensure_text_type(contents))
 
 
 def read_repodata_json(extracted_package_directory):
     with open(join(extracted_package_directory, 'info', 'repodata_record.json')) as fi:
-        record = PackageRecord(**json.load(fi))
-    return record
+        return json.load(fi)
 
 
 def read_icondata(extracted_package_directory):

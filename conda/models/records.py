@@ -35,6 +35,18 @@ from ..common.compat import isiterable, itervalues, string_types, text_type
 from ..exceptions import PathNotFoundError
 
 
+NAMESPACES = {
+    "python": "python",
+    "r-base": "r",
+    "mro-base": "r",
+    "openjdk": "java",
+    "ruby": "ruby",
+    "lua": "lua",
+    "nodejs": "nodejs",
+    "perl": "perl",
+}
+
+
 class LinkTypeField(EnumField):
     def box(self, instance, instance_type, val):
         if isinstance(val, string_types):
@@ -161,6 +173,26 @@ class SubdirField(StringField):
                 return self.unbox(instance, instance_type, context.subdir)
 
 
+class NamespaceField(StringField):
+
+    def __init__(self):
+        super(NamespaceField, self).__init__(required=False)
+
+    def __get__(self, instance, instance_type):
+        try:
+            return super(NamespaceField, self).__get__(instance, instance_type)
+        except AttributeError:
+            from .match_spec import MatchSpec
+            spaces = {MatchSpec(spec).name for spec in instance.depends} & set(NAMESPACES)
+            len_spaces = len(spaces)
+            if len_spaces == 0:
+                return "global"
+            elif len_spaces == 1:
+                return NAMESPACES[next(iter(spaces))]
+            else:
+                raise NotImplementedError()
+
+
 class FilenameField(StringField):
 
     def __init__(self, aliases=()):
@@ -231,14 +263,12 @@ class PathsData(Entity):
     paths = ListField(PathData)
 
 
-class BasePackageRef(DictSafeMixin, Entity):
+class PackageRecord(DictSafeMixin, Entity):
     name = StringField()
     version = StringField()
     build = StringField(aliases=('build_string',))
     build_number = IntegerField()
 
-
-class PackageRef(BasePackageRef):
     # the canonical code abbreviation for PackageRef is `pref`
     # fields required to uniquely identifying a package
 
@@ -272,8 +302,6 @@ class PackageRef(BasePackageRef):
         return "%s::%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build)
 
 
-class IndexJsonRecord(BasePackageRef):
-
     arch = StringField(required=False, nullable=True)  # so legacy
     platform = EnumField(Platform, required=False, nullable=True)  # so legacy
 
@@ -283,7 +311,6 @@ class IndexJsonRecord(BasePackageRef):
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
 
-    subdir = SubdirField()
     noarch = NoarchField(NoarchType, required=False, nullable=True, default=None,
                          default_in_dump=False)  # TODO: rename to package_type
     preferred_env = StringField(required=False, nullable=True, default=None, default_in_dump=False)
@@ -295,6 +322,8 @@ class IndexJsonRecord(BasePackageRef):
 
     timestamp = TimestampField(required=False)
 
+    namespace = NamespaceField()
+
     @property
     def combined_depends(self):
         from .match_spec import MatchSpec
@@ -305,20 +334,9 @@ class IndexJsonRecord(BasePackageRef):
         return tuple(itervalues(result))
 
 
-NAMESPACES = {
-    "python": "python",
-    "r-base": "r",
-    "mro-base": "r",
-    "openjdk": "java",
-    "ruby": "ruby",
-    "lua": "lua",
-    "nodejs": "nodejs",
-    "perl": "perl",
-}
-
 # conflicting attribute due to subdir on both IndexJsonRecord and PackageRef
 # probably unavoidable for now
-class PackageRecord(IndexJsonRecord, PackageRef):  # lgtm [py/conflicting-attributes]
+
     # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
     # PackageCacheRecord (`pcrec`) or PrefixRecord (`prefix_rec`)
     #
@@ -334,18 +352,6 @@ class PackageRecord(IndexJsonRecord, PackageRef):  # lgtm [py/conflicting-attrib
     def __str__(self):
         return "%s/%s::%s==%s=%s" % (self.channel.canonical_name, self.subdir, self.name,
                                      self.version, self.build)
-
-    @property
-    def namespace(self):
-        from .match_spec import MatchSpec
-        spaces = {MatchSpec(spec).name for spec in self.depends} & set(NAMESPACES)
-        len_spaces = len(spaces)
-        if len_spaces == 0:
-            return "global"
-        elif len_spaces == 1:
-            return NAMESPACES[next(iter(spaces))]
-        else:
-            raise NotImplementedError()
 
 
 class Md5Field(StringField):
