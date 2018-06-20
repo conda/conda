@@ -13,6 +13,7 @@
 # work in conjunction with the .mailmap file at the root of this repository.
 
 3kwa | Eugene Van den Bulke <eugene.vandenbulke@gmail.com> | 2018-06-01
+alanhdu | Alan Du <alanhdu@gmail.com> | 2018-06-05
 alexbw | Alex Wiltschko <alex.bw@gmail.com> | 2018-05-23
 almarklein | Almar Klein <almar.klein@gmail.com> | 2018-06-04
 asmeurer | Aaron Meurer <aaron.meurer@continuum.io> | Anaconda, Inc.
@@ -25,6 +26,7 @@ bryevdv | Bryan Van de Ven <bryanv@continuum.io> | Anaconda, Inc.
 campos-ddc | Diogo de Campos <campos@esss.com.br> | 2018-06-01
 chdoig | Christine Doig <christine.doig.cardet@gmail.com> | Anaconda, Inc.
 csoja | Crystal Soja <crystal.soja@continuum.io> | Anaconda, Inc.
+cstich | Christoph Stich <christoph.n.stich@gmail.com> | 2018-06-13
 dawehner | Daniel Wehner <dawehner@users.noreply.github.com> | 2018-06-02
 dedalusj | Jacopo <dedalusj@gmail.com> | 2018-06-01
 desilinguist | Nitin Madnani <nmadnani@gmail.com> | 2018-06-01
@@ -35,6 +37,7 @@ ericdill | Eric Dill <edill@bnl.gov> | 2018-06-04
 flaviomartins | Flavio Martins <flaviomartins@acm.org> | 2018-06-05
 frol | Vlad Frolov <frolvlad@gmail.com> | 2018-06-04
 goanpeca | Gonzalo Peña-Castellanos <goanpeca@gmail.com> | Anaconda, Inc.
+gomyhr | Geir Ove Myhr <Geir.Ove.Myhr@lr.org> | 2018-06-07
 gqmelo | Guilherme Quentel Melo <gqmelo@gmail.com> | 2018-05-24
 guoci | guoci <zguoci@gmail.com> | 2018-06-04
 hajs | Henning Schroder <henning.schroeder@gmail.com> | 2018-06-01
@@ -44,6 +47,7 @@ ilanschnell | Ilan Schnell <ilan@continuum.io> | Anaconda, Inc.
 jaimergp | Jaime RGP <jaime.rogue@gmail.com> | 2018-06-01
 jbcrail | Joseph Crail <> | 2018-06-01
 jhunkeler | Joseph Hunkeler <jhunkeler@gmail.com> | 2018-06-01
+jjhelmus | Jonathan J. Helmus <jjhelmus@gmail.com> | 2018-06-07
 jni | Juan Nunez-Iglesias <juan.n@unimelb.edu.au> | 2018-06-01
 joelhullcio | joel.hull@continuum.io <joel.hull@continuum.io> | Anaconda, Inc.
 jseabold | Skipper Seabold <jsseabold@gmail.com> | 2018-06-01
@@ -51,8 +55,10 @@ Juanlu001 | Juan Luis Cano Rodríguez <juanlu001@gmail.com> | 2018-06-01
 jusjusjus | jusjusjus <jschwabedal@gmail.com> | 2018-06-04
 jwkvam | Jacques Kvam <jwkvam@gmail.com> | 2018-06-04
 kalefranz | Kale Franz <kfranz@continuum.io> | Anaconda, Inc.
+kdeldycke | Kevin Deldycke <kevin@deldycke.com> | 2018-06-05
 lidavidm | David Li <li.davidm96@gmail.com> | Anaconda, Inc.
 luc-j-bourhis | Luc J. Bourhis <luc_j_bourhis@mac.com> | 2018-06-04
+m-rossi | Marco Rossi <developer@marco-rossi.com> | 2018-06-09
 Maggie-M | Maggie Mari <maggie.mari@continuum.io> | Anaconda, Inc.
 malev | Marcos Vanetta <marcosvanetta@gmail.com> | Anaconda, Inc.
 marcelotrevisani | Marcelo Duarte Trevisani <marceloduartetrevisani@gmail.com> | 2018-06-04
@@ -68,6 +74,7 @@ nehaljwani | Nehal J Wani <nehaljw.kkd1@gmail.com> | 2018-06-01
 nickeubank | Nick Eubank <nickeubank@users.noreply.github.com> | 2018-06-04
 nicoddemus | Bruno Oliveira <nicoddemus@gmail.com> | 2018-05-23
 njalerikson | Odegard, Ken <ken.odegard@gmail.com> | 2018-06-01
+nouiz | Frederic Bastien <nouiz@nouiz.org> | 2018-06-11
 ofek | Ofek Lev <ofekmeister@gmail.com> | 2018-06-04
 opoplawski | Orion Poplawski <orion@nwra.com> | 2018-06-04
 petebachant | Pete Bachant <petebachant@gmail.com> | 2018-05-23
@@ -82,10 +89,12 @@ sdvillal | santi <sdvillal@gmail.com> | 2018-06-01
 shadowwalkersb | shadow_walker <shadowwalkersb@gmail.com> | 2018-06-04
 shoyer | Stephan Hoyer <shoyer@gmail.com> | all commits reviewed and exempt
 soapy1 | Sophia Castellarin <scastellarin@continuum.io> | Anaconda, Inc.
+soxofaan | Stefaan Lippens <stefaan@netlog.com> | 2018-06-06
 srossross | srossross <srossross@gmail.com> | Anaconda, Inc.
 stefanseefeld | Stefan Seefeld <stefan@seefeld.name> | Anaconda, Inc.
 stuarteberg | Stuart Berg <bergs@janelia.hhmi.org> | 2018-06-04
 tadeu | Tadeu Manoel <tadeu@esss.com.br> | 2018-06-04
+takluyver | Thomas Kluyver <takowl@gmail.com> | 2018-06-15
 teoliphant | Travis E. Oliphant <teoliphant@gmail.com> | Anaconda, Inc.
 tpowellcio | Troy Powell <tpowell@MathBook Pro.(none)> | Anaconda, Inc.
 tswicegood | Travis Swicegood <travis@domain51.com> | Anaconda, Inc.
@@ -93,3 +102,4 @@ tyler-thetyrant | Tyler Kim <tkim139@illinois.edu> | 2018-06-04
 ugurthemaster | ugurthemaster <ugurthemaster@gmail.com> | all commits reviewed and exempt
 vestuto | Jason Vestuto <jvestuto@continuum.io> | Anaconda, Inc.
 wojdyr | Marcin Wojdyr <wojdyr@gmail.com> | 2018-06-01
+wulmer | Wolfgang Ulmer <wolfgang.ulmer@de.bosch.com> | 2018-06-11
