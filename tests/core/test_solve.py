@@ -17,6 +17,7 @@ from conda.exceptions import UnsatisfiableError
 from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
+from conda.models.specs_group import SpecsGroup
 from conda.resolve import MatchSpec
 from ..helpers import get_index_r_1, get_index_r_2, get_index_r_3, get_index_r_4, get_index_r_5
 from conda.common.compat import iteritems
@@ -34,9 +35,9 @@ def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_s
     PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
+    specs_group = SpecsGroup(history_specs)
     get_index_r_1()
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+    with patch.object(History, 'get_requested_specs', return_value=specs_group):
         solver = Solver(TEST_PREFIX, (Channel('channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
@@ -47,9 +48,9 @@ def get_solver_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
+    specs_group = SpecsGroup(history_specs)
     get_index_r_2()
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+    with patch.object(History, 'get_requested_specs', return_value=specs_group):
         solver = Solver(TEST_PREFIX, (Channel('channel-2'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
@@ -60,9 +61,9 @@ def get_solver_3(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
+    specs_group = SpecsGroup(history_specs)
     get_index_r_3()
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+    with patch.object(History, 'get_requested_specs', return_value=specs_group):
         solver = Solver(TEST_PREFIX, (Channel('channel-3'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
@@ -73,9 +74,9 @@ def get_solver_4(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
+    specs_group = SpecsGroup(history_specs)
     get_index_r_4()
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+    with patch.object(History, 'get_requested_specs', return_value=specs_group):
         solver = Solver(TEST_PREFIX, (Channel('channel-4'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
@@ -86,9 +87,9 @@ def get_solver_5(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
+    specs_group = SpecsGroup(history_specs)
     get_index_r_5()
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+    with patch.object(History, 'get_requested_specs', return_value=specs_group):
         solver = Solver(TEST_PREFIX, (Channel('channel-5'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver
@@ -99,10 +100,10 @@ def get_solver_aggregate_1(specs_to_add=(), specs_to_remove=(), prefix_records=(
     PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    spec_map = {spec.name: spec for spec in history_specs}
+    specs_group = SpecsGroup(history_specs)
     get_index_r_2()
     get_index_r_4()
-    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+    with patch.object(History, 'get_requested_specs', return_value=specs_group):
         solver = Solver(TEST_PREFIX, (Channel('channel-2'), Channel('channel-4'), ),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
         yield solver

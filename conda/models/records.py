@@ -186,7 +186,7 @@ class NamespaceField(StringField):
             spaces = {MatchSpec(spec).name for spec in instance.depends} & set(NAMESPACES)
             len_spaces = len(spaces)
             if len_spaces == 0:
-                return "global"
+                return ""
             elif len_spaces == 1:
                 return NAMESPACES[next(iter(spaces))]
             else:
@@ -333,6 +333,13 @@ class PackageRecord(DictSafeMixin, Entity):
         )})
         return tuple(itervalues(result))
 
+    @property
+    def _namekey(self):
+        namespace = self.namespace
+        if namespace:
+            return "%s:%s" % (namespace, self.name)
+        else:
+            return self.name
 
 # conflicting attribute due to subdir on both IndexJsonRecord and PackageRef
 # probably unavoidable for now

@@ -27,6 +27,13 @@ except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 
+EMPTY_NAMESPACE_EQUIVALENTS = {
+    None,
+    '*',
+    '',
+}
+
+
 class MatchSpecType(type):
 
     def __call__(cls, spec_arg=None, **kwargs):
@@ -177,6 +184,7 @@ class MatchSpec(object):
         'md5',
         'license',
         'license_family',
+        'fn',
     )
 
     def __init__(self, optional=False, target=None, **kwargs):
@@ -285,13 +293,11 @@ class MatchSpec(object):
             else:
                 brackets.append("subdir=%s" % subdir_matcher)
 
-        namespace_matcher = self._match_components.get('namespace')
-        if namespace_matcher:
-            namespace_matcher = text_type(namespace_matcher)
-        if namespace_matcher:
+        namespace = self.get_exact_value('namespace')
+        if namespace:
             if builder:
                 builder.append(':')
-            builder.append("%s:" % namespace_matcher)
+            builder.append(namespace + ':')
         elif builder:
             builder.append("::")
 
@@ -327,7 +333,9 @@ class MatchSpec(object):
             else:
                 brackets.append("build=%s" % build)
 
-        _skip = ('channel', 'subdir', 'namespace', 'name', 'version', 'build')
+        _skip = {'channel', 'subdir', 'namespace', 'name', 'version', 'build'}
+        if 'url' in self._match_components and 'fn' in self._match_components:
+            _skip.add('fn')
         for key in self.FIELD_NAMES:
             if key not in _skip and key in self._match_components:
                 if key == 'url' and channel_matcher:
@@ -378,10 +386,22 @@ class MatchSpec(object):
     def __contains__(self, field):
         return field in self._match_components
 
+    @property
+    def _namekey(self):
+        namespace = self.get_exact_value('namespace')
+        if namespace:
+            return "%s:%s" % (namespace, self.name)
+        else:
+            return self.name
+
     @staticmethod
     def _build_components(**kwargs):
+        _field_names = MatchSpec.FIELD_NAMES
+        if 'namespace' in kwargs and kwargs['namespace'] in EMPTY_NAMESPACE_EQUIVALENTS:
+            del kwargs['namespace']
+
         def _make(field_name, value):
-            if field_name not in PackageRecord.__fields__ and field_name != 'namespace':
+            if field_name not in _field_names:
                 raise CondaValueError('Cannot match on field %s' % (field_name,))
             elif isinstance(value, string_types):
                 value = text_type(value)
@@ -391,7 +411,7 @@ class MatchSpec(object):
             elif field_name in _implementors:
                 matcher = _implementors[field_name](value)
             else:
-                matcher = StrMatch(text_type(value))
+                matcher = ExactStrMatch(text_type(value))
 
             return field_name, matcher
 
@@ -400,6 +420,10 @@ class MatchSpec(object):
     @property
     def name(self):
         return self.get_exact_value('name') or '*'
+
+    @property
+    def namespace(self):
+        return self.get_exact_value('namespace')
 
     #
     # Remaining methods are for back compatibility with conda-build. Do not remove
@@ -442,6 +466,10 @@ class MatchSpec(object):
         match_specs = tuple(cls(s) for s in match_specs)
         grouped = groupby(lambda spec: spec.get_exact_value('name'), match_specs)
         dont_merge_these = grouped.pop('*', []) + grouped.pop(None, [])
+
+        # for name, group in iteritems(grouped):
+        #     _grouped = groupby(lambda spec: spec.get_exact_value('namespace'), grouped)
+
         specs_map = {
             name: reduce(lambda x, y: x._merge(y), specs) if len(specs) > 1 else specs[0]
             for name, specs in iteritems(grouped)
@@ -676,7 +704,6 @@ def _parse_spec_str(spec_str):
 
 @with_metaclass(ABCMeta)
 class MatchInterface(object):
-
     def __init__(self, value):
         self._raw_value = value
 
@@ -698,9 +725,89 @@ class MatchInterface(object):
         """
         raise NotImplementedError()
 
-    @abstractmethod
     def merge(self, other):
-        raise NotImplementedError()
+        if self.raw_value != other.raw_value:
+            raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
+                             % (self.raw_value, other.raw_value))
+        return self.raw_value
+
+
+class _StrMatchMixin(object):
+
+    def __str__(self):
+        return self._raw_value
+
+    def __repr__(self):
+        return "%s('%s')" % (self.__class__.__name__, self._raw_value)
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self._raw_value == other._raw_value
+
+    def __hash__(self):
+        return hash(self._raw_value)
+
+    @property
+    def exact_value(self):
+        return self._raw_value
+
+
+class ExactStrMatch(_StrMatchMixin, MatchInterface):
+    __slots__ = '_raw_value',
+
+    def __init__(self, value):
+        super(ExactStrMatch, self).__init__(value)
+
+    def match(self, other):
+        try:
+            _other_val = other._raw_value
+        except AttributeError:
+            _other_val = text_type(other)
+        return self._raw_value == _other_val
+
+
+class ExactLowerStrMatch(ExactStrMatch):
+
+    def __init__(self, value):
+        super(ExactStrMatch, self).__init__(value.lower())
+
+
+class GlobStrMatch(_StrMatchMixin, MatchInterface):
+    __slots__ = '_raw_value', '_re_match'
+
+    def __init__(self, value):
+        super(GlobStrMatch, self).__init__(value)
+        self._re_match = None
+
+        if value.startswith('^') and value.endswith('$'):
+            self._re_match = re.compile(value).match
+        elif '*' in value:
+            value = re.escape(value).replace('\\*', r'.*')
+            self._re_match = re.compile(r'^(?:%s)$' % value).match
+
+    def match(self, other):
+        try:
+            _other_val = other._raw_value
+        except AttributeError:
+            _other_val = text_type(other)
+
+        if self._re_match:
+            return self._re_match(_other_val)
+        else:
+            return self._raw_value == _other_val
+
+    @property
+    def exact_value(self):
+        return self._raw_value if self._re_match is None else None
+
+    @property
+    def matches_all(self):
+        return self._raw_value == '*'
+
+
+class GlobLowerStrMatch(GlobStrMatch):
+
+    def __init__(self, value):
+        super(GlobLowerStrMatch, self).__init__(value.lower())
 
 
 class SplitStrMatch(MatchInterface):
@@ -743,12 +850,6 @@ class SplitStrMatch(MatchInterface):
     def exact_value(self):
         return self._raw_value
 
-    def merge(self, other):
-        if self.raw_value != other.raw_value:
-            raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
-                             % (self.raw_value, other.raw_value))
-        return self.raw_value
-
 
 class FeatureMatch(MatchInterface):
     __slots__ = '_raw_value',
@@ -786,65 +887,8 @@ class FeatureMatch(MatchInterface):
     def exact_value(self):
         return self._raw_value
 
-    def merge(self, other):
-        if self.raw_value != other.raw_value:
-            raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
-                             % (self.raw_value, other.raw_value))
-        return self.raw_value
 
-
-class StrMatch(MatchInterface):
-    __slots__ = '_raw_value', '_re_match'
-
-    def __init__(self, value):
-        super(StrMatch, self).__init__(value)
-        self._re_match = None
-
-        if value.startswith('^') and value.endswith('$'):
-            self._re_match = re.compile(value).match
-        elif '*' in value:
-            value = re.escape(value).replace('\\*', r'.*')
-            self._re_match = re.compile(r'^(?:%s)$' % value).match
-
-    def match(self, other):
-        try:
-            _other_val = other._raw_value
-        except AttributeError:
-            _other_val = text_type(other)
-
-        if self._re_match:
-            return self._re_match(_other_val)
-        else:
-            return self._raw_value == _other_val
-
-    def __str__(self):
-        return self._raw_value
-
-    def __repr__(self):
-        return "%s('%s')" % (self.__class__.__name__, self._raw_value)
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self._raw_value == other._raw_value
-
-    def __hash__(self):
-        return hash(self._raw_value)
-
-    @property
-    def exact_value(self):
-        return self._raw_value if self._re_match is None else None
-
-    @property
-    def matches_all(self):
-        return self._raw_value == '*'
-
-    def merge(self, other):
-        if self.raw_value != other.raw_value:
-            raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
-                             % (self.raw_value, other.raw_value))
-        return self.raw_value
-
-
-class ChannelMatch(StrMatch):
+class ChannelMatch(GlobStrMatch):
 
     def __init__(self, value):
         self._re_match = None
@@ -857,7 +901,7 @@ class ChannelMatch(StrMatch):
             else:
                 value = Channel(value)
 
-        super(StrMatch, self).__init__(value)  # lgtm [py/super-not-enclosing-class]
+        super(GlobStrMatch, self).__init__(value)  # lgtm [py/super-not-enclosing-class]
 
     def match(self, other):
         try:
@@ -882,20 +926,8 @@ class ChannelMatch(StrMatch):
     def __repr__(self):
         return "'%s'" % self.__str__()
 
-    def merge(self, other):
-        if self.raw_value != other.raw_value:
-            raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
-                             % (self.raw_value, other.raw_value))
-        return self.raw_value
 
-
-class LowerStrMatch(StrMatch):
-
-    def __init__(self, value):
-        super(LowerStrMatch, self).__init__(value.lower())
-
-
-class CaseInsensitiveStrMatch(LowerStrMatch):
+class CaseInsensitiveStrMatch(GlobLowerStrMatch):
 
     def match(self, other):
         try:
@@ -912,9 +944,10 @@ class CaseInsensitiveStrMatch(LowerStrMatch):
 
 _implementors = {
     'channel': ChannelMatch,
-    'namespace': LowerStrMatch,
-    'name': LowerStrMatch,
+    'namespace': ExactLowerStrMatch,
+    'name': GlobLowerStrMatch,
     'version': VersionSpec,
+    'build': GlobStrMatch,
     'build_number': BuildNumberMatch,
     'track_features': FeatureMatch,
     'features': FeatureMatch,

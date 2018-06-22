@@ -215,6 +215,32 @@ class MatchSpecTests(TestCase):
         assert m("python:numpy") == "python:numpy"
         assert m("https://repo.anaconda.com/pkgs/free/win-32:python:numpy") == "pkgs/free/win-32:python:numpy"
 
+    def test_empty_namespace(self):
+        spec = MatchSpec(namespace=None, name='python')
+        assert 'namespace' not in spec._match_components
+
+        spec = MatchSpec(namespace='', name='python')
+        assert 'namespace' not in spec._match_components
+
+        spec = MatchSpec(namespace='*', name='python')
+        assert 'namespace' not in spec._match_components
+
+        spec = MatchSpec(':python')
+        assert 'namespace' not in spec._match_components
+        assert text_type(spec) == 'python'
+
+        spec = MatchSpec('::python')
+        assert 'namespace' not in spec._match_components
+        assert text_type(spec) == 'python'
+
+        spec = MatchSpec('*:python')
+        assert 'namespace' not in spec._match_components
+        assert text_type(spec) == 'python'
+
+        spec = MatchSpec(':*:python')
+        assert 'namespace' not in spec._match_components
+        assert text_type(spec) == 'python'
+
     @pytest.mark.skip(reason="key-value features interface has been disabled in conda 4.4")
     def test_key_value_features_canonical_string_forms(self):
         assert m("numpy[build=py3*_2, track_features=mkl]") == "numpy[build=py3*_2,provides_features='blas=mkl']"
@@ -894,3 +920,14 @@ class MatchSpecMergeTests(TestCase):
         assert str(merged[0]) in str_specs
         assert str(merged[1]) in str_specs
         assert str(merged[0]) != str(merged[1])
+
+    def test_merge_namespace(self):
+        specs = (MatchSpec("numpy 1.2.3"), MatchSpec("python:numpy"), MatchSpec("conda-forge::numpy"))
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 1
+        assert str(merged[0]) == "conda-forge:python:numpy==1.2.3"
+
+        specs = (MatchSpec("python:numpy"), MatchSpec("conda-forge:global:numpy"))
+        with pytest.raises(ValueError):
+            MatchSpec.merge(specs)
+

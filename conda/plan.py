@@ -287,7 +287,7 @@ def revert_actions(prefix, revision=-1, index=None):
     #       Either need to wipe out history after ``revision``, or add the correct
     #       history information to the new entry about to be created.
     # TODO: This is wrong!!!!!!!!!!
-    user_requested_specs = itervalues(h.get_requested_specs_map())
+    user_requested_specs = h.get_requested_specs().iter_specs()
     try:
         target_state = {MatchSpec.from_dist_str(dist_str) for dist_str in h.get_state(revision)}
     except IndexError:
