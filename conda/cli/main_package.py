@@ -42,6 +42,14 @@ def execute(args, parser):
 
     prefix = context.target_prefix
 
+    if args.list:
+        assert len(args.list) is 1, "--list requires exactly one argument"
+        name = args.list[0]
+        files = get_package_files(prefix, name)
+        if files:
+            for path in files: print(path)
+        return
+
     if args.which:
         for path in args.which:
             for prec in which_package(path):
@@ -73,6 +81,11 @@ def get_installed_version(prefix, name):
             return str(info['version'])
     return None
 
+def get_package_files(prefix, name):
+    for info in PrefixData(prefix).iter_records():
+        if info['name'] == name:
+            return info['files']
+    return None
 
 def create_info(name, version, build_number, requires_py):
     d = dict(

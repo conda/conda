@@ -830,6 +830,13 @@ def configure_parser_package(sub_parsers):
     )
     add_parser_prefix(p)
     p.add_argument(
+        '-l', "--list",
+        metavar="PACKAGE",
+        nargs=1,
+        action="store",
+        help="Print all files installed by PACKAGE.",
+    )
+    p.add_argument(
         '-w', "--which",
         metavar="PATH",
         nargs='+',
