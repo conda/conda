@@ -158,6 +158,84 @@
     "timestamp": 1518356369179,
     "version": "1.1.3"
   },
+  "anaconda-docs-2.0.24-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "md5": "4ea2a0493c4a6322af0f2296c4746a45",
+    "name": "anaconda-docs",
+    "noarch": "generic",
+    "sha256": "710a2a5da90fbe0a13b4ebeee42c8a84c8912227e634ede9de938dc170c87ed5",
+    "size": 56445415,
+    "subdir": "noarch",
+    "timestamp": 1521152326355,
+    "version": "2.0.24"
+  },
+  "anaconda-docs-2.0.25-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "md5": "d201623ad3d7231b9f871ac05efec73d",
+    "name": "anaconda-docs",
+    "noarch": "generic",
+    "sha256": "8d68297e8e1e74fad805942c4413828886e416c56bc025e678e1f7efd4c4b8aa",
+    "size": 109255255,
+    "subdir": "noarch",
+    "timestamp": 1522350873568,
+    "version": "2.0.25"
+  },
+  "anaconda-docs-2.0.26-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "md5": "86bd179a636bdf475419f431758ac260",
+    "name": "anaconda-docs",
+    "noarch": "generic",
+    "sha256": "20229c364e07c555b47571d97ca76a69592a3478cce51ea8dc9fb62fd2d1e18e",
+    "size": 109158734,
+    "subdir": "noarch",
+    "timestamp": 1522965486245,
+    "version": "2.0.26"
+  },
+  "anaconda-oss-docs-1.0.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "md5": "c4fcfe59aa16698cc841efb3a573a0a7",
+    "name": "anaconda-oss-docs",
+    "noarch": "generic",
+    "sha256": "da2d362b27f02cf99a466e085a6b125db744be428583d94372d3b5a5cf62821a",
+    "size": 288062054,
+    "subdir": "noarch",
+    "timestamp": 1521153299017,
+    "version": "1.0.3"
+  },
+  "anaconda-oss-docs-1.0.4-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "md5": "5d4bc0ae5994e4919e78ab9e2ef33649",
+    "name": "anaconda-oss-docs",
+    "noarch": "generic",
+    "sha256": "2d964acf76f7cb8a9f5f58a78169fa72b54ef18c8748c6742638c78647b6fe1c",
+    "size": 279073955,
+    "subdir": "noarch",
+    "timestamp": 1522347000918,
+    "version": "1.0.4"
+  },
+  "anaconda-oss-docs-1.0.5-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "md5": "5f778c3aa45ebc216ec64b4afbf25f50",
+    "name": "anaconda-oss-docs",
+    "noarch": "generic",
+    "sha256": "85503ee275a092a8f678d0057c13feebb0d50b7619c8d6551d047dbeca49a71b",
+    "size": 279304298,
+    "subdir": "noarch",
+    "timestamp": 1522966293505,
+    "version": "1.0.5"
+  },
   "asn1crypto-0.22.0-py27hc975345_1.tar.bz2": {
     "build": "py27hc975345_1",
     "build_number": 1,
@@ -359,6 +437,34 @@
     "timestamp": 1505723925632,
     "version": "1.30.0"
   },
+  "audit-libs-cos6-i686-2.4.5-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "LGPL (>= 2)",
+    "license_family": "LGPL",
+    "md5": "143932cee9aa8bcb68a5d64604315d3a",
+    "name": "audit-libs-cos6-i686",
+    "sha256": "e688fe89dd0c76549c8885440b8017efe5089ef947476097b14581b4a2b4aa8d",
+    "size": 78985,
+    "subdir": "noarch",
+    "timestamp": 1522716319635,
+    "version": "2.4.5"
+  },
+  "audit-libs-cos6-x86_64-2.4.5-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "LGPL (>= 2)",
+    "license_family": "LGPL",
+    "md5": "321d49febf48e240330b22dd1050d503",
+    "name": "audit-libs-cos6-x86_64",
+    "sha256": "f8eb0b589e820b5cab4fb256c552cac7f58a9e127a994cf5103b3989c69b707f",
+    "size": 78668,
+    "subdir": "noarch",
+    "timestamp": 1522716330966,
+    "version": "2.4.5"
+  },
   "beautifulsoup4-4.6.0-py27hc287451_1.tar.bz2": {
     "build": "py27hc287451_1",
     "build_number": 1,
@@ -419,6 +525,19 @@
     "subdir": "win-64",
     "timestamp": 1505866321690,
     "version": "2017.08.26"
+  },
+  "ca-certificates-2018.03.07-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "ISC",
+    "md5": "df2f346c2e8351372e6935ae6654da75",
+    "name": "ca-certificates",
+    "sha256": "1408f50bf6d084c6deecd3635ddf49ecbb68ffcb20f5c3c0a2d3570c589d86c3",
+    "size": 159120,
+    "subdir": "win-64",
+    "timestamp": 1522697555946,
+    "version": "2018.03.07"
   },
   "ca-certificates-cos6-i686-2016.2.10-h67772ab_0.tar.bz2": {
     "build": "h67772ab_0",
@@ -563,6 +682,60 @@
     "subdir": "win-64",
     "timestamp": 1519226926665,
     "version": "0.12.4"
+  },
+  "cachecontrol-0.12.5-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "msgpack-python",
+      "python >=2.7,<2.8.0a0",
+      "requests"
+    ],
+    "license": "Apache-2.0",
+    "license_family": "Apache",
+    "md5": "b60408f6575a81bfe49b026d91167bca",
+    "name": "cachecontrol",
+    "sha256": "d3c7d7e651d75af2f5b01f2067d947e6764b11218cbc5eb9f95281fed1886aaf",
+    "size": 45837,
+    "subdir": "win-64",
+    "timestamp": 1529417732386,
+    "version": "0.12.5"
+  },
+  "cachecontrol-0.12.5-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "msgpack-python",
+      "python >=3.5,<3.6.0a0",
+      "requests"
+    ],
+    "license": "Apache-2.0",
+    "license_family": "Apache",
+    "md5": "0ffb545f5502e55bab9c385bf0532ab1",
+    "name": "cachecontrol",
+    "sha256": "8505d9eabb55af4c7774b1823cbf5e6a6dd0c331d5ee3a20612096bb0d6a4ea9",
+    "size": 46190,
+    "subdir": "win-64",
+    "timestamp": 1529417960712,
+    "version": "0.12.5"
+  },
+  "cachecontrol-0.12.5-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "msgpack-python",
+      "python >=3.6,<3.7.0a0",
+      "requests"
+    ],
+    "license": "Apache-2.0",
+    "license_family": "Apache",
+    "md5": "38375ced94a008cd91b598c5df54e6c4",
+    "name": "cachecontrol",
+    "sha256": "a6ccd599ee5fafc7f6fff707b8ec3f6f726eaa4d44385d64685c5ce70a61ed0a",
+    "size": 46058,
+    "subdir": "win-64",
+    "timestamp": 1529417909650,
+    "version": "0.12.5"
   },
   "cairo-cos6-i686-1.8.8-hb450964_0.tar.bz2": {
     "build": "hb450964_0",
@@ -784,6 +957,51 @@
     "timestamp": 1516980306579,
     "version": "2018.1.18"
   },
+  "certifi-2018.4.16-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "ISC",
+    "md5": "30ae41353ada9a8d908eda8a0ef65ccc",
+    "name": "certifi",
+    "sha256": "9188296817a5ef217380c6d96613a615d6ffc18aafc62c09c9be8dee3c57d03b",
+    "size": 146225,
+    "subdir": "win-64",
+    "timestamp": 1524178400981,
+    "version": "2018.4.16"
+  },
+  "certifi-2018.4.16-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0"
+    ],
+    "license": "ISC",
+    "md5": "be0fdaa821e9ae1d685038aa33052cae",
+    "name": "certifi",
+    "sha256": "5fddb7c4513277557f635cf338f30c1019045b6e8a905df5af8d1c33d233da95",
+    "size": 146700,
+    "subdir": "win-64",
+    "timestamp": 1524178119857,
+    "version": "2018.4.16"
+  },
+  "certifi-2018.4.16-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "ISC",
+    "md5": "e3073aff182f6176d40777d634c80d43",
+    "name": "certifi",
+    "sha256": "f48378bc756301c6a07ee868b16b6f79bc119a81e980fcec08b3eb66a6c4164e",
+    "size": 146432,
+    "subdir": "win-64",
+    "timestamp": 1524178119857,
+    "version": "2018.4.16"
+  },
   "cffi-1.10.0-py27hb6f203f_1.tar.bz2": {
     "build": "py27hb6f203f_1",
     "build_number": 1,
@@ -936,6 +1154,57 @@
     "subdir": "win-64",
     "timestamp": 1516377355416,
     "version": "1.11.4"
+  },
+  "cffi-1.11.5-py27hdb016f4_0.tar.bz2": {
+    "build": "py27hdb016f4_0",
+    "build_number": 0,
+    "depends": [
+      "pycparser",
+      "python >=2.7,<2.8.0a0",
+      "vc 9.*"
+    ],
+    "license": "MIT",
+    "md5": "ec9929420a22c4eb97572be0d92969a4",
+    "name": "cffi",
+    "sha256": "8150f738d63074992e508454629046396125ed1b87a218980ee1fdb5a7555272",
+    "size": 211619,
+    "subdir": "win-64",
+    "timestamp": 1520360641115,
+    "version": "1.11.5"
+  },
+  "cffi-1.11.5-py35h945400d_0.tar.bz2": {
+    "build": "py35h945400d_0",
+    "build_number": 0,
+    "depends": [
+      "pycparser",
+      "python >=3.5,<3.6.0a0",
+      "vc 14.*"
+    ],
+    "license": "MIT",
+    "md5": "5d6d10fe005c5ceb08cc90d0287c5320",
+    "name": "cffi",
+    "sha256": "211a203ec9c29dc73b10a935121f30574c65ff74029e82e364ec33938eb1de0f",
+    "size": 219827,
+    "subdir": "win-64",
+    "timestamp": 1520361319815,
+    "version": "1.11.5"
+  },
+  "cffi-1.11.5-py36h945400d_0.tar.bz2": {
+    "build": "py36h945400d_0",
+    "build_number": 0,
+    "depends": [
+      "pycparser",
+      "python >=3.6,<3.7.0a0",
+      "vc 14.*"
+    ],
+    "license": "MIT",
+    "md5": "c1e01135ffbadc3264f6420cc547b938",
+    "name": "cffi",
+    "sha256": "942a40b8a987c19f16e99e60f7706fe2b7b3495561199592de335be2a92a2e39",
+    "size": 218598,
+    "subdir": "win-64",
+    "timestamp": 1520361485683,
+    "version": "1.11.5"
   },
   "chardet-3.0.4-py27h56c3b73_1.tar.bz2": {
     "build": "py27h56c3b73_1",
@@ -2450,6 +2719,406 @@
     "timestamp": 1517950151795,
     "version": "4.4.9"
   },
+  "conda-4.5.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "enum34",
+      "futures",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=2.7,<2.8.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "041d32382c444be227a1fc9c75061e6a",
+    "name": "conda",
+    "sha256": "85a6d2aad574e51a5a9bf191f0dc50c611d90dca5df5cf57cb1c9a2497212bba",
+    "size": 1093933,
+    "subdir": "win-64",
+    "timestamp": 1521550903182,
+    "version": "4.5.0"
+  },
+  "conda-4.5.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=3.5,<3.6.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "2694a9fe2faffc4f6106a78affb49200",
+    "name": "conda",
+    "sha256": "adc58c37fd41b663d3e96b57e3748fd3080517e73d75393d4338717bbc45fa11",
+    "size": 1095622,
+    "subdir": "win-64",
+    "timestamp": 1521550912504,
+    "version": "4.5.0"
+  },
+  "conda-4.5.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=3.6,<3.7.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "3621de393a5733763b6bce0e511a28cd",
+    "name": "conda",
+    "sha256": "ccfa9ab800073c1514994f640403fe75f5dd1ba57aa836242a876b959c32c95a",
+    "size": 1087145,
+    "subdir": "win-64",
+    "timestamp": 1521550907747,
+    "version": "4.5.0"
+  },
+  "conda-4.5.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "enum34",
+      "futures",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=2.7,<2.8.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "d650c927c26b789835715bc2a8c917ba",
+    "name": "conda",
+    "sha256": "c122f035a207353d6792923819a89b148fc954aea8bc18216ad4f3baebf2aabe",
+    "size": 1081501,
+    "subdir": "win-64",
+    "timestamp": 1523602024848,
+    "version": "4.5.1"
+  },
+  "conda-4.5.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=3.5,<3.6.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "1b91df2e7e1c45e7d0326b6891eb2730",
+    "name": "conda",
+    "sha256": "17635ce699e86a13d840388bb6ad182522591649f48ca9ad29a9ed1ee33ce0b9",
+    "size": 1091293,
+    "subdir": "win-64",
+    "timestamp": 1523602001135,
+    "version": "4.5.1"
+  },
+  "conda-4.5.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=3.6,<3.7.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "c6a19f24a238429655d1430a2fa5f2e3",
+    "name": "conda",
+    "sha256": "1c6415d60cd1fda8de04ff5e327d352efdddb2396f0b4cfa7c04ab0dbcd7eebb",
+    "size": 1080911,
+    "subdir": "win-64",
+    "timestamp": 1523601998615,
+    "version": "4.5.1"
+  },
+  "conda-4.5.2-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env",
+      "enum34",
+      "futures",
+      "menuinst",
+      "pycosat",
+      "pyopenssl",
+      "python >=2.7,<2.8.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "5057633e814f3ec6acd73a775897c21f",
+    "name": "conda",
+    "sha256": "bd4fedce03bdfb0d2efe3c76ac72410eb1298d5c289a852e3604f377c4e9dbd0",
+    "size": 1081646,
+    "subdir": "win-64",
+    "timestamp": 1524849039313,
+    "version": "4.5.2"
+  },
+  "conda-4.5.2-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env",
+      "menuinst",
+      "pycosat",
+      "pyopenssl",
+      "python >=3.5,<3.6.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "b6ff562dea85d467eb95ebe058d1df47",
+    "name": "conda",
+    "sha256": "78a9ab023e29c7cafcc80c8c4c494af5850e3487915e5230d9e096838eb4f7df",
+    "size": 1090894,
+    "subdir": "win-64",
+    "timestamp": 1524849062192,
+    "version": "4.5.2"
+  },
+  "conda-4.5.2-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env",
+      "menuinst",
+      "pycosat",
+      "pyopenssl",
+      "python >=3.6,<3.7.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "5cfb443015e8ef81bab296fa2027d553",
+    "name": "conda",
+    "sha256": "3a7927978984d87f4b2029c05d98a67c96b8e870a849e11942d25537594c6629",
+    "size": 1080463,
+    "subdir": "win-64",
+    "timestamp": 1524849060270,
+    "version": "4.5.2"
+  },
+  "conda-4.5.3-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "enum34",
+      "futures",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=2.7,<2.8.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "5f608307f94ac0568e5c797d02640742",
+    "name": "conda",
+    "sha256": "a6f873b9da7d259d20e774249560ea2e93c9461d329ec4d143d11d5f993c02fa",
+    "size": 1081201,
+    "subdir": "win-64",
+    "timestamp": 1525724354634,
+    "version": "4.5.3"
+  },
+  "conda-4.5.3-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=3.5,<3.6.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "7690472026dd481c0bcc2b48772fc9da",
+    "name": "conda",
+    "sha256": "66016245807b29758968ec1b5c9d16cff8e8fdc5af2f8e3383af7ba9c21d1eed",
+    "size": 1090672,
+    "subdir": "win-64",
+    "timestamp": 1525724441053,
+    "version": "4.5.3"
+  },
+  "conda-4.5.3-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=3.6,<3.7.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "1b3f4ef79b25e165418ae109d1cba7a0",
+    "name": "conda",
+    "sha256": "50432b463965a52767a1ed4111a4bf8b6fffa6d97b97fed1150cd99f57de6b75",
+    "size": 1080623,
+    "subdir": "win-64",
+    "timestamp": 1525724425238,
+    "version": "4.5.3"
+  },
+  "conda-4.5.4-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "enum34",
+      "futures",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=2.7,<2.8.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "6b776a0f640ac9f0ddb5e893ea7562e7",
+    "name": "conda",
+    "sha256": "f9f5019a19e8691589dd8ef76b11c048e6bfd55828862c46424f26005d1d369f",
+    "size": 1082910,
+    "subdir": "win-64",
+    "timestamp": 1526302601788,
+    "version": "4.5.4"
+  },
+  "conda-4.5.4-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=3.5,<3.6.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "744f12931a8587cdee754ec625aaf846",
+    "name": "conda",
+    "sha256": "1733cd870c78a2361ac54811a1804a0f4e08028c4c270973498674589f5d0512",
+    "size": 1091326,
+    "subdir": "win-64",
+    "timestamp": 1526302608650,
+    "version": "4.5.4"
+  },
+  "conda-4.5.4-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "constrains": [
+      "conda-build >=2.1",
+      "cytoolz >=0.8.1",
+      "setuptools >=31.0.1"
+    ],
+    "depends": [
+      "conda-env >=2.6",
+      "menuinst",
+      "pycosat >=0.6.3",
+      "pyopenssl >=16.2.0",
+      "python >=3.6,<3.7.0a0",
+      "requests >=2.12.4,<3",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "9bc5479e894ec68dee882cab254867d4",
+    "name": "conda",
+    "sha256": "71742122d412df590318908c80eebd1fba6be247d957d0575a4d3aa8f2efc894",
+    "size": 1081096,
+    "subdir": "win-64",
+    "timestamp": 1526302534978,
+    "version": "4.5.4"
+  },
   "conda-build-3.0.22-py27h2bd55a0_0.tar.bz2": {
     "build": "py27h2bd55a0_0",
     "build_number": 0,
@@ -3665,6 +4334,856 @@
     "timestamp": 1513378937300,
     "version": "3.1.6"
   },
+  "conda-build-3.10.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "22726fc74981de3ae5151e13bd7280c0",
+    "name": "conda-build",
+    "sha256": "6cded6b9ee5ddf636db5e738b9a504fbc971e08bc92cf339af1575ade5fc1c9a",
+    "size": 462867,
+    "subdir": "win-64",
+    "timestamp": 1525183932917,
+    "version": "3.10.0"
+  },
+  "conda-build-3.10.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "f78b29942cbeccdbfeeb1fb4908fded4",
+    "name": "conda-build",
+    "sha256": "b94cda56449729157c46cafd46bffc74f8989596ed933569313527e2dfbe5191",
+    "size": 466869,
+    "subdir": "win-64",
+    "timestamp": 1525183890528,
+    "version": "3.10.0"
+  },
+  "conda-build-3.10.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "9cbc4f6b29e1622f1f9347c1a31954cd",
+    "name": "conda-build",
+    "sha256": "204df0a7b23feaec4e40adcaa40ab5f4b48c2227d93716699ae4526cfbe580b7",
+    "size": 461859,
+    "subdir": "win-64",
+    "timestamp": 1525183929089,
+    "version": "3.10.0"
+  },
+  "conda-build-3.10.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "a4c71d5ce06acca49c3f371aa498151b",
+    "name": "conda-build",
+    "sha256": "21ac50e6940ba53d40ad2a6616ef2b98091dc1b63bb35696b6e44b27b4181650",
+    "size": 462974,
+    "subdir": "win-64",
+    "timestamp": 1525209546886,
+    "version": "3.10.1"
+  },
+  "conda-build-3.10.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "0b321ce160b9566ee05fd5355405d7f2",
+    "name": "conda-build",
+    "sha256": "b9506efdb0ca5b5731447a4679cc635684a28bf19ef5a5839a9a3f7082d5680c",
+    "size": 466874,
+    "subdir": "win-64",
+    "timestamp": 1525209531637,
+    "version": "3.10.1"
+  },
+  "conda-build-3.10.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "de197e4fd16aecaf215d71a514c74724",
+    "name": "conda-build",
+    "sha256": "7ead887ce552979197ce652cfb3107cf0f3b6cb5794107fe0d51ffadf2ae7d68",
+    "size": 462948,
+    "subdir": "win-64",
+    "timestamp": 1525209504350,
+    "version": "3.10.1"
+  },
+  "conda-build-3.10.2-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "3eccaecc1a1e9ad0826358ff3a421f69",
+    "name": "conda-build",
+    "sha256": "c497d0c999b870928991ee897b60e3498ee79a621160466f212ca4827b62d319",
+    "size": 463739,
+    "subdir": "win-64",
+    "timestamp": 1525818386335,
+    "version": "3.10.2"
+  },
+  "conda-build-3.10.2-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "13a9b0692fef5d5fb55cf79d2b87c0cc",
+    "name": "conda-build",
+    "sha256": "4256ee03b2f209d03478622c651f87f6be9f4e85422c42f5d73a9e9e6561bf45",
+    "size": 468291,
+    "subdir": "win-64",
+    "timestamp": 1525818181703,
+    "version": "3.10.2"
+  },
+  "conda-build-3.10.2-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "5966b0b8f69b6985c9ecec53bb2c0b12",
+    "name": "conda-build",
+    "sha256": "ef554eb53ef66fee3f009a761134666a50d09ab130caf598df21fd2e82e48124",
+    "size": 462198,
+    "subdir": "win-64",
+    "timestamp": 1525818390704,
+    "version": "3.10.2"
+  },
+  "conda-build-3.10.3-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "e1ae16b05c1196407b370a4a346780f8",
+    "name": "conda-build",
+    "sha256": "c593c3edf9bec45b9ae4d37a937b070b6550ebe219acb9f11eb03be4a80d5bdd",
+    "size": 464453,
+    "subdir": "win-64",
+    "timestamp": 1526585077987,
+    "version": "3.10.3"
+  },
+  "conda-build-3.10.3-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "b42cd113d153f3216ebfa955f50c062b",
+    "name": "conda-build",
+    "sha256": "5cc0df47c466370ed2c2b598b7f22a0de256cb4d581fa53ae8029156c366d250",
+    "size": 468749,
+    "subdir": "win-64",
+    "timestamp": 1526585160194,
+    "version": "3.10.3"
+  },
+  "conda-build-3.10.3-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "3e05e80f69a6afb5038dc5ec92f67afd",
+    "name": "conda-build",
+    "sha256": "39cc203524dfe0ded1242c7649452ce968bde9651370c760ae4932bf13d3b5cb",
+    "size": 468975,
+    "subdir": "win-64",
+    "timestamp": 1526585165956,
+    "version": "3.10.3"
+  },
+  "conda-build-3.10.4-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "24569facd1683d78aad20451fe30c62a",
+    "name": "conda-build",
+    "sha256": "04a5c4b92ee164db6ce0ae00689cb5c3bbe566287b13e485979c23610ab940ce",
+    "size": 464392,
+    "subdir": "win-64",
+    "timestamp": 1526827919405,
+    "version": "3.10.4"
+  },
+  "conda-build-3.10.4-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "dd14bad36a921e438e317e61c669da84",
+    "name": "conda-build",
+    "sha256": "a190fab6e439383a055dd1ff1d9808494d16f0bbbe9661077af03d8d51379b47",
+    "size": 468336,
+    "subdir": "win-64",
+    "timestamp": 1526827846170,
+    "version": "3.10.4"
+  },
+  "conda-build-3.10.4-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "61fb7eb2394d9fd1db9f02ec0e9ccd83",
+    "name": "conda-build",
+    "sha256": "3e77bec1478033a9c727d82cca5e0071d558282d22a7eb30a17fe334037053cc",
+    "size": 463019,
+    "subdir": "win-64",
+    "timestamp": 1526827841858,
+    "version": "3.10.4"
+  },
+  "conda-build-3.10.5-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "2395c3b813c27051d22afb0a61b76764",
+    "name": "conda-build",
+    "sha256": "09e45db09d3f3a843f57782287f8df38329e4f140ab1afe5d6c51a7f81b2a9c3",
+    "size": 465379,
+    "subdir": "win-64",
+    "timestamp": 1527098405459,
+    "version": "3.10.5"
+  },
+  "conda-build-3.10.5-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "c10a7c2e492b1aa1c6bba1e944a3e962",
+    "name": "conda-build",
+    "sha256": "82459a971011418f3f43e6d0917899825dae6f7c9fea8200c2b2380895770d7a",
+    "size": 469286,
+    "subdir": "win-64",
+    "timestamp": 1527098354379,
+    "version": "3.10.5"
+  },
+  "conda-build-3.10.5-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "9bd0cce81f81d27dd3eabc55b1ba0964",
+    "name": "conda-build",
+    "sha256": "4ee5c5f16a183f1c2df7a42c781e09173515e2d0bb69dd75c3327cf59a3cb80e",
+    "size": 463376,
+    "subdir": "win-64",
+    "timestamp": 1527098400084,
+    "version": "3.10.5"
+  },
+  "conda-build-3.10.6-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "39cf60f75d7e3a00a651ae1c3c121ce8",
+    "name": "conda-build",
+    "sha256": "3bd2231aa0139a564b5f369a148d7ba4aa29acdbb39156ddf3d8166ece72c52c",
+    "size": 465505,
+    "subdir": "win-64",
+    "timestamp": 1527826455838,
+    "version": "3.10.6"
+  },
+  "conda-build-3.10.6-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "571867df3f8184a6c76b155fdcd0bab1",
+    "name": "conda-build",
+    "sha256": "c7eab941c5d7f8b5fa7ccd6373df1b9446a1ec774517ba810126584829204a7e",
+    "size": 469943,
+    "subdir": "win-64",
+    "timestamp": 1527826444527,
+    "version": "3.10.6"
+  },
+  "conda-build-3.10.6-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "9ea97ea26874ec37c01d581951cf6f32",
+    "name": "conda-build",
+    "sha256": "072f6400ac2d94314b521f6571fa399403749798ea982443814e88caf7185cad",
+    "size": 463629,
+    "subdir": "win-64",
+    "timestamp": 1527826411430,
+    "version": "3.10.6"
+  },
+  "conda-build-3.10.7-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "7dcb5428269fba27065d79c0e2f3fb7b",
+    "name": "conda-build",
+    "sha256": "9cf64e39943d05106823ba3816693b5e8721238ea8649a365a3fbd5dbe79621f",
+    "size": 465590,
+    "subdir": "win-64",
+    "timestamp": 1527907466191,
+    "version": "3.10.7"
+  },
+  "conda-build-3.10.7-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "43d076d3ef8804aea52c7fa0c8c35356",
+    "name": "conda-build",
+    "sha256": "1af4daf1930fed1988f83dc52aa428a78ac14a41ebdbf7c1393dfcdc4624e6e4",
+    "size": 470405,
+    "subdir": "win-64",
+    "timestamp": 1527907457410,
+    "version": "3.10.7"
+  },
+  "conda-build-3.10.7-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "86736ef46f521a30b1289df9c17cf3c3",
+    "name": "conda-build",
+    "sha256": "2f1c6f2a3d9f982601294497f31770e7b0b8529cad6246de8f06361e3bcfd00e",
+    "size": 464379,
+    "subdir": "win-64",
+    "timestamp": 1527907461174,
+    "version": "3.10.7"
+  },
+  "conda-build-3.10.8-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "b6e9d4ba2f815514d3954c13536a7d73",
+    "name": "conda-build",
+    "sha256": "446a5aac16422c637723c3282aa33fb0614f2c5649387ad68eb735cb1ae8d548",
+    "size": 465806,
+    "subdir": "win-64",
+    "timestamp": 1528812881769,
+    "version": "3.10.8"
+  },
+  "conda-build-3.10.8-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "5a734bf224239da932c6a2b5ee84cf00",
+    "name": "conda-build",
+    "sha256": "761ad3790241693b6b7c2c27522e91ee808f7da9b19c2adac08c4405d7ce07ac",
+    "size": 470348,
+    "subdir": "win-64",
+    "timestamp": 1528812882050,
+    "version": "3.10.8"
+  },
+  "conda-build-3.10.8-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "4edca9e5d7fd3b2447938523c2f2007f",
+    "name": "conda-build",
+    "sha256": "1923be71de66885e0febdebc74b7f767cc12fd4cfff9d57b685469fef7a8336c",
+    "size": 464592,
+    "subdir": "win-64",
+    "timestamp": 1528812972871,
+    "version": "3.10.8"
+  },
+  "conda-build-3.10.9-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "29e740b1403a703a7d5af2d2eea04cb5",
+    "name": "conda-build",
+    "sha256": "f8aa673abfcd800d8329f5a23779fdfef369dd498bdb55e6bebb5ac4b73c8bfb",
+    "size": 465944,
+    "subdir": "win-64",
+    "timestamp": 1529089932670,
+    "version": "3.10.9"
+  },
+  "conda-build-3.10.9-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "87fadd88dd129742eef437d76c337f1c",
+    "name": "conda-build",
+    "sha256": "b4088b23608802cc38647b8e1276af26ce327d9833515dce8027ac8c29d2a494",
+    "size": 470105,
+    "subdir": "win-64",
+    "timestamp": 1529089962641,
+    "version": "3.10.9"
+  },
+  "conda-build-3.10.9-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "d41772374b99381e868c378bc7447307",
+    "name": "conda-build",
+    "sha256": "47c92a79a17874902b0625af7900342156e23ae6a13583c86419a66b5eb36d4b",
+    "size": 464842,
+    "subdir": "win-64",
+    "timestamp": 1529089914065,
+    "version": "3.10.9"
+  },
   "conda-build-3.2.0-py27_0.tar.bz2": {
     "build": "py27_0",
     "build_number": 0,
@@ -4402,6 +5921,686 @@
     "timestamp": 1519330238553,
     "version": "3.5.1"
   },
+  "conda-build-3.6.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "b795b3fea1f0e5ec99cb7a4f5c64f949",
+    "name": "conda-build",
+    "sha256": "3e20d800513e0d6009cb39d6c0ffb36e3ffab39f893fe8bed13125f2dcaedcf0",
+    "size": 455116,
+    "subdir": "win-64",
+    "timestamp": 1519858752622,
+    "version": "3.6.0"
+  },
+  "conda-build-3.6.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "5c7c1850b8f1c62a97af2d5e2e646d93",
+    "name": "conda-build",
+    "sha256": "0548ccbd20385d01b325997f5510ef263b3d18b4ea86787db5d4111cb0c36a44",
+    "size": 456161,
+    "subdir": "win-64",
+    "timestamp": 1519859207145,
+    "version": "3.6.0"
+  },
+  "conda-build-3.6.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "efa430aa11a52c8a4a6a6cf4d568cbf2",
+    "name": "conda-build",
+    "sha256": "1cba058638ffb994435c400bfbc718355f91bc40cbe5ebf5b928947c5a673e1a",
+    "size": 452547,
+    "subdir": "win-64",
+    "timestamp": 1519859181715,
+    "version": "3.6.0"
+  },
+  "conda-build-3.7.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "e64b7de76349b982e646afa9cf727545",
+    "name": "conda-build",
+    "sha256": "e03ef8defefde0b2ee05e77e179644af1837207093af3f3c6505a80f942b71a7",
+    "size": 456419,
+    "subdir": "win-64",
+    "timestamp": 1520262398115,
+    "version": "3.7.0"
+  },
+  "conda-build-3.7.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "8ff6edbcda99d7dd6deece89f56a48be",
+    "name": "conda-build",
+    "sha256": "ded7b7487f36cbb253fba8097092f60397e8ac47c15a5b030ed8764497753719",
+    "size": 458192,
+    "subdir": "win-64",
+    "timestamp": 1520263087258,
+    "version": "3.7.0"
+  },
+  "conda-build-3.7.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "b4f0d70d92c96f28e2920e3f3f22fd3f",
+    "name": "conda-build",
+    "sha256": "45cbdffb23e1be04dfcdeb90a0e9301804063ca6db64b4de216a3f09c506b664",
+    "size": 453464,
+    "subdir": "win-64",
+    "timestamp": 1520263011357,
+    "version": "3.7.0"
+  },
+  "conda-build-3.7.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "8a8f92ac6eb70a4018d3617072e11359",
+    "name": "conda-build",
+    "sha256": "53c6a09b8a94d586113f8d090ef59bd4b0a4285fa7d679480e3178916cc7aac9",
+    "size": 457230,
+    "subdir": "win-64",
+    "timestamp": 1520545542282,
+    "version": "3.7.1"
+  },
+  "conda-build-3.7.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "1a37cc00dd5dc4d39cac11147de2dec5",
+    "name": "conda-build",
+    "sha256": "e3ac9562e07c45d8887e5d7088066109f4fd8011808e73d17088cade529a38c9",
+    "size": 459762,
+    "subdir": "win-64",
+    "timestamp": 1520545561188,
+    "version": "3.7.1"
+  },
+  "conda-build-3.7.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "b7df89178495bf16b78cf1561cdac03f",
+    "name": "conda-build",
+    "sha256": "9b4f361883bd2d11f2fe9db8706b4d15cf362ba02cd2b23f4be41d25d996a86e",
+    "size": 455641,
+    "subdir": "win-64",
+    "timestamp": 1520545540812,
+    "version": "3.7.1"
+  },
+  "conda-build-3.7.2-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "8c63bc65147f2616d5d6a1eaff9abc64",
+    "name": "conda-build",
+    "sha256": "ba10a7b0ed4cadbd10d4178825b236ccac7a0df36f0563cb33b00052edc35fa6",
+    "size": 457875,
+    "subdir": "win-64",
+    "timestamp": 1521746408960,
+    "version": "3.7.2"
+  },
+  "conda-build-3.7.2-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "dd04824780dbf8e20cbdbbf186faf3d1",
+    "name": "conda-build",
+    "sha256": "749ad0fda10f6493781c7a428922e085f224d7b76dcde2cc54f3aa4f0378c1d0",
+    "size": 462242,
+    "subdir": "win-64",
+    "timestamp": 1521746398607,
+    "version": "3.7.2"
+  },
+  "conda-build-3.7.2-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "5af655360a55b2939ee14b016ed39fc4",
+    "name": "conda-build",
+    "sha256": "fbdbda65b8c06133227793c6bf94ed0ff5dbf5a28d82c75cde95e14a8fd95575",
+    "size": 457004,
+    "subdir": "win-64",
+    "timestamp": 1521746410335,
+    "version": "3.7.2"
+  },
+  "conda-build-3.8.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "3ad1c6dac76165c83bdb7d3a14ef8618",
+    "name": "conda-build",
+    "sha256": "cfa055955c9fbe7c85ca5244117060c71327c7828dbc04b65abccfd22e096388",
+    "size": 459192,
+    "subdir": "win-64",
+    "timestamp": 1522428549853,
+    "version": "3.8.0"
+  },
+  "conda-build-3.8.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "f706b78046f63dcb96c220dbe30e5fc9",
+    "name": "conda-build",
+    "sha256": "eca2f6a8de958b5692e51816af64fd61a41a15fbf4e31642c0c5307119daa946",
+    "size": 463670,
+    "subdir": "win-64",
+    "timestamp": 1522428561633,
+    "version": "3.8.0"
+  },
+  "conda-build-3.8.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "2c78f6c961fe635024a930d7eea7b472",
+    "name": "conda-build",
+    "sha256": "cf5b72d083972cce762c419757afff7cc28b1751c9e8cecfe4841b7697d9c347",
+    "size": 457552,
+    "subdir": "win-64",
+    "timestamp": 1522428561336,
+    "version": "3.8.0"
+  },
+  "conda-build-3.8.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "724937b6268c5f9505c757e7b10491a3",
+    "name": "conda-build",
+    "sha256": "313712e8834b234b1635304c9b9f797043592b6f540dc829f92b21529703f872",
+    "size": 459684,
+    "subdir": "win-64",
+    "timestamp": 1523895917678,
+    "version": "3.8.1"
+  },
+  "conda-build-3.8.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "532e62ea6fcfa26053ff3a28abeb1b7e",
+    "name": "conda-build",
+    "sha256": "0d663486cdef4e2882fcb3445ed195ea9e91078cdddec670416103041fbfd482",
+    "size": 463672,
+    "subdir": "win-64",
+    "timestamp": 1523895923542,
+    "version": "3.8.1"
+  },
+  "conda-build-3.8.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "aae0048c5d709ff747c2c0570b4c9743",
+    "name": "conda-build",
+    "sha256": "abbbdab9a640e0688137a27d2595c394912beaf3d69f072ccfd49b04c7e0b820",
+    "size": 458121,
+    "subdir": "win-64",
+    "timestamp": 1523895932202,
+    "version": "3.8.1"
+  },
+  "conda-build-3.9.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "4bf3e72e0d57a8e6b5df0c42309a434d",
+    "name": "conda-build",
+    "sha256": "47753abcc1abc667c357c0023b33c919b1173f5c69a9afe2d19d23d915e2ac05",
+    "size": 463203,
+    "subdir": "win-64",
+    "timestamp": 1524621804938,
+    "version": "3.9.1"
+  },
+  "conda-build-3.9.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "f7b33693a75b16f172b398e609fb00a7",
+    "name": "conda-build",
+    "sha256": "bfc9d0fc39b0d66aaa108026b114679e422527d9edf155c2636b3b0b3e3238ed",
+    "size": 467344,
+    "subdir": "win-64",
+    "timestamp": 1524621788290,
+    "version": "3.9.1"
+  },
+  "conda-build-3.9.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda >=4.3",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "8eb726b1370fb09be91f50c43e9c94c1",
+    "name": "conda-build",
+    "sha256": "16411abc02b532e261256c0e21df838bb36274f6f2495eeed02b3f50d37c1748",
+    "size": 463339,
+    "subdir": "win-64",
+    "timestamp": 1524621836231,
+    "version": "3.9.1"
+  },
+  "conda-build-3.9.2-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda",
+      "conda-verify",
+      "contextlib2",
+      "enum34",
+      "filelock",
+      "futures",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=2.7,<2.8.0a0",
+      "pyyaml",
+      "scandir",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "203e93ab169750d384672191295f821b",
+    "name": "conda-build",
+    "sha256": "7efd281020664863fb53fa63e4cb3a163612ab1bc0f1c00af11359167e00f436",
+    "size": 463654,
+    "subdir": "win-64",
+    "timestamp": 1524862475008,
+    "version": "3.9.2"
+  },
+  "conda-build-3.9.2-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.5,<3.6.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "3cab09659e0f114d4c85b325f17c9389",
+    "name": "conda-build",
+    "sha256": "14580fefbe52addc0e48d627afda9646a957b65e392e6f0bf9f15de8f78ecf67",
+    "size": 467839,
+    "subdir": "win-64",
+    "timestamp": 1524862482633,
+    "version": "3.9.2"
+  },
+  "conda-build-3.9.2-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "beautifulsoup4",
+      "chardet",
+      "conda",
+      "conda-verify",
+      "filelock",
+      "glob2",
+      "jinja2",
+      "pkginfo",
+      "psutil",
+      "python >=3.6,<3.7.0a0",
+      "pyyaml",
+      "six"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "aa0f133c12788321b2eef3f6354d4b2d",
+    "name": "conda-build",
+    "sha256": "338a616f59779b53459c95a88bb50403eb6c97250ed82ba6258c49d1d4c42f0d",
+    "size": 463564,
+    "subdir": "win-64",
+    "timestamp": 1524862480232,
+    "version": "3.9.2"
+  },
   "conda-env-2.6.0-h36134e3_1.tar.bz2": {
     "build": "h36134e3_1",
     "build_number": 1,
@@ -4748,6 +6947,148 @@
     "timestamp": 1512206896764,
     "version": "2.1.4"
   },
+  "cryptography-2.2.1-py27h0c8e037_0.tar.bz2": {
+    "build": "py27h0c8e037_0",
+    "build_number": 0,
+    "depends": [
+      "asn1crypto >=0.21.0",
+      "cffi >=1.7",
+      "enum34",
+      "idna >=2.1",
+      "ipaddress",
+      "openssl 1.0.*",
+      "openssl >=1.0.2n,<1.0.3a",
+      "python >=2.7,<2.8.0a0",
+      "six >=1.4.1",
+      "vc 9.*"
+    ],
+    "license": "Apache 2.0 or BSD 3-Clause, PSF 2",
+    "license_family": "BSD",
+    "md5": "e5f9ee55c16fd67ab8a577f2d1ab760a",
+    "name": "cryptography",
+    "sha256": "2d2dcbc34a817abac8165a0f606e4f5d8997ff3219dbec9bf92812d245193e91",
+    "size": 511797,
+    "subdir": "win-64",
+    "timestamp": 1521784748932,
+    "version": "2.2.1"
+  },
+  "cryptography-2.2.1-py35hfa6e2cd_0.tar.bz2": {
+    "build": "py35hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "asn1crypto >=0.21.0",
+      "cffi >=1.7",
+      "idna >=2.1",
+      "openssl 1.0.*",
+      "openssl >=1.0.2n,<1.0.3a",
+      "python >=3.5,<3.6.0a0",
+      "six >=1.4.1",
+      "vc 14.*"
+    ],
+    "license": "Apache 2.0 or BSD 3-Clause, PSF 2",
+    "license_family": "BSD",
+    "md5": "bc59a860a101f49bd5ebbb3d29a1d8a7",
+    "name": "cryptography",
+    "sha256": "29a64d68ccb6b93519c43471f8bb4d2c1a5d32a3f79475614f21df63ce9cadb7",
+    "size": 529890,
+    "subdir": "win-64",
+    "timestamp": 1521785237058,
+    "version": "2.2.1"
+  },
+  "cryptography-2.2.1-py36hfa6e2cd_0.tar.bz2": {
+    "build": "py36hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "asn1crypto >=0.21.0",
+      "cffi >=1.7",
+      "idna >=2.1",
+      "openssl 1.0.*",
+      "openssl >=1.0.2n,<1.0.3a",
+      "python >=3.6,<3.7.0a0",
+      "six >=1.4.1",
+      "vc 14.*"
+    ],
+    "license": "Apache 2.0 or BSD 3-Clause, PSF 2",
+    "license_family": "BSD",
+    "md5": "d0aa0103df8e26d2c950b5b7b2482f79",
+    "name": "cryptography",
+    "sha256": "370f7f32a830e11a81fcf40d7691ef35d22f7e5939e5402a6734d85801848b83",
+    "size": 527421,
+    "subdir": "win-64",
+    "timestamp": 1521784943993,
+    "version": "2.2.1"
+  },
+  "cryptography-2.2.2-py27h0c8e037_0.tar.bz2": {
+    "build": "py27h0c8e037_0",
+    "build_number": 0,
+    "depends": [
+      "asn1crypto >=0.21.0",
+      "cffi >=1.7",
+      "enum34",
+      "idna >=2.1",
+      "ipaddress",
+      "openssl 1.0.*",
+      "openssl >=1.0.2o,<1.0.3a",
+      "python >=2.7,<2.8.0a0",
+      "six >=1.4.1",
+      "vc 9.*"
+    ],
+    "license": "Apache 2.0 or BSD 3-Clause, PSF 2",
+    "license_family": "BSD",
+    "md5": "ef02fdac0456e27a4f885a412fe2ce38",
+    "name": "cryptography",
+    "sha256": "1efb973d0797d859d21e6c0886e2f7b854442eb69e5c21e30e64a973498b1ced",
+    "size": 512378,
+    "subdir": "win-64",
+    "timestamp": 1522685355901,
+    "version": "2.2.2"
+  },
+  "cryptography-2.2.2-py35hfa6e2cd_0.tar.bz2": {
+    "build": "py35hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "asn1crypto >=0.21.0",
+      "cffi >=1.7",
+      "idna >=2.1",
+      "openssl 1.0.*",
+      "openssl >=1.0.2o,<1.0.3a",
+      "python >=3.5,<3.6.0a0",
+      "six >=1.4.1",
+      "vc 14.*"
+    ],
+    "license": "Apache 2.0 or BSD 3-Clause, PSF 2",
+    "license_family": "BSD",
+    "md5": "62ef25eaa7ed0e8648a20d6621bb81f3",
+    "name": "cryptography",
+    "sha256": "36ea0168ee105495e332fdd57487d03f47af344fc01bbadd7f9ea113d773d2c0",
+    "size": 530647,
+    "subdir": "win-64",
+    "timestamp": 1522684959887,
+    "version": "2.2.2"
+  },
+  "cryptography-2.2.2-py36hfa6e2cd_0.tar.bz2": {
+    "build": "py36hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "asn1crypto >=0.21.0",
+      "cffi >=1.7",
+      "idna >=2.1",
+      "openssl 1.0.*",
+      "openssl >=1.0.2o,<1.0.3a",
+      "python >=3.6,<3.7.0a0",
+      "six >=1.4.1",
+      "vc 14.*"
+    ],
+    "license": "Apache 2.0 or BSD 3-Clause, PSF 2",
+    "license_family": "BSD",
+    "md5": "6c1619f6f7148d57f472db8950185b78",
+    "name": "cryptography",
+    "sha256": "a94314e80af378c916f83c7000220081510f5421fc6a166c229cb75cf452706b",
+    "size": 528020,
+    "subdir": "win-64",
+    "timestamp": 1522685185188,
+    "version": "2.2.2"
+  },
   "cytoolz-0.8.2-py27h44eb5fa_0.tar.bz2": {
     "build": "py27h44eb5fa_0",
     "build_number": 0,
@@ -4850,6 +7191,57 @@
     "timestamp": 1515794319086,
     "version": "0.9.0"
   },
+  "cytoolz-0.9.0.1-py27h0c8e037_0.tar.bz2": {
+    "build": "py27h0c8e037_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "toolz >=0.8.0",
+      "vc 9.*"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "446dadfea33281ca2f3f40484d9acf95",
+    "name": "cytoolz",
+    "sha256": "fdb524bef8e615eb666b55894cf3ba52a3d2cddebf77394b7ca4f838e8562ef8",
+    "size": 333869,
+    "subdir": "win-64",
+    "timestamp": 1520378062988,
+    "version": "0.9.0.1"
+  },
+  "cytoolz-0.9.0.1-py35hfa6e2cd_0.tar.bz2": {
+    "build": "py35hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "toolz >=0.8.0",
+      "vc 14.*"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "42b5d9b0e61f0c9d43f84d31b0004582",
+    "name": "cytoolz",
+    "sha256": "5125a84193bc152896d6e6f4055e91418b47d7772e55fc5f1e246a99d72fc776",
+    "size": 330302,
+    "subdir": "win-64",
+    "timestamp": 1520374373289,
+    "version": "0.9.0.1"
+  },
+  "cytoolz-0.9.0.1-py36hfa6e2cd_0.tar.bz2": {
+    "build": "py36hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "toolz >=0.8.0",
+      "vc 14.*"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "b5bd007ab2e07bacf6cf2a7be7957db5",
+    "name": "cytoolz",
+    "sha256": "c6cb748522e35827b51efa92247a8bfbd71d533324f150681765a2372a2b7392",
+    "size": 334120,
+    "subdir": "win-64",
+    "timestamp": 1520374050824,
+    "version": "0.9.0.1"
+  },
   "db4-cos6-x86_64-4.7.25-h9c48133_0.tar.bz2": {
     "build": "h9c48133_0",
     "build_number": 0,
@@ -4945,6 +7337,102 @@
     "subdir": "win-64",
     "timestamp": 1506368692429,
     "version": "0.2.5"
+  },
+  "distlib-0.2.6-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "Python Software Foundation License",
+    "license_family": "OTHER",
+    "md5": "3141ee45ec0f180dcad8d83d6878ff62",
+    "name": "distlib",
+    "sha256": "b3771c55cb5aad21f5bbdcc814aa7afc1258a7f335627926740a3a2a9dc224ad",
+    "size": 371967,
+    "subdir": "win-64",
+    "timestamp": 1519834704949,
+    "version": "0.2.6"
+  },
+  "distlib-0.2.6-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0"
+    ],
+    "license": "Python Software Foundation License",
+    "license_family": "OTHER",
+    "md5": "05e3d5a2bf72d06bbafcce8a1a1d8e24",
+    "name": "distlib",
+    "sha256": "ba6017f830f9ae9ebeee5a22f950c2d21185832e938dc0af3f02a0e06b1c0451",
+    "size": 390976,
+    "subdir": "win-64",
+    "timestamp": 1519832880106,
+    "version": "0.2.6"
+  },
+  "distlib-0.2.6-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "Python Software Foundation License",
+    "license_family": "OTHER",
+    "md5": "8b2bbb82724ce8a9ae9ba475969ac4c7",
+    "name": "distlib",
+    "sha256": "4537d812a149c52c9bab03e39d1b1f63ac1bf3ee3aaa7f76d79320d27d3bd4fc",
+    "size": 388633,
+    "subdir": "win-64",
+    "timestamp": 1519832864766,
+    "version": "0.2.6"
+  },
+  "distlib-0.2.7-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "Python Software Foundation License",
+    "license_family": "OTHER",
+    "md5": "3550f101dfdfedf44218645350e7dccc",
+    "name": "distlib",
+    "sha256": "e573d880e239cba30b2986583be4e4f219632b3b9df6d47ad8222f95104162f6",
+    "size": 371547,
+    "subdir": "win-64",
+    "timestamp": 1524498459508,
+    "version": "0.2.7"
+  },
+  "distlib-0.2.7-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0"
+    ],
+    "license": "Python Software Foundation License",
+    "license_family": "OTHER",
+    "md5": "72585744f20c74ad4a5b1bf2f3562fe7",
+    "name": "distlib",
+    "sha256": "65570a1fd06edea3e25bba40f235674ce8fda93ba6ed3eb3c1687e1742b3375d",
+    "size": 392290,
+    "subdir": "win-64",
+    "timestamp": 1524498454563,
+    "version": "0.2.7"
+  },
+  "distlib-0.2.7-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "Python Software Foundation License",
+    "license_family": "OTHER",
+    "md5": "4944185eb0d10068d56e603941bb9a4f",
+    "name": "distlib",
+    "sha256": "683cfbb7927b0d3f14251302151c6138b509d4c2bad1ebf2ea12ef91599f52b0",
+    "size": 390158,
+    "subdir": "win-64",
+    "timestamp": 1524498418265,
+    "version": "0.2.7"
   },
   "enum34-1.1.6-py27h2aa175b_1.tar.bz2": {
     "build": "py27h2aa175b_1",
@@ -5513,6 +8001,21 @@
     "timestamp": 1518361629061,
     "version": "0.19.8.1"
   },
+  "gettext-cos6-i686-0.17-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "GPLv3 and LGPLv2+",
+    "license_family": "GPL3",
+    "md5": "b6e55a5c5f14672ce5e50f05ff278359",
+    "name": "gettext-cos6-i686",
+    "noarch": "generic",
+    "sha256": "08008afaceae862288ae0cbc9e849cb0fc8f0ec97cde259d7faaabec238db482",
+    "size": 2237693,
+    "subdir": "noarch",
+    "timestamp": 1522691160990,
+    "version": "0.17"
+  },
   "gettext-cos6-x86_64-0.17-h5b04455_0.tar.bz2": {
     "build": "h5b04455_0",
     "build_number": 0,
@@ -5544,6 +8047,24 @@
     "subdir": "noarch",
     "timestamp": 1518361639960,
     "version": "0.19.8.1"
+  },
+  "gettext-devel-cos6-i686-0.17-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "gettext-cos6-i686 0.17",
+      "gettext-libs-cos6-i686 0.17"
+    ],
+    "license": "LGPL (>= 2)",
+    "license_family": "LGPL",
+    "md5": "f2eb70acd02fc0d25db7179154d1f4b0",
+    "name": "gettext-devel-cos6-i686",
+    "noarch": "generic",
+    "sha256": "76ce337016d5c7730a56c202dde4bc84cb5cf6c8534eded978d531e6f8f896c4",
+    "size": 137451,
+    "subdir": "noarch",
+    "timestamp": 1522691292094,
+    "version": "0.17"
   },
   "gettext-devel-cos6-x86_64-0.17-h611b9c9_0.tar.bz2": {
     "build": "h611b9c9_0",
@@ -5582,6 +8103,21 @@
     "timestamp": 1518361646421,
     "version": "0.19.8.1"
   },
+  "gettext-libs-cos6-i686-0.17-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "LGPL (>= 2)",
+    "license_family": "LGPL",
+    "md5": "b35c6ce99d111fe5713e5c1bf6fbcdee",
+    "name": "gettext-libs-cos6-i686",
+    "noarch": "generic",
+    "sha256": "a4ec50cc08c08a2c8417b53b49bc22610aad35909f5e625fb842d2b7a45ba000",
+    "size": 110328,
+    "subdir": "noarch",
+    "timestamp": 1522691154281,
+    "version": "0.17"
+  },
   "gettext-libs-cos6-x86_64-0.17-h1747f9e_0.tar.bz2": {
     "build": "h1747f9e_0",
     "build_number": 0,
@@ -5611,6 +8147,36 @@
     "subdir": "noarch",
     "timestamp": 1518361632747,
     "version": "0.19.8.1"
+  },
+  "glib-networking-cos6-i686-2.28.6.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "LGPL (>= 2)",
+    "license_family": "LGPL",
+    "md5": "0a14fe0a21c4ed1d15122279c8eac136",
+    "name": "glib-networking-cos6-i686",
+    "noarch": "generic",
+    "sha256": "4146a2ea8e99e70f392a91c73f136b6cb73e4453d5cf3a2282f5116b4244a58c",
+    "size": 65391,
+    "subdir": "noarch",
+    "timestamp": 1520567843281,
+    "version": "2.28.6.1"
+  },
+  "glib-networking-cos6-x86_64-2.28.6.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "LGPL (>= 2)",
+    "license_family": "LGPL",
+    "md5": "005b83353c9f00fe8c0237265fd3033d",
+    "name": "glib-networking-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "a1022d253980555bf0bed94abe610ce22330d4d5e979e00ea873749e119c70e2",
+    "size": 65525,
+    "subdir": "noarch",
+    "timestamp": 1520530077785,
+    "version": "2.28.6.1"
   },
   "glib2-cos6-i686-2.28.8-h6f7d4d3_0.tar.bz2": {
     "build": "h6f7d4d3_0",
@@ -6089,6 +8655,51 @@
     "timestamp": 1506046513049,
     "version": "2.6"
   },
+  "idna-2.7-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD Like",
+    "md5": "a5005f5c65fbbbd0beead55d192187af",
+    "name": "idna",
+    "sha256": "3a545e971c275fa82bbdf56f5a22a5e6106db025fecc7ae5cdfe7c73ba1e87f5",
+    "size": 135049,
+    "subdir": "win-64",
+    "timestamp": 1528923731291,
+    "version": "2.7"
+  },
+  "idna-2.7-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0"
+    ],
+    "license": "BSD Like",
+    "md5": "3d5a9399a96671b3515482ec89563fdc",
+    "name": "idna",
+    "sha256": "72c13f9af5b46a7424ab976465e0a801c3a8da23776ddf67562aca79390c6440",
+    "size": 136716,
+    "subdir": "win-64",
+    "timestamp": 1528923729243,
+    "version": "2.7"
+  },
+  "idna-2.7-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD Like",
+    "md5": "a296fd058971b640666f84e45eb7f0ff",
+    "name": "idna",
+    "sha256": "1e983b564ac81b0f103a7f2756fa6ec6198eb7f296ff2d1739b03ede41ab827f",
+    "size": 135134,
+    "subdir": "win-64",
+    "timestamp": 1528923695784,
+    "version": "2.7"
+  },
   "ipaddress-1.0.18-py27h08e1fa7_0.tar.bz2": {
     "build": "py27h08e1fa7_0",
     "build_number": 0,
@@ -6120,6 +8731,22 @@
     "subdir": "win-64",
     "timestamp": 1515704582734,
     "version": "1.0.19"
+  },
+  "ipaddress-1.0.22-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "PSF 2",
+    "license_family": "PSF",
+    "md5": "c82eeed9f805b12a9d94a0f1868b9f5e",
+    "name": "ipaddress",
+    "sha256": "1ec5e3a9c46bb1f1e66f1af0124109411d403a10da3c611ea1b1156a67b955ab",
+    "size": 33782,
+    "subdir": "win-64",
+    "timestamp": 1523974824267,
+    "version": "1.0.22"
   },
   "itsdangerous-0.24-py_0.tar.bz2": {
     "arch": null,
@@ -6580,6 +9207,70 @@
     "timestamp": 1505744665839,
     "version": "1.2.1"
   },
+  "libpng-cos6-i686-1.2.49-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "zlib",
+    "license_family": "Other",
+    "md5": "68d3d2fa64b5de5a9057916cbd62620c",
+    "name": "libpng-cos6-i686",
+    "noarch": "generic",
+    "sha256": "20026b7929fc36f746e552c9d39a65758f9c4e8c3e8c360c7db3e98e94b2d5c3",
+    "size": 194055,
+    "subdir": "noarch",
+    "timestamp": 1520567842732,
+    "version": "1.2.49"
+  },
+  "libpng-cos6-x86_64-1.2.49-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "zlib",
+    "license_family": "Other",
+    "md5": "9b5eb674408f61312e27b86ee774c1f9",
+    "name": "libpng-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "a6601688918ea22e89f30638fd833c6b5835e677b87f2f513b5050ca383fe43b",
+    "size": 192830,
+    "subdir": "noarch",
+    "timestamp": 1520530077681,
+    "version": "1.2.49"
+  },
+  "libpng-devel-cos6-i686-1.2.49-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libpng-cos6-i686 1.2.49"
+    ],
+    "license": "zlib",
+    "license_family": "Other",
+    "md5": "d692a3155ed1d4a496a3ece4f0cb320c",
+    "name": "libpng-devel-cos6-i686",
+    "noarch": "generic",
+    "sha256": "fb79c5b8720673d4f319ecb2a9edb8462d5aee7634e7d3b2edf4607ed40f06eb",
+    "size": 103535,
+    "subdir": "noarch",
+    "timestamp": 1520567852066,
+    "version": "1.2.49"
+  },
+  "libpng-devel-cos6-x86_64-1.2.49-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libpng-cos6-x86_64 1.2.49"
+    ],
+    "license": "zlib",
+    "license_family": "Other",
+    "md5": "44f14e9b8ad88d4d2af4393991dad447",
+    "name": "libpng-devel-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "4186d8d90099cadb27c87df1d8d0ee49b5b2cf156091838fc90ae1b53a3a24d8",
+    "size": 103880,
+    "subdir": "noarch",
+    "timestamp": 1520530136040,
+    "version": "1.2.49"
+  },
   "libselinux-cos6-i686-2.0.94-h4d9577c_0.tar.bz2": {
     "build": "h4d9577c_0",
     "build_number": 0,
@@ -6778,6 +9469,76 @@
     "timestamp": 1505853612098,
     "version": "1.2.1"
   },
+  "libsoup-cos6-i686-2.34.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "glib-networking-cos6-i686 >=2.27.90"
+    ],
+    "license": "LGPLv2",
+    "license_family": "LGPL",
+    "md5": "53530d663f299b4d4630118088684c1b",
+    "name": "libsoup-cos6-i686",
+    "noarch": "generic",
+    "sha256": "5c5456d90587c65195b08e93295d6195b35ecea356eb2ecf1e6ea42f5111cb55",
+    "size": 192729,
+    "subdir": "noarch",
+    "timestamp": 1520567909816,
+    "version": "2.34.3"
+  },
+  "libsoup-cos6-x86_64-2.34.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "glib-networking-cos6-x86_64 >=2.27.90"
+    ],
+    "license": "LGPLv2",
+    "license_family": "LGPL",
+    "md5": "02614af857dd974c7fdc39501d712fd0",
+    "name": "libsoup-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "44fde41c3b59a6d734e428b7d7fe6573a5031a29eb77d68b1a532ab8e7775c55",
+    "size": 197495,
+    "subdir": "noarch",
+    "timestamp": 1520530139002,
+    "version": "2.34.3"
+  },
+  "libsoup-devel-cos6-i686-2.34.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "glib2-devel-cos6-i686 >=2.27.90",
+      "libsoup-cos6-i686 2.34.3"
+    ],
+    "license": "LGPLv2",
+    "license_family": "LGPL",
+    "md5": "51d2eafeec858d8b73326a1b7426d12d",
+    "name": "libsoup-devel-cos6-i686",
+    "noarch": "generic",
+    "sha256": "86170b472ff091a661c79375106a24bda2dccb2777a9d1e3831293d377b7a6ed",
+    "size": 137791,
+    "subdir": "noarch",
+    "timestamp": 1520567989270,
+    "version": "2.34.3"
+  },
+  "libsoup-devel-cos6-x86_64-2.34.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "glib2-devel-cos6-x86_64 >=2.27.90",
+      "libsoup-cos6-x86_64 2.34.3"
+    ],
+    "license": "LGPLv2",
+    "license_family": "LGPL",
+    "md5": "2ac916797ff5849acb5b395d0eb0c2ba",
+    "name": "libsoup-devel-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "fc2cec2079d0e3014dcbce14450c7957a99530a6a19925722ba1d8ae4d0fd491",
+    "size": 137894,
+    "subdir": "noarch",
+    "timestamp": 1520530204752,
+    "version": "2.34.3"
+  },
   "libthai-cos6-i686-0.1.12-he4dd3fe_0.tar.bz2": {
     "build": "he4dd3fe_0",
     "build_number": 0,
@@ -6836,6 +9597,38 @@
     "size": 11732,
     "subdir": "noarch",
     "timestamp": 1505853604137,
+    "version": "2.17.2"
+  },
+  "libuuid-devel-cos6-i686-2.17.2-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libuuid-cos6-i686 ==2.17.2"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "b505574c5227687097d34ef1a46f42fa",
+    "name": "libuuid-devel-cos6-i686",
+    "sha256": "2db902f276bd04d8c04fc86e4a92c0aa4fef40055e1aaaa567b97a2067f3f66c",
+    "size": 28915,
+    "subdir": "noarch",
+    "timestamp": 1527884173604,
+    "version": "2.17.2"
+  },
+  "libuuid-devel-cos6-x86_64-2.17.2-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libuuid-cos6-x86_64 ==2.17.2"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "a18e75ab6e1a46bafa2ce5e8439e3129",
+    "name": "libuuid-devel-cos6-x86_64",
+    "sha256": "4ec59ca37580bc8707cdf495f77e90a7e2fda32e248692d3fe961c7cd19a6e0b",
+    "size": 29231,
+    "subdir": "noarch",
+    "timestamp": 1527884107162,
     "version": "2.17.2"
   },
   "libx11-common-cos6-i686-1.6.4-h4fe2c13_0.tar.bz2": {
@@ -7288,6 +10081,40 @@
     "timestamp": 1505735542251,
     "version": "1.1.3"
   },
+  "libxdamage-devel-cos6-i686-1.1.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libxdamage-cos6-i686 ==1.1.3"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "eff1f850344132021bdc8fc88925d24e",
+    "name": "libxdamage-devel-cos6-i686",
+    "noarch": "generic",
+    "sha256": "a3736770454a0f02c1f1950416e95128c1e5788a7c1871c99c7a1dee8a03b77e",
+    "size": 5279,
+    "subdir": "noarch",
+    "timestamp": 1520184431649,
+    "version": "1.1.3"
+  },
+  "libxdamage-devel-cos6-x86_64-1.1.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libxdamage-cos6-x86_64 ==1.1.3"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "b65e2402a7277baef3a4e1e612e51463",
+    "name": "libxdamage-devel-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "0ea373d4b21c29ba18b22adb8938e8a612d4319633b46aaa2f1c862f25f55031",
+    "size": 5285,
+    "subdir": "noarch",
+    "timestamp": 1520184440938,
+    "version": "1.1.3"
+  },
   "libxext-cos6-i686-1.3.3-h20c84a7_0.tar.bz2": {
     "build": "h20c84a7_0",
     "build_number": 0,
@@ -7424,6 +10251,40 @@
     "timestamp": 1505735538544,
     "version": "5.0.3"
   },
+  "libxfixes-devel-cos6-i686-5.0.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libxfixes-cos6-i686 ==5.0.3"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "6d62c1a678466c020df3dc13ed0abdfe",
+    "name": "libxfixes-devel-cos6-i686",
+    "noarch": "generic",
+    "sha256": "36f9f2528168dcd20d2fa74c289fe170c1699e65319adbe340a1d9b453395581",
+    "size": 8876,
+    "subdir": "noarch",
+    "timestamp": 1519924198900,
+    "version": "5.0.3"
+  },
+  "libxfixes-devel-cos6-x86_64-5.0.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libxfixes-cos6-x86_64 ==5.0.3"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "2a0ac18289b85d78de5dd3a8275e2a09",
+    "name": "libxfixes-devel-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "20df67a02465d24e29fd819ad6303dc012c9073716610908cadd05f374721ce1",
+    "size": 8902,
+    "subdir": "noarch",
+    "timestamp": 1519924206619,
+    "version": "5.0.3"
+  },
   "libxft-cos6-i686-2.3.2-0.tar.bz2": {
     "build": "0",
     "build_number": 0,
@@ -7525,6 +10386,74 @@
     "subdir": "noarch",
     "timestamp": 1505735596781,
     "version": "1.7.8"
+  },
+  "libxinerama-cos6-i686-1.1.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libx11-cos6-i686 >=1.5.99.902"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "a3bcfe5eeb951998d8257bb1a7a93f00",
+    "name": "libxinerama-cos6-i686",
+    "noarch": "generic",
+    "sha256": "956b9c19180e04e0e2eea2ea7b99068712360e51511552de50137145221acfe8",
+    "size": 8775,
+    "subdir": "noarch",
+    "timestamp": 1520567845666,
+    "version": "1.1.3"
+  },
+  "libxinerama-cos6-x86_64-1.1.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libx11-cos6-x86_64 >=1.5.99.902"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "7c200f0d0166419af4fb578335e2f3e6",
+    "name": "libxinerama-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "9329ba0d9bca76164666449996427c0bc7f4afbfc0a3d02307df99eee29f7f2f",
+    "size": 9022,
+    "subdir": "noarch",
+    "timestamp": 1520530080161,
+    "version": "1.1.3"
+  },
+  "libxinerama-devel-cos6-i686-1.1.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libxinerama-cos6-i686 1.1.3"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "ef693e65d0bc3f82c6d05b94557c4e10",
+    "name": "libxinerama-devel-cos6-i686",
+    "noarch": "generic",
+    "sha256": "f2b40a560650b27154ee436c35adcf6f6e06d5e8d5b4e0b26b6497840ccaad68",
+    "size": 9013,
+    "subdir": "noarch",
+    "timestamp": 1520567852183,
+    "version": "1.1.3"
+  },
+  "libxinerama-devel-cos6-x86_64-1.1.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libxinerama-cos6-x86_64 1.1.3"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "24c38bdeb4ec496b6634a29500d05bbc",
+    "name": "libxinerama-devel-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "eb274a1f6821026e4889c8bd57571442cfb0a47dd295c960eeb7be9a51a60c1d",
+    "size": 9249,
+    "subdir": "noarch",
+    "timestamp": 1520530135829,
+    "version": "1.1.3"
   },
   "libxrandr-cos6-i686-1.5.1-h95c9a06_0.tar.bz2": {
     "build": "h95c9a06_0",
@@ -7930,6 +10859,40 @@
     "timestamp": 1505735534720,
     "version": "1.1.3"
   },
+  "libxxf86vm-devel-cos6-i686-1.1.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libxxf86vm-cos6-i686 1.1.3"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "e6d5685879bb7ca5ede8690cddbc5efa",
+    "name": "libxxf86vm-devel-cos6-i686",
+    "noarch": "generic",
+    "sha256": "a720845e30f2a50c422013f0c27b0d9ff1875e9f3e92bfc58f6ef1e04cddeee1",
+    "size": 11594,
+    "subdir": "noarch",
+    "timestamp": 1520567847124,
+    "version": "1.1.3"
+  },
+  "libxxf86vm-devel-cos6-x86_64-1.1.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libxxf86vm-cos6-x86_64 1.1.3"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "33f70641e2439667fef7d27c8658a47a",
+    "name": "libxxf86vm-devel-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "88c5e1267b5cb90303bc79cb47e83697e24b4cd98bd23884f6c3d6388ab4c76e",
+    "size": 11855,
+    "subdir": "noarch",
+    "timestamp": 1520568526017,
+    "version": "1.1.3"
+  },
   "lockfile-0.12.2-py27hcad0c83_0.tar.bz2": {
     "build": "py27hcad0c83_0",
     "build_number": 0,
@@ -8128,6 +11091,159 @@
     "timestamp": 1518023553960,
     "version": "1.4.11"
   },
+  "menuinst-1.4.12-py27h0c8e037_0.tar.bz2": {
+    "build": "py27h0c8e037_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "pywin32",
+      "vc 9.*"
+    ],
+    "license": "BSD",
+    "md5": "94b9f9611ed343a3cfdcd9c3e7bc75ba",
+    "name": "menuinst",
+    "sha256": "048a6b389dfe8b19cb98f85491d40bdf56603a8ff337fe2dac5285b1a61d7fce",
+    "size": 92214,
+    "subdir": "win-64",
+    "timestamp": 1526042979886,
+    "version": "1.4.12"
+  },
+  "menuinst-1.4.12-py35hfa6e2cd_0.tar.bz2": {
+    "build": "py35hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "pywin32",
+      "vc 14.*"
+    ],
+    "license": "BSD",
+    "md5": "c91d53c36f830edd673cfc39b0d16172",
+    "name": "menuinst",
+    "sha256": "9a82a3819411b4c8c69782277c624b5ae9266c69820be4d4e9a25063ca0e164b",
+    "size": 94651,
+    "subdir": "win-64",
+    "timestamp": 1526042970028,
+    "version": "1.4.12"
+  },
+  "menuinst-1.4.12-py36hfa6e2cd_0.tar.bz2": {
+    "build": "py36hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "pywin32",
+      "vc 14.*"
+    ],
+    "license": "BSD",
+    "md5": "d502863d2984bdb6eff7bb9a24f48657",
+    "name": "menuinst",
+    "sha256": "a94fc0b793bb91a447f8af06ff780e7e094f13274f7af27a6a8167a5c19528b8",
+    "size": 94493,
+    "subdir": "win-64",
+    "timestamp": 1526042943574,
+    "version": "1.4.12"
+  },
+  "menuinst-1.4.13-py27h0c8e037_0.tar.bz2": {
+    "build": "py27h0c8e037_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "pywin32",
+      "vc 9.*"
+    ],
+    "license": "BSD",
+    "md5": "dd4ac7ad9ae4645990e4adb2173eef38",
+    "name": "menuinst",
+    "sha256": "6fdb0a0ab12221b01b27bde5b9cb86e3ea31d95e452df5dc75f4550607d3227a",
+    "size": 91735,
+    "subdir": "win-64",
+    "timestamp": 1527095822609,
+    "version": "1.4.13"
+  },
+  "menuinst-1.4.13-py35hfa6e2cd_0.tar.bz2": {
+    "build": "py35hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "pywin32",
+      "vc 14.*"
+    ],
+    "license": "BSD",
+    "md5": "3fe79652a9d0a8160be5f449648f9aa6",
+    "name": "menuinst",
+    "sha256": "ca4993a53a2ea222976d3f8d57ec9a4782c6f449affb442c26fee43351e0e089",
+    "size": 94221,
+    "subdir": "win-64",
+    "timestamp": 1527095815241,
+    "version": "1.4.13"
+  },
+  "menuinst-1.4.13-py36hfa6e2cd_0.tar.bz2": {
+    "build": "py36hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "pywin32",
+      "vc 14.*"
+    ],
+    "license": "BSD",
+    "md5": "60f3d22c224aea2cac4d6a306421fb3d",
+    "name": "menuinst",
+    "sha256": "0ed55f36bc9750da6c696d1d1fdd0af982ef80bb34b48a10c9f43346c8c51c9b",
+    "size": 93954,
+    "subdir": "win-64",
+    "timestamp": 1527095849321,
+    "version": "1.4.13"
+  },
+  "menuinst-1.4.14-py27h0c8e037_0.tar.bz2": {
+    "build": "py27h0c8e037_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "pywin32",
+      "vc 9.*"
+    ],
+    "license": "BSD",
+    "md5": "52a565eed3ed94d8c96f42350b8a2cc6",
+    "name": "menuinst",
+    "sha256": "c74ca54007aef0f9457e7416659948c480f2d534997cbcb68cbb9ca33a05f144",
+    "size": 91636,
+    "subdir": "win-64",
+    "timestamp": 1527646092905,
+    "version": "1.4.14"
+  },
+  "menuinst-1.4.14-py35hfa6e2cd_0.tar.bz2": {
+    "build": "py35hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "pywin32",
+      "vc 14.*"
+    ],
+    "license": "BSD",
+    "md5": "dee45e0d18e071c5bc09b94151b6a60f",
+    "name": "menuinst",
+    "sha256": "3ce850813e69a382c420fad8cce4869adc651dc258d90bb899434c4862a94946",
+    "size": 94158,
+    "subdir": "win-64",
+    "timestamp": 1527646079243,
+    "version": "1.4.14"
+  },
+  "menuinst-1.4.14-py36hfa6e2cd_0.tar.bz2": {
+    "build": "py36hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "pywin32",
+      "vc 14.*"
+    ],
+    "license": "BSD",
+    "md5": "54b76a809e1ee60fd1475ecd88c4749c",
+    "name": "menuinst",
+    "sha256": "d1c9edda95dd98c50c03f0493cedae5deecb22093978d02487094078cdbf1d02",
+    "size": 94028,
+    "subdir": "win-64",
+    "timestamp": 1527646084114,
+    "version": "1.4.14"
+  },
   "menuinst-1.4.8-py27h66acc81_0.tar.bz2": {
     "build": "py27h66acc81_0",
     "build_number": 0,
@@ -8305,6 +11421,34 @@
     "size": 17323,
     "subdir": "noarch",
     "timestamp": 1505735804625,
+    "version": "11.0.7"
+  },
+  "mesa-libgbm-cos6-i686-11.0.7-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "aa2df2048b82482d3f9c1521a3be91d1",
+    "name": "mesa-libgbm-cos6-i686",
+    "sha256": "93478a016b04fe36ecbd2f80f7d3f3376b2ec76b5d8cf1c72b6819f68c2d11e7",
+    "size": 33034,
+    "subdir": "noarch",
+    "timestamp": 1521801808753,
+    "version": "11.0.7"
+  },
+  "mesa-libgbm-cos6-x86_64-11.0.7-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "fcf88092f8c7495b11ee2eecfda2cc22",
+    "name": "mesa-libgbm-cos6-x86_64",
+    "sha256": "d4049339df916e66c014d9a6abb21b9d680d529a1e916cb3d2a52426fc3f27f7",
+    "size": 33429,
+    "subdir": "noarch",
+    "timestamp": 1521801826783,
     "version": "11.0.7"
   },
   "mesa-libgl-cos6-i686-11.0.7-h8f8d5c3_0.tar.bz2": {
@@ -8562,6 +11706,57 @@
     "timestamp": 1519498274335,
     "version": "0.5.5"
   },
+  "msgpack-python-0.5.6-py27hdc96acc_0.tar.bz2": {
+    "build": "py27hdc96acc_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "vc 9.*"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "17dfa7cc64f0cb05a894cdba09929a45",
+    "name": "msgpack-python",
+    "sha256": "4515b749a77286dbbd759ec2d2567c776638861d81bc7ddcc71a73af6ae2e741",
+    "size": 81567,
+    "subdir": "win-64",
+    "timestamp": 1522178264677,
+    "version": "0.5.6"
+  },
+  "msgpack-python-0.5.6-py35he980bc4_0.tar.bz2": {
+    "build": "py35he980bc4_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "vc 14.*"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "7dc79a0fc995a9549448fde9e41ef0f4",
+    "name": "msgpack-python",
+    "sha256": "0f1c68f0cc0e9e1479f80c30a3a52f51761e1d41491d2597b4b9c82ead64e787",
+    "size": 82596,
+    "subdir": "win-64",
+    "timestamp": 1522178453285,
+    "version": "0.5.6"
+  },
+  "msgpack-python-0.5.6-py36he980bc4_0.tar.bz2": {
+    "build": "py36he980bc4_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "vc 14.*"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "45e768c1e43feb12436158ffce2fefed",
+    "name": "msgpack-python",
+    "sha256": "87dd6c911f1c371253835d9a8f765725f584b43979675522b4a2fc0bba066dab",
+    "size": 83227,
+    "subdir": "win-64",
+    "timestamp": 1522178446713,
+    "version": "0.5.6"
+  },
   "needs-spiffy-test-app-1.0-py_0.tar.bz2": {
     "arch": null,
     "binstar": {
@@ -8758,6 +11953,40 @@
     "timestamp": 1512663051058,
     "version": "1.0.2n"
   },
+  "openssl-1.0.2o-h2c51139_0.tar.bz2": {
+    "build": "h2c51139_0",
+    "build_number": 0,
+    "depends": [
+      "ca-certificates",
+      "vc 9.*"
+    ],
+    "license": "OpenSSL",
+    "license_family": "Apache",
+    "md5": "4b7e8e9cd22968dd0ab17f9af8d8be3a",
+    "name": "openssl",
+    "sha256": "c6e6b85bd75062136250b0149e41b07a4283994cb3c79d7ab59dba9ecd28228a",
+    "size": 4895231,
+    "subdir": "win-64",
+    "timestamp": 1522163207138,
+    "version": "1.0.2o"
+  },
+  "openssl-1.0.2o-h8ea7d77_0.tar.bz2": {
+    "build": "h8ea7d77_0",
+    "build_number": 0,
+    "depends": [
+      "ca-certificates",
+      "vc 14.*"
+    ],
+    "license": "OpenSSL",
+    "license_family": "Apache",
+    "md5": "241f93b61195cfd548f8757bf66ef3dc",
+    "name": "openssl",
+    "sha256": "3dc63b2c3d5621adb0727d0b4fa9e79500aa0e3b397739221eaea79467ef307d",
+    "size": 5626254,
+    "subdir": "win-64",
+    "timestamp": 1522163348868,
+    "version": "1.0.2o"
+  },
   "orbit2-cos6-i686-2.14.17-ha6ea919_0.tar.bz2": {
     "build": "ha6ea919_0",
     "build_number": 0,
@@ -8898,6 +12127,122 @@
     "subdir": "win-64",
     "timestamp": 1506048392119,
     "version": "16.8"
+  },
+  "packaging-17.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "pyparsing",
+      "python >=2.7,<2.8.0a0",
+      "six"
+    ],
+    "license": "Apache 2.0 or BSD 2-Clause",
+    "md5": "2a17293a711c9b957a4d51c2cd2c4027",
+    "name": "packaging",
+    "sha256": "c8d58992459c5c78ee6bcfbe55ffbd0c8fe26d853f00102b8a81cbb26be64c21",
+    "size": 33405,
+    "subdir": "win-64",
+    "timestamp": 1520367635534,
+    "version": "17.1"
+  },
+  "packaging-17.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "pyparsing",
+      "python >=3.5,<3.6.0a0",
+      "six"
+    ],
+    "license": "Apache 2.0 or BSD 2-Clause",
+    "md5": "cd7a616fd289434b46e4e286ef543e59",
+    "name": "packaging",
+    "sha256": "f67b947ec3a33c4f1d3d0f13b1c33cc03c7d2cff51b1b3b54c188a2d3d6b8d33",
+    "size": 34366,
+    "subdir": "win-64",
+    "timestamp": 1520366671290,
+    "version": "17.1"
+  },
+  "packaging-17.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "pyparsing",
+      "python >=3.6,<3.7.0a0",
+      "six"
+    ],
+    "license": "Apache 2.0 or BSD 2-Clause",
+    "md5": "aeb380e8fda5a5ddfbe08ba16e0a4bc5",
+    "name": "packaging",
+    "sha256": "57f2c044eac8cf6a5ce3ab36257dad8e093de18250a321fdc9161b8e9fe72a98",
+    "size": 34160,
+    "subdir": "win-64",
+    "timestamp": 1520367638081,
+    "version": "17.1"
+  },
+  "pam-cos6-i686-1.1.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "audit-libs-cos6-i686 >=1.0.8",
+      "libselinux-cos6-i686 >=1.33.2"
+    ],
+    "license": "BSD and GPLv2+",
+    "license_family": "GPL2",
+    "md5": "3b042272d017b3d85f8b666a690a79ef",
+    "name": "pam-cos6-i686",
+    "sha256": "954221ac0216f419397437fc1393cc33de3f0fc0dd0c47b392e3f4c16ae7ddd3",
+    "size": 636033,
+    "subdir": "noarch",
+    "timestamp": 1522716353144,
+    "version": "1.1.1"
+  },
+  "pam-cos6-x86_64-1.1.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "libselinux-cos6-x86_64 >=1.33.2"
+    ],
+    "license": "BSD and GPLv2+",
+    "license_family": "GPL2",
+    "md5": "ea5f179239feda101a94457f69663eab",
+    "name": "pam-cos6-x86_64",
+    "sha256": "312cb8db7d0cab7cc865386bc9d48160f0452265311f838684e290e4cad24b60",
+    "size": 635046,
+    "subdir": "noarch",
+    "timestamp": 1522716369248,
+    "version": "1.1.1"
+  },
+  "pam-devel-cos6-i686-1.1.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "pam-cos6-i686 ==1.1.1"
+    ],
+    "license": "BSD and GPLv2+",
+    "license_family": "GPL2",
+    "md5": "4e76203e06f36922de389436ca425458",
+    "name": "pam-devel-cos6-i686",
+    "sha256": "b577027752992b13579d0d21904478139e06b14067c102954155be5d6be104a8",
+    "size": 146505,
+    "subdir": "noarch",
+    "timestamp": 1522716382210,
+    "version": "1.1.1"
+  },
+  "pam-devel-cos6-x86_64-1.1.1-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "pam-cos6-x86_64 ==1.1.1"
+    ],
+    "license": "BSD and GPLv2+",
+    "license_family": "GPL2",
+    "md5": "c7042f694d25d7063564bb06455aa948",
+    "name": "pam-devel-cos6-x86_64",
+    "sha256": "f97b9da51f4c22795a460e2e1e72fde6f2fa0fc6d43de7c1c284c100c93374b4",
+    "size": 146648,
+    "subdir": "noarch",
+    "timestamp": 1522716394396,
+    "version": "1.1.1"
   },
   "pango-cos6-i686-1.28.1-h4031259_0.tar.bz2": {
     "build": "h4031259_0",
@@ -9045,6 +12390,78 @@
     "timestamp": 1505735577234,
     "version": "3.1.10"
   },
+  "pip-10.0.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "setuptools",
+      "wheel"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "007be1a1a1ce2b79a168356ce7568b34",
+    "name": "pip",
+    "sha256": "f2e5726570034f336f3a429441b83796ae1a2a65e10a5a739b5211de3a05b763",
+    "size": 1838552,
+    "subdir": "win-64",
+    "timestamp": 1524227040900,
+    "version": "10.0.1"
+  },
+  "pip-10.0.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "setuptools",
+      "wheel"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "913b4dd97a7902e9c6a4f8f7c1bf5ea3",
+    "name": "pip",
+    "sha256": "2302c2dd91446081a66e6691173073b709893f218f35be38313a3c659f9b947f",
+    "size": 1904012,
+    "subdir": "win-64",
+    "timestamp": 1524227041619,
+    "version": "10.0.1"
+  },
+  "pip-10.0.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "setuptools",
+      "wheel"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "61db32787a812aabffe126d4e1b5d293",
+    "name": "pip",
+    "sha256": "2de2b75f281914eb235fcafcea9ba8d836d78dfabdde77be5c9db94f37c4bf0d",
+    "size": 1901328,
+    "subdir": "win-64",
+    "timestamp": 1524227315699,
+    "version": "10.0.1"
+  },
+  "pip-9.0.1-py27_5.tar.bz2": {
+    "build": "py27_5",
+    "build_number": 5,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "setuptools",
+      "wheel"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "32e906472f14cc4450fa03e0295dca93",
+    "name": "pip",
+    "sha256": "28b091b08173df4f40f4411af54813dcf5555e20151893d4b3207589fea483c2",
+    "size": 2474637,
+    "subdir": "win-64",
+    "timestamp": 1519845871725,
+    "version": "9.0.1"
+  },
   "pip-9.0.1-py27hdaa76b4_4.tar.bz2": {
     "build": "py27hdaa76b4_4",
     "build_number": 4,
@@ -9088,6 +12505,24 @@
     "size": 376797,
     "subdir": "win-64",
     "timestamp": 1506369041282,
+    "version": "9.0.1"
+  },
+  "pip-9.0.1-py35_5.tar.bz2": {
+    "build": "py35_5",
+    "build_number": 5,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "setuptools",
+      "wheel"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "73d86056dc692d73fab0c57755bf922b",
+    "name": "pip",
+    "sha256": "29b2aa00c39f3e596251c98ef35441736dab10f75ee67d1c519f3ca185fb6ef5",
+    "size": 2681096,
+    "subdir": "win-64",
+    "timestamp": 1519846417088,
     "version": "9.0.1"
   },
   "pip-9.0.1-py35h691316f_4.tar.bz2": {
@@ -9135,6 +12570,24 @@
     "timestamp": 1506369087104,
     "version": "9.0.1"
   },
+  "pip-9.0.1-py36_5.tar.bz2": {
+    "build": "py36_5",
+    "build_number": 5,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "setuptools",
+      "wheel"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "6be9d47217271e2c56375bc99971eadb",
+    "name": "pip",
+    "sha256": "91eacf1baca79109e6933ecdead42346edc4fef108275c695d5ee2acf79c6045",
+    "size": 2637114,
+    "subdir": "win-64",
+    "timestamp": 1519845875830,
+    "version": "9.0.1"
+  },
   "pip-9.0.1-py36h226ae91_4.tar.bz2": {
     "build": "py36h226ae91_4",
     "build_number": 4,
@@ -9179,6 +12632,60 @@
     "subdir": "win-64",
     "timestamp": 1506369127284,
     "version": "9.0.1"
+  },
+  "pip-9.0.3-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "setuptools",
+      "wheel"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "3604f70112335b6c23636f3d1f244893",
+    "name": "pip",
+    "sha256": "e50b1ea163793d3932a1d2cc848f933d55b5d157ba349169bf1e575d0c27deac",
+    "size": 2503538,
+    "subdir": "win-64",
+    "timestamp": 1522444510016,
+    "version": "9.0.3"
+  },
+  "pip-9.0.3-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "setuptools",
+      "wheel"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "bb1defff12d3525b5126f474e668c38c",
+    "name": "pip",
+    "sha256": "3de2694c515f869bea1f95e97031269bd5576eb89aaf81993bda3575bc1538c3",
+    "size": 2471376,
+    "subdir": "win-64",
+    "timestamp": 1522444557838,
+    "version": "9.0.3"
+  },
+  "pip-9.0.3-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "setuptools",
+      "wheel"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "cf3b4083b0919e88058d7ef0c6c89dd7",
+    "name": "pip",
+    "sha256": "f611f65571081adc10be1835f43f0caf13a9026e0cb49f33b19ee7fad8abb324",
+    "size": 2428897,
+    "subdir": "win-64",
+    "timestamp": 1522444571780,
+    "version": "9.0.3"
   },
   "pixman-cos6-i686-0.32.8-h37b48cf_0.tar.bz2": {
     "build": "h37b48cf_0",
@@ -9321,6 +12828,54 @@
     "subdir": "win-64",
     "timestamp": 1505980705020,
     "version": "1.4.1"
+  },
+  "pkginfo-1.4.2-py27_1.tar.bz2": {
+    "build": "py27_1",
+    "build_number": 1,
+    "depends": [
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "8085b8d748f18a320d6aabaf0516e5fa",
+    "name": "pkginfo",
+    "sha256": "b4ad8ea4795b0a0884d8ac64e2b52ebf8f4168fd0d502bf1ee47d9e83545f898",
+    "size": 56584,
+    "subdir": "win-64",
+    "timestamp": 1522082846690,
+    "version": "1.4.2"
+  },
+  "pkginfo-1.4.2-py35_1.tar.bz2": {
+    "build": "py35_1",
+    "build_number": 1,
+    "depends": [
+      "python >=3.5,<3.6.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "8629f1212c3e55a31a893117475d4c09",
+    "name": "pkginfo",
+    "sha256": "af241b50feaad1d713d8e2186bd8282b2f692a21bc3380d6e9d55a6f197fc879",
+    "size": 58373,
+    "subdir": "win-64",
+    "timestamp": 1522082492216,
+    "version": "1.4.2"
+  },
+  "pkginfo-1.4.2-py36_1.tar.bz2": {
+    "build": "py36_1",
+    "build_number": 1,
+    "depends": [
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "1994c7bdf7560a4a5abf8437e8d5c89f",
+    "name": "pkginfo",
+    "sha256": "4a8552c5be284a9e20a78a14f7413c741a94de818f0b7c67f565925f8be68a8b",
+    "size": 57988,
+    "subdir": "win-64",
+    "timestamp": 1522082495336,
+    "version": "1.4.2"
   },
   "progress-1.3-py27hcb558ea_0.tar.bz2": {
     "build": "py27hcb558ea_0",
@@ -9615,6 +13170,108 @@
     "subdir": "win-64",
     "timestamp": 1515707344726,
     "version": "5.4.3"
+  },
+  "psutil-5.4.5-py27h0c8e037_0.tar.bz2": {
+    "build": "py27h0c8e037_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "vc 9.*"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "61e4c690731d77f899c67b8f6395972e",
+    "name": "psutil",
+    "sha256": "8c04589c98d76fae7a0b2d007fa356badbb8397addeda3d46604042a00fc3f23",
+    "size": 320369,
+    "subdir": "win-64",
+    "timestamp": 1523906605006,
+    "version": "5.4.5"
+  },
+  "psutil-5.4.5-py35hfa6e2cd_0.tar.bz2": {
+    "build": "py35hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "vc 14.*"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "0f2b7a4288f2df03dd8c9656fc109916",
+    "name": "psutil",
+    "sha256": "83b656e390c941a7939019b526d2f4c034ef8275d7dbf9b52981212ed14ef45e",
+    "size": 331489,
+    "subdir": "win-64",
+    "timestamp": 1523906589830,
+    "version": "5.4.5"
+  },
+  "psutil-5.4.5-py36hfa6e2cd_0.tar.bz2": {
+    "build": "py36hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "vc 14.*"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "3e0226f43a531d091b0d743c98e58b94",
+    "name": "psutil",
+    "sha256": "26c7ad41496329fbdab121dfb6d1358e9282bd951504d6a78dc3667aa44cb075",
+    "size": 329289,
+    "subdir": "win-64",
+    "timestamp": 1523906602395,
+    "version": "5.4.5"
+  },
+  "psutil-5.4.6-py27h0c8e037_0.tar.bz2": {
+    "build": "py27h0c8e037_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "vc 9.*"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "ee75bdedf5bd3372fa019f655cb0f770",
+    "name": "psutil",
+    "sha256": "64cd1a6f1b65b8a2ef5f269ef8a2bb3189b11f8638393e8012d7ff1ab2879647",
+    "size": 319330,
+    "subdir": "win-64",
+    "timestamp": 1528895067691,
+    "version": "5.4.6"
+  },
+  "psutil-5.4.6-py35hfa6e2cd_0.tar.bz2": {
+    "build": "py35hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "vc 14.*"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "25d9ec061ef85de1c83c85041bd91305",
+    "name": "psutil",
+    "sha256": "e5026f5dcfb94363a6c27fef70a047db6839ed659571926e612d4142dd7b3dd9",
+    "size": 331208,
+    "subdir": "win-64",
+    "timestamp": 1528895002385,
+    "version": "5.4.6"
+  },
+  "psutil-5.4.6-py36hfa6e2cd_0.tar.bz2": {
+    "build": "py36hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "vc 14.*"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "c373e5c51e9df1dce2035992bf032db1",
+    "name": "psutil",
+    "sha256": "b5ba4d867b50cba36feef0908e89b6533206d7212e36aad4e96f28ddc253abd8",
+    "size": 329098,
+    "subdir": "win-64",
+    "timestamp": 1528895044832,
+    "version": "5.4.6"
   },
   "pycosat-0.6.2-py27h96ae2ec_1.tar.bz2": {
     "build": "py27h96ae2ec_1",
@@ -9922,6 +13579,60 @@
     "timestamp": 1512209440642,
     "version": "17.5.0"
   },
+  "pyopenssl-18.0.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "cryptography >=2.2.1",
+      "python >=2.7,<2.8.0a0",
+      "six >=1.5.2"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "aa88dea18570a068e419b31ef0533760",
+    "name": "pyopenssl",
+    "sha256": "725e6c4df694240d24b369ad445e67da29e46d85654a6aef58faeda73bc3511b",
+    "size": 82405,
+    "subdir": "win-64",
+    "timestamp": 1526618091886,
+    "version": "18.0.0"
+  },
+  "pyopenssl-18.0.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "cryptography >=2.2.1",
+      "python >=3.5,<3.6.0a0",
+      "six >=1.5.2"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "774cd49f53efc8fa99d9ee209b6345c8",
+    "name": "pyopenssl",
+    "sha256": "cecad6e8e1116c99e4994e5da26e30a82b394c4c05e980f1e1909079188fa488",
+    "size": 84617,
+    "subdir": "win-64",
+    "timestamp": 1526618198974,
+    "version": "18.0.0"
+  },
+  "pyopenssl-18.0.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "cryptography >=2.2.1",
+      "python >=3.6,<3.7.0a0",
+      "six >=1.5.2"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "bd7e3baa410bf847f3894803cd7cd771",
+    "name": "pyopenssl",
+    "sha256": "210c715c5ccf4c293ead9272a5669b4bf639443f66938f390eb2792cbea2f390",
+    "size": 84534,
+    "subdir": "win-64",
+    "timestamp": 1526618056167,
+    "version": "18.0.0"
+  },
   "pyparsing-2.2.0-py27hc7d9fa6_1.tar.bz2": {
     "build": "py27hc7d9fa6_1",
     "build_number": 1,
@@ -10165,6 +13876,36 @@
     "timestamp": 1509129166031,
     "version": "2.7.14"
   },
+  "python-2.7.14-h4a10d90_30.tar.bz2": {
+    "build": "h4a10d90_30",
+    "build_number": 30,
+    "depends": [
+      "vc 9.*"
+    ],
+    "license": "PSF",
+    "md5": "e159f975d7f8a64e7a00240a1215543b",
+    "name": "python",
+    "sha256": "94c139d4ca10900b3c2f50dc832de6e48ed6ccb3610f60b0d7833d0fc8291647",
+    "size": 21666649,
+    "subdir": "win-64",
+    "timestamp": 1520858660806,
+    "version": "2.7.14"
+  },
+  "python-2.7.14-h4a10d90_31.tar.bz2": {
+    "build": "h4a10d90_31",
+    "build_number": 31,
+    "depends": [
+      "vc 9.*"
+    ],
+    "license": "PSF",
+    "md5": "eb785c612d2c2d0533d906c5b176e8fb",
+    "name": "python",
+    "sha256": "9a6c9be469898f6e0d5033eeeedc0716d4d2b8ce1af185acc1f973769f7957b7",
+    "size": 21627903,
+    "subdir": "win-64",
+    "timestamp": 1522172371197,
+    "version": "2.7.14"
+  },
   "python-2.7.14-h59f5a59_20.tar.bz2": {
     "build": "h59f5a59_20",
     "build_number": 20,
@@ -10211,6 +13952,21 @@
     "subdir": "win-64",
     "timestamp": 1510177659953,
     "version": "2.7.14"
+  },
+  "python-2.7.15-he216670_0.tar.bz2": {
+    "build": "he216670_0",
+    "build_number": 0,
+    "depends": [
+      "vc 9.*"
+    ],
+    "license": "PSF",
+    "md5": "6b0f3ee4c16796ea475392e6d266ebf8",
+    "name": "python",
+    "sha256": "0b8e52932a7d1a04e0223785a1ca6e8f1866f1c3778a20a0fec8b4de779eb1f4",
+    "size": 21987341,
+    "subdir": "win-64",
+    "timestamp": 1525218272661,
+    "version": "2.7.15"
   },
   "python-3.5.4-h1357f44_23.tar.bz2": {
     "build": "h1357f44_23",
@@ -10290,6 +14046,51 @@
     "subdir": "win-64",
     "timestamp": 1506795197602,
     "version": "3.5.4"
+  },
+  "python-3.5.5-h0c2934d_0.tar.bz2": {
+    "build": "h0c2934d_0",
+    "build_number": 0,
+    "depends": [
+      "vc 14.*"
+    ],
+    "license": "PSF",
+    "md5": "8ad6055b6f5486bc2c16520f9e6f5131",
+    "name": "python",
+    "sha256": "20a069ffb7bfc52498a36449b297014363035d084f4275d3dd966e02c6cde82a",
+    "size": 19458132,
+    "subdir": "win-64",
+    "timestamp": 1520621451884,
+    "version": "3.5.5"
+  },
+  "python-3.5.5-h0c2934d_1.tar.bz2": {
+    "build": "h0c2934d_1",
+    "build_number": 1,
+    "depends": [
+      "vc 14.*"
+    ],
+    "license": "PSF",
+    "md5": "912db05cdf9c92a2e25a7154dd053853",
+    "name": "python",
+    "sha256": "9c230e48727cb704605ec0a2acbc6bd39201af3fa264c5ea1c97b23066bdf682",
+    "size": 19461571,
+    "subdir": "win-64",
+    "timestamp": 1520894990249,
+    "version": "3.5.5"
+  },
+  "python-3.5.5-h0c2934d_2.tar.bz2": {
+    "build": "h0c2934d_2",
+    "build_number": 2,
+    "depends": [
+      "vc 14.*"
+    ],
+    "license": "PSF",
+    "md5": "8c4eb7eb7fd4fbfdcc1f34191818bc05",
+    "name": "python",
+    "sha256": "6ac170570c13b1ef24e422a45f9fec4b860b0695b5eb88bbf17b8d5696b1f823",
+    "size": 19089945,
+    "subdir": "win-64",
+    "timestamp": 1523097599464,
+    "version": "3.5.5"
   },
   "python-3.6.2-h09676a0_15.tar.bz2": {
     "build": "h09676a0_15",
@@ -10386,6 +14187,36 @@
     "timestamp": 1508063519302,
     "version": "3.6.3"
   },
+  "python-3.6.4-h0c2934d_2.tar.bz2": {
+    "build": "h0c2934d_2",
+    "build_number": 2,
+    "depends": [
+      "vc 14.*"
+    ],
+    "license": "PSF",
+    "md5": "5142c7571ac6cb6352fa3909473f4bd5",
+    "name": "python",
+    "sha256": "5045d5d5eb28a83ae38b11c05dc9834d10bbae8749933aac7c0618572978f17e",
+    "size": 22406374,
+    "subdir": "win-64",
+    "timestamp": 1520603299163,
+    "version": "3.6.4"
+  },
+  "python-3.6.4-h0c2934d_3.tar.bz2": {
+    "build": "h0c2934d_3",
+    "build_number": 3,
+    "depends": [
+      "vc 14.*"
+    ],
+    "license": "PSF",
+    "md5": "5056b6e19b948def7093ea7952c082c9",
+    "name": "python",
+    "sha256": "ca3d1f88ae6d21c51901f23ea5f091ddb3bf46d5162398d04aecff8e0f0261ab",
+    "size": 22405576,
+    "subdir": "win-64",
+    "timestamp": 1520904303943,
+    "version": "3.6.4"
+  },
   "python-3.6.4-h6538335_0.tar.bz2": {
     "build": "h6538335_0",
     "build_number": 0,
@@ -10415,6 +14246,21 @@
     "subdir": "win-64",
     "timestamp": 1516127261125,
     "version": "3.6.4"
+  },
+  "python-3.6.5-h0c2934d_0.tar.bz2": {
+    "build": "h0c2934d_0",
+    "build_number": 0,
+    "depends": [
+      "vc 14.*"
+    ],
+    "license": "PSF",
+    "md5": "92397b334c1f0510a1eba0928475f3a1",
+    "name": "python",
+    "sha256": "ed6148dc1916f5a3af6836f012a2edbc7b7400917b731783854a1ed12e41f3fb",
+    "size": 22646508,
+    "subdir": "win-64",
+    "timestamp": 1522348688205,
+    "version": "3.6.5"
   },
   "pywin32-221-py27h5035e5b_0.tar.bz2": {
     "build": "py27h5035e5b_0",
@@ -10511,6 +14357,102 @@
     "subdir": "win-64",
     "timestamp": 1516981354485,
     "version": "222"
+  },
+  "pywin32-223-py27h0c8e037_0.tar.bz2": {
+    "build": "py27h0c8e037_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "vc 9.*"
+    ],
+    "license": "PSF",
+    "md5": "952076d848b506d6ca311d5af3228bd5",
+    "name": "pywin32",
+    "sha256": "d1e9ef733d7a439d08f8af132179d97afe891eb0907b849f166230c54166c277",
+    "size": 13245376,
+    "subdir": "win-64",
+    "timestamp": 1522456847159,
+    "version": "223"
+  },
+  "pywin32-223-py27h0c8e037_1.tar.bz2": {
+    "build": "py27h0c8e037_1",
+    "build_number": 1,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "vc 9.*"
+    ],
+    "license": "PSF",
+    "md5": "d7cc278e03a80514e91a65846312058d",
+    "name": "pywin32",
+    "sha256": "483a92012e3734676cad899443b57ab13b2e2020c9016db1da5ff78516b9aa60",
+    "size": 13245367,
+    "subdir": "win-64",
+    "timestamp": 1525826153650,
+    "version": "223"
+  },
+  "pywin32-223-py35hfa6e2cd_0.tar.bz2": {
+    "build": "py35hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "vc 14.*"
+    ],
+    "license": "PSF",
+    "md5": "b7a55be99c4c69f9786553fff96a5546",
+    "name": "pywin32",
+    "sha256": "fca305c47dd80a84b3ef21baf67f3ca5b8350370b69920574396c7acad28bc2a",
+    "size": 9542746,
+    "subdir": "win-64",
+    "timestamp": 1522456866069,
+    "version": "223"
+  },
+  "pywin32-223-py35hfa6e2cd_1.tar.bz2": {
+    "build": "py35hfa6e2cd_1",
+    "build_number": 1,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "vc 14.*"
+    ],
+    "license": "PSF",
+    "md5": "b11e3977085c313797c4b939e331a09a",
+    "name": "pywin32",
+    "sha256": "db252879e7242e16ee775cfe5d9f88d9df72d76681cbe723f38cf3a883ee221f",
+    "size": 9544637,
+    "subdir": "win-64",
+    "timestamp": 1525826095345,
+    "version": "223"
+  },
+  "pywin32-223-py36hfa6e2cd_0.tar.bz2": {
+    "build": "py36hfa6e2cd_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "vc 14.*"
+    ],
+    "license": "PSF",
+    "md5": "1cbb6219855402cfb47d588adb3af303",
+    "name": "pywin32",
+    "sha256": "b3b6d286dbdc86a73bcde33a2043a418fcc05a9472180c54c7628b0e3debdd94",
+    "size": 9724694,
+    "subdir": "win-64",
+    "timestamp": 1522457962905,
+    "version": "223"
+  },
+  "pywin32-223-py36hfa6e2cd_1.tar.bz2": {
+    "build": "py36hfa6e2cd_1",
+    "build_number": 1,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "vc 14.*"
+    ],
+    "license": "PSF",
+    "md5": "2b054becb70649e0b2207410e2513cbc",
+    "name": "pywin32",
+    "sha256": "132100707537d7a8ffc8e4a87ef2e0f2c808a26cb268c387f06c38c808f16c75",
+    "size": 9723156,
+    "subdir": "win-64",
+    "timestamp": 1525826075282,
+    "version": "223"
   },
   "pyyaml-3.12-py27ha287073_1.tar.bz2": {
     "build": "py27ha287073_1",
@@ -10622,6 +14564,63 @@
     "subdir": "win-64",
     "timestamp": 1505869769277,
     "version": "2.18.4"
+  },
+  "requests-2.19.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2017.4.17",
+      "chardet >=3.0.2,<3.1.0",
+      "idna >=2.5,<2.8",
+      "python >=2.7,<2.8.0a0",
+      "urllib3 >=1.21.1,<1.24"
+    ],
+    "license": "Apache 2.0",
+    "md5": "f5712aae15ec8c3ead737ec0aac556d5",
+    "name": "requests",
+    "sha256": "3c701d9ab4e361d83ca085adeeb3a310cfa8712aa7f13e6ee9ba8e609709c112",
+    "size": 97363,
+    "subdir": "win-64",
+    "timestamp": 1529357586085,
+    "version": "2.19.1"
+  },
+  "requests-2.19.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2017.4.17",
+      "chardet >=3.0.2,<3.1.0",
+      "idna >=2.5,<2.8",
+      "python >=3.5,<3.6.0a0",
+      "urllib3 >=1.21.1,<1.24"
+    ],
+    "license": "Apache 2.0",
+    "md5": "36145527cd306bcc4073b5808d26d5ee",
+    "name": "requests",
+    "sha256": "2592e73b30f061cba45dc3b885d5f115c189a35b2dc53129a12ba4e0b225b876",
+    "size": 98949,
+    "subdir": "win-64",
+    "timestamp": 1529357578478,
+    "version": "2.19.1"
+  },
+  "requests-2.19.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2017.4.17",
+      "chardet >=3.0.2,<3.1.0",
+      "idna >=2.5,<2.8",
+      "python >=3.6,<3.7.0a0",
+      "urllib3 >=1.21.1,<1.24"
+    ],
+    "license": "Apache 2.0",
+    "md5": "80b9dabd66fce9413b320472442cefc6",
+    "name": "requests",
+    "sha256": "ff0e875c7a0fc8d586c7ff756e7bdd5809a659596dedfb042ee2e50a7b2a05ce",
+    "size": 98537,
+    "subdir": "win-64",
+    "timestamp": 1529357555437,
+    "version": "2.19.1"
   },
   "ruamel_yaml-0.11.14-py27hce2a281_2.tar.bz2": {
     "build": "py27hce2a281_2",
@@ -10790,6 +14789,114 @@
     "subdir": "win-64",
     "timestamp": 1516390828026,
     "version": "0.15.35"
+  },
+  "ruamel_yaml-0.15.37-py27h0c8e037_2.tar.bz2": {
+    "build": "py27h0c8e037_2",
+    "build_number": 2,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "vc 9.*",
+      "yaml >=0.1.7,<0.2.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "6386160816b96770ba1198d3a802acf1",
+    "name": "ruamel_yaml",
+    "sha256": "356960c2ea01bd8129b4739ee63e05fa35e7b43a771c62c12b11ace8dc04801c",
+    "size": 264052,
+    "subdir": "win-64",
+    "timestamp": 1528212563364,
+    "version": "0.15.37"
+  },
+  "ruamel_yaml-0.15.37-py35hfa6e2cd_2.tar.bz2": {
+    "build": "py35hfa6e2cd_2",
+    "build_number": 2,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "vc 14.*",
+      "yaml >=0.1.7,<0.2.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "25ebbcd56930233224710995ad8d8e4a",
+    "name": "ruamel_yaml",
+    "sha256": "fed8b99aa39716d925d5f17c4d9e1f82700df54eee8d49c867761e3b05b58bc2",
+    "size": 264322,
+    "subdir": "win-64",
+    "timestamp": 1528212673915,
+    "version": "0.15.37"
+  },
+  "ruamel_yaml-0.15.37-py36hfa6e2cd_2.tar.bz2": {
+    "build": "py36hfa6e2cd_2",
+    "build_number": 2,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "vc 14.*",
+      "yaml >=0.1.7,<0.2.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "1ec9b55f380fe437c065b16e561aa04a",
+    "name": "ruamel_yaml",
+    "sha256": "ade739bf71e8fbc70de1efdc08592e10861349faa31f221315adbb5258d88708",
+    "size": 266623,
+    "subdir": "win-64",
+    "timestamp": 1528212638814,
+    "version": "0.15.37"
+  },
+  "ruamel_yaml-0.15.40-py27h0c8e037_2.tar.bz2": {
+    "build": "py27h0c8e037_2",
+    "build_number": 2,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "vc 9.*",
+      "yaml >=0.1.7,<0.2.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "c8886c91cca9e568d403b52c161b3114",
+    "name": "ruamel_yaml",
+    "sha256": "45cfc4fed3291e018fcfee02cef04901d97222322c958b55d1828717a78a54b7",
+    "size": 265046,
+    "subdir": "win-64",
+    "timestamp": 1529356186206,
+    "version": "0.15.40"
+  },
+  "ruamel_yaml-0.15.40-py35hfa6e2cd_2.tar.bz2": {
+    "build": "py35hfa6e2cd_2",
+    "build_number": 2,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "vc 14.*",
+      "yaml >=0.1.7,<0.2.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "1c9307f2c8159358d3e7320e07127d55",
+    "name": "ruamel_yaml",
+    "sha256": "8f45ec8dd04f41659506e607556cf9505de3ae6d43290d61ea4719652f2d2721",
+    "size": 265502,
+    "subdir": "win-64",
+    "timestamp": 1529356252107,
+    "version": "0.15.40"
+  },
+  "ruamel_yaml-0.15.40-py36hfa6e2cd_2.tar.bz2": {
+    "build": "py36hfa6e2cd_2",
+    "build_number": 2,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "vc 14.*",
+      "yaml >=0.1.7,<0.2.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "018137e701223f2f5ebc4a8032d3b33a",
+    "name": "ruamel_yaml",
+    "sha256": "47ca9f7effbb148f54fc1fd2a54574e7348f8e2c0c3b2b1e4419fc188498463d",
+    "size": 267637,
+    "subdir": "win-64",
+    "timestamp": 1529356153564,
+    "version": "0.15.40"
   },
   "ruby-cos6-x86_64-1.8.7.374-hcae872f_0.tar.bz2": {
     "build": "hcae872f_0",
@@ -11086,6 +15193,168 @@
     "subdir": "win-64",
     "timestamp": 1519147906821,
     "version": "38.5.1"
+  },
+  "setuptools-39.0.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2016.09",
+      "python >=2.7,<2.8.0a0",
+      "wincertstore >=0.2"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "3d0c7cd0a583847aac3ea57b3f1348c1",
+    "name": "setuptools",
+    "sha256": "86fc8a9e212cb2f5294e40b2bc2fdd827e48b124fd91d1dbedbe5968c97e3bef",
+    "size": 613109,
+    "subdir": "win-64",
+    "timestamp": 1522338366914,
+    "version": "39.0.1"
+  },
+  "setuptools-39.0.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2016.09",
+      "python >=3.5,<3.6.0a0",
+      "wincertstore >=0.2"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "d196973708f6a23f37fe84d77f86ddd4",
+    "name": "setuptools",
+    "sha256": "0b4bbc50213053d14d32a5c0573c9649ae7ae2e7a0bdeedc5880aea2024d6e69",
+    "size": 606146,
+    "subdir": "win-64",
+    "timestamp": 1522338375342,
+    "version": "39.0.1"
+  },
+  "setuptools-39.0.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2016.09",
+      "python >=3.6,<3.7.0a0",
+      "wincertstore >=0.2"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "0a36d095425aa2399c10b48ab1a0366d",
+    "name": "setuptools",
+    "sha256": "3d7dc75e35b2d3191d35da811fcfbe6160c0f6e3beade3b8431f78d3b9616f48",
+    "size": 584207,
+    "subdir": "win-64",
+    "timestamp": 1522338354065,
+    "version": "39.0.1"
+  },
+  "setuptools-39.1.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2016.09",
+      "python >=2.7,<2.8.0a0",
+      "wincertstore >=0.2"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "87334e75cb5a3b0235ce94ea38876b5d",
+    "name": "setuptools",
+    "sha256": "b32cab854ab47f6b6e93ce53da64524d7e359603a778c00187042c36c8a59f27",
+    "size": 612781,
+    "subdir": "win-64",
+    "timestamp": 1525119595568,
+    "version": "39.1.0"
+  },
+  "setuptools-39.1.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2016.09",
+      "python >=3.5,<3.6.0a0",
+      "wincertstore >=0.2"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "4c4cafacf9182a7331cbf772483cf04e",
+    "name": "setuptools",
+    "sha256": "f2e8765e14a299c41e67d81ab5c60710cde64e5389a6198dc30ad4bbca152e33",
+    "size": 605940,
+    "subdir": "win-64",
+    "timestamp": 1525119533080,
+    "version": "39.1.0"
+  },
+  "setuptools-39.1.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2016.09",
+      "python >=3.6,<3.7.0a0",
+      "wincertstore >=0.2"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "a3c6c2e8d551075b71866cc32cfa87c6",
+    "name": "setuptools",
+    "sha256": "a9e71406b19ff7e98c4ca2fc5a7153a4f80d0ba1730d880dadf9c7f6ff0c078c",
+    "size": 584019,
+    "subdir": "win-64",
+    "timestamp": 1525118829897,
+    "version": "39.1.0"
+  },
+  "setuptools-39.2.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2016.09",
+      "python >=2.7,<2.8.0a0",
+      "wincertstore >=0.2"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "7f7226d0c2677bd38ee3a8cee84ecaf3",
+    "name": "setuptools",
+    "sha256": "6ed6daec2d11bb0d021162770058cb2a1b36995e105ee946cee45277ff585bd0",
+    "size": 613404,
+    "subdir": "win-64",
+    "timestamp": 1527793753247,
+    "version": "39.2.0"
+  },
+  "setuptools-39.2.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2016.09",
+      "python >=3.5,<3.6.0a0",
+      "wincertstore >=0.2"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "d7ccb34a6a38a10e2c07eea04884b4c7",
+    "name": "setuptools",
+    "sha256": "4b13ba32902862fc69c954e8d5fb6d1b2e7544e4b908d318ac74401742f36e6c",
+    "size": 606857,
+    "subdir": "win-64",
+    "timestamp": 1527793754402,
+    "version": "39.2.0"
+  },
+  "setuptools-39.2.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "certifi >=2016.09",
+      "python >=3.6,<3.7.0a0",
+      "wincertstore >=0.2"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "8aefabd4935eb22c7c0c72f14e656ddc",
+    "name": "setuptools",
+    "sha256": "81a558c746d8e51f84e67eeb42bcba0f6d0df6d880b181c7429b1899e166a89a",
+    "size": 584666,
+    "subdir": "win-64",
+    "timestamp": 1527796249384,
+    "version": "39.2.0"
   },
   "six-1.10.0-py27h5de879c_1.tar.bz2": {
     "build": "py27h5de879c_1",
@@ -11448,6 +15717,70 @@
     "timestamp": 1505869500917,
     "version": "1.22"
   },
+  "urllib3-1.23-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "certifi",
+      "cryptography >=1.3.4",
+      "idna >=2.0.0",
+      "ipaddress",
+      "pyopenssl >=0.14",
+      "pysocks >=1.5.6,<2.0,!=1.5.7",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "4dd54bd5b1bd62253859f2c10d63fbb3",
+    "name": "urllib3",
+    "sha256": "f96cb1c32c8fa483328db89553c678f77e9f447e24032a92da5171b5eefcd137",
+    "size": 154051,
+    "subdir": "win-64",
+    "timestamp": 1529348440761,
+    "version": "1.23"
+  },
+  "urllib3-1.23-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "certifi",
+      "cryptography >=1.3.4",
+      "idna >=2.0.0",
+      "pyopenssl >=0.14",
+      "pysocks >=1.5.6,<2.0,!=1.5.7",
+      "python >=3.5,<3.6.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "5b93e372e2eefb764f068840f8e9867a",
+    "name": "urllib3",
+    "sha256": "5a1646b264c5dadf25ab23ac29256b9a1e78e8742c0044c5d7f7f52b04e9517e",
+    "size": 156261,
+    "subdir": "win-64",
+    "timestamp": 1529348430522,
+    "version": "1.23"
+  },
+  "urllib3-1.23-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "certifi",
+      "cryptography >=1.3.4",
+      "idna >=2.0.0",
+      "pyopenssl >=0.14",
+      "pysocks >=1.5.6,<2.0,!=1.5.7",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "d9f7876d3498538e1f140ea77081d46e",
+    "name": "urllib3",
+    "sha256": "dd879386df2000529464433885b37ccd048b840031739b56240c37162067ef59",
+    "size": 155810,
+    "subdir": "win-64",
+    "timestamp": 1529348350909,
+    "version": "1.23"
+  },
   "uses-spiffy-test-app-1.0-pyh7836eba_0.tar.bz2": {
     "arch": null,
     "binstar": {
@@ -11694,6 +16027,70 @@
     "timestamp": 1505855447592,
     "version": "0.5.1"
   },
+  "webkitgtk-cos6-i686-1.4.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "LGPLv2+ and BSD",
+    "license_family": "LGPL",
+    "md5": "9b0484f72422add858630c3bc525f2e3",
+    "name": "webkitgtk-cos6-i686",
+    "noarch": "generic",
+    "sha256": "7d9d8f9c891581105865d97718f9d7664074c9afed9112c8e503b9fe5f0ca84b",
+    "size": 7571755,
+    "subdir": "noarch",
+    "timestamp": 1520567849214,
+    "version": "1.4.3"
+  },
+  "webkitgtk-cos6-x86_64-1.4.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "license": "LGPLv2+ and BSD",
+    "license_family": "LGPL",
+    "md5": "2a7512b749f773ba3fb0bb88eedcf004",
+    "name": "webkitgtk-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "b2bafbd1c0e0b5813166333f4d88abcecf9179c0c35d7110e62a2298e55b8a2f",
+    "size": 7588510,
+    "subdir": "noarch",
+    "timestamp": 1520530084048,
+    "version": "1.4.3"
+  },
+  "webkitgtk-devel-cos6-i686-1.4.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "webkitgtk-cos6-i686 1.4.3"
+    ],
+    "license": "LGPLv2+ and BSD",
+    "license_family": "LGPL",
+    "md5": "88f8b576d4a5ed0180a2d40a26bf1e8f",
+    "name": "webkitgtk-devel-cos6-i686",
+    "noarch": "generic",
+    "sha256": "f0fd47ce3e87df14188f59820965473a6cf33f4e5dc76ad7e2f7eb4e55bbd4b7",
+    "size": 830081,
+    "subdir": "noarch",
+    "timestamp": 1520567858747,
+    "version": "1.4.3"
+  },
+  "webkitgtk-devel-cos6-x86_64-1.4.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "webkitgtk-cos6-x86_64 1.4.3"
+    ],
+    "license": "LGPLv2+ and BSD",
+    "license_family": "LGPL",
+    "md5": "396708295d3c313824605e16588afc19",
+    "name": "webkitgtk-devel-cos6-x86_64",
+    "noarch": "generic",
+    "sha256": "8fd922021d7b235c87b0837b8a71ec704cd55ad8acafa163e670a19cef4a0e3a",
+    "size": 785550,
+    "subdir": "noarch",
+    "timestamp": 1520530153415,
+    "version": "1.4.3"
+  },
   "wheel-0.29.0-py27hffb40b6_1.tar.bz2": {
     "build": "py27hffb40b6_1",
     "build_number": 1,
@@ -11789,6 +16186,102 @@
     "subdir": "win-64",
     "timestamp": 1511280726542,
     "version": "0.30.0"
+  },
+  "wheel-0.31.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "setuptools"
+    ],
+    "license": "MIT",
+    "md5": "33f75cea94cabb0a6be6140f222e081b",
+    "name": "wheel",
+    "sha256": "118f2362311c394c852eee99acce32677797bbd03a46eb5592294955dc4e5b85",
+    "size": 82105,
+    "subdir": "win-64",
+    "timestamp": 1522684063372,
+    "version": "0.31.0"
+  },
+  "wheel-0.31.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "setuptools"
+    ],
+    "license": "MIT",
+    "md5": "93ab5bc8a32a60d54cc760d904bdeee8",
+    "name": "wheel",
+    "sha256": "ea19ac5921adab73449c979be86265cbf0221eaac0b4d297df1ea20e6a060e2f",
+    "size": 83000,
+    "subdir": "win-64",
+    "timestamp": 1522684082546,
+    "version": "0.31.0"
+  },
+  "wheel-0.31.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "setuptools"
+    ],
+    "license": "MIT",
+    "md5": "11f70cf6a56a457a43da99b0f382eb9a",
+    "name": "wheel",
+    "sha256": "b1dab541dd2fe0979d02c8e057fcb911fe21101195134d5079c398a39c115be3",
+    "size": 82671,
+    "subdir": "win-64",
+    "timestamp": 1522684348611,
+    "version": "0.31.0"
+  },
+  "wheel-0.31.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2.7,<2.8.0a0",
+      "setuptools"
+    ],
+    "license": "MIT",
+    "md5": "a0b492d57290c8b8efd4c5911bc4452f",
+    "name": "wheel",
+    "sha256": "fa7a7a97116b9a6229dad9059228947cfcc9e6204c8faf3d7b78b0dc95285549",
+    "size": 81945,
+    "subdir": "win-64",
+    "timestamp": 1526403762239,
+    "version": "0.31.1"
+  },
+  "wheel-0.31.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.5,<3.6.0a0",
+      "setuptools"
+    ],
+    "license": "MIT",
+    "md5": "8668357b163c3bb7b6d42ebad1acf007",
+    "name": "wheel",
+    "sha256": "eed3c664f5554522336b48841d3a64bff60f6b702e42556d6a785f7aca5bf51f",
+    "size": 82797,
+    "subdir": "win-64",
+    "timestamp": 1526403694866,
+    "version": "0.31.1"
+  },
+  "wheel-0.31.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3.6,<3.7.0a0",
+      "setuptools"
+    ],
+    "license": "MIT",
+    "md5": "159aacd2faa6a0014ca42186f4f1fb24",
+    "name": "wheel",
+    "sha256": "549961383a3e4cfff34d2d2081c42afac5125b613c4b722ceeff0194195e163b",
+    "size": 82461,
+    "subdir": "win-64",
+    "timestamp": 1526403484421,
+    "version": "0.31.1"
   },
   "win_inet_pton-1.0.1-py27hf41312a_1.tar.bz2": {
     "build": "py27hf41312a_1",

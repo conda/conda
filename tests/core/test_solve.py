@@ -57,19 +57,6 @@ def get_solver_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
 
 
 @contextmanager
-def get_solver_3(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
-    PrefixData._cache_.clear()
-    pd = PrefixData(TEST_PREFIX)
-    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
-    specs_group = SpecsGroup(history_specs)
-    get_index_r_3()
-    with patch.object(History, 'get_requested_specs', return_value=specs_group):
-        solver = Solver(TEST_PREFIX, (Channel('channel-3'),), (context.subdir,),
-                        specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
-        yield solver
-
-
-@contextmanager
 def get_solver_4(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
     PrefixData._cache_.clear()
     pd = PrefixData(TEST_PREFIX)
