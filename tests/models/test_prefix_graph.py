@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from pprint import pprint
+
 from conda._vendor.auxlib.decorators import memoize
 from conda.base.context import reset_context
 from conda.common.io import env_var
@@ -56,221 +58,221 @@ def test_prefix_graph_1():
     records, specs = get_conda_build_record_set()
     graph = PrefixGraph(records, specs)
 
-    nodes = tuple(rec.dist_str() for rec in graph.records)
-    print(nodes)
+    nodes = tuple(rec.name for rec in graph.records)
+    pprint(nodes)
     order = (
-        'channel-4::intel-openmp-2018.0.0-hc7b2577_8',
-        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
-        'channel-4::conda-env-2.6.0-h36134e3_1',
-        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
-        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-        'channel-4::libffi-3.2.1-hd88cf55_4',
-        'channel-4::ncurses-6.0-h9df7e31_2',
-        'channel-4::openssl-1.0.2n-hb7f436b_0',
-        'channel-4::patchelf-0.9-hf79760b_2',
-        'channel-4::tk-8.6.7-hc745277_3',
-        'channel-4::xz-5.2.3-h55aa19d_2',
-        'channel-4::yaml-0.1.7-had09818_2',
-        'channel-4::zlib-1.2.11-ha838bed_2',
-        'channel-4::libedit-3.1-heed3624_0',
-        'channel-4::readline-7.0-ha6073c6_4',
-        'channel-4::sqlite-3.22.0-h1bed415_0',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::asn1crypto-0.24.0-py36_0',
-        'channel-4::beautifulsoup4-4.6.0-py36h49b8c8c_1',
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::chardet-3.0.4-py36h0f667ec_1',
-        'channel-4::filelock-3.0.4-py36_0',
-        'channel-4::glob2-0.6-py36he249c77_0',
-        'channel-4::idna-2.6-py36h82fb2a8_1',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::pkginfo-1.4.1-py36h215d178_1',
-        'channel-4::psutil-5.4.3-py36h14c3975_0',
-        'channel-4::pycosat-0.6.3-py36h0a5515d_0',
-        'channel-4::pycparser-2.18-py36hf9f622e_1',
-        'channel-4::pysocks-1.6.7-py36hd97a5b1_1',
-        'channel-4::pyyaml-3.12-py36hafb9ca4_1',
-        'channel-4::ruamel_yaml-0.15.35-py36h14c3975_1',
-        'channel-4::six-1.11.0-py36h372c433_1',
-        'channel-4::cffi-1.11.4-py36h9745a5d_0',
-        'channel-4::conda-verify-2.0.0-py36h98955d8_0',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::cryptography-2.1.4-py36hd09be54_0',
-        'channel-4::jinja2-2.10-py36ha16c418_0',
-        'channel-4::pyopenssl-17.5.0-py36h20ba746_0',
-        'channel-4::urllib3-1.22-py36hbe7ace6_0',
-        'channel-4::requests-2.18.4-py36he2e5f8d_1',
-        'channel-4::conda-4.4.10-py36_0',
-        'channel-4::conda-build-3.5.1-py36_0',
+        'intel-openmp',
+        'ca-certificates',
+        'conda-env',
+        'libgcc-ng',
+        'libstdcxx-ng',
+        'libffi',
+        'ncurses',
+        'openssl',
+        'patchelf',
+        'tk',
+        'xz',
+        'yaml',
+        'zlib',
+        'libedit',
+        'readline',
+        'sqlite',
+        'python',
+        'asn1crypto',
+        'beautifulsoup4',
+        'certifi',
+        'chardet',
+        'filelock',
+        'glob2',
+        'idna',
+        'markupsafe',
+        'pkginfo',
+        'psutil',
+        'pycosat',
+        'pycparser',
+        'pysocks',
+        'pyyaml',
+        'ruamel_yaml',
+        'six',
+        'cffi',
+        'conda-verify',
+        'setuptools',
+        'cryptography',
+        'jinja2',
+        'pyopenssl',
+        'urllib3',
+        'requests',
+        'conda',
+        'conda-build',
     )
     assert nodes == order
 
     python_node = graph.get_node_by_name('python')
     python_ancestors = graph.all_ancestors(python_node)
-    nodes = tuple(rec.dist_str() for rec in python_ancestors)
-    print(nodes)
+    nodes = tuple(rec.name for rec in python_ancestors)
+    pprint(nodes)
     order = (
-        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
-        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
-        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-        'channel-4::libffi-3.2.1-hd88cf55_4',
-        'channel-4::ncurses-6.0-h9df7e31_2',
-        'channel-4::openssl-1.0.2n-hb7f436b_0',
-        'channel-4::tk-8.6.7-hc745277_3',
-        'channel-4::xz-5.2.3-h55aa19d_2',
-        'channel-4::zlib-1.2.11-ha838bed_2',
-        'channel-4::libedit-3.1-heed3624_0',
-        'channel-4::readline-7.0-ha6073c6_4',
-        'channel-4::sqlite-3.22.0-h1bed415_0',
+        'ca-certificates',
+        'libgcc-ng',
+        'libstdcxx-ng',
+        'libffi',
+        'ncurses',
+        'openssl',
+        'tk',
+        'xz',
+        'zlib',
+        'libedit',
+        'readline',
+        'sqlite',
     )
     assert nodes == order
 
     python_descendants = graph.all_descendants(python_node)
-    nodes = tuple(rec.dist_str() for rec in python_descendants)
-    print(nodes)
+    nodes = tuple(rec.name for rec in python_descendants)
+    pprint(nodes)
     order = (
-        'channel-4::asn1crypto-0.24.0-py36_0',
-        'channel-4::beautifulsoup4-4.6.0-py36h49b8c8c_1',
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::chardet-3.0.4-py36h0f667ec_1',
-        'channel-4::filelock-3.0.4-py36_0',
-        'channel-4::glob2-0.6-py36he249c77_0',
-        'channel-4::idna-2.6-py36h82fb2a8_1',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::pkginfo-1.4.1-py36h215d178_1',
-        'channel-4::psutil-5.4.3-py36h14c3975_0',
-        'channel-4::pycosat-0.6.3-py36h0a5515d_0',
-        'channel-4::pycparser-2.18-py36hf9f622e_1',
-        'channel-4::pysocks-1.6.7-py36hd97a5b1_1',
-        'channel-4::pyyaml-3.12-py36hafb9ca4_1',
-        'channel-4::ruamel_yaml-0.15.35-py36h14c3975_1',
-        'channel-4::six-1.11.0-py36h372c433_1',
-        'channel-4::cffi-1.11.4-py36h9745a5d_0',
-        'channel-4::conda-verify-2.0.0-py36h98955d8_0',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::cryptography-2.1.4-py36hd09be54_0',
-        'channel-4::jinja2-2.10-py36ha16c418_0',
-        'channel-4::pyopenssl-17.5.0-py36h20ba746_0',
-        'channel-4::urllib3-1.22-py36hbe7ace6_0',
-        'channel-4::requests-2.18.4-py36he2e5f8d_1',
-        'channel-4::conda-4.4.10-py36_0',
-        'channel-4::conda-build-3.5.1-py36_0',
+        'asn1crypto',
+        'beautifulsoup4',
+        'certifi',
+        'chardet',
+        'filelock',
+        'glob2',
+        'idna',
+        'markupsafe',
+        'pkginfo',
+        'psutil',
+        'pycosat',
+        'pycparser',
+        'pysocks',
+        'pyyaml',
+        'ruamel_yaml',
+        'six',
+        'cffi',
+        'conda-verify',
+        'setuptools',
+        'cryptography',
+        'jinja2',
+        'pyopenssl',
+        'urllib3',
+        'requests',
+        'conda',
+        'conda-build',
     )
     assert nodes == order
 
     # test remove_specs
     removed_nodes = graph.remove_spec(MatchSpec("requests"))
-    nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(nodes)
+    nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(nodes)
     order = (
-        'channel-4::requests-2.18.4-py36he2e5f8d_1',
-        'channel-4::conda-4.4.10-py36_0',
-        'channel-4::conda-build-3.5.1-py36_0',
+        'requests',
+        'conda',
+        'conda-build',
     )
     assert nodes == order
 
-    nodes = tuple(rec.dist_str() for rec in graph.records)
-    print(nodes)
+    nodes = tuple(rec.name for rec in graph.records)
+    pprint(nodes)
     order = (
-        'channel-4::conda-env-2.6.0-h36134e3_1',
-        'channel-4::intel-openmp-2018.0.0-hc7b2577_8',
-        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
-        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
-        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-        'channel-4::libffi-3.2.1-hd88cf55_4',
-        'channel-4::ncurses-6.0-h9df7e31_2',
-        'channel-4::openssl-1.0.2n-hb7f436b_0',
-        'channel-4::patchelf-0.9-hf79760b_2',
-        'channel-4::tk-8.6.7-hc745277_3',
-        'channel-4::xz-5.2.3-h55aa19d_2',
-        'channel-4::yaml-0.1.7-had09818_2',
-        'channel-4::zlib-1.2.11-ha838bed_2',
-        'channel-4::libedit-3.1-heed3624_0',
-        'channel-4::readline-7.0-ha6073c6_4',
-        'channel-4::sqlite-3.22.0-h1bed415_0',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::asn1crypto-0.24.0-py36_0',
-        'channel-4::beautifulsoup4-4.6.0-py36h49b8c8c_1',
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::chardet-3.0.4-py36h0f667ec_1',
-        'channel-4::filelock-3.0.4-py36_0',
-        'channel-4::glob2-0.6-py36he249c77_0',
-        'channel-4::idna-2.6-py36h82fb2a8_1',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::pkginfo-1.4.1-py36h215d178_1',
-        'channel-4::psutil-5.4.3-py36h14c3975_0',
-        'channel-4::pycosat-0.6.3-py36h0a5515d_0',
-        'channel-4::pycparser-2.18-py36hf9f622e_1',
-        'channel-4::pysocks-1.6.7-py36hd97a5b1_1',
-        'channel-4::pyyaml-3.12-py36hafb9ca4_1',
-        'channel-4::ruamel_yaml-0.15.35-py36h14c3975_1',
-        'channel-4::six-1.11.0-py36h372c433_1',
-        'channel-4::cffi-1.11.4-py36h9745a5d_0',
-        'channel-4::conda-verify-2.0.0-py36h98955d8_0',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::cryptography-2.1.4-py36hd09be54_0',
-        'channel-4::jinja2-2.10-py36ha16c418_0',
-        'channel-4::pyopenssl-17.5.0-py36h20ba746_0',
-        'channel-4::urllib3-1.22-py36hbe7ace6_0',
+        'conda-env',
+        'intel-openmp',
+        'ca-certificates',
+        'libgcc-ng',
+        'libstdcxx-ng',
+        'libffi',
+        'ncurses',
+        'openssl',
+        'patchelf',
+        'tk',
+        'xz',
+        'yaml',
+        'zlib',
+        'libedit',
+        'readline',
+        'sqlite',
+        'python',
+        'asn1crypto',
+        'beautifulsoup4',
+        'certifi',
+        'chardet',
+        'filelock',
+        'glob2',
+        'idna',
+        'markupsafe',
+        'pkginfo',
+        'psutil',
+        'pycosat',
+        'pycparser',
+        'pysocks',
+        'pyyaml',
+        'ruamel_yaml',
+        'six',
+        'cffi',
+        'conda-verify',
+        'setuptools',
+        'cryptography',
+        'jinja2',
+        'pyopenssl',
+        'urllib3',
     )
     assert nodes == order
 
     spec_matches = {
-        'channel-4::intel-openmp-2018.0.0-hc7b2577_8': {'intel-openmp'},
+        'channel-4::intel-openmp-2018.0.3-0': {'intel-openmp'},
     }
     assert {node.dist_str(): set(str(ms) for ms in specs) for node, specs in graph.spec_matches.items()} == spec_matches
 
     removed_nodes = graph.prune()
     nodes = tuple(rec.dist_str() for rec in graph.records)
-    print(nodes)
+    pprint(nodes)
     order = (
-        'channel-4::intel-openmp-2018.0.0-hc7b2577_8',
+        'channel-4::intel-openmp-2018.0.3-0',
     )
     assert nodes == order
 
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
     order = (
-        'channel-4::conda-env-2.6.0-h36134e3_1',
-        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
-        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
-        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-        'channel-4::libffi-3.2.1-hd88cf55_4',
-        'channel-4::ncurses-6.0-h9df7e31_2',
-        'channel-4::openssl-1.0.2n-hb7f436b_0',
-        'channel-4::patchelf-0.9-hf79760b_2',
-        'channel-4::tk-8.6.7-hc745277_3',
-        'channel-4::xz-5.2.3-h55aa19d_2',
-        'channel-4::yaml-0.1.7-had09818_2',
-        'channel-4::zlib-1.2.11-ha838bed_2',
-        'channel-4::libedit-3.1-heed3624_0',
-        'channel-4::readline-7.0-ha6073c6_4',
-        'channel-4::sqlite-3.22.0-h1bed415_0',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::asn1crypto-0.24.0-py36_0',
-        'channel-4::beautifulsoup4-4.6.0-py36h49b8c8c_1',
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::chardet-3.0.4-py36h0f667ec_1',
-        'channel-4::filelock-3.0.4-py36_0',
-        'channel-4::glob2-0.6-py36he249c77_0',
-        'channel-4::idna-2.6-py36h82fb2a8_1',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::pkginfo-1.4.1-py36h215d178_1',
-        'channel-4::psutil-5.4.3-py36h14c3975_0',
-        'channel-4::pycosat-0.6.3-py36h0a5515d_0',
-        'channel-4::pycparser-2.18-py36hf9f622e_1',
-        'channel-4::pysocks-1.6.7-py36hd97a5b1_1',
-        'channel-4::pyyaml-3.12-py36hafb9ca4_1',
-        'channel-4::ruamel_yaml-0.15.35-py36h14c3975_1',
-        'channel-4::six-1.11.0-py36h372c433_1',
-        'channel-4::cffi-1.11.4-py36h9745a5d_0',
-        'channel-4::conda-verify-2.0.0-py36h98955d8_0',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::cryptography-2.1.4-py36hd09be54_0',
-        'channel-4::jinja2-2.10-py36ha16c418_0',
-        'channel-4::pyopenssl-17.5.0-py36h20ba746_0',
-        'channel-4::urllib3-1.22-py36hbe7ace6_0',
+        'conda-env',
+        'ca-certificates',
+        'libgcc-ng',
+        'libstdcxx-ng',
+        'libffi',
+        'ncurses',
+        'openssl',
+        'patchelf',
+        'tk',
+        'xz',
+        'yaml',
+        'zlib',
+        'libedit',
+        'readline',
+        'sqlite',
+        'python',
+        'asn1crypto',
+        'beautifulsoup4',
+        'certifi',
+        'chardet',
+        'filelock',
+        'glob2',
+        'idna',
+        'markupsafe',
+        'pkginfo',
+        'psutil',
+        'pycosat',
+        'pycparser',
+        'pysocks',
+        'pyyaml',
+        'ruamel_yaml',
+        'six',
+        'cffi',
+        'conda-verify',
+        'setuptools',
+        'cryptography',
+        'jinja2',
+        'pyopenssl',
+        'urllib3',
     )
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    pprint(removed_nodes)
     assert removed_nodes == order
 
 
@@ -281,109 +283,109 @@ def test_prefix_graph_2():
     conda_build_node = graph.get_node_by_name('conda-build')
     del graph.spec_matches[conda_build_node]
 
-    nodes = tuple(rec.dist_str() for rec in graph.records)
-    print(nodes)
+    nodes = tuple(rec.name for rec in graph.records)
+    pprint(nodes)
     order = (
-        'channel-4::intel-openmp-2018.0.0-hc7b2577_8',
-        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
-        'channel-4::conda-env-2.6.0-h36134e3_1',
-        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
-        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-        'channel-4::libffi-3.2.1-hd88cf55_4',
-        'channel-4::ncurses-6.0-h9df7e31_2',
-        'channel-4::openssl-1.0.2n-hb7f436b_0',
-        'channel-4::patchelf-0.9-hf79760b_2',
-        'channel-4::tk-8.6.7-hc745277_3',
-        'channel-4::xz-5.2.3-h55aa19d_2',
-        'channel-4::yaml-0.1.7-had09818_2',
-        'channel-4::zlib-1.2.11-ha838bed_2',
-        'channel-4::libedit-3.1-heed3624_0',
-        'channel-4::readline-7.0-ha6073c6_4',
-        'channel-4::sqlite-3.22.0-h1bed415_0',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::asn1crypto-0.24.0-py36_0',
-        'channel-4::beautifulsoup4-4.6.0-py36h49b8c8c_1',
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::chardet-3.0.4-py36h0f667ec_1',
-        'channel-4::filelock-3.0.4-py36_0',
-        'channel-4::glob2-0.6-py36he249c77_0',
-        'channel-4::idna-2.6-py36h82fb2a8_1',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::pkginfo-1.4.1-py36h215d178_1',
-        'channel-4::psutil-5.4.3-py36h14c3975_0',
-        'channel-4::pycosat-0.6.3-py36h0a5515d_0',
-        'channel-4::pycparser-2.18-py36hf9f622e_1',
-        'channel-4::pysocks-1.6.7-py36hd97a5b1_1',
-        'channel-4::pyyaml-3.12-py36hafb9ca4_1',
-        'channel-4::ruamel_yaml-0.15.35-py36h14c3975_1',
-        'channel-4::six-1.11.0-py36h372c433_1',
-        'channel-4::cffi-1.11.4-py36h9745a5d_0',
-        'channel-4::conda-verify-2.0.0-py36h98955d8_0',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::cryptography-2.1.4-py36hd09be54_0',
-        'channel-4::jinja2-2.10-py36ha16c418_0',
-        'channel-4::pyopenssl-17.5.0-py36h20ba746_0',
-        'channel-4::urllib3-1.22-py36hbe7ace6_0',
-        'channel-4::requests-2.18.4-py36he2e5f8d_1',
-        'channel-4::conda-4.4.10-py36_0',
-        'channel-4::conda-build-3.5.1-py36_0',
+        'intel-openmp',
+        'ca-certificates',
+        'conda-env',
+        'libgcc-ng',
+        'libstdcxx-ng',
+        'libffi',
+        'ncurses',
+        'openssl',
+        'patchelf',
+        'tk',
+        'xz',
+        'yaml',
+        'zlib',
+        'libedit',
+        'readline',
+        'sqlite',
+        'python',
+        'asn1crypto',
+        'beautifulsoup4',
+        'certifi',
+        'chardet',
+        'filelock',
+        'glob2',
+        'idna',
+        'markupsafe',
+        'pkginfo',
+        'psutil',
+        'pycosat',
+        'pycparser',
+        'pysocks',
+        'pyyaml',
+        'ruamel_yaml',
+        'six',
+        'cffi',
+        'conda-verify',
+        'setuptools',
+        'cryptography',
+        'jinja2',
+        'pyopenssl',
+        'urllib3',
+        'requests',
+        'conda',
+        'conda-build',
     )
     assert nodes == order
 
     removed_nodes = graph.prune()
-    remaining_nodes = tuple(rec.dist_str() for rec in graph.records)
-    print(remaining_nodes)
+    remaining_nodes = tuple(rec.name for rec in graph.records)
+    pprint(remaining_nodes)
     order = (
-        'channel-4::intel-openmp-2018.0.0-hc7b2577_8',
-        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
-        'channel-4::conda-env-2.6.0-h36134e3_1',
-        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
-        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-        'channel-4::libffi-3.2.1-hd88cf55_4',
-        'channel-4::ncurses-6.0-h9df7e31_2',
-        'channel-4::openssl-1.0.2n-hb7f436b_0',
-        'channel-4::tk-8.6.7-hc745277_3',
-        'channel-4::xz-5.2.3-h55aa19d_2',
-        'channel-4::yaml-0.1.7-had09818_2',
-        'channel-4::zlib-1.2.11-ha838bed_2',
-        'channel-4::libedit-3.1-heed3624_0',
-        'channel-4::readline-7.0-ha6073c6_4',
-        'channel-4::sqlite-3.22.0-h1bed415_0',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::asn1crypto-0.24.0-py36_0',
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::chardet-3.0.4-py36h0f667ec_1',
-        'channel-4::idna-2.6-py36h82fb2a8_1',
-        'channel-4::pycosat-0.6.3-py36h0a5515d_0',
-        'channel-4::pycparser-2.18-py36hf9f622e_1',
-        'channel-4::pysocks-1.6.7-py36hd97a5b1_1',
-        'channel-4::ruamel_yaml-0.15.35-py36h14c3975_1',
-        'channel-4::six-1.11.0-py36h372c433_1',
-        'channel-4::cffi-1.11.4-py36h9745a5d_0',
-        'channel-4::cryptography-2.1.4-py36hd09be54_0',
-        'channel-4::pyopenssl-17.5.0-py36h20ba746_0',
-        'channel-4::urllib3-1.22-py36hbe7ace6_0',
-        'channel-4::requests-2.18.4-py36he2e5f8d_1',
-        'channel-4::conda-4.4.10-py36_0',
+        'intel-openmp',
+        'ca-certificates',
+        'conda-env',
+        'libgcc-ng',
+        'libstdcxx-ng',
+        'libffi',
+        'ncurses',
+        'openssl',
+        'tk',
+        'xz',
+        'yaml',
+        'zlib',
+        'libedit',
+        'readline',
+        'sqlite',
+        'python',
+        'asn1crypto',
+        'certifi',
+        'chardet',
+        'idna',
+        'pycosat',
+        'pycparser',
+        'pysocks',
+        'ruamel_yaml',
+        'six',
+        'cffi',
+        'cryptography',
+        'pyopenssl',
+        'urllib3',
+        'requests',
+        'conda',
     )
     assert remaining_nodes == order
 
     order = (
-        'channel-4::patchelf-0.9-hf79760b_2',
-        'channel-4::beautifulsoup4-4.6.0-py36h49b8c8c_1',
-        'channel-4::filelock-3.0.4-py36_0',
-        'channel-4::glob2-0.6-py36he249c77_0',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::pkginfo-1.4.1-py36h215d178_1',
-        'channel-4::psutil-5.4.3-py36h14c3975_0',
-        'channel-4::pyyaml-3.12-py36hafb9ca4_1',
-        'channel-4::conda-verify-2.0.0-py36h98955d8_0',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::jinja2-2.10-py36ha16c418_0',
-        'channel-4::conda-build-3.5.1-py36_0',
+        'patchelf',
+        'beautifulsoup4',
+        'filelock',
+        'glob2',
+        'markupsafe',
+        'pkginfo',
+        'psutil',
+        'pyyaml',
+        'conda-verify',
+        'setuptools',
+        'jinja2',
+        'conda-build',
     )
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(removed_nodes)
     assert removed_nodes == order
 
 
@@ -393,170 +395,170 @@ def test_remove_youngest_descendant_nodes_with_specs():
 
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
 
-    remaining_nodes = tuple(rec.dist_str() for rec in graph.records)
-    print(remaining_nodes)
+    remaining_nodes = tuple(rec.name for rec in graph.records)
+    pprint(remaining_nodes)
     order = (
-        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
-        'channel-4::conda-env-2.6.0-h36134e3_1',
-        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
-        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-        'channel-4::libffi-3.2.1-hd88cf55_4',
-        'channel-4::ncurses-6.0-h9df7e31_2',
-        'channel-4::openssl-1.0.2n-hb7f436b_0',
-        'channel-4::patchelf-0.9-hf79760b_2',
-        'channel-4::tk-8.6.7-hc745277_3',
-        'channel-4::xz-5.2.3-h55aa19d_2',
-        'channel-4::yaml-0.1.7-had09818_2',
-        'channel-4::zlib-1.2.11-ha838bed_2',
-        'channel-4::libedit-3.1-heed3624_0',
-        'channel-4::readline-7.0-ha6073c6_4',
-        'channel-4::sqlite-3.22.0-h1bed415_0',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::asn1crypto-0.24.0-py36_0',
-        'channel-4::beautifulsoup4-4.6.0-py36h49b8c8c_1',
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::chardet-3.0.4-py36h0f667ec_1',
-        'channel-4::filelock-3.0.4-py36_0',
-        'channel-4::glob2-0.6-py36he249c77_0',
-        'channel-4::idna-2.6-py36h82fb2a8_1',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::pkginfo-1.4.1-py36h215d178_1',
-        'channel-4::psutil-5.4.3-py36h14c3975_0',
-        'channel-4::pycosat-0.6.3-py36h0a5515d_0',
-        'channel-4::pycparser-2.18-py36hf9f622e_1',
-        'channel-4::pysocks-1.6.7-py36hd97a5b1_1',
-        'channel-4::pyyaml-3.12-py36hafb9ca4_1',
-        'channel-4::ruamel_yaml-0.15.35-py36h14c3975_1',
-        'channel-4::six-1.11.0-py36h372c433_1',
-        'channel-4::cffi-1.11.4-py36h9745a5d_0',
-        'channel-4::conda-verify-2.0.0-py36h98955d8_0',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::cryptography-2.1.4-py36hd09be54_0',
-        'channel-4::jinja2-2.10-py36ha16c418_0',
-        'channel-4::pyopenssl-17.5.0-py36h20ba746_0',
-        'channel-4::urllib3-1.22-py36hbe7ace6_0',
-        'channel-4::requests-2.18.4-py36he2e5f8d_1',
-        'channel-4::conda-4.4.10-py36_0',
+        'ca-certificates',
+        'conda-env',
+        'libgcc-ng',
+        'libstdcxx-ng',
+        'libffi',
+        'ncurses',
+        'openssl',
+        'patchelf',
+        'tk',
+        'xz',
+        'yaml',
+        'zlib',
+        'libedit',
+        'readline',
+        'sqlite',
+        'python',
+        'asn1crypto',
+        'beautifulsoup4',
+        'certifi',
+        'chardet',
+        'filelock',
+        'glob2',
+        'idna',
+        'markupsafe',
+        'pkginfo',
+        'psutil',
+        'pycosat',
+        'pycparser',
+        'pysocks',
+        'pyyaml',
+        'ruamel_yaml',
+        'six',
+        'cffi',
+        'conda-verify',
+        'setuptools',
+        'cryptography',
+        'jinja2',
+        'pyopenssl',
+        'urllib3',
+        'requests',
+        'conda',
     )
     assert remaining_nodes == order
 
     order = (
-        'channel-4::intel-openmp-2018.0.0-hc7b2577_8',
-        'channel-4::conda-build-3.5.1-py36_0',
+        'intel-openmp',
+        'conda-build',
     )
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(removed_nodes)
     assert removed_nodes == order
 
     # again
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
 
-    remaining_nodes = tuple(rec.dist_str() for rec in graph.records)
-    print(remaining_nodes)
+    remaining_nodes = tuple(rec.name for rec in graph.records)
+    pprint(remaining_nodes)
     order = (
-        'channel-4::conda-env-2.6.0-h36134e3_1',
-        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
-        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
-        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-        'channel-4::libffi-3.2.1-hd88cf55_4',
-        'channel-4::ncurses-6.0-h9df7e31_2',
-        'channel-4::openssl-1.0.2n-hb7f436b_0',
-        'channel-4::patchelf-0.9-hf79760b_2',
-        'channel-4::tk-8.6.7-hc745277_3',
-        'channel-4::xz-5.2.3-h55aa19d_2',
-        'channel-4::yaml-0.1.7-had09818_2',
-        'channel-4::zlib-1.2.11-ha838bed_2',
-        'channel-4::libedit-3.1-heed3624_0',
-        'channel-4::readline-7.0-ha6073c6_4',
-        'channel-4::sqlite-3.22.0-h1bed415_0',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::asn1crypto-0.24.0-py36_0',
-        'channel-4::beautifulsoup4-4.6.0-py36h49b8c8c_1',
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::chardet-3.0.4-py36h0f667ec_1',
-        'channel-4::filelock-3.0.4-py36_0',
-        'channel-4::glob2-0.6-py36he249c77_0',
-        'channel-4::idna-2.6-py36h82fb2a8_1',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::pkginfo-1.4.1-py36h215d178_1',
-        'channel-4::psutil-5.4.3-py36h14c3975_0',
-        'channel-4::pycosat-0.6.3-py36h0a5515d_0',
-        'channel-4::pycparser-2.18-py36hf9f622e_1',
-        'channel-4::pysocks-1.6.7-py36hd97a5b1_1',
-        'channel-4::pyyaml-3.12-py36hafb9ca4_1',
-        'channel-4::ruamel_yaml-0.15.35-py36h14c3975_1',
-        'channel-4::six-1.11.0-py36h372c433_1',
-        'channel-4::cffi-1.11.4-py36h9745a5d_0',
-        'channel-4::conda-verify-2.0.0-py36h98955d8_0',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::cryptography-2.1.4-py36hd09be54_0',
-        'channel-4::jinja2-2.10-py36ha16c418_0',
-        'channel-4::pyopenssl-17.5.0-py36h20ba746_0',
-        'channel-4::urllib3-1.22-py36hbe7ace6_0',
-        'channel-4::requests-2.18.4-py36he2e5f8d_1',
+        'conda-env',
+        'ca-certificates',
+        'libgcc-ng',
+        'libstdcxx-ng',
+        'libffi',
+        'ncurses',
+        'openssl',
+        'patchelf',
+        'tk',
+        'xz',
+        'yaml',
+        'zlib',
+        'libedit',
+        'readline',
+        'sqlite',
+        'python',
+        'asn1crypto',
+        'beautifulsoup4',
+        'certifi',
+        'chardet',
+        'filelock',
+        'glob2',
+        'idna',
+        'markupsafe',
+        'pkginfo',
+        'psutil',
+        'pycosat',
+        'pycparser',
+        'pysocks',
+        'pyyaml',
+        'ruamel_yaml',
+        'six',
+        'cffi',
+        'conda-verify',
+        'setuptools',
+        'cryptography',
+        'jinja2',
+        'pyopenssl',
+        'urllib3',
+        'requests',
     )
     assert remaining_nodes == order
 
     order = (
-        'channel-4::conda-4.4.10-py36_0',
+        'conda',
     )
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(removed_nodes)
     assert removed_nodes == order
 
     # now test prune
     removed_nodes = graph.prune()
 
-    remaining_nodes = tuple(rec.dist_str() for rec in graph.records)
-    print(remaining_nodes)
+    remaining_nodes = tuple(rec.name for rec in graph.records)
+    pprint(remaining_nodes)
     order = (
-        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
-        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
-        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-        'channel-4::libffi-3.2.1-hd88cf55_4',
-        'channel-4::ncurses-6.0-h9df7e31_2',
-        'channel-4::openssl-1.0.2n-hb7f436b_0',
-        'channel-4::tk-8.6.7-hc745277_3',
-        'channel-4::xz-5.2.3-h55aa19d_2',
-        'channel-4::zlib-1.2.11-ha838bed_2',
-        'channel-4::libedit-3.1-heed3624_0',
-        'channel-4::readline-7.0-ha6073c6_4',
-        'channel-4::sqlite-3.22.0-h1bed415_0',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::asn1crypto-0.24.0-py36_0',
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::chardet-3.0.4-py36h0f667ec_1',
-        'channel-4::idna-2.6-py36h82fb2a8_1',
-        'channel-4::pycparser-2.18-py36hf9f622e_1',
-        'channel-4::pysocks-1.6.7-py36hd97a5b1_1',
-        'channel-4::six-1.11.0-py36h372c433_1',
-        'channel-4::cffi-1.11.4-py36h9745a5d_0',
-        'channel-4::cryptography-2.1.4-py36hd09be54_0',
-        'channel-4::pyopenssl-17.5.0-py36h20ba746_0',
-        'channel-4::urllib3-1.22-py36hbe7ace6_0',
-        'channel-4::requests-2.18.4-py36he2e5f8d_1',
+        'ca-certificates',
+        'libgcc-ng',
+        'libstdcxx-ng',
+        'libffi',
+        'ncurses',
+        'openssl',
+        'tk',
+        'xz',
+        'zlib',
+        'libedit',
+        'readline',
+        'sqlite',
+        'python',
+        'asn1crypto',
+        'certifi',
+        'chardet',
+        'idna',
+        'pycparser',
+        'pysocks',
+        'six',
+        'cffi',
+        'cryptography',
+        'pyopenssl',
+        'urllib3',
+        'requests',
     )
     assert remaining_nodes == order
 
     order = (
-        'channel-4::conda-env-2.6.0-h36134e3_1',
-        'channel-4::patchelf-0.9-hf79760b_2',
-        'channel-4::yaml-0.1.7-had09818_2',
-        'channel-4::beautifulsoup4-4.6.0-py36h49b8c8c_1',
-        'channel-4::filelock-3.0.4-py36_0',
-        'channel-4::glob2-0.6-py36he249c77_0',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::pkginfo-1.4.1-py36h215d178_1',
-        'channel-4::psutil-5.4.3-py36h14c3975_0',
-        'channel-4::pycosat-0.6.3-py36h0a5515d_0',
-        'channel-4::pyyaml-3.12-py36hafb9ca4_1',
-        'channel-4::ruamel_yaml-0.15.35-py36h14c3975_1',
-        'channel-4::conda-verify-2.0.0-py36h98955d8_0',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::jinja2-2.10-py36ha16c418_0',
+        'conda-env',
+        'patchelf',
+        'yaml',
+        'beautifulsoup4',
+        'filelock',
+        'glob2',
+        'markupsafe',
+        'pkginfo',
+        'psutil',
+        'pycosat',
+        'pyyaml',
+        'ruamel_yaml',
+        'conda-verify',
+        'setuptools',
+        'jinja2',
     )
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(removed_nodes)
     assert removed_nodes == order
 
 
@@ -782,94 +784,96 @@ def test_deep_cyclical_dependency():
     # },
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
 
-    nodes = tuple(rec.dist_str() for rec in graph.records)
-    print(nodes)
+    nodes = tuple(rec.name for rec in graph.records)
+    pprint(nodes)
     order = (
-        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
-        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
-        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-        'channel-4::libffi-3.2.1-hd88cf55_4',
-        'channel-4::ncurses-6.0-h9df7e31_2',
-        'channel-4::openssl-1.0.2n-hb7f436b_0',
-        'channel-4::tk-8.6.7-hc745277_3',
-        'channel-4::xz-5.2.3-h55aa19d_2',
-        'channel-4::zlib-1.2.11-ha838bed_2',
-        'channel-4::libedit-3.1-heed3624_0',
-        'channel-4::readline-7.0-ha6073c6_4',
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::click-6.7-py36h5253387_0',
-        'channel-4::itsdangerous-0.24-py36h93cc618_1',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::werkzeug-0.14.1-py36_0',
-        'channel-4::jinja2-2.9.6-py36h489bce4_1',
-        'channel-4::flask-0.12.2-py36hb24657c_0',
-        'channel-4::sqlite-3.20.1-haaaaaaa_4',  # deep cyclical dependency; guess this is what we get
+        'ca-certificates',
+        'libgcc-ng',
+        'libstdcxx-ng',
+        'libffi',
+        'ncurses',
+        'openssl',
+        'tk',
+        'xz',
+        'zlib',
+        'libedit',
+        'readline',
+        'certifi',
+        'click',
+        'itsdangerous',
+        'markupsafe',
+        'python',
+        'setuptools',
+        'werkzeug',
+        'jinja2',
+        'flask',
+        'sqlite',  # deep cyclical dependency; guess this is what we get
     )
     assert nodes == order
+    sqlite_record = next(rec for rec in graph.graph if rec.name == 'sqlite')
+    assert sqlite_record.dist_str() == 'channel-4::sqlite-3.20.1-haaaaaaa_4'  # deep cyclical dependency
 
     # test remove spec
     # because of this deep cyclical dependency, removing jinja2 will remove sqlite and python
     expected_removal = (
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::click-6.7-py36h5253387_0',
-        'channel-4::itsdangerous-0.24-py36h93cc618_1',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::werkzeug-0.14.1-py36_0',
-        'channel-4::jinja2-2.9.6-py36h489bce4_1',
-        'channel-4::flask-0.12.2-py36hb24657c_0',
-        'channel-4::sqlite-3.20.1-haaaaaaa_4',
+        'certifi',
+        'click',
+        'itsdangerous',
+        'markupsafe',
+        'python',
+        'setuptools',
+        'werkzeug',
+        'jinja2',
+        'flask',
+        'sqlite',
     )
 
     removed_nodes = graph.remove_spec(MatchSpec("sqlite"))
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
     removed_nodes = graph.remove_spec(MatchSpec("python"))
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
     removed_nodes = graph.remove_spec(MatchSpec("jinja2"))
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
     removed_nodes = graph.remove_spec(MatchSpec("markupsafe"))
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
 
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(removed_nodes)
     expected_removal = (
-        'channel-4::flask-0.12.2-py36hb24657c_0',
+        'flask',
     )
     assert removed_nodes == expected_removal
 
     removed_nodes = graph.prune()
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(removed_nodes)
     expected_removal = (
-        'channel-4::click-6.7-py36h5253387_0',
-        'channel-4::itsdangerous-0.24-py36h93cc618_1',
-        'channel-4::werkzeug-0.14.1-py36_0',
+        'click',
+        'itsdangerous',
+        'werkzeug',
     )
     assert removed_nodes == expected_removal
 
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
-    removed_nodes = tuple(rec.dist_str() for rec in removed_nodes)
-    print(removed_nodes)
+    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    pprint(removed_nodes)
     expected_removal = (
         # None, because of the cyclical dependency?
     )
@@ -879,42 +883,44 @@ def test_deep_cyclical_dependency():
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
     markupsafe_node = graph.get_node_by_name('markupsafe')
     markupsafe_ancestors = graph.all_ancestors(markupsafe_node)
-    nodes = tuple(rec.dist_str() for rec in markupsafe_ancestors)
-    print(nodes)
+    nodes = tuple(rec.name for rec in markupsafe_ancestors)
+    pprint(nodes)
     order = (
-        'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
-        'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
-        'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-        'channel-4::libffi-3.2.1-hd88cf55_4',
-        'channel-4::ncurses-6.0-h9df7e31_2',
-        'channel-4::openssl-1.0.2n-hb7f436b_0',
-        'channel-4::tk-8.6.7-hc745277_3',
-        'channel-4::xz-5.2.3-h55aa19d_2',
-        'channel-4::zlib-1.2.11-ha838bed_2',
-        'channel-4::libedit-3.1-heed3624_0',
-        'channel-4::readline-7.0-ha6073c6_4',
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::jinja2-2.9.6-py36h489bce4_1',
-        'channel-4::sqlite-3.20.1-haaaaaaa_4',
+        'ca-certificates',
+        'libgcc-ng',
+        'libstdcxx-ng',
+        'libffi',
+        'ncurses',
+        'openssl',
+        'tk',
+        'xz',
+        'zlib',
+        'libedit',
+        'readline',
+        'certifi',
+        'markupsafe',
+        'python',
+        'setuptools',
+        'jinja2',
+        'sqlite',
     )
     assert nodes == order
+    sqlite_record = next(rec for rec in graph.graph if rec.name == 'sqlite')
+    assert sqlite_record.dist_str() == 'channel-4::sqlite-3.20.1-haaaaaaa_4'  # extra sanity check
 
     markupsafe_descendants = graph.all_descendants(markupsafe_node)
-    nodes = tuple(rec.dist_str() for rec in markupsafe_descendants)
-    print(nodes)
+    nodes = tuple(rec.name for rec in markupsafe_descendants)
+    pprint(nodes)
     order = (
-        'channel-4::certifi-2018.1.18-py36_0',
-        'channel-4::click-6.7-py36h5253387_0',
-        'channel-4::itsdangerous-0.24-py36h93cc618_1',
-        'channel-4::markupsafe-1.0-py36hd9260cd_1',
-        'channel-4::python-3.6.4-hc3d631a_1',
-        'channel-4::setuptools-38.5.1-py36_0',
-        'channel-4::werkzeug-0.14.1-py36_0',
-        'channel-4::jinja2-2.9.6-py36h489bce4_1',
-        'channel-4::flask-0.12.2-py36hb24657c_0',
-        'channel-4::sqlite-3.20.1-haaaaaaa_4',
+        'certifi',
+        'click',
+        'itsdangerous',
+        'markupsafe',
+        'python',
+        'setuptools',
+        'werkzeug',
+        'jinja2',
+        'flask',
+        'sqlite',
     )
     assert nodes == order

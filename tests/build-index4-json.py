@@ -3,13 +3,11 @@ import requests
 
 
 def main():
+    keep = {}
+
     r1 = requests.get('https://repo.anaconda.com/pkgs/main/linux-64/repodata.json')
     r1.raise_for_status()
-
     r1json = r1.json()
-
-    packages = {}
-    packages.update(r1json['packages'])
 
     keep_list = (
         'asn1crypto',
@@ -190,22 +188,50 @@ def main():
         'conda',
         'cytoolz',
 
+        'mkl_fft',
+        'mkl_random',
+        'kiwisolver',
+        'numpydoc',
+        'blas',
+        'libuuid',
+        'numpy-base',
+        'backcall',
+        'sphinx',
+        'alabaster',
+        'sphinxcontrib-websupport',
+        'imagesize',
+        'typing',
+        'babel',
+        'snowballstemmer',
+        'sphinxcontrib',
+
     )
 
-    keep = {}
+    _keep = {}
     missing_in_whitelist = set()
-
-    for fn, info in packages.items():
+    for fn, info in r1json['packages'].items():
         if info['name'] in keep_list:
-            keep[fn] = info
+            _keep[fn] = info
             for dep in info['depends']:
                 dep = dep.split()[0]
                 if dep not in keep_list:
                     missing_in_whitelist.add(dep)
-
     if missing_in_whitelist:
-        print(">>> missing <<<")
+        print(">>> missing 1 <<<")
         print(missing_in_whitelist)
+    keep.update(_keep)
+
+
+    r2 = requests.get('https://conda.anaconda.org/conda-test/noarch/repodata.json')
+    r2.raise_for_status()
+    r2json = r2.json()
+    keep.update(r2json['packages'])
+
+    r3 = requests.get('https://repo.continuum.io/pkgs/main/noarch/repodata.json')
+    r3.raise_for_status()
+    r3json = r3.json()
+    keep.update(r3json['packages'])
+
 
 
     additional_records = {
