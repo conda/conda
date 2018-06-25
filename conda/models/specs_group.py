@@ -15,6 +15,10 @@ except ImportError:  # pragma: no cover
 
 
 class SpecsGroup(object):
+    """
+    A helper class for managing groups of specs, especially when dealing with both package
+    name and namespace.
+    """
 
     def __init__(self, initial_specs=()):
         self._specs_map = defaultdict(dict)  # package_name, namespace (or None), spec

@@ -184,13 +184,10 @@ class NamespaceField(StringField):
         except AttributeError:
             from .match_spec import MatchSpec
             spaces = {MatchSpec(spec).name for spec in instance.depends} & set(NAMESPACES)
-            len_spaces = len(spaces)
-            if len_spaces == 0:
-                return ""
-            elif len_spaces == 1:
-                return NAMESPACES[next(iter(spaces))]
+            if len(spaces) == 1:
+                return NAMESPACES[spaces.pop()]
             else:
-                raise NotImplementedError()
+                return ""
 
 
 class FilenameField(StringField):
