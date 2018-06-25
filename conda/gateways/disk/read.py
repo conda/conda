@@ -91,7 +91,6 @@ def find_first_existing(*globs):
 
 def read_package_info(record, package_cache_record):
     epd = package_cache_record.extracted_package_dir
-    raw_index_json = read_index_json(epd)
     icondata = read_icondata(epd)
     package_metadata = read_package_metadata(epd)
     paths_data = read_paths_json(epd)

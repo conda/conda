@@ -105,7 +105,11 @@ class SpecsGroup(object):
         return bool(self.get_matches(record))
 
     def iter_specs(self):
-        return iter(spec for spec_group in itervalues(self._specs_map) for spec in itervalues(spec_group))
+        return iter(
+            spec
+            for spec_group in itervalues(self._specs_map)
+            for spec in itervalues(spec_group)
+        )
 
     def get_specs_by_name(self, package_name, namespace=None):
         if namespace not in EMPTY_NAMESPACE_EQUIVALENTS:

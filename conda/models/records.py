@@ -301,7 +301,6 @@ class PackageRecord(DictSafeMixin, Entity):
     def dist_str(self):
         return "%s::%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build)
 
-
     arch = StringField(required=False, nullable=True)  # so legacy
     platform = EnumField(Platform, required=False, nullable=True)  # so legacy
 
