@@ -14,7 +14,7 @@ from conda.core.index import check_whitelist, get_index, get_reduced_index
 from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
-from tests.core.test_repodata import platform_in_record
+from tests.core.test_subdir_data import platform_in_record
 
 try:
     from unittest.mock import patch

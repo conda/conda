@@ -33694,37 +33694,100 @@
     "timestamp": 1523631954672,
     "version": "8.42"
   },
-  "perl-5.26.0-hae598fd_0.tar.bz2": {
-    "build": "hae598fd_0",
-    "build_number": 0,
-    "depends": [
-      "libgcc-ng >=7.2.0"
-    ],
+  "perl-5.20.3.1-1.tar.bz2": {
+    "arch": "x86_64",
+    "binstar": {
+      "channel": "main",
+      "owner_id": "5528f42ce1dad12974506e8d",
+      "package_id": "56e9cbd0147ebb0b5e04dcad"
+    },
+    "build": "1",
+    "build_number": 1,
+    "depends": [],
     "license": "Perl",
     "license_family": "Other",
-    "md5": "67431063eeed843dab2b1d0efe80b5c1",
+    "machine": "x86_64",
+    "md5": "6ed309191e6bae5888608c8d3019e40c",
     "name": "perl",
-    "sha256": "ed73ea7cd38ba83d72b4f266b6441fcd649ca6d07628cd6ecf5e0fa6914f811d",
-    "size": 16597843,
+    "operatingsystem": "linux",
+    "platform": "linux",
+    "requires": [],
+    "size": 14711806,
     "subdir": "linux-64",
-    "timestamp": 1505666299464,
-    "version": "5.26.0"
+    "target-triplet": "x86_64-any-linux",
+    "version": "5.20.3.1"
   },
-  "perl-5.26.2-h14c3975_0.tar.bz2": {
-    "build": "h14c3975_0",
-    "build_number": 0,
-    "depends": [
-      "libgcc-ng >=7.2.0"
-    ],
-    "license": "Perl Artistic",
+  "perl-5.20.3.1-2.tar.bz2": {
+    "arch": "x86_64",
+    "binstar": {
+      "channel": "main",
+      "owner_id": "5528f42ce1dad12974506e8d",
+      "package_id": "56e9cbd0147ebb0b5e04dcad"
+    },
+    "build": "2",
+    "build_number": 2,
+    "depends": [],
+    "has_prefix": true,
+    "license": "Perl",
     "license_family": "Other",
-    "md5": "b1704ba8a704dad758e14808869c913a",
+    "machine": "x86_64",
+    "md5": "3c8a9ab9848ce643d6ef6d7692ccbd19",
     "name": "perl",
-    "sha256": "f0ee43d855b3754857b1b08536d782183b52d26cf08523cf9eb9ad44d344369e",
-    "size": 16649883,
+    "operatingsystem": "linux",
+    "platform": "linux",
+    "requires": [],
+    "size": 15555155,
     "subdir": "linux-64",
-    "timestamp": 1527832845796,
-    "version": "5.26.2"
+    "target-triplet": "x86_64-any-linux",
+    "version": "5.20.3.1"
+  },
+  "perl-5.22.0.1-0.tar.bz2": {
+    "arch": "x86_64",
+    "binstar": {
+      "channel": "main",
+      "owner_id": "5528f42ce1dad12974506e8d",
+      "package_id": "56e9cbd0147ebb0b5e04dcad"
+    },
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "has_prefix": true,
+    "license": "Perl",
+    "license_family": "Other",
+    "machine": "x86_64",
+    "md5": "c9c6e4d20445de65f67cdfa2ac76c77d",
+    "name": "perl",
+    "operatingsystem": "linux",
+    "platform": "linux",
+    "requires": [],
+    "size": 15835409,
+    "subdir": "linux-64",
+    "target-triplet": "x86_64-any-linux",
+    "version": "5.22.0.1"
+  },
+  "perl-5.22.2.1-0.tar.bz2": {
+    "arch": "x86_64",
+    "binstar": {
+      "channel": "main",
+      "owner_id": "5528f42ce1dad12974506e8d",
+      "package_id": "56e9cbd0147ebb0b5e04dcad"
+    },
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "has_prefix": true,
+    "license": "Perl",
+    "license_family": "Other",
+    "machine": "x86_64",
+    "md5": "c49f734b904cc5fe2b20c72377f20c4b",
+    "name": "perl",
+    "operatingsystem": "linux",
+    "platform": "linux",
+    "requires": [],
+    "size": 15677897,
+    "subdir": "linux-64",
+    "target-triplet": "x86_64-any-linux",
+    "version": "5.22.2.1"
   },
   "perl-app-cpanminus-1.7039-1.tar.bz2": {
     "arch": "x86_64",
@@ -34114,7 +34177,8 @@
       "perl-test-pod",
       "perl-threaded",
       "perl-xml-twig",
-      "perl-xml-xpath"
+      "perl-xml-xpath",
+      "perl 5.22.0*"
     ],
     "license": "artistic_2",
     "machine": "x86_64",
@@ -74697,6 +74761,22 @@
     "subdir": "linux-64",
     "timestamp": 1510178605778,
     "version": "7.0"
+  },
+  "redis-4.0.10-h14c3975_0.tar.bz2": {
+    "build": "h14c3975_0",
+    "build_number": 0,
+    "depends": [
+      "libgcc-ng >=7.2.0"
+    ],
+    "license": "3-clause BSD",
+    "license_family": "BSD",
+    "md5": "e1a91bddeb1bef7dcb343eed7ef435dd",
+    "name": "redis",
+    "sha256": "242629eab922ac7c7b7a4f6a74b7a71492bbd04b3d2830f60b9be669691aed20",
+    "size": 7610686,
+    "subdir": "linux-64",
+    "timestamp": 1529963725548,
+    "version": "4.0.10"
   },
   "redis-4.0.2-h6805cf8_0.tar.bz2": {
     "build": "h6805cf8_0",

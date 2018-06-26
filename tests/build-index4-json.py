@@ -286,7 +286,6 @@ def main():
         'widgetsnbextension',
 
         'graphviz',
-        'perl',
         'libtool',
 
         'python-graphviz',
@@ -514,9 +513,31 @@ def main():
 
 
 
-    r5 = requests.get('https://conda.anaconda.org/bioconda/linux-64/repodata.json')
+    r5 = requests.get('https://conda.anaconda.org/conda-forge/linux-64/repodata.json')
     r5.raise_for_status()
     r5json = r5.json()
+    _keep = {}
+    missing_in_whitelist = set()
+    keep_list = (
+        'perl',
+    )
+    all_package_names = set(info['name'] for info in itervalues(keep))
+    for fn, info in r5json['packages'].items():
+        if info['name'] in keep_list:
+            _keep[fn] = info
+            for dep in info['depends']:
+                dep = dep.split()[0]
+                if dep not in keep_list and dep not in all_package_names:
+                    missing_in_whitelist.add(dep)
+    if missing_in_whitelist:
+        print(">>> missing 5 <<<")
+        pprint(missing_in_whitelist)
+    keep.update(_keep)
+
+
+    r6 = requests.get('https://conda.anaconda.org/bioconda/linux-64/repodata.json')
+    r6.raise_for_status()
+    r6json = r6.json()
     _keep = {}
     missing_in_whitelist = set()
     keep_list = (
@@ -564,7 +585,7 @@ def main():
         'perl-test-more',
     )
     all_package_names = set(info['name'] for info in itervalues(keep))
-    for fn, info in r5json['packages'].items():
+    for fn, info in r6json['packages'].items():
         if info['name'] in keep_list:
             _keep[fn] = info
             for dep in info['depends']:
@@ -572,8 +593,15 @@ def main():
                 if dep not in keep_list and dep not in all_package_names:
                     missing_in_whitelist.add(dep)
     if missing_in_whitelist:
-        print(">>> missing 5 <<<")
+        print(">>> missing 6 <<<")
         pprint(missing_in_whitelist)
+
+    # patch 'perl-graphviz' to include an explicit dependency on perl, as from the 'perl-threaded' package
+    perl_info_dicts = tuple(info for info in _keep.values() if info['name'] == 'perl-graphviz')
+    assert len(perl_info_dicts) == 1, perl_info_dicts
+    for info in perl_info_dicts:
+        info['depends'].append('perl 5.22.0*')
+
     keep.update(_keep)
 
 

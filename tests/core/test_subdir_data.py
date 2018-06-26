@@ -11,9 +11,9 @@ from conda.common.compat import iteritems
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
 from conda.core.index import get_index
-from conda.core.subdir_data import Response304ContentUnchanged, cache_fn_url, read_mod_and_etag, \
-    SubdirData
-from conda.models.channel import Channel
+from conda.core.subdir_data import Response304ContentUnchanged, SubdirData, cache_fn_url, \
+    read_mod_and_etag
+from tests.helpers import get_index_r_4
 
 try:
     from unittest.mock import patch
@@ -25,6 +25,29 @@ log = getLogger(__name__)
 
 def platform_in_record(platform, record):
     return record.name.endswith('@') or ("/%s/" % platform in record.url) or ("/noarch/" in record.url)
+
+
+def test_namespace_query():
+    get_index_r_4()
+    sd = SubdirData._cache_['https://conda.anaconda.org/channel-4/' + context.subdir]
+
+    def num(generator):
+        return len(tuple(generator))
+
+    assert num(sd.query('graphviz')) == 8
+    assert num(sd.query('python-graphviz')) == num(sd.query('python:graphviz')) == 6
+    assert num(sd.query('perl-graphviz')) == num(sd.query('perl:graphviz')) == 1
+    assert num(sd.query('global:graphviz')) == 1
+
+    perl_graphviz_rec = next(sd.query('perl:graphviz'))
+    assert perl_graphviz_rec.name == 'graphviz'
+    assert perl_graphviz_rec.namespace == 'perl'
+    assert perl_graphviz_rec.legacy_name == 'perl-graphviz'
+
+    global_graphviz_rec = next(sd.query('global:graphviz'))
+    assert global_graphviz_rec.name == 'graphviz'
+    assert global_graphviz_rec.namespace == 'global'
+    assert global_graphviz_rec.legacy_name == 'graphviz'
 
 
 @pytest.mark.integration

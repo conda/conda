@@ -87,7 +87,10 @@ class SpecsGroup(object):
             del self._specs_map[package_name]
 
     def __str__(self):
-        return "['%s']" % "', '".join(text_type(spec) for spec in self.iter_specs())
+        return "('%s')" % "', '".join(text_type(spec) for spec in self.iter_specs())
+
+    def __repr__(self):
+        return "SpecsGroup(('%s'))" % "', '".join(text_type(spec) for spec in self.iter_specs())
 
     def drop_specs_not_matching_records(self, records):
         new_specs = defaultdict(dict)

@@ -27,13 +27,13 @@ from os.path import basename, join
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
+from .._vendor.auxlib import NULL
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
                                      StringField)
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
 from ..exceptions import PathNotFoundError
-
 
 NAMESPACES_MAP = {
     "python": "python",
@@ -191,11 +191,18 @@ class NameField(StringField):
                 val = reduced_name
         return super(NameField, self).box(instance, instance_type, val)
 
+    def dump(self, instance, instance_type, val):
+        return instance.legacy_name
+
 
 class LegacyNameField(StringField):
 
     def __init__(self):
-        super(LegacyNameField, self).__init__(required=False)
+        super(LegacyNameField, self).__init__(required=False, in_dump=False)
+
+    def box(self, instance, instance_type, val):
+        instance._legacy_name = val
+        return super(LegacyNameField, self).box(instance, instance_type, val)
 
     def __get__(self, instance, instance_type):
         try:
