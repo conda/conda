@@ -35,16 +35,22 @@ from ..common.compat import isiterable, itervalues, string_types, text_type
 from ..exceptions import PathNotFoundError
 
 
-NAMESPACES = {
+NAMESPACES_MAP = {
     "python": "python",
+    "r": "r",
     "r-base": "r",
     "mro-base": "r",
+    "java": "java",
     "openjdk": "java",
     "ruby": "ruby",
     "lua": "lua",
     "nodejs": "nodejs",
+    "node": "nodejs",
     "perl": "perl",
 }
+
+NAMESPACE_PACKAGES = set(NAMESPACES_MAP)
+NAMESPACES = set(itervalues(NAMESPACES_MAP))
 
 
 class LinkTypeField(EnumField):
@@ -172,6 +178,31 @@ class SubdirField(StringField):
             else:
                 return self.unbox(instance, instance_type, context.subdir)
 
+class NameField(StringField):
+
+    def __init__(self):
+        super(NameField, self).__init__()
+
+    def box(self, instance, instance_type, val):
+        if '-' in val:
+            namespace_prefix, reduced_name = val.split('-', 1)
+            if NAMESPACES_MAP.get(namespace_prefix) == instance.namespace:
+                instance._legacy_name = val
+                val = reduced_name
+        return super(NameField, self).box(instance, instance_type, val)
+
+
+class LegacyNameField(StringField):
+
+    def __init__(self):
+        super(LegacyNameField, self).__init__(required=False)
+
+    def __get__(self, instance, instance_type):
+        try:
+            return instance._legacy_name
+        except AttributeError:
+            return instance.name
+
 
 class NamespaceField(StringField):
 
@@ -183,9 +214,9 @@ class NamespaceField(StringField):
             return super(NamespaceField, self).__get__(instance, instance_type)
         except AttributeError:
             from .match_spec import MatchSpec
-            spaces = {MatchSpec(spec).name for spec in instance.depends} & set(NAMESPACES)
+            spaces = {MatchSpec(spec).name for spec in instance.depends} & NAMESPACE_PACKAGES
             if len(spaces) == 1:
-                return NAMESPACES[spaces.pop()]
+                return NAMESPACES_MAP[spaces.pop()]
             else:
                 return ""
 
@@ -261,7 +292,6 @@ class PathsData(Entity):
 
 
 class PackageRecord(DictSafeMixin, Entity):
-    name = StringField()
     version = StringField()
     build = StringField(aliases=('build_string',))
     build_number = IntegerField()
@@ -296,13 +326,17 @@ class PackageRecord(DictSafeMixin, Entity):
         return self._pkey == other._pkey
 
     def dist_str(self):
-        return "%s::%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build)
+        return "%s::%s-%s-%s" % (self.channel.canonical_name, self.legacy_name, self.version, self.build)
 
     arch = StringField(required=False, nullable=True)  # so legacy
     platform = EnumField(Platform, required=False, nullable=True)  # so legacy
 
     depends = ListField(string_types, default=())
     constrains = ListField(string_types, default=())
+
+    namespace = NamespaceField()
+    name = NameField()
+    legacy_name = LegacyNameField()
 
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
@@ -318,7 +352,15 @@ class PackageRecord(DictSafeMixin, Entity):
 
     timestamp = TimestampField(required=False)
 
-    namespace = NamespaceField()
+
+    @property
+    def name_aliases(self):
+        if self.namespace:
+            if '-' in self.name:
+                namespace_prefix, package_alias = self.name.split('-', 1)
+                if NAMESPACES_MAP.get(namespace_prefix) == self.namespace:
+                    return (package_alias,)
+        return ()
 
     @property
     def combined_depends(self):
@@ -329,13 +371,6 @@ class PackageRecord(DictSafeMixin, Entity):
         )})
         return tuple(itervalues(result))
 
-    @property
-    def _namekey(self):
-        namespace = self.namespace
-        if namespace:
-            return "%s:%s" % (namespace, self.name)
-        else:
-            return self.name
 
 # conflicting attribute due to subdir on both IndexJsonRecord and PackageRef
 # probably unavoidable for now

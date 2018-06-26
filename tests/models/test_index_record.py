@@ -33,6 +33,7 @@ class PrefixRecordTests(TestCase):
         assert channel_str == "https://repo.anaconda.com/pkgs/free/win-32"
         assert dict(pr.dump()) == dict(
             namespace='',
+            legacy_name='austin',
             name='austin',
             version='1.2.3',
             build='py34_2',

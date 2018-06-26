@@ -29,6 +29,7 @@ from ..models.channel import Channel
 from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
+from ..models.records import NAMESPACE_PACKAGES
 from ..models.specs_group import SpecsGroup
 from ..models.version import VersionOrder
 from ..resolve import Resolve, dashlist
@@ -184,12 +185,14 @@ class Solver(object):
 
         # add in historically-requested specs
         specs_group.update(specs_group_from_history)
+        pinned_specs = () if ignore_pinned else get_pinned_specs(self.prefix)
 
         # let's pretend for now that this is the right place to build the index
         prepared_specs = set(concatv(
             specs_to_remove,
             specs_to_add,
             specs_group.iter_specs(),
+            pinned_specs,
         ))
 
         index, r = self._prepare(prepared_specs)
@@ -335,15 +338,13 @@ class Solver(object):
             specs_group.add(spec)
 
         # collect additional specs to add to the solution
-        track_features_specs = pinned_specs = ()
         if context.track_features:
-            track_features_specs = tuple(MatchSpec(x + '@') for x in context.track_features)
-        if not ignore_pinned:
-            pinned_specs = get_pinned_specs(self.prefix)
+            for tf_spec in context.track_features:
+                ms = MatchSpec(tf_spec + '@')
+                specs_group.add(ms)
 
         final_environment_specs = IndexedSet(concatv(
             specs_group.iter_specs(),
-            track_features_specs,
             pinned_specs,
         ))
 

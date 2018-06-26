@@ -20,7 +20,7 @@ from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
 from conda.models.specs_group import SpecsGroup
 from conda.resolve import MatchSpec
-from ..helpers import get_index_r_1, get_index_r_2, get_index_r_3, get_index_r_4, get_index_r_5
+from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, get_index_r_5
 from conda.common.compat import iteritems
 
 try:
@@ -1638,7 +1638,7 @@ def test_freeze_deps_1():
     with get_solver_2(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_2))
+        pprint(convert_to_dist_str(final_state_2))
         order = (
             'channel-2::mkl-2017.0.1-0',
             'channel-2::openssl-1.0.2l-0',
@@ -1656,8 +1656,8 @@ def test_freeze_deps_1():
             'channel-2::requests-2.14.2-py34_0',
             'channel-2::setuptools-27.2.0-py34_0',
             'channel-2::six-1.7.3-py34_0',
-            'channel-2::jinja2-2.9.6-py34_0',
             'channel-2::python-dateutil-2.6.0-py34_0',
+            'channel-2::jinja2-2.9.6-py34_0',
             'channel-2::tornado-4.4.2-py34_0',
             'channel-2::bokeh-0.12.4-py34_0',
         )
@@ -1687,8 +1687,8 @@ def test_freeze_deps_1():
             'channel-2::requests-2.14.2-py34_0',
             'channel-2::setuptools-27.2.0-py34_0',
             'channel-2::six-1.7.3-py34_0',
-            'channel-2::jinja2-2.9.6-py34_0',
             'channel-2::python-dateutil-2.6.0-py34_0',
+            'channel-2::jinja2-2.9.6-py34_0',
             'channel-2::tornado-4.4.2-py34_0',
             'channel-2::bokeh-0.12.4-py34_0',
         )
@@ -1720,8 +1720,8 @@ def test_freeze_deps_1():
             'channel-2::requests-2.14.2-py27_0',
             'channel-2::setuptools-27.2.0-py27_0',
             'channel-2::six-1.7.3-py27_0',
-            'channel-2::jinja2-2.9.6-py27_0',
             'channel-2::python-dateutil-2.6.0-py27_0',
+            'channel-2::jinja2-2.9.6-py27_0',
             'channel-2::singledispatch-3.4.0.3-py27_0',
             'channel-2::ssl_match_hostname-3.4.0.2-py27_1',
             'channel-2::tornado-4.5.1-py27_0',
@@ -1735,6 +1735,211 @@ def test_freeze_deps_1():
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         with pytest.raises(UnsatisfiableError):
             solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
+
+
+def test_namespace_package_rename_1():
+    specs = MatchSpec("dateutil"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = (
+            'channel-4::ca-certificates-2018.03.07-0',
+            'channel-4::libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4::libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.1-hf484d3e_0',
+            'channel-4::openssl-1.0.2o-h20670df_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::xz-5.2.4-h14c3975_4',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.24.0-h84994c4_0',
+            'channel-4::python-3.6.5-hc3d631a_2',
+            'channel-4::six-1.11.0-py36h372c433_1',
+            'channel-4::python-dateutil-2.7.3-py36_0',
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    specs = MatchSpec("python-dateutil"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        assert convert_to_dist_str(final_state_1) == order
+
+
+# def test_namespace_1():
+#     specs = MatchSpec("python"), MatchSpec("perl"),
+#     with get_solver_4(specs) as solver:
+#         final_state_1 = solver.solve_final_state()
+#         pprint(convert_to_dist_str(final_state_1))
+#         order = (
+#             'channel-4::ca-certificates-2018.03.07-0',
+#             'channel-4::libgcc-ng-7.2.0-hdf63c60_3',
+#             'channel-4::libstdcxx-ng-7.2.0-hdf63c60_3',
+#             'channel-4::libffi-3.2.1-hd88cf55_4',
+#             'channel-4::ncurses-6.1-hf484d3e_0',
+#             'channel-4::openssl-1.0.2o-h20670df_0',
+#             'channel-4::perl-5.26.2-h14c3975_0',
+#             'channel-4::tk-8.6.7-hc745277_3',
+#             'channel-4::xz-5.2.4-h14c3975_4',
+#             'channel-4::zlib-1.2.11-ha838bed_2',
+#             'channel-4::libedit-3.1.20170329-h6b74fdf_2',
+#             'channel-4::readline-7.0-ha6073c6_4',
+#             'channel-4::sqlite-3.24.0-h84994c4_0',
+#             'channel-4::python-3.6.5-hc3d631a_2'
+#         )
+#         assert convert_to_dist_str(final_state_1) == order
+#
+#     specs_to_add = MatchSpec("graphviz"), MatchSpec("python-graphviz"), MatchSpec("perl-graphviz")
+#     with get_solver_4(specs_to_add=specs_to_add, prefix_records=final_state_1,
+#                       history_specs=specs) as solver:
+#         unlink_dists, link_dists = solver.solve_for_diff()
+#
+#         pprint(convert_to_dist_str(unlink_dists))
+#         unlink_order = (
+#
+#         )
+#         assert convert_to_dist_str(unlink_dists) == unlink_order
+#
+#         pprint(convert_to_dist_str(link_dists))
+#         link_order = (
+#             'channel-4::perl-threaded-5.22.0-10',
+#             'channel-4::tidyp-1.04-1',
+#             'channel-4::expat-2.2.5-he0dffb1_0',
+#             'channel-4::graphite2-1.3.11-h16798f4_2',
+#             'channel-4::icu-58.2-h9c2bf20_1',
+#             'channel-4::jpeg-9b-h024ee3a_2',
+#             'channel-4::libgcc-7.2.0-h69d50b8_2',
+#             'channel-4::libtool-2.4.6-h544aabb_3',
+#             'channel-4::libxcb-1.13-h1bed415_1',
+#             'channel-4::pcre-8.42-h439df22_0',
+#             'channel-4::perl-digest-hmac-1.03-0',
+#             'channel-4::perl-file-which-1.20-0',
+#             'channel-4::perl-font-afm-1.20-0',
+#             'channel-4::perl-html-entities-numbered-0.04-0',
+#             'channel-4::perl-html-tagset-3.20-0',
+#             'channel-4::perl-html-tidy-1.56-1',
+#             'channel-4::perl-http-date-6.02-0',
+#             'channel-4::perl-io-html-1.001-0',
+#             'channel-4::perl-io-tty-1.12-0',
+#             'channel-4::perl-lwp-mediatypes-6.02-0',
+#             'channel-4::perl-parse-recdescent-1.967013-0',
+#             'channel-4::perl-test-pod-1.51-0',
+#             'channel-4::perl-tie-ixhash-1.23-0',
+#             'channel-4::perl-uri-1.71-0',
+#             'channel-4::perl-xml-xpathengine-0.14-0',
+#             'channel-4::pixman-0.34.0-hceecf20_3',
+#             'channel-4::glib-2.56.1-h000015b_0',
+#             'channel-4::libpng-1.6.34-hb9fc6fc_0',
+#             'channel-4::libtiff-4.0.9-he85c1e1_1',
+#             'channel-4::libxml2-2.9.8-h26e45fe_1',
+#             'channel-4::perl-encode-locale-1.05-3',
+#             'channel-4::perl-file-listing-6.04-0',
+#             'channel-4::perl-html-parser-3.72-0',
+#             'channel-4::perl-ipc-run-0.94-0',
+#             'channel-4::perl-net-ssleay-1.74-0',
+#             'channel-4::perl-ntlm-1.09-1',
+#             'channel-4::perl-www-robotrules-6.02-0',
+#             'channel-4::freetype-2.8-hab7d2ae_1',
+#             'channel-4::perl-http-message-6.11-0',
+#             'channel-4::perl-io-socket-ssl-2.024-0',
+#             'channel-4::fontconfig-2.12.6-h49f89f6_0',
+#             'channel-4::perl-http-cookies-6.01-0',
+#             'channel-4::perl-http-daemon-6.01-0',
+#             'channel-4::perl-http-negotiate-6.01-0',
+#             'channel-4::perl-net-http-6.09-0',
+#             'channel-4::cairo-1.14.12-h7636065_2',
+#             'channel-4::perl-libwww-perl-6.15-0',
+#             'channel-4::harfbuzz-1.7.6-h5f0a787_1',
+#             'channel-4::perl-html-tree-5.03-0',
+#             'channel-4::perl-xml-parser-2.44-4',
+#             'channel-4::pango-1.41.0-hd475d92_0',
+#             'channel-4::perl-html-formatter-2.14-0',
+#             'channel-4::perl-xml-xpath-1.33-0',
+#             'channel-4::graphviz-2.40.1-h25d223c_0',
+#             'channel-4::perl-xml-twig-3.49-0',
+#             'channel-4::perl-graphviz-2.20-1',
+#             'channel-4::python-graphviz-0.8.3-py36_0',
+#         )
+#         assert convert_to_dist_str(link_dists) == link_order
+#
+#         python_graphviz_rec = link_dists[-1]
+#         assert python_graphviz_rec.name == "python-graphviz"
+#         assert python_graphviz_rec.name_aliases == ("graphviz",)
+#
+#     specs_to_add = MatchSpec("graphviz"),
+#     with get_solver_4(specs_to_add=specs_to_add, prefix_records=final_state_1,
+#                       history_specs=specs) as solver:
+#         unlink_dists, link_dists = solver.solve_for_diff()
+#
+#         pprint(convert_to_dist_str(unlink_dists))
+#         unlink_order = (
+#
+#         )
+#         assert convert_to_dist_str(unlink_dists) == unlink_order
+#
+#         pprint(convert_to_dist_str(link_dists))
+#         link_order = (
+#             'channel-4::perl-threaded-5.22.0-10',
+#             'channel-4::tidyp-1.04-1',
+#             'channel-4::expat-2.2.5-he0dffb1_0',
+#             'channel-4::graphite2-1.3.11-h16798f4_2',
+#             'channel-4::icu-58.2-h9c2bf20_1',
+#             'channel-4::jpeg-9b-h024ee3a_2',
+#             'channel-4::libgcc-7.2.0-h69d50b8_2',
+#             'channel-4::libtool-2.4.6-h544aabb_3',
+#             'channel-4::libxcb-1.13-h1bed415_1',
+#             'channel-4::pcre-8.42-h439df22_0',
+#             'channel-4::perl-digest-hmac-1.03-0',
+#             'channel-4::perl-file-which-1.20-0',
+#             'channel-4::perl-font-afm-1.20-0',
+#             'channel-4::perl-html-entities-numbered-0.04-0',
+#             'channel-4::perl-html-tagset-3.20-0',
+#             'channel-4::perl-html-tidy-1.56-1',
+#             'channel-4::perl-http-date-6.02-0',
+#             'channel-4::perl-io-html-1.001-0',
+#             'channel-4::perl-io-tty-1.12-0',
+#             'channel-4::perl-lwp-mediatypes-6.02-0',
+#             'channel-4::perl-parse-recdescent-1.967013-0',
+#             'channel-4::perl-test-pod-1.51-0',
+#             'channel-4::perl-tie-ixhash-1.23-0',
+#             'channel-4::perl-uri-1.71-0',
+#             'channel-4::perl-xml-xpathengine-0.14-0',
+#             'channel-4::pixman-0.34.0-hceecf20_3',
+#             'channel-4::glib-2.56.1-h000015b_0',
+#             'channel-4::libpng-1.6.34-hb9fc6fc_0',
+#             'channel-4::libtiff-4.0.9-he85c1e1_1',
+#             'channel-4::libxml2-2.9.8-h26e45fe_1',
+#             'channel-4::perl-encode-locale-1.05-3',
+#             'channel-4::perl-file-listing-6.04-0',
+#             'channel-4::perl-html-parser-3.72-0',
+#             'channel-4::perl-ipc-run-0.94-0',
+#             'channel-4::perl-net-ssleay-1.74-0',
+#             'channel-4::perl-ntlm-1.09-1',
+#             'channel-4::perl-www-robotrules-6.02-0',
+#             'channel-4::freetype-2.8-hab7d2ae_1',
+#             'channel-4::perl-http-message-6.11-0',
+#             'channel-4::perl-io-socket-ssl-2.024-0',
+#             'channel-4::fontconfig-2.12.6-h49f89f6_0',
+#             'channel-4::perl-http-cookies-6.01-0',
+#             'channel-4::perl-http-daemon-6.01-0',
+#             'channel-4::perl-http-negotiate-6.01-0',
+#             'channel-4::perl-net-http-6.09-0',
+#             'channel-4::cairo-1.14.12-h7636065_2',
+#             'channel-4::perl-libwww-perl-6.15-0',
+#             'channel-4::harfbuzz-1.7.6-h5f0a787_1',
+#             'channel-4::perl-html-tree-5.03-0',
+#             'channel-4::perl-xml-parser-2.44-4',
+#             'channel-4::pango-1.41.0-hd475d92_0',
+#             'channel-4::perl-html-formatter-2.14-0',
+#             'channel-4::perl-xml-xpath-1.33-0',
+#             'channel-4::graphviz-2.40.1-h25d223c_0',
+#             'channel-4::perl-xml-twig-3.49-0',
+#             'channel-4::perl-graphviz-2.20-1',
+#             'channel-4::python-graphviz-0.8.3-py36_0',
+#         )
+#         assert convert_to_dist_str(link_dists) == link_order
 
 
 class PrivateEnvTests(TestCase):

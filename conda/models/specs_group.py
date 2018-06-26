@@ -9,9 +9,9 @@ from .match_spec import EMPTY_NAMESPACE_EQUIVALENTS, MatchSpec
 from ..common.compat import iteritems, itervalues, text_type
 
 try:
-    from cytoolz.itertoolz import groupby
+    from cytoolz.itertoolz import concatv, groupby
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import groupby  # NOQA
+    from .._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
 
 class SpecsGroup(object):
@@ -109,10 +109,9 @@ class SpecsGroup(object):
         return bool(self.get_matches(record))
 
     def iter_specs(self):
-        return iter(
-            spec
-            for spec_group in itervalues(self._specs_map)
-            for spec in itervalues(spec_group)
+        return concatv(
+            (spec for ns_map in itervalues(self._specs_map) for spec in itervalues(ns_map)),
+            self._non_named_specs,
         )
 
     def get_specs_by_name(self, package_name, namespace=None):

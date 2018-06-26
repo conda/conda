@@ -11,7 +11,7 @@ import re
 
 from .channel import Channel
 from .dist import Dist
-from .records import PackageRecord
+from .records import PackageRecord, NAMESPACES
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -463,7 +463,7 @@ class MatchSpec(object):
 
     @classmethod
     def merge(cls, match_specs):
-        match_specs = tuple(cls(s) for s in match_specs)
+        match_specs = tuple(cls(s) for s in match_specs if s)
         grouped = groupby(lambda spec: spec.get_exact_value('name'), match_specs)
         dont_merge_these = grouped.pop('*', []) + grouped.pop(None, [])
 
@@ -652,6 +652,13 @@ def _parse_spec_str(spec_str):
         name, spec_str = m3.groups()
         if name is None:
             raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
+        if '-' in name:
+            namespace_prefix, reduced_name = name.split('-', 1)
+            if namespace_prefix in NAMESPACES:
+                if namespace is None or namespace == namespace_prefix:
+                    legacy_name = name
+                    name = reduced_name
+                    namespace = namespace_prefix
     else:
         raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
 

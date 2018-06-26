@@ -13,7 +13,7 @@ from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
 
-from .helpers import get_index_r_1, get_index_r_3, raises
+from .helpers import get_index_r_1, raises
 
 index, r, = get_index_r_1()
 f_mkl = set(['mkl'])
@@ -1174,6 +1174,7 @@ def test_channel_priority_1():
     assert installed2 == installed3
 
 
+@pytest.mark.skipif(datetime.now() < datetime(2018, 8, 1), reason="replace index3 with something else")
 def test_channel_priority_2():
     this_index = index.copy()
     index3, r3 = get_index_r_3()
