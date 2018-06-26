@@ -1104,6 +1104,7 @@ def test_fast_update_with_update_modifier_not_set():
         unlink_dists, link_dists = solver.solve_for_diff()
 
         pprint(convert_to_dist_str(unlink_dists))
+        pprint(convert_to_dist_str(link_dists))
         unlink_order = (
             'channel-4::python-2.7.14-h89e7a4a_22',
             'channel-4::openssl-1.0.2l-h077ae2c_5',
@@ -1765,6 +1766,39 @@ def test_namespace_package_rename_1():
     with get_solver_4(specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
+        assert convert_to_dist_str(final_state_1) == order
+
+
+def test_namespace_package_rename_2():
+    specs = MatchSpec("graphviz"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = (
+            'channel-4::libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4::libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4::expat-2.2.5-he0dffb1_0',
+            'channel-4::graphite2-1.3.11-h16798f4_2',
+            'channel-4::icu-58.2-h9c2bf20_1',
+            'channel-4::jpeg-9b-h024ee3a_2',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::libtool-2.4.6-h544aabb_3',
+            'channel-4::libxcb-1.13-h1bed415_1',
+            'channel-4::pcre-8.42-h439df22_0',
+            'channel-4::pixman-0.34.0-hceecf20_3',
+            'channel-4::xz-5.2.4-h14c3975_4',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::glib-2.56.1-h000015b_0',
+            'channel-4::libpng-1.6.34-hb9fc6fc_0',
+            'channel-4::libtiff-4.0.9-he85c1e1_1',
+            'channel-4::libxml2-2.9.8-h26e45fe_1',
+            'channel-4::freetype-2.8-hab7d2ae_1',
+            'channel-4::fontconfig-2.12.6-h49f89f6_0',
+            'channel-4::cairo-1.14.12-h7636065_2',
+            'channel-4::harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4::pango-1.41.0-hd475d92_0',
+            'channel-4::graphviz-2.40.1-h25d223c_0'
+        )
         assert convert_to_dist_str(final_state_1) == order
 
 

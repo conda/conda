@@ -269,7 +269,7 @@ class Solver(object):
         # since we *want* the solver to modify/update that package.
         #
         # TLDR: when working with MatchSpec objects,
-        #  - to minimize the version change, set MatchSpec(name=name, target=prec.dist_str())
+        #  - to minimize the version change, set MatchSpec(name=name, target=prec.record_id())
         #  - to freeze the package, set all the components of MatchSpec individually
         for spec in specs_group.iter_specs():
             matches_for_spec = tuple(prec for prec in solution if spec.match(prec))
@@ -289,7 +289,7 @@ class Solver(object):
                 if update_modifier == UpdateModifier.FREEZE_INSTALLED:
                     new_spec = MatchSpec(target_prec)
                 else:
-                    target = target_prec.dist_str()
+                    target = target_prec.record_id()
                     new_spec = MatchSpec(spec, target=target)
                 specs_group.add(new_spec)
         if log.isEnabledFor(TRACE):
@@ -446,7 +446,7 @@ class Solver(object):
         log.debug("solved prefix %s\n"
                   "  solved_linked_dists:\n"
                   "    %s\n",
-                  self.prefix, "\n    ".join(prec.dist_str() for prec in solution))
+                  self.prefix, "\n    ".join(prec.record_id() for prec in solution))
         return solution
 
     def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,

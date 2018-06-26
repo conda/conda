@@ -218,7 +218,7 @@ class NamespaceField(StringField):
             if len(spaces) == 1:
                 return NAMESPACES_MAP[spaces.pop()]
             else:
-                return ""
+                return "global"
 
 
 class FilenameField(StringField):
@@ -328,6 +328,10 @@ class PackageRecord(DictSafeMixin, Entity):
     def dist_str(self):
         return "%s::%s-%s-%s" % (self.channel.canonical_name, self.legacy_name, self.version, self.build)
 
+    def record_id(self):
+        return "%s:%s:%s-%s-%s" % (self.channel.canonical_name, self.namespace,
+                                   self.name, self.version, self.build)
+
     arch = StringField(required=False, nullable=True)  # so legacy
     platform = EnumField(Platform, required=False, nullable=True)  # so legacy
 
@@ -337,6 +341,10 @@ class PackageRecord(DictSafeMixin, Entity):
     namespace = NamespaceField()
     name = NameField()
     legacy_name = LegacyNameField()
+
+    @property
+    def _namekey(self):
+        return "%s:%s" % (self.namespace, self.name)
 
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
@@ -351,16 +359,6 @@ class PackageRecord(DictSafeMixin, Entity):
     package_type = PackageTypeField()
 
     timestamp = TimestampField(required=False)
-
-
-    @property
-    def name_aliases(self):
-        if self.namespace:
-            if '-' in self.name:
-                namespace_prefix, package_alias = self.name.split('-', 1)
-                if NAMESPACES_MAP.get(namespace_prefix) == self.namespace:
-                    return (package_alias,)
-        return ()
 
     @property
     def combined_depends(self):

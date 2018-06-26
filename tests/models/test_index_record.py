@@ -32,7 +32,7 @@ class PrefixRecordTests(TestCase):
         channel_str = text_type(Channel("https://repo.anaconda.com/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2"))
         assert channel_str == "https://repo.anaconda.com/pkgs/free/win-32"
         assert dict(pr.dump()) == dict(
-            namespace='',
+            namespace='global',
             legacy_name='austin',
             name='austin',
             version='1.2.3',

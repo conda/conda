@@ -24,7 +24,7 @@ from conda.gateways.disk.read import lexists
 from conda.gateways.logging import initialize_logging
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
-from conda.resolve import Resolve
+from conda.exports import Resolve
 
 try:
     from unittest import mock
@@ -148,6 +148,7 @@ def add_feature_records_legacy(index):
     for feature_name in all_features:
         rec = make_feature_record(feature_name)
         index[rec] = rec
+
 
 @memoize
 def get_index_r_1():

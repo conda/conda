@@ -62,8 +62,8 @@ delete_trash, move_to_trash = delete_trash, move_to_trash
 from .misc import untracked, walk_prefix  # NOQA
 untracked, walk_prefix = untracked, walk_prefix
 
-from .resolve import MatchSpec, ResolvePackageNotFound, Resolve, Unsatisfiable  # NOQA
-MatchSpec, Resolve = MatchSpec, Resolve
+from .resolve import MatchSpec, ResolvePackageNotFound, Resolve as _Resolve, Unsatisfiable  # NOQA
+MatchSpec = MatchSpec
 Unsatisfiable = Unsatisfiable
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 
@@ -437,3 +437,78 @@ def is_linked(prefix, dist):
         return prefix_record
     else:
         return None
+
+
+class Resolve(_Resolve):
+
+    def restore_bad(self, pkgs, preserve):
+        if preserve:
+            sdict = {prec.name: prec for prec in pkgs}
+            pkgs.extend(p for p in preserve if p.name not in sdict)
+
+    def install_specs(self, specs, installed, update_deps=True):
+        specs = list(map(MatchSpec, specs))
+        snames = {s.name for s in specs}
+        limit, preserve = self.bad_installed(installed, specs)
+        for prec in installed:
+            if prec not in self.index:
+                continue
+            name, version, build = prec.name, prec.version, prec.build
+            schannel = prec.channel.canonical_name
+            if name in snames or limit is not None and name not in limit:
+                continue
+            # If update_deps=True, set the target package in MatchSpec so that
+            # the solver can minimize the version change. If update_deps=False,
+            # fix the version and build so that no change is possible.
+            if update_deps:
+                # TODO: fix target here
+                spec = MatchSpec(name=name, target=prec.record_id())
+            else:
+                spec = MatchSpec(name=name, version=version,
+                                 build=build, channel=schannel)
+            specs.append(spec)
+        return specs, preserve
+
+    def install(self, specs, installed=None, update_deps=True, returnall=False):
+        specs, preserve = self.install_specs(specs, installed or [], update_deps)
+        pkgs = self.solve(specs, returnall=returnall, _remove=False)
+        self.restore_bad(pkgs, preserve)
+        return pkgs
+
+    def remove_specs(self, specs, installed):
+        nspecs = []
+        # There's an imperfect thing happening here. "specs" nominally contains
+        # a list of package names or track_feature values to be removed. But
+        # because of add_defaults_to_specs it may also contain version contraints
+        # like "python 2.7*", which are *not* asking for python to be removed.
+        # We need to separate these two kinds of specs here.
+        for s in map(MatchSpec, specs):
+            # Since '@' is an illegal version number, this ensures that all of
+            # these matches will never match an actual package. Combined with
+            # optional=True, this has the effect of forcing their removal.
+            if s._is_single():
+                nspecs.append(MatchSpec(s, version='@', optional=True))
+            else:
+                nspecs.append(MatchSpec(s, optional=True))
+        snames = set(s.name for s in nspecs if s.name)
+        limit, _ = self.bad_installed(installed, nspecs)
+        preserve = []
+        for prec in installed:
+            nm, ver = prec.name, prec.version
+            if nm in snames:
+                continue
+            elif limit is not None:
+                preserve.append(prec)
+            else:
+                # TODO: fix target here
+                nspecs.append(MatchSpec(name=nm,
+                                        version='>=' + ver if ver else None,
+                                        optional=True,
+                                        target=prec.dist_str()))
+        return nspecs, preserve
+
+    def remove(self, specs, installed):
+        specs, preserve = self.remove_specs(specs, installed)
+        pkgs = self.solve(specs, _remove=True)
+        self.restore_bad(pkgs, preserve)
+        return pkgs
