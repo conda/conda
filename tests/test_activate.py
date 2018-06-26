@@ -37,7 +37,7 @@ log = getLogger(__name__)
 
 if on_win:
     import ctypes
-    PYTHONIOENCODING = ctypes.cdll.kernel32.GetACP()
+    PYTHONIOENCODING = "cp" + ctypes.cdll.kernel32.GetACP()
 else:
     PYTHONIOENCODING = None
 
