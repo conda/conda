@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from os.path import basename, dirname
@@ -7,6 +10,7 @@ import sys
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
+from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
@@ -43,18 +47,18 @@ def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
             return choices[user_choice]
 
 
-def confirm_yn(message="Proceed", default='yes'):
-    if context.dry_run:
+def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
+    dry_run = context.dry_run if dry_run is NULL else dry_run
+    if dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
     if context.always_yes:
         return True
     try:
-        choice = confirm(message=message, choices=('yes', 'no'),
-                         default=default)
+        choice = confirm(message=message, choices=('yes', 'no'))
     except KeyboardInterrupt as e:  # pragma: no cover
         from ..exceptions import CondaSystemExit
-        raise CondaSystemExit("\nOperation aborted.  Exiting.", e)
+        raise CondaSystemExit("\nOperation aborted.  Exiting.")
     if choice == 'no':
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("Exiting.")
@@ -163,7 +167,15 @@ def stdout_json(d):
 
 
 def stdout_json_success(success=True, **kwargs):
+    from ..models.dist import Dist
     result = {'success': success}
+    actions = kwargs.pop('actions', None)
+    if actions:
+        if 'LINK' in actions:
+            actions['LINK'] = [Dist(prec) for prec in actions['LINK']]
+        if 'UNLINK' in actions:
+            actions['UNLINK'] = [Dist(prec) for prec in actions['UNLINK']]
+        result['actions'] = actions
     result.update(kwargs)
     stdout_json(result)
 
@@ -194,7 +206,7 @@ def print_envs_list(known_conda_prefixes, output=True):
 
 
 def check_non_admin():
-    from ..common.platform import is_admin
+    from ..common.os import is_admin
     if not context.non_admin_enabled and not is_admin():
         from ..exceptions import OperationNotAllowed
         raise OperationNotAllowed(dals("""

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from enum import Enum
 from genericpath import exists
 from logging import DEBUG, getLogger
 from os.path import join
@@ -15,8 +16,9 @@ from .subdir_data import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
+from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier
 from ..base.context import context
-from ..common.compat import iteritems, itervalues, odict, string_types, text_type
+from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner
 from ..common.path import get_major_minor_version, paths_equal
@@ -24,7 +26,6 @@ from ..exceptions import PackagesNotFoundError
 from ..gateways.logging import TRACE
 from ..history import History
 from ..models.channel import Channel
-from ..models.dist import Dist
 from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
@@ -37,16 +38,6 @@ except ImportError:
     from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 log = getLogger(__name__)
-
-
-class DepsModifier(Enum):
-    """Flags to enable alternate handling of dependencies."""
-    NO_DEPS = 'no_deps'
-    ONLY_DEPS = 'only_deps'
-    UPDATE_DEPS = 'update_deps'
-    UPDATE_DEPS_ONLY_DEPS = 'update_deps_only_deps'
-    UPDATE_ALL = 'update_all'
-    FREEZE_INSTALLED = 'freeze_installed'  # freeze is a better name for --no-update-deps
 
 
 class Solver(object):
@@ -87,11 +78,15 @@ class Solver(object):
         self._r = None
         self._prepared = False
 
-    def solve_final_state(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
-                          force_remove=NULL):
+    def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                          ignore_pinned=NULL, force_remove=NULL):
         """Gives the final, solved state of the environment.
 
         Args:
+            update_modifier (UpdateModifier):
+                An optional flag directing how updates are handled regarding packages already
+                existing in the environment.
+
             deps_modifier (DepsModifier):
                 An optional flag indicating special solver handling for dependencies. The
                 default solver behavior is to be as conservative as possible with dependency
@@ -118,11 +113,17 @@ class Solver(object):
                 the solved state of the environment.
 
         """
+        if update_modifier is NULL:
+            update_modifier = context.update_modifier
+        else:
+            update_modifier = UpdateModifier(text_type(update_modifier).lower())
+        if deps_modifier is NULL:
+            deps_modifier = context.deps_modifier
+        else:
+            deps_modifier = DepsModifier(text_type(deps_modifier).lower())
         prune = context.prune if prune is NULL else prune
         ignore_pinned = context.ignore_pinned if ignore_pinned is NULL else ignore_pinned
-        deps_modifier = context.deps_modifier if deps_modifier is NULL else deps_modifier
-        if isinstance(deps_modifier, string_types):
-            deps_modifier = DepsModifier(deps_modifier.lower())
+        force_remove = context.force_remove if force_remove is NULL else force_remove
         specs_to_remove = self.specs_to_remove
         specs_to_add = self.specs_to_add
 
@@ -130,10 +131,9 @@ class Solver(object):
         if specs_to_remove and force_remove:
             if specs_to_add:
                 raise NotImplementedError()
-            index, r = self._prepare(specs_to_remove)
-            solution = tuple(Dist(rec) for rec in PrefixData(self.prefix).iter_records()
-                             if not any(spec.match(rec) for spec in specs_to_remove))
-            return IndexedSet(index[d] for d in r.dependency_sort({d.name: d for d in solution}))
+            solution = tuple(prec for prec in PrefixData(self.prefix).iter_records()
+                             if not any(spec.match(prec) for spec in specs_to_remove))
+            return IndexedSet(PrefixGraph(solution).graph)
 
         log.debug("solving prefix %s\n"
                   "  specs_to_remove: %s\n"
@@ -143,9 +143,21 @@ class Solver(object):
         # declare starting point, the initial state of the environment
         # `solution` and `specs_map` are mutated throughout this method
         prefix_data = PrefixData(self.prefix)
-        solution = tuple(Dist(d) for d in prefix_data.iter_records())
+        solution = tuple(prec for prec in prefix_data.iter_records())
+
+        # Check if specs are satisfied by current environment. If they are, exit early.
+        if (update_modifier == UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
+                and not specs_to_remove and not prune):
+            for spec in specs_to_add:
+                if not next(prefix_data.query(spec), None):
+                    break
+            else:
+                # All specs match a package in the current environment.
+                # Return early, with a solution that should just be PrefixData().iter_records()
+                return IndexedSet(PrefixGraph(solution).graph)
+
         specs_from_history_map = History(self.prefix).get_requested_specs_map()
-        if prune:  # or deps_modifier == DepsModifier.UPDATE_ALL  # pending conda/constructor#138
+        if prune:  # or update_modifier == UpdateModifier.UPDATE_ALL  # pending conda/constructor#138  # NOQA
             # Users are struggling with the prune functionality in --update-all, due to
             # https://github.com/conda/constructor/issues/138.  Until that issue is resolved,
             # and for the foreseeable future, it's best to be more conservative with --update-all.
@@ -187,17 +199,32 @@ class Solver(object):
             _track_fts_specs = (spec for spec in specs_to_remove if 'track_features' in spec)
             feature_names = set(concat(spec.get_raw_value('track_features')
                                        for spec in _track_fts_specs))
-            graph = PrefixGraph((index[dist] for dist in solution), itervalues(specs_map))
+            graph = PrefixGraph(solution, itervalues(specs_map))
 
-            removed_records = []
+            all_removed_records = []
+            no_removed_records_specs = []
             for spec in specs_to_remove:
                 # If the spec was a track_features spec, then we need to also remove every
                 # package with a feature that matches the track_feature. The
                 # `graph.remove_spec()` method handles that for us.
                 log.trace("using PrefixGraph to remove records for %s", spec)
-                removed_records.extend(graph.remove_spec(spec))
+                removed_records = graph.remove_spec(spec)
+                if removed_records:
+                    all_removed_records.extend(removed_records)
+                else:
+                    no_removed_records_specs.append(spec)
 
-            for rec in removed_records:
+            # ensure that each spec in specs_to_remove is actually associated with removed records
+            unmatched_specs_to_remove = tuple(
+                spec for spec in no_removed_records_specs
+                if not any(spec.match(rec) for rec in all_removed_records)
+            )
+            if unmatched_specs_to_remove:
+                raise PackagesNotFoundError(
+                    tuple(sorted(str(s) for s in unmatched_specs_to_remove))
+                )
+
+            for rec in all_removed_records:
                 # We keep specs (minus the feature part) for the non provides_features packages
                 # if they're in the history specs.  Otherwise, we pop them from the specs_map.
                 rec_has_a_feature = set(rec.features or ()) & feature_names
@@ -208,24 +235,21 @@ class Solver(object):
                 else:
                     specs_map.pop(rec.name, None)
 
-            solution = tuple(Dist(rec) for rec in graph.records)
-
-            if not removed_records and not prune:
-                raise PackagesNotFoundError(tuple(spec.name for spec in specs_to_remove))
+            solution = tuple(graph.graph)
 
         # We handle as best as possible environments in inconsistent states. To do this,
         # we remove now from consideration the set of packages causing inconsistencies,
         # and then we add them back in following the main SAT call.
-        _, inconsistent_dists = r.bad_installed(solution, ())
-        add_back_map = {}  # name: (dist, spec)
+        _, inconsistent_precs = r.bad_installed(solution, ())
+        add_back_map = {}  # name: (prec, spec)
         if log.isEnabledFor(DEBUG):
-            log.debug("inconsistent dists: %s",
-                      dashlist(inconsistent_dists) if inconsistent_dists else 'None')
-        if inconsistent_dists:
-            for dist in inconsistent_dists:
+            log.debug("inconsistent precs: %s",
+                      dashlist(inconsistent_precs) if inconsistent_precs else 'None')
+        if inconsistent_precs:
+            for prec in inconsistent_precs:
                 # pop and save matching spec in specs_map
-                add_back_map[dist.name] = (dist, specs_map.pop(dist.name, None))
-            solution = tuple(dist for dist in solution if dist not in inconsistent_dists)
+                add_back_map[prec.name] = (prec, specs_map.pop(prec.name, None))
+            solution = tuple(prec for prec in solution if prec not in inconsistent_precs)
 
         # For the remaining specs in specs_map, add target to each spec. `target` is a reference
         # to the package currently existing in the environment. Setting target instructs the
@@ -234,10 +258,10 @@ class Solver(object):
         # since we *want* the solver to modify/update that package.
         #
         # TLDR: when working with MatchSpec objects,
-        #  - to minimize the version change, set MatchSpec(name=name, target=dist.full_name)
+        #  - to minimize the version change, set MatchSpec(name=name, target=prec.dist_str())
         #  - to freeze the package, set all the components of MatchSpec individually
         for pkg_name, spec in iteritems(specs_map):
-            matches_for_spec = tuple(dist for dist in solution if spec.match(index[dist]))
+            matches_for_spec = tuple(prec for prec in solution if spec.match(prec))
             if matches_for_spec:
                 if len(matches_for_spec) != 1:
                     raise CondaError(dals("""
@@ -250,11 +274,11 @@ class Solver(object):
                       matches_for_spec: %s
                     """) % (pkg_name, spec,
                             dashlist((text_type(s) for s in matches_for_spec), indent=4)))
-                target_dist = matches_for_spec[0]
-                if deps_modifier == DepsModifier.FREEZE_INSTALLED:
-                    new_spec = MatchSpec(index[target_dist])
+                target_prec = matches_for_spec[0]
+                if update_modifier == UpdateModifier.FREEZE_INSTALLED:
+                    new_spec = MatchSpec(target_prec)
                 else:
-                    target = Dist(target_dist).full_name
+                    target = target_prec.dist_str()
                     new_spec = MatchSpec(spec, target=target)
                 specs_map[pkg_name] = new_spec
         if log.isEnabledFor(TRACE):
@@ -266,7 +290,7 @@ class Solver(object):
         # but *only* historically-requested specs.  This lets UPDATE_ALL drop dependencies if
         # they're no longer needed, and their presence would otherwise prevent the updated solution
         # the user most likely wants.
-        if deps_modifier == DepsModifier.UPDATE_ALL:
+        if update_modifier == UpdateModifier.UPDATE_ALL:
             specs_map = {pkg_name: MatchSpec(spec.name, optional=spec.optional)
                          for pkg_name, spec in iteritems(specs_map)}
 
@@ -285,10 +309,9 @@ class Solver(object):
         if not context.offline:
             for spec in context.aggressive_update_packages:
                 if spec.name in specs_map:
-                    old_spec = specs_map[spec.name]
-                    specs_map[spec.name] = MatchSpec(old_spec, target=None)
+                    specs_map[spec.name] = spec
             if (context.auto_update_conda and paths_equal(self.prefix, context.root_prefix)
-                    and any(dist.name == "conda" for dist in solution)):
+                    and any(prec.name == "conda" for prec in solution)):
                 specs_map["conda"] = MatchSpec("conda")
 
         # add in explicitly requested specs from specs_to_add
@@ -328,52 +351,54 @@ class Solver(object):
         if log.isEnabledFor(DEBUG):
             log.debug("final specs to add: %s",
                       dashlist(sorted(text_type(s) for s in final_environment_specs)))
-        solution = r.solve(tuple(final_environment_specs))  # return value is List[dist]
+        solution = r.solve(tuple(final_environment_specs))  # return value is List[PackageRecord]
 
         # add back inconsistent packages to solution
         if add_back_map:
-            for name, (dist, spec) in iteritems(add_back_map):
+            for name, (prec, spec) in iteritems(add_back_map):
                 if not any(d.name == name for d in solution):
-                    solution.append(dist)
+                    solution.append(prec)
                     if spec:
                         final_environment_specs.add(spec)
 
-        # Special case handling for various DepsModifer flags. Maybe this block could be pulled
+        # Special case handling for various DepsModifier flags. Maybe this block could be pulled
         # out into its own non-public helper method?
         if deps_modifier == DepsModifier.NO_DEPS:
             # In the NO_DEPS case, we need to start with the original list of packages in the
             # environment, and then only modify packages that match specs_to_add or
             # specs_to_remove.
-            _no_deps_solution = IndexedSet(Dist(rec) for rec in prefix_data.iter_records())
-            only_remove_these = set(dist
+            _no_deps_solution = IndexedSet(prefix_data.iter_records())
+            only_remove_these = set(prec
                                     for spec in specs_to_remove
-                                    for dist in _no_deps_solution
-                                    if spec.match(index[dist]))
+                                    for prec in _no_deps_solution
+                                    if spec.match(prec))
             _no_deps_solution -= only_remove_these
 
-            only_add_these = set(dist
+            only_add_these = set(prec
                                  for spec in specs_to_add
-                                 for dist in solution
-                                 if spec.match(index[dist]))
-            remove_before_adding_back = set(dist.name for dist in only_add_these)
-            _no_deps_solution = IndexedSet(dist for dist in _no_deps_solution
-                                           if dist.name not in remove_before_adding_back)
+                                 for prec in solution
+                                 if spec.match(prec))
+            remove_before_adding_back = set(prec.name for prec in only_add_these)
+            _no_deps_solution = IndexedSet(prec for prec in _no_deps_solution
+                                           if prec.name not in remove_before_adding_back)
             _no_deps_solution |= only_add_these
             solution = _no_deps_solution
-        elif deps_modifier == DepsModifier.ONLY_DEPS:
+        elif (deps_modifier == DepsModifier.ONLY_DEPS
+                and update_modifier != UpdateModifier.UPDATE_DEPS):
             # Using a special instance of PrefixGraph to remove youngest child nodes that match
             # the original specs_to_add.  It's important to remove only the *youngest* child nodes,
             # because a typical use might be `conda install --only-deps python=2 flask`, and in
             # that case we'd want to keep python.
-            graph = PrefixGraph((index[d] for d in solution), specs_to_add)
+            graph = PrefixGraph(solution, specs_to_add)
             graph.remove_youngest_descendant_nodes_with_specs()
-            solution = tuple(Dist(rec) for rec in graph.records)
-        elif deps_modifier in (DepsModifier.UPDATE_DEPS, DepsModifier.UPDATE_DEPS_ONLY_DEPS):
+            solution = tuple(graph.graph)
+
+        elif update_modifier == UpdateModifier.UPDATE_DEPS:
             # Here we have to SAT solve again :(  It's only now that we know the dependency
             # chain of specs_to_add.
             specs_to_add_names = set(spec.name for spec in specs_to_add)
             update_names = set()
-            graph = PrefixGraph((index[d] for d in solution), final_environment_specs)
+            graph = PrefixGraph(solution, final_environment_specs)
             for spec in specs_to_add:
                 node = graph.get_node_by_name(spec.name)
                 for ancestor_record in graph.all_ancestors(node):
@@ -387,28 +412,28 @@ class Solver(object):
             final_environment_specs = new_final_environment_specs | update_specs
             solution = r.solve(final_environment_specs)
 
-            if deps_modifier == DepsModifier.UPDATE_DEPS_ONLY_DEPS:
+            if deps_modifier == DepsModifier.ONLY_DEPS:
                 # duplicated from DepsModifier.ONLY_DEPS
-                graph = PrefixGraph((index[d] for d in solution), specs_to_add)
+                graph = PrefixGraph(solution, specs_to_add)
                 graph.remove_youngest_descendant_nodes_with_specs()
-                solution = tuple(Dist(rec) for rec in graph.records)
+                solution = tuple(graph.graph)
 
         if prune:
-            graph = PrefixGraph((index[d] for d in solution), final_environment_specs)
+            graph = PrefixGraph(solution, final_environment_specs)
             graph.prune()
-            solution = tuple(Dist(rec) for rec in graph.records)
+            solution = tuple(graph.graph)
 
         self._check_solution(solution, pinned_specs)
 
-        solution = IndexedSet(r.dependency_sort({d.name: d for d in solution}))
+        solution = IndexedSet(PrefixGraph(solution).graph)
         log.debug("solved prefix %s\n"
                   "  solved_linked_dists:\n"
                   "    %s\n",
-                  self.prefix, "\n    ".join(text_type(d) for d in solution))
-        return IndexedSet(index[d] for d in solution)
+                  self.prefix, "\n    ".join(prec.dist_str() for prec in solution))
+        return solution
 
-    def solve_for_diff(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
-                       force_remove=NULL, force_reinstall=False):
+    def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL):
         """Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
 
@@ -435,45 +460,15 @@ class Solver(object):
                 dependency order from roots to leaves.
 
         """
-        final_precs = self.solve_final_state(deps_modifier, prune, ignore_pinned, force_remove)
-        previous_records = IndexedSet(self._index[d] for d in self._r.dependency_sort(
-            {prefix_rec.name: Dist(prefix_rec)
-             for prefix_rec in PrefixData(self.prefix).iter_records()}
-        ))
-
-        unlink_precs = previous_records - final_precs
-        link_precs = final_precs - previous_records
-
-        def _add_to_unlink_and_link(rec):
-            link_precs.add(rec)
-            if prec in previous_records:
-                unlink_precs.add(rec)
-
-        # If force_reinstall is enabled, make sure any package in specs_to_add is unlinked then
-        # re-linked
-        if force_reinstall:
-            for spec in self.specs_to_add:
-                prec = next((rec for rec in final_precs if spec.match(rec)), None)
-                assert prec
-                _add_to_unlink_and_link(prec)
-
-        # add back 'noarch: python' packages to unlink and link if python version changes
-        python_spec = MatchSpec('python')
-        prev_python = next((rec for rec in previous_records if python_spec.match(rec)), None)
-        curr_python = next((rec for rec in final_precs if python_spec.match(rec)), None)
-        gmm = get_major_minor_version
-        if prev_python and curr_python and gmm(prev_python.version) != gmm(curr_python.version):
-            noarch_python_precs = (p for p in final_precs if p.noarch == NoarchType.python)
-            for prec in noarch_python_precs:
-                _add_to_unlink_and_link(prec)
-
-        unlink_precs = IndexedSet(reversed(sorted(unlink_precs,
-                                                  key=lambda x: previous_records.index(x))))
-        link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
+        final_precs = self.solve_final_state(update_modifier, deps_modifier, prune, ignore_pinned,
+                                             force_remove)
+        unlink_precs, link_precs = diff_for_unlink_link_precs(
+            self.prefix, final_precs, self.specs_to_add, force_reinstall
+        )
         return unlink_precs, link_precs
 
-    def solve_for_transaction(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
-                              force_remove=NULL, force_reinstall=False):
+    def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=NULL):
         """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
 
@@ -493,43 +488,63 @@ class Solver(object):
             UnlinkLinkTransaction:
 
         """
-        with Spinner("Solving environment", not context.verbosity and not context.quiet,
-                     context.json):
-            if self.prefix == context.root_prefix and context.enable_private_envs:
-                # This path has the ability to generate a multi-prefix transaction. The basic logic
-                # is in the commented out get_install_transaction() function below. Exercised at
-                # the integration level in the PrivateEnvIntegrationTests in test_create.py.
-                raise NotImplementedError()
-            else:
-                unlink_precs, link_precs = self.solve_for_diff(deps_modifier, prune, ignore_pinned,
+        if self.prefix == context.root_prefix and context.enable_private_envs:
+            # This path has the ability to generate a multi-prefix transaction. The basic logic
+            # is in the commented out get_install_transaction() function below. Exercised at
+            # the integration level in the PrivateEnvIntegrationTests in test_create.py.
+            raise NotImplementedError()
+        else:
+            with Spinner("Solving environment", not context.verbosity and not context.quiet,
+                         context.json):
+                unlink_precs, link_precs = self.solve_for_diff(update_modifier, deps_modifier,
+                                                               prune, ignore_pinned,
                                                                force_remove, force_reinstall)
                 stp = PrefixSetup(self.prefix, unlink_precs, link_precs,
                                   self.specs_to_remove, self.specs_to_add)
                 # TODO: Only explicitly requested remove and update specs are being included in
                 #   History right now. Do we need to include other categories from the solve?
 
-        if context.notify_outdated_conda and not context.quiet:
-            conda_newer_spec = MatchSpec('conda >%s' % CONDA_VERSION)
-            if not any(conda_newer_spec.match(prec) for prec in link_precs):
-                conda_newer_records = sorted(
-                    SubdirData.query_all(conda_newer_spec, self.channels, self.subdirs),
-                    key=lambda x: VersionOrder(x.version)
-                )
-                if conda_newer_records:
-                    latest_version = conda_newer_records[-1].version
-                    print(dedent("""
+            self._notify_conda_outdated(link_precs)
+            return UnlinkLinkTransaction(stp)
 
-                    ==> WARNING: A newer version of conda exists. <==
-                      current version: %s
-                      latest version: %s
+    def _notify_conda_outdated(self, link_precs):
+        if not context.notify_outdated_conda or context.quiet:
+            return
+        current_conda_prefix_rec = PrefixData(context.conda_prefix).get('conda', None)
+        if current_conda_prefix_rec:
+            channel_name = current_conda_prefix_rec.channel.canonical_name
+            if channel_name == UNKNOWN_CHANNEL:
+                channel_name = "defaults"
 
-                    Please update conda by running
+            # only look for a newer conda in the channel conda is currently installed from
+            conda_newer_spec = MatchSpec('%s::conda>%s' % (channel_name, CONDA_VERSION))
 
-                        $ conda update -n base conda
+            if paths_equal(self.prefix, context.conda_prefix):
+                if any(conda_newer_spec.match(prec) for prec in link_precs):
+                    return
 
-                    """) % (CONDA_VERSION, latest_version), file=sys.stderr)
+            conda_newer_precs = sorted(
+                SubdirData.query_all(conda_newer_spec, self.channels, self.subdirs),
+                key=lambda x: VersionOrder(x.version)
+                # VersionOrder is fine here rather than r.version_key because all precs
+                # should come from the same channel
+            )
+            if conda_newer_precs:
+                latest_version = conda_newer_precs[-1].version
+                # If conda comes from defaults, ensure we're giving instructions to users
+                # that should resolve release timing issues between defaults and conda-forge.
+                add_channel = "-c defaults " if channel_name == "defaults" else ""
+                print(dedent("""
 
-        return UnlinkLinkTransaction(stp)
+                ==> WARNING: A newer version of conda exists. <==
+                  current version: %s
+                  latest version: %s
+
+                Please update conda by running
+
+                    $ conda update -n base %sconda
+
+                """) % (CONDA_VERSION, latest_version, add_channel), file=sys.stderr)
 
     def _prepare(self, prepared_specs):
         # All of this _prepare() method is hidden away down here. Someday we may want to further
@@ -598,6 +613,44 @@ def get_pinned_specs(prefix):
 
     return tuple(MatchSpec(s, optional=True) for s in
                  concatv(context.pinned_packages, from_file))
+
+
+def diff_for_unlink_link_precs(prefix, final_precs, specs_to_add=(), force_reinstall=NULL):
+    assert isinstance(final_precs, IndexedSet)
+    final_precs = final_precs
+    previous_records = IndexedSet(PrefixGraph(PrefixData(prefix).iter_records()).graph)
+    force_reinstall = context.force_reinstall if force_reinstall is NULL else force_reinstall
+
+    unlink_precs = previous_records - final_precs
+    link_precs = final_precs - previous_records
+
+    def _add_to_unlink_and_link(rec):
+        link_precs.add(rec)
+        if prec in previous_records:
+            unlink_precs.add(rec)
+
+    # If force_reinstall is enabled, make sure any package in specs_to_add is unlinked then
+    # re-linked
+    if force_reinstall:
+        for spec in specs_to_add:
+            prec = next((rec for rec in final_precs if spec.match(rec)), None)
+            assert prec
+            _add_to_unlink_and_link(prec)
+
+    # add back 'noarch: python' packages to unlink and link if python version changes
+    python_spec = MatchSpec('python')
+    prev_python = next((rec for rec in previous_records if python_spec.match(rec)), None)
+    curr_python = next((rec for rec in final_precs if python_spec.match(rec)), None)
+    gmm = get_major_minor_version
+    if prev_python and curr_python and gmm(prev_python.version) != gmm(curr_python.version):
+        noarch_python_precs = (p for p in final_precs if p.noarch == NoarchType.python)
+        for prec in noarch_python_precs:
+            _add_to_unlink_and_link(prec)
+
+    unlink_precs = IndexedSet(reversed(sorted(unlink_precs,
+                                              key=lambda x: previous_records.index(x))))
+    link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
+    return unlink_precs, link_precs
 
 
 # NOTE: The remaining code in this module is being left for development reference until

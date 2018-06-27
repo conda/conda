@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from argparse import ArgumentParser
 import os
 import sys
@@ -5,7 +7,7 @@ import sys
 if '_CONDA_EXE' not in locals():
     _CONDA_EXE = "python -m conda"  # development mode
 
-_REACTIVATE_COMMANDS = ('install', 'update', 'remove', 'uninstall')
+_REACTIVATE_COMMANDS = ('install', 'update', 'upgrade', 'remove', 'uninstall')
 
 
 def _parse_args(args=None):

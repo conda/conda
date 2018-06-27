@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Functions related to core conda functionality that relates to pip
 
@@ -151,7 +154,7 @@ def add_pip_installed(prefix, installed_pkgs, json=None, output=True):
 
     # canonicalize names for pip comparison
     # because pip normalizes `foo_bar` to `foo-bar`
-    conda_names = {_canonicalize_name(d.quad[0]) for d in installed_pkgs}
+    conda_names = {_canonicalize_name(rec.name) for rec in installed_pkgs}
     for pip_pkg in installed(prefix, output=output):
         pip_name = _canonicalize_name(pip_pkg['name'])
         if pip_name in conda_names and 'path' not in pip_pkg:

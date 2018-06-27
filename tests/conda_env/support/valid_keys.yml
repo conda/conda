@@ -1,0 +1,6 @@
+name: nlp
+channels:
+  - anaconda
+dependencies:
+  - nltk
+prefix: /something/miniconda/envs/test

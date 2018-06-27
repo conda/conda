@@ -1,11 +1,12 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, print_function
 
 from argparse import Namespace, RawDescriptionHelpFormatter
-
 from os.path import isdir
 
-from conda.cli.conda_argparse import (add_parser_json, add_parser_prefix, add_parser_quiet,
-                                      add_parser_yes)
+from conda.cli.conda_argparse import add_output_and_prompt_options, add_parser_prefix
 
 _help = "Remove an environment"
 _description = _help + """
@@ -33,9 +34,7 @@ def configure_parser(sub_parsers):
     )
 
     add_parser_prefix(p)
-    add_parser_json(p)
-    add_parser_quiet(p)
-    add_parser_yes(p)
+    add_output_and_prompt_options(p)
 
     p.set_defaults(func='.main_remove.execute')
 

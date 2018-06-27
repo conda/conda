@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from argparse import RawDescriptionHelpFormatter
 import os
 import sys
@@ -46,11 +49,6 @@ def configure_parser(sub_parsers):
         action='store_true',
         default=False,
         help='remove installed packages not defined in environment.yml',
-    )
-    p.add_argument(
-        '-q', '--quiet',
-        action='store_true',
-        default=False,
     )
     p.add_argument(
         'remote_definition',

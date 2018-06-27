@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
@@ -30,6 +32,10 @@ from .._vendor.tqdm import tqdm
 log = getLogger(__name__)
 
 _FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s")
+
+
+def dashlist(iterable, indent=2):
+    return ''.join('\n' + ' ' * indent + '- ' + str(x) for x in iterable)
 
 
 class ContextDecorator(object):
@@ -387,7 +393,8 @@ class ProgressBar(object):
         elif enabled:
             bar_format = "{desc}{bar} | {percentage:3.0f}% "
             try:
-                self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, total=1)
+                self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, total=1,
+                                 file=sys.stdout)
             except EnvironmentError as e:
                 if e.errno in (EPIPE, ESHUTDOWN):
                     self.enabled = False

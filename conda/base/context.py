@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import ENOENT
 from logging import getLogger
 import os
-from os.path import (abspath, basename, dirname, expanduser, isdir, isfile, join, normpath,
-                     split as path_split)
+from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
-                        DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, ERROR_UPLOAD_URL,
-                        PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict, ROOT_ENV_NAME,
-                        SEARCH_PATH, SafetyChecks)
+                        DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS,
+                        DepsModifier, ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE,
+                        PathConflict, ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.collection import frozendict
@@ -24,7 +25,7 @@ from ..common.configuration import (Configuration, LoadError, MapParameter, Prim
                                     SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
 from ..common.path import expand
-from ..common.platform import linux_get_libc_version
+from ..common.os.linux import linux_get_libc_version
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
 try:
@@ -108,9 +109,11 @@ class Context(Configuration):
     allow_cycles = PrimitiveParameter(True)  # allow cyclical dependencies, or raise
     allow_softlinks = PrimitiveParameter(False)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
+    auto_activate_base = PrimitiveParameter(True)
     notify_outdated_conda = PrimitiveParameter(True)
     clobber = PrimitiveParameter(False)
     changeps1 = PrimitiveParameter(True)
+    env_prompt = PrimitiveParameter("({default_env}) ")
     create_default_packages = SequenceParameter(string_types)
     default_python = PrimitiveParameter(default_python_default(),
                                         element_type=string_types + (NoneType,),
@@ -118,8 +121,9 @@ class Context(Configuration):
     download_only = PrimitiveParameter(False)
     enable_private_envs = PrimitiveParameter(False)
     force_32bit = PrimitiveParameter(False)
-    max_shlvl = PrimitiveParameter(2)
     non_admin_enabled = PrimitiveParameter(True)
+
+    pip_interop_enabled = PrimitiveParameter(False)
 
     # Safety & Security
     _aggressive_update_packages = SequenceParameter(string_types,
@@ -133,7 +137,6 @@ class Context(Configuration):
                                             string_delimiter='&')
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
-    use_pip = PrimitiveParameter(True)
     use_index_cache = PrimitiveParameter(False)
 
     _root_prefix = PrimitiveParameter("", aliases=('root_dir', 'root_prefix'))
@@ -173,12 +176,13 @@ class Context(Configuration):
     channel_priority = PrimitiveParameter(True)
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',))  # channel for args.channel
-    _custom_channels = MapParameter(string_types, aliases=('custom_channels',))
+    _custom_channels = MapParameter(string_types, DEFAULT_CUSTOM_CHANNELS,
+                                    aliases=('custom_channels',))
     _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
                                           aliases=('default_channels',))
     _migrated_channel_aliases = SequenceParameter(string_types,
-                                                  aliases=('migrated_channel_aliases',))  # TODO: also take a list of strings # NOQA
+                                                  aliases=('migrated_channel_aliases',))
     migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
     override_channels_enabled = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
@@ -193,16 +197,30 @@ class Context(Configuration):
     error_upload_url = PrimitiveParameter(ERROR_UPLOAD_URL)
     force = PrimitiveParameter(False)
     json = PrimitiveParameter(False)
-    no_dependencies = PrimitiveParameter(False, aliases=('no_deps',))
     offline = PrimitiveParameter(False)
-    only_dependencies = PrimitiveParameter(False, aliases=('only_deps',))
     quiet = PrimitiveParameter(False)
-    prune = PrimitiveParameter(False)
     ignore_pinned = PrimitiveParameter(False)
     report_errors = PrimitiveParameter(None, element_type=(bool, NoneType))
     shortcuts = PrimitiveParameter(True)
-    update_dependencies = PrimitiveParameter(False, aliases=('update_deps',))
     _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
+
+    # ######################################################
+    # ##               Solver Configuration               ##
+    # ######################################################
+    deps_modifier = PrimitiveParameter(DepsModifier.NOT_SET)
+    update_modifier = PrimitiveParameter(UpdateModifier.UPDATE_SPECS)
+
+    # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
+    # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
+    #
+    # freeze_installed = PrimitiveParameter(False)
+    # update_deps = PrimitiveParameter(False, aliases=('update_dependencies',))
+    # update_specs = PrimitiveParameter(False)
+    # update_all = PrimitiveParameter(False)
+
+    prune = PrimitiveParameter(False)
+    force_remove = PrimitiveParameter(False)
+    force_reinstall = PrimitiveParameter(False)
 
     target_prefix_override = PrimitiveParameter('')
 
@@ -444,23 +462,7 @@ class Context(Configuration):
     @property
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
-        return tuple(MatchSpec(s, optional=True) for s in self._aggressive_update_packages)
-
-    @property
-    def deps_modifier(self):
-        from ..core.solve import DepsModifier
-        if self.update_dependencies and self.only_dependencies:
-            return DepsModifier.UPDATE_DEPS_ONLY_DEPS
-        elif self.update_dependencies:
-            return DepsModifier.UPDATE_DEPS
-        elif self.only_dependencies:
-            return DepsModifier.ONLY_DEPS
-        elif self.no_dependencies:
-            return DepsModifier.NO_DEPS
-        elif self._argparse_args and 'all' in self._argparse_args and self._argparse_args.all:
-            return DepsModifier.UPDATE_ALL
-        else:
-            return None
+        return tuple(MatchSpec(s) for s in self._aggressive_update_packages)
 
     @property
     def target_prefix(self):
@@ -473,13 +475,13 @@ class Context(Configuration):
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))
         elif conda_in_private_env():
-            return normpath(join(self.conda_prefix, '..', '..'))
+            return abspath(join(self.conda_prefix, '..', '..'))
         else:
             return self.conda_prefix
 
     @property
     def conda_prefix(self):
-        return normpath(sys.prefix)
+        return abspath(sys.prefix)
 
     @property
     def conda_exe(self):
@@ -580,37 +582,6 @@ class Context(Configuration):
                                                 (DEFAULTS_CHANNEL_NAME,))))
         return tuple(IndexedSet(concatv(local_add, self._channels)))
 
-    def get_descriptions(self):
-        return get_help_dict()
-
-    def list_parameters(self):
-        UNLISTED_PARAMETERS = (
-            'allow_cycles',  # allow cyclical dependencies, or raise
-            'bld_path',
-            'conda_build',
-            'croot',
-            'debug',
-            'default_python',
-            'dry_run',
-            'enable_private_envs',
-            'error_upload_url',  # should remain undocumented
-            'force_32bit',
-            'ignore_pinned',
-            'migrated_custom_channels',
-            'only_dependencies',
-            'prune',
-            'root_prefix',
-            'subdir',
-            'subdirs',
-# https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
-# I don't think this documentation is correct any longer. # NOQA
-            'target_prefix_override',  # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
-            'update_dependencies',
-            'use_local',
-        )
-        return tuple(p for p in super(Context, self).list_parameters()
-                     if p not in UNLISTED_PARAMETERS)
-
     @property
     def binstar_upload(self):
         # backward compatibility for conda-build
@@ -623,6 +594,398 @@ class Context(Configuration):
     @property
     def verbosity(self):
         return 2 if self.debug else self._verbosity
+
+    @property
+    def category_map(self):
+        return odict((
+        ('Channel Configuration', (
+            'channels',
+            'channel_alias',
+            'default_channels',
+            'override_channels_enabled',
+            'whitelist_channels',
+            'custom_channels',
+            'custom_multichannels',
+            'migrated_channel_aliases',
+            'migrated_custom_channels',
+            'add_anaconda_token',
+            'allow_non_channel_urls',
+        )),
+        ('Basic Conda Configuration', (  # TODO: Is there a better category name here?
+            'env_prompt',
+            'envs_dirs',
+            'pkgs_dirs',
+        )),
+        ('Network Configuration', (
+            'client_ssl_cert',
+            'client_ssl_cert_key',
+            'local_repodata_ttl',
+            'offline',
+            'proxy_servers',
+            'remote_connect_timeout_secs',
+            'remote_max_retries',
+            'remote_read_timeout_secs',
+            'ssl_verify',
+        )),
+        ('Solver Configuration', (
+            'aggressive_update_packages',
+            'auto_update_conda',
+            'channel_priority',
+            'create_default_packages',
+            'disallowed_packages',
+            'pinned_packages',
+            'track_features',
+            'prune',
+            'force_reinstall',
+        )),
+        ('Package Linking and Install-time Configuration', (
+            'allow_softlinks',
+            'always_copy',
+            'always_softlink',
+            'path_conflict',
+            'rollback_enabled',
+            'safety_checks',
+            'shortcuts',
+            'non_admin_enabled',
+        )),
+        ('Conda-build Configuration', (
+            'bld_path',
+            'croot',
+            'anaconda_upload',
+            'conda_build',
+        )),
+        ('Output, Prompt, and Flow Control Configuration', (
+            'always_yes',
+            'auto_activate_base',
+            'changeps1',
+            'json',
+            'notify_outdated_conda',
+            'quiet',
+            'report_errors',
+            'show_channel_urls',
+            'verbosity',
+        )),
+        ('CLI-only', (
+            'deps_modifier',
+            'update_modifier',
+
+            'force',
+            'force_remove',
+            'clobber',
+
+            'dry_run',
+            'download_only',
+            'ignore_pinned',
+            'use_index_cache',
+            'use_local',
+        )),
+        ('Hidden and Undocumented', (
+            'allow_cycles',  # allow cyclical dependencies, or raise
+            'add_pip_as_python_dependency',
+            'debug',
+            'default_python',
+            'enable_private_envs',
+            'error_upload_url',  # should remain undocumented
+            'force_32bit',
+            'pip_interop_enabled',  # temporary feature flag
+            'root_prefix',
+            'subdir',
+            'subdirs',
+            # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
+            # I don't think this documentation is correct any longer. # NOQA
+            'target_prefix_override',
+            # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
+        )),
+    ))
+
+    def get_descriptions(self):
+        return self.description_map
+
+    @memoizedproperty
+    def description_map(self):
+        return frozendict({
+            'add_anaconda_token': dals("""
+                In conjunction with the anaconda command-line client (installed with
+                `conda install anaconda-client`), and following logging into an Anaconda
+                Server API site using `anaconda login`, automatically apply a matching
+                private token to enable access to private packages and channels.
+                """),
+            # 'add_pip_as_python_dependency': dals("""
+            #     Add pip, wheel and setuptools as dependencies of python. This ensures pip,
+            #     wheel and setuptools will always be installed any time python is installed.
+            #     """),
+            'aggressive_update_packages': dals("""
+                A list of packages that, if installed, are always updated to the latest possible
+                version.
+                """),
+            'allow_non_channel_urls': dals("""
+                Warn, but do not fail, when conda detects a channel url is not a valid channel.
+                """),
+            'allow_softlinks': dals("""
+                When allow_softlinks is True, conda uses hard-links when possible, and soft-links
+                (symlinks) when hard-links are not possible, such as when installing on a
+                different filesystem than the one that the package cache is on. When
+                allow_softlinks is False, conda still uses hard-links when possible, but when it
+                is not possible, conda copies files. Individual packages can override
+                this setting, specifying that certain files should never be soft-linked (see the
+                no_link option in the build recipe documentation).
+                """),
+            'always_copy': dals("""
+                Register a preference that files be copied into a prefix during install rather
+                than hard-linked.
+                """),
+            'always_softlink': dals("""
+                Register a preference that files be soft-linked (symlinked) into a prefix during
+                install rather than hard-linked. The link source is the 'pkgs_dir' package cache
+                from where the package is being linked. WARNING: Using this option can result in
+                corruption of long-lived conda environments. Package caches are *caches*, which
+                means there is some churn and invalidation. With this option, the contents of
+                environments can be switched out (or erased) via operations on other environments.
+                """),
+            'always_yes': dals("""
+                Automatically choose the 'yes' option whenever asked to proceed with a conda
+                operation, such as when running `conda install`.
+                """),
+            'anaconda_upload': dals("""
+                Automatically upload packages built with conda build to anaconda.org.
+                """),
+            'auto_activate_base': dals("""
+                Automatically activate the base environment during shell initialization.
+                """),
+            'auto_update_conda': dals("""
+                Automatically update conda when a newer or higher priority version is detected.
+                """),
+            'bld_path': dals("""
+                The location where conda-build will put built packages. Same as 'croot', but
+                'croot' takes precedence when both are defined. Also used in construction of the
+                'local' multichannel.
+                """),
+            'changeps1': dals("""
+                When using activate, change the command prompt ($PS1) to include the
+                activated environment.
+                """),
+            'channel_alias': dals("""
+                The prepended url location to associate with channel names.
+                """),
+            'channel_priority': dals("""
+                When True, the solver is instructed to prefer channel order over package
+                version. When False, the solver is instructed to give package version
+                preference over channel priority.
+                """),
+            'channels': dals("""
+                The list of conda channels to include for relevant operations.
+                """),
+            'client_ssl_cert': dals("""
+                A path to a single file containing a private key and certificate (e.g. .pem
+                file). Alternately, use client_ssl_cert_key in conjuction with client_ssl_cert
+                for individual files.
+                """),
+            'client_ssl_cert_key': dals("""
+                Used in conjunction with client_ssl_cert for a matching key file.
+                """),
+            # 'clobber': dals("""
+            #     Allow clobbering of overlapping file paths within packages, and suppress
+            #     related warnings. Overrides the path_conflict configuration value when
+            #     set to 'warn' or 'prevent'.
+            #     """),
+            'conda_build': dals("""
+                General configuration parameters for conda-build.
+                """),
+            # TODO: add shortened link to docs for conda_build at See https://conda.io/docs/user-guide/configuration/use-condarc.html#conda-build-configuration  # NOQA
+            'create_default_packages': dals("""
+                Packages that are by default added to a newly created environments.
+                """),  # TODO: This is a bad parameter name. Consider an alternate.
+            'croot': dals("""
+                The location where conda-build will put built packages. Same as 'bld_path', but
+                'croot' takes precedence when both are defined. Also used in construction of the
+                'local' multichannel.
+                """),
+            'custom_channels': dals("""
+                A map of key-value pairs where the key is a channel name and the value is
+                a channel location. Channels defined here override the default
+                'channel_alias' value. The channel name (key) is not included in the channel
+                location (value).  For example, to override the location of the 'conda-forge'
+                channel where the url to repodata is
+                https://anaconda-repo.dev/packages/conda-forge/linux-64/repodata.json, add an
+                entry 'conda-forge: https://anaconda-repo.dev/packages'.
+                """),
+            'custom_multichannels': dals("""
+                A multichannel is a metachannel composed of multiple channels. The two reserved
+                multichannels are 'defaults' and 'local'. The 'defaults' multichannel is
+                customized using the 'default_channels' parameter. The 'local'
+                multichannel is a list of file:// channel locations where conda-build stashes
+                successfully-built packages.  Other multichannels can be defined with
+                custom_multichannels, where the key is the multichannel name and the value is
+                a list of channel names and/or channel urls.
+                """),
+            'default_channels': dals("""
+                The list of channel names and/or urls used for the 'defaults' multichannel.
+                """),
+            # 'default_python': dals("""
+            #     specifies the default major & minor version of Python to be used when
+            #     building packages with conda-build. Also used to determine the major
+            #     version of Python (2/3) to be used in new environments. Defaults to
+            #     the version used by conda itself.
+            #     """),
+            'disallowed_packages': dals("""
+                Package specifications to disallow installing. The default is to allow
+                all packages.
+                """),
+            'download_only': dals("""
+                Solve an environment and ensure package caches are populated, but exit
+                prior to unlinking and linking packages into the prefix
+                """),
+            'envs_dirs': dals("""
+                The list of directories to search for named environments. When creating a new
+                named environment, the environment will be placed in the first writable
+                location.
+                """),
+            'env_prompt': dals("""
+                Template for prompt modification based on the active environment. Currently
+                supported template variables are '{prefix}', '{name}', and '{default_env}'.
+                '{prefix}' is the absolute path to the active environment. '{name}' is the
+                basename of the active environment prefix. '{default_env}' holds the value
+                of '{name}' if the active environment is a conda named environment ('-n'
+                flag), or otherwise holds the value of '{prefix}'. Templating uses python's
+                str.format() method.
+                """),
+            'force_reinstall': dals("""
+                Ensure that any user-requested package for the current operation is uninstalled
+                and reinstalled, even if that package already exists in the environment.
+                """),
+            # 'force': dals("""
+            #     Override any of conda's objections and safeguards for installing packages and
+            #     potentially breaking environments. Also re-installs the package, even if the
+            #     package is already installed. Implies --no-deps.
+            #     """),
+            # 'force_32bit': dals("""
+            #     CONDA_FORCE_32BIT should only be used when running conda-build (in order
+            #     to build 32-bit packages on a 64-bit system).  We don't want to mention it
+            #     in the documentation, because it can mess up a lot of things.
+            #     """),
+            'json': dals("""
+                Ensure all output written to stdout is structured json.
+                """),
+            'local_repodata_ttl': dals("""
+                For a value of False or 0, always fetch remote repodata (HTTP 304 responses
+                respected). For a value of True or 1, respect the HTTP Cache-Control max-age
+                header. Any other positive integer values is the number of seconds to locally
+                cache repodata before checking the remote server for an update.
+                """),
+            'migrated_channel_aliases': dals("""
+                A list of previously-used channel_alias values. Useful when switching between
+                different Anaconda Repository instances.
+                """),
+            'migrated_custom_channels': dals("""
+                A map of key-value pairs where the key is a channel name and the value is
+                the previous location of the channel.
+                """),
+            # 'no_deps': dals("""
+            #     Do not install, update, remove, or change dependencies. This WILL lead to broken
+            #     environments and inconsistent behavior. Use at your own risk.
+            #     """),
+            'non_admin_enabled': dals("""
+                Allows completion of conda's create, install, update, and remove operations, for
+                non-privileged (non-root or non-administrator) users.
+                """),
+            'notify_outdated_conda': dals("""
+                Notify if a newer version of conda is detected during a create, install, update,
+                or remove operation.
+                """),
+            'offline': dals("""
+                Restrict conda to cached download content and file:// based urls.
+                """),
+            'override_channels_enabled': dals("""
+                Permit use of the --overide-channels command-line flag.
+                """),
+            'path_conflict': dals("""
+                The method by which conda handle's conflicting/overlapping paths during a
+                create, install, or update operation. The value must be one of 'clobber',
+                'warn', or 'prevent'. The '--clobber' command-line flag or clobber
+                configuration parameter overrides path_conflict set to 'prevent'.
+                """),
+            'pinned_packages': dals("""
+                A list of package specs to pin for every environment resolution.
+                This parameter is in BETA, and its behavior may change in a future release.
+                """),
+            'pkgs_dirs': dals("""
+                The list of directories where locally-available packages are linked from at
+                install time. Packages not locally available are downloaded and extracted
+                into the first writable directory.
+                """),
+            'proxy_servers': dals("""
+                A mapping to enable proxy settings. Keys can be either (1) a scheme://hostname
+                form, which will match any request to the given scheme and exact hostname, or
+                (2) just a scheme, which will match requests to that scheme. Values are are
+                the actual proxy server, and are of the form
+                'scheme://[user:password@]host[:port]'. The optional 'user:password' inclusion
+                enables HTTP Basic Auth with your proxy.
+                """),
+            'prune': dals("""
+                Remove packages that have previously been brought into an environment to satisfy
+                dependencies of user-requested packages, but are no longer needed.
+                """),
+            'quiet': dals("""
+                Disable progress bar display and other output.
+                """),
+            'remote_connect_timeout_secs': dals("""
+                The number seconds conda will wait for your client to establish a connection
+                to a remote url resource.
+                """),
+            'remote_max_retries': dals("""
+                The maximum number of retries each HTTP connection should attempt.
+                """),
+            'remote_read_timeout_secs': dals("""
+                Once conda has connected to a remote resource and sent an HTTP request, the
+                read timeout is the number of seconds conda will wait for the server to send
+                a response.
+                """),
+            'report_errors': dals("""
+                Opt in, or opt out, of automatic error reporting to core maintainers. Error
+                reports are anonymous, with only the error stack trace and information given
+                by `conda info` being sent.
+                """),
+            'rollback_enabled': dals("""
+                Should any error occur during an unlink/link transaction, revert any disk
+                mutations made to that point in the transaction.
+                """),
+            'safety_checks': dals("""
+                Enforce available safety guarantees during package installation.
+                The value must be one of 'enabled', 'warn', or 'disabled'.
+                """),
+            'shortcuts': dals("""
+                Allow packages to create OS-specific shortcuts (e.g. in the Windows Start
+                Menu) at install time.
+                """),
+            'show_channel_urls': dals("""
+                Show channel URLs when displaying what is going to be downloaded.
+                """),
+            'ssl_verify': dals("""
+                Conda verifies SSL certificates for HTTPS requests, just like a web
+                browser. By default, SSL verification is enabled, and conda operations will
+                fail if a required url's certificate cannot be verified. Setting ssl_verify to
+                False disables certification verification. The value for ssl_verify can also
+                be (1) a path to a CA bundle file, or (2) a path to a directory containing
+                certificates of trusted CA.
+                """),
+            'track_features': dals("""
+                A list of features that are tracked by default. An entry here is similar to
+                adding an entry to the create_default_packages list.
+                """),
+            'use_index_cache': dals("""
+                Use cache of channel index files, even if it has expired.
+                """),
+            'verbosity': dals("""
+                Sets output log level. 0 is warn. 1 is info. 2 is debug. 3 is trace.
+                """),
+            'whitelist_channels': dals("""
+                The exclusive list of channels allowed to be used on the system. Use of any
+                other channels will result in an error. If conda-build channels are to be
+                allowed, along with the --use-local command line flag, be sure to include the
+                'local' channel in the list. If the list is empty or left undefined, no
+                channel exclusions will be enforced.
+                """)
+        })
 
 
 def conda_in_private_env():
@@ -637,264 +1000,6 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     Channel._reset_state()
     # need to import here to avoid circular dependency
     return context
-
-
-@memoize
-def get_help_dict():
-    # this is a function so that most of the time it's not evaluated and loaded into memory
-    return frozendict({
-        'add_anaconda_token': dals("""
-            In conjunction with the anaconda command-line client (installed with
-            `conda install anaconda-client`), and following logging into an Anaconda
-            Server API site using `anaconda login`, automatically apply a matching
-            private token to enable access to private packages and channels.
-            """),
-        'add_pip_as_python_dependency': dals("""
-            Add pip, wheel and setuptools as dependencies of python. This ensures pip,
-            wheel and setuptools will always be installed any time python is installed.
-            """),
-        'aggressive_update_packages': dals("""
-            A list of packages that, if installed, are always updated to the latest possible
-            version.
-            """),
-        'allow_non_channel_urls': dals("""
-            Warn, but do not fail, when conda detects a channel url is not a valid channel.
-            """),
-        'allow_softlinks': dals("""
-            When allow_softlinks is True, conda uses hard-links when possible, and soft-links
-            (symlinks) when hard-links are not possible, such as when installing on a
-            different filesystem than the one that the package cache is on. When
-            allow_softlinks is False, conda still uses hard-links when possible, but when it
-            is not possible, conda copies files. Individual packages can override
-            this setting, specifying that certain files should never be soft-linked (see the
-            no_link option in the build recipe documentation).
-            """),
-        'always_copy': dals("""
-            Register a preference that files be copied into a prefix during install rather
-            than hard-linked.
-            """),
-        'always_softlink': dals("""
-            Register a preference that files be soft-linked (symlinked) into a prefix during
-            install rather than hard-linked. The link source is the 'pkgs_dir' package cache
-            from where the package is being linked. WARNING: Using this option can result in
-            corruption of long-lived conda environments. Package caches are *caches*, which
-            means there is some churn and invalidation. With this option, the contents of
-            environments can be switched out (or erased) via operations on other environments.
-            """),
-        'always_yes': dals("""
-            Automatically choose the 'yes' option whenever asked to proceed with a conda
-            operation, such as when running `conda install`.
-            """),
-        'anaconda_upload': dals("""
-            Automatically upload packages built with conda build to anaconda.org.
-            """),
-        'auto_update_conda': dals("""
-            Automatically update conda when a newer or higher priority version is detected.
-            """),
-        'changeps1': dals("""
-            When using activate, change the command prompt ($PS1) to include the
-            activated environment.
-            """),
-        'channel_alias': dals("""
-            The prepended url location to associate with channel names.
-            """),
-        'channel_priority': dals("""
-            When True, the solver is instructed to prefer channel order over package
-            version. When False, the solver is instructed to give package version
-            preference over channel priority.
-            """),
-        'channels': dals("""
-            The list of conda channels to include for relevant operations.
-            """),
-        'client_ssl_cert': dals("""
-            A path to a single file containing a private key and certificate (e.g. .pem
-            file). Alternately, use client_ssl_cert_key in conjuction with client_ssl_cert
-            for individual files.
-            """),
-        'client_ssl_cert_key': dals("""
-            Used in conjunction with client_ssl_cert for a matching key file.
-            """),
-        'clobber': dals("""
-            Allow clobbering of overlapping file paths within packages, and suppress
-            related warnings. Overrides the path_conflict configuration value when
-            set to 'warn' or 'prevent'.
-            """),
-        'create_default_packages': dals("""
-            Packages that are by default added to a newly created environments.
-            """),  # TODO: This is a bad parameter name. Consider an alternate.
-        'custom_channels': dals("""
-            A map of key-value pairs where the key is a channel name and the value is
-            a channel location. Channels defined here override the default
-            'channel_alias' value. The channel name (key) is not included in the channel
-            location (value).  For example, to override the location of the 'conda-forge'
-            channel where the url to repodata is
-            https://anaconda-repo.dev/packages/conda-forge/linux-64/repodata.json, add an
-            entry 'conda-forge: https://anaconda-repo.dev/packages'.
-            """),
-        'custom_multichannels': dals("""
-            A multichannel is a metachannel composed of multiple channels. The two reserved
-            multichannels are 'defaults' and 'local'. The 'defaults' multichannel is
-            customized using the 'default_channels' parameter. The 'local'
-            multichannel is a list of file:// channel locations where conda-build stashes
-            successfully-built packages.  Other multichannels can be defined with
-            custom_multichannels, where the key is the multichannel name and the value is
-            a list of channel names and/or channel urls.
-            """),
-        'default_channels': dals("""
-            The list of channel names and/or urls used for the 'defaults' multichannel.
-            """),
-        # 'default_python': dals("""
-        #     specifies the default major & minor version of Python to be used when
-        #     building packages with conda-build. Also used to determine the major
-        #     version of Python (2/3) to be used in new environments. Defaults to
-        #     the version used by conda itself.
-        #     """),
-        'disallowed_packages': dals("""
-            Package specifications to disallow installing. The default is to allow
-            all packages.
-            """),
-        'download_only': dals("""
-            Solve an environment and ensure package caches are populated, but exit
-            prior to unlinking and linking packages into the prefix
-            """),
-        'envs_dirs': dals("""
-            The list of directories to search for named environments. When creating a new
-            named environment, the environment will be placed in the first writable
-            location.
-            """),
-        'force': dals("""
-            Override any of conda's objections and safeguards for installing packages and
-            potentially breaking environments. Also re-installs the package, even if the
-            package is already installed. Implies --no-deps.
-            """),
-        # 'force_32bit': dals("""
-        #     CONDA_FORCE_32BIT should only be used when running conda-build (in order
-        #     to build 32-bit packages on a 64-bit system).  We don't want to mention it
-        #     in the documentation, because it can mess up a lot of things.
-        #     """),
-        'json': dals("""
-            Ensure all output written to stdout is structured json.
-            """),
-        'local_repodata_ttl': dals("""
-            For a value of False or 0, always fetch remote repodata (HTTP 304 responses
-            respected). For a value of True or 1, respect the HTTP Cache-Control max-age
-            header. Any other positive integer values is the number of seconds to locally
-            cache repodata before checking the remote server for an update.
-            """),
-        'max_shlvl': dals("""
-            The maximum number of stacked active conda environments.
-            """),
-        'migrated_channel_aliases': dals("""
-            A list of previously-used channel_alias values, useful for example when switching
-            between different Anaconda Repository instances.
-            """),
-        'no_dependencies': dals("""
-            Do not install, update, remove, or change dependencies. This WILL lead to broken
-            environments and inconsistent behavior. Use at your own risk.
-            """),
-        'non_admin_enabled': dals("""
-            Allows completion of conda's create, install, update, and remove operations, for
-            non-privileged (non-root or non-administrator) users.
-            """),
-        'notify_outdated_conda': dals("""
-            Notify if a newer version of conda is detected during a create, install, update,
-            or remove operation.
-            """),
-        'offline': dals("""
-            Restrict conda to cached download content and file:// based urls.
-            """),
-        'override_channels_enabled': dals("""
-            Permit use of the --overide-channels command-line flag.
-            """),
-        'path_conflict': dals("""
-            The method by which conda handle's conflicting/overlapping paths during a
-            create, install, or update operation. The value must be one of 'clobber',
-            'warn', or 'prevent'. The '--clobber' command-line flag or clobber
-            configuration parameter overrides path_conflict set to 'prevent'.
-            """),
-        'pinned_packages': dals("""
-            A list of package specs to pin for every environment resolution.
-            This parameter is in BETA, and its behavior may change in a future release.
-            """),
-        'pkgs_dirs': dals("""
-            The list of directories where locally-available packages are linked from at
-            install time. Packages not locally available are downloaded and extracted
-            into the first writable directory.
-            """),
-        'proxy_servers': dals("""
-            A mapping to enable proxy settings. Keys can be either (1) a scheme://hostname
-            form, which will match any request to the given scheme and exact hostname, or
-            (2) just a scheme, which will match requests to that scheme. Values are are
-            the actual proxy server, and are of the form
-            'scheme://[user:password@]host[:port]'. The optional 'user:password' inclusion
-            enables HTTP Basic Auth with your proxy.
-            """),
-        'quiet': dals("""
-            Disable progress bar display and other output.
-            """),
-        'remote_connect_timeout_secs': dals("""
-            The number seconds conda will wait for your client to establish a connection
-            to a remote url resource.
-            """),
-        'remote_max_retries': dals("""
-            The maximum number of retries each HTTP connection should attempt.
-            """),
-        'remote_read_timeout_secs': dals("""
-            Once conda has connected to a remote resource and sent an HTTP request, the
-            read timeout is the number of seconds conda will wait for the server to send
-            a response.
-            """),
-        'report_errors': dals("""
-            Opt in, or opt out, of automatic error reporting to core maintainers. Error
-            reports are anonymous, with only the error stack trace and information given
-            by `conda info` being sent.
-            """),
-        'rollback_enabled': dals("""
-            Should any error occur during an unlink/link transaction, revert any disk
-            mutations made to that point in the transaction.
-            """),
-        'safety_checks': dals("""
-            Enforce available safety guarantees during package installation.
-            The value must be one of 'enabled', 'warn', or 'disabled'.
-            """),
-        'shortcuts': dals("""
-            Allow packages to create OS-specific shortcuts (e.g. in the Windows Start
-            Menu) at install time.
-            """),
-        'show_channel_urls': dals("""
-            Show channel URLs when displaying what is going to be downloaded.
-            """),
-        'ssl_verify': dals("""
-            Conda verifies SSL certificates for HTTPS requests, just like a web
-            browser. By default, SSL verification is enabled, and conda operations will
-            fail if a required url's certificate cannot be verified. Setting ssl_verify to
-            False disables certification verificaiton. The value for ssl_verify can also
-            be (1) a path to a CA bundle file, or (2) a path to a directory containing
-            certificates of trusted CA.
-            """),
-        'track_features': dals("""
-            A list of features that are tracked by default. An entry here is similar to
-            adding an entry to the create_default_packages list.
-            """),
-        'use_index_cache': dals("""
-            Use cache of channel index files, even if it has expired.
-            """),
-        'use_pip': dals("""
-            Include non-conda-installed python packages with conda list. This does not
-            affect any conda command or functionality other than the output of the
-            command conda list.
-            """),
-        'verbosity': dals("""
-            Sets output log level. 0 is warn. 1 is info. 2 is debug. 3 is trace.
-            """),
-        'whitelist_channels': dals("""
-            The exclusive list of channels allowed to be used on the system. Use of any
-            other channels will result in an error. If conda-build channels are to be
-            allowed, along with the --use-local command line flag, be sure to include the
-            'local' channel in the list. If the list is empty or left undefined, no
-            channel exclusions will be enforced.
-            """)
-    })
 
 
 @memoize
@@ -954,7 +1059,7 @@ def locate_prefix_by_name(name, envs_dirs=None):
             continue
         prefix = join(envs_dir, name)
         if isdir(prefix):
-            return prefix
+            return abspath(prefix)
 
     from ..exceptions import EnvironmentNameNotFound
     raise EnvironmentNameNotFound(name)
@@ -998,6 +1103,10 @@ def determine_target_prefix(ctx, args=None):
             from ..exceptions import CondaValueError
             raise CondaValueError("'/' not allowed in environment name: %s" %
                                   prefix_name)
+        if ' ' in prefix_name:
+            from ..exceptions import CondaValueError
+            raise CondaValueError("Space not allowed in environment name: '%s'" %
+                                  prefix_name)
         if prefix_name in (ROOT_ENV_NAME, 'root'):
             return ctx.root_prefix
         else:
@@ -1009,16 +1118,28 @@ def determine_target_prefix(ctx, args=None):
 
 
 def _first_writable_envs_dir():
-    # Starting in conda 4.3, we use the writability test on '..../pkgs/url.txt' to determine
-    # writability of '..../envs'.
-    from ..core.package_cache_data import PackageCacheData
+    # Calling this function will *create* an envs directory if one does not already
+    # exist. Any caller should intend to *use* that directory for *writing*, not just reading.
     for envs_dir in context.envs_dirs:
-        pkgs_dir = join(dirname(envs_dir), 'pkgs')
-        if PackageCacheData(pkgs_dir).is_writable:
-            return envs_dir
+        # The magic file being used here could change in the future.  Don't write programs
+        # outside this code base that rely on the presence of this file.
+        # This value is duplicated in conda.gateways.disk.create.create_envs_directory().
+        envs_dir_magic_file = join(envs_dir, '.conda_envs_dir_test')
 
-    from ..exceptions import NotWritableError
-    raise NotWritableError(context.envs_dirs[0], None)
+        if isfile(envs_dir_magic_file):
+            try:
+                open(envs_dir_magic_file, 'a').close()
+                return envs_dir
+            except (IOError, OSError):
+                log.trace("Tried envs_dir but not writable: %s", envs_dir)
+        else:
+            from ..gateways.disk.create import create_envs_directory
+            was_created = create_envs_directory(envs_dir)
+            if was_created:
+                return envs_dir
+
+    from ..exceptions import NoWritableEnvsDirError
+    raise NoWritableEnvsDirError(context.envs_dirs)
 
 
 # backward compatibility for conda-build

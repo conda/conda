@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
@@ -28,8 +30,8 @@ class PrefixGraph(object):
     """
 
     def __init__(self, records, specs=()):
-        specs = set(specs)
         records = tuple(records)
+        specs = set(specs)
         graph = {}  # Dict[PrefixRecord, Set[PrefixRecord]]
         self.spec_matches = spec_matches = {}  # Dict[PrefixRecord, Set[MatchSpec]]
         for node in records:

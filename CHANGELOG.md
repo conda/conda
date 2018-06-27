@@ -1,6 +1,119 @@
-## 4.5.0 (unreleased)
+## 4.6.0 (unreleased)
 
 ### New Feature Highlights
+* resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
+  config (#7195, #7226, #7233)
+* resolve #7087 add non-conda-installed python packages into PrefixData (#7067)
+
+### Deprecations/Breaking Changes
+* resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
+* resolve #7061 remove pkgs/pro from defaults (#7162)
+* resolve #7078 add deprecation warnings for 'conda.cli.activate',
+  'conda.compat', and 'conda.install' (#7079)
+* resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
+  config (#7195)
+* resolve #6979, #7086 remove Dist from majority of project (#7216, #7252)
+
+### Improvements
+* import speedups (#7122)
+* --help cleanup (#7120)
+* fish autocompletion for conda env (#7101)
+* remove reference to 'system' channel (#7163)
+* add http error body to debug information (#7160)
+* warn creating env name with space is not supported (#7168)
+* support complete MatchSpec syntax in environment.yml files (#7178)
+* resolve #4274 add option to remove an existing environment with 'conda create' (#7133)
+* add ability for conda prompt customization via 'env_prompt' config param (#7047)
+* resolve #7063 add license and license_family to MatchSpec for 'conda search' (#7064)
+* resolve #7189 progress bar formatting improvement (#7191)
+* raise log level for errors to error (#7229)
+* add to conda.exports (#7217)
+* resolve #6845 add option -S / --satisfied-skip-solve to exit early for satisfied specs (#7291)
+
+### Bug Fixes
+* fix #7107 verify hangs when a package is corrupted (#7131)
+* fix #7145 progress bar uses stderr instead of stdout (#7146)
+* fix typo in conda.fish (#7152)
+* fix #2154 conda remove should complain if requested removals don't exist (#7135)
+* fix #7094 exit early for --dry-run with explicit and clone (#7096)
+* fix activation script sort order (#7176)
+* fix #7109 incorrect chown with sudo (#7180)
+* fix #7210 add suppressed --mkdir back to 'conda create' (fix for 4.6.0a1) (#7211)
+
+### Non-User-Facing Changes
+* resolve #6595 use OO inheritance in activate.py (#7049)
+* resolve #7220 pep8 project renamed to pycodestyle (#7221)
+* proxy test routine (#7308)
+
+### Preview Releases
+
+* 4.6.0a1 at d5bec21d1f64c3bc66c2999cfc690681e9c46177 on 2018-04-20
+* 4.6.0a2 at c467517ca652371ebc4224f0d49315b7ec225108 on 2018-05-01
+
+
+## 4.5.5 (unreleased)
+
+### Bug Fixes
+* fix #7165 conda version check should be restricted to channel conda is from (#7289, #7303)
+* fix #7341 ValueError n cannot be negative (#7360)
+
+
+## 4.5.4 (2018-05-14)
+
+### Improvements
+* resolve #7189 progress bar improvement (#7191 via #7274)
+
+### Bug Fixes
+* fix twofold tarball extraction, improve progress update (#7275)
+* fix #7253 always respect copy LinkType (#7269)
+
+### Contributors
+* @jakirkham
+* @kalefranz
+* @mbargull
+
+
+## 4.5.3 (2018-05-07)
+
+### Bug Fixes
+* fix #7240 conda's configuration context is not initialized in conda.exports (#7244)
+
+
+## 4.5.2 (2018-04-27)
+
+### Bug Fixes
+* fix #7107 verify hangs when a package is corrupted (#7223)
+* fix #7094 exit early for --dry-run with explicit and clone (#7224)
+* fix activation/deactivation script sort order (#7225)
+
+
+## 4.5.1 (2018-04-13)
+
+### Improvements
+* resolve #7075 add anaconda.org search message to PackagesNotFoundError (#7076)
+* add CondaError details to auto-upload reports (#7060)
+
+### Bug Fixes
+* fix #6703,#6981 index out of bound when running deactivate on fish shell (#6993)
+* properly close over $_CONDA_EXE variable (#7004)
+* fix condarc map parsing with comments (#7021)
+* fix #6919 csh prompt (#7041)
+* add _file_created attribute (#7054)
+* fix handling of non-ascii characters in custom_multichannels (#7050)
+* fix #6877 handle non-zero return in CSH (#7042)
+* fix #7040 update tqdm to version 4.22.0 (#7157)
+
+
+## 4.5.0 (2018-03-20)
+
+### New Feature Highlights
+* A new flag, '--envs', has been added to 'conda search'. In this mode,
+  'conda search' will look for the package query in existing conda environments
+  on your system. If ran as UID 0 (i.e. root) on unix systems or as an
+  Administrator user on Windows, all known conda environments for all users
+  on the system will be searched.  For example, 'conda search --envs openssl'
+  will show the openssl version and environment location for all
+  conda-installed openssl packages.
 
 ### Deprecations/Breaking Changes
 * resolve #6886 transition defaults from repo.continuum.io to repo.anaconda.com (#6887)

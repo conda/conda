@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -172,12 +174,30 @@ class MatchSpec(object):
         'features',
         'url',
         'md5',
+        'license',
+        'license_family',
     )
 
     def __init__(self, optional=False, target=None, **kwargs):
         self.optional = optional
         self.target = target
         self._match_components = self._build_components(**kwargs)
+
+    @classmethod
+    def from_dist_str(cls, dist_str):
+        parts = {}
+        if dist_str.endswith(CONDA_TARBALL_EXTENSION):
+            dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
+        if '::' in dist_str:
+            channel_str, dist_str = dist_str.split("::", 1)
+            parts['channel'] = channel_str
+        name, version, build = dist_str.rsplit('-', 2)
+        parts.update({
+            'name': name,
+            'version': version,
+            'build': build,
+        })
+        return cls(**parts)
 
     def get_exact_value(self, field_name):
         v = self._match_components.get(field_name)
@@ -769,7 +789,8 @@ class StrMatch(MatchInterface):
         if value.startswith('^') and value.endswith('$'):
             self._re_match = re.compile(value).match
         elif '*' in value:
-            self._re_match = re.compile(r'^(?:%s)$' % value.replace('*', r'.*')).match
+            value = re.escape(value).replace('\\*', r'.*')
+            self._re_match = re.compile(r'^(?:%s)$' % value).match
 
     def match(self, other):
         try:
@@ -860,6 +881,21 @@ class LowerStrMatch(StrMatch):
         super(LowerStrMatch, self).__init__(value.lower())
 
 
+class CaseInsensitiveStrMatch(LowerStrMatch):
+
+    def match(self, other):
+        try:
+            _other_val = other._raw_value
+        except AttributeError:
+            _other_val = text_type(other)
+
+        _other_val = _other_val.lower()
+        if self._re_match:
+            return self._re_match(_other_val)
+        else:
+            return self._raw_value == _other_val
+
+
 _implementors = {
     'name': LowerStrMatch,
     'track_features': FeatureMatch,
@@ -867,4 +903,6 @@ _implementors = {
     'version': VersionSpec,
     'build_number': BuildNumberMatch,
     'channel': ChannelMatch,
+    'license': CaseInsensitiveStrMatch,
+    'license_family': CaseInsensitiveStrMatch,
 }

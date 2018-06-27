@@ -1,0 +1,55 @@
+# Prevent git from showing duplicate names with commands like "git shortlog"
+# See the manpage of git-shortlog for details.
+# The syntax is:
+# Name that should be used <email that should be used> Bad name <bad email>
+#
+# You can skip Bad name if it is the same as the one that should be used, and is unique.
+#
+# This file is up-to-date if the command git log --format="%aN <%aE>" | sort -u
+# gives no duplicates.
+
+ARF1 <arik@funke.eu> ARF <none@none>
+Aaron Meurer <aaron.meurer@continuum.io> Aaron Meurer <asmeurer@gmail.com>
+Armin Burgmeier <aburgmeier@bloomberg.net> Armin Burgmeier <armin@arbur.net>
+Bruno Oliveira <nicoddemus@gmail.com> Bruno Oliveira <bruno@esss.com.br>
+Bryan Van de Ven <bryanv@continuum.io> Bryan Van de Ven <bryan@ubuntu.(none)>
+Bryan Van de Ven <bryanv@continuum.io> bryanv@continuum.io <bryanv@continuum.io>
+Bryan Van de Ven <bryanv@continuum.io> bryanv@continuum.io <bryanv@filer.atx.continuum.io>
+David Froger <david.froger@inria.fr> David Froger <david.froger@mailoo.org>
+David Hirschfeld <david.hirschfeld@gazprom-mt.com> dhirschfeld <dave.hirschfeld@gmail.com>
+Derek Ludwig <dludwig@continuum.io> Derek Ludwig <derek.s.ludwig@gmail.com>
+Eric Dill <edill@bnl.gov> Eric Dill <eric.dill@maxpoint.com>
+Gonzalo Peña-Castellanos <goanpeca@gmail.com> Gonzalo Pena-Castellanos <goanpeca@gmail.com>
+Guilherme Quentel Melo <gqmelo@gmail.com> Guilherme Quentel Melo <guilherme@esss.com.br>
+Ilan Schnell <ilan@continuum.io> Ilan Schnell <ilan@hq-dhcp-20-84.20.10.10.in-addr.arpa>
+Ilan Schnell <ilan@continuum.io> Ilan Schnell <ilanschnell@gmail.com>
+Jacopo <dedalusj@gmail.com> Jacopo <jacopo.sabbatini@roames.com.au>
+Jaime RGP <jaime.rogue@gmail.com> Jaime RG <jaime.rogue@gmail.com>
+Jaime RGP <jaime.rogue@gmail.com> Jaime RGP <jaimergp@users.noreply.github.com>
+Jonathan J. Helmus <jjhelmus@gmail.com> Jonathan Helmus <jjhelmus@gmail.com>
+Kale Franz <kfranz@continuum.io> Kale Franz <kalefranz@users.noreply.github.com>
+Kevin Deldycke <kevin@deldycke.com> Kevin Deldycke <kdeldycke@scaleway.com>
+Korijn van Golen <korijn@gmail.com> Korijn van Golen <k.vangolen@clinicalgraphics.com>
+Maggie Mari <maggie.mari@continuum.io> Maggie-M <maggie.mari@continuum.io>
+Marcel Bargull <mbargull@users.noreply.github.com> Marcel Bargull <marcel.bargull@udo.edu>
+Marcos Vanetta <marcosvanetta@gmail.com> malev <marcosvanetta@gmail.com>
+Mark Wiebe <mwiebe@continuum.io> Mark Wiebe <mwwiebe@gmail.com>
+Michael Grant <mgrant@continuum.io> Michael C. Grant <mcg@cvxr.com>
+Michael Grant <mgrant@continuum.io> Michael C. Grant <mgrant@continuum.io>
+Michael Sarahan <msarahan@continuum.io> Michael Sarahan <msarahan@gmail.com>
+Michael Sarahan <msarahan@continuum.io> Mike Sarahan <msarahan@gmail.com>
+MinRK <benjaminrk@gmail.com> Min RK <benjaminrk@gmail.com>
+Odegard, Ken <ken.odegard@gmail.com> Odegard, Ken (Flamingo Technologies) <ken.odegard@bp.com>
+Phil Elson <pelson.pub@gmail.com> pelson <pelson.pub@gmail.com>
+Ryan Grout <rgrout@continuum.io> Ryan Grout <ayr035@gmail.com>
+Ryan Grout <rgrout@continuum.io> Ryan Grout <groutr@users.noreply.github.com>
+Ryan Grout <rgrout@continuum.io> Ryan Grout <ryan@ryangrout.org>
+Skipper Seabold <jsseabold@gmail.com> Skipper Seabold <sseabold@civisanalytics.com>
+Sophia Castellarin <scastellarin@continuum.io> sophia <scastellarin95@gmail.com>
+Tian Zhang <zhangtian1000@gmail.com> tester <tester@test-machine.local>
+Tian Zhang <zhangtian1000@gmail.com> tester <zhangtian1000@gmail.com>
+Tian Zhang <zhangtian1000@gmail.com> Zhang Tian <zhangtian1000@gmail.com>
+Travis Swicegood <travis@domain51.com> Travis Swicegood <development@domain51.com>
+Tyler Kim <tkim139@illinois.edu> Tyler Kim <tyler.kimothy@gmail.com>
+Wolfgang Ulmer <wolfgang.ulmer@de.bosch.com> Wolfgang Ulmer <wulmer@web.de>
+majidaldo <majidaldosar-github@yahoo.com> majidaldo <majidaldosari-github@yahoo.com>

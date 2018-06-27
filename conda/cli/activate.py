@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
@@ -121,6 +124,9 @@ def get_activate_path(prefix, shell, going_to_shell=True):
 
 
 def main():
+    print("WARNING: The module conda.cli.activate is deprecated. It will be removed in a "
+          "future feature release (i.e. minor version release).", file=sys.stderr)
+
     from ..base.constants import ROOT_ENV_NAME
     from ..gateways.logging import initialize_logging
     initialize_logging()
@@ -216,6 +222,10 @@ def main():
     # This print is actually what sets the PATH or PROMPT variable.  The shell
     # script gets this value, and finishes the job.
     print(path)
+
+
+print("WARNING: The conda.cli.activate module is deprecated and will be removed in a "
+      "future release.", file=sys.stderr)
 
 
 if __name__ == '__main__':

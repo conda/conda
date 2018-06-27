@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 This file should hold most string literals and magic numbers used throughout the code base.
 The exception is if a literal is specifically meant to be private to and isolated within a module.
@@ -11,7 +13,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from os.path import join
 
 from enum import Enum
-import sys
+
+from ..common.compat import on_win
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
@@ -67,19 +70,20 @@ DEFAULT_CHANNELS_UNIX = (
     'https://repo.anaconda.com/pkgs/main',
     'https://repo.anaconda.com/pkgs/free',
     'https://repo.anaconda.com/pkgs/r',
-    'https://repo.anaconda.com/pkgs/pro',
 )
 
 DEFAULT_CHANNELS_WIN = (
     'https://repo.anaconda.com/pkgs/main',
     'https://repo.anaconda.com/pkgs/free',
     'https://repo.anaconda.com/pkgs/r',
-    'https://repo.anaconda.com/pkgs/pro',
     'https://repo.anaconda.com/pkgs/msys2',
 )
 
-# use the bool(sys.platform == "win32") definition here so we don't import .compat.on_win
-DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if bool(sys.platform == "win32") else DEFAULT_CHANNELS_UNIX
+DEFAULT_CUSTOM_CHANNELS = {
+    'pkgs/pro': 'https://repo.anaconda.com',
+}
+
+DEFAULT_CHANNELS = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME = 'base'
 
@@ -97,6 +101,25 @@ DEFAULT_AGGRESSIVE_UPDATE_PACKAGES = (
     'certifi',
     'openssl',
 )
+
+if on_win:
+    COMPATIBLE_SHELLS = (
+        'bash',
+        'cmd.exe',
+        'fish',
+        'tcsh',
+        'xonsh',
+        'zsh',
+    )
+else:
+    COMPATIBLE_SHELLS = (
+        'bash',
+        'fish',
+        'tcsh',
+        'xonsh',
+        'zsh',
+    )
+
 
 # Maximum priority, reserved for packages we really want to remove
 MAX_CHANNEL_PRIORITY = 10000
@@ -119,6 +142,28 @@ class PathConflict(Enum):
     clobber = 'clobber'
     warn = 'warn'
     prevent = 'prevent'
+
+    def __str__(self):
+        return self.value
+
+
+class DepsModifier(Enum):
+    """Flags to enable alternate handling of dependencies."""
+    NOT_SET = 'not_set'  # default
+    NO_DEPS = 'no_deps'
+    ONLY_DEPS = 'only_deps'
+
+    def __str__(self):
+        return self.value
+
+
+class UpdateModifier(Enum):
+    SPECS_SATISFIED_SKIP_SOLVE = 'specs_satisfied_skip_solve'
+    FREEZE_INSTALLED = 'freeze_installed'  # freeze is a better name for --no-update-deps
+    UPDATE_DEPS = 'update_deps'
+    UPDATE_SPECS = 'update_specs'  # default
+    UPDATE_ALL = 'update_all'
+    # TODO: add REINSTALL_ALL, see https://github.com/conda/conda/issues/6247 and https://github.com/conda/conda/issues/3149  # NOQA
 
     def __str__(self):
         return self.value

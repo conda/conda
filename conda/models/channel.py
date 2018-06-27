@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import copy
@@ -15,10 +17,8 @@ from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
                           urlparse)
 
 try:
-    from cytoolz.functoolz import excepts
     from cytoolz.itertoolz import concat, concatv, drop
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.functoolz import excepts  # NOQA
     from .._vendor.toolz.itertoolz import concat, concatv, drop  # NOQA
 
 log = getLogger(__name__)
@@ -142,25 +142,38 @@ class Channel(object):
 
     @property
     def canonical_name(self):
+        try:
+            return self.__canonical_name
+        except AttributeError:
+            pass
+
         for multiname, channels in iteritems(context.custom_multichannels):
             for channel in channels:
                 if self.name == channel.name:
-                    return multiname
+                    cn = self.__canonical_name = multiname
+                    return cn
 
         for that_name in context.custom_channels:
             if self.name and tokenized_startswith(self.name.split('/'), that_name.split('/')):
-                return self.name
+                cn = self.__canonical_name = self.name
+                return cn
 
-        if any(c.location == self.location
-               for c in concatv((context.channel_alias,), context.migrated_channel_aliases)):
-            return self.name
+        if any(c.location == self.location for c in concatv(
+                (context.channel_alias,),
+                context.migrated_channel_aliases,
+        )):
+            cn = self.__canonical_name = self.name
+            return cn
 
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
         if self.scheme:
-            return "%s://%s" % (self.scheme, join_url(self.location, self.name))
+            cn = self.__canonical_name = "%s://%s" % (self.scheme,
+                                                      join_url(self.location, self.name))
+            return cn
         else:
-            return join_url(self.location, self.name).lstrip('/')
+            cn = self.__canonical_name = join_url(self.location, self.name).lstrip('/')
+            return cn
 
     def urls(self, with_credentials=False, subdirs=None):
         if subdirs is None:

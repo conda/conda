@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EINVAL, EXDEV
@@ -76,7 +78,7 @@ def touch(path, mkdir=False, sudo_safe=False):
     # returns:
     #   True if the file did not exist but was created
     #   False if the file already existed
-    # raises: permissions errors such as EPERM and EACCES
+    # raises: NotWritableError, which is also an OSError having attached errno
     try:
         path = expand(path)
         log.trace("touching path %s", path)

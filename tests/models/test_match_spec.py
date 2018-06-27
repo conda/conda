@@ -426,6 +426,25 @@ class MatchSpecTests(TestCase):
         assert not MatchSpec("numpy[build_number='>7']").match(record)
         assert MatchSpec("numpy[build_number='>=7']").match(record)
 
+    def test_license_match(self):
+        record = {
+            'name': 'numpy',
+            'version': '1.11.0',
+            'build': 'py34_7',
+            'build_number': 7,
+            'license': 'LGPLv3+',
+            'license_family': 'LGPL',
+        }
+        assert MatchSpec("*[license_family='LGPL']").match(record)
+        assert MatchSpec("*[license_family='lgpl']").match(record)
+        assert MatchSpec("*[license_family='*GP*']").match(record)
+        assert MatchSpec("*[license_family='*gp*']").match(record)
+        assert MatchSpec("*[license_family='*GPL*']").match(record)
+        assert MatchSpec("*[license_family='*gpl*']").match(record)
+
+        assert MatchSpec("*[license='*gpl*']").match(record)
+        assert MatchSpec("*[license='*v3+']").match(record)
+
 
 class TestArg2Spec(TestCase):
 

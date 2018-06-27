@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
@@ -23,7 +25,7 @@ def _split_on_unix(command):
     return command if on_win else shlex_split(command)
 
 
-def _format_output(command_str, path, rc, stdout, stderr):
+def _format_output(command_str, cwd, rc, stdout, stderr):
     return dals("""
     $ %s
     ==> cwd: %s <==
@@ -32,29 +34,29 @@ def _format_output(command_str, path, rc, stdout, stderr):
     %s
     ==> stderr <==
     %s
-    """) % (command_str, path, rc, stdout, stderr)
+    """) % (command_str, cwd, rc, stdout, stderr)
 
 
 def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=True):
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
     """
-    env = {str(k): str(v) for k, v in iteritems(env if env else os.environ)}
-    path = sys.prefix if path is None else abspath(path)
+    env = {str(k): str(v) for k, v in iteritems(os.environ if env is None else env)}
+    cwd = sys.prefix if path is None else abspath(path)
     command_str = command if isinstance(command, string_types) else ' '.join(command)
     command_arg = _split_on_unix(command) if isinstance(command, string_types) else command
     log.debug("executing>> %s", command_str)
-    p = Popen(command_arg, cwd=path, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
+    p = Popen(command_arg, cwd=cwd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
     ACTIVE_SUBPROCESSES.add(p)
     stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else None
     stdout, stderr = p.communicate(input=stdin)
     rc = p.returncode
     ACTIVE_SUBPROCESSES.remove(p)
     if raise_on_error and rc != 0:
-        log.info(_format_output(command_str, path, rc, stdout, stderr))
+        log.info(_format_output(command_str, cwd, rc, stdout, stderr))
         raise CalledProcessError(rc, command,
-                                 output=_format_output(command_str, path, rc, stdout, stderr))
+                                 output=_format_output(command_str, cwd, rc, stdout, stderr))
     if log.isEnabledFor(TRACE):
-        log.trace(_format_output(command_str, path, rc, stdout, stderr))
+        log.trace(_format_output(command_str, cwd, rc, stdout, stderr))
 
     return Response(ensure_text_type(stdout), ensure_text_type(stderr), int(rc))

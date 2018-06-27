@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 A generalized application configuration utility.
 
@@ -44,8 +46,21 @@ try:  # pragma: no cover
     from cytoolz.itertoolz import concat, concatv, unique
 except ImportError:  # pragma: no cover
     from .._vendor.toolz.dicttoolz import merge
-    from .._vendor.toolz.functoolz import excepts
     from .._vendor.toolz.itertoolz import concat, concatv, unique
+
+    # Importing from toolz.functoolz is slow since it imports inspect.
+    # Copy the relevant part of excepts' implementation instead:
+    class excepts(object):
+        def __init__(self, exc, func, handler=lambda exc: None):
+            self.exc = exc
+            self.func = func
+            self.handler = handler
+
+        def __call__(self, *args, **kwargs):
+            try:
+                return self.func(*args, **kwargs)
+            except self.exc as e:
+                return self.handler(e)
 try:  # pragma: no cover
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
     from ruamel_yaml.scanner import ScannerError
@@ -311,7 +326,7 @@ class YamlRawParameter(RawParameter):
 
     @staticmethod
     def _get_yaml_map_comments(rawvalue):
-        return dict((key, excepts(KeyError,
+        return dict((key, excepts((AttributeError, KeyError),
                                   lambda k: rawvalue.ca.items[k][2].value.strip() or None,
                                   lambda _: None  # default value on exception
                                   )(key))
@@ -851,7 +866,7 @@ class Configuration(object):
         name = parameter.name.lstrip('_')
         aliases = tuple(alias for alias in parameter.aliases if alias != name)
 
-        description = self.get_descriptions()[name]
+        description = self.get_descriptions().get(name, '')
         et = parameter._element_type
         if type(et) == EnumMeta:
             et = [et]

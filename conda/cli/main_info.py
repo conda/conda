@@ -1,9 +1,6 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
@@ -14,7 +11,6 @@ from os import listdir
 from os.path import exists, expanduser, isfile, join
 import re
 import sys
-from textwrap import dedent
 
 from .common import print_envs_list, stdout_json
 from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
@@ -104,12 +100,6 @@ def print_package_info(packages):
 
 def get_info_dict(system=False):
     try:
-        from ..install import linked_data
-        root_pkgs = linked_data(context.root_prefix)
-    except:  # pragma: no cover
-        root_pkgs = {}
-
-    try:
         from requests import __version__ as requests_version
         # These environment variables can influence requests' behavior, along with configuration
         # in a .netrc file
@@ -127,11 +117,7 @@ def get_info_dict(system=False):
     try:
         from conda_env import __version__ as conda_env_version
     except:  # pragma: no cover
-        try:
-            cenv = [p for p in itervalues(root_pkgs) if p['name'] == 'conda-env']
-            conda_env_version = cenv[0]['version']
-        except:
-            conda_env_version = "not installed"
+        conda_env_version = "not installed"
 
     try:
         import conda_build
@@ -189,7 +175,7 @@ def get_info_dict(system=False):
         netrc_file=netrc_file,
     )
     if on_win:
-        from ..common.platform import is_admin_on_windows
+        from ..common.os.windows import is_admin_on_windows
         info_dict['is_windows_admin'] = is_admin_on_windows()
     else:
         info_dict['UID'] = os.geteuid()
@@ -309,7 +295,7 @@ def execute(args, parser):
             print(json.dumps({"channels": context.channels}))
         return 0
 
-    options = 'envs', 'system', 'license'
+    options = 'envs', 'system'
 
     if args.all or context.json:
         for option in options:
@@ -346,18 +332,6 @@ def execute(args, parser):
             for name, value in sorted(iteritems(info_dict['env_vars'])):
                 print("%s: %s" % (name, value))
             print()
-
-    if args.license and not context.json:
-        try:
-            from _license import show_info
-            show_info()  # pragma: no cover
-        except ImportError:
-            print(dedent("""
-                WARNING: could not import _license.show_info
-                # try:
-                # $ conda install -n root _license"""))
-        except Exception as e:  # pragma: no cover
-            log.warn('%r', e)
 
     if context.json:
         stdout_json(info_dict)

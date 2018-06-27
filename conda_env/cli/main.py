@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function
 
 import os
@@ -33,12 +36,10 @@ environment, please open a bug report at:
     else:
         raise e
 
-from . import main_attach
 from . import main_create
 from . import main_export
 from . import main_list
 from . import main_remove
-from . import main_upload
 from . import main_update
 
 
@@ -54,12 +55,10 @@ def create_parser():
     p = ArgumentParser()
     sub_parsers = p.add_subparsers()
 
-    main_attach.configure_parser(sub_parsers)
     main_create.configure_parser(sub_parsers)
     main_export.configure_parser(sub_parsers)
     main_list.configure_parser(sub_parsers)
     main_remove.configure_parser(sub_parsers)
-    main_upload.configure_parser(sub_parsers)
     main_update.configure_parser(sub_parsers)
 
     show_help_on_empty_command()

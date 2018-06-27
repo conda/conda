@@ -39,8 +39,7 @@ class DefaultConfigChannelTests(TestCase):
                             'https://repo.anaconda.com/pkgs/free/noarch',
                             'https://repo.anaconda.com/pkgs/r/%s' % cls.platform,
                             'https://repo.anaconda.com/pkgs/r/noarch',
-                            'https://repo.anaconda.com/pkgs/pro/%s' % cls.platform,
-                            'https://repo.anaconda.com/pkgs/pro/noarch']
+                            ]
         if on_win:
             cls.DEFAULT_URLS.extend(['https://repo.anaconda.com/pkgs/msys2/%s' % cls.platform,
                                      'https://repo.anaconda.com/pkgs/msys2/noarch'])
@@ -123,7 +122,7 @@ class DefaultConfigChannelTests(TestCase):
             'https://repo.anaconda.com/pkgs/free/noarch',
         ]
 
-    def test_bare_channel(self):
+    def test_bare_channel_http(self):
         url = "http://conda-01"
         channel = Channel(url)
         assert channel.scheme == "http"
@@ -131,6 +130,22 @@ class DefaultConfigChannelTests(TestCase):
         assert channel.platform is None
         assert channel.canonical_name == url
         assert channel.name is None
+
+        assert channel.base_url == url
+        assert channel.url() == join_url(url, context.subdir)
+        assert channel.urls() == [
+            join_url(url, context.subdir),
+            join_url(url, 'noarch'),
+        ]
+
+    def test_bare_channel_file(self):
+        url = "file:///conda-01"
+        channel = Channel(url)
+        assert channel.scheme == "file"
+        assert channel.location == "/"
+        assert channel.platform is None
+        assert channel.canonical_name == url
+        assert channel.name == "conda-01"
 
         assert channel.base_url == url
         assert channel.url() == join_url(url, context.subdir)
@@ -974,12 +989,11 @@ class OtherChannelParsingTests(TestCase):
 
     def test_channels_with_dashes(self):
         # regression test for #5763
-        assert context.channels == ('http://test/conda/anaconda-cluster',)
+        assert context.channels[0] == 'http://test/conda/anaconda-cluster'
         channel_urls = prioritize_channels(context.channels)
-        assert channel_urls == odict((
-            ('http://test/conda/anaconda-cluster/%s' % context.subdir, ('http://test/conda/anaconda-cluster', 0)),
-            ('http://test/conda/anaconda-cluster/noarch', ('http://test/conda/anaconda-cluster', 0)),
-        ))
+        channel_urls = tuple(channel_urls.items())
+        assert channel_urls[0] == ('http://test/conda/anaconda-cluster/%s' % context.subdir, ('http://test/conda/anaconda-cluster', 0))
+        assert channel_urls[1] == ('http://test/conda/anaconda-cluster/noarch', ('http://test/conda/anaconda-cluster', 0))
 
 
 def test_multichannel_priority():
@@ -1000,15 +1014,12 @@ def test_multichannel_priority():
             ('https://repo.anaconda.com/pkgs/r/new-optimized-subdir', ('defaults', 3)),
             ('https://repo.anaconda.com/pkgs/r/linux-32', ('defaults', 3)),
             ('https://repo.anaconda.com/pkgs/r/noarch', ('defaults', 3)),
-            ('https://repo.anaconda.com/pkgs/pro/new-optimized-subdir', ('defaults', 4)),
-            ('https://repo.anaconda.com/pkgs/pro/linux-32', ('defaults', 4)),
-            ('https://repo.anaconda.com/pkgs/pro/noarch', ('defaults', 4)),
-            ('https://repo.anaconda.com/pkgs/msys2/new-optimized-subdir', ('defaults', 5)),
-            ('https://repo.anaconda.com/pkgs/msys2/linux-32', ('defaults', 5)),
-            ('https://repo.anaconda.com/pkgs/msys2/noarch', ('defaults', 5)),
-            ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 6)),
-            ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 6)),
-            ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 6)),
+            ('https://repo.anaconda.com/pkgs/msys2/new-optimized-subdir', ('defaults', 4)),
+            ('https://repo.anaconda.com/pkgs/msys2/linux-32', ('defaults', 4)),
+            ('https://repo.anaconda.com/pkgs/msys2/noarch', ('defaults', 4)),
+            ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 5)),
+            ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 5)),
+            ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 5)),
         ])
     else:
         assert channel_priority_map == OrderedDict([
@@ -1024,10 +1035,7 @@ def test_multichannel_priority():
             ('https://repo.anaconda.com/pkgs/r/new-optimized-subdir', ('defaults', 3)),
             ('https://repo.anaconda.com/pkgs/r/linux-32', ('defaults', 3)),
             ('https://repo.anaconda.com/pkgs/r/noarch', ('defaults', 3)),
-            ('https://repo.anaconda.com/pkgs/pro/new-optimized-subdir', ('defaults', 4)),
-            ('https://repo.anaconda.com/pkgs/pro/linux-32', ('defaults', 4)),
-            ('https://repo.anaconda.com/pkgs/pro/noarch', ('defaults', 4)),
-            ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 5)),
-            ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 5)),
-            ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 5)),
+            ('https://conda.anaconda.org/conda-forge/new-optimized-subdir', ('conda-forge', 4)),
+            ('https://conda.anaconda.org/conda-forge/linux-32', ('conda-forge', 4)),
+            ('https://conda.anaconda.org/conda-forge/noarch', ('conda-forge', 4)),
         ])

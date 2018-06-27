@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
 from logging import getLogger
 from os.path import basename, dirname, getsize, join
-from random import random
 import re
-from time import sleep
 from uuid import uuid4
 
 from .envs_manager import USER_ENVIRONMENTS_TXT_FILE, register_env, unregister_env
@@ -17,7 +17,7 @@ from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..common.compat import iteritems, on_win, range, text_type
+from ..common.compat import iteritems, on_win, text_type
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def,
@@ -208,6 +208,7 @@ class LinkPathAction(CreateInPrefixPathAction):
                                                package_info.extracted_package_dir,
                                                source_path_data.path,
                                                target_prefix, target_short_path,
+                                               requested_link_type,
                                                placeholder, fmode, source_path_data)
             else:
                 return LinkPathAction(transaction_context, package_info,
@@ -255,31 +256,13 @@ class LinkPathAction(CreateInPrefixPathAction):
 
     def verify(self):
         if self.link_type != LinkType.directory and not lexists(self.source_full_path):  # pragma: no cover  # NOQA
-            # This backoff loop is added because of some weird race condition conda-build
-            # experiences. Would be nice at some point to get to the bottom of why it happens.
-
-            # sum(((2 ** n) + random()) * 0.1 for n in range(2))
-            # with max_retries = 2, max total time ~= 0.4 sec
-            # with max_retries = 3, max total time ~= 0.8 sec
-            # with max_retries = 6, max total time ~= 6.5 sec
-            count = self.transaction_context.get('_verify_backoff_count', 0)
-            max_retries = 6 if count < 4 else 3
-            for n in range(max_retries):
-                sleep_time = ((2 ** n) + random()) * 0.1
-                log.trace("retrying lexists(%s) in %g sec", self.source_full_path, sleep_time)
-                sleep(sleep_time)
-                if lexists(self.source_full_path):
-                    break
-            else:
-                # only run the 6.5 second backoff time once
-                self.transaction_context['_verify_backoff_count'] = count + 1
-                return CondaVerificationError(dals("""
-                The package for %s located at %s
-                appears to be corrupted. The path '%s'
-                specified in the package manifest cannot be found.
-                """ % (self.package_info.index_json_record.name,
-                       self.package_info.extracted_package_dir,
-                       self.source_short_path)))
+            return CondaVerificationError(dals("""
+            The package for %s located at %s
+            appears to be corrupted. The path '%s'
+            specified in the package manifest cannot be found.
+            """ % (self.package_info.index_json_record.name,
+                   self.package_info.extracted_package_dir,
+                   self.source_short_path)))
 
         source_path_data = self.source_path_data
         try:
@@ -376,11 +359,14 @@ class PrefixReplaceLinkAction(LinkPathAction):
     def __init__(self, transaction_context, package_info,
                  extracted_package_dir, source_short_path,
                  target_prefix, target_short_path,
+                 link_type,
                  prefix_placeholder, file_mode, source_path_data):
+        # This link_type used in execute(). Make sure we always respect LinkType.copy request.
+        link_type = LinkType.copy if link_type == LinkType.copy else LinkType.hardlink
         super(PrefixReplaceLinkAction, self).__init__(transaction_context, package_info,
                                                       extracted_package_dir, source_short_path,
                                                       target_prefix, target_short_path,
-                                                      LinkType.copy, source_path_data)
+                                                      link_type, source_path_data)
         self.prefix_placeholder = prefix_placeholder
         self.file_mode = file_mode
         self.intermediate_path = None
@@ -429,7 +415,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
             self.verify()
         source_path = self.intermediate_path or self.source_full_path
         log.trace("linking %s => %s", source_path, self.target_full_path)
-        create_link(source_path, self.target_full_path, LinkType.hardlink)
+        create_link(source_path, self.target_full_path, self.link_type)
         self._execute_successful = True
 
 
@@ -472,6 +458,7 @@ class CreateNonadminAction(CreateInPrefixPathAction):
     def __init__(self, transaction_context, package_info, target_prefix):
         super(CreateNonadminAction, self).__init__(transaction_context, package_info, None, None,
                                                    target_prefix, '.nonadmin')
+        self._file_created = False
 
     def execute(self):
         log.trace("touching nonadmin %s", self.target_full_path)

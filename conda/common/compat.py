@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 # Try to keep compat small because it's imported by everything
 # What is compat, and what isn't?
 # If a piece of code is "general" and used in multiple modules, it goes here.
@@ -11,6 +13,7 @@ from operator import methodcaller
 import sys
 
 on_win = bool(sys.platform == "win32")
+on_mac = bool(sys.platform == "darwin")
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3

@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import reduce
 from logging import getLogger
 import os
-from os.path import abspath, basename, expanduser, expandvars, join, normpath, split, splitext
+from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
 
@@ -15,10 +17,9 @@ from .._vendor.auxlib.decorators import memoize
 try:
     # Python 3
     from urllib.parse import unquote, urlsplit
-    from urllib.request import url2pathname
 except ImportError:  # pragma: no cover
     # Python 2
-    from urllib import unquote, url2pathname  # NOQA
+    from urllib import unquote  # NOQA
     from urlparse import urlsplit  # NOQA
 
 try:
@@ -58,7 +59,10 @@ def paths_equal(path1, path2):
         True
 
     """
-    return normpath(abspath(path1)) == normpath(abspath(path2))
+    if on_win:
+        return normcase(abspath(path1)) == normcase(abspath(path2))
+    else:
+        return abspath(path1) == abspath(path2)
 
 
 @memoize

@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from argparse import (ArgumentParser as ArgumentParserBase, RawDescriptionHelpFormatter, SUPPRESS,
-                      _CountAction, _HelpAction)
+from argparse import (ArgumentParser as ArgumentParserBase, REMAINDER, RawDescriptionHelpFormatter,
+                      SUPPRESS, _CountAction, _HelpAction)
 from logging import getLogger
 import os
 from os.path import abspath, expanduser, join
@@ -11,7 +13,7 @@ import sys
 from textwrap import dedent
 
 from .. import __version__
-from ..base.constants import CONDA_HOMEPAGE_URL
+from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, UpdateModifier
 from ..common.constants import NULL
 
 log = getLogger(__name__)
@@ -57,11 +59,13 @@ def generate_parser():
     configure_parser_create(sub_parsers)
     configure_parser_help(sub_parsers)
     configure_parser_info(sub_parsers)
+    configure_parser_init(sub_parsers)
     configure_parser_install(sub_parsers)
     configure_parser_list(sub_parsers)
     configure_parser_package(sub_parsers)
     configure_parser_remove(sub_parsers)
     configure_parser_remove(sub_parsers, name='uninstall')
+    configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers)
     configure_parser_update(sub_parsers, name='upgrade')
@@ -136,13 +140,7 @@ class ArgumentParser(ArgumentParserBase):
                             raise CommandNotFoundError(cmd)
                         args = [find_executable('conda-' + cmd)]
                         args.extend(sys.argv[2:])
-                        p = Popen(args)
-                        try:
-                            p.communicate()
-                        except KeyboardInterrupt:
-                            p.wait()
-                        finally:
-                            sys.exit(p.returncode)
+                        _exec(args, os.environ)
 
         super(ArgumentParser, self).error(message)
 
@@ -157,6 +155,24 @@ class ArgumentParser(ArgumentParserBase):
                 builder.append("conda commands available from other packages:")
                 builder.extend('  %s' % cmd for cmd in sorted(other_commands))
                 print('\n'.join(builder))
+
+
+def _exec(executable_args, env_vars):
+    return (_exec_win if on_win else _exec_unix)(executable_args, env_vars)
+
+
+def _exec_win(executable_args, env_vars):
+    p = Popen(executable_args, env=env_vars)
+    try:
+        p.communicate()
+    except KeyboardInterrupt:
+        p.wait()
+    finally:
+        sys.exit(p.returncode)
+
+
+def _exec_unix(executable_args, env_vars):
+    os.execvpe(executable_args[0], executable_args, env_vars)
 
 
 class NullCountAction(_CountAction):
@@ -193,66 +209,71 @@ def configure_parser_clean(sub_parsers):
         help=descr,
         epilog=example,
     )
-    add_parser_yes(p)
-    add_parser_json(p)
-    add_parser_quiet(p)
-    p.add_argument(
+
+    removal_target_options = p.add_argument_group("Removal Targets")
+    removal_target_options.add_argument(
         "-a", "--all",
         action="store_true",
-        help="Remove index cache, lock files, tarballs, "
-             "unused cache packages, and source cache.",
+        help="Remove index cache, lock files, unused cache packages, and tarballs.",
     )
-    p.add_argument(
+    removal_target_options.add_argument(
         "-i", "--index-cache",
         action="store_true",
         help="Remove index cache.",
     )
-    p.add_argument(
+    removal_target_options.add_argument(
         "-l", "--lock",
         action="store_true",
         help="Remove all conda lock files.",
     )
-    p.add_argument(
+    removal_target_options.add_argument(
+        '-p', '--packages',
+        action='store_true',
+        help="Remove unused cached packages. Warning: This does not check for symlinked packages.",
+    )
+    removal_target_options.add_argument(
+        '-s', '--source-cache',
+        action='store_true',
+        # help="Remove files from the source cache of conda build.",
+        help=SUPPRESS,
+    )
+    removal_target_options.add_argument(
         "-t", "--tarballs",
         action="store_true",
         help="Remove cached package tarballs.",
     )
-    p.add_argument(
-        '-p', '--packages',
-        action='store_true',
-        help="""Remove unused cached packages. Warning: this does not check
-    for symlinked packages.""",
-    )
-    p.add_argument(
-        '-s', '--source-cache',
-        action='store_true',
-        help="""Remove files from the source cache of conda build.""",
-    )
+
+    add_output_and_prompt_options(p)
+
     p.set_defaults(func='.main_clean.execute')
 
 
 def configure_parser_info(sub_parsers):
     help = "Display information about current conda install."
 
-    example = dedent("""
-
-    Examples:
-
-        conda info -a
-    """)
     p = sub_parsers.add_parser(
         'info',
         description=help,
         help=help,
-        epilog=example,
     )
     add_parser_json(p)
-    add_parser_offline(p)
+    p.add_argument(
+        "--offline",
+        action='store_true',
+        default=NULL,
+        help=SUPPRESS,
+    )
     p.add_argument(
         '-a', "--all",
         action="store_true",
-        help="Show all information, (environments, license, and system "
-             "information.")
+        help="Show all information.",
+    )
+    p.add_argument(
+        '--base',
+        action='store_true',
+        help='Display base environment path.',
+    )
+    # TODO: deprecate 'conda info --envs' and create 'conda list --envs'
     p.add_argument(
         '-e', "--envs",
         action="store_true",
@@ -261,23 +282,12 @@ def configure_parser_info(sub_parsers):
     p.add_argument(
         '-l', "--license",
         action="store_true",
-        help="Display information about the local conda licenses list.",
+        help=SUPPRESS,
     )
     p.add_argument(
         '-s', "--system",
         action="store_true",
         help="List environment variables.",
-    )
-    p.add_argument(
-        'packages',
-        action="store",
-        nargs='*',
-        help="Display information about packages.",
-    )
-    p.add_argument(
-        '--base',
-        action='store_true',
-        help='Display base environment path.',
     )
     p.add_argument(
         '--root',
@@ -290,6 +300,15 @@ def configure_parser_info(sub_parsers):
         action='store_true',
         help='Display list of channels with tokens exposed.',
     )
+
+    # TODO: deprecate 'conda info <PACKAGE>'
+    p.add_argument(
+        'packages',
+        action="store",
+        nargs='*',
+        help="Display information about packages.",
+    )
+
     p.set_defaults(func='.main_info.execute')
 
 
@@ -305,7 +324,7 @@ def configure_parser_config(sub_parsers):
     # keys like "- conda - defaults"). Technically the parser here still won't
     # recognize it because it removes the indentation, but at least it will be
     # valid.
-    additional_descr = """
+    additional_descr = dedent("""
     See `conda config --describe` or %s/docs/config.html
     for details on all the options that can go in .condarc.
 
@@ -327,22 +346,15 @@ def configure_parser_config(sub_parsers):
 
         conda config --add channels conda-canary
 
-    Set the output verbosity to level 3 (highest):
+    Set the output verbosity to level 3 (highest) for the current activate environment:
 
-        conda config --set verbosity 3
+        conda config --set verbosity 3 --env
 
-    Get the channels defined in the system .condarc:
+    Add the 'conda-forge' channel as a backup to 'defaults':
 
-        conda config --get channels --system
+        conda config --append channels conda-forge
 
-    Add the 'foo' Binstar channel:
-
-        conda config --add channels foo
-
-    Disable the 'show_channel_urls' option:
-
-        conda config --set show_channel_urls no
-    """ % CONDA_HOMEPAGE_URL
+    """) % CONDA_HOMEPAGE_URL
 
     p = sub_parsers.add_parser(
         'config',
@@ -353,13 +365,15 @@ def configure_parser_config(sub_parsers):
     add_parser_json(p)
 
     # TODO: use argparse.FileType
-    location = p.add_mutually_exclusive_group()
+    config_file_location_group = p.add_argument_group(
+        'Config File Location Selection',
+        "Without one of these flags, the user config file at '%s' is used." % escaped_user_rc_path
+    )
+    location = config_file_location_group.add_mutually_exclusive_group()
     location.add_argument(
         "--system",
         action="store_true",
-        help="""Write to the system .condarc file ({system}). Otherwise writes to the user
-        config file ({user}).""".format(system=escaped_sys_rc_path,
-                                        user=escaped_user_rc_path),
+        help="Write to the system .condarc file at '%s'." % escaped_sys_rc_path,
     )
     location.add_argument(
         "--env",
@@ -374,48 +388,48 @@ def configure_parser_config(sub_parsers):
     location.add_argument(
         "--file",
         action="store",
-        help="""Write to the given file. Otherwise writes to the user config file ({user})
-or the file path given by the 'CONDARC' environment variable, if it is set
-(default: %(default)s).""".format(user=escaped_user_rc_path),
-        default=os.environ.get('CONDARC', user_rc_path)
+        help="Write to the given file."
     )
 
     # XXX: Does this really have to be mutually exclusive. I think the below
     # code will work even if it is a regular group (although combination of
     # --add and --remove with the same keys will not be well-defined).
-    action = p.add_mutually_exclusive_group(required=True)
-    action.add_argument(
+    _config_subcommands = p.add_argument_group("Config Subcommands")
+    config_subcommands = _config_subcommands.add_mutually_exclusive_group()
+    config_subcommands.add_argument(
         "--show",
         nargs='*',
         default=None,
         help="Display configuration values as calculated and compiled. "
              "If no arguments given, show information for all configuration values.",
     )
-    action.add_argument(
+    config_subcommands.add_argument(
         "--show-sources",
         action="store_true",
         help="Display all identified configuration sources.",
     )
-    action.add_argument(
+    config_subcommands.add_argument(
         "--validate",
         action="store_true",
         help="Validate all configuration sources.",
     )
-    action.add_argument(
+    config_subcommands.add_argument(
         "--describe",
         nargs='*',
         default=None,
         help="Describe given configuration parameters. If no arguments given, show "
              "information for all configuration parameters.",
     )
-    action.add_argument(
+    config_subcommands.add_argument(
         "--write-default",
         action="store_true",
         help="Write the default configuration to a file. "
-             "Equivalent to `conda config --describe > ~/.condarc` "
-             "when no --env, --system, or --file flags are given.",
+             "Equivalent to `conda config --describe > ~/.condarc`.",
     )
-    action.add_argument(
+
+    _config_modifiers = p.add_argument_group("Config Modifiers")
+    config_modifiers = _config_modifiers.add_mutually_exclusive_group()
+    config_modifiers.add_argument(
         "--get",
         nargs='*',
         action="store",
@@ -423,7 +437,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=None,
         metavar='KEY',
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--append",
         nargs=2,
         action="append",
@@ -431,7 +445,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar=('KEY', 'VALUE'),
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--prepend", "--add",
         nargs=2,
         action="append",
@@ -439,7 +453,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar=('KEY', 'VALUE'),
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--set",
         nargs=2,
         action="append",
@@ -447,7 +461,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar=('KEY', 'VALUE'),
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--remove",
         nargs=2,
         action="append",
@@ -456,7 +470,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar=('KEY', 'VALUE'),
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--remove-key",
         nargs=1,
         action="append",
@@ -464,7 +478,7 @@ or the file path given by the 'CONDARC' environment variable, if it is set
         default=[],
         metavar="KEY",
     )
-    action.add_argument(
+    config_modifiers.add_argument(
         "--stdin",
         action="store_true",
         help="Apply configuration information given in yaml format piped through stdin.",
@@ -499,51 +513,151 @@ def configure_parser_create(sub_parsers):
         help=help,
         epilog=example,
     )
-    if on_win:
-        p.add_argument(
-            "--shortcuts",
-            action="store_true",
-            help="Install start menu shortcuts",
-            dest="shortcuts",
-            default=NULL,
-        )
-        p.add_argument(
-            "--no-shortcuts",
-            action="store_false",
-            help="Don't install start menu shortcuts",
-            dest="shortcuts",
-            default=NULL,
-        )
-    add_parser_create_install_update(p)
-    add_parser_json(p)
     p.add_argument(
         "--clone",
         action="store",
         help='Path to (or name of) existing local environment.',
         metavar='ENV',
     )
-    p.add_argument(
+    solver_mode_options, package_install_options = add_parser_create_install_update(p)
+    solver_mode_options.add_argument(
         "--no-default-packages",
         action="store_true",
         help='Ignore create_default_packages in the .condarc file.',
     )
+    p.add_argument(
+        '-m', "--mkdir",
+        action="store_true",
+        help=SUPPRESS,
+    )
     p.set_defaults(func='.main_create.execute')
+
+
+def configure_parser_init(sub_parsers):
+    help = "Initialize conda for shell interaction. [Experimental]"
+    descr = help
+
+    epilog = dedent("""
+    Key parts of conda's functionality require that it interact directly with the shell
+    within which conda is being invoked. The `conda activate` and `conda deactivate` commands
+    specifically are shell-level commands. That is, they affect the state (e.g. environment
+    variables) of the shell context being interacted with. Other core commands, like
+    `conda create` and `conda install`, also necessarily interact with the shell environment.
+    They're therefore implemented in ways specific to each shell. Each shell must be configured
+    to make use of them.
+
+    This command makes changes to your system that are specific and customized for each shell.
+    To see the specific files and locations on your system that will be affected before, use the
+    '--dry-run' flag.  To see the exact changes that are being or will be made to each location,
+    use the '--verbose' flag.
+
+    IMPORTANT: After running `conda init`, most shells will need to be closed and restarted
+               for changes to take effect.
+
+    """)
+
+    # dev_example = dedent("""
+    #     # An example for creating an environment to develop on conda's own code. Clone the
+    #     # conda repo and install a dedicated miniconda within it. Remove all remnants of
+    #     # conda source files in the `site-packages` directory associated with
+    #     # `~/conda/devenv/bin/python`. Write a `conda.pth` file in that `site-packages`
+    #     # directory pointing to source code in `~/conda`, the current working directory.
+    #     # Write commands to stdout, suitable for bash `eval`, that sets up the current
+    #     # shell as a dev environment.
+    #
+    #         $ CONDA_PROJECT_ROOT="~/conda"
+    #         $ git clone git@github.com:conda/conda "$CONDA_PROJECT_ROOT"
+    #         $ cd "$CONDA_PROJECT_ROOT"
+    #         $ wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    #         $ bash Miniconda3-latest-Linux-x86_64.sh -bfp ./devenv
+    #         $ eval "$(./devenv/bin/python -m conda init --dev bash)"
+    #
+    #
+    # """)
+
+    p = sub_parsers.add_parser(
+        'init',
+        description=descr,
+        help=help,
+        epilog=epilog,
+    )
+
+    p.add_argument(
+        "--dev",
+        action="store_true",
+        help=SUPPRESS,
+        default=NULL,
+    )
+
+    p.add_argument(
+        "--all",
+        action="store_true",
+        help="Initialize all currently available shells.",
+        default=NULL,
+    )
+
+    setup_type_group = p.add_argument_group('setup type')
+    setup_type_group.add_argument(
+        "--install",
+        action="store_true",
+        help=SUPPRESS,
+        default=NULL,
+    )
+    setup_type_group.add_argument(
+        "--user",
+        action="store_true",
+        # help="Initialize conda for the current user (default).",
+        help=SUPPRESS,
+        default=NULL,
+    )
+    setup_type_group.add_argument(
+        "--no-user",
+        action="store_false",
+        # help="Don't initialize conda for the current user (default).",
+        help=SUPPRESS,
+        default=NULL,
+    )
+    setup_type_group.add_argument(
+        "--system",
+        action="store_true",
+        # help="Initialize conda for all users on the system.",
+        help=SUPPRESS,
+        default=NULL,
+    )
+
+    p.add_argument(
+        'shells',
+        nargs='*',
+        help="One or more shells to be initialized. If not given, the default value is "
+             "'bash' on unix and 'cmd.exe' on Windows. Use the '--all' flag to initialize "
+             "all shells. Currently compatible shells are {%s}"
+             % ", ".join(sorted(COMPATIBLE_SHELLS)),
+    )
+
+    if on_win:
+        p.add_argument(
+            "--anaconda-prompt",
+            action="store_true",
+            help="Add an 'Anaconda Prompt' icon to your desktop.",
+            default=NULL,
+        )
+
+    add_parser_json(p)
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Only display what would have been done.",
+    )
+    p.set_defaults(func='.main_init.execute')
 
 
 def configure_parser_help(sub_parsers):
     descr = "Displays a list of available conda commands and their help strings."
 
-    example = dedent("""
-    Examples:
-
-        conda help install
-    """)
-
     p = sub_parsers.add_parser(
         'help',
         description=descr,
         help=descr,
-        epilog=example,
     )
     p.add_argument(
         'command',
@@ -567,17 +681,17 @@ def configure_parser_install(sub_parsers):
     Conda attempts to install the newest versions of the requested packages. To
     accomplish this, it may update some packages that are already installed, or
     install additional packages. To prevent existing packages from updating,
-    use the --no-update-deps option. This may force conda to install older
+    use the --freeze-installed option. This may force conda to install older
     versions of the requested packages, and it does not prevent additional
     dependency packages from being installed.
 
-    If you wish to skip dependency checking altogether, use the '--force'
+    If you wish to skip dependency checking altogether, use the '--no-deps'
     option. This may result in an environment with incompatible packages, so
     this option must be used with great caution.
 
     conda can also be called with a list of explicit conda package filenames
     (e.g. ./lxml-3.2.0-py27_0.tar.bz2). Using conda in this mode implies the
-    --force option, and should likewise be used with great caution. Explicit
+    --no-deps option, and should likewise be used with great caution. Explicit
     filenames and package specifications cannot be mixed in a single command.
     """)
     example = dedent("""
@@ -598,23 +712,30 @@ def configure_parser_install(sub_parsers):
         help="Revert to the specified REVISION.",
         metavar='REVISION',
     )
-    if on_win:
-        p.add_argument(
-            "--shortcuts",
-            action="store_true",
-            help="Install start menu shortcuts",
-            dest="shortcuts",
-            default=True
-        )
-        p.add_argument(
-            "--no-shortcuts",
-            action="store_false",
-            help="Don't install start menu shortcuts",
-            dest="shortcuts",
-            default=True
-        )
-    add_parser_create_install_update(p)
-    add_parser_json(p)
+
+    solver_mode_options, package_install_options = add_parser_create_install_update(p)
+
+    add_parser_prune(solver_mode_options)
+    solver_mode_options.add_argument(
+        "--force-reinstall",
+        action="store_true",
+        default=NULL,
+        help="Ensure that any user-requested package for the current operation is uninstalled and "
+             "reinstalled, even if that package already exists in the environment.",
+    )
+    add_parser_update_modifiers(solver_mode_options)
+    package_install_options.add_argument(
+        '-m', "--mkdir",
+        action="store_true",
+        help="Create the environment directory if necessary.",
+    )
+    package_install_options.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering of overlapping file paths within packages, "
+             "and suppress related warnings.",
+    )
     p.set_defaults(func='.main_install.execute')
 
 
@@ -764,7 +885,7 @@ def configure_parser_remove(sub_parsers, name='remove'):
 
     """)
 
-    uninstall_help = "Alias for conda remove.  See conda remove --help."
+    uninstall_help = "Alias for conda remove."
     if name == 'remove':
         p = sub_parsers.add_parser(
             name,
@@ -784,31 +905,42 @@ def configure_parser_remove(sub_parsers, name='remove'):
             add_help=False,
         )
     add_parser_help(p)
-    add_parser_yes(p)
-    add_parser_json(p)
-    p.add_argument(
+    add_parser_pscheck(p)
+
+    add_parser_prefix(p)
+    add_parser_channels(p)
+
+    solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
+    solver_mode_options.add_argument(
         "--all",
         action="store_true",
         help="%s all packages, i.e., the entire environment." % name.capitalize(),
     )
-
-    p.add_argument(
-        "--force",
+    solver_mode_options.add_argument(
+        "--features",
+        action="store_true",
+        help="%s features (instead of packages)." % name.capitalize(),
+    )
+    solver_mode_options.add_argument(
+        "--force-remove", "--force",
         action="store_true",
         help="Forces removal of a package without removing packages that depend on it. "
              "Using this option will usually leave your environment in a broken and "
              "inconsistent state.",
+        dest='force_remove',
     )
-    add_parser_no_pin(p)
-    add_parser_channels(p)
-    add_parser_prefix(p)
-    add_parser_quiet(p)
-    # Putting this one first makes it the default
-    add_parser_use_index_cache(p)
-    add_parser_use_local(p)
-    add_parser_offline(p)
-    add_parser_pscheck(p)
-    add_parser_insecure(p)
+    solver_mode_options.add_argument(
+        "--no-pin",
+        action="store_true",
+        dest='ignore_pinned',
+        default=NULL,
+        help="Ignore pinned file.",
+    )
+    add_parser_prune(solver_mode_options)
+
+    add_parser_networking(p)
+    add_output_and_prompt_options(p)
+
     p.add_argument(
         'package_names',
         metavar='package_name',
@@ -816,12 +948,49 @@ def configure_parser_remove(sub_parsers, name='remove'):
         nargs='*',
         help="Package names to %s from the environment." % name,
     )
-    p.add_argument(
-        "--features",
-        action="store_true",
-        help="%s features (instead of packages)." % name.capitalize(),
-    )
+
     p.set_defaults(func='.main_remove.execute')
+
+
+def configure_parser_run(sub_parsers):
+    help = "Run an executable in a conda environment. [Experimental]"
+    descr = help + dedent("""
+
+    Use '--' (double dash) to separate CLI flags for 'conda run' from CLI flags sent to
+    the process being launched.
+
+    Example usage:
+
+        $ conda create -y -n my-python-2-env python=2
+        $ conda run -n my-python-2-env python -- --version
+    """)
+
+    epilog = dedent("""
+    """)
+
+    p = sub_parsers.add_parser(
+        'run',
+        description=descr,
+        help=help,
+        epilog=epilog,
+    )
+
+    add_parser_prefix(p)
+    p.add_argument(
+        "-v", "--verbose",
+        action=NullCountAction,
+        help="Use once for info, twice for debug, three times for trace.",
+        dest="verbosity",
+        default=NULL,
+    )
+
+    p.add_argument(
+        'executable_call',
+        nargs=REMAINDER,
+        help="Executable name, with additional arguments to be passed to the executable "
+             "on invocation.",
+    )
+    p.set_defaults(func='.main_run.execute')
 
 
 def configure_parser_search(sub_parsers):
@@ -867,7 +1036,32 @@ def configure_parser_search(sub_parsers):
         help=descr,
         epilog=example,
     )
-    add_parser_prefix(p)
+    p.add_argument(
+        "--envs",
+        action="store_true",
+        help="Search all of the current user's environments. If run as Administrator "
+             "(on Windows) or UID 0 (on unix), search all known environments on the system.",
+    )
+    p.add_argument(
+        '-i', "--info",
+        action="store_true",
+        help="Provide detailed information about each package."
+    )
+    p.add_argument(
+        '--subdir', '--platform',
+        action='store',
+        dest='subdir',
+        help="Search the given subdir. Should be formatted like 'osx-64', 'linux-32', "
+             "'win-64', and so on. The default is to search the current platform.",
+        default=NULL,
+    )
+    p.add_argument(
+        'match_spec',
+        default='*',
+        nargs='?',
+        help=SUPPRESS,
+    )
+
     p.add_argument(
         "--canonical",
         action="store_true",
@@ -879,35 +1073,14 @@ def configure_parser_search(sub_parsers):
         help=SUPPRESS,
     )
     p.add_argument(
-        '-i', "--info",
-        action="store_true",
-        help="Provide detailed information about each package. "
-             "Similar to output of 'conda info package-name'."
-    )
-    p.add_argument(
         "--names-only",
         action="store_true",
         help=SUPPRESS,
     )
     add_parser_known(p)
-    add_parser_use_index_cache(p)
     p.add_argument(
         '-o', "--outdated",
         action="store_true",
-        help=SUPPRESS,
-    )
-    p.add_argument(
-        '--platform',
-        action='store',
-        dest='platform',
-        help="""Search the given platform. Should be formatted like 'osx-64', 'linux-32',
-        'win-64', and so on. The default is to search the current platform.""",
-        default=None,
-    )
-    p.add_argument(
-        'match_spec',
-        default='*',
-        nargs='?',
         help=SUPPRESS,
     )
     p.add_argument(
@@ -918,21 +1091,14 @@ def configure_parser_search(sub_parsers):
     p.add_argument(
         "--reverse-dependency",
         action="store_true",
-        help="Perform a reverse dependency search. When using this flag, the --full-name "
-             "flag is recommended. Use 'conda info package' to see the dependencies of a "
-             "package.",
+        # help="Perform a reverse dependency search. Use 'conda search package --info' "
+        #      "to see the dependencies of a package.",
+        help=SUPPRESS,  # TODO: re-enable once we have --reverse-dependency working again
     )
-    add_parser_offline(p)
+
     add_parser_channels(p)
+    add_parser_networking(p)
     add_parser_json(p)
-    add_parser_use_local(p)
-    add_parser_insecure(p)
-    p.add_argument(
-        "--envs",
-        action="store_true",
-        help="Search all of the current user's environments. If run as Administrator "
-             "(on Windows) or UID 0 (on unix), search all known environments on the system.",
-    )
     p.set_defaults(func='.main_search.execute')
 
 
@@ -949,10 +1115,6 @@ def configure_parser_update(sub_parsers, name='update'):
     use the --no-update-deps option. This may force conda to install older
     versions of the requested packages, and it does not prevent additional
     dependency packages from being installed.
-
-    If you wish to skip dependency checking altogether, use the '--force'
-    option. This may result in an environment with incompatible packages, so
-    this option must be used with great caution.
     """)
     example = dedent("""
     Examples:
@@ -961,12 +1123,12 @@ def configure_parser_update(sub_parsers, name='update'):
 
     """)
 
-    alias_help = "Alias for conda update.  See conda update --help."
+    alias_help = "Alias for conda update."
     if name == 'update':
         p = sub_parsers.add_parser(
             'update',
             description=descr,
-            help=descr,
+            help=help,
             epilog=example % name,
         )
     else:
@@ -976,12 +1138,24 @@ def configure_parser_update(sub_parsers, name='update'):
             help=alias_help,
             epilog=example % name,
         )
-    add_parser_create_install_update(p)
-    add_parser_json(p)
-    p.add_argument(
-        "--all",
+    solver_mode_options, package_install_options = add_parser_create_install_update(p)
+
+    add_parser_prune(solver_mode_options)
+    solver_mode_options.add_argument(
+        "--force-reinstall",
         action="store_true",
-        help="Update all installed packages in the environment.",
+        default=NULL,
+        help="Ensure that any user-requested package for the current operation is uninstalled and "
+             "reinstalled, even if that package already exists in the environment.",
+    )
+    add_parser_update_modifiers(solver_mode_options)
+
+    package_install_options.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering of overlapping file paths within packages, "
+             "and suppress related warnings.",
     )
     p.set_defaults(func='.main_update.execute')
 
@@ -993,14 +1167,25 @@ def configure_parser_update(sub_parsers, name='update'):
 # #############################################################################################
 
 def add_parser_create_install_update(p):
-    add_parser_yes(p)
-    p.add_argument(
-        '-f', "--force",
+    add_parser_prefix(p)
+    add_parser_channels(p)
+    solver_mode_options = add_parser_solver_mode(p)
+    package_install_options = add_parser_package_install_options(p)
+    add_parser_networking(p)
+
+    output_and_prompt_options = add_output_and_prompt_options(p)
+    output_and_prompt_options.add_argument(
+        "--download-only",
         action="store_true",
         default=NULL,
-        help="Force install (even when package already installed).",
+        help="Solve an environment and ensure package caches are populated, but exit "
+             "prior to unlinking and linking packages into the prefix.",
     )
+    add_parser_show_channel_urls(output_and_prompt_options)
+
     add_parser_pscheck(p)
+    add_parser_known(p)
+
     # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
     # want to gobble up all arguments after --file.
     p.add_argument(
@@ -1010,73 +1195,6 @@ def add_parser_create_install_update(p):
         help="Read package versions from the given file. Repeated file "
              "specifications can be passed (e.g. --file=file1 --file=file2).",
     )
-    add_parser_known(p)
-    p.add_argument(
-        "--no-deps",
-        action="store_true",
-        help="Do not install, update, remove, or change dependencies. This WILL lead "
-             "to broken environments and inconsistent behavior. Use at your own risk.",
-    )
-    p.add_argument(
-        "--only-deps",
-        action="store_true",
-        help="Only install dependencies.",
-    )
-    p.add_argument(
-        '-m', "--mkdir",
-        action="store_true",
-        help="Create the environment directory if necessary.",
-    )
-    add_parser_use_index_cache(p)
-    add_parser_use_local(p)
-    add_parser_offline(p)
-    add_parser_no_pin(p)
-    add_parser_channels(p)
-    add_parser_prefix(p)
-    add_parser_quiet(p)
-    add_parser_copy(p)
-    add_parser_insecure(p)
-    p.add_argument(
-        "--update-dependencies", "--update-deps",
-        action="store_true",
-        dest="update_deps",
-        default=NULL,
-        help="Update dependencies. Overrides the value given by "
-             "`conda config --show update_deps`.",
-    )
-    p.add_argument(
-        "--no-update-dependencies", "--no-update-deps",
-        action="store_false",
-        dest="update_deps",
-        default=NULL,
-        help="Don't update dependencies. Overrides the value given by "
-             "`conda config --show update_deps`.",
-    )
-    p.add_argument(
-        "--channel-priority", "--channel-pri", "--chan-pri",
-        action="store_true",
-        dest="channel_priority",
-        default=NULL,
-        help="Channel priority takes precedence over package version. "
-             "Overrides the value given by `conda config --show channel_priority`."
-    )
-    p.add_argument(
-        "--no-channel-priority", "--no-channel-pri", "--no-chan-pri",
-        action="store_false",
-        dest="channel_priority",
-        default=NULL,
-        help="Package version takes precedence over channel priority. "
-             "Overrides the value given by `conda config --show channel_priority`."
-    )
-    p.add_argument(
-        "--clobber",
-        action="store_true",
-        default=NULL,
-        help="Allow clobbering of overlapping file paths within packages, "
-             "and suppress related warnings.",
-    )
-    add_parser_show_channel_urls(p)
-
     p.add_argument(
         'packages',
         metavar='package_spec',
@@ -1084,13 +1202,8 @@ def add_parser_create_install_update(p):
         nargs='*',
         help="Packages to install or update in the conda environment.",
     )
-    p.add_argument(
-        "--download-only",
-        action="store_true",
-        default=NULL,
-        help="Solve an environment and ensure package caches are populated, but exit "
-             "prior to unlinking and linking packages into the prefix.",
-    )
+
+    return solver_mode_options, package_install_options
 
 
 def add_parser_pscheck(p):
@@ -1098,34 +1211,6 @@ def add_parser_pscheck(p):
         "--force-pscheck",
         action="store_true",
         help=SUPPRESS
-    )
-
-
-def add_parser_use_local(p):
-    p.add_argument(
-        "--use-local",
-        action="store_true",
-        default=NULL,
-        help="Use locally built packages.",
-    )
-
-
-def add_parser_offline(p):
-    p.add_argument(
-        "--offline",
-        action='store_true',
-        default=NULL,
-        help="Offline mode, don't connect to the Internet.",
-    )
-
-
-def add_parser_no_pin(p):
-    p.add_argument(
-        "--no-pin",
-        action="store_true",
-        dest='ignore_pinned',
-        default=NULL,
-        help="Ignore pinned file.",
     )
 
 
@@ -1142,17 +1227,7 @@ def add_parser_show_channel_urls(p):
         "--no-show-channel-urls",
         action="store_false",
         dest="show_channel_urls",
-        help="Don't show channel urls. "
-             "Overrides the value given by `conda config --show show_channel_urls`.",
-    )
-
-
-def add_parser_copy(p):
-    p.add_argument(
-        '--copy',
-        action="store_true",
-        default=NULL,
-        help="Install all packages using copies instead of hard- or soft-linking."
+        help=SUPPRESS,
     )
 
 
@@ -1171,7 +1246,8 @@ def add_parser_help(p):
 
 
 def add_parser_prefix(p):
-    npgroup = p.add_mutually_exclusive_group()
+    target_environment_group = p.add_argument_group("Target Environment Specification")
+    npgroup = target_environment_group.add_mutually_exclusive_group()
     npgroup.add_argument(
         '-n', "--name",
         action="store",
@@ -1181,58 +1257,85 @@ def add_parser_prefix(p):
     npgroup.add_argument(
         '-p', "--prefix",
         action="store",
-        help="Full path to environment prefix.",
+        help="Full path to environment location (i.e. prefix).",
         metavar='PATH',
     )
 
 
-def add_parser_yes(p):
-    p.add_argument(
-        "-y", "--yes",
+def add_parser_json(p):
+    output_and_prompt_options = p.add_argument_group("Output, Prompt, and Flow Control Options")
+    output_and_prompt_options.add_argument(
+        "--debug",
         action="store_true",
         default=NULL,
-        help="Do not ask for confirmation.",
+        help=SUPPRESS,
     )
-    p.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Only display what would have been done.",
-    )
-
-
-def add_parser_json(p):
-    p.add_argument(
+    output_and_prompt_options.add_argument(
         "--json",
         action="store_true",
         default=NULL,
         help="Report all output as json. Suitable for using conda programmatically."
     )
-    p.add_argument(
-        "--debug",
-        action="store_true",
-        default=NULL,
-        help="Show debug output.",
-    )
-    p.add_argument(
-        "--verbose", "-v",
+    output_and_prompt_options.add_argument(
+        "-v", "--verbose",
         action=NullCountAction,
         help="Use once for info, twice for debug, three times for trace.",
         dest="verbosity",
         default=NULL,
     )
-
-
-def add_parser_quiet(p):
-    p.add_argument(
+    output_and_prompt_options.add_argument(
         '-q', "--quiet",
         action="store_true",
         default=NULL,
         help="Do not display progress bar.",
     )
+    return output_and_prompt_options
+
+
+def add_output_and_prompt_options(p):
+    output_and_prompt_options = p.add_argument_group("Output, Prompt, and Flow Control Options")
+    output_and_prompt_options.add_argument(
+        "--debug",
+        action="store_true",
+        default=NULL,
+        help=SUPPRESS,
+    )
+    output_and_prompt_options.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Only display what would have been done.",
+    )
+    output_and_prompt_options.add_argument(
+        "--json",
+        action="store_true",
+        default=NULL,
+        help="Report all output as json. Suitable for using conda programmatically."
+    )
+    output_and_prompt_options.add_argument(
+        '-q', "--quiet",
+        action="store_true",
+        default=NULL,
+        help="Do not display progress bar.",
+    )
+    output_and_prompt_options.add_argument(
+        "-v", "--verbose",
+        action=NullCountAction,
+        help="Can be used multiple times. Once for INFO, twice for DEBUG, three times for TRACE.",
+        dest="verbosity",
+        default=NULL,
+    )
+    output_and_prompt_options.add_argument(
+        "-y", "--yes",
+        action="store_true",
+        default=NULL,
+        help="Do not ask for confirmation.",
+    )
+    return output_and_prompt_options
 
 
 def add_parser_channels(p):
-    p.add_argument(
+    channel_customization_options = p.add_argument_group("Channel Customization")
+    channel_customization_options.add_argument(
         '-c', '--channel',
         dest='channel',  # apparently conda-build uses this; someday rename to channels are remove context.channels alias to channel  # NOQA
         # TODO: if you ever change 'channel' to 'channels', make sure you modify the context.channels property accordingly # NOQA
@@ -1240,16 +1343,172 @@ def add_parser_channels(p):
         help="""Additional channel to search for packages. These are URLs searched in the order
         they are given (including file:// for local directories).  Then, the defaults
         or channels from .condarc are searched (unless --override-channels is given).  You can use
-        'defaults' to get the default packages for conda, and 'system' to get the system
-        packages, which also takes .condarc into account.  You can also use any name and the
+        'defaults' to get the default packages for conda.  You can also use any name and the
         .condarc channel_alias value will be prepended.  The default channel_alias
         is http://conda.anaconda.org/.""",
     )
-    p.add_argument(
+    channel_customization_options.add_argument(
+        "--use-local",
+        action="store_true",
+        default=NULL,
+        help="Use locally built packages. Identical to '-c local'.",
+    )
+    channel_customization_options.add_argument(
         "--override-channels",
         action="store_true",
         help="""Do not search default or .condarc channels.  Requires --channel.""",
     )
+    return channel_customization_options
+
+
+def add_parser_solver_mode(p):
+    solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
+    deps_modifiers = solver_mode_options.add_mutually_exclusive_group()
+    solver_mode_options.add_argument(
+        "--channel-priority",
+        action="store_true",
+        dest="channel_priority",
+        default=NULL,
+        help=SUPPRESS,
+    )
+    solver_mode_options.add_argument(
+        "--no-channel-priority",
+        action="store_false",
+        dest="channel_priority",
+        default=NULL,
+        help="Package version takes precedence over channel priority. "
+             "Overrides the value given by `conda config --show channel_priority`."
+    )
+    deps_modifiers.add_argument(
+        "--no-deps",
+        action="store_const",
+        const=DepsModifier.NO_DEPS,
+        dest="deps_modifier",
+        help="Do not install, update, remove, or change dependencies. This WILL lead "
+             "to broken environments and inconsistent behavior. Use at your own risk.",
+        default=NULL,
+    )
+    deps_modifiers.add_argument(
+        "--only-deps",
+        action="store_const",
+        const=DepsModifier.ONLY_DEPS,
+        dest="deps_modifier",
+        help="Only install dependencies.",
+        default=NULL,
+    )
+    solver_mode_options.add_argument(
+        "--no-pin",
+        action="store_true",
+        dest='ignore_pinned',
+        default=NULL,
+        help="Ignore pinned file.",
+    )
+    return solver_mode_options
+
+
+def add_parser_update_modifiers(solver_mode_options):
+    update_modifiers = solver_mode_options.add_mutually_exclusive_group()
+    update_modifiers.add_argument(
+        "--freeze-installed", "--no-update-deps",
+        action="store_const",
+        const=UpdateModifier.FREEZE_INSTALLED,
+        dest="update_modifier",
+        default=NULL,
+        help="Do not update or change already-installed dependencies.",
+    )
+    update_modifiers.add_argument(
+        "--update-deps",
+        action="store_const",
+        const=UpdateModifier.UPDATE_DEPS,
+        dest="update_modifier",
+        default=NULL,
+        help="Update dependencies.",
+    )
+    update_modifiers.add_argument(
+        "-S", "--satisfied-skip-solve",
+        action="store_const",
+        const=UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE,
+        dest="update_modifier",
+        default=NULL,
+        help="Exit early and do not run the solver if the requested specs are satisfied. "
+             "Also skips aggressive updates as configured by 'aggressive_update_packages'. "
+             "Similar to the default behavior of 'pip install'.",
+    )
+    update_modifiers.add_argument(
+        "--update-all", "--all",
+        action="store_const",
+        const=UpdateModifier.UPDATE_ALL,
+        dest="update_modifier",
+        help="Update all installed packages in the environment.",
+        default=NULL,
+    )
+
+
+def add_parser_prune(p):
+    p.add_argument(
+        "--prune",
+        action="store_true",
+        default=NULL,
+        help="Remove packages that have previously been brought into the environment to satisfy "
+             "dependencies of user-requested packages, but are no longer needed.",
+    )
+
+
+def add_parser_networking(p):
+    networking_options = p.add_argument_group("Networking Options")
+    networking_options.add_argument(
+        "-C", "--use-index-cache",
+        action="store_true",
+        default=False,
+        help="Use cache of channel index files, even if it has expired.",
+    )
+    networking_options.add_argument(
+        "-k", "--insecure",
+        action="store_false",
+        dest="ssl_verify",
+        default=NULL,
+        help="Allow conda to perform \"insecure\" SSL connections and transfers. "
+             "Equivalent to setting 'ssl_verify' to 'false'."
+    )
+    networking_options.add_argument(
+        "--offline",
+        action='store_true',
+        default=NULL,
+        help="Offline mode. Don't connect to the Internet.",
+    )
+    return networking_options
+
+
+def add_parser_package_install_options(p):
+    package_install_options = p.add_argument_group("Package Linking and Install-time Options")
+    package_install_options.add_argument(
+        '-f', "--force",
+        action="store_true",
+        default=NULL,
+        help=SUPPRESS,
+    )
+    package_install_options.add_argument(
+        '--copy',
+        action="store_true",
+        default=NULL,
+        help="Install all packages using copies instead of hard- or soft-linking."
+    )
+    if on_win:
+        package_install_options.add_argument(
+            "--shortcuts",
+            action="store_true",
+            help=SUPPRESS,
+            dest="shortcuts",
+            default=NULL,
+        )
+        package_install_options.add_argument(
+            "--no-shortcuts",
+            action="store_false",
+            help="Don't install start menu shortcuts",
+            dest="shortcuts",
+            default=NULL,
+        )
+    return package_install_options
 
 
 def add_parser_known(p):
@@ -1259,24 +1518,4 @@ def add_parser_known(p):
         default=False,
         dest='unknown',
         help=SUPPRESS,
-    )
-
-
-def add_parser_use_index_cache(p):
-    p.add_argument(
-        "-C", "--use-index-cache",
-        action="store_true",
-        default=False,
-        help="Use cache of channel index files, even if it has expired.",
-    )
-
-
-def add_parser_insecure(p):
-    p.add_argument(
-        "-k", "--insecure",
-        action="store_false",
-        dest="ssl_verify",
-        default=NULL,
-        help="Allow conda to perform \"insecure\" SSL connections and transfers. "
-             "Equivalent to setting 'ssl_verify' to 'false'."
     )

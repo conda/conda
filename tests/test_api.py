@@ -3,9 +3,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import inspect
 
+from datetime import datetime
 import pytest
 
-from conda.api import DepsModifier, PackageCacheData, PrefixData, Solver, SubdirData
+from conda.api import DepsModifier, PackageCacheData, PrefixData, Solver, SubdirData, \
+    UpdateModifier
 from conda.base.context import context
 from conda.common.compat import isiterable, odict
 from conda.common.constants import NULL
@@ -33,10 +35,15 @@ def inspect_arguments(f, arguments):
 def test_DepsModifier_contract():
     assert DepsModifier.NO_DEPS
     assert DepsModifier.ONLY_DEPS
-    assert DepsModifier.UPDATE_DEPS
-    assert DepsModifier.UPDATE_DEPS_ONLY_DEPS
-    assert DepsModifier.UPDATE_ALL
-    assert DepsModifier.FREEZE_INSTALLED
+    assert DepsModifier.NOT_SET
+
+
+def test_UpdateModifier_contract():
+    assert UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE
+    assert UpdateModifier.FREEZE_INSTALLED
+    assert UpdateModifier.UPDATE_DEPS
+    assert UpdateModifier.UPDATE_SPECS
+    assert UpdateModifier.UPDATE_ALL
 
 
 def test_Solver_inputs_contract():
@@ -52,6 +59,7 @@ def test_Solver_inputs_contract():
 
     solve_final_state_args = odict((
         ('self', PositionalArgument),
+        ('update_modifier', NULL),
         ('deps_modifier', NULL),
         ('prune', NULL),
         ('ignore_pinned', NULL),
@@ -61,6 +69,7 @@ def test_Solver_inputs_contract():
 
     solve_for_diff_args = odict((
         ('self', PositionalArgument),
+        ('update_modifier', NULL),
         ('deps_modifier', NULL),
         ('prune', NULL),
         ('ignore_pinned', NULL),
@@ -71,6 +80,7 @@ def test_Solver_inputs_contract():
 
     solve_for_transaction_args = odict((
         ('self', PositionalArgument),
+        ('update_modifier', NULL),
         ('deps_modifier', NULL),
         ('prune', NULL),
         ('ignore_pinned', NULL),
@@ -196,9 +206,10 @@ def test_PackageCacheData_contract():
 def test_PackageCacheData_return_value_contract():
     pc = PackageCacheData(context.pkgs_dirs[0])
 
-    single_pcrec = next(pc.iter_records())
-    get_result = pc.get(PackageRef.from_objects(single_pcrec))
-    assert isinstance(get_result, PackageCacheRecord)
+    single_pcrec = next(pc.iter_records(), None)
+    if single_pcrec:
+        get_result = pc.get(PackageRef.from_objects(single_pcrec))
+        assert isinstance(get_result, PackageCacheRecord)
 
     query_result = pc.query('openssl')
     assert isinstance(query_result, tuple)
