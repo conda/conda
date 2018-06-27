@@ -723,7 +723,7 @@ class CmdExeActivator(_Activator):
         if on_win:
             import ctypes
             export_vars.update({
-                "PYTHONIOENCODING": "cp" + ctypes.cdll.kernel32.GetACP(),
+                "PYTHONIOENCODING": ("cp%s" % ctypes.cdll.kernel32.GetACP()),
             })
 
     def _hook_preamble(self):
