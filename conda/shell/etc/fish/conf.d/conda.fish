@@ -32,8 +32,11 @@ test -n "$_CONDA_EXE"; or set _CONDA_EXE "$PWD/shell/bin/conda"
 test -n "$CONDA_SHLVL"; or set -gx CONDA_SHLVL "0"
 
 function __conda_add_prompt
-  set_color normal
-  echo -n $CONDA_PROMPT_MODIFIER
+  if set -q CONDA_PROMPT_MODIFIER
+      set_color -o green
+      echo -n $CONDA_PROMPT_MODIFIER
+      set_color normal
+  end
 end
 
 if functions -q fish_prompt
