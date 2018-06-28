@@ -6,6 +6,89 @@ Troubleshooting
    :local:
    :depth: 1
 
+SSL connection errors
+=====================
+
+Cause
+-----
+
+Installing packages may produce a "connection failed" error if you do not have
+the certificates for a secure connection to the package repository.
+
+Solution
+--------
+
+Pip can use the ``--trusted-host`` option to indicate that the URL of the
+repository is trusted::
+
+    pip install --trusted-host pypi.org
+
+Conda has three similar options.
+
+#. The option ``--insecure`` or ``-k`` ignores certificate validation errors for all hosts.
+
+   Running ``conda create --help`` shows::
+
+       Networking Options:
+         -k, --insecure        Allow conda to perform "insecure" SSL connections and
+                               transfers. Equivalent to setting 'ssl_verify' to
+                               'false'.
+
+#. The configuration option ``ssl_verify`` can be set to ``False``.
+
+   Running ``conda config --describe ssl_verify`` shows::
+
+       # # ssl_verify (bool, str)
+       # #   aliases: verify_ssl
+       # #   Conda verifies SSL certificates for HTTPS requests, just like a web
+       # #   browser. By default, SSL verification is enabled, and conda operations
+       # #   will fail if a required url's certificate cannot be verified. Setting
+       # #   ssl_verify to False disables certification verification. The value for
+       # #   ssl_verify can also be (1) a path to a CA bundle file, or (2) a path
+       # #   to a directory containing certificates of trusted CA.
+       # #
+       # ssl_verify: true
+
+   Running ``conda config --set ssl_verify false`` modifies ``~/.condarc`` and
+   sets the ``-k`` flag for all future conda operations performed by that user.
+   Running ``conda config --help`` shows other configuration scope options.
+
+   When using ``conda config``, the user's conda configuration file at
+   ``~/.condarc`` is used by default. The flag ``--system`` will instead write
+   to the system configuration file for all users at
+   ``<CONDA_BASE_ENV>/.condarc``. The flag ``--env`` will instead write to the
+   active conda environment's configuration file at
+   ``<PATH_TO_ACTIVE_CONDA_ENV>/.condarc``. If ``--env`` is used and no
+   environment is active, the user configuration file is used.
+
+#. The configuration option ``ssl_verify`` can be used to install new certificates.
+
+   Running ``conda config --describe ssl_verify`` shows::
+
+       # # ssl_verify (bool, str)
+       # #   aliases: verify_ssl
+       # #   Conda verifies SSL certificates for HTTPS requests, just like a web
+       # #   browser. By default, SSL verification is enabled, and conda operations
+       # #   will fail if a required url's certificate cannot be verified. Setting
+       # #   ssl_verify to False disables certification verification. The value for
+       # #   ssl_verify can also be (1) a path to a CA bundle file, or (2) a path
+       # #   to a directory containing certificates of trusted CA.
+       # #
+       # ssl_verify: true
+
+   Your network administrator can give you a certificate bundle for your
+   network's firewall. Then ``ssl_verify`` can be set to the path of that
+   certificate authority (CA) bundle, and package installation operations will
+   complete without connection errors.
+
+   When using ``conda config``, the user's conda configuration file at
+   ``~/.condarc`` is used by default. The flag ``--system`` will instead write
+   to the system configuration file for all users at
+   ``<CONDA_BASE_ENV>/.condarc``. The flag ``--env`` will instead write to the
+   active conda environment's configuration file at
+   ``<PATH_TO_ACTIVE_CONDA_ENV>/.condarc``. If ``--env`` is used and no
+   environment is active, the user configuration file is used.
+
 .. _permission-denied:
 
 Permission denied errors during installation
