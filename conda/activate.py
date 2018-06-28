@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from errno import ENOENT
 from glob import glob
 import os
-from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, normpath
+from os.path import (abspath, basename, dirname, expanduser, expandvars, isdir, join, normcase,
+                     normpath)
 import re
 import sys
 from tempfile import NamedTemporaryFile
 
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
+
 context.__init__()  # oOn import, context does not include SEARCH_PATH. This line fixes that.
 
 try:
@@ -51,6 +54,7 @@ class Activator(object):
 
         if shell == 'posix':
             self.pathsep_join = ':'.join
+            self.sep = '/'
             self.path_conversion = native_path_to_unix
             self.script_extension = '.sh'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
@@ -64,6 +68,7 @@ class Activator(object):
 
         elif shell == 'csh':
             self.pathsep_join = ':'.join
+            self.sep = '/'
             self.path_conversion = native_path_to_unix
             self.script_extension = '.csh'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
@@ -77,6 +82,7 @@ class Activator(object):
 
         elif shell == 'xonsh':
             self.pathsep_join = ':'.join
+            self.sep = '/'
             self.path_conversion = native_path_to_unix
             self.script_extension = '.xsh'
             self.tempfile_extension = '.xsh'
@@ -89,6 +95,7 @@ class Activator(object):
 
         elif shell == 'cmd.exe':
             self.pathsep_join = ';'.join
+            self.sep = '\\'
             self.path_conversion = path_identity
             self.script_extension = '.bat'
             self.tempfile_extension = '.bat'
@@ -101,6 +108,7 @@ class Activator(object):
 
         elif shell == 'fish':
             self.pathsep_join = '" "'.join
+            self.sep = '/'
             self.path_conversion = native_path_to_unix
             self.script_extension = '.fish'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
@@ -113,6 +121,7 @@ class Activator(object):
 
         elif shell == 'powershell':
             self.pathsep_join = ';'.join
+            self.sep = '\\'
             self.path_conversion = path_identity
             self.script_extension = '.ps1'
             self.tempfile_extension = None  # write instructions to stdout rather than a temp file
@@ -393,7 +402,7 @@ class Activator(object):
             path_split = path.split(os.pathsep)
             library_bin = r"%s\Library\bin" % (sys.prefix)
             # ^^^ deliberately the same as: https://github.com/AnacondaRecipes/python-feedstock/blob/8e8aee4e2f4141ecfab082776a00b374c62bb6d6/recipe/0005-Win32-Ensure-Library-bin-is-in-os.environ-PATH.patch#L20  # NOQA
-            if normpath(path_split[0]) == normpath(library_bin):
+            if paths_equal(path_split[0], library_bin):
                 return path_split[1:]
             else:
                 return path_split
@@ -412,50 +421,59 @@ class Activator(object):
         else:
             yield join(prefix, 'bin')
 
+    def _get_path_dirs2(self, prefix):
+        if on_win:  # pragma: unix no cover
+            yield prefix
+            yield self.sep.join((prefix, 'Library', 'mingw-w64', 'bin'))
+            yield self.sep.join((prefix, 'Library', 'usr', 'bin'))
+            yield self.sep.join((prefix, 'Library', 'bin'))
+            yield self.sep.join((prefix, 'Scripts'))
+            yield self.sep.join((prefix, 'bin'))
+        else:
+            yield self.sep.join((prefix, 'bin'))
+
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
+        prefix = self.path_conversion(prefix)
         if starting_path_dirs is None:
-            starting_path_dirs = self._get_starting_path_list()
-        return self.path_conversion(concatv(
-            self._get_path_dirs(prefix),
-            starting_path_dirs,
-        ))
+            path_list = list(self.path_conversion(self._get_starting_path_list()))
+        else:
+            path_list = list(self.path_conversion(starting_path_dirs))
+        path_list[0:0] = list(self._get_path_dirs2(prefix))
+        return tuple(path_list)
 
     def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
 
     def _replace_prefix_in_path(self, old_prefix, new_prefix, starting_path_dirs=None):
+        old_prefix = self.path_conversion(old_prefix)
+        new_prefix = self.path_conversion(new_prefix)
         if starting_path_dirs is None:
-            path_list = self._get_starting_path_list()
+            path_list = list(self.path_conversion(self._get_starting_path_list()))
         else:
-            path_list = list(starting_path_dirs)
-        if on_win:  # pragma: unix no cover
-            if old_prefix is not None:
-                # windows has a nasty habit of adding extra Library\bin directories
-                prefix_dirs = tuple(self._get_path_dirs(old_prefix))
-                try:
-                    first_idx = path_list.index(prefix_dirs[0])
-                except ValueError:
-                    first_idx = 0
-                else:
-                    last_idx = path_list.index(prefix_dirs[-1])
-                    del path_list[first_idx:last_idx+1]
-            else:
+            path_list = list(self.path_conversion(starting_path_dirs))
+
+        def index_of_path(paths, test_path):
+            for q, path in enumerate(paths):
+                if paths_equal(path, test_path):
+                    return q
+            return None
+
+        if old_prefix is not None:
+            prefix_dirs = tuple(self._get_path_dirs2(old_prefix))
+            first_idx = index_of_path(path_list, prefix_dirs[0])
+            if first_idx is None:
                 first_idx = 0
-            if new_prefix is not None:
-                path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
-        else:
-            if old_prefix is not None:
-                try:
-                    idx = path_list.index(join(old_prefix, 'bin'))
-                except ValueError:
-                    idx = 0
-                else:
-                    del path_list[idx]
             else:
-                idx = 0
-            if new_prefix is not None:
-                path_list.insert(idx, join(new_prefix, 'bin'))
-        return self.path_conversion(path_list)
+                last_idx = index_of_path(path_list, prefix_dirs[-1])
+                assert last_idx is not None
+                del path_list[first_idx:last_idx + 1]
+        else:
+            first_idx = 0
+
+        if new_prefix is not None:
+            path_list[first_idx:first_idx] = list(self._get_path_dirs2(new_prefix))
+
+        return tuple(path_list)
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         if not context.changeps1:
@@ -525,32 +543,62 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     # on windows, uses cygpath to convert windows native paths to posix paths
     if not on_win:
         return path_identity(paths)
-    from subprocess import PIPE, Popen
+    if paths is None:
+        return None
+    from subprocess import CalledProcessError, PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
-    p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     single_path = isinstance(paths, string_types)
     joined = paths if single_path else ("%s" % os.pathsep).join(paths)
 
     if hasattr(joined, 'encode'):
         joined = joined.encode('utf-8')
-    stdout, stderr = p.communicate(input=joined)
-    rc = p.returncode
-    if rc != 0 or stderr:
-        from subprocess import CalledProcessError
-        message = "\n  stdout: %s\n  stderr: %s\n  rc: %s\n" % (stdout, stderr, rc)
-        print(message, file=sys.stderr)
-        raise CalledProcessError(rc, command, message)
-    if hasattr(stdout, 'decode'):
-        stdout = stdout.decode('utf-8')
-    stdout = stdout.strip()
+
+    try:
+        p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    except EnvironmentError as e:
+        if e.errno != ENOENT:
+            raise
+        # This code path should (hopefully) never be hit be real conda installs. It's here
+        # as a backup for tests run under cmd.exe with cygpath not available.
+        def _translation(found_path):  # NOQA
+            found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
+            return "/" + found.rstrip("/")
+        joined = ensure_fs_path_encoding(joined)
+        stdout = re.sub(
+            r'([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)',
+            _translation,
+            joined
+        ).replace(";/", ":/").rstrip(";")
+    else:
+        stdout, stderr = p.communicate(input=joined)
+        rc = p.returncode
+        if rc != 0 or stderr:
+            message = "\n  stdout: %s\n  stderr: %s\n  rc: %s\n" % (stdout, stderr, rc)
+            print(message, file=sys.stderr)
+            raise CalledProcessError(rc, command, message)
+        if hasattr(stdout, 'decode'):
+            stdout = stdout.decode('utf-8')
+        stdout = stdout.strip()
     final = stdout and stdout.split(':') or ()
     return final[0] if single_path else tuple(final)
 
 
 def path_identity(paths):
-    return paths if isinstance(paths, string_types) else tuple(paths)
+    if isinstance(paths, string_types):
+        return paths
+    elif paths is None:
+        return None
+    else:
+        return tuple(paths)
+
+
+def paths_equal(path1, path2):
+    if on_win:
+        return normcase(abspath(path1)) == normcase(abspath(path2))
+    else:
+        return abspath(path1) == abspath(path2)
 
 
 on_win = bool(sys.platform == "win32")
