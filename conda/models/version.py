@@ -32,6 +32,30 @@ version_split_re = re.compile('([0-9]+|[*]+|[^0-9*]+)')
 version_cache = {}
 
 
+class SingleStrArgCachingType(type):
+
+    def __call__(cls, arg):
+        if isinstance(arg, cls):
+            return arg
+        elif isinstance(arg, string_types):
+            try:
+                return cls._cache_[arg]
+            except KeyError:
+                val = cls._cache_[arg] = super(SingleStrArgCachingType, cls).__call__(arg)
+                return val
+        else:
+            return super(SingleStrArgCachingType, cls).__call__(arg)
+
+
+class MalformedVersionError(CondaValueError):
+
+    def __init__(self, version_string, details):
+        message = "Malformed version string '%(version_string)s': %(details)s"
+        super(MalformedVersionError, self).__init__(message, version_string=version_string,
+                                                    details=details)
+
+
+@with_metaclass(SingleStrArgCachingType)
 class VersionOrder(object):
     """
     This class implements an order relation between version strings.
@@ -141,20 +165,14 @@ class VersionOrder(object):
 
       1.0.1a  =>  1.0.1post.a      # ensure correct ordering for openssl
     """
+    _cache_ = {}
 
-    def __new__(cls, vstr):
-        if isinstance(vstr, cls):
-            return vstr
-        self = version_cache.get(vstr)
-        if self is not None:
-            return self
-
-        message = "Malformed version string '%s': " % vstr
+    def __init__(self, vstr):
         # version comparison is case-insensitive
         version = vstr.strip().rstrip().lower()
         # basic validity checks
         if version == '':
-            raise CondaValueError("Empty version string.")
+            raise MalformedVersionError(vstr, "empty version string")
         invalid = not version_check_re.match(version)
         if invalid and '-' in version and '_' not in version:
             # Allow for dashes as long as there are no underscores
@@ -162,15 +180,10 @@ class VersionOrder(object):
             version = version.replace('-', '_')
             invalid = not version_check_re.match(version)
         if invalid:
-            raise CondaValueError(message + "invalid character(s).")
-        self = version_cache.get(version)
-        if self is not None:
-            version_cache[vstr] = self
-            return self
+            raise MalformedVersionError(vstr, "invalid character(s)")
 
         # when fillvalue ==  0  =>  1.1 == 1.1.0
         # when fillvalue == -1  =>  1.1  < 1.1.0
-        self = version_cache[vstr] = version_cache[version] = object.__new__(cls)
         self.norm_version = version
         self.fillvalue = 0
 
@@ -182,10 +195,10 @@ class VersionOrder(object):
         elif len(version) == 2:
             # epoch given, must be an integer
             if not version[0].isdigit():
-                raise CondaValueError(message + "epoch must be an integer.")
+                raise MalformedVersionError(vstr, "epoch must be an integer")
             epoch = [version[0]]
         else:
-            raise CondaValueError(message + "duplicated epoch separator '!'.")
+            raise MalformedVersionError(vstr, "duplicated epoch separator '!'")
 
         # find local version string
         version = version[-1].split('+')
@@ -196,7 +209,7 @@ class VersionOrder(object):
             # local version given
             self.local = version[1].replace('_', '.').split('.')
         else:
-            raise CondaValueError(message + "duplicated local version separator '+'.")
+            raise MalformedVersionError(vstr, "duplicated local version separator '+'")
 
         # split version
         self.version = epoch + version[0].replace('_', '.').split('.')
@@ -207,7 +220,7 @@ class VersionOrder(object):
             for k in range(len(v)):
                 c = version_split_re.findall(v[k])
                 if not c:
-                    raise CondaValueError(message + "empty version component.")
+                    raise MalformedVersionError(vstr, "empty version component")
                 for j in range(len(c)):
                     if c[j].isdigit():
                         c[j] = int(c[j])
@@ -224,8 +237,6 @@ class VersionOrder(object):
                     # components shall start with a number to keep numbers and
                     # strings in phase => prepend fillvalue
                     v[k] = [self.fillvalue] + c
-
-        return self
 
     def __str__(self):
         return self.norm_version
@@ -405,21 +416,6 @@ OPERATOR_MAP = {
     '<': op.__lt__,
     '>': op.__gt__,
 }
-
-
-class SingleStrArgCachingType(type):
-
-    def __call__(cls, arg):
-        if isinstance(arg, cls):
-            return arg
-        elif isinstance(arg, string_types):
-            try:
-                return cls._cache_[arg]
-            except KeyError:
-                val = cls._cache_[arg] = super(SingleStrArgCachingType, cls).__call__(arg)
-                return val
-        else:
-            return super(SingleStrArgCachingType, cls).__call__(arg)
 
 
 class BaseSpec(object):
