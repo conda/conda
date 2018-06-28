@@ -147,7 +147,7 @@ install_python() {
     local python_version=${2:-$PYTHON_VERSION}
 
     install_miniconda $prefix
-    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat
+    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat 'ruamel_yaml<=0.15.37'
     remove_conda $prefix
 
     $PYTHON_EXE --version
