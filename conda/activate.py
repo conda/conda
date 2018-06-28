@@ -401,7 +401,7 @@ class Activator(object):
             return path.split(os.pathsep)
 
     @staticmethod
-    def _get_path_dirs(prefix):
+    def _get_path_dirs(prefix=''):
         if on_win:  # pragma: unix no cover
             yield prefix.rstrip("\\")
             yield join(prefix, 'Library', 'mingw-w64', 'bin')
@@ -415,10 +415,10 @@ class Activator(object):
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
         if starting_path_dirs is None:
             starting_path_dirs = self._get_starting_path_list()
-        return self.path_conversion(concatv(
-            self._get_path_dirs(prefix),
-            starting_path_dirs,
-        ))
+        return concatv(self.path_conversion(
+            self._get_path_dirs(), prefix),
+            self.path_conversion(starting_path_dirs)
+        )
 
     def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
         return self._replace_prefix_in_path(prefix, None, starting_path_dirs)
@@ -430,7 +430,9 @@ class Activator(object):
             path_list = list(starting_path_dirs)
         if on_win:  # pragma: unix no cover
             if old_prefix is not None:
-                # windows has a nasty habit of adding extra Library\bin directories
+                # An old Anaconda Distribution hack to Python had a
+                # nasty habit of adding extra Library\bin directories.
+                # I (Ray) hope to remove that for 3.7.0b4 and above.
                 prefix_dirs = tuple(self._get_path_dirs(old_prefix))
                 try:
                     first_idx = path_list.index(prefix_dirs[0])
@@ -441,8 +443,13 @@ class Activator(object):
                     del path_list[first_idx:last_idx+1]
             else:
                 first_idx = 0
-            if new_prefix is not None:
-                path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
+            if new_prefix:
+                return concatv(self.path_conversion(path_list[:first_idx]),
+                               self.path_conversion(self._get_path_dirs(), new_prefix),
+                               self.path_conversion(path_list[last_idx:]))
+            else:
+                return concatv(self.path_conversion(path_list[:first_idx]),
+                               self.path_conversion(path_list[last_idx:]))
         else:
             if old_prefix is not None:
                 try:
@@ -455,7 +462,8 @@ class Activator(object):
                 idx = 0
             if new_prefix is not None:
                 path_list.insert(idx, join(new_prefix, 'bin'))
-        return self.path_conversion(path_list)
+
+            return self.path_conversion(path_list)
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         if not context.changeps1:
@@ -521,17 +529,20 @@ def ensure_fs_path_encoding(value):
         return value
 
 
-def native_path_to_unix(paths):  # pragma: unix no cover
-    # on windows, uses cygpath to convert windows native paths to posix paths
+def native_path_to_unix(paths, root_prefix=''):  # pragma: unix no cover
+    # on Windows, uses cygpath to convert Windows native paths to posix paths
+    # We only convert the root_prefix it that is passed to avoid potentially
+    # shadowing /etc/fstab based fixups (bind mounts for example) that cygpath
+    # will perform. A concrete example of this is Library/bin => Library/usr/bin
     if not on_win:
-        return path_identity(paths)
+        return path_identity(paths, root_prefix)
     from subprocess import PIPE, Popen
     from shlex import split
     command = 'cygpath --path -f -'
     p = Popen(split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-
-    single_path = isinstance(paths, string_types)
-    joined = paths if single_path else ("%s" % os.pathsep).join(paths)
+    converted_paths = root_prefix if root_prefix else paths
+    single_path = isinstance(converted_paths, string_types)
+    joined = converted_paths if single_path else (os.pathsep).join(converted_paths)
 
     if hasattr(joined, 'encode'):
         joined = joined.encode('utf-8')
@@ -545,12 +556,18 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     if hasattr(stdout, 'decode'):
         stdout = stdout.decode('utf-8')
     stdout = stdout.strip()
-    final = stdout and stdout.split(':') or ()
-    return final[0] if single_path else tuple(final)
+    if root_prefix:
+        result = ['/'.join((stdout, p.replace(os.sep, '/'))).rstrip('/') for p in paths]
+        return result
+    else:
+        final = stdout and stdout.split(':') or ()
+        return final[0] if single_path else tuple(final)
 
 
-def path_identity(paths):
-    return paths if isinstance(paths, string_types) else tuple(paths)
+def path_identity(paths, root_prefix=''):
+    if isinstance(paths, string_types):
+        return os.path.join(root_prefix, paths)
+    return tuple([os.path.join(root_prefix, p) for p in paths])
 
 
 on_win = bool(sys.platform == "win32")

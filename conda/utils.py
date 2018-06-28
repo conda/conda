@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-from os.path import dirname
+from os.path import dirname, join
 import re
 import sys
 
@@ -16,9 +16,9 @@ log = logging.getLogger(__name__)
 memoized = memoize
 
 
-def path_identity(path):
+def path_identity(path, root_prefix=''):
     """Used as a dummy path converter where no conversion necessary"""
-    return path
+    return join(root_prefix, path)
 
 
 def unix_path_to_win(path, root_prefix=""):
