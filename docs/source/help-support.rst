@@ -16,7 +16,8 @@ Help and support
   visualization of scientific and business data or optimizing
   your processing workflows on modern hardware and GPUs.
 
-* Support is included in some purchases.
+* Support is included in purchases of `Anaconda Enterprise
+  <https://www.anaconda.com/enterprise/>`_.
 
 
 Join the conda email group
@@ -50,16 +51,12 @@ Report bugs
 Issues with conda are tracked on GitHub at
 https://github.com/conda/conda/issues, and issues with conda
 build are tracked at https://github.com/conda/conda-build/issues.
+
+Issues with the conda documentation are tracked on GitHub at
+https://github.com/conda/conda-docs/issues.
+
 If you find a bug, search to see if it has already been reported,
 and then report it if no one else has.
-
-
-Send feedback
-=============
-
-Send feedback about the conda documentation to
-`documentation@anaconda.com <mailto:documentation@anaconda.com>`_.
-
 
 Presentations and blog posts
 ============================
@@ -67,14 +64,7 @@ Presentations and blog posts
 * `Packaging and Deployment with conda---Travis Oliphant
   <https://speakerdeck.com/teoliphant/packaging-and-deployment-with-conda>`_.
 
-* `Python 3 Support in Anaconda---Ilan Schnell
-  <https://www.anaconda.com/blog/developer-blog/python-3-support-anaconda/>`_.
-
-* `New Advances in conda---Ilan Schnell
-  <https://www.anaconda.com/blog/developer/new-advances-conda/>`_.
-
-* `Python Packages and Environments with conda---Bryan Van de Ven
-  <https://www.anaconda.com/blog/developer-blog/python-packages-and-environments-conda/>`_.
+* `Anaconda Developer Blog <https://www.anaconda.com/blog/developer-blog/>`_.
 
 
 Conda announcements list
