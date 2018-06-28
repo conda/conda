@@ -81,7 +81,7 @@ install_conda_full() {
 
     if ! [ -f "$prefix/conda-meta/history" ]; then
         install_miniconda $prefix
-        $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat
+        $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat 'ruamel_yaml<=0.15.37'
     fi
 
     local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
