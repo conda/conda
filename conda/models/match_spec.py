@@ -10,11 +10,9 @@ from os.path import basename
 import re
 
 from .channel import Channel
-from .dist import Dist
-from .records import PackageRecord, NAMESPACES
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
-from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..base.constants import CONDA_TARBALL_EXTENSION, NAMESPACES
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
 from ..common.path import expand
@@ -29,8 +27,8 @@ except ImportError:  # pragma: no cover
 
 EMPTY_NAMESPACE_EQUIVALENTS = {
     None,
-    '*',
     '',
+    '*',  # TODO: consider whether this belongs or not
 }
 
 
@@ -44,42 +42,54 @@ class MatchSpecType(type):
                 new_kwargs = dict(spec_arg._match_components)
                 new_kwargs.setdefault('optional', spec_arg.optional)
                 new_kwargs.setdefault('target', spec_arg.target)
+                new_kwargs['_original_spec_str'] = spec_arg.original_spec_str
                 new_kwargs.update(**kwargs)
                 return super(MatchSpecType, cls).__call__(**new_kwargs)
             elif isinstance(spec_arg, string_types):
                 parsed = _parse_spec_str(spec_arg)
-                parsed.update(kwargs)
+                if kwargs:
+                    parsed = dict(parsed, **kwargs)
+                    if set(kwargs) - {'optional', 'target'}:
+                        # if kwargs has anything but optional and target,
+                        # strip out _original_spec_str from parsed
+                        parsed.pop('_original_spec_str', None)
                 return super(MatchSpecType, cls).__call__(**parsed)
             elif isinstance(spec_arg, Mapping):
                 parsed = dict(spec_arg, **kwargs)
                 return super(MatchSpecType, cls).__call__(**parsed)
-            elif isinstance(spec_arg, PackageRecord):
-                parsed = {
-                    'channel': spec_arg.channel,
-                    'subdir': spec_arg.subdir,
-                    'name': spec_arg.name,
-                    'version': spec_arg.version,
-                    'build': spec_arg.build,
-                }
-                parsed.update(kwargs)
-                return super(MatchSpecType, cls).__call__(**parsed)
-            elif isinstance(spec_arg, Dist):
-                # TODO: remove this branch when we get rid of Dist
-                parsed = {
-                    'name': spec_arg.name,
-                    'version': spec_arg.version,
-                    'build': spec_arg.build,
-                }
-                if spec_arg.channel:
-                    parsed['channel'] = spec_arg.channel
-                if spec_arg.subdir:
-                    parsed['subdir'] = spec_arg.subdir
-                parsed.update(kwargs)
-                return super(MatchSpecType, cls).__call__(**parsed)
-            elif hasattr(spec_arg, 'dump'):
-                parsed = spec_arg.dump()
-                parsed.update(kwargs)
-                return super(MatchSpecType, cls).__call__(**parsed)
+            elif hasattr(spec_arg, 'to_match_spec'):
+                spec = spec_arg.to_match_spec()
+                if kwargs:
+                    return MatchSpec(spec, **kwargs)
+                else:
+                    return spec
+            # elif isinstance(spec_arg, PackageRecord):
+            #     parsed = {
+            #         'channel': spec_arg.channel,
+            #         'subdir': spec_arg.subdir,
+            #         'name': spec_arg.name,
+            #         'version': spec_arg.version,
+            #         'build': spec_arg.build,
+            #     }
+            #     parsed.update(kwargs)
+            #     return super(MatchSpecType, cls).__call__(**parsed)
+            # elif isinstance(spec_arg, Dist):
+            #     # TODO: remove this branch when we get rid of Dist
+            #     parsed = {
+            #         'name': spec_arg.name,
+            #         'version': spec_arg.version,
+            #         'build': spec_arg.build,
+            #     }
+            #     if spec_arg.channel:
+            #         parsed['channel'] = spec_arg.channel
+            #     if spec_arg.subdir:
+            #         parsed['subdir'] = spec_arg.subdir
+            #     parsed.update(kwargs)
+            #     return super(MatchSpecType, cls).__call__(**parsed)
+            # elif hasattr(spec_arg, 'dump'):
+            #     parsed = spec_arg.dump()
+            #     parsed.update(kwargs)
+            #     return super(MatchSpecType, cls).__call__(**parsed)
             else:
                 raise CondaValueError("Invalid MatchSpec:\n  spec_arg=%s\n  kwargs=%s"
                                       % (spec_arg, kwargs))
@@ -186,10 +196,13 @@ class MatchSpec(object):
         'license_family',
         'fn',
     )
+    FIELD_NAMES_SET = frozenset(FIELD_NAMES)
+    _MATCHER_CACHE = {}
 
     def __init__(self, optional=False, target=None, **kwargs):
-        self.optional = optional
-        self.target = target
+        self._optional = optional
+        self._target = target
+        self._original_spec_str = kwargs.pop('_original_spec_str', None)
         self._match_components = self._build_components(**kwargs)
 
     @classmethod
@@ -229,12 +242,25 @@ class MatchSpec(object):
     def dist_str(self):
         return self.__str__()
 
+    @property
+    def optional(self):
+        return self._optional
+
+    @property
+    def target(self):
+        return self._target
+
+    @property
+    def original_spec_str(self):
+        return self._original_spec_str
+
     def match(self, rec):
         """
         Accepts an `IndexRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
         """
         if isinstance(rec, dict):
+            from .records import PackageRecord
             rec = PackageRecord.from_objects(rec)
         for field_name, v in iteritems(self._match_components):
             if not self._match_individual(rec, field_name, v):
@@ -396,26 +422,34 @@ class MatchSpec(object):
 
     @staticmethod
     def _build_components(**kwargs):
-        _field_names = MatchSpec.FIELD_NAMES
         if 'namespace' in kwargs and kwargs['namespace'] in EMPTY_NAMESPACE_EQUIVALENTS:
             del kwargs['namespace']
 
-        def _make(field_name, value):
-            if field_name not in _field_names:
-                raise CondaValueError('Cannot match on field %s' % (field_name,))
-            elif isinstance(value, string_types):
-                value = text_type(value)
+        not_fields = set(kwargs) - MatchSpec.FIELD_NAMES_SET
+        if not_fields:
+            raise CondaValueError('Cannot match on field(s): %s' % not_fields)
 
-            if hasattr(value, 'match'):
-                matcher = value
-            elif field_name in _implementors:
-                matcher = _implementors[field_name](value)
-            else:
-                matcher = ExactStrMatch(text_type(value))
+        _make_component = MatchSpec._make_component
+        return frozendict(_make_component(key, value) for key, value in iteritems(kwargs))
 
+    @staticmethod
+    def _make_component(field_name, value):
+        if hasattr(value, 'match'):
+            matcher = value
             return field_name, matcher
 
-        return frozendict(_make(key, value) for key, value in iteritems(kwargs))
+        _MATCHER_CACHE = MatchSpec._MATCHER_CACHE
+        cache_key = (field_name, value)
+        cached_matcher = _MATCHER_CACHE.get(cache_key)
+        if cached_matcher:
+            return field_name, cached_matcher
+
+        if field_name in _implementors:
+            matcher = _implementors[field_name](value)
+        else:
+            matcher = ExactStrMatch(text_type(value))
+        _MATCHER_CACHE[(field_name, value)] = matcher
+        return field_name, matcher
 
     @property
     def name(self):
@@ -549,7 +583,15 @@ def _parse_channel(channel_val):
     return channel_name, chn.subdir
 
 
+_PARSE_CACHE = {}
+
 def _parse_spec_str(spec_str):
+    cached_result = _PARSE_CACHE.get(spec_str)
+    if cached_result:
+        return cached_result
+
+    original_spec_str = spec_str
+
     # pre-step for ugly backward compat
     if spec_str.endswith('@'):
         feature_name = spec_str[:-1]
@@ -705,7 +747,9 @@ def _parse_spec_str(spec_str):
 
     # anything in brackets will now strictly override key as set in other area of spec str
     components.update(brackets)
+    components['_original_spec_str'] = original_spec_str
 
+    _PARSE_CACHE[original_spec_str] = components
     return components
 
 

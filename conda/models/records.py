@@ -27,30 +27,14 @@ from os.path import basename, join
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
-from .._vendor.auxlib import NULL
+from .match_spec import MatchSpec
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
                                      StringField)
+from ..base.constants import NAMESPACES_MAP, NAMESPACE_PACKAGE_NAMES
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
 from ..exceptions import PathNotFoundError
-
-NAMESPACES_MAP = {
-    "python": "python",
-    "r": "r",
-    "r-base": "r",
-    "mro-base": "r",
-    "java": "java",
-    "openjdk": "java",
-    "ruby": "ruby",
-    "lua": "lua",
-    "nodejs": "nodejs",
-    "node": "nodejs",
-    "perl": "perl",
-}
-
-NAMESPACE_PACKAGES = set(NAMESPACES_MAP)
-NAMESPACES = set(itervalues(NAMESPACES_MAP))
 
 
 class LinkTypeField(EnumField):
@@ -220,12 +204,28 @@ class NamespaceField(StringField):
         try:
             return super(NamespaceField, self).__get__(instance, instance_type)
         except AttributeError:
-            from .match_spec import MatchSpec
-            spaces = {MatchSpec(spec).name for spec in instance.depends} & NAMESPACE_PACKAGES
-            if len(spaces) == 1:
-                return NAMESPACES_MAP[spaces.pop()]
-            else:
-                return "global"
+            try:
+                return instance._cached_namespace
+            except AttributeError:
+                spaces = {MatchSpec(spec).name for spec in instance.depends} & NAMESPACE_PACKAGE_NAMES
+                if len(spaces) == 1:
+                    instance._cached_namespace = namespace = NAMESPACES_MAP[spaces.pop()]
+                else:
+                    instance._cached_namespace = namespace = "global"
+                return namespace
+
+
+class DependsField(ListField):
+
+    def __init__(self):
+        super(DependsField, self).__init__(MatchSpec, default=())
+
+    def box(self, instance, instance_type, val):
+        return super(DependsField, self).box(instance, instance_type, (MatchSpec(s) for s in val))
+
+    def dump(self, instance, instance_type, val):
+        spec_strs = (spec.original_spec_str for spec in val)
+        return tuple(s for s in spec_strs if s)
 
 
 class FilenameField(StringField):
@@ -342,8 +342,16 @@ class PackageRecord(DictSafeMixin, Entity):
     arch = StringField(required=False, nullable=True)  # so legacy
     platform = EnumField(Platform, required=False, nullable=True)  # so legacy
 
-    depends = ListField(string_types, default=())
-    constrains = ListField(string_types, default=())
+    depends = DependsField()
+    constrains = DependsField()
+
+    @property
+    def combined_depends(self):
+        result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}
+        result.update({ms.name: ms for ms in MatchSpec.merge(
+            MatchSpec(spec, optional=True) for spec in self.constrains or ()
+        )})
+        return tuple(itervalues(result))
 
     namespace = NamespaceField()
     name = NameField()
@@ -367,14 +375,6 @@ class PackageRecord(DictSafeMixin, Entity):
 
     timestamp = TimestampField(required=False)
 
-    @property
-    def combined_depends(self):
-        from .match_spec import MatchSpec
-        result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}
-        result.update({ms.name: ms for ms in MatchSpec.merge(
-            MatchSpec(spec, optional=True) for spec in self.constrains or ()
-        )})
-        return tuple(itervalues(result))
 
 
 # conflicting attribute due to subdir on both IndexJsonRecord and PackageRef
@@ -395,6 +395,15 @@ class PackageRecord(DictSafeMixin, Entity):
     def __str__(self):
         return "%s/%s::%s==%s=%s" % (self.channel.canonical_name, self.subdir, self.name,
                                      self.version, self.build)
+
+    def to_match_spec(self):
+        return MatchSpec(
+            channel=self.channel,
+            subdir=self.subdir,
+            name=self.name,
+            version=self.version,
+            build=self.build,
+        )
 
 
 class Md5Field(StringField):

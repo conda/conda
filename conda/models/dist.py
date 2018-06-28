@@ -131,6 +131,11 @@ class Dist(Entity):
     def to_matchspec(self):
         return ' '.join(self.quad[:3])
 
+    def to_match_spec(self):
+        from .match_spec import MatchSpec
+        base = '='.join(self.quad[:3])
+        return MatchSpec("%s::%s" % (self.channel, base) if self.channel else base)
+
     @classmethod
     def from_string(cls, string, channel_override=NULL):
         string = text_type(string)

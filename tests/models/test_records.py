@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
+from pprint import pprint
 from unittest import TestCase
 
 from conda.base.context import context
@@ -12,6 +13,80 @@ from conda.models.records import PackageRecord, PrefixRecord
 log = getLogger(__name__)
 
 blas_value = 'accelerate' if context.subdir == 'osx-64' else 'openblas'
+
+
+def test_r_base():
+    r_base_1 = {
+        "arch": "x86_64",
+        "build": "0",
+        "build_number": 0,
+        "depends": [
+            "_r-mutex 1.* anacondar_1",
+            "cairo",
+            "gcc",
+            "jpeg",
+            "libpng",
+            "libtiff",
+            "libxml2",
+            "ncurses",
+            "pango",
+            "pcre",
+            "readline",
+            "tk",
+            "zlib"
+        ],
+        "fn": "r-base-3.1.2-0.tar.bz2",
+        "has_prefix": True,
+        "license": "GPL",
+        "md5": "24e756fb27e21338498b93e847492655",
+        "name": "r-base",
+        "platform": "linux",
+        "size": 21297871,
+        "subdir": "linux-64",
+        "version": "3.1.2",
+    }
+    prec = PackageRecord.from_objects(r_base_1)
+    assert prec.name == 'r-base'
+    assert prec.namespace == 'global'
+    assert prec.legacy_name == 'r-base'
+
+    pprint(dict(prec.dump()))
+    assert prec.dump() == {
+        'arch': 'x86_64',
+        'build': '0',
+        'build_number': 0,
+        'channel': '<unknown>',
+        'constrains': (),
+        'depends': (
+            '_r-mutex 1.* anacondar_1',
+            'cairo',
+            'gcc',
+            'jpeg',
+            'libpng',
+            'libtiff',
+            'libxml2',
+            'ncurses',
+            'pango',
+            'pcre',
+            'readline',
+            'tk',
+            'zlib'
+        ),
+        'fn': 'r-base-3.1.2-0.tar.bz2',
+        'license': 'GPL',
+        'md5': '24e756fb27e21338498b93e847492655',
+        'name': 'r-base',
+        'namespace': 'global',
+        'platform': 'linux',
+        'size': 21297871,
+        'subdir': 'linux-64',
+        'version': '3.1.2',
+    }
+    prec2 = PackageRecord.from_objects(prec.dump())
+    assert prec.dump() == prec2.dump()
+    assert prec2.name == 'r-base'
+    assert prec2.namespace == 'global'
+    assert prec2.legacy_name == 'r-base'
 
 
 def test_legacy_name_overrides_name():

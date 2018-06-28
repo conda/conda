@@ -378,8 +378,8 @@ class Field(object):
         self._nullable = nullable
         self._immutable = immutable
         self._aliases = aliases
-        if default is NULL:
-            self._default = NULL
+        if default is NULL or (isiterable(default) and not default):
+            self._default = default
         else:
             self._default = default if callable(default) else self.box(None, None, default)
             self.validate(None, self.box(None, None, maybecall(default)))

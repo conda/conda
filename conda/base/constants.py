@@ -10,11 +10,10 @@ Another important source of "static" configuration is conda/models/enums.py.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from enum import Enum
 from os.path import join
 
-from enum import Enum
-
-from ..common.compat import on_win
+from ..common.compat import itervalues, on_win
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
@@ -172,3 +171,22 @@ class UpdateModifier(Enum):
 # Magic files for permissions determination
 PACKAGE_CACHE_MAGIC_FILE = 'urls.txt'
 PREFIX_MAGIC_FILE = join('conda-meta', 'history')
+
+
+# TODO: should be frozendict(), but I don't want to import frozendict from auxlib here.
+NAMESPACES_MAP = {  # base package name, namespace
+    "python": "python",
+    "r": "r",
+    "r-base": "r",
+    "mro-base": "r",
+    "java": "java",
+    "openjdk": "java",
+    "ruby": "ruby",
+    "lua": "lua",
+    "nodejs": "nodejs",
+    "node": "nodejs",
+    "perl": "perl",
+}
+
+NAMESPACE_PACKAGE_NAMES = frozenset(NAMESPACES_MAP)
+NAMESPACES = frozenset(itervalues(NAMESPACES_MAP))
