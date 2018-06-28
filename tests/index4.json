@@ -33799,7 +33799,8 @@
     "build": "1",
     "build_number": 1,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -33824,7 +33825,8 @@
     "build_number": 2,
     "depends": [
       "libgcc",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -33923,7 +33925,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -33972,7 +33975,8 @@
     "build": "1",
     "build_number": 1,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "Perl",
     "machine": "x86_64",
@@ -33997,7 +34001,8 @@
     "build_number": 2,
     "depends": [
       "libgcc",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "Perl",
     "machine": "x86_64",
@@ -34022,7 +34027,8 @@
     "build_number": 3,
     "depends": [
       "libgcc",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "Perl",
     "machine": "x86_64",
@@ -34097,7 +34103,8 @@
     "build_number": 0,
     "depends": [
       "perl-http-date",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34121,7 +34128,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34145,7 +34153,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "unknown",
     "machine": "x86_64",
@@ -34202,7 +34211,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "unknown",
     "machine": "x86_64",
@@ -34228,7 +34238,8 @@
     "depends": [
       "perl-font-afm",
       "perl-html-tree",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34253,7 +34264,8 @@
     "build_number": 0,
     "depends": [
       "perl-html-tagset",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34303,7 +34315,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "unknown",
     "machine": "x86_64",
@@ -34353,7 +34366,8 @@
     "build_number": 1,
     "depends": [
       "perl-threaded",
-      "tidyp"
+      "tidyp",
+      "perl 5.22.0*"
     ],
     "license": "artistic_2",
     "machine": "x86_64",
@@ -34380,7 +34394,8 @@
       "perl-html-parser",
       "perl-html-tagset",
       "perl-libwww-perl",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34406,7 +34421,8 @@
     "depends": [
       "perl-http-date",
       "perl-http-message",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34433,7 +34449,8 @@
       "perl-http-date",
       "perl-http-message",
       "perl-lwp-mediatypes",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34457,7 +34474,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34511,7 +34529,8 @@
       "perl-io-html",
       "perl-lwp-mediatypes",
       "perl-threaded",
-      "perl-uri"
+      "perl-uri",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34536,7 +34555,8 @@
     "build_number": 0,
     "depends": [
       "perl-http-message",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34560,7 +34580,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34610,7 +34631,8 @@
     "build_number": 0,
     "depends": [
       "perl-net-ssleay",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34634,7 +34656,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34659,7 +34682,8 @@
     "build_number": 0,
     "depends": [
       "perl-io-tty",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34696,7 +34720,8 @@
       "perl-ntlm",
       "perl-threaded",
       "perl-uri",
-      "perl-www-robotrules"
+      "perl-www-robotrules",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34720,7 +34745,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34797,7 +34823,8 @@
     "depends": [
       "perl-io-socket-ssl",
       "perl-threaded",
-      "perl-uri"
+      "perl-uri",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34824,7 +34851,8 @@
       "libgcc",
       "openssl",
       "perl-threaded",
-      "zlib"
+      "zlib",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34851,7 +34879,8 @@
       "libgcc",
       "openssl",
       "perl-threaded",
-      "zlib"
+      "zlib",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34904,7 +34933,8 @@
     "build_number": 1,
     "depends": [
       "perl-digest-hmac",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34928,7 +34958,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "unknown",
     "machine": "x86_64",
@@ -34952,7 +34983,8 @@
     "build": "1",
     "build_number": 1,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -34977,7 +35009,8 @@
     "build_number": 2,
     "depends": [
       "libgcc",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35002,7 +35035,8 @@
     "build_number": 3,
     "depends": [
       "libgcc",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35050,7 +35084,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35075,7 +35110,8 @@
     "build_number": 1,
     "depends": [
       "libgcc",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35100,7 +35136,8 @@
     "build_number": 2,
     "depends": [
       "libgcc",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35149,7 +35186,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35198,7 +35236,9 @@
     },
     "build": "10",
     "build_number": 10,
-    "depends": [],
+    "depends": [
+      "perl 5.22.0*"
+    ],
     "license": "Perl",
     "machine": "x86_64",
     "md5": "768622219c110d0925cff1624c4e9bac",
@@ -35220,7 +35260,9 @@
     },
     "build": "8",
     "build_number": 8,
-    "depends": [],
+    "depends": [
+      "perl 5.22.0*"
+    ],
     "license": "Perl",
     "machine": "x86_64",
     "md5": "288089df14cfba208f263cd0f372b70b",
@@ -35242,7 +35284,9 @@
     },
     "build": "9",
     "build_number": 9,
-    "depends": [],
+    "depends": [
+      "perl 5.22.0*"
+    ],
     "license": "Perl",
     "machine": "x86_64",
     "md5": "8dcac5d34c81ffc67a386983ade87d98",
@@ -35315,7 +35359,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35365,7 +35410,8 @@
     "build_number": 1,
     "depends": [
       "perl-scalar-list-utils",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35391,7 +35437,8 @@
     "depends": [
       "libgcc",
       "perl-scalar-list-utils",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35417,7 +35464,8 @@
     "depends": [
       "libgcc",
       "perl-scalar-list-utils",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35491,7 +35539,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35541,7 +35590,8 @@
     "build_number": 0,
     "depends": [
       "perl-threaded",
-      "perl-uri"
+      "perl-uri",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35566,7 +35616,8 @@
     "build_number": 1,
     "depends": [
       "expat",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "Perl",
     "machine": "x86_64",
@@ -35592,7 +35643,8 @@
     "depends": [
       "expat",
       "libgcc",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "Perl",
     "machine": "x86_64",
@@ -35618,7 +35670,8 @@
     "depends": [
       "expat",
       "libgcc",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "Perl",
     "machine": "x86_64",
@@ -35645,7 +35698,8 @@
       "expat",
       "libgcc",
       "perl-libwww-perl",
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "Perl",
     "machine": "x86_64",
@@ -35702,7 +35756,8 @@
       "perl-threaded",
       "perl-tie-ixhash",
       "perl-xml-parser",
-      "perl-xml-xpathengine"
+      "perl-xml-xpathengine",
+      "perl 5.22.0*"
     ],
     "license": "perl_5",
     "machine": "x86_64",
@@ -35727,7 +35782,8 @@
     "build_number": 0,
     "depends": [
       "perl-threaded",
-      "perl-xml-parser"
+      "perl-xml-parser",
+      "perl 5.22.0*"
     ],
     "license": "artistic_2",
     "machine": "x86_64",
@@ -35751,7 +35807,8 @@
     "build": "0",
     "build_number": 0,
     "depends": [
-      "perl-threaded"
+      "perl-threaded",
+      "perl 5.22.0*"
     ],
     "license": "unknown",
     "machine": "x86_64",
@@ -39523,6 +39580,38 @@
     "subdir": "linux-64",
     "timestamp": 1526402950261,
     "version": "2.7.3"
+  },
+  "python-digest-1.1.1-py2_0.tar.bz2": {
+    "build": "py2_0",
+    "build_number": 0,
+    "depends": [
+      "python >=2,<3",
+      "cryptography <2.2"
+    ],
+    "license": "Proprietary",
+    "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+    "name": "digest",
+    "noarch": "python",
+    "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+    "size": 123,
+    "subdir": "noarch",
+    "version": "1.1.1"
+  },
+  "python-digest-1.1.1-py3_0.tar.bz2": {
+    "build": "py3_0",
+    "build_number": 0,
+    "depends": [
+      "python >=3,<4",
+      "cryptography <2.2"
+    ],
+    "license": "Proprietary",
+    "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+    "name": "digest",
+    "noarch": "python",
+    "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+    "size": 123,
+    "subdir": "noarch",
+    "version": "1.1.1"
   },
   "python-graphviz-0.8.2-py27_0.tar.bz2": {
     "build": "py27_0",

@@ -684,9 +684,8 @@ class CondaIndexError(CondaError, IndexError):
 
 
 class CondaValueError(CondaError, ValueError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(CondaValueError, self).__init__(msg)
+    def __init__(self, message, *args, **kwargs):
+        super(CondaValueError, self).__init__(message, *args, **kwargs)
 
 
 class CondaTypeError(CondaError, TypeError):

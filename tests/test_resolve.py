@@ -746,7 +746,7 @@ def test_unintentional_feature_downgrade():
     good_rec_match = MatchSpec("channel-1::scipy==0.11.0=np17py33_3")
     good_rec = next(prec for prec in itervalues(index) if good_rec_match.match(prec))
     bad_deps = tuple(d for d in good_rec.depends
-                     if not d.startswith('numpy'))
+                     if not d.name == 'numpy')
     bad_rec = PackageRecord.from_objects(good_rec,
                                          build=good_rec.build.replace('_3','_x0'),
                                          build_number=0, depends=bad_deps,

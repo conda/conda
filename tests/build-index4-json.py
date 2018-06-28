@@ -7,6 +7,18 @@ from conda.common.compat import itervalues
 
 
 def main():
+    """
+
+    Goals for this set of repodata:
+
+    * global:graphviz, python:graphviz, r:graphviz, and perl:graphviz packages
+    * python:digest and r:digest packages
+    * sqlite-3.20.1-haaaaaaa_4 has a deep cyclical dependency
+    * python-3.6.2-hda45abc_19 has a later hash, but earlier timestamp than python-3.6.2-hca45abc_19
+    * contains conda packages that constrain versions of conda-build
+
+    """
+
     keep = {}
 
     r0 = requests.get('https://repo.anaconda.com/pkgs/free/linux-64/repodata.json')
@@ -596,14 +608,13 @@ def main():
         print(">>> missing 6 <<<")
         pprint(missing_in_whitelist)
 
-    # patch 'perl-graphviz' to include an explicit dependency on perl, as from the 'perl-threaded' package
-    perl_info_dicts = tuple(info for info in _keep.values() if info['name'] == 'perl-graphviz')
-    assert len(perl_info_dicts) == 1, perl_info_dicts
+    # patch 'perl-*' to include an explicit dependency on perl, as from the 'perl-threaded' package
+    perl_info_dicts = tuple(info for info in _keep.values() if info['name'].startswith('perl-'))
     for info in perl_info_dicts:
-        info['depends'].append('perl 5.22.0*')
+        if not any(dep.startswith("perl ") for dep in info['depends']):
+            info['depends'].append('perl 5.22.0*')
 
     keep.update(_keep)
-
 
 
     additional_records = {
@@ -648,9 +659,46 @@ def main():
             "timestamp": 1505666646842,
             "version": "3.20.1"
         },
+        "python-digest-1.1.1-py2_0.tar.bz2": {
+            "build": "py2_0",
+            "build_number": 0,
+            "depends": [
+                "python >=2,<3",
+                "cryptography <2.2",
+            ],
+            "license": "Proprietary",
+            "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+            "name": "digest",
+            "noarch": "python",
+            "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+            "size": 123,
+            "subdir": "noarch",
+            "version": "1.1.1",
+        },
+        "python-digest-1.1.1-py3_0.tar.bz2": {
+            "build": "py3_0",
+            "build_number": 0,
+            "depends": [
+                "python >=3,<4",
+                "cryptography <2.2",
+            ],
+            "license": "Proprietary",
+            "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+            "name": "digest",
+            "noarch": "python",
+            "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+            "size": 123,
+            "subdir": "noarch",
+            "version": "1.1.1",
+        },
     }
 
     keep.update(additional_records)
+
+    python_362_records = tuple(info for info in _keep.values()
+                           if info['name'] == "python" and info["version"] == "3.6.2")
+    assert not any(info["build_number"] > 19 for info in python_362_records)
+
 
 
     all_package_names = set(info['name'] for info in itervalues(keep))

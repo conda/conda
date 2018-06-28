@@ -29,7 +29,6 @@ from ..models.channel import Channel
 from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
-from ..models.records import NAMESPACE_PACKAGES
 from ..models.specs_group import SpecsGroup
 from ..models.version import VersionOrder
 from ..resolve import Resolve, dashlist
