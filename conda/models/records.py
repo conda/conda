@@ -28,6 +28,7 @@ from os.path import basename, join
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
 from .match_spec import MatchSpec
+from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
                                      StringField)
@@ -35,6 +36,11 @@ from ..base.constants import NAMESPACES_MAP, NAMESPACE_PACKAGE_NAMES
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
 from ..exceptions import PathNotFoundError
+
+try:
+    from cytoolz.itertoolz import concatv
+except ImportError:  # pragma: no cover
+    from .._vendor.toolz.itertoolz import concatv  # NOQA
 
 
 class LinkTypeField(EnumField):
@@ -352,6 +358,17 @@ class PackageRecord(DictSafeMixin, Entity):
             MatchSpec(spec, optional=True) for spec in self.constrains or ()
         )})
         return tuple(itervalues(result))
+
+    @memoizedproperty
+    def ms_depends(self):
+        result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}
+        result.update({ms.name: ms for ms in MatchSpec.merge(
+            MatchSpec(spec, optional=True) for spec in self.constrains or ()
+        )})
+        return tuple(concatv(
+            itervalues(result),
+            (MatchSpec(track_features=feat) for feat in self.features),
+        ))
 
     namespace = NamespaceField()
     name = NameField()

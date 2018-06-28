@@ -56,7 +56,6 @@ class Resolve(object):
         self.groups = groups  # Dict[package_name, List[PackageRecord]]
         self.trackers = trackers  # Dict[track_feature, List[PackageRecord]]
         self.find_matches_ = {}  # Dict[MatchSpec, List[PackageRecord]]
-        self.ms_depends_ = {}  # Dict[PackageRecord, List[MatchSpec]]
         self._reduced_index_cache = {}
 
         if sort:
@@ -104,7 +103,7 @@ class Resolve(object):
             val = filter.get(prec)
             if val is None:
                 filter[prec] = True
-                val = filter[prec] = all(v_ms_(ms) for ms in self.ms_depends(prec))
+                val = filter[prec] = all(v_ms_(ms) for ms in prec.ms_depends)
             return val
 
         result = v_(spec_or_prec)
@@ -138,7 +137,7 @@ class Resolve(object):
             precs = self.find_matches(spec)
             found = False
             for prec in precs:
-                for m2 in self.ms_depends(prec):
+                for m2 in prec.ms_depends:
                     for x in chains_(m2, names):
                         found = True
                         yield (spec,) + x
@@ -215,10 +214,10 @@ class Resolve(object):
             while slist:
                 ms2 = slist.pop()
                 deps = rec.setdefault(ms2.name, set())
-                for fkey in self.find_matches(ms2):
-                    if fkey not in deps:
-                        deps.add(fkey)
-                        slist.extend(ms3 for ms3 in self.ms_depends(fkey) if ms3.name != ms.name)
+                for prec in self.find_matches(ms2):
+                    if prec not in deps:
+                        deps.add(prec)
+                        slist.extend(ms3 for ms3 in prec.ms_depends if ms3.name != ms.name)
 
         # Find the list of dependencies they have in common. And for each of
         # *those*, find the individual packages that they all share. Those need
@@ -272,13 +271,13 @@ class Resolve(object):
             # Prune packages that don't match any of the patterns
             # or which have unsatisfiable dependencies
             nold = nnew = 0
-            for fkey in group:
-                if filter.setdefault(fkey, True):
+            for prec in group:
+                if filter.setdefault(prec, True):
                     nold += 1
-                    sat = (self.match_any(matches, fkey) and
+                    sat = (self.match_any(matches, prec) and
                            all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
-                               for ms in self.ms_depends(fkey)))
-                    filter[fkey] = sat
+                               for ms in prec.ms_depends))
+                    filter[prec] = sat
                     nnew += sat
 
             reduced = nnew < nold
@@ -298,9 +297,9 @@ class Resolve(object):
             if reduced or name not in snames:
                 snames.add(name)
                 cdeps = {}
-                for fkey in group:
-                    if filter.get(fkey, True):
-                        for m2 in self.ms_depends(fkey):
+                for prec in group:
+                    if filter.get(prec, True):
+                        for m2 in prec.ms_depends:
                             if m2.get_exact_value('name') and not m2.optional:
                                 cdeps.setdefault(m2.name, []).append(m2)
                 for deps in itervalues(cdeps):
@@ -345,7 +344,7 @@ class Resolve(object):
             for prec in self.find_matches(this_spec):
                 if reduced_index.get(prec) is None and self.valid(prec, filter):
                     reduced_index[prec] = prec
-                    for ms in self.ms_depends(prec):
+                    for ms in prec.ms_depends:
                         # We do not pull packages into the reduced index due
                         # to a track_features dependency. Remember, a feature
                         # specifies a "soft" dependency: it must be in the
@@ -383,15 +382,6 @@ class Resolve(object):
             res = [p for p in res if self.match(ms, p)]
             self.find_matches_[ms] = res
         return res
-
-    def ms_depends(self, prec):
-        # type: (PackageRecord) -> List[MatchSpec]
-        deps = self.ms_depends_.get(prec)
-        if deps is None:
-            deps = [MatchSpec(d) for d in prec.combined_depends]
-            deps.extend(MatchSpec(track_features=feat) for feat in prec.features)
-            self.ms_depends_[prec] = deps
-        return deps
 
     def version_key(self, prec, vtype=None):
         channel = prec.channel
@@ -498,7 +488,7 @@ class Resolve(object):
         # If a package is installed, its dependencies must be as well
         for prec in itervalues(self.index):
             nkey = C.Not(self.to_sat_name(prec))
-            for ms in self.ms_depends(prec):
+            for ms in prec.ms_depends:
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
         log.debug("gen_clauses returning with clause count: %s", len(C.clauses))
@@ -613,7 +603,7 @@ class Resolve(object):
         digraph = {}  # Dict[package_name, Set[dependent_package_names]]
         for package_name, prec in iteritems(must_have):
             if prec in self.index:
-                digraph[package_name] = set(ms.name for ms in self.ms_depends(prec))
+                digraph[package_name] = set(ms.name for ms in prec.ms_depends)
 
         # There are currently at least three special cases to be aware of.
         # 1. The `toposort()` function, called below, contains special case code to remove
@@ -695,8 +685,8 @@ class Resolve(object):
             def get_(name, snames):
                 if name not in snames:
                     snames.add(name)
-                    for fn in self.groups.get(name, []):
-                        for ms in self.ms_depends(fn):
+                    for prec in self.groups.get(name, []):
+                        for ms in prec.ms_depends:
                             get_(ms.name, snames)
             # New addition: find the largest set of installed packages that
             # are consistent with each other, and include those in the

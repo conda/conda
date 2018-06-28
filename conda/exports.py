@@ -441,6 +441,10 @@ def is_linked(prefix, dist):
 
 class Resolve(_Resolve):
 
+    def __init__(self, index, sort=False, processed=False, channels=()):
+        super(Resolve, self).__init__(index, sort, processed, channels)
+        self.ms_depends_ = {}  # Dict[PackageRecord, List[MatchSpec]]
+
     def restore_bad(self, pkgs, preserve):
         if preserve:
             sdict = {prec.name: prec for prec in pkgs}
@@ -512,3 +516,12 @@ class Resolve(_Resolve):
         pkgs = self.solve(specs, _remove=True)
         self.restore_bad(pkgs, preserve)
         return pkgs
+
+    def ms_depends(self, prec):
+        # type: (PackageRecord) -> List[MatchSpec]
+        deps = self.ms_depends_.get(prec)
+        if deps is None:
+            deps = [MatchSpec(d) for d in prec.combined_depends]
+            deps.extend(MatchSpec(track_features=feat) for feat in prec.features)
+            self.ms_depends_[prec] = deps
+        return deps
