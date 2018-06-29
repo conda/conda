@@ -35,9 +35,10 @@ from .constants import NULL
 from .path import expand
 from .serialize import yaml_load
 from .. import CondaError, CondaMultiError
-from .._vendor.auxlib.collection import AttrDict, first, frozendict, last, make_immutable
+from .._vendor.auxlib.collection import AttrDict, first, last, make_immutable
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
+from .._vendor.frozendict import frozendict
 from .._vendor.boltons.setutils import IndexedSet
 
 try:  # pragma: no cover
@@ -648,7 +649,7 @@ class MapParameter(Parameter):
     """Parameter type for a Configuration class that holds a map (i.e. dict) of python
     primitive values.
     """
-    _type = dict
+    _type = frozendict
 
     def __init__(self, element_type, default=None, aliases=(), validation=None):
         """
@@ -661,7 +662,8 @@ class MapParameter(Parameter):
 
         """
         self._element_type = element_type
-        super(MapParameter, self).__init__(default or dict(), aliases, validation)
+        default = default and frozendict(default) or frozendict()
+        super(MapParameter, self).__init__(default, aliases, validation)
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(MapParameter, self).collect_errors(instance, value)
@@ -692,8 +694,8 @@ class MapParameter(Parameter):
                                for match, match_value in relevant_matches_and_values)
         # dump all matches in a dict
         # then overwrite with important matches
-        return merge(concatv((v for _, v in relevant_matches_and_values),
-                             reversed(important_maps)))
+        return frozendict(merge(concatv((v for _, v in relevant_matches_and_values),
+                                        reversed(important_maps))))
 
     def repr_raw(self, raw_parameter):
         lines = list()

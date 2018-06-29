@@ -11,7 +11,8 @@ import re
 
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
-from .._vendor.auxlib.collection import frozendict
+from .._vendor.auxlib.decorators import memoizedproperty
+from .._vendor.frozendict import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION, NAMESPACES
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
@@ -300,7 +301,7 @@ class MatchSpec(object):
             builder.append("optional=True")
         if self.target:
             builder.append("target=%r" % self.target)
-        return "%s(%s)" % (self.__class__.__name__, ', '.join(builder))
+        return '%s("%s")' % (self.__class__.__name__, self)
 
     def __str__(self):
         builder = []
@@ -400,25 +401,19 @@ class MatchSpec(object):
 
     def __eq__(self, other):
         if isinstance(other, MatchSpec):
-            self_key = self._match_components, self.optional, self.target
-            other_key = other._match_components, other.optional, other.target
-            return self_key == other_key
+            return self._hash_key == other._hash_key
         else:
             return False
 
     def __hash__(self):
-        return hash((self._match_components, self.optional, self.target))
+        return hash(self._hash_key)
+
+    @memoizedproperty
+    def _hash_key(self):
+        return self._match_components, self.optional, self.target
 
     def __contains__(self, field):
         return field in self._match_components
-
-    @property
-    def _namekey(self):
-        namespace = self.get_exact_value('namespace')
-        if namespace:
-            return "%s:%s" % (namespace, self.name)
-        else:
-            return self.name
 
     @staticmethod
     def _build_components(**kwargs):

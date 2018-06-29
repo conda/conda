@@ -236,8 +236,10 @@ class Solver(object):
                 rec_has_a_feature = set(rec.features or ()) & feature_names
                 if rec_has_a_feature and specs_group_from_history.get_specs_by_name(rec.name):
                     for spec in specs_group.get_matches(rec):
-                        new_spec = MatchSpec(spec)
-                        new_spec._match_components.pop('features', None)
+                        match_components = dict(spec._match_components)
+                        match_components.pop('features', None)
+                        new_spec = MatchSpec(optional=spec.optional, target=spec.target,
+                                             **match_components)
                         specs_group.add(new_spec)
                 else:
                     specs_group.remove_record_match(rec)
