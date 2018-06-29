@@ -1,8 +1,16 @@
-## 4.5.4 (unreleased)
+## 4.5.5 (2018-06-29)
 
 ### Bug Fixes
 * fix #7165 conda version check should be restricted to channel conda is from (#7289, #7303)
 * fix #7341 ValueError n cannot be negative (#7360)
+* fix #6691 fix history file parsing containing comma-joined version specs (#7418)
+* fix msys2 path conversion (#7471)
+
+### Contributors
+* @goanpeca
+* @kalefranz
+* @mingwandroid
+* @mbargull
 
 
 ## 4.5.4 (2018-05-14)
