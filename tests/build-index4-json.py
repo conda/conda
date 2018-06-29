@@ -16,6 +16,7 @@ def main():
     * sqlite-3.20.1-haaaaaaa_4 has a deep cyclical dependency
     * python-3.6.2-hda45abc_19 has a later hash, but earlier timestamp than python-3.6.2-hca45abc_19
     * contains conda packages that constrain versions of conda-build
+    * ibis-framework depends on python:graphviz
 
     """
 
@@ -301,6 +302,17 @@ def main():
         'libtool',
 
         'python-graphviz',
+
+        'ibis-framework',
+        'impyla',
+        'thriftpy',
+        'thrift',
+        'psycopg2',
+        'sqlalchemy',
+        'multipledispatch',
+        'ply',
+        'libpq',
+        'bitarray',
 
     )
     _keep = {}

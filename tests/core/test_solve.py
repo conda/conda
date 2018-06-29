@@ -1463,7 +1463,7 @@ def test_remove_with_constrained_dependencies():
             'channel-4::libedit-3.1.20170329-h6b74fdf_2',
             'channel-4::readline-7.0-ha6073c6_4',
             'channel-4::sqlite-3.24.0-h84994c4_0',
-            'channel-4::python-3.6.5-hc3d631a_2',
+            'channel-4::python-3.6.6-hc3d631a_0',
             'channel-4::asn1crypto-0.24.0-py36_0',
             'channel-4::beautifulsoup4-4.6.0-py36h49b8c8c_1',
             'channel-4::certifi-2018.4.16-py36_0',
@@ -1489,7 +1489,7 @@ def test_remove_with_constrained_dependencies():
             'channel-4::urllib3-1.23-py36_0',
             'channel-4::requests-2.19.1-py36_0',
             'channel-4::conda-4.5.4-py36_0',
-            'channel-4::conda-build-3.10.9-py36_0',
+            'channel-4::conda-build-3.10.9-py36_0'
         )
         assert convert_to_dist_str(link_dists_1) == order
 
