@@ -47,7 +47,8 @@ def execute(args, parser):
         name = args.list[0]
         files = get_package_files(prefix, name)
         if files:
-            for path in files: print(path)
+            for path in files:
+                print(path)
         return
 
     if args.which:
