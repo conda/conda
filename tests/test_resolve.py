@@ -817,7 +817,6 @@ def test_circular_dependencies():
     ]
 
 
-@pytest.mark.skipif(datetime.now() < datetime(2018, 7, 10), reason="talk with @mcg1969")
 def test_optional_dependencies():
     index2 = index1.copy()
     p1 = PackageRecord(**{
@@ -828,8 +827,8 @@ def test_optional_dependencies():
         'build': '0',
         'build_number': 0,
         'constrains': ['package2 >1.0'],
+        'depends': ['package2'],
         'name': 'package1',
-        'requires': ['package2'],
         'version': '1.0',
     })
     p2 = PackageRecord(**{
@@ -841,7 +840,6 @@ def test_optional_dependencies():
         'build_number': 0,
         'depends': [],
         'name': 'package2',
-        'requires': [],
         'version': '1.0',
     })
     p3 = PackageRecord(**{
@@ -853,11 +851,17 @@ def test_optional_dependencies():
         'build_number': 0,
         'depends': [],
         'name': 'package2',
-        'requires': [],
         'version': '2.0',
     })
     index2.update({p1: p1, p2: p2, p3: p3})
     r = Resolve(index2)
+
+    assert convert_to_record_id(r.solve(['package1'])) == ('defaults:global:package1-1.0-0',)
+    assert convert_to_record_id(r.solve(['package2'])) == ('defaults:global:package2-2.0-0',)
+    assert convert_to_record_id(r.solve(['package1', 'package2'])) == (
+        'defaults:global:package1-1.0-0',
+        'defaults:global:package2-2.0-0',
+    )
 
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
         'defaults::package1-1.0-0',
@@ -866,20 +870,20 @@ def test_optional_dependencies():
         'defaults::package1-1.0-0',
         'defaults::package2-2.0-0',
     }
-    result = r.install(['package1'])
+    result = r.solve(['package1'])
     result = [rec.dist_str() for rec in result]
     assert result == [
         'defaults::package1-1.0-0',
     ]
-    result = r.install(['package1', 'package2'])
-    assert result == r.install(['package1', 'package2 >1.0'])
+    result = r.solve(['package1', 'package2'])
+    assert result == r.solve(['package1', 'package2 >1.0'])
     result = [rec.dist_str() for rec in result]
     assert result == [
         'defaults::package1-1.0-0',
         'defaults::package2-2.0-0',
     ]
-    assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 <2.0']))
-    assert raises(UnsatisfiableError, lambda: r.install(['package1', 'package2 1.0']))
+    assert raises(UnsatisfiableError, lambda: r.solve(['package1', 'package2 <2.0']))
+    assert raises(UnsatisfiableError, lambda: r.solve(['package1', 'package2 1.0']))
 
 
 def test_irrational_version():

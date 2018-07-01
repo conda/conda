@@ -9181,6 +9181,7 @@
     "depends": [],
     "md5": "658f3f1dec0c10511aa081f30354e599",
     "name": "mkl",
+    "namespace": "python",
     "requires": [],
     "version": "10.3"
   },
@@ -9190,6 +9191,7 @@
     "depends": [],
     "md5": "b14c96aefddc5d92635362f9b094ec9b",
     "name": "mkl",
+    "namespace": "python",
     "pub_date": "2013-01-14",
     "requires": [],
     "version": "10.3"
@@ -9200,6 +9202,7 @@
     "depends": [],
     "md5": "f1e3abe18b3c0788421736baa1b50d20",
     "name": "mkl",
+    "namespace": "python",
     "pub_date": "2013-03-04",
     "requires": [],
     "version": "10.3"

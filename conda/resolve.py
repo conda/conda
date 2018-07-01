@@ -480,6 +480,9 @@ class Resolve(object):
         return '@fm@%s@%s' % (prec_sat_name, feat)
 
     def push_MatchSpec(self, C, spec):
+        # Will need @mcg1969 to do a full review of this method, referencing the state at his last major change  # NOQA
+        # at https://github.com/conda/conda/blob/499d3b3d17853fe01f67055b739dc0abbf517cc1/conda/resolve.py#L437-L468  # NOQA
+
         spec = MatchSpec(spec)
         sat_name = self.to_sat_name(spec)
         m = C.from_name(sat_name)
@@ -489,12 +492,15 @@ class Resolve(object):
 
         simple = spec._is_single()
         package_name = spec.get_exact_value('name')
+        namespace = spec.get_exact_value('namespace')
         tf = frozenset(_tf for _tf in (
             f.strip() for f in spec.get_exact_value('track_features') or ()
         ) if _tf)
 
         if package_name:
             group = libs = self.groups.get(package_name, [])
+            if namespace:
+                group = libs = [prec for prec in libs if prec.namespace == namespace]
         elif tf:
             assert len(tf) == 1
             k = next(iter(tf))
@@ -506,22 +512,27 @@ class Resolve(object):
             libs = [prec for prec in group if spec.match(prec)]
 
         # Ensure specs are only representative of a single namespace.
-        namespaces = set(prec.namespace for prec in libs)
-        if len(namespaces) > 1:
-            # TODO: turn this back into an error
-            log.warning("'%s' matches packages for multiple namespaces: %s", spec, namespaces)
+        if not tf:
+            namespaces = set(prec.namespace for prec in libs)
+            if not libs:
+                namespace = None
+            elif len(namespaces) > 1:
+                raise ValueError("'%s' matches packages for multiple namespaces: %s", spec, namespaces)
+            else:
+                namespace, = namespaces
 
         if len(libs) == len(group):
             if spec.optional:
                 m = True
             elif not simple:
-                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(package_name)
+                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(namespace=namespace,
+                                                                        name=package_name)
                 m = C.from_name(self.push_MatchSpec(C, ms2))
         if m is None:
-            # the spec ms2 has not been pushed onto the clauses stack
             sat_names = [self.to_sat_name(prec) for prec in libs]
             if spec.optional:
-                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(package_name)
+                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(namespace=namespace,
+                                                                        name=package_name)
                 sat_names.append('!' + self.to_sat_name(ms2))
             m = C.Any(sat_names)
         C.name_var(m, sat_name)
