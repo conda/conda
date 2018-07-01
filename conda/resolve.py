@@ -4,8 +4,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
-from functools import partial
-from itertools import chain
 from logging import DEBUG, getLogger
 
 from .base.constants import MAX_CHANNEL_PRIORITY

@@ -165,7 +165,8 @@ class SpecsGroup(object):
         if not ambiguous_cases:
             return
 
-        namespace_sets = tuple(set(spec.namespace for spec in case) for case in itervalues(ambiguous_cases))
+        namespace_sets = tuple(set(spec.namespace for spec in case)
+                               for case in itervalues(ambiguous_cases))
         intersecting_namespaces = set.intersection(*namespace_sets) & all_required_namespaces
         if not intersecting_namespaces:
             intersecting_namespaces = set.intersection(*namespace_sets) & {"global"}

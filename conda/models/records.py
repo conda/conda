@@ -22,7 +22,6 @@
 
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from os.path import basename, join
 
@@ -214,7 +213,8 @@ class NamespaceField(StringField):
             try:
                 return instance._cached_namespace
             except AttributeError:
-                spaces = {MatchSpec(spec).name for spec in instance.depends} & NAMESPACE_PACKAGE_NAMES
+                depends_names = {MatchSpec(spec).name for spec in instance.depends}
+                spaces = depends_names & NAMESPACE_PACKAGE_NAMES
                 if len(spaces) == 1:
                     instance._cached_namespace = namespace = NAMESPACES_MAP[spaces.pop()]
                 else:
@@ -340,7 +340,8 @@ class PackageRecord(DictSafeMixin, Entity):
         return self._pkey == other._pkey
 
     def dist_str(self):
-        return "%s::%s-%s-%s" % (self.channel.canonical_name, self.legacy_name, self.version, self.build)
+        return "%s::%s-%s-%s" % (self.channel.canonical_name, self.legacy_name,
+                                 self.version, self.build)
 
     def record_id(self):
         return "%s:%s:%s-%s-%s" % (self.channel.canonical_name, self.namespace,
@@ -386,10 +387,6 @@ class PackageRecord(DictSafeMixin, Entity):
     name = NameField()
     legacy_name = LegacyNameField()
 
-    @property
-    def _namekey(self):
-        return "%s:%s" % (self.namespace, self.name)
-
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
 
@@ -403,11 +400,6 @@ class PackageRecord(DictSafeMixin, Entity):
     package_type = PackageTypeField()
 
     timestamp = TimestampField(required=False)
-
-
-
-# conflicting attribute due to subdir on both IndexJsonRecord and PackageRef
-# probably unavoidable for now
 
     # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
     # PackageCacheRecord (`pcrec`) or PrefixRecord (`prefix_rec`)

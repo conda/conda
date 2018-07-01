@@ -701,7 +701,7 @@ def _parse_spec_str(spec_str):
             namespace_prefix, reduced_name = name.split('-', 1)
             if namespace_prefix in NAMESPACES:
                 if namespace is None or namespace == namespace_prefix:
-                    legacy_name = name
+                    legacy_name = name  # NOQA
                     name = reduced_name
                     namespace = namespace_prefix
     else:
