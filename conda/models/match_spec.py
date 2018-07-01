@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import Mapping
 from functools import reduce
+from operator import attrgetter
 from os.path import basename
 import re
 
@@ -16,6 +17,7 @@ from .._vendor.frozendict import frozendict
 from ..base.constants import CONDA_TARBALL_EXTENSION, NAMESPACES
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
+from ..common.io import dashlist
 from ..common.path import expand
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError
@@ -493,17 +495,23 @@ class MatchSpec(object):
     @classmethod
     def merge(cls, match_specs):
         match_specs = tuple(cls(s) for s in match_specs if s)
-        grouped = groupby(lambda spec: spec.get_exact_value('name'), match_specs)
-        dont_merge_these = grouped.pop('*', []) + grouped.pop(None, [])
+        name_groups = groupby(attrgetter('name'), match_specs)
+        unmergeable = name_groups.pop('*', []) + name_groups.pop(None, [])
 
-        # for name, group in iteritems(grouped):
-        #     _grouped = groupby(lambda spec: spec.get_exact_value('namespace'), grouped)
-
-        specs_map = {
-            name: reduce(lambda x, y: x._merge(y), specs) if len(specs) > 1 else specs[0]
-            for name, specs in iteritems(grouped)
-        }
-        return tuple(concatv(itervalues(specs_map), dont_merge_these))
+        merged_specs = []
+        mergeable_groups = tuple(concat(
+            itervalues(groupby(lambda s: (s.namespace, s.optional), group))
+            for group in itervalues(name_groups)
+        ))
+        for group in mergeable_groups:
+            target_groups = groupby(attrgetter('target'), group)
+            target_groups.pop(None, None)
+            if len(target_groups) > 1:
+                raise ValueError("Incompatible MatchSpec merge:%s" % dashlist(group))
+            merged_specs.append(
+                reduce(lambda x, y: x._merge(y), group) if len(group) > 1 else group[0]
+            )
+        return tuple(concatv(merged_specs, unmergeable))
 
     def _merge(self, other):
         if self.optional != other.optional or self.target != other.target:

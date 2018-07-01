@@ -1,10 +1,12 @@
 from __future__ import absolute_import, print_function
 
+from pprint import pprint
 import unittest
 
 from datetime import datetime
 import pytest
 
+from conda._vendor.toolz.itertoolz import concat
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import env_var
@@ -15,10 +17,18 @@ from conda.models.records import PackageRecord
 from conda.models.match_spec import MatchSpec
 from conda.resolve import ResolvePackageNotFound
 
-from .helpers import get_index_r_1, raises
+from .helpers import get_index_r_1, raises, get_index_r_4
 
-index, r, = get_index_r_1()
+index1, r1, = get_index_r_1()
 f_mkl = set(['mkl'])
+
+
+def format_filter(filter):
+    return {prec.record_id(): is_valid for prec, is_valid in iteritems(filter)}
+
+
+def convert_to_record_id(solution):
+    return tuple(prec.record_id() for prec in solution)
 
 
 class TestSolve(unittest.TestCase):
@@ -51,7 +61,7 @@ class TestSolve(unittest.TestCase):
     #     self.assertEqual(r.explicit(['pycosat 0.6.0 notarealbuildstring']), None)
 
     def test_empty(self):
-        self.assertEqual(r.install([]), [])
+        self.assertEqual(r1.install([]), [])
 
     # def test_anaconda_14(self):
     #     specs = ['anaconda 1.4.0 np17py33_0']
@@ -63,7 +73,7 @@ class TestSolve(unittest.TestCase):
     #     self.assertEqual(r.install(specs), res)
 
     def test_iopro_nomkl(self):
-        installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], returnall=True)
+        installed = r1.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*'], returnall=True)
         installed = [rec.dist_str() for rec in installed]
         assert installed == [
             'channel-1::iopro-1.4.3-np17py27_p0',
@@ -79,7 +89,7 @@ class TestSolve(unittest.TestCase):
         ]
 
     def test_iopro_mkl(self):
-        installed = r.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')], returnall=True)
+        installed = r1.install(['iopro 1.4*', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')], returnall=True)
         installed = [prec.dist_str() for prec in installed]
         assert installed == [
             'channel-1::iopro-1.4.3-np17py27_p0',
@@ -96,23 +106,23 @@ class TestSolve(unittest.TestCase):
         ]
 
     def test_mkl(self):
-        a = r.install(['mkl 11*', MatchSpec(track_features='mkl')])
-        b = r.install(['mkl'])
+        a = r1.install(['mkl 11*', MatchSpec(track_features='mkl')])
+        b = r1.install(['mkl'])
         assert a == b
 
     def test_accelerate(self):
         self.assertEqual(
-            r.install(['accelerate']),
-            r.install(['accelerate', MatchSpec(track_features='mkl')]))
+            r1.install(['accelerate']),
+            r1.install(['accelerate', MatchSpec(track_features='mkl')]))
 
     def test_scipy_mkl(self):
-        precs = r.install(['scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')])
+        precs = r1.install(['scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')])
         self.assert_have_mkl(precs, ('numpy', 'scipy'))
         dist_strs = [prec.dist_str() for prec in precs]
         assert 'channel-1::scipy-0.12.0-np17py27_p0' in dist_strs
 
     def test_anaconda_nomkl(self):
-        precs = r.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
+        precs = r1.install(['anaconda 1.5.0', 'python 2.7*', 'numpy 1.7*'])
         assert len(precs) == 107
         dist_strs = [prec.dist_str() for prec in precs]
         assert 'channel-1::scipy-0.12.0-np17py27_0' in dist_strs
@@ -120,7 +130,7 @@ class TestSolve(unittest.TestCase):
 
 def test_pseudo_boolean():
     # The latest version of iopro, 1.5.0, was not built against numpy 1.5
-    installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True)
+    installed = r1.install(['iopro', 'python 2.7*', 'numpy 1.5*'], returnall=True)
     installed = [rec.dist_str() for rec in installed]
     assert installed == [
         'channel-1::iopro-1.4.3-np15py27_p0',
@@ -135,7 +145,7 @@ def test_pseudo_boolean():
         'channel-1::zlib-1.2.7-0',
     ]
 
-    installed = r.install(['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')], returnall=True)
+    installed = r1.install(['iopro', 'python 2.7*', 'numpy 1.5*', MatchSpec(track_features='mkl')], returnall=True)
     installed = [rec.dist_str() for rec in installed]
     assert installed == [
         'channel-1::iopro-1.4.3-np15py27_p0',
@@ -153,14 +163,14 @@ def test_pseudo_boolean():
 
 
 def test_get_dists():
-    reduced_index = r.get_reduced_index(["anaconda 1.5.0"])
+    reduced_index = r1.get_reduced_index(["anaconda 1.5.0"])
     dist_strs = [prec.dist_str() for prec in reduced_index]
     assert 'channel-1::anaconda-1.5.0-np17py27_0' in dist_strs
     assert 'channel-1::dynd-python-0.3.0-np17py33_0' in dist_strs
 
 
 def test_generate_eq_1():
-    reduced_index = r.get_reduced_index(['anaconda'])
+    reduced_index = r1.get_reduced_index(['anaconda'])
     r2 = Resolve(reduced_index, True, True)
     C = r2.gen_clauses()
     eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
@@ -394,17 +404,17 @@ def test_generate_eq_1():
 
 def test_unsat():
     # scipy 0.12.0b1 is not built for numpy 1.5, only 1.6 and 1.7
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'scipy 0.12.0b1']))
+    assert raises(UnsatisfiableError, lambda: r1.install(['numpy 1.5*', 'scipy 0.12.0b1']))
     # numpy 1.5 does not have a python 3 package
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'python 3*']))
-    assert raises(UnsatisfiableError, lambda: r.install(['numpy 1.5*', 'numpy 1.6*']))
+    assert raises(UnsatisfiableError, lambda: r1.install(['numpy 1.5*', 'python 3*']))
+    assert raises(UnsatisfiableError, lambda: r1.install(['numpy 1.5*', 'numpy 1.6*']))
 
 
 def test_nonexistent():
-    assert not r.find_matches(MatchSpec('notarealpackage 2.0*'))
-    assert raises(ResolvePackageNotFound, lambda: r.install(['notarealpackage 2.0*']))
+    assert not r1.find_matches(MatchSpec('notarealpackage 2.0*'))
+    assert raises(ResolvePackageNotFound, lambda: r1.install(['notarealpackage 2.0*']))
     # This exact version of NumPy does not exist
-    assert raises(ResolvePackageNotFound, lambda: r.install(['numpy 1.5']))
+    assert raises(ResolvePackageNotFound, lambda: r1.install(['numpy 1.5']))
 
 
 def test_timestamps_and_deps():
@@ -412,7 +422,7 @@ def test_timestamps_and_deps():
     # it will force unnecessary changes to dependencies. Timestamp maximization needs
     # to be done at low priority so that conda is free to consider packages with the
     # same version and build that are most compatible with the installed environment.
-    index2 = {key: value for key, value in iteritems(index)}
+    index2 = {key: value for key, value in iteritems(index1)}
     mypackage1 = PackageRecord(**{
         'build': 'hash12_0',
         'build_number': 0,
@@ -452,7 +462,7 @@ def test_timestamps_and_deps():
     assert installed2 == installed5
 
 def test_nonexistent_deps():
-    index2 = index.copy()
+    index2 = index1.copy()
     p1 = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
@@ -578,7 +588,7 @@ def test_nonexistent_deps():
     ]
 
     # This time, the latest version is messed up
-    index3 = index.copy()
+    index3 = index1.copy()
     p5 = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
@@ -705,7 +715,7 @@ def test_nonexistent_deps():
 
 
 def test_install_package_with_feature():
-    index2 = index.copy()
+    index2 = index1.copy()
     p1 = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
@@ -744,7 +754,7 @@ def test_unintentional_feature_downgrade():
     # will be selected for install instead of a later
     # build of scipy 0.11.0.
     good_rec_match = MatchSpec("channel-1::scipy==0.11.0=np17py33_3")
-    good_rec = next(prec for prec in itervalues(index) if good_rec_match.match(prec))
+    good_rec = next(prec for prec in itervalues(index1) if good_rec_match.match(prec))
     bad_deps = tuple(d for d in good_rec.depends
                      if not d.name == 'numpy')
     bad_rec = PackageRecord.from_objects(good_rec,
@@ -752,7 +762,7 @@ def test_unintentional_feature_downgrade():
                                          build_number=0, depends=bad_deps,
                                          fn=good_rec.fn.replace('_3','_x0'),
                                          url=good_rec.url.replace('_3','_x0'))
-    index2 = index.copy()
+    index2 = index1.copy()
     index2[bad_rec] = bad_rec
     r = Resolve(index2)
     install = r.install(['scipy 0.11.0'])
@@ -761,7 +771,7 @@ def test_unintentional_feature_downgrade():
 
 
 def test_circular_dependencies():
-    index2 = index.copy()
+    index2 = index1.copy()
     package1 = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
@@ -808,7 +818,7 @@ def test_circular_dependencies():
 
 
 def test_optional_dependencies():
-    index2 = index.copy()
+    index2 = index1.copy()
     p1 = PackageRecord(**{
         "channel": "defaults",
         "subdir": context.subdir,
@@ -846,7 +856,6 @@ def test_optional_dependencies():
         'version': '2.0',
     })
     index2.update({p1: p1, p2: p2, p3: p3})
-    index2 = {key: value for key, value in iteritems(index2)}
     r = Resolve(index2)
 
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
@@ -873,7 +882,7 @@ def test_optional_dependencies():
 
 
 def test_irrational_version():
-    result = r.install(['pytz 2012d', 'python 3*'], returnall=True)
+    result = r1.install(['pytz 2012d', 'python 3*'], returnall=True)
     result = [rec.dist_str() for rec in result]
     assert result == [
         'channel-1::openssl-1.0.1c-0',
@@ -889,7 +898,7 @@ def test_irrational_version():
 
 def test_no_features():
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
-    result = r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'], returnall=True)
+    result = r1.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'], returnall=True)
     result = [rec.dist_str() for rec in result]
     assert result == [
         'channel-1::numpy-1.6.2-py26_4',
@@ -903,7 +912,7 @@ def test_no_features():
         'channel-1::zlib-1.2.7-0',
     ]
 
-    result = r.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(track_features='mkl')], returnall=True)
+    result = r1.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*', MatchSpec(track_features='mkl')], returnall=True)
     result = [rec.dist_str() for rec in result]
     assert result == [
         'channel-1::mkl-rt-11.0-p0',           # This,
@@ -918,7 +927,7 @@ def test_no_features():
         'channel-1::zlib-1.2.7-0',
     ]
 
-    index2 = index.copy()
+    index2 = index1.copy()
     pandas = PackageRecord(**{
             "channel": "channel-1",
             "subdir": context.subdir,
@@ -1008,12 +1017,12 @@ def test_no_features():
 
 @pytest.mark.skipif(datetime.now() < datetime(2018, 8, 1), reason="bogus test; talk with @mcg1969")
 def test_multiple_solution():
-    index2 = index.copy()
+    index2 = index1.copy()
     fn = 'pandas-0.11.0-np16py27_1.tar.bz2'
     res1 = set([fn])
     for k in range(1,15):
         fn2 = Dist('%s_%d.tar.bz2'%(fn[:-8],k))
-        index2[fn2] = index[Dist(add_defaults_if_no_channel(fn))]
+        index2[fn2] = index1[Dist(add_defaults_if_no_channel(fn))]
         res1.add(fn2)
     index2 = {Dist(key): value for key, value in iteritems(index2)}
     r = Resolve(index2)
@@ -1023,7 +1032,7 @@ def test_multiple_solution():
 
 
 def test_broken_install():
-    installed = r.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
+    installed = r1.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
     _installed = [rec.dist_str() for rec in installed]
     assert _installed == [
         'channel-1::dateutil-2.1-py27_1',
@@ -1044,19 +1053,19 @@ def test_broken_install():
     # Add an incompatible numpy; installation should be untouched
     installed1 = list(installed)
     incompat_numpy_rec = next(
-        rec for rec in index.values() if rec['name'] == 'numpy' and rec['version'] == '1.7.1' and rec['build'] == 'py33_p0'
+        rec for rec in index1.values() if rec['name'] == 'numpy' and rec['version'] == '1.7.1' and rec['build'] == 'py33_p0'
     )
     installed1[1] = incompat_numpy_rec
-    assert set(r.install([], installed1)) == set(installed1)
-    assert r.install(['numpy 1.6*'], installed1) == installed  # adding numpy spec again snaps the packages back to a consistent state
+    assert set(r1.install([], installed1)) == set(installed1)
+    assert r1.install(['numpy 1.6*'], installed1) == installed  # adding numpy spec again snaps the packages back to a consistent state
 
     # Add an incompatible pandas; installation should be untouched, then fixed
     installed2 = list(installed)
     pandas_matcher_1 = MatchSpec('channel-1::pandas==0.11.0=np17py27_1')
-    pandas_prec_1 = next(prec for prec in index if pandas_matcher_1.match(prec))
+    pandas_prec_1 = next(prec for prec in index1 if pandas_matcher_1.match(prec))
     installed2[3] = pandas_prec_1
-    assert set(r.install([], installed2)) == set(installed2)
-    assert r.install(['pandas'], installed2) == installed
+    assert set(r1.install([], installed2)) == set(installed2)
+    assert r1.install(['pandas'], installed2) == installed
 
     # # Removing pandas should fix numpy, since pandas depends on it
     # numpy_matcher = MatchSpec('channel-1::numpy==1.7.1=py33_p0')
@@ -1078,7 +1087,7 @@ def test_channel_priority_1():
         Channel("channel-B"),
     )
 
-    index2 = index.copy()
+    index2 = index1.copy()
     pandas_matcher_1 = MatchSpec('channel-1::pandas==0.11.0=np17py27_1')
     pandas_prec_1 = next(prec for prec in index2 if pandas_matcher_1.match(prec))
     record_0 = pandas_prec_1
@@ -1123,9 +1132,212 @@ def test_channel_priority_1():
     assert installed2 == installed3
 
 
+def test_valid():
+    index1, r1 = get_index_r_1()
+    filter = r1.default_filter()
+    assert r1.valid(MatchSpec("python"), filter)
+    pprint(format_filter(filter))
+    assert format_filter(filter) == {
+        '@:global:mkl@-0-0': False,
+        'channel-1:global:openssl-1.0.1c-0': True,
+        'channel-1:global:python-2.7.3-3': True,
+        'channel-1:global:readline-6.2-0': True,
+        'channel-1:global:sqlite-3.7.13-0': True,
+        'channel-1:global:system-5.8-1': True,
+        'channel-1:global:zlib-1.2.7-0': True,
+    }
+
+    filter = r1.default_filter()
+    assert not r1.valid(MatchSpec("pyth-none"), filter)
+    pprint(format_filter(filter))
+    assert format_filter(filter) == {
+        '@:global:mkl@-0-0': False,
+    }
+
+    first_python_record = r1.groups['python'][0]
+
+    bad_python_record = PackageRecord.from_objects(
+        first_python_record,
+        depends=first_python_record.depends + ("not-a-package 1.2.3",),
+    )
+    filter = r1.default_filter()
+    assert not r1.valid(bad_python_record, filter)
+    pprint(format_filter(filter))
+    assert format_filter(filter) == {
+        '@:global:mkl@-0-0': False,
+        'channel-1:global:openssl-1.0.1c-0': True,
+        'channel-1:global:python-2.6.8-1': False,
+        'channel-1:global:readline-6.2-0': True,
+        'channel-1:global:sqlite-3.7.13-0': True,
+        'channel-1:global:system-5.8-1': True,
+        'channel-1:global:zlib-1.2.7-0': True,
+    }
+
+    filter = r1.default_filter()
+    assert r1.valid(first_python_record, filter)
+    pprint(format_filter(filter))
+    assert format_filter(filter) == {
+        '@:global:mkl@-0-0': False,
+        'channel-1:global:openssl-1.0.1c-0': True,
+        'channel-1:global:python-2.6.8-1': True,
+        'channel-1:global:readline-6.2-0': True,
+        'channel-1:global:sqlite-3.7.13-0': True,
+        'channel-1:global:system-5.8-1': True,
+        'channel-1:global:zlib-1.2.7-0': True,
+    }
+
+    filter = r1.default_filter()
+    assert r1.valid(MatchSpec("accelerate"), filter)  # seems wrong; shouldn't be valid if mkl features is off?
+    pprint(format_filter(filter))
+    assert format_filter(filter) == {
+        '@:global:mkl@-0-0': False,
+        'channel-1:global:libnvvm-1.0-p0': True,
+        'channel-1:global:llvm-3.2-0': True,
+        'channel-1:global:mkl-rt-11.0-p0': True,
+        'channel-1:global:openssl-1.0.1c-0': True,
+        'channel-1:global:python-2.6.8-5': True,
+        'channel-1:global:python-2.7.3-2': True,
+        'channel-1:global:python-3.3.1-0': True,
+        'channel-1:global:readline-6.2-0': True,
+        'channel-1:global:sqlite-3.7.13-0': True,
+        'channel-1:global:system-5.8-1': True,
+        'channel-1:global:tk-8.5.13-0': True,
+        'channel-1:global:zlib-1.2.7-0': True,
+        'channel-1:python:accelerate-1.1.0-np17py27_p0': True,
+        'channel-1:python:bitarray-0.8.1-py27_0': True,
+        'channel-1:python:llvmpy-0.11.2-py33_0': True,
+        'channel-1:python:meta-0.4.2.dev-py27_0': True,
+        'channel-1:python:mkl-11.0-np16py27_p0': True,
+        'channel-1:python:mkl-service-1.0.0-py26_p0': True,
+        'channel-1:python:nose-1.1.2-py33_0': True,
+        'channel-1:python:numba-0.8.1-np17py27_0': True,
+        'channel-1:python:numbapro-0.11.0-np16py26_p0': True,
+        'channel-1:python:numexpr-2.1-np16py27_p0': True,
+        'channel-1:python:numpy-1.6.2-py27_1': True,
+        'channel-1:python:numpy-1.7.0-py33_0': True,
+        'channel-1:python:scikit-learn-0.13.1-np16py27_0': True,
+        'channel-1:python:scipy-0.12.0-np16py26_p0': True,
+    }
+
+
+def test_required_namespaces_1():
+    index4, r4 = get_index_r_4()
+    assert r4.required_namespaces(MatchSpec("global:graphviz")) == {
+        MatchSpec("global:graphviz"): set(),
+    }
+    assert r4.required_namespaces(MatchSpec("python:graphviz")) == {
+        MatchSpec("python:graphviz"): {"global"},
+    }
+    assert r4.required_namespaces(MatchSpec("python-graphviz")) == {
+        MatchSpec("python:graphviz"): {"global"},
+    }
+    assert r4.required_namespaces(MatchSpec("perl:graphviz")) == {
+        MatchSpec("perl:graphviz"): {"global"},
+    }
+    assert r4.required_namespaces(MatchSpec("perl-graphviz")) == {
+        MatchSpec("perl:graphviz"): {"global"},
+    }
+    assert r4.required_namespaces(MatchSpec("graphviz")) == {
+        MatchSpec("global:graphviz"): set(),
+        MatchSpec("perl:graphviz"): {"global"},
+        MatchSpec("python:graphviz"): {"global"},
+        MatchSpec("r:graphviz"): {"global"},
+    }
+
+    assert r4.required_namespaces(MatchSpec("package-not-found-ABC")) == {}
+
+    assert r4.required_namespaces(MatchSpec("python:dateutil")) == {
+        MatchSpec("python:dateutil"): {"global"},
+    }
+    assert r4.required_namespaces(MatchSpec("python-dateutil")) == {
+        MatchSpec("python:dateutil"): {"global"},
+    }
+    assert r4.required_namespaces(MatchSpec("dateutil")) == {
+        MatchSpec("python:dateutil"): {"global"},
+    }
+
+    assert r4.required_namespaces(MatchSpec("ibis-framework")) == {
+        MatchSpec("python:ibis-framework"): {"global"},
+    }
+
+    # there is no global:digest package, in contrast to global:graphviz
+    assert r4.required_namespaces(MatchSpec("r:digest")) == {
+        MatchSpec("r:digest"): {"global"},
+    }
+    assert r4.required_namespaces(MatchSpec("r-digest")) == {
+        MatchSpec("r:digest"): {"global"},
+    }
+    assert r4.required_namespaces(MatchSpec("python:digest")) == {
+        MatchSpec("python:digest"): {"global"},
+    }
+    assert r4.required_namespaces(MatchSpec("python-digest")) == {
+        MatchSpec("python:digest"): {"global"},
+    }
+    assert r4.required_namespaces(MatchSpec("digest")) == {
+        MatchSpec("r:digest"): {"global"},
+        MatchSpec("python:digest"): {"global"},
+    }
+
+
+@pytest.mark.skipif(datetime.now() < datetime(2018, 8, 1),
+                    reason="figure out if there are better ways to give invalid chain information now")
+def test_invalid_chains():
+    filter = r1.default_filter()
+    invalid_chains = tuple(r1.invalid_chains(MatchSpec("accelerate"), filter))
+    assert not invalid_chains
+    import pdb; pdb.set_trace()
+    pprint(format_filter(filter))
+    assert format_filter(filter) == {
+
+    }
+
+
+@pytest.mark.skipif(datetime.now() < datetime(2018, 8, 1), reason="Add these entries back to index4.")
+def test_required_namespaces_2():
+    """
+
+        "python-digest-1.1.1-py2_0.tar.bz2": {
+            "build": "py2_0",
+            "build_number": 0,
+            "depends": [
+                "python >=2,<3",
+                "cryptography <2.2",
+            ],
+            "license": "Proprietary",
+            "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+            "name": "digest",
+            "noarch": "python",
+            "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+            "size": 123,
+            "subdir": "noarch",
+            "version": "1.1.1",
+        },
+        "python-digest-1.1.1-py3_0.tar.bz2": {
+            "build": "py3_0",
+            "build_number": 0,
+            "depends": [
+                "python >=3,<4",
+                "cryptography <2.2",
+            ],
+            "license": "Proprietary",
+            "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+            "name": "digest",
+            "noarch": "python",
+            "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+            "size": 123,
+            "subdir": "noarch",
+            "version": "1.1.1",
+        },
+
+    Entries giving problesm in build-index4-json.py because legacy name is digest rather than
+    python-digest.  Add these entries back to index4.
+    """
+    assert 0
+
+
 @pytest.mark.skipif(datetime.now() < datetime(2018, 8, 1), reason="replace index3 with something else")
 def test_channel_priority_2():
-    this_index = index.copy()
+    this_index = index1.copy()
     index3, r3 = get_index_r_3()
     this_index.update(index3)
     spec = ['pandas', 'python 2.7*']
@@ -1373,9 +1585,9 @@ def test_channel_priority_2():
 
 def test_dependency_sort():
     specs = ['pandas','python 2.7*','numpy 1.6*']
-    installed = r.install(specs)
+    installed = r1.install(specs)
     must_have = {prec.name: prec for prec in installed}
-    installed = r.dependency_sort(must_have)
+    installed = r1.dependency_sort(must_have)
 
     results_should_be = [
         'channel-1::openssl-1.0.1c-0',
@@ -1397,7 +1609,7 @@ def test_dependency_sort():
 
 
 def test_update_deps():
-    installed = r.install(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'])
+    installed = r1.install(['python 2.7*', 'numpy 1.6*', 'pandas 0.10.1'])
     result = [rec.dist_str() for rec in installed]
     assert result == [
         'channel-1::dateutil-2.1-py27_1',
@@ -1417,7 +1629,7 @@ def test_update_deps():
     # scipy, and pandas should all be updated here. pytz is a new
     # dependency of pandas. But numpy does not _need_ to be updated
     # to get the latest version of pandas, so it stays put.
-    result = r.install(['pandas', 'python 2.7*'], installed=installed, update_deps=True, returnall=True)
+    result = r1.install(['pandas', 'python 2.7*'], installed=installed, update_deps=True, returnall=True)
     result = [rec.dist_str() for rec in result]
     assert result == [
         'channel-1::dateutil-2.1-py27_1',
@@ -1437,7 +1649,7 @@ def test_update_deps():
 
     # pandas should be updated here. However, it's going to try to not update
     # scipy, so it won't be updated to the latest version (0.11.0).
-    result = r.install(['pandas', 'python 2.7*'], installed=installed, update_deps=False, returnall=True)
+    result = r1.install(['pandas', 'python 2.7*'], installed=installed, update_deps=False, returnall=True)
     result = [rec.dist_str() for rec in result]
     assert result == [
         'channel-1::dateutil-2.1-py27_1',

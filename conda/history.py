@@ -273,7 +273,7 @@ class History(object):
                 specs_group.remove(MatchSpec(spec_str))
 
             for spec_str in request.get('update_specs', ()):
-                specs_group.add(MatchSpec(spec_str))
+                specs_group.add_override(MatchSpec(spec_str))
 
         # Conda hasn't always been good about recording when specs have been removed from
         # environments.  If the package isn't installed in the current environment, then we

@@ -254,14 +254,7 @@ class Channel(object):
             return base
 
     def __repr__(self):
-        return ("Channel(scheme=%r, auth=%r, location=%r, token=%r, name=%r, platform=%r, "
-                "package_filename=%r)" % (self.scheme,
-                                          self.auth and "%s:<PASSWORD>" % self.auth.split(':')[0],
-                                          self.location,
-                                          self.token and "<TOKEN>",
-                                          self.name,
-                                          self.platform,
-                                          self.package_filename))
+        return 'Channel("%s")' % (join_url(self.name, self.subdir) if self.subdir else self.name)
 
     def __eq__(self, other):
         if isinstance(other, Channel):

@@ -22,6 +22,7 @@
 
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from os.path import basename, join
 
@@ -361,10 +362,21 @@ class PackageRecord(DictSafeMixin, Entity):
 
     @memoizedproperty
     def ms_depends(self):
-        result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}
-        result.update({ms.name: ms for ms in MatchSpec.merge(
+        # Merge together specs in self.depends, then merge together specs in self.constrains.
+        # Use (namespace, name) as a unique key to allow constrains to override depends.
+        result = {(ms.namespace, ms.name): ms for ms in MatchSpec.merge(self.depends)}
+        result.update({(ms.namespace, ms.name): ms for ms in MatchSpec.merge(
             MatchSpec(spec, optional=True) for spec in self.constrains or ()
         )})
+
+        # As a backward compatibility shim, if a package declares a dependency on itself, the
+        # clear intention is for the package to be depending on the package by the same name
+        # in the 'global' namespace.
+        if self.namespace != 'global':
+            global_dep = result.get((None, self.name))
+            if global_dep:
+                result[(None, self.name)] = MatchSpec(global_dep, namespace='global')
+
         return tuple(concatv(
             itervalues(result),
             (MatchSpec(track_features=feat) for feat in self.features),

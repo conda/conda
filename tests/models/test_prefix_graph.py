@@ -706,7 +706,7 @@ def test_sort_without_prep():
         assert python_node in graph.graph[pip_node]
 
         nodes = tuple(rec.dist_str() for rec in graph.records)
-        print(nodes)
+        pprint(nodes)
         order = (
             'channel-5::ca-certificates-2018.03.07-0',
             'channel-5::conda-env-2.6.0-h36134e3_1',
@@ -714,6 +714,7 @@ def test_sort_without_prep():
             'channel-5::vc-14-h0510ff6_3',
             'channel-5::openssl-1.0.2o-h8ea7d77_0',
             'channel-5::yaml-0.1.7-hc54c509_2',
+            'channel-5::python-3.6.5-h0c2934d_0',
             'channel-5::affine-2.1.0-pyh128a3a6_1',
             'channel-5::asn1crypto-0.24.0-py36_0',
             'channel-5::beautifulsoup4-4.6.0-py36hd4cc5e8_1',
@@ -728,8 +729,6 @@ def test_sort_without_prep():
             'channel-5::psutil-5.4.6-py36hfa6e2cd_0',
             'channel-5::pycosat-0.6.3-py36h413d8a4_0',
             'channel-5::pycparser-2.18-py36hd053e01_1',
-            'channel-5::cffi-1.11.5-py36h945400d_0',
-            'channel-5::python-3.6.5-h0c2934d_0',
             'channel-5::pywin32-223-py36hfa6e2cd_1',
             'channel-5::pyyaml-3.12-py36h1d1928f_1',
             'channel-5::ruamel_yaml-0.15.40-py36hfa6e2cd_2',
@@ -737,16 +736,17 @@ def test_sort_without_prep():
             'channel-5::spiffy-test-app-0.5-pyh6afbcc8_0',
             'channel-5::win_inet_pton-1.0.1-py36he67d7fd_1',
             'channel-5::wincertstore-0.2-py36h7fe50ca_0',
+            'channel-5::cffi-1.11.5-py36h945400d_0',
             'channel-5::conda-verify-2.0.0-py36h065de53_0',
-            'channel-5::cryptography-2.2.2-py36hfa6e2cd_0',
             'channel-5::menuinst-1.4.14-py36hfa6e2cd_0',
             'channel-5::pysocks-1.6.8-py36_0',
             'channel-5::setuptools-39.2.0-py36_0',
             'channel-5::uses-spiffy-test-app-2.0-pyh18698f2_0',
+            'channel-5::cryptography-2.2.2-py36hfa6e2cd_0',
             'channel-5::jinja2-2.10-py36h292fed1_0',
-            'channel-5::pyopenssl-18.0.0-py36_0',
             'channel-5::wheel-0.31.1-py36_0',
             'channel-5::pip-10.0.1-py36_0',
+            'channel-5::pyopenssl-18.0.0-py36_0',
             'channel-5::urllib3-1.23-py36_0',
             'channel-5::requests-2.19.1-py36_0',
             'channel-5::conda-4.5.4-py36_0',
@@ -798,13 +798,13 @@ def test_deep_cyclical_dependency():
         'zlib',
         'libedit',
         'readline',
+        'python',
         'certifi',
         'click',
         'itsdangerous',
         'markupsafe',
-        'python',
-        'setuptools',
         'werkzeug',
+        'setuptools',
         'jinja2',
         'flask',
         'sqlite',  # deep cyclical dependency; guess this is what we get
@@ -816,13 +816,13 @@ def test_deep_cyclical_dependency():
     # test remove spec
     # because of this deep cyclical dependency, removing jinja2 will remove sqlite and python
     expected_removal = (
+        'python',
         'certifi',
         'click',
         'itsdangerous',
         'markupsafe',
-        'python',
-        'setuptools',
         'werkzeug',
+        'setuptools',
         'jinja2',
         'flask',
         'sqlite',
@@ -897,9 +897,9 @@ def test_deep_cyclical_dependency():
         'zlib',
         'libedit',
         'readline',
+        'python',
         'certifi',
         'markupsafe',
-        'python',
         'setuptools',
         'jinja2',
         'sqlite',
@@ -912,13 +912,13 @@ def test_deep_cyclical_dependency():
     nodes = tuple(rec.name for rec in markupsafe_descendants)
     pprint(nodes)
     order = (
+        'python',
         'certifi',
         'click',
         'itsdangerous',
         'markupsafe',
-        'python',
-        'setuptools',
         'werkzeug',
+        'setuptools',
         'jinja2',
         'flask',
         'sqlite',

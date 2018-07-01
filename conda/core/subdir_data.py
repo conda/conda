@@ -63,7 +63,7 @@ class SubdirDataType(type):
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
-        cache_key = channel.url(with_credentials=True)
+        cache_key = SubdirData.cache_key(channel)
         if not cache_key.startswith('file://') and cache_key in SubdirData._cache_:
             return SubdirData._cache_[cache_key]
 
@@ -132,6 +132,10 @@ class SubdirData(object):
         self.cache_path_base = join(create_cache_dir(),
                                     splitext(cache_fn_url(self.url_w_credentials))[0])
         self._loaded = False
+
+    @classmethod
+    def cache_key(cls, channel):
+        return channel.url(with_credentials=True)
 
     def reload(self):
         self._loaded = False
@@ -247,8 +251,10 @@ class SubdirData(object):
             log.debug("Saving pickled state for %s at %s", self.url_w_subdir, self.cache_path_json)
             with open(self.cache_path_pickle, 'wb') as fh:
                 pickle.dump(self._internal_state, fh, -1)  # -1 means HIGHEST_PROTOCOL
+            return True
         except Exception:
             log.debug("Failed to dump pickled repodata.", exc_info=True)
+            return False
 
     def _read_local_repdata(self, etag, mod_stamp):
         # first try reading pickled data

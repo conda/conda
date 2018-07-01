@@ -157,7 +157,7 @@ class Solver(object):
                 # Return early, with a solution that should just be PrefixData().iter_records()
                 return IndexedSet(PrefixGraph(solution).graph)
 
-        specs_group_from_history = History(self.prefix).get_requested_specs()
+        history_specs_group = History(self.prefix).get_requested_specs()
         if prune:  # or update_modifier == UpdateModifier.UPDATE_ALL  # pending conda/constructor#138  # NOQA
             # Users are struggling with the prune functionality in --update-all, due to
             # https://github.com/conda/constructor/issues/138.  Until that issue is resolved,
@@ -171,19 +171,19 @@ class Solver(object):
             # to hard-code keeping conda, conda-build, and anaconda, if they're already in
             # the environment.
             solution_pkg_names = set(d.name for d in solution)
-            specs_from_history_names = set(specs_group_from_history._specs_map)
+            specs_from_history_names = set(spec.name for spec in history_specs_group.iter_specs())
             ensure_these = (pkg_name for pkg_name in {
                 'anaconda', 'conda', 'conda-build',
             } if pkg_name not in specs_from_history_names and pkg_name in solution_pkg_names)
             for pkg_name in ensure_these:
-                specs_group.add(MatchSpec(pkg_name))
+                specs_group.add_override(MatchSpec(pkg_name))
         else:
             specs_group = SpecsGroup(
                 MatchSpec(namespace=prec.namespace, name=prec.name) for prec in solution
             )
 
         # add in historically-requested specs
-        specs_group.update(specs_group_from_history)
+        specs_group.update(history_specs_group)
         pinned_specs = () if ignore_pinned else get_pinned_specs(self.prefix)
 
         # let's pretend for now that this is the right place to build the index
@@ -234,13 +234,14 @@ class Solver(object):
                 # We keep specs (minus the feature part) for the non provides_features packages
                 # if they're in the history specs.  Otherwise, we pop them from the specs_map.
                 rec_has_a_feature = set(rec.features or ()) & feature_names
-                if rec_has_a_feature and specs_group_from_history.get_specs_by_name(rec.name):
+                if rec_has_a_feature and history_specs_group.get_specs_by_name(rec.name):
                     for spec in specs_group.get_matches(rec):
                         match_components = dict(spec._match_components)
                         match_components.pop('features', None)
                         new_spec = MatchSpec(optional=spec.optional, target=spec.target,
                                              **match_components)
-                        specs_group.add(new_spec)
+                        specs_group.remove(spec)
+                        specs_group.add_override(new_spec)
                 else:
                     specs_group.remove_record_match(rec)
 
@@ -257,10 +258,10 @@ class Solver(object):
         if inconsistent_precs:
             for prec in inconsistent_precs:
                 # pop and save matching spec in specs_map
-                matches = specs_group.get_specs_by_name(prec.name, namespace=prec.namespace)
-                for spec in matches:
+                name_matches = specs_group.get_specs_by_name(prec.name)
+                for spec in name_matches:
                     specs_group.remove(spec)
-                add_back_map[prec] = matches
+                add_back_map[prec] = name_matches
             solution = tuple(prec for prec in solution if prec not in inconsistent_precs)
 
         # For the remaining specs in specs_map, add target to each spec. `target` is a reference
@@ -272,6 +273,7 @@ class Solver(object):
         # TLDR: when working with MatchSpec objects,
         #  - to minimize the version change, set MatchSpec(name=name, target=prec.record_id())
         #  - to freeze the package, set all the components of MatchSpec individually
+        add_these = set()
         for spec in specs_group.iter_specs():
             matches_for_spec = tuple(prec for prec in solution if spec.match(prec))
             if matches_for_spec:
@@ -292,7 +294,9 @@ class Solver(object):
                 else:
                     target = target_prec.record_id()
                     new_spec = MatchSpec(spec, target=target)
-                specs_group.add(new_spec)
+                add_these.add(new_spec)
+        for new_spec in add_these:
+            specs_group.add_override(new_spec)
         if log.isEnabledFor(TRACE):
             log.trace("specs_map with targets: %s", specs_group)
 
@@ -312,42 +316,41 @@ class Solver(object):
 
         # As a business rule, we never want to update python beyond the current minor version,
         # unless that's requested explicitly by the user (which we actively discourage).
+        specs_group.merge()
         python_specs = specs_group.get_specs_by_name('python')
         if python_specs:
             python_prefix_rec = prefix_data.get('python')
-            if python_prefix_rec:
-                assert len(python_specs) == 1, python_specs
-                python_spec = python_specs[0]
-                if not python_spec.get('version'):
+            if python_prefix_rec and not any(spec.get('version') for spec in python_specs):
+                for python_spec in python_specs:
                     pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
-                    specs_group.add(MatchSpec(python_spec, version=pinned_version))
+                    specs_group.add_override(MatchSpec(python_spec, version=pinned_version))
 
         # For the aggressive_update_packages configuration parameter, we strip any target
         # that's been set.
         if not context.offline:
             for spec in context.aggressive_update_packages:
-                name_matches = specs_group.get_specs_by_name(spec.name)
+                name_matches = specs_group.get_specs_by_name(spec.name, spec.namespace)
                 if name_matches:
-                    specs_group.add(MatchSpec(namespace=spec.namespace, name=spec.name))
+                    specs_group.add_override(MatchSpec(namespace=spec.namespace, name=spec.name))
             if (context.auto_update_conda and paths_equal(self.prefix, context.root_prefix)
                     and any(prec.name == "conda" for prec in solution)):
-                specs_group.add(MatchSpec("conda"))
+                specs_group.add_override(MatchSpec("conda"))
 
         # add in explicitly requested specs from specs_to_add
         # this overrides any name-matching spec already in the spec map
-        for spec in specs_to_add:
-            specs_group.add(spec)
+        for spec in concatv(specs_to_add, pinned_specs):
+            specs_group.add_override(spec)
 
         # collect additional specs to add to the solution
         if context.track_features:
             for tf_spec in context.track_features:
                 ms = MatchSpec(tf_spec + '@')
-                specs_group.add(ms)
+                specs_group.add_override(ms)
 
-        final_environment_specs = IndexedSet(concatv(
-            specs_group.iter_specs(),
-            pinned_specs,
-        ))
+        specs_group.merge()
+        specs_group.attach_namespaces(r)
+
+        final_environment_specs = IndexedSet(specs_group.iter_specs())
 
         # We've previously checked `solution` for consistency (which at that point was the
         # pre-solve state of the environment). Now we check our compiled set of

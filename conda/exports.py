@@ -525,3 +525,10 @@ class Resolve(_Resolve):
             deps.extend(MatchSpec(track_features=feat) for feat in prec.features)
             self.ms_depends_[prec] = deps
         return deps
+
+    def get_pkgs(self, ms, emptyok=False):  # pragma: no cover
+        ms = MatchSpec(ms)
+        precs = self.find_matches(ms)
+        if not precs and not emptyok:
+            raise ResolvePackageNotFound([(ms,)])
+        return sorted(precs, key=self.version_key)

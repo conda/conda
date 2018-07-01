@@ -971,9 +971,30 @@ class MatchSpecMergeTests(TestCase):
     def test_merge_namespace(self):
         specs = (MatchSpec("numpy 1.2.3"), MatchSpec("python:numpy"), MatchSpec("conda-forge::numpy"))
         merged = MatchSpec.merge(specs)
-        assert len(merged) == 1
-        assert str(merged[0]) == "conda-forge:python:numpy==1.2.3"
+        assert len(merged) == 2
+        assert str(merged[0]) == "conda-forge::numpy==1.2.3"
+        assert str(merged[1]) == "python:numpy"
 
         specs = (MatchSpec("python:numpy"), MatchSpec("conda-forge:global:numpy"))
-        with pytest.raises(ValueError):
-            MatchSpec.merge(specs)
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 2
+        assert str(merged[0]) == "python:numpy"
+        assert str(merged[1]) == "conda-forge:global:numpy"
+
+    def test_merge_target(self):
+        specs = (
+            MatchSpec("python=2", target='channel-1:global:python-2.7.5-0'),
+            MatchSpec("global:python", target='channel-1:global:python-2.7.5-0'),
+        )
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 2
+        assert str(merged[0]) == "python=2"
+        assert str(merged[1]) == "global:python"
+
+        specs = (
+            MatchSpec("python=2", target='channel-1:global:python-2.7.5-0'),
+            MatchSpec("channel-1::python", target='channel-1:global:python-2.7.5-0'),
+        )
+        merged = MatchSpec.merge(specs)
+        assert len(merged) == 1
+        assert str(merged[0]) == "channel-1::python=2"

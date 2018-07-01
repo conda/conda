@@ -100,6 +100,9 @@ def get_solver_aggregate_1(specs_to_add=(), specs_to_remove=(), prefix_records=(
 def convert_to_dist_str(solution):
     return tuple(prec.dist_str() for prec in solution)
 
+def convert_to_record_id(solution):
+    return tuple(prec.record_id() for prec in solution)
+
 
 def test_solve_1():
     specs = MatchSpec("numpy"),
@@ -143,7 +146,7 @@ def test_prune_1():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print(convert_to_dist_str(final_state_1))
+        pprint(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::libnvvm-1.0-p0',
             'channel-1::mkl-rt-11.0-p0',
@@ -175,14 +178,14 @@ def test_prune_1():
                     history_specs=specs) as solver:
         unlink_precs, link_precs = solver.solve_for_diff(prune=False)
         # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(link_precs))
         unlink_order = (
             'channel-1::accelerate-1.1.0-np16py27_p0',
             'channel-1::numbapro-0.11.0-np16py27_p0',
         )
         assert convert_to_dist_str(unlink_precs) == unlink_order
 
-        print(convert_to_dist_str(link_precs))
         link_order = ()
         assert convert_to_dist_str(link_precs) == link_order
 
@@ -483,7 +486,7 @@ def test_broken_install():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print(convert_to_dist_str(final_state_1))
+        pprint(convert_to_dist_str(final_state_1))
         order_original = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -513,7 +516,7 @@ def test_broken_install():
     with get_solver(specs_to_add, prefix_records=final_state_1_modified, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_2))
+        pprint(convert_to_dist_str(final_state_2))
         order = (
             "channel-1::numpy-1.7.1-py33_p0",
             'channel-1::openssl-1.0.1c-0',
@@ -540,7 +543,7 @@ def test_broken_install():
     with get_solver(specs_to_add, prefix_records=final_state_1_modified, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_2))
+        pprint(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -573,7 +576,7 @@ def test_broken_install():
     with get_solver(specs_to_add, prefix_records=final_state_2_mod, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_2))
+        pprint(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -600,7 +603,7 @@ def test_broken_install():
     with get_solver(specs_to_add, prefix_records=final_state_2_mod, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_2))
+        pprint(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -680,7 +683,7 @@ def test_install_uninstall_features_1():
         with get_solver(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_1))
+            pprint(convert_to_dist_str(final_state_1))
             order = (
                 'channel-1::mkl-rt-11.0-p0',
                 'channel-1::openssl-1.0.1c-0',
@@ -707,7 +710,7 @@ def test_install_uninstall_features_1():
                     history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_2))
+        pprint(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::mkl-rt-11.0-p0',
             'channel-1::openssl-1.0.1c-0',
@@ -732,7 +735,7 @@ def test_install_uninstall_features_1():
                     history_specs=history_specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_2))
+        pprint(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -787,18 +790,14 @@ def test_install_uninstall_features_2():
     with get_solver_4(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                       history_specs=specs) as solver:
         unlink_dists, link_dists = solver.solve_for_diff()
-
         pprint(convert_to_dist_str(unlink_dists))
+        pprint(convert_to_dist_str(link_dists))
         unlink_order = (
             'channel-4::pandas-0.23.1-py27h637b7d7_0',
             # no removal of numpy with nomkl
         )
         assert convert_to_dist_str(unlink_dists) == unlink_order
-
-        pprint(convert_to_dist_str(link_dists))
-        link_order = (
-
-        )
+        link_order = ()
         assert convert_to_dist_str(link_dists) == link_order
 
     # now remove the nomkl feature
@@ -997,11 +996,11 @@ def test_update_deps_1():
         )
         assert convert_to_dist_str(final_state_1) == order
 
-    specs_to_add = MatchSpec("numpy=1.7.0"), MatchSpec("python=2.7.3")
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    specs2 = MatchSpec("numpy=1.7.0"), MatchSpec("python=2.7.3")
+    with get_solver(specs2, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
         # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_2))
+        pprint(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1016,65 +1015,59 @@ def test_update_deps_1():
         assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("iopro"),
-    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
-        final_state_3 = solver.solve_final_state()
-        # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_3))
-        order = (
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
+    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
+        unlink_dists, link_dists = solver.solve_for_diff()
+        pprint(convert_to_dist_str(unlink_dists))
+        pprint(convert_to_dist_str(link_dists))
+        unlink_order = (
+
+        )
+        assert convert_to_dist_str(unlink_dists) == unlink_order
+
+        link_order = (
             'channel-1::unixodbc-2.3.1-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::python-2.7.3-7',
-            'channel-1::nose-1.3.0-py27_0',
+            'channel-1::iopro-1.5.0-np17py27_p0',
+        )
+        assert convert_to_dist_str(link_dists) == link_order
+
+    specs_to_add = MatchSpec("iopro"),
+    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
+        unlink_dists, link_dists = solver.solve_for_diff(update_modifier=UpdateModifier.UPDATE_DEPS)
+        pprint(convert_to_dist_str(unlink_dists))
+        pprint(convert_to_dist_str(link_dists))
+        unlink_order = (
             'channel-1::numpy-1.7.0-py27_0',
-            'channel-1::iopro-1.5.0-np17py27_p0',
+            'channel-1::python-2.7.3-7',
         )
-        assert convert_to_dist_str(final_state_3) == order
+        assert convert_to_dist_str(unlink_dists) == unlink_order
 
-    specs_to_add = MatchSpec("iopro"),
-    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
-        final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
-        # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_3))
-        order = (
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
+        link_order = (
             'channel-1::unixodbc-2.3.1-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::python-2.7.5-0',   # with update_deps, numpy should switch from 1.7.0 to 1.7.1
-            'channel-1::nose-1.3.0-py27_0',
+            'channel-1::python-2.7.5-0',  # with update_deps, python should switch from 2.7.3 to 2.7.5
             'channel-1::numpy-1.7.1-py27_0',  # with update_deps, numpy should switch from 1.7.0 to 1.7.1
             'channel-1::iopro-1.5.0-np17py27_p0',
         )
-        assert convert_to_dist_str(final_state_3) == order
+        assert convert_to_dist_str(link_dists) == link_order
 
     specs_to_add = MatchSpec("iopro"),
-    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
-        final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS,
-                                                 deps_modifier=DepsModifier.ONLY_DEPS)
-        # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_3))
-        order = (
-            'channel-1::unixodbc-2.3.1-0',
-            'channel-1::openssl-1.0.1c-0',
-            'channel-1::readline-6.2-0',
-            'channel-1::sqlite-3.7.13-0',
-            'channel-1::system-5.8-1',
-            'channel-1::tk-8.5.13-0',
-            'channel-1::zlib-1.2.7-0',
-            'channel-1::python-2.7.5-0',   # with update_deps, numpy should switch from 1.7.0 to 1.7.1
-            'channel-1::nose-1.3.0-py27_0',
-            'channel-1::numpy-1.7.1-py27_0',  # with update_deps, numpy should switch from 1.7.0 to 1.7.1
-            # 'channel-1::iopro-1.5.0-np17py27_p0',
+    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
+        unlink_dists, link_dists = solver.solve_for_diff(update_modifier=UpdateModifier.UPDATE_DEPS,
+                                                         deps_modifier=DepsModifier.ONLY_DEPS)
+        pprint(convert_to_dist_str(unlink_dists))
+        pprint(convert_to_dist_str(link_dists))
+        unlink_order = (
+            'channel-1::numpy-1.7.0-py27_0',
+            'channel-1::python-2.7.3-7',
         )
-        assert convert_to_dist_str(final_state_3) == order
+        assert convert_to_dist_str(unlink_dists) == unlink_order
+
+        link_order = (
+            'channel-1::unixodbc-2.3.1-0',
+            'channel-1::python-2.7.5-0',  # with update_deps, python should switch from 2.7.3 to 2.7.5
+            'channel-1::numpy-1.7.1-py27_0',  # with update_deps, numpy should switch from 1.7.0 to 1.7.1
+            # 'channel-1::iopro-1.5.0-np17py27_p0', isn't installed because of ONLY_DEPS
+        )
+        assert convert_to_dist_str(link_dists) == link_order
 
 
 def test_fast_update_with_update_modifier_not_set():
@@ -1111,7 +1104,6 @@ def test_fast_update_with_update_modifier_not_set():
         )
         assert convert_to_dist_str(unlink_dists) == unlink_order
 
-        pprint(convert_to_dist_str(link_dists))
         link_order = (
             'channel-4::openssl-1.0.2o-h20670df_0',  # openssl is aggressively updated
             'channel-4::xz-5.2.4-h14c3975_4',
@@ -1124,13 +1116,13 @@ def test_fast_update_with_update_modifier_not_set():
         unlink_dists, link_dists = solver.solve_for_diff()
 
         pprint(convert_to_dist_str(unlink_dists))
+        pprint(convert_to_dist_str(link_dists))
         unlink_order = (
             'channel-4::sqlite-3.21.0-h1bed415_2',
             'channel-4::openssl-1.0.2l-h077ae2c_5',
         )
         assert convert_to_dist_str(unlink_dists) == unlink_order
 
-        pprint(convert_to_dist_str(link_dists))
         link_order = (
             'channel-4::openssl-1.0.2o-h20670df_0',  # openssl is aggressively updated
             'channel-4::sqlite-3.22.0-h1bed415_0',  # sqlite is upgraded
@@ -1149,9 +1141,9 @@ def test_fast_update_with_update_modifier_not_set():
 def test_pinned_1():
     specs = MatchSpec("numpy"),
     with get_solver(specs) as solver:
-        final_state_1 = solver.solve_final_state()
+        final_state_0 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print(convert_to_dist_str(final_state_1))
+        pprint(convert_to_dist_str(final_state_0))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1162,25 +1154,27 @@ def test_pinned_1():
             'channel-1::python-3.3.2-0',
             'channel-1::numpy-1.7.1-py33_0',
         )
-        assert convert_to_dist_str(final_state_1) == order
+        assert convert_to_dist_str(final_state_0) == order
 
     with env_var("CONDA_PINNED_PACKAGES", "python=2.6&iopro<=1.4.2", reset_context):
         specs = MatchSpec("system=5.8=0"),
         with get_solver(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_1))
+            pprint(convert_to_dist_str(final_state_1))
             order = (
                 'channel-1::system-5.8-0',
+                # pinned packages are optional, so they don't come into this solution
             )
             assert convert_to_dist_str(final_state_1) == order
 
+        # solve with ignore_pinned=True
         specs_to_add = MatchSpec("python"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state(ignore_pinned=True)
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_2))
+            pprint(convert_to_dist_str(final_state_2))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1192,12 +1186,13 @@ def test_pinned_1():
             )
             assert convert_to_dist_str(final_state_2) == order
 
+        # solve with ignore_pinned=False
         specs_to_add = MatchSpec("python"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
-            final_state_2 = solver.solve_final_state()
+            final_state_2 = solver.solve_final_state(ignore_pinned=False)
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_2))
+            pprint(convert_to_dist_str(final_state_2))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1215,7 +1210,7 @@ def test_pinned_1():
                         history_specs=history_specs) as solver:
             final_state_3 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_3))
+            pprint(convert_to_dist_str(final_state_3))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1238,7 +1233,7 @@ def test_pinned_1():
                         history_specs=history_specs) as solver:
             final_state_4 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_4))
+            pprint(convert_to_dist_str(final_state_4))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1261,7 +1256,7 @@ def test_pinned_1():
                         history_specs=history_specs) as solver:
             final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_5))
+            pprint(convert_to_dist_str(final_state_5))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1739,7 +1734,7 @@ def test_freeze_deps_1():
 
 
 def test_namespace_package_rename_1():
-    specs = MatchSpec("dateutil"),
+    specs = MatchSpec("python-dateutil"),
     with get_solver_4(specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
@@ -1756,50 +1751,466 @@ def test_namespace_package_rename_1():
             'channel-4::libedit-3.1.20170329-h6b74fdf_2',
             'channel-4::readline-7.0-ha6073c6_4',
             'channel-4::sqlite-3.24.0-h84994c4_0',
-            'channel-4::python-3.6.5-hc3d631a_2',
+            'channel-4::python-3.6.6-hc3d631a_0',
             'channel-4::six-1.11.0-py36h372c433_1',
             'channel-4::python-dateutil-2.7.3-py36_0',
         )
         assert convert_to_dist_str(final_state_1) == order
 
-    specs = MatchSpec("python-dateutil"),
+    specs = MatchSpec("python:dateutil"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        assert convert_to_dist_str(final_state_1) == order
+
+    specs = MatchSpec("dateutil"),
     with get_solver_4(specs) as solver:
         final_state_1 = solver.solve_final_state()
         pprint(convert_to_dist_str(final_state_1))
         assert convert_to_dist_str(final_state_1) == order
 
 
-def test_namespace_package_rename_2():
+def test_namespace_create_ambiguous_namespace():
+    # solution should contain global:graphviz only
+    specs = MatchSpec("global:graphviz"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:expat-2.2.5-he0dffb1_0',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:jpeg-9b-h024ee3a_2',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:libtool-2.4.6-h544aabb_3',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libtiff-4.0.9-he85c1e1_1',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:freetype-2.8-hab7d2ae_1',
+            'channel-4:global:fontconfig-2.12.6-h49f89f6_0',
+            'channel-4:global:cairo-1.14.12-h7636065_2',
+            'channel-4:global:harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4:global:pango-1.41.0-hd475d92_0',
+            'channel-4:global:graphviz-2.40.1-h25d223c_0',
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+    # solution should contain global:graphviz only
     specs = MatchSpec("graphviz"),
     with get_solver_4(specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_2))
+        assert final_state_2 == final_state_1
+
+    # solution should contain global:graphviz and python:graphviz
+    specs = MatchSpec("python:graphviz"),
+    with get_solver_4(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        pprint(convert_to_dist_str(final_state_1))
+        pprint(convert_to_record_id(final_state_1))
         order = (
-            'channel-4::libgcc-ng-7.2.0-hdf63c60_3',
-            'channel-4::libstdcxx-ng-7.2.0-hdf63c60_3',
-            'channel-4::expat-2.2.5-he0dffb1_0',
-            'channel-4::graphite2-1.3.11-h16798f4_2',
-            'channel-4::icu-58.2-h9c2bf20_1',
-            'channel-4::jpeg-9b-h024ee3a_2',
-            'channel-4::libffi-3.2.1-hd88cf55_4',
-            'channel-4::libtool-2.4.6-h544aabb_3',
-            'channel-4::libxcb-1.13-h1bed415_1',
-            'channel-4::pcre-8.42-h439df22_0',
-            'channel-4::pixman-0.34.0-hceecf20_3',
-            'channel-4::xz-5.2.4-h14c3975_4',
-            'channel-4::zlib-1.2.11-ha838bed_2',
-            'channel-4::glib-2.56.1-h000015b_0',
-            'channel-4::libpng-1.6.34-hb9fc6fc_0',
-            'channel-4::libtiff-4.0.9-he85c1e1_1',
-            'channel-4::libxml2-2.9.8-h26e45fe_1',
-            'channel-4::freetype-2.8-hab7d2ae_1',
-            'channel-4::fontconfig-2.12.6-h49f89f6_0',
-            'channel-4::cairo-1.14.12-h7636065_2',
-            'channel-4::harfbuzz-1.7.6-h5f0a787_1',
-            'channel-4::pango-1.41.0-hd475d92_0',
-            'channel-4::graphviz-2.40.1-h25d223c_0'
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:expat-2.2.5-he0dffb1_0',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:jpeg-9b-h024ee3a_2',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:libtool-2.4.6-h544aabb_3',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:ncurses-6.1-hf484d3e_0',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libtiff-4.0.9-he85c1e1_1',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:freetype-2.8-hab7d2ae_1',
+            'channel-4:global:sqlite-3.24.0-h84994c4_0',
+            'channel-4:global:fontconfig-2.12.6-h49f89f6_0',
+            'channel-4:global:python-3.6.6-hc3d631a_0',
+            'channel-4:global:cairo-1.14.12-h7636065_2',
+            'channel-4:global:harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4:global:pango-1.41.0-hd475d92_0',
+            'channel-4:global:graphviz-2.40.1-h25d223c_0',
+            'channel-4:python:graphviz-0.8.3-py36_0',
         )
-        assert convert_to_dist_str(final_state_1) == order
+        assert convert_to_record_id(final_state_1) == order
+
+    # solution should contain global:graphviz and python:graphviz
+    specs = MatchSpec("ibis-framework"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:blas-1.0-mkl',
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:global:intel-openmp-2018.0.3-0',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libgfortran-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:expat-2.2.5-he0dffb1_0',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:jpeg-9b-h024ee3a_2',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:libtool-2.4.6-h544aabb_3',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:mkl-2018.0.3-1',
+            'channel-4:global:ncurses-6.1-hf484d3e_0',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libtiff-4.0.9-he85c1e1_1',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:freetype-2.8-hab7d2ae_1',
+            'channel-4:global:krb5-1.16.1-hc83ff2d_6',
+            'channel-4:global:sqlite-3.24.0-h84994c4_0',
+            'channel-4:global:fontconfig-2.12.6-h49f89f6_0',
+            'channel-4:global:libpq-10.3-h1ad7b7a_0',
+            'channel-4:global:python-3.6.6-hc3d631a_0',
+            'channel-4:python:bitarray-0.8.2-py36h14c3975_0',
+            'channel-4:global:cairo-1.14.12-h7636065_2',
+            'channel-4:python:certifi-2018.4.16-py36_0',
+            'channel-4:python:multipledispatch-0.5.0-py36_0',
+            'channel-4:python:numpy-base-1.14.5-py36hdbf6ddf_0',
+            'channel-4:python:ply-3.11-py36_0',
+            'channel-4:python:psycopg2-2.7.5-py36hb7f436b_0',
+            'channel-4:python:pytz-2018.4-py36_0',
+            'channel-4:python:six-1.11.0-py36h372c433_1',
+            'channel-4:python:sqlalchemy-1.2.8-py36h14c3975_0',
+            'channel-4:python:toolz-0.9.0-py36_0',
+            'channel-4:python:dateutil-2.7.3-py36_0',
+            'channel-4:global:harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4:python:setuptools-39.2.0-py36_0',
+            'channel-4:python:thrift-0.11.0-py36hf484d3e_0',
+            'channel-4:python:thriftpy-0.3.9-py36h14c3975_1',
+            'channel-4:python:impyla-0.14.1-py36_0',
+            'channel-4:global:pango-1.41.0-hd475d92_0',
+            'channel-4:global:graphviz-2.40.1-h25d223c_0',
+            'channel-4:python:graphviz-0.8.3-py36_0',
+            'channel-4:python:mkl_fft-1.0.1-py36h3010b51_0',
+            'channel-4:python:mkl_random-1.0.1-py36h629b387_0',
+            'channel-4:python:numpy-1.14.5-py36hcd700cb_0',
+            'channel-4:python:pandas-0.23.1-py36h637b7d7_0',
+            'channel-4:python:ibis-framework-0.12.0-py36h5db9e08_0',
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+    # solution should contain global:graphviz and python:graphviz
+    specs = MatchSpec("graphviz"), MatchSpec("itsdangerous"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:expat-2.2.5-he0dffb1_0',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:jpeg-9b-h024ee3a_2',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:libtool-2.4.6-h544aabb_3',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:ncurses-6.1-hf484d3e_0',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libtiff-4.0.9-he85c1e1_1',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:freetype-2.8-hab7d2ae_1',
+            'channel-4:global:sqlite-3.24.0-h84994c4_0',
+            'channel-4:global:fontconfig-2.12.6-h49f89f6_0',
+            'channel-4:global:python-3.6.6-hc3d631a_0',
+            'channel-4:global:cairo-1.14.12-h7636065_2',
+            'channel-4:python:itsdangerous-0.24-py36h93cc618_1',
+            'channel-4:global:harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4:global:pango-1.41.0-hd475d92_0',
+            'channel-4:global:graphviz-2.40.1-h25d223c_0',
+            'channel-4:python:graphviz-0.8.3-py36_0',
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+    # solution should contain python:digest, r:digest
+    specs = MatchSpec("digest"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:_r-mutex-1.0.0-mro_2',
+            'channel-4:global:binutils_impl_linux-64-2.28.1-had2808c_3',
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libgfortran-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:binutils_linux-64-7.2.0-had2808c_27',
+            'channel-4:global:fribidi-1.0.4-h14c3975_0',
+            'channel-4:global:gcc_impl_linux-64-7.2.0-habb00fd_3',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:libuuid-1.0.3-h1bed415_2',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:ncurses-6.1-hf484d3e_0',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:gcc_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:gfortran_impl_linux-64-7.2.0-hdf63c60_3',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:gxx_impl_linux-64-7.2.0-hdf63c60_3',
+            'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libssh2-1.8.0-h9cfc8f7_4',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:freetype-2.9.1-h8a8886c_0',
+            'channel-4:global:gfortran_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:gxx_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:libcurl-7.60.0-h1ad7b7a_0',
+            'channel-4:global:sqlite-3.24.0-h84994c4_0',
+            'channel-4:global:curl-7.60.0-h84994c4_0',
+            'channel-4:global:fontconfig-2.13.0-h9420a91_0',
+            'channel-4:global:python-3.6.6-hc3d631a_0',
+            'channel-4:python:asn1crypto-0.24.0-py36_0',
+            'channel-4:global:cairo-1.14.12-h8948797_3',
+            'channel-4:python:idna-2.7-py36_0',
+            'channel-4:python:pycparser-2.18-py36hf9f622e_1',
+            'channel-4:python:six-1.11.0-py36h372c433_1',
+            'channel-4:python:cffi-1.11.5-py36h9745a5d_0',
+            'channel-4:global:harfbuzz-1.7.6-hec2c2bc_3',
+            'channel-4:python:cryptography-2.1.4-py36hd09be54_0',
+            'channel-4:global:pango-1.42.1-h8589676_0',
+            'channel-4:python:digest-1.1.1-py3_0',
+            'channel-4:global:mro-base-3.4.3-h1c2f66e_1',
+            'channel-4:r:digest-0.6.13-mro343h086d26f_0',
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+    # solution should contain global:graphviz, python:graphviz, r:graphviz, python:digest, r:digest
+    specs = MatchSpec("graphviz"), MatchSpec("digest"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:_r-mutex-1.0.0-mro_2',
+            'channel-4:global:binutils_impl_linux-64-2.28.1-had2808c_3',
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libgfortran-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:binutils_linux-64-7.2.0-had2808c_27',
+            'channel-4:global:expat-2.2.5-he0dffb1_0',
+            'channel-4:global:gcc_impl_linux-64-7.2.0-habb00fd_3',
+            'channel-4:global:gmp-6.1.2-h6c8ec71_1',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:jpeg-9b-h024ee3a_2',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:libtool-2.4.6-h544aabb_3',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:ncurses-6.1-hf484d3e_0',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:gcc_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:gfortran_impl_linux-64-7.2.0-hdf63c60_3',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:gxx_impl_linux-64-7.2.0-hdf63c60_3',
+            'channel-4:global:isl-0.12.2-0',
+            'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libssh2-1.8.0-h9cfc8f7_4',
+            'channel-4:global:libtiff-4.0.9-he85c1e1_1',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:mpfr-3.1.5-h11a74b3_2',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:cloog-0.18.0-0',
+            'channel-4:global:freetype-2.8-hab7d2ae_1',
+            'channel-4:global:gfortran_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:gxx_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:libcurl-7.60.0-h1ad7b7a_0',
+            'channel-4:global:mpc-1.0.3-hec55b23_5',
+            'channel-4:global:sqlite-3.24.0-h84994c4_0',
+            'channel-4:global:curl-7.60.0-h84994c4_0',
+            'channel-4:global:fontconfig-2.12.6-h49f89f6_0',
+            'channel-4:global:gcc-4.8.5-7',
+            'channel-4:global:python-3.6.6-hc3d631a_0',
+            'channel-4:python:asn1crypto-0.24.0-py36_0',
+            'channel-4:global:cairo-1.14.12-h7636065_2',
+            'channel-4:python:idna-2.7-py36_0',
+            'channel-4:python:pycparser-2.18-py36hf9f622e_1',
+            'channel-4:python:six-1.11.0-py36h372c433_1',
+            'channel-4:python:cffi-1.11.5-py36h9745a5d_0',
+            'channel-4:global:harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4:python:cryptography-2.1.4-py36hd09be54_0',
+            'channel-4:global:pango-1.41.0-hd475d92_0',
+            'channel-4:python:digest-1.1.1-py3_0',
+            'channel-4:global:graphviz-2.40.1-h25d223c_0',
+            'channel-4:global:mro-base-3.4.3-h1c2f66e_1',
+            'channel-4:global:r-3.1.2-2',
+            'channel-4:r:digest-0.6.13-mro343h086d26f_0',
+            'channel-4:python:graphviz-0.8.3-py36_0',
+            'channel-4:r:graphviz-8.9.10-r_0',
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+    # solution should contain global:graphviz, python:graphviz, python:digest
+    specs = MatchSpec("graphviz"), MatchSpec("digest"), MatchSpec("itsdangerous"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:expat-2.2.5-he0dffb1_0',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:jpeg-9b-h024ee3a_2',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:libtool-2.4.6-h544aabb_3',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:ncurses-6.1-hf484d3e_0',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libtiff-4.0.9-he85c1e1_1',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:freetype-2.8-hab7d2ae_1',
+            'channel-4:global:sqlite-3.24.0-h84994c4_0',
+            'channel-4:global:fontconfig-2.12.6-h49f89f6_0',
+            'channel-4:global:python-3.6.6-hc3d631a_0',
+            'channel-4:python:asn1crypto-0.24.0-py36_0',
+            'channel-4:global:cairo-1.14.12-h7636065_2',
+            'channel-4:python:idna-2.7-py36_0',
+            'channel-4:python:itsdangerous-0.24-py36h93cc618_1',
+            'channel-4:python:pycparser-2.18-py36hf9f622e_1',
+            'channel-4:python:six-1.11.0-py36h372c433_1',
+            'channel-4:python:cffi-1.11.5-py36h9745a5d_0',
+            'channel-4:global:harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4:python:cryptography-2.1.4-py36hd09be54_0',
+            'channel-4:global:pango-1.41.0-hd475d92_0',
+            'channel-4:python:digest-1.1.1-py3_0',
+            'channel-4:global:graphviz-2.40.1-h25d223c_0',
+            'channel-4:python:graphviz-0.8.3-py36_0',
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+    # solution should contain global:graphviz, python:graphviz, python:digest, r:graphviz, r:digest, r:mime
+    specs = MatchSpec("graphviz"), MatchSpec("digest"), MatchSpec("itsdangerous"), MatchSpec("mime"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:_r-mutex-1.0.0-mro_2',
+            'channel-4:global:binutils_impl_linux-64-2.28.1-had2808c_3',
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libgfortran-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:binutils_linux-64-7.2.0-had2808c_27',
+            'channel-4:global:expat-2.2.5-he0dffb1_0',
+            'channel-4:global:gcc_impl_linux-64-7.2.0-habb00fd_3',
+            'channel-4:global:gmp-6.1.2-h6c8ec71_1',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:jpeg-9b-h024ee3a_2',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:libtool-2.4.6-h544aabb_3',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:ncurses-6.1-hf484d3e_0',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:gcc_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:gfortran_impl_linux-64-7.2.0-hdf63c60_3',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:gxx_impl_linux-64-7.2.0-hdf63c60_3',
+            'channel-4:global:isl-0.12.2-0',
+            'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libssh2-1.8.0-h9cfc8f7_4',
+            'channel-4:global:libtiff-4.0.9-he85c1e1_1',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:mpfr-3.1.5-h11a74b3_2',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:cloog-0.18.0-0',
+            'channel-4:global:freetype-2.8-hab7d2ae_1',
+            'channel-4:global:gfortran_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:gxx_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:libcurl-7.60.0-h1ad7b7a_0',
+            'channel-4:global:mpc-1.0.3-hec55b23_5',
+            'channel-4:global:sqlite-3.24.0-h84994c4_0',
+            'channel-4:global:curl-7.60.0-h84994c4_0',
+            'channel-4:global:fontconfig-2.12.6-h49f89f6_0',
+            'channel-4:global:gcc-4.8.5-7',
+            'channel-4:global:python-3.6.6-hc3d631a_0',
+            'channel-4:python:asn1crypto-0.24.0-py36_0',
+            'channel-4:global:cairo-1.14.12-h7636065_2',
+            'channel-4:python:idna-2.7-py36_0',
+            'channel-4:python:itsdangerous-0.24-py36h93cc618_1',
+            'channel-4:python:pycparser-2.18-py36hf9f622e_1',
+            'channel-4:python:six-1.11.0-py36h372c433_1',
+            'channel-4:python:cffi-1.11.5-py36h9745a5d_0',
+            'channel-4:global:harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4:python:cryptography-2.1.4-py36hd09be54_0',
+            'channel-4:global:pango-1.41.0-hd475d92_0',
+            'channel-4:python:digest-1.1.1-py3_0',
+            'channel-4:global:graphviz-2.40.1-h25d223c_0',
+            'channel-4:global:mro-base-3.4.3-h1c2f66e_1',
+            'channel-4:global:r-3.1.2-2',
+            'channel-4:r:digest-0.6.13-mro343h086d26f_0',
+            'channel-4:r:mime-0.5-mro343h086d26f_0',
+            'channel-4:python:graphviz-0.8.3-py36_0',
+            'channel-4:r:graphviz-8.9.10-r_0',
+        )
+        assert convert_to_record_id(final_state_1) == order
 
 
 # def test_namespace_1():

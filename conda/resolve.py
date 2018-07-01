@@ -4,13 +4,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
+from functools import partial
 from itertools import chain
 from logging import DEBUG, getLogger
 
 from .base.constants import MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
-from .common.io import time_recorder
+from .common.io import dashlist, time_recorder
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
 from .exceptions import ResolvePackageNotFound, UnsatisfiableError
@@ -33,10 +34,6 @@ Unsatisfiable = UnsatisfiableError
 ResolvePackageNotFound = ResolvePackageNotFound
 
 
-def dashlist(iterable, indent=2):
-    return ''.join('\n' + ' ' * indent + '- ' + str(x) for x in iterable)
-
-
 class Resolve(object):
 
     def __init__(self, index, sort=False, processed=False, channels=()):
@@ -55,7 +52,8 @@ class Resolve(object):
 
         self.groups = groups  # Dict[package_name, List[PackageRecord]]
         self.trackers = trackers  # Dict[track_feature, List[PackageRecord]]
-        self.find_matches_ = {}  # Dict[MatchSpec, List[PackageRecord]]
+        self._cached_find_matches = {}  # Dict[MatchSpec, List[PackageRecord]]
+        self._cached_find_matches_with_dependencies = {}  # Dict[MatchSpec, Set[PackageRecord]]
         self._reduced_index_cache = {}
 
         if sort:
@@ -205,7 +203,7 @@ class Resolve(object):
             above) that all of the specs depend on *but in different ways*. We
             then identify the dependency chains that lead to those packages.
         """
-        sdeps = {}
+        sdeps = {}  # Dict[MatchSpec, Dict[package_name, Set[PackageRecord]]]
         # For each spec, assemble a dictionary of dependencies, with package
         # name as key, and all of the matching packages as values.
         for ms in specs:
@@ -232,8 +230,8 @@ class Resolve(object):
             for mn, v in sdep.items():
                 if mn != ms.name and mn in commkeys:
                     # Mark this package's "unique" dependencies as invalid
-                    for fkey in v - commkeys[mn]:
-                        filter[fkey] = False
+                    for prec in v - commkeys[mn]:
+                        filter[prec] = False
             # Find the dependencies that lead to those invalid choices
             ndeps = set(self.invalid_chains(ms, filter, False))
             # This may produce some additional invalid chains that we
@@ -366,22 +364,82 @@ class Resolve(object):
         # type: (MatchSpec, PackageRecord) -> bool
         return MatchSpec(ms).match(prec)
 
-    def find_matches(self, ms):
+    def find_matches(self, spec):
         # type: (MatchSpec) -> List[PackageRecord]
-        res = self.find_matches_.get(ms, None)
-        if res is None:
-            if ms.get_exact_value('name'):
-                res = self.groups.get(ms.name, [])
-            elif ms.get_exact_value('track_features'):
-                feature_names = ms.get_exact_value('track_features')
-                res = list(chain.from_iterable(self.trackers[feature_name]
-                                               for feature_name in feature_names
-                                               if feature_name in self.trackers))
-            else:
-                res = self.index.values()
-            res = [p for p in res if self.match(ms, p)]
-            self.find_matches_[ms] = res
+        res = self._cached_find_matches.get(spec, None)
+        if res is not None:
+            return res
+
+        spec_name = spec.get_exact_value('name')
+        if spec_name:
+            res = self.groups.get(spec_name, ())
+            if not spec.namespace and len(set(prec.namespace for prec in res)) > 1:
+                # If spec has a namespace, then we don't need any special filtering here.
+                # If not, then we need to match based on legacy name, not name.
+                # This specifically affects self.required_namespaces().
+                #
+                # The legacy name match should only apply if there is potential ambiguity.
+                # If all the matches all exist in the same namespace, then we shouldn't
+                # filter further.
+                # At the time of writing this code, it's uncertain if this second requirement
+                # could lead to unexpected behavior. We may need to raise an error for potential
+                # ambiguities rather than trying to be too smart here.
+                #
+                # See tests/test_resolve.py::test_required_namespaces for example cases.
+                res = tuple(prec for prec in res if prec.legacy_name == spec_name)
+                if not res:
+                    # If res is empty, that means there is ambiguity in which namespace is needed.
+                    # Effectively a tie.  Use the original result.
+                    res = self.groups.get(spec_name, ())
+        elif spec.get_exact_value('track_features'):
+            feature_names = spec.get_exact_value('track_features')
+            res = concat(self.trackers.get(feature_name, ()) for feature_name in feature_names)
+        else:
+            res = self.index.values()
+
+        res = frozenset(p for p in res if self.match(spec, p))
+        self._cached_find_matches[spec] = res
         return res
+
+    def find_matches_with_dependencies(self, spec):
+        # type: (MatchSpec) -> Set[PackageRecord]
+        res = self._cached_find_matches_with_dependencies.get(spec, None)
+        if res is not None:
+            return res
+
+        result = set()
+        processed_specs = set()
+        spec_queue = {spec}
+        while spec_queue:
+            this_spec = spec_queue.pop()
+            processed_specs.add(this_spec)
+            matching_precs = self.find_matches(this_spec)
+            result.update(matching_precs)
+            spec_queue.update(s
+                              for prec in matching_precs
+                              for s in prec.ms_depends
+                              if s not in processed_specs)
+        self._cached_find_matches_with_dependencies[spec] = result
+        return result
+
+    def available_namespaces(self, spec):
+        return frozenset(prec.namespace for prec in self.groups.get(spec.name, ())
+                         if spec.match(prec))
+
+    def required_namespaces(self, spec):
+        # Gives a dict where the keys are specs based on spec, but with namespaces added.
+        # The values are a set of additional namespaces required by the spec.
+        # type: (MatchSpec) -> Map[MatchSpec, Set[MatchSpec]]
+        result = {}
+        available = self.available_namespaces(spec)
+        if len(available) > 1:
+            assert spec.namespace is None, spec
+        for namespace in available:
+            new_spec = MatchSpec(spec, namespace=namespace)
+            result[new_spec] = set(
+                prec.namespace for prec in self.find_matches_with_dependencies(new_spec)
+            ) - {namespace}
+        return result
 
     def version_key(self, prec, vtype=None):
         channel = prec.channel
@@ -409,14 +467,6 @@ class Resolve(object):
             priorities_map[channel_name] = min(priority_counter, MAX_CHANNEL_PRIORITY - 1)
         return priorities_map
 
-    def get_pkgs(self, ms, emptyok=False):  # pragma: no cover
-        # legacy method for conda-build
-        ms = MatchSpec(ms)
-        precs = self.find_matches(ms)
-        if not precs and not emptyok:
-            raise ResolvePackageNotFound([(ms,)])
-        return sorted(precs, key=self.version_key)
-
     @staticmethod
     def to_sat_name(val):
         # val can be a PackageRef or MatchSpec
@@ -440,32 +490,40 @@ class Resolve(object):
             return sat_name
 
         simple = spec._is_single()
-        nm = spec.get_exact_value('name')
+        package_name = spec.get_exact_value('name')
         tf = frozenset(_tf for _tf in (
             f.strip() for f in spec.get_exact_value('track_features') or ()
         ) if _tf)
 
-        if nm:
-            tgroup = libs = self.groups.get(nm, [])
+        if package_name:
+            group = libs = self.groups.get(package_name, [])
         elif tf:
             assert len(tf) == 1
             k = next(iter(tf))
-            tgroup = libs = self.trackers.get(k, [])
+            group = libs = self.trackers.get(k, [])
         else:
-            tgroup = libs = self.index.keys()
+            group = libs = self.index.keys()
             simple = False
         if not simple:
-            libs = [fkey for fkey in tgroup if self.match(spec, fkey)]
-        if len(libs) == len(tgroup):
+            libs = [prec for prec in group if spec.match(prec)]
+
+        # Ensure specs are only representative of a single namespace.
+        namespaces = set(prec.namespace for prec in libs)
+        if len(namespaces) > 1:
+            # TODO: turn this back into an error
+            log.warning("'%s' matches packages for multiple namespaces: %s", spec, namespaces)
+
+        if len(libs) == len(group):
             if spec.optional:
                 m = True
             elif not simple:
-                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
+                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(package_name)
                 m = C.from_name(self.push_MatchSpec(C, ms2))
         if m is None:
+            # the spec ms2 has not been pushed onto the clauses stack
             sat_names = [self.to_sat_name(prec) for prec in libs]
             if spec.optional:
-                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(nm)
+                ms2 = MatchSpec(track_features=tf) if tf else MatchSpec(package_name)
                 sat_names.append('!' + self.to_sat_name(ms2))
             m = C.Any(sat_names)
         C.name_var(m, sat_name)
@@ -474,16 +532,17 @@ class Resolve(object):
     def gen_clauses(self):
         C = Clauses()
         for name, group in iteritems(self.groups):
-            group = [self.to_sat_name(prec) for prec in group]
-            # Create one variable for each package
-            for sat_name in group:
-                C.new_var(sat_name)
-            # Create one variable for the group
-            m = C.new_var(self.to_sat_name(MatchSpec(name)))
+            for namespace, ns_group in iteritems(groupby('namespace', group)):
+                sat_group = [self.to_sat_name(prec) for prec in ns_group]
+                # Create one variable for each package
+                for sat_name in sat_group:
+                    C.new_var(sat_name)
+                # Create one variable for the group
+                m = C.new_var(self.to_sat_name(MatchSpec(namespace=namespace, name=name)))
 
-            # Exactly one of the package variables, OR
-            # the negation of the group variable, is true
-            C.Require(C.ExactlyOne, group + [C.Not(m)])
+                # Exactly one of the package variables, OR
+                # the negation of the group variable, is true
+                C.Require(C.ExactlyOne, sat_group + [C.Not(m)])
 
         # If a package is installed, its dependencies must be as well
         for prec in itervalues(self.index):

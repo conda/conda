@@ -787,9 +787,8 @@ class Entity(object):
 
     def __repr__(self):
         def _valid(key):
-            # TODO: re-enable once aliases are implemented
-            # if key.startswith('_'):
-            #     return False
+            if key.startswith('_') and key not in self.__fields__:
+                return False
             if '__' in key:
                 return False
             try:
