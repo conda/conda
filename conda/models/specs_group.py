@@ -5,8 +5,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 
+from .channel import all_channel_urls
 from .match_spec import MatchSpec
 from ..common.compat import iteritems, itervalues, text_type
+from ..exceptions import PackagesNotFoundError
 
 try:
     from cytoolz.itertoolz import concatv, groupby
@@ -147,6 +149,7 @@ class SpecsGroup(object):
         # first pass, determine all non-ambiguous cases
         all_required_namespaces = set()
         ambiguous_cases = {}
+        specs_not_found = set()
         for spec in self.non_namespaced_specs():
             required_namespaces = r.required_namespaces(spec)
             if len(required_namespaces) == 1:
@@ -156,10 +159,15 @@ class SpecsGroup(object):
                 all_required_namespaces.add(new_spec.namespace)
                 all_required_namespaces.update(namespace_dependencies)
             elif not required_namespaces:
-                raise AssertionError("Spec has no matching packages: %s" % spec)
+                specs_not_found.add(spec)
             else:
                 # ambiguous situation
                 ambiguous_cases[spec] = required_namespaces
+        if specs_not_found:
+            raise PackagesNotFoundError(
+                tuple(sorted(str(s) for s in specs_not_found)),
+                all_channel_urls(r.channels)
+            )
 
         # second pass, try intersection with 'global', then intersection, then use union
         if not ambiguous_cases:

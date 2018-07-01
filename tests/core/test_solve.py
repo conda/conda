@@ -14,7 +14,7 @@ from conda.base.context import context, reset_context, Context
 from conda.common.io import env_var, env_vars, stderr_log_level
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, Solver, UpdateModifier
-from conda.exceptions import UnsatisfiableError
+from conda.exceptions import UnsatisfiableError, PackagesNotFoundError
 from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
@@ -106,7 +106,6 @@ def convert_to_record_id(solution):
 
 def test_solve_1():
     specs = MatchSpec("numpy"),
-
     with get_solver(specs) as solver:
         final_state = solver.solve_final_state()
         # print(convert_to_dist_str(final_state))
@@ -138,6 +137,15 @@ def test_solve_1():
             'channel-1::numpy-1.7.1-py27_0',
         )
         assert convert_to_dist_str(final_state) == order
+
+
+def test_packages_not_found_error():
+    specs = MatchSpec("numpie"),
+    with get_solver(specs) as solver:
+        with pytest.raises(PackagesNotFoundError) as exc:
+            solver.solve_final_state()
+    print(repr(exc.value))
+    assert "Current channel urls with subdirs" in str(exc.value)
 
 
 def test_prune_1():

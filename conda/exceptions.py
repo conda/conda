@@ -567,7 +567,7 @@ class PackagesNotFoundError(CondaError):
 
             %(packages_formatted)s
 
-            Current channels:
+            Current channel urls with subdirs:
 
             %(channels_formatted)s
 

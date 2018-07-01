@@ -71,6 +71,10 @@ class frozendict(collections.Mapping):
             self._hash = h
         return self._hash
 
+    def __json__(self):
+        # Works with auxlib's EntityEncoder.
+        return self._dict
+
 
 class FrozenOrderedDict(frozendict):
     """
