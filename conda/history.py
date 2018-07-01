@@ -25,7 +25,6 @@ from .core.prefix_data import PrefixData
 from .exceptions import CondaHistoryError, CondaUpgradeError, NotWritableError
 from .gateways.disk.update import touch
 from .models.dist import dist_str_to_quad
-from .models.specs_group import SpecsGroup
 from .models.version import VersionOrder, version_relation_re
 from .resolve import MatchSpec
 
@@ -266,6 +265,7 @@ class History(object):
         return res
 
     def get_requested_specs(self):
+        from .core.solve import SpecsGroup
         specs_group = SpecsGroup()
 
         for request in self.get_user_requests():

@@ -18,7 +18,7 @@ from conda.exceptions import UnsatisfiableError, PackagesNotFoundError
 from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
-from conda.models.specs_group import SpecsGroup
+from conda.core.solve import SpecsGroup
 from conda.resolve import MatchSpec
 from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, get_index_r_5
 from conda.common.compat import iteritems
