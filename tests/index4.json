@@ -40527,7 +40527,7 @@
     ],
     "license": "Proprietary",
     "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
-    "name": "digest",
+    "name": "python-digest",
     "noarch": "python",
     "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
     "size": 123,
@@ -40543,7 +40543,7 @@
     ],
     "license": "Proprietary",
     "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
-    "name": "digest",
+    "name": "python-digest",
     "noarch": "python",
     "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
     "size": 123,
@@ -52151,6 +52151,22 @@
     "subdir": "linux-64",
     "timestamp": 1519528362178,
     "version": "0.1.2"
+  },
+  "r-graphviz-8.9.10-r_0.tar.bz2": {
+    "build": "r_0",
+    "build_number": 0,
+    "depends": [
+      "r",
+      "graphviz"
+    ],
+    "license": "Proprietary",
+    "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+    "name": "r-graphviz",
+    "noarch": "generic",
+    "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+    "size": 123,
+    "subdir": "noarch",
+    "version": "8.9.10"
   },
   "r-gtable-0.1.2-r3.2.1_2.tar.bz2": {
     "arch": "x86_64",

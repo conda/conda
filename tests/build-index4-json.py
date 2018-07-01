@@ -680,6 +680,58 @@ def main():
             ],
             "license": "Proprietary",
             "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+            "name": "python-digest",
+            "noarch": "python",
+            "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+            "size": 123,
+            "subdir": "noarch",
+            "version": "1.1.1",
+        },
+        "python-digest-1.1.1-py3_0.tar.bz2": {
+            "build": "py3_0",
+            "build_number": 0,
+            "depends": [
+                "python >=3,<4",
+                "cryptography <2.2",
+            ],
+            "license": "Proprietary",
+            "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+            "name": "python-digest",
+            "noarch": "python",
+            "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+            "size": 123,
+            "subdir": "noarch",
+            "version": "1.1.1",
+        },
+        "r-graphviz-8.9.10-r_0.tar.bz2": {
+            "build": "r_0",
+            "build_number": 0,
+            "depends": [
+                "r",
+                "graphviz",
+            ],
+            "license": "Proprietary",
+            "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+            "name": "r-graphviz",
+            "noarch": "generic",
+            "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
+            "size": 123,
+            "subdir": "noarch",
+            "version": "8.9.10",
+        },
+    }
+
+    # TODO: put name back to just 'digest' instead of 'python-digest'
+    """
+            "python-digest-1.1.1-py2_0.tar.bz2": {
+            "build": "py2_0",
+            "build_number": 0,
+            "depends": [
+                "python >=2,<3",
+                "cryptography <2.2",
+            ],
+            "license": "Proprietary",
+            "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
             "name": "digest",
             "noarch": "python",
             "sha256": "deadbeefabd915d2f13da177a29e264e59a0ae3c6fd2a31267dcc6a8deadbeef",
@@ -703,12 +755,12 @@ def main():
             "subdir": "noarch",
             "version": "1.1.1",
         },
-    }
+    """
 
     keep.update(additional_records)
 
     python_362_records = tuple(info for info in _keep.values()
-                           if info['name'] == "python" and info["version"] == "3.6.2")
+                               if info['name'] == "python" and info["version"] == "3.6.2")
     assert not any(info["build_number"] > 19 for info in python_362_records)
 
 
