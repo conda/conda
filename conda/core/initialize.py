@@ -517,9 +517,11 @@ def run_plan_elevated(plan):
                     tf.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
                     temp_path = tf.name
                 python_exe = '"%s"' % abspath(sys.executable)
-                hinstance, error_code = run_as_admin((python_exe, '-m',  'conda.initialize',  '"%s"' % temp_path))
+                hinstance, error_code = run_as_admin((python_exe, '-m',  'conda.initialize',
+                                                      '"%s"' % temp_path))
                 if error_code is not None:
-                    print("ERROR during elevated execution.\n  rc: %s" % error_code, file=sys.stderr)
+                    print("ERROR during elevated execution.\n  rc: %s" % error_code,
+                          file=sys.stderr)
 
                 with open(temp_path) as fh:
                     _plan = json.loads(ensure_unicode(fh.read()))
