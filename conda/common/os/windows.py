@@ -86,18 +86,18 @@ def run_as_admin(args):
     - https://stackoverflow.com/a/19982092/2127762
     - https://www.codeproject.com/Articles/19165/Vista-UAC-The-Definitive-Guide
     """
-    code = None
+    hinstance = None
+    error_code = None
     if _ctypes:
         arg0 = args[0]
         param_str = ' '.join(args[1:] if len(args) > 1 else ())
-        hinstance = _ctypes.windll.shell32.ShellExecuteW(
+        hinstance_or_code = _ctypes.windll.shell32.ShellExecuteW(
             None, 'runas', arg0, param_str, None, SW.HIDE
         )
-        print(hinstance)
-        if hinstance <= 32:
-            code = None
-            # RuntimeError(ERROR(hinstance))
-        else:
-            code = hinstance
 
-    return code
+        if hinstance_or_code <= 32:
+            error_code = hinstance_or_code
+        else:
+            hinstance = hinstance_or_code
+
+    return hinstance, error_code
