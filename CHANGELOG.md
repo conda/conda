@@ -3,7 +3,9 @@
 ### New Feature Highlights
 * resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
   config (#7195, #7226, #7233)
-* resolve #7087 add non-conda-installed python packages into PrefixData (#7067)
+* resolve #7087 add non-conda-installed python packages into PrefixData (#7067, #7370)
+* conda initialize (#6518, #7388)
+* resolve #2682 add conda run experimental support (#7320)
 
 ### Deprecations/Breaking Changes
 * resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
@@ -13,6 +15,7 @@
 * resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
   config (#7195)
 * resolve #6979, #7086 remove Dist from majority of project (#7216, #7252)
+* fix #7362 remove --license from conda info and related code paths (#7386)
 
 ### Improvements
 * import speedups (#7122)
@@ -29,6 +32,7 @@
 * raise log level for errors to error (#7229)
 * add to conda.exports (#7217)
 * resolve #6845 add option -S / --satisfied-skip-solve to exit early for satisfied specs (#7291)
+* add NoBaseEnvironmentError and DirectoryNotACondaEnvironmentError (#7378)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
@@ -39,16 +43,29 @@
 * fix activation script sort order (#7176)
 * fix #7109 incorrect chown with sudo (#7180)
 * fix #7210 add suppressed --mkdir back to 'conda create' (fix for 4.6.0a1) (#7211)
+* fix #5681 conda env create / update when --file does not exist (#7385)
+* resolve #7375 enable conda config --set update_modifier (#7377)
+* fix #5885 improve conda env error messages and add extra tests (#7395)
+* msys2 path conversion (#7389)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
 * resolve #7220 pep8 project renamed to pycodestyle (#7221)
 * proxy test routine (#7308)
+* add .mailmap and .cla-signers (#7361)
+* add copyright headers (#7367)
+* rename common.platform to common.os and split among windows, linux, and unix utils (#7396)
+* fix windows test failures when symlink not available (#7369)
 
 ### Preview Releases
 
 * 4.6.0a1 at d5bec21d1f64c3bc66c2999cfc690681e9c46177 on 2018-04-20
 * 4.6.0a2 at c467517ca652371ebc4224f0d49315b7ec225108 on 2018-05-01
+
+### Contributors
+* @goanpeca
+* @kalefranz
+* @mbargull
 
 
 ## 4.5.5 (unreleased)
