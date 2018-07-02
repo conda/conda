@@ -12,7 +12,7 @@ from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_
 from .common.io import dashlist, time_recorder
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
-from .exceptions import ResolvePackageNotFound, UnsatisfiableError
+from .exceptions import PackageNamespaceConflictError, ResolvePackageNotFound, UnsatisfiableError
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType
 from .models.match_spec import MatchSpec
@@ -517,7 +517,13 @@ class Resolve(object):
             if not libs:
                 namespace = None
             elif len(namespaces) > 1:
-                raise ValueError("'%s' matches packages for multiple namespaces: %s", spec, namespaces)
+                namespaces = tuple(sorted(namespaces))
+                conflicting_packages = tuple(
+                    prec.record_id() for prec in sorted(libs, key=self.version_key, reverse=True)
+                )
+                channel_names = tuple(sorted(set(prec.channel.canonical_name for prec in libs)))
+                raise PackageNamespaceConflictError(spec, namespaces, conflicting_packages,
+                                                    channel_names)
             else:
                 namespace, = namespaces
 

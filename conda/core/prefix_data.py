@@ -325,6 +325,7 @@ class PrefixData(object):
 
             python_rec = PrefixRecord(
                 package_type=package_type,
+                namespace='python',
                 name=pydist.name.lower(),
                 version=pydist.version,
                 channel=Channel('pypi'),

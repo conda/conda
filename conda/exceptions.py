@@ -594,6 +594,32 @@ class PackagesNotFoundError(CondaError):
         )
 
 
+class PackageNamespaceConflictError(CondaError):
+
+    def __init__(self, match_spec, namespaces, conflicting_packages, channel_names):
+        format_list = lambda iterable: '    - ' + '\n    - '.join(text_type(x) for x in iterable)
+        message = dals("""
+        A namespace conflict has been detected among the following packages:
+          match spec: %(match_spec)s
+          namespaces:
+        %(namespaces)s
+          conflicting packages:
+        %(conflicting_packages)s
+
+        Please report this error to the maintainers of the channels involved.
+          channels:
+        %(channel_names)s
+        """) % {
+            'match_spec': match_spec,
+            'namespaces': format_list(namespaces),
+            'conflicting_packages': format_list(conflicting_packages),
+            'channel_names': format_list(channel_names),
+        }
+        kwargs = {'match_spec': match_spec, 'namespaces': namespaces,
+                  'conflicting_packages': conflicting_packages, 'channel_names': channel_names}
+        super(PackageNamespaceConflictError, self).__init__(message, **kwargs)
+
+
 class UnsatisfiableError(CondaError):
     """An exception to report unsatisfiable dependencies.
 
