@@ -1005,6 +1005,7 @@ def conda_in_private_env():
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, argparse_args)
+    context.__dict__.pop('_Context__conda_build', None)
     from ..models.channel import Channel
     Channel._reset_state()
     # need to import here to avoid circular dependency
