@@ -10650,6 +10650,7 @@
     "license": "BSD 3-Clause",
     "md5": "c1a55e6bb160dd26801df411e7dc1dc4",
     "name": "conda-env",
+    "namespace": "python",
     "sha256": "8a6c1e05f974afcaad3c9fe4abcafec6f5ae16202f3845523a1dd1e993f5930f",
     "size": 2247,
     "subdir": "linux-64",

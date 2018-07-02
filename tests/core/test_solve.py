@@ -2224,6 +2224,58 @@ def test_namespace_create_ambiguous_namespace():
         assert convert_to_record_id(final_state_1) == order
 
 
+def test_conda_env_namespace_patch():
+    specs = MatchSpec("conda-build"), MatchSpec("conda"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:python:conda-env-2.6.0-h36134e3_1',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:ncurses-6.1-hf484d3e_0',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:patchelf-0.9-hf79760b_2',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:yaml-0.1.7-had09818_2',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:sqlite-3.24.0-h84994c4_0',
+            'channel-4:global:python-3.6.6-hc3d631a_0',
+            'channel-4:python:asn1crypto-0.24.0-py36_0',
+            'channel-4:python:beautifulsoup4-4.6.0-py36h49b8c8c_1',
+            'channel-4:python:certifi-2018.4.16-py36_0',
+            'channel-4:python:chardet-3.0.4-py36h0f667ec_1',
+            'channel-4:python:filelock-3.0.4-py36_0',
+            'channel-4:python:glob2-0.6-py36he249c77_0',
+            'channel-4:python:idna-2.7-py36_0',
+            'channel-4:python:markupsafe-1.0-py36hd9260cd_1',
+            'channel-4:python:pkginfo-1.4.2-py36_1',
+            'channel-4:python:psutil-5.4.6-py36h14c3975_0',
+            'channel-4:python:pycosat-0.6.3-py36h0a5515d_0',
+            'channel-4:python:pycparser-2.18-py36hf9f622e_1',
+            'channel-4:python:pysocks-1.6.8-py36_0',
+            'channel-4:python:pyyaml-3.12-py36hafb9ca4_1',
+            'channel-4:python:ruamel_yaml-0.15.40-py36h14c3975_2',
+            'channel-4:python:six-1.11.0-py36h372c433_1',
+            'channel-4:python:cffi-1.11.5-py36h9745a5d_0',
+            'channel-4:python:conda-verify-2.0.0-py36h98955d8_0',
+            'channel-4:python:setuptools-39.2.0-py36_0',
+            'channel-4:python:cryptography-2.2.2-py36h14c3975_0',
+            'channel-4:python:jinja2-2.10-py36ha16c418_0',
+            'channel-4:python:pyopenssl-18.0.0-py36_0',
+            'channel-4:python:urllib3-1.23-py36_0',
+            'channel-4:python:requests-2.19.1-py36_0',
+            'channel-4:python:conda-4.5.4-py36_0',
+            'channel-4:python:conda-build-3.10.9-py36_0',
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+
 # def test_namespace_1():
 #     specs = MatchSpec("python"), MatchSpec("perl"),
 #     with get_solver_4(specs) as solver:

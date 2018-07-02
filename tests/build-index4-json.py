@@ -17,6 +17,7 @@ def main():
     * python-3.6.2-hda45abc_19 has a later hash, but earlier timestamp than python-3.6.2-hca45abc_19
     * contains conda packages that constrain versions of conda-build
     * ibis-framework depends on python:graphviz
+    * conda-env has namespace patch
 
     """
 
@@ -327,6 +328,13 @@ def main():
     if missing_in_whitelist:
         print(">>> missing 1 <<<")
         pprint(missing_in_whitelist)
+
+    # patch 'conda-env' to include an namespace for the problem cases
+    conda_env_dicts = tuple(info for info in _keep.values() if info['name'] == 'conda-env')
+    for info in conda_env_dicts:
+        if not any(d.startswith('python') for d in info['depends']):
+            info['namespace'] = 'python'
+
     keep.update(_keep)
 
 
