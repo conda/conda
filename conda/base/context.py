@@ -229,7 +229,7 @@ class Context(Configuration):
     anaconda_upload = PrimitiveParameter(None, aliases=('binstar_upload',),
                                          element_type=(bool, NoneType))
     _croot = PrimitiveParameter('', aliases=('croot',))
-    conda_build = MapParameter(string_types, aliases=('conda-build',))
+    _conda_build = MapParameter(string_types, aliases=('conda-build',))
 
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:
@@ -325,6 +325,15 @@ class Context(Configuration):
         path = join(self.croot, 'svn_cache')
         conda_bld_ensure_dir(path)
         return path
+
+    @property
+    def conda_build(self):
+        # conda-build needs its config map to be mutable
+        try:
+            return self.__conda_build
+        except AttributeError:
+            self.__conda_build = __conda_build = dict(self._conda_build)
+            return __conda_build
 
     @property
     def arch_name(self):
