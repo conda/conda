@@ -351,8 +351,8 @@ def test_global_namespace():
     global_graphviz_record['namespace'] = 'global'  # namespace gets added on dump
     assert global_graphviz_record == prec.dump()
 
-    combined_depends = tuple(str(s) for s in prec.combined_depends)
-    assert combined_depends == (
+    combined_depends = set(str(s) for s in prec.combined_depends)
+    assert combined_depends == {
         "cairo[version='>=1.14.12,<2.0a0']",
         "expat[version='>=2.2.5,<3.0a0']",
         "freetype[version='>=2.8,<2.9.0a0']",
@@ -364,7 +364,7 @@ def test_global_namespace():
         'libtool',
         "pango[version='>=1.41.0,<2.0a0']",
         "zlib[version='>=1.2.11,<1.3.0a0']"
-    )
+    }
 
 
 class PrefixRecordTests(TestCase):

@@ -77,7 +77,10 @@ EMPTY_MAP = frozendict()
 def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
     if not isiterable(iterable):
         iterable = [iterable]
-    return '\n'.join("%s- %s" % (padding, item) for item in iterable)
+    try:
+        return '\n'.join("%s- %s" % (padding, item) for item in iterable)
+    except TypeError:
+        return pretty_list([iterable], padding)
 
 
 def pretty_map(dictionary, padding='  '):

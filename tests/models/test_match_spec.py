@@ -976,20 +976,20 @@ class MatchSpecMergeTests(TestCase):
         assert str(merged[1]) == "python:numpy"
 
         specs = (MatchSpec("python:numpy"), MatchSpec("conda-forge:global:numpy"))
-        merged = MatchSpec.merge(specs)
+        merged = set(str(s) for s in MatchSpec.merge(specs))
         assert len(merged) == 2
-        assert str(merged[0]) == "python:numpy"
-        assert str(merged[1]) == "conda-forge:global:numpy"
+        assert "python:numpy" in merged
+        assert "conda-forge:global:numpy" in merged
 
     def test_merge_target(self):
         specs = (
             MatchSpec("python=2", target='channel-1:global:python-2.7.5-0'),
             MatchSpec("global:python", target='channel-1:global:python-2.7.5-0'),
         )
-        merged = MatchSpec.merge(specs)
+        merged = set(str(s) for s in MatchSpec.merge(specs))
         assert len(merged) == 2
-        assert str(merged[0]) == "python=2"
-        assert str(merged[1]) == "global:python"
+        assert "python=2" in merged
+        assert "global:python" in merged
 
         specs = (
             MatchSpec("python=2", target='channel-1:global:python-2.7.5-0'),
