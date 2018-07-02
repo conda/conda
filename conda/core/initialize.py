@@ -517,9 +517,9 @@ def run_plan_elevated(plan):
                     tf.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
                     temp_path = tf.name
                 python_exe = '"%s"' % abspath(sys.executable)
-                rc = run_as_admin((python_exe, '-m',  'conda.initialize',  '"%s"' % temp_path))
-                if rc:
-                    print("ERROR during elevated execution.\n  rc: %s" % rc, file=sys.stderr)
+                hinstance, error_code = run_as_admin((python_exe, '-m',  'conda.initialize',  '"%s"' % temp_path))
+                if error_code is not None:
+                    print("ERROR during elevated execution.\n  rc: %s" % error_code, file=sys.stderr)
 
                 with open(temp_path) as fh:
                     _plan = json.loads(ensure_unicode(fh.read()))
@@ -1026,17 +1026,23 @@ def _read_windows_registry(target_path):  # pragma: no cover
     main_key, the_rest = target_path.split('\\', 1)
     subkey_str, value_name = the_rest.rsplit('\\', 1)
     main_key = getattr(winreg, main_key)
+
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_READ)
     except EnvironmentError as e:
         if e.errno != ENOENT:
             raise
         return None, None
+
     try:
         value_tuple = winreg.QueryValueEx(key, value_name)
         value_value = value_tuple[0].strip()
         value_type = value_tuple[1]
         return value_value, value_type
+    except Exception:
+        # [WinError 2] The system cannot find the file specified
+        winreg.CloseKey(key)
+        return None, None
     finally:
         winreg.CloseKey(key)
 
