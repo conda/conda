@@ -39,7 +39,8 @@ requirements:
     - pycosat >=0.6.3
     - pyopenssl >=16.2.0
     - requests >=2.12.4,<3
-    - ruamel_yaml >=0.11.14
+    - ruamel_yaml >=0.11.14            [py3 or unix]
+    - ruamel_yaml >=0.11.14,<=0.15.37  [py27 and win]
   run_constrained:
     - conda-build >=3
     - cytoolz >=0.8.1

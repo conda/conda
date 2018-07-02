@@ -74,6 +74,9 @@ def pretty_content(content):
 
 class History(object):
 
+    com_pat = re.compile(r'#\s*cmd:\s*(.+)')
+    spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)?')
+
     def __init__(self, prefix):
         self.prefix = prefix
         self.meta_dir = join(prefix, 'conda-meta')
@@ -136,6 +139,69 @@ class History(object):
                 res[-1][1].add(line)
         return res
 
+    @staticmethod
+    def _parse_old_format_specs_string(specs_string):
+        """
+        Parse specifications string that use conda<4.5 syntax.
+
+        Examples
+        --------
+          - "param >=1.5.1,<2.0'"
+          - "python>=3.5.1,jupyter >=1.0.0,<2.0,matplotlib >=1.5.1,<2.0"
+        """
+        specs = []
+        for spec in specs_string.split(','):
+            # See https://github.com/conda/conda/issues/6691
+            if spec[0].isalpha():
+                # A valid spec starts with a letter since it is a package name
+                specs.append(spec)
+            else:
+                # Otherwise it is a condition and has to be appended to the
+                # last valid spec on the specs list
+                specs[-1] = ','.join([specs[-1], spec])
+
+        return specs
+
+    @classmethod
+    def _parse_comment_line(cls, line):
+        """
+        Parse comment lines in the history file.
+
+        These lines can be of command type or action type.
+
+        Examples
+        --------
+          - "# cmd: /scratch/mc3/bin/conda install -c conda-forge param>=1.5.1,<2.0"
+          - "# install specs: python>=3.5.1,jupyter >=1.0.0,<2.0,matplotlib >=1.5.1,<2.0"
+        """
+        item = {}
+        m = cls.com_pat.match(line)
+        if m:
+            argv = m.group(1).split()
+            if argv[0].endswith('conda'):
+                argv[0] = 'conda'
+            item['cmd'] = argv
+
+        m = cls.spec_pat.match(line)
+        if m:
+            action, specs_string = m.groups()
+            specs_string = specs_string or ""
+            item['action'] = action
+
+            if specs_string.startswith('['):
+                specs = literal_eval(specs_string)
+            elif '[' not in specs_string:
+                specs = History._parse_old_format_specs_string(specs_string)
+
+            specs = [spec for spec in specs if spec and not spec.endswith('@')]
+
+            if specs and action in ('update', 'install', 'create'):
+                item['update_specs'] = item['specs'] = specs
+            elif specs and action in ('remove', 'uninstall'):
+                item['remove_specs'] = item['specs'] = specs
+
+        return item
+
     def get_user_requests(self):
         """
         return a list of user requested items.  Each item is a dict with the
@@ -146,37 +212,19 @@ class History(object):
         'specs': the specs being used
         """
         res = []
-        com_pat = re.compile(r'#\s*cmd:\s*(.+)')
-        spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)?')
         for dt, unused_cont, comments in self.parse():
             item = {'date': dt}
             for line in comments:
-                m = com_pat.match(line)
-                if m:
-                    argv = m.group(1).split()
-                    if argv[0].endswith('conda'):
-                        argv[0] = 'conda'
-                    item['cmd'] = argv
-                m = spec_pat.match(line)
-                if m:
-                    action, specs = m.groups()
-                    item['action'] = action
-                    specs = specs or ""
-                    if specs.startswith('['):
-                        specs = literal_eval(specs)
-                    elif '[' not in specs:
-                        specs = specs.split(',')
-                    specs = [spec for spec in specs if spec and not spec.endswith('@')]
-                    if specs and action in ('update', 'install', 'create'):
-                        item['update_specs'] = item['specs'] = specs
-                    elif specs and action in ('remove', 'uninstall'):
-                        item['remove_specs'] = item['specs'] = specs
+                comment_items = self._parse_comment_line(line)
+                item.update(comment_items)
 
             if 'cmd' in item:
                 res.append(item)
+
             dists = groupby(itemgetter(0), unused_cont)
             item['unlink_dists'] = dists.get('-', ())
             item['link_dists'] = dists.get('+', ())
+
         return res
 
     def get_requested_specs_map(self):
