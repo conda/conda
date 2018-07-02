@@ -1556,13 +1556,13 @@ def test_priority_1():
                 'channel-4::readline-7.0-ha6073c6_4',
                 'channel-4::sqlite-3.24.0-h84994c4_0',
                 'channel-4::python-2.7.15-h1571d57_0',
-                'channel-4::numpy-base-1.14.5-py27hdbf6ddf_0',
+                'channel-4::numpy-base-1.14.5-py27hdbf6ddf_2',
                 'channel-4::pytz-2018.4-py27_0',
                 'channel-4::six-1.11.0-py27h5f960f1_1',
                 'channel-4::python-dateutil-2.7.3-py27_0',
                 'channel-4::mkl_fft-1.0.1-py27h3010b51_0',
                 'channel-4::mkl_random-1.0.1-py27h629b387_0',
-                'channel-4::numpy-1.14.5-py27hcd700cb_0',
+                'channel-4::numpy-1.14.5-py27hcd700cb_2',
                 'channel-4::pandas-0.23.1-py27h637b7d7_0',
             )
             assert convert_to_dist_str(final_state_1) == order
@@ -1614,8 +1614,8 @@ def test_features_solve_1():
                 'channel-4::readline-7.0-ha6073c6_4',
                 'channel-4::sqlite-3.24.0-h84994c4_0',
                 'channel-4::python-2.7.15-h1571d57_0',
-                'channel-4::numpy-base-1.14.5-py27h2b20989_0',
-                'channel-4::numpy-1.14.5-py27h28100ab_0'
+                'channel-4::numpy-base-1.14.5-py27h2b20989_2',
+                'channel-4::numpy-1.14.5-py27h28100ab_2'
             )
             assert convert_to_dist_str(final_state_1) == order
 

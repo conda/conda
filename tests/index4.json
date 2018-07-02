@@ -29865,6 +29865,42 @@
     "type": "app",
     "version": "5.5.0"
   },
+  "numpy-1.11.3-py27h28100ab_6.tar.bz2": {
+    "build": "py27h28100ab_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.11.3,<2.0a0",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "0b06f8efabdbf690d47338043aa6aaf3",
+    "name": "numpy",
+    "sha256": "ea3b6478ab01c8663b468a61833a5f016cb0f3be9e63faffabc9199ea68a4e07",
+    "size": 10987,
+    "subdir": "linux-64",
+    "timestamp": 1530315412693,
+    "version": "1.11.3"
+  },
+  "numpy-1.11.3-py27h28100ab_7.tar.bz2": {
+    "build": "py27h28100ab_7",
+    "build_number": 7,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.11.3 py27h2b20989_7",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "ffdd252acf526d961fe7db62cf18ff7c",
+    "name": "numpy",
+    "sha256": "adbeb677fe310ea7dd599ffca6157368219ab48e133f9458fb424a42bdfa7405",
+    "size": 10582,
+    "subdir": "linux-64",
+    "timestamp": 1530380848462,
+    "version": "1.11.3"
+  },
   "numpy-1.11.3-py27h3dfced4_4.tar.bz2": {
     "build": "py27h3dfced4_4",
     "build_number": 4,
@@ -29884,6 +29920,42 @@
     "size": 3662844,
     "subdir": "linux-64",
     "timestamp": 1519835702812,
+    "version": "1.11.3"
+  },
+  "numpy-1.11.3-py27hcd700cb_6.tar.bz2": {
+    "build": "py27hcd700cb_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.11.3,<2.0a0",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "f7638dd05298c0dcb1a179aebd09c34a",
+    "name": "numpy",
+    "sha256": "ec5b2d26a130a92838ab0788c25ef96697445fc9ff8c32ebb9dcce8ab8af0f2a",
+    "size": 10981,
+    "subdir": "linux-64",
+    "timestamp": 1530315638852,
+    "version": "1.11.3"
+  },
+  "numpy-1.11.3-py27hcd700cb_7.tar.bz2": {
+    "build": "py27hcd700cb_7",
+    "build_number": 7,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.11.3 py27hdbf6ddf_7",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "9ec215611725fc526adda1a62acbc4f7",
+    "name": "numpy",
+    "sha256": "f7189748b24f6e31082e63ae7f401febc062ce35c591eb4735beab596e2bca1b",
+    "size": 10561,
+    "subdir": "linux-64",
+    "timestamp": 1530382537273,
     "version": "1.11.3"
   },
   "numpy-1.11.3-py35h3dfced4_4.tar.bz2": {
@@ -29907,6 +29979,42 @@
     "timestamp": 1519835721886,
     "version": "1.11.3"
   },
+  "numpy-1.11.3-py36h28100ab_6.tar.bz2": {
+    "build": "py36h28100ab_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.11.3,<2.0a0",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "f7f8cd0b48229267658b459abe9a9389",
+    "name": "numpy",
+    "sha256": "cf61fd57cb692848aa5113a3d133663bb3268499c2cd30b53ac06f5fd6c9580e",
+    "size": 10991,
+    "subdir": "linux-64",
+    "timestamp": 1530315443082,
+    "version": "1.11.3"
+  },
+  "numpy-1.11.3-py36h28100ab_7.tar.bz2": {
+    "build": "py36h28100ab_7",
+    "build_number": 7,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.11.3 py36h2b20989_7",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "c83babd59b8ffa51c834bc1bca8259fc",
+    "name": "numpy",
+    "sha256": "1d5e7c5f230bde2dac0ac45b70ae89d57c686b987c65d4ad2c787cbc804ecdfc",
+    "size": 10564,
+    "subdir": "linux-64",
+    "timestamp": 1530381182235,
+    "version": "1.11.3"
+  },
   "numpy-1.11.3-py36h3dfced4_4.tar.bz2": {
     "build": "py36h3dfced4_4",
     "build_number": 4,
@@ -29926,6 +30034,114 @@
     "size": 3684323,
     "subdir": "linux-64",
     "timestamp": 1519835691560,
+    "version": "1.11.3"
+  },
+  "numpy-1.11.3-py36hcd700cb_6.tar.bz2": {
+    "build": "py36hcd700cb_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.11.3,<2.0a0",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "160b91809b1c96f84eccc981d3864093",
+    "name": "numpy",
+    "sha256": "fd8fbf813c19c899020c62fecff95c42aeb17d2b0ef2c54e6b1e3fa04da9fbe6",
+    "size": 10981,
+    "subdir": "linux-64",
+    "timestamp": 1530315659462,
+    "version": "1.11.3"
+  },
+  "numpy-1.11.3-py36hcd700cb_7.tar.bz2": {
+    "build": "py36hcd700cb_7",
+    "build_number": 7,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.11.3 py36hdbf6ddf_7",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "b56c8e1c3165a6daeac9e333656468bb",
+    "name": "numpy",
+    "sha256": "006ba3e14a20cc0f62bcecab162b59bf7c809b648d98d6278a21fcd00fc58e9b",
+    "size": 10560,
+    "subdir": "linux-64",
+    "timestamp": 1530382706962,
+    "version": "1.11.3"
+  },
+  "numpy-1.11.3-py37h28100ab_6.tar.bz2": {
+    "build": "py37h28100ab_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.11.3,<2.0a0",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "810b767be1927841fb662644744a95bb",
+    "name": "numpy",
+    "sha256": "5f671c6c7159fe9b7264ba17a080fc93ff577ca1e66baef1b4b616c77d8df4f6",
+    "size": 10979,
+    "subdir": "linux-64",
+    "timestamp": 1530315453782,
+    "version": "1.11.3"
+  },
+  "numpy-1.11.3-py37h28100ab_7.tar.bz2": {
+    "build": "py37h28100ab_7",
+    "build_number": 7,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.11.3 py37h2b20989_7",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "1cf1aa9bab0c18b6047ae70bdec490f1",
+    "name": "numpy",
+    "sha256": "138efbd7d4a31a47d5a0ac09b58956664399b67db4b1e90576b173e43551ccb8",
+    "size": 10597,
+    "subdir": "linux-64",
+    "timestamp": 1530380821757,
+    "version": "1.11.3"
+  },
+  "numpy-1.11.3-py37hcd700cb_6.tar.bz2": {
+    "build": "py37hcd700cb_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.11.3,<2.0a0",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "a152b1184f5f84306ade177975d40f6f",
+    "name": "numpy",
+    "sha256": "1dea0b1673350230ea1b99578ff0856e6a2535e7338dfad2b114ea04462a3db2",
+    "size": 10974,
+    "subdir": "linux-64",
+    "timestamp": 1530315652311,
+    "version": "1.11.3"
+  },
+  "numpy-1.11.3-py37hcd700cb_7.tar.bz2": {
+    "build": "py37hcd700cb_7",
+    "build_number": 7,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.11.3 py37hdbf6ddf_7",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "66dbd1f666fa9c25bc4fa4c039ec2fd0",
+    "name": "numpy",
+    "sha256": "521d1169552f2d4b9a425eab61826bf69dd17d5935db9d3f8a21addf2b02b1c0",
+    "size": 10570,
+    "subdir": "linux-64",
+    "timestamp": 1530382720502,
     "version": "1.11.3"
   },
   "numpy-1.12.1-py27h9378851_1.tar.bz2": {
@@ -31557,6 +31773,42 @@
     "timestamp": 1528900955568,
     "version": "1.14.5"
   },
+  "numpy-1.14.5-py27h28100ab_1.tar.bz2": {
+    "build": "py27h28100ab_1",
+    "build_number": 1,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.14.5 py27h2b20989_1",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "094cfb42fe457b2e9d7f152b1543d3de",
+    "name": "numpy",
+    "sha256": "8d52b860626990e064c1b4df4b0fc26d95384530f48099245ca1b945fca5b5d4",
+    "size": 95988,
+    "subdir": "linux-64",
+    "timestamp": 1530354204566,
+    "version": "1.14.5"
+  },
+  "numpy-1.14.5-py27h28100ab_2.tar.bz2": {
+    "build": "py27h28100ab_2",
+    "build_number": 2,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.14.5 py27h2b20989_2",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "51a0aa21a368a7b679d1e03fdde2b496",
+    "name": "numpy",
+    "sha256": "1d12ba1e3f56bde6b8198c39a9649edccf804d7489b187c56fae84750d9b06c1",
+    "size": 95837,
+    "subdir": "linux-64",
+    "timestamp": 1530382372341,
+    "version": "1.14.5"
+  },
   "numpy-1.14.5-py27hcd700cb_0.tar.bz2": {
     "build": "py27hcd700cb_0",
     "build_number": 0,
@@ -31575,6 +31827,46 @@
     "size": 96429,
     "subdir": "linux-64",
     "timestamp": 1528901280225,
+    "version": "1.14.5"
+  },
+  "numpy-1.14.5-py27hcd700cb_1.tar.bz2": {
+    "build": "py27hcd700cb_1",
+    "build_number": 1,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl_fft",
+      "mkl_random",
+      "numpy-base 1.14.5 py27hdbf6ddf_1",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "2890b34c5f5a5ef16c11232a0233876f",
+    "name": "numpy",
+    "sha256": "386bb8aec81b7362bf19acb0c1a981fa2c016f93efd5605236684b5e015bf5a7",
+    "size": 96057,
+    "subdir": "linux-64",
+    "timestamp": 1530353552583,
+    "version": "1.14.5"
+  },
+  "numpy-1.14.5-py27hcd700cb_2.tar.bz2": {
+    "build": "py27hcd700cb_2",
+    "build_number": 2,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl_fft",
+      "mkl_random",
+      "numpy-base 1.14.5 py27hdbf6ddf_2",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "5a42085ff31cef815e62e6fe0b0edd3e",
+    "name": "numpy",
+    "sha256": "b682b3cf2093fe463ad639f1eae38e6a8f4365e3c8060d4c854a6b9913f13a8f",
+    "size": 95840,
+    "subdir": "linux-64",
+    "timestamp": 1530382988516,
     "version": "1.14.5"
   },
   "numpy-1.14.5-py35h28100ab_0.tar.bz2": {
@@ -31633,6 +31925,42 @@
     "timestamp": 1528900503265,
     "version": "1.14.5"
   },
+  "numpy-1.14.5-py36h28100ab_1.tar.bz2": {
+    "build": "py36h28100ab_1",
+    "build_number": 1,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.14.5 py36h2b20989_1",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "f88215cddd56080efe8bafc4469be890",
+    "name": "numpy",
+    "sha256": "429277b71f2d3916ab6b769d1c200bc8ee66e672cf9b68730f981bb7b747422d",
+    "size": 96094,
+    "subdir": "linux-64",
+    "timestamp": 1530353095209,
+    "version": "1.14.5"
+  },
+  "numpy-1.14.5-py36h28100ab_2.tar.bz2": {
+    "build": "py36h28100ab_2",
+    "build_number": 2,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.14.5 py36h2b20989_2",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "39e793d33c64abdd5d2f90dd1c792ee8",
+    "name": "numpy",
+    "sha256": "8031fbe590418b8c131dbada0c5b97e41f611d748d9744d9a281e69992b4c494",
+    "size": 95908,
+    "subdir": "linux-64",
+    "timestamp": 1530382418267,
+    "version": "1.14.5"
+  },
   "numpy-1.14.5-py36hcd700cb_0.tar.bz2": {
     "build": "py36hcd700cb_0",
     "build_number": 0,
@@ -31651,6 +31979,122 @@
     "size": 96379,
     "subdir": "linux-64",
     "timestamp": 1528901008333,
+    "version": "1.14.5"
+  },
+  "numpy-1.14.5-py36hcd700cb_1.tar.bz2": {
+    "build": "py36hcd700cb_1",
+    "build_number": 1,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl_fft",
+      "mkl_random",
+      "numpy-base 1.14.5 py36hdbf6ddf_1",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "a6652fc0796f4eef67658d80e8ff09b0",
+    "name": "numpy",
+    "sha256": "a0ba664c523ac31db83e81911017e5d707f9cc78eaf2412386fba41724892bda",
+    "size": 96242,
+    "subdir": "linux-64",
+    "timestamp": 1530353606379,
+    "version": "1.14.5"
+  },
+  "numpy-1.14.5-py36hcd700cb_2.tar.bz2": {
+    "build": "py36hcd700cb_2",
+    "build_number": 2,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl_fft",
+      "mkl_random",
+      "numpy-base 1.14.5 py36hdbf6ddf_2",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "b0d715a3e0e1fc17827353aa93b62561",
+    "name": "numpy",
+    "sha256": "9702863c0a3a6b3e83587cd9da9f23bf08ee113bf32e5e4aba8a1ffdf1b2c5fd",
+    "size": 95955,
+    "subdir": "linux-64",
+    "timestamp": 1530383344134,
+    "version": "1.14.5"
+  },
+  "numpy-1.14.5-py37h28100ab_1.tar.bz2": {
+    "build": "py37h28100ab_1",
+    "build_number": 1,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.14.5 py37h2b20989_1",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "aea2c28b131051de266c10f43030952c",
+    "name": "numpy",
+    "sha256": "e3ebd867203ccc208ec62214e62032b97e02c7ae46d0a4b10e05ad6fba7130cf",
+    "size": 95972,
+    "subdir": "linux-64",
+    "timestamp": 1530353347449,
+    "version": "1.14.5"
+  },
+  "numpy-1.14.5-py37h28100ab_2.tar.bz2": {
+    "build": "py37h28100ab_2",
+    "build_number": 2,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.14.5 py37h2b20989_2",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "c932ff3e9a12943d14bbdf7214562f77",
+    "name": "numpy",
+    "sha256": "0a6a7de515591169fc2044539357f7038b8e48dc0b532e4b71fb284a2f488600",
+    "size": 95747,
+    "subdir": "linux-64",
+    "timestamp": 1530382891686,
+    "version": "1.14.5"
+  },
+  "numpy-1.14.5-py37hcd700cb_1.tar.bz2": {
+    "build": "py37hcd700cb_1",
+    "build_number": 1,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl_fft",
+      "mkl_random",
+      "numpy-base 1.14.5 py37hdbf6ddf_1",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "eed8ef0434eafb4ba8cecb19728f50bc",
+    "name": "numpy",
+    "sha256": "86373e67e2fa8b1c703041af08fde6ba9ef103c892e364948bb3fe62c10ee12a",
+    "size": 96141,
+    "subdir": "linux-64",
+    "timestamp": 1530353695727,
+    "version": "1.14.5"
+  },
+  "numpy-1.14.5-py37hcd700cb_2.tar.bz2": {
+    "build": "py37hcd700cb_2",
+    "build_number": 2,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl_fft",
+      "mkl_random",
+      "numpy-base 1.14.5 py37hdbf6ddf_2",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "45a8ff683cbffb62c15fc491eb9c12a6",
+    "name": "numpy",
+    "sha256": "42386ca0e590627a3e5d9c850975daf5e074fc5615a9927c68bc6adf25586dfe",
+    "size": 95868,
+    "subdir": "linux-64",
+    "timestamp": 1530383342192,
     "version": "1.14.5"
   },
   "numpy-1.9.3-py27_nomklhbee5d10_3.tar.bz2": {
@@ -31674,6 +32118,42 @@
     "timestamp": 1509731891180,
     "version": "1.9.3"
   },
+  "numpy-1.9.3-py27h28100ab_5.tar.bz2": {
+    "build": "py27h28100ab_5",
+    "build_number": 5,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.9.3,<2.0a0",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "6e9734a04768c5a7efc03966792c61c1",
+    "name": "numpy",
+    "sha256": "e01294507f79316ad025744432c91c21f4e70a3582dd978e5b2cfc9be1999cc1",
+    "size": 10281,
+    "subdir": "linux-64",
+    "timestamp": 1530278937649,
+    "version": "1.9.3"
+  },
+  "numpy-1.9.3-py27h28100ab_6.tar.bz2": {
+    "build": "py27h28100ab_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.9.3 py27h2b20989_6",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "2d7d3c2981455f37abb6201dd0a41ae8",
+    "name": "numpy",
+    "sha256": "1c0b1320df56799c5c211c6555bb34f0df6c678211a32cb511c738fa15bf93f7",
+    "size": 10085,
+    "subdir": "linux-64",
+    "timestamp": 1530379924075,
+    "version": "1.9.3"
+  },
   "numpy-1.9.3-py27h7e35acb_3.tar.bz2": {
     "build": "py27h7e35acb_3",
     "build_number": 3,
@@ -31690,6 +32170,42 @@
     "size": 3370089,
     "subdir": "linux-64",
     "timestamp": 1506015990456,
+    "version": "1.9.3"
+  },
+  "numpy-1.9.3-py27hcd700cb_5.tar.bz2": {
+    "build": "py27hcd700cb_5",
+    "build_number": 5,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.9.3,<2.0a0",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "e88dd803b12a937f316797ad96717555",
+    "name": "numpy",
+    "sha256": "c2f5a2e2441243141dae3b17b4b1f43db18706f306f927ee307e541a73dbed2a",
+    "size": 10269,
+    "subdir": "linux-64",
+    "timestamp": 1530279172184,
+    "version": "1.9.3"
+  },
+  "numpy-1.9.3-py27hcd700cb_6.tar.bz2": {
+    "build": "py27hcd700cb_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.9.3 py27hdbf6ddf_6",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "53785ff554ede5a41ea3a905f725b175",
+    "name": "numpy",
+    "sha256": "99f930c80fd7eb99c240413d83b3c8c0224d981ed1ff1e26303e5c1c01864819",
+    "size": 10073,
+    "subdir": "linux-64",
+    "timestamp": 1530382963644,
     "version": "1.9.3"
   },
   "numpy-1.9.3-py35_nomklh11ed3e2_3.tar.bz2": {
@@ -31752,6 +32268,42 @@
     "timestamp": 1509732019133,
     "version": "1.9.3"
   },
+  "numpy-1.9.3-py36h28100ab_5.tar.bz2": {
+    "build": "py36h28100ab_5",
+    "build_number": 5,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.9.3,<2.0a0",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "40266bff51fa1316a62fe23ab668e137",
+    "name": "numpy",
+    "sha256": "65437a355d975e773416c51948d3061f7cedbc08cda4f61371df59b6d31fbb38",
+    "size": 10282,
+    "subdir": "linux-64",
+    "timestamp": 1530278932212,
+    "version": "1.9.3"
+  },
+  "numpy-1.9.3-py36h28100ab_6.tar.bz2": {
+    "build": "py36h28100ab_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.9.3 py36h2b20989_6",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "24d266257f27376f7c1821f4bba1e3c0",
+    "name": "numpy",
+    "sha256": "0792384bd5586f27c6fc20d62992371cc8182e57685b8ea7b036f37f9205b7a5",
+    "size": 10091,
+    "subdir": "linux-64",
+    "timestamp": 1530380591786,
+    "version": "1.9.3"
+  },
   "numpy-1.9.3-py36h35fcb08_3.tar.bz2": {
     "build": "py36h35fcb08_3",
     "build_number": 3,
@@ -31769,6 +32321,330 @@
     "subdir": "linux-64",
     "timestamp": 1506016053195,
     "version": "1.9.3"
+  },
+  "numpy-1.9.3-py36hcd700cb_5.tar.bz2": {
+    "build": "py36hcd700cb_5",
+    "build_number": 5,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.9.3,<2.0a0",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "ab0ac1a40fcdf319607a04b2b195235f",
+    "name": "numpy",
+    "sha256": "d1f40334b230e4b6faab3b017ddb8ef6e62d51f7df701bfda23963c7ce145245",
+    "size": 10275,
+    "subdir": "linux-64",
+    "timestamp": 1530279227064,
+    "version": "1.9.3"
+  },
+  "numpy-1.9.3-py36hcd700cb_6.tar.bz2": {
+    "build": "py36hcd700cb_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.9.3 py36hdbf6ddf_6",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "ff3f53b516f1a7d2d193da59be4161a1",
+    "name": "numpy",
+    "sha256": "8b959da853ee775b9e6de8d1bb50e82969357e0fd03701149f4b287fde9c5bdb",
+    "size": 10087,
+    "subdir": "linux-64",
+    "timestamp": 1530383323079,
+    "version": "1.9.3"
+  },
+  "numpy-1.9.3-py37h28100ab_5.tar.bz2": {
+    "build": "py37h28100ab_5",
+    "build_number": 5,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.9.3,<2.0a0",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "efc55711aa462371a795642e493a5c61",
+    "name": "numpy",
+    "sha256": "ab2fd79a031a2e9e180c29f9878c524253aab3718ade380f5943f3d5977f7a04",
+    "size": 10268,
+    "subdir": "linux-64",
+    "timestamp": 1530278994315,
+    "version": "1.9.3"
+  },
+  "numpy-1.9.3-py37h28100ab_6.tar.bz2": {
+    "build": "py37h28100ab_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.9.3 py37h2b20989_6",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "3643f3123a47bc5adb502fefc5653338",
+    "name": "numpy",
+    "sha256": "c2df247f34b36ef48b050cc4acd17c9f7f20f5dc8247645357ceaa0df8ee2074",
+    "size": 10095,
+    "subdir": "linux-64",
+    "timestamp": 1530381175946,
+    "version": "1.9.3"
+  },
+  "numpy-1.9.3-py37hcd700cb_5.tar.bz2": {
+    "build": "py37hcd700cb_5",
+    "build_number": 5,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base >=1.9.3,<2.0a0",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "e7af111b64eea2281b49d800cdfe4d25",
+    "name": "numpy",
+    "sha256": "4a525e8288946b34deabe33a448e39d2fd94f03a89f6a4e7606708862a5123fd",
+    "size": 10257,
+    "subdir": "linux-64",
+    "timestamp": 1530279184440,
+    "version": "1.9.3"
+  },
+  "numpy-1.9.3-py37hcd700cb_6.tar.bz2": {
+    "build": "py37hcd700cb_6",
+    "build_number": 6,
+    "depends": [
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "numpy-base 1.9.3 py37hdbf6ddf_6",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "license": "BSD 3-Clause",
+    "md5": "8fa9f2654c75c81002c9b71eecc045ba",
+    "name": "numpy",
+    "sha256": "9808a51e18cd5418aff3f10a014e59d3806369caa36608163655e08c6a7de6c5",
+    "size": 10102,
+    "subdir": "linux-64",
+    "timestamp": 1530382640595,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.11.3-py27h2b20989_6.tar.bz2": {
+    "build": "py27h2b20989_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "6a50287bcba1fd194bf496aabd3ce4eb",
+    "name": "numpy-base",
+    "sha256": "d5cd5583316236edf474a11d3df9c16adbbaff6cfb9bf1e8768660b407d59fc8",
+    "size": 3665573,
+    "subdir": "linux-64",
+    "timestamp": 1530315381084,
+    "version": "1.11.3"
+  },
+  "numpy-base-1.11.3-py27h2b20989_7.tar.bz2": {
+    "build": "py27h2b20989_7",
+    "build_number": 7,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "236a5c1cf21606443df3b7e9c997927d",
+    "name": "numpy-base",
+    "sha256": "14ec060dedb46f42a6f3786488705ffbd88d7baeef475f6e5ed2c61de6b66172",
+    "size": 3663192,
+    "subdir": "linux-64",
+    "timestamp": 1530380274899,
+    "version": "1.11.3"
+  },
+  "numpy-base-1.11.3-py27hdbf6ddf_6.tar.bz2": {
+    "build": "py27hdbf6ddf_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "cb3de45a5ed08deb205588ca2bc12cf0",
+    "name": "numpy-base",
+    "sha256": "20a034ca630c853609747c0d6f3c8b6e610847a3e790d65d7c64cb80e34ee642",
+    "size": 3666343,
+    "subdir": "linux-64",
+    "timestamp": 1530315602056,
+    "version": "1.11.3"
+  },
+  "numpy-base-1.11.3-py27hdbf6ddf_7.tar.bz2": {
+    "build": "py27hdbf6ddf_7",
+    "build_number": 7,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "2bf0c553f08ee2bdd0753735f371f7d1",
+    "name": "numpy-base",
+    "sha256": "be70bc5f5f685c2287859169a35b22e68227e013be23630138398863c7874ff3",
+    "size": 3665351,
+    "subdir": "linux-64",
+    "timestamp": 1530382440543,
+    "version": "1.11.3"
+  },
+  "numpy-base-1.11.3-py36h2b20989_6.tar.bz2": {
+    "build": "py36h2b20989_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "b49de5fccc7ae63fbe2da379d92e0751",
+    "name": "numpy-base",
+    "sha256": "c9f6d29e2c967ebe4ee025d3b51cdb3b52e2d107d481bde8379bf942b2e2a9fb",
+    "size": 3688342,
+    "subdir": "linux-64",
+    "timestamp": 1530315406514,
+    "version": "1.11.3"
+  },
+  "numpy-base-1.11.3-py36h2b20989_7.tar.bz2": {
+    "build": "py36h2b20989_7",
+    "build_number": 7,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "2ed14412a1c1503af53a959472033b42",
+    "name": "numpy-base",
+    "sha256": "69812748a139d48638935e9fcd660e2e2f3688bf9c471b1835deed7507e7f30b",
+    "size": 3687761,
+    "subdir": "linux-64",
+    "timestamp": 1530380580452,
+    "version": "1.11.3"
+  },
+  "numpy-base-1.11.3-py36hdbf6ddf_6.tar.bz2": {
+    "build": "py36hdbf6ddf_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "be1e0883a583adb2d13ed141da958599",
+    "name": "numpy-base",
+    "sha256": "16f1ec71026a35e09ff59daeab21193444bb7819f7cb88161f6cee80be5ec2c6",
+    "size": 3687927,
+    "subdir": "linux-64",
+    "timestamp": 1530315623778,
+    "version": "1.11.3"
+  },
+  "numpy-base-1.11.3-py36hdbf6ddf_7.tar.bz2": {
+    "build": "py36hdbf6ddf_7",
+    "build_number": 7,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "68e56094004f0b0a1d6fef3e7684c94e",
+    "name": "numpy-base",
+    "sha256": "ecb2e6efbc0ad3fde2f720a7291011c1ed4833fff851392dce71daefa9ef21eb",
+    "size": 3689291,
+    "subdir": "linux-64",
+    "timestamp": 1530382651295,
+    "version": "1.11.3"
+  },
+  "numpy-base-1.11.3-py37h2b20989_6.tar.bz2": {
+    "build": "py37h2b20989_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "c187775284b24215bf04192d1514fd57",
+    "name": "numpy-base",
+    "sha256": "a84e85f5b01336f97310c36efaaf686c4352136f511f0c605780370fe0326f42",
+    "size": 3667168,
+    "subdir": "linux-64",
+    "timestamp": 1530315414808,
+    "version": "1.11.3"
+  },
+  "numpy-base-1.11.3-py37h2b20989_7.tar.bz2": {
+    "build": "py37h2b20989_7",
+    "build_number": 7,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "cdd3c315ffdbd7e18ebc61db4d5c86d5",
+    "name": "numpy-base",
+    "sha256": "52740f7e9b8fa2d0912165894907f418c1b27ffe971326954314ab2bf47f5972",
+    "size": 3666592,
+    "subdir": "linux-64",
+    "timestamp": 1530380343058,
+    "version": "1.11.3"
+  },
+  "numpy-base-1.11.3-py37hdbf6ddf_6.tar.bz2": {
+    "build": "py37hdbf6ddf_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "d8d0ae52b32e7cb8ce2a54a7e53421bd",
+    "name": "numpy-base",
+    "sha256": "2435e886d1fe6f4753a9cb2bd4d511e372b780c5f55b15f95d11889c07dd9393",
+    "size": 3667205,
+    "subdir": "linux-64",
+    "timestamp": 1530315617026,
+    "version": "1.11.3"
+  },
+  "numpy-base-1.11.3-py37hdbf6ddf_7.tar.bz2": {
+    "build": "py37hdbf6ddf_7",
+    "build_number": 7,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "032e59500279f5dcdfb99a17615afe15",
+    "name": "numpy-base",
+    "sha256": "417ca61c41acade54a7af98bbf15645932a710bcad875f739eae0177be7c35d6",
+    "size": 3666317,
+    "subdir": "linux-64",
+    "timestamp": 1530382662622,
+    "version": "1.11.3"
   },
   "numpy-base-1.14.3-py27h0ea5e3f_1.tar.bz2": {
     "build": "py27h0ea5e3f_1",
@@ -32211,6 +33087,42 @@
     "timestamp": 1528900913985,
     "version": "1.14.5"
   },
+  "numpy-base-1.14.5-py27h2b20989_1.tar.bz2": {
+    "build": "py27h2b20989_1",
+    "build_number": 1,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "5fbaf003b312fb6c463058616106e50c",
+    "name": "numpy-base",
+    "sha256": "17813817d864ce78f94c40d560e27fbe3a5e4a08856d3270d59798e8c3e26c7a",
+    "size": 4286335,
+    "subdir": "linux-64",
+    "timestamp": 1530354187670,
+    "version": "1.14.5"
+  },
+  "numpy-base-1.14.5-py27h2b20989_2.tar.bz2": {
+    "build": "py27h2b20989_2",
+    "build_number": 2,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "81614025a2aa8f6e7d86444508e5c223",
+    "name": "numpy-base",
+    "sha256": "ba9d1408b61efd4a73ab8a7dac302efa5f0f00d5ae55042d0802fe3846724563",
+    "size": 4286704,
+    "subdir": "linux-64",
+    "timestamp": 1530382222361,
+    "version": "1.14.5"
+  },
   "numpy-base-1.14.5-py27hdbf6ddf_0.tar.bz2": {
     "build": "py27hdbf6ddf_0",
     "build_number": 0,
@@ -32227,6 +33139,42 @@
     "size": 4320546,
     "subdir": "linux-64",
     "timestamp": 1528901248948,
+    "version": "1.14.5"
+  },
+  "numpy-base-1.14.5-py27hdbf6ddf_1.tar.bz2": {
+    "build": "py27hdbf6ddf_1",
+    "build_number": 1,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "597ebbb08ae3469ca2e40521bb22e298",
+    "name": "numpy-base",
+    "sha256": "0e4909aa1c8e69b6b469801c00fc78db67f5492fd426d90129858074bac4348a",
+    "size": 4318938,
+    "subdir": "linux-64",
+    "timestamp": 1530353515611,
+    "version": "1.14.5"
+  },
+  "numpy-base-1.14.5-py27hdbf6ddf_2.tar.bz2": {
+    "build": "py27hdbf6ddf_2",
+    "build_number": 2,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "13542122ac865182bce25cf75b1e39a7",
+    "name": "numpy-base",
+    "sha256": "9eccb8daf732dcf9ed17e5d04ba1fc7e847aa51f2d0cf709bf462a93756f42ae",
+    "size": 4320139,
+    "subdir": "linux-64",
+    "timestamp": 1530382744009,
     "version": "1.14.5"
   },
   "numpy-base-1.14.5-py35h2b20989_0.tar.bz2": {
@@ -32283,6 +33231,42 @@
     "timestamp": 1528900361631,
     "version": "1.14.5"
   },
+  "numpy-base-1.14.5-py36h2b20989_1.tar.bz2": {
+    "build": "py36h2b20989_1",
+    "build_number": 1,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "c8820dd3313fd5131d057b784a298937",
+    "name": "numpy-base",
+    "sha256": "2c31174aa81a2c4cb66b2dc98d5d57a546a481d4a3a3ed032e65e315c4273665",
+    "size": 4290932,
+    "subdir": "linux-64",
+    "timestamp": 1530352911359,
+    "version": "1.14.5"
+  },
+  "numpy-base-1.14.5-py36h2b20989_2.tar.bz2": {
+    "build": "py36h2b20989_2",
+    "build_number": 2,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "1008c1a5a10987093929d31c607843ff",
+    "name": "numpy-base",
+    "sha256": "df31f840d8112e6746885c332710729338276613fbd4f68693aac803b6cdf256",
+    "size": 4292718,
+    "subdir": "linux-64",
+    "timestamp": 1530382306729,
+    "version": "1.14.5"
+  },
   "numpy-base-1.14.5-py36hdbf6ddf_0.tar.bz2": {
     "build": "py36hdbf6ddf_0",
     "build_number": 0,
@@ -32300,6 +33284,330 @@
     "subdir": "linux-64",
     "timestamp": 1528900963107,
     "version": "1.14.5"
+  },
+  "numpy-base-1.14.5-py36hdbf6ddf_1.tar.bz2": {
+    "build": "py36hdbf6ddf_1",
+    "build_number": 1,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "596b00d4944e8c76c59bd32694d5e547",
+    "name": "numpy-base",
+    "sha256": "91e32d881f3808de227d9c5299946e985491751515d74058f04cdd49dfea08ac",
+    "size": 4339261,
+    "subdir": "linux-64",
+    "timestamp": 1530353566518,
+    "version": "1.14.5"
+  },
+  "numpy-base-1.14.5-py36hdbf6ddf_2.tar.bz2": {
+    "build": "py36hdbf6ddf_2",
+    "build_number": 2,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "eaee8234b5ac0af8d7e5cc85f07bb536",
+    "name": "numpy-base",
+    "sha256": "2fcaf705399f3996a557b2e9bde5ad39620340d6a051aa26542d8c37948b67c4",
+    "size": 4339138,
+    "subdir": "linux-64",
+    "timestamp": 1530383180770,
+    "version": "1.14.5"
+  },
+  "numpy-base-1.14.5-py37h2b20989_1.tar.bz2": {
+    "build": "py37h2b20989_1",
+    "build_number": 1,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "80b503fe4d4389382a37c20d5e9ec90b",
+    "name": "numpy-base",
+    "sha256": "30b1c6ce3e0512e1d715445b32799ef8e093236f80ff6902ae98deaf40d6a22f",
+    "size": 4285673,
+    "subdir": "linux-64",
+    "timestamp": 1530353310003,
+    "version": "1.14.5"
+  },
+  "numpy-base-1.14.5-py37h2b20989_2.tar.bz2": {
+    "build": "py37h2b20989_2",
+    "build_number": 2,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "19575519c034d996f5b7db5aca63d895",
+    "name": "numpy-base",
+    "sha256": "d62062c2585a0bbfffd81de53d6a8d04492e5f1ec916e4dd90d9e62afa27a3b9",
+    "size": 4285753,
+    "subdir": "linux-64",
+    "timestamp": 1530382719240,
+    "version": "1.14.5"
+  },
+  "numpy-base-1.14.5-py37hdbf6ddf_1.tar.bz2": {
+    "build": "py37hdbf6ddf_1",
+    "build_number": 1,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "de694cf9e1b02fb608ee11ffd233823f",
+    "name": "numpy-base",
+    "sha256": "75fc0ad45a1ed06948dbedcbc50f12de0b4d1d92b8b6f775d73dacacdbd2c03f",
+    "size": 4335856,
+    "subdir": "linux-64",
+    "timestamp": 1530353639685,
+    "version": "1.14.5"
+  },
+  "numpy-base-1.14.5-py37hdbf6ddf_2.tar.bz2": {
+    "build": "py37hdbf6ddf_2",
+    "build_number": 2,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "eba0ee97f7040700d5b1f94f22b66858",
+    "name": "numpy-base",
+    "sha256": "7c51215de1ab5b9bce6bb178a152d6620331900a1e7948e6c98bf068b2371770",
+    "size": 4336198,
+    "subdir": "linux-64",
+    "timestamp": 1530383125671,
+    "version": "1.14.5"
+  },
+  "numpy-base-1.9.3-py27h2b20989_5.tar.bz2": {
+    "build": "py27h2b20989_5",
+    "build_number": 5,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "46684686fe26a1eac4b1dd1ace493d54",
+    "name": "numpy-base",
+    "sha256": "28294ad23aa4ffceeebcf45a7997aeeed36e34d2ad3c55c9b9b94287263158ed",
+    "size": 3373828,
+    "subdir": "linux-64",
+    "timestamp": 1530278910117,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.9.3-py27h2b20989_6.tar.bz2": {
+    "build": "py27h2b20989_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "ac67255030e874dacbb9d048a0df9ad3",
+    "name": "numpy-base",
+    "sha256": "6890bdb64c76538f110dfb4023016f4a867b83ac4c1b8254d3ab8a57c1ca4e51",
+    "size": 3377434,
+    "subdir": "linux-64",
+    "timestamp": 1530379403825,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.9.3-py27hdbf6ddf_5.tar.bz2": {
+    "build": "py27hdbf6ddf_5",
+    "build_number": 5,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "a841837ffa14fe244460f9a9e9ae18d7",
+    "name": "numpy-base",
+    "sha256": "fdd338deed18e3f69dfba4f78796fa3a16a6873ccbfc4a7af1c0ff7640af09c3",
+    "size": 3373047,
+    "subdir": "linux-64",
+    "timestamp": 1530279148833,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.9.3-py27hdbf6ddf_6.tar.bz2": {
+    "build": "py27hdbf6ddf_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=2.7,<2.8.0a0"
+    ],
+    "md5": "0bc5d9d9f3724e9c49cf44fde66e371f",
+    "name": "numpy-base",
+    "sha256": "f6cd1b8ec52893ac6fc71a039ccba9e8e083f834a641687da918afd8098537d9",
+    "size": 4745713,
+    "subdir": "linux-64",
+    "timestamp": 1530382812495,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.9.3-py36h2b20989_5.tar.bz2": {
+    "build": "py36h2b20989_5",
+    "build_number": 5,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "f45b572228e4017fb4b8d3e9012f4b10",
+    "name": "numpy-base",
+    "sha256": "dacdfd75b6ad5471623adef9581166f5332c05ed510186986fd9528ef19874ea",
+    "size": 3417844,
+    "subdir": "linux-64",
+    "timestamp": 1530278902183,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.9.3-py36h2b20989_6.tar.bz2": {
+    "build": "py36h2b20989_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "0b5bf4a08b4309acedab55e27b15aab4",
+    "name": "numpy-base",
+    "sha256": "6da99811560599f4d88fdc9d05a21d9cbdb8838dbe29c3874c1a68f0564b4abc",
+    "size": 3416010,
+    "subdir": "linux-64",
+    "timestamp": 1530380183640,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.9.3-py36hdbf6ddf_5.tar.bz2": {
+    "build": "py36hdbf6ddf_5",
+    "build_number": 5,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "b95234deb63de34d7688bafdf4ecfe86",
+    "name": "numpy-base",
+    "sha256": "c50016a043c12267b78c469c1ef1af392866a8f3f01180534e04f27a250a1b41",
+    "size": 3417564,
+    "subdir": "linux-64",
+    "timestamp": 1530279203667,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.9.3-py36hdbf6ddf_6.tar.bz2": {
+    "build": "py36hdbf6ddf_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.6,<3.7.0a0"
+    ],
+    "md5": "bf2b0f2caba9264c5b224da2dcd9e9a9",
+    "name": "numpy-base",
+    "sha256": "5f8f6de158bc621c1178a79b0ebbce2b11e0bac0b9282bc9553fe3b661e68167",
+    "size": 4820041,
+    "subdir": "linux-64",
+    "timestamp": 1530383205268,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.9.3-py37h2b20989_5.tar.bz2": {
+    "build": "py37h2b20989_5",
+    "build_number": 5,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "e6fd864c3d54a4d169a7f158ff2169c5",
+    "name": "numpy-base",
+    "sha256": "39611c8ae6cf34429b78fe770f8e95affe48c4b39f79ad09874027569780369c",
+    "size": 3404163,
+    "subdir": "linux-64",
+    "timestamp": 1530278961848,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.9.3-py37h2b20989_6.tar.bz2": {
+    "build": "py37h2b20989_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 openblas",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "libopenblas >=0.2.20,<0.2.21.0a0",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "5534ea4219377f61bbc69026c11d5e1a",
+    "name": "numpy-base",
+    "sha256": "4558971e2f1ef5a75d5d30dafefd60445980773038997f26d801d5ca712aae06",
+    "size": 3404553,
+    "subdir": "linux-64",
+    "timestamp": 1530380489567,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.9.3-py37hdbf6ddf_5.tar.bz2": {
+    "build": "py37hdbf6ddf_5",
+    "build_number": 5,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "6ab7394de0cd81f4e657a6c089cb0d47",
+    "name": "numpy-base",
+    "sha256": "4aa4faf2ea7c21253884f72be8aa42c0407a90195472d1a67149b398bfeac569",
+    "size": 3403840,
+    "subdir": "linux-64",
+    "timestamp": 1530279157175,
+    "version": "1.9.3"
+  },
+  "numpy-base-1.9.3-py37hdbf6ddf_6.tar.bz2": {
+    "build": "py37hdbf6ddf_6",
+    "build_number": 6,
+    "depends": [
+      "blas 1.0 mkl",
+      "libgcc-ng >=7.2.0",
+      "libgfortran-ng >=7,<8.0a0",
+      "mkl >=2018.0.3",
+      "python >=3.7,<3.8.0a0"
+    ],
+    "md5": "550d1092d060133c827cc4e4571a807f",
+    "name": "numpy-base",
+    "sha256": "8a4dce2d35aa90dd627951a1e13cd1147cc5573cdf8a1dbfce596a350f58a909",
+    "size": 4789545,
+    "subdir": "linux-64",
+    "timestamp": 1530382457985,
+    "version": "1.9.3"
   },
   "numpydoc-0.7.0-py27h9647a75_0.tar.bz2": {
     "build": "py27h9647a75_0",
