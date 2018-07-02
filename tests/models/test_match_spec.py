@@ -970,10 +970,10 @@ class MatchSpecMergeTests(TestCase):
 
     def test_merge_namespace(self):
         specs = (MatchSpec("numpy 1.2.3"), MatchSpec("python:numpy"), MatchSpec("conda-forge::numpy"))
-        merged = MatchSpec.merge(specs)
+        merged = set(str(s) for s in MatchSpec.merge(specs))
         assert len(merged) == 2
-        assert str(merged[0]) == "conda-forge::numpy==1.2.3"
-        assert str(merged[1]) == "python:numpy"
+        assert "conda-forge::numpy==1.2.3" in merged
+        assert "python:numpy" in merged
 
         specs = (MatchSpec("python:numpy"), MatchSpec("conda-forge:global:numpy"))
         merged = set(str(s) for s in MatchSpec.merge(specs))
