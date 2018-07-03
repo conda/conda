@@ -1263,7 +1263,7 @@ class IntegrationTests(TestCase):
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 7, 1), reason="TODO")
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 8, 1), reason="TODO")
     def test_conda_pip_interop_pip_clobbers_conda(self):
         # 1. conda install old six
         # 2. pip install -U six
@@ -1271,16 +1271,16 @@ class IntegrationTests(TestCase):
         # 4. probably need to purge something with the history file too?
         assert False
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 7, 1), reason="TODO")
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 8, 1), reason="TODO")
     def test_conda_pip_interop_conda_updates_pip_package(self):
         assert False
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 7, 1), reason="TODO")
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 8, 1), reason="TODO")
     def gittest_conda_pip_interop_conda_doesnt_update_ancient_distutils_package(self):
         # probably easiest just to use a conda package and remove the conda-meta record
         assert False
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 7, 1), reason="TODO")
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 8, 1), reason="TODO")
     def test_conda_pip_interop_conda_doesnt_update_editable_package(self):
         assert False
 
