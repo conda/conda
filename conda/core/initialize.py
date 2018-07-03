@@ -517,7 +517,7 @@ def run_plan_elevated(plan):
                     tf.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
                     temp_path = tf.name
                 python_exe = '"%s"' % abspath(sys.executable)
-                hinstance, error_code = run_as_admin((python_exe, '-m',  'conda.initialize',
+                hinstance, error_code = run_as_admin((python_exe, '-m',  'conda.core.initialize',
                                                       '"%s"' % temp_path))
                 if error_code is not None:
                     print("ERROR during elevated execution.\n  rc: %s" % error_code,
@@ -532,7 +532,7 @@ def run_plan_elevated(plan):
         else:
             stdin = json.dumps(plan)
             result = subprocess_call(
-                'sudo %s -m conda.initialize' % sys.executable,
+                'sudo %s -m conda.core.initialize' % sys.executable,
                 env={},
                 path=os.getcwd(),
                 stdin=stdin
