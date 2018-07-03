@@ -27,6 +27,43 @@ if on_win:
     CloseHandle.argtypes = (HANDLE, )
     CloseHandle.restype = BOOL
 
+    class ShellExecuteInfo(ctypes.Structure):
+        """
+https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-shellexecuteexa
+https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/ns-shellapi-_shellexecuteinfoa
+        """
+
+        _fields_ = [
+            ('cbSize', DWORD),
+            ('fMask', c_ulong),
+            ('hwnd', HWND),
+            ('lpVerb', c_char_p),
+            ('lpFile', c_char_p),
+            ('lpParameters', c_char_p),
+            ('lpDirectory', c_char_p),
+            ('nShow', c_int),
+            ('hInstApp', HINSTANCE),
+            ('lpIDList', c_void_p),
+            ('lpClass', c_char_p),
+            ('hKeyClass', HKEY),
+            ('dwHotKey', DWORD),
+            ('hIcon', HANDLE),
+            ('hProcess', HANDLE)
+        ]
+
+        def __init__(self, **kwargs):
+            ctypes.Structure.__init__(self)
+            self.cbSize = ctypes.sizeof(self)
+            for field_name, field_value in kwargs.items():
+                if isinstance(field_value, string_types):
+                    field_value = ensure_binary(field_value)
+                setattr(self, field_name, field_value)
+
+    PShellExecuteInfo = ctypes.POINTER(ShellExecuteInfo)
+    ShellExecuteEx = ctypes.windll.Shell32.ShellExecuteExA
+    ShellExecuteEx.argtypes = (PShellExecuteInfo, )
+    ShellExecuteEx.restype = BOOL
+
 
 class SW(IntEnum):
     HIDE = 0
@@ -59,47 +96,6 @@ class ERROR(IntEnum):
     SHARE = 26
 
 
-class ShellExecuteInfo(ctypes.Structure):
-    """
-    See:
-    - https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-shellexecuteexa
-    - https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/ns-shellapi-_shellexecuteinfoa
-    """
-
-    _fields_ = [
-        ('cbSize', DWORD),
-        ('fMask', c_ulong),
-        ('hwnd', HWND),
-        ('lpVerb', c_char_p),
-        ('lpFile', c_char_p),
-        ('lpParameters', c_char_p),
-        ('lpDirectory', c_char_p),
-        ('nShow', c_int),
-        ('hInstApp', HINSTANCE),
-        ('lpIDList', c_void_p),
-        ('lpClass', c_char_p),
-        ('hKeyClass', HKEY),
-        ('dwHotKey', DWORD),
-        ('hIcon', HANDLE),
-        ('hProcess', HANDLE)
-    ]
-
-    def __init__(self, **kwargs):
-        ctypes.Structure.__init__(self)
-        self.cbSize = ctypes.sizeof(self)
-        for field_name, field_value in kwargs.items():
-            if isinstance(field_value, string_types):
-                field_value = ensure_binary(field_value)
-            setattr(self, field_name, field_value)
-
-
-if on_win:
-    PShellExecuteInfo = ctypes.POINTER(ShellExecuteInfo)
-    ShellExecuteEx = ctypes.windll.Shell32.ShellExecuteExA
-    ShellExecuteEx.argtypes = (PShellExecuteInfo, )
-    ShellExecuteEx.restype = BOOL
-
-
 def get_free_space_on_windows(dir_name):
     result = None
     free_bytes = ctypes.c_ulonglong(0)
@@ -123,11 +119,11 @@ def is_admin_on_windows():  # pragma: unix no cover
         result = ctypes.windll.shell32.IsUserAnAdmin() != 0
     except Exception as e:  # pragma: no cover
         log.info('%r', e)
-        result = 'unknown'
+        # result = 'unknown'
     return result
 
 
-def wait_and_close_handle(process_handle):
+def _wait_and_close_handle(process_handle):
     """Waits until spawned process finishes and closes the handle for it."""
     try:
         WaitForSingleObject(process_handle, INFINITE)
@@ -179,6 +175,6 @@ def run_as_admin(args, wait=True):
     if not successful:
         error_code = ctypes.WinError()
     elif wait:
-        wait_and_close_handle(execute_info.hProcess)
+        _wait_and_close_handle(execute_info.hProcess)
 
     return hprocess, error_code
