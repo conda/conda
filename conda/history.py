@@ -11,17 +11,17 @@ import os
 from os.path import isdir, isfile, join
 import re
 import sys
+import time
 import warnings
 
-import time
-
+from . import __version__ as CONDA_VERSION
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .common.compat import ensure_text_type, iteritems, open, text_type
 from .core.prefix_data import PrefixData
 from .exceptions import CondaFileIOError, CondaHistoryError
 from .gateways.disk.update import touch
 from .models.dist import dist_str_to_quad
-from .models.version import version_relation_re
+from .models.version import VersionOrder, version_relation_re
 from .resolve import MatchSpec
 
 try:
@@ -39,6 +39,7 @@ class CondaHistoryWarning(Warning):
 
 def write_head(fo):
     fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
+    fo.write("# conda: %s\n" % CONDA_VERSION)
     fo.write("# cmd: %s\n" % (' '.join(ensure_text_type(s) for s in sys.argv)))
 
 
@@ -78,6 +79,7 @@ class History(object):
 
     com_pat = re.compile(r'#\s*cmd:\s*(.+)')
     spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)?')
+    conda_v_pat = re.compile(r'#\s*conda:\s*(.+)')
 
     def __init__(self, prefix):
         self.prefix = prefix
@@ -174,6 +176,10 @@ class History(object):
           - "# install specs: python>=3.5.1,jupyter >=1.0.0,<2.0,matplotlib >=1.5.1,<2.0"
         """
         item = {}
+        m = cls.conda_v_pat.match(line)
+        if m:
+            item['conda_v'] = m.group(1)
+
         m = cls.com_pat.match(line)
         if m:
             argv = m.group(1).split()
@@ -223,6 +229,20 @@ class History(object):
             dists = groupby(itemgetter(0), unused_cont)
             item['unlink_dists'] = dists.get('-', ())
             item['link_dists'] = dists.get('+', ())
+
+        conda_versions = sorted([x['conda_v'] for x in res if 'conda_v' in x],
+                                key=VersionOrder)
+
+        if len(conda_versions):
+            major_minor = lambda x: VersionOrder('.'.join(x.split('.', 2)[0:2]))
+            latest_conda_v = conda_versions[-1]
+            if major_minor(CONDA_VERSION) < major_minor(latest_conda_v):
+                raise CondaHistoryError(
+                        "You are using an older version of Conda v%s to "
+                        "modify an environment which has been created or "
+                        "modified by a newer version of Conda v%s.\n\n Please "
+                        "update conda in the base environment to >=v%s !"
+                        % (CONDA_VERSION, latest_conda_v, latest_conda_v))
 
         return res
 
