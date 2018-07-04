@@ -842,13 +842,11 @@ class ExceptionHandler(object):
         return context.error_upload_url
 
     def handle_exception(self, exc_val, exc_tb):
-        return_code = getattr(exc_val, 'return_code', None)
-        if return_code == 0:
-            return 0
-        if isinstance(exc_val, CondaHTTPError):
-            return self.handle_reportable_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, CondaError):
-            return self.handle_application_exception(exc_val, exc_tb)
+            if exc_val.reportable:
+                return self.handle_reportable_application_exception(exc_val, exc_tb)
+            else:
+                return self.handle_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, UnicodeError) and PY2:
             return self.handle_application_exception(EncodingError(exc_val), exc_tb)
         if isinstance(exc_val, EnvironmentError):
