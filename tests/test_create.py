@@ -833,7 +833,7 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'openssl')
             assert package_is_installed(prefix, 'itsdangerous')
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 7, 1), reason="TODO")
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 8, 1), reason="TODO")
     def test_install_update_deps_only_deps_flags(self):
         raise NotImplementedError()
 

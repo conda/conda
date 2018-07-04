@@ -137,6 +137,12 @@ flake8: &flake8
 
 
 jobs:
+  py37 main tests:
+    <<: *main_test
+    docker:
+      - image: condatest/linux-64-python-3.7
+    environment:
+      - CONDA_INSTRUMENTATION_ENABLED: true
   py36 main tests:
     <<: *main_test
     docker:
@@ -167,8 +173,9 @@ workflows:
   version: 2
   conda tests:
     jobs:
+      # - py37 main tests
       - py36 main tests
       - py27 main tests
-#      - 3.0 conda-build
+      # - 3.0 conda-build
       - 3.10 conda-build
       - flake8
