@@ -149,7 +149,7 @@ class History(object):
         specs = []
         for spec in specs_string.split(','):
             # See https://github.com/conda/conda/issues/6691
-            if spec[0].isalpha():
+            if spec[0].isalpha() or spec.startswith('_'):
                 # A valid spec starts with a letter since it is a package name
                 specs.append(spec)
             else:
