@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
+from functools import partial
+
+def should_bypass_proxies_patched(should_bypass_proxies_func, url, no_proxy):
+    # Monkey patch requests, per https://github.com/requests/requests/pull/4723
+    if url.startswith("file://"):
+        return True
+    return should_bypass_proxies_func(url, no_proxy)
+
 
 try:
     from requests import ConnectionError, HTTPError, Session
@@ -12,6 +20,12 @@ try:
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
     from requests.structures import CaseInsensitiveDict
     from requests.utils import get_auth_from_url, get_netrc_auth
+
+    # monkeypatch requests
+    from requests.utils import should_bypass_proxies
+    import requests.utils
+    requests.utils.should_bypass_proxies = partial(should_bypass_proxies_patched,
+                                                   should_bypass_proxies)
 except ImportError:  # pragma: no cover
     from pip._vendor.requests import ConnectionError, HTTPError, Session
     from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
@@ -23,6 +37,13 @@ except ImportError:  # pragma: no cover
     from pip._vendor.requests.packages.urllib3.exceptions import InsecureRequestWarning
     from pip._vendor.requests.structures import CaseInsensitiveDict
     from pip._vendor.requests.utils import get_auth_from_url, get_netrc_auth
+
+    # monkeypatch requests
+    from pip._vendor.requests.utils import should_bypass_proxies
+    import requests.utils
+    requests.utils.should_bypass_proxies = partial(should_bypass_proxies_patched,
+                                                   should_bypass_proxies)
+
 
 dispatch_hook = dispatch_hook
 BaseAdapter = BaseAdapter
