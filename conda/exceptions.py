@@ -792,7 +792,7 @@ def print_conda_exception(exc_val, exc_tb=None):
         sys.stderr.write('\n')
     elif context.json:
         import json
-        stdoutlog = getLogger('conda.stdout')
+        stdoutlog = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
         exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
         stdoutlog.info("%s\n" % exc_json)
     else:
@@ -863,8 +863,7 @@ class ExceptionHandler(object):
 
     def handle_application_exception(self, exc_val, exc_tb):
         self._print_conda_exception(exc_val, exc_tb)
-        rc = getattr(exc_val, 'return_code', None)
-        return rc if rc is not None else 1
+        return exc_val.return_code
 
     def _print_conda_exception(self, exc_val, exc_tb):
         print_conda_exception(exc_val, exc_tb)
@@ -891,8 +890,7 @@ class ExceptionHandler(object):
         if do_upload:
             self._execute_upload(error_report)
         self.print_upload_confirm(do_upload, ask_for_upload, ask_response)
-        rc = getattr(exc_val, 'return_code', None)
-        return rc if rc is not None else 1
+        return exc_val.return_code
 
     def get_error_report(self, exc_val, exc_tb):
         command = ' '.join(ensure_text_type(s) for s in sys.argv)

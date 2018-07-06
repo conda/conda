@@ -1171,7 +1171,6 @@ class IntegrationTests(TestCase):
         with pytest.raises(DryRunExit):
             run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json")
         stdout, stderr = run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json", use_exception_handler=True)
-
         loaded = json.loads(stdout)
         names = set(d['name'] for d in loaded['actions']['LINK'])
         assert "python" in names
