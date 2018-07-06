@@ -4,7 +4,7 @@
 * resolve #7473 py37 support (#7499)
 * fix #7494 History spec parsing edge cases (#7500)
 * fix requests 2.19 incompatibility with NO_PROXY env var (#7498)
-* resolve #7372 disable http error uploads and CI cleanup (#7498)
+* resolve #7372 disable http error uploads and CI cleanup (#7498, #7501)
 
 ### Contributors
 @kalefranz
