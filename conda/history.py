@@ -11,6 +11,7 @@ import sys
 import time
 import warnings
 
+from conda.models.version import version_relation_re
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .common.compat import ensure_text_type, iteritems, open, text_type
 from .core.prefix_data import PrefixData, linked
@@ -148,15 +149,12 @@ class History(object):
         """
         specs = []
         for spec in specs_string.split(','):
-            # See https://github.com/conda/conda/issues/6691
-            if spec[0].isalpha():
-                # A valid spec starts with a letter since it is a package name
-                specs.append(spec)
-            else:
-                # Otherwise it is a condition and has to be appended to the
-                # last valid spec on the specs list
+            # If the spec starts with a version qualifier, then it actually belongs to the
+            # previous spec. But don't try to join if there was no previous spec.
+            if version_relation_re.match(spec) and specs:
                 specs[-1] = ','.join([specs[-1], spec])
-
+            else:
+                specs.append(spec)
         return specs
 
     @classmethod
