@@ -19,7 +19,6 @@ from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
-from .common.url import maybe_unquote
 
 try:
     from cytoolz.itertoolz import groupby
@@ -412,15 +411,56 @@ class CondaKeyError(CondaError, KeyError):
 
 
 class ChannelError(CondaError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(ChannelError, self).__init__(msg)
+    pass
 
 
 class ChannelNotAllowed(ChannelError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(ChannelNotAllowed, self).__init__(msg, *args)
+    def __init__(self, channel):
+        from .models.channel import Channel
+        from .common.url import maybe_unquote
+        channel = Channel(channel)
+        channel_name = channel.name
+        channel_url = maybe_unquote(channel.url(with_credentials=False))
+        message = dals("""
+        Channel not included in whitelist:
+          channel name: %(channel_name)s
+          channel url: %(channel_url)s
+        """)
+        super(ChannelNotAllowed, self).__init__(message, channel_url=channel_url,
+                                                channel_name=channel_name)
+
+
+class InvalidUnavailableChannel(ChannelError):
+
+    def __init__(self, channel, http_error_code):
+        from .models.channel import Channel
+        from .common.url import join_url, maybe_unquote
+        channel = Channel(channel)
+        channel_name = channel.name
+        channel_url = maybe_unquote(channel.url(with_credentials=False))
+        message = dals("""
+        Invalid or unavailable channel:
+          channel name: %(channel_name)s
+          channel url: %(channel_url)s
+          HTTP error: %(http_error_code)d
+        
+        You will need to adjust your conda configuration to proceed.
+        Use `conda config --show channels` to view your configuration's current state,
+        and use `conda config --show-sources` to view config file locations.
+        """)
+
+        if channel.scheme == 'file':
+            message += dals("""
+            
+            As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
+            associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+            empty. Use `conda index %s`, or create `noarch/repodata.json` 
+            and associated `noarch/repodata.json.bz2`.
+            """) % join_url(channel.location, channel.name)
+
+        super(InvalidUnavailableChannel, self).__init__(message, channel_url=channel_url,
+                                                        channel_name=channel_name,
+                                                        http_error_code=http_error_code)
 
 
 class OperationNotAllowed(CondaError):
@@ -456,6 +496,7 @@ class MD5MismatchError(CondaError):
           expected md5 sum: %(expected_md5sum)s
           actual md5 sum: %(actual_md5sum)s
         """)
+        from .common.url import maybe_unquote
         url = maybe_unquote(url)
         super(MD5MismatchError, self).__init__(message, url=url, target_full_path=target_full_path,
                                                expected_md5sum=expected_md5sum,
@@ -477,6 +518,7 @@ class PackageNotInstalledError(CondaError):
 class CondaHTTPError(CondaError):
     def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):
+        from .common.url import maybe_unquote
         _message = dals("""
         HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s

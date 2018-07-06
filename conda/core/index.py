@@ -13,7 +13,7 @@ from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import itervalues
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, time_recorder
-from ..exceptions import OperationNotAllowed
+from ..exceptions import OperationNotAllowed, ChannelNotAllowed
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord
@@ -35,11 +35,7 @@ def check_whitelist(channel_urls):
         for url in channel_urls:
             these_urls = Channel(url).base_urls
             if not all(this_url in whitelist_channel_urls for this_url in these_urls):
-                bad_channel = Channel(url)
-                raise OperationNotAllowed("Channel not included in whitelist:\n"
-                                          "  location: %s\n"
-                                          "  canonical name: %s\n"
-                                          % (bad_channel.location, bad_channel.canonical_name))
+                raise ChannelNotAllowed(Channel(url))
 
 
 LAST_CHANNEL_URLS = []
