@@ -14,7 +14,6 @@ from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, isdir, join, splitext
 import re
-from textwrap import dedent
 from time import time
 import warnings
 
@@ -28,8 +27,8 @@ from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, it
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
-from ..exceptions import CondaDependencyError, CondaHTTPError, NotWritableError, \
-    InvalidUnavailableChannel
+from ..exceptions import (CondaDependencyError, CondaHTTPError, InvalidUnavailableChannel,
+                          NotWritableError)
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)
 from ..gateways.connection.session import CondaSession

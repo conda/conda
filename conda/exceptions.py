@@ -443,7 +443,7 @@ class InvalidUnavailableChannel(ChannelError):
           channel name: %(channel_name)s
           channel url: %(channel_url)s
           HTTP error: %(http_error_code)d
-        
+
         You will need to adjust your conda configuration to proceed.
         Use `conda config --show channels` to view your configuration's current state,
         and use `conda config --show-sources` to view config file locations.
@@ -451,10 +451,10 @@ class InvalidUnavailableChannel(ChannelError):
 
         if channel.scheme == 'file':
             message += dals("""
-            
+
             As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
             associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-            empty. Use `conda index %s`, or create `noarch/repodata.json` 
+            empty. Use `conda index %s`, or create `noarch/repodata.json`
             and associated `noarch/repodata.json.bz2`.
             """) % join_url(channel.location, channel.name)
 
