@@ -498,7 +498,7 @@ class Compose(object):
     def __name__(self):
         try:
             return '_of_'.join(
-                f.__name__ for f in reversed((self.first,) + self.funcs),
+                (f.__name__ for f in reversed((self.first,) + self.funcs)),
             )
         except AttributeError:
             return type(self).__name__
