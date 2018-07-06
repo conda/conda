@@ -1,3 +1,15 @@
+## 4.5.6 (2018-07-06)
+
+### Bug Fixes
+* resolve #7473 py37 support (#7499)
+* fix #7494 History spec parsing edge cases (#7500)
+* fix requests 2.19 incompatibility with NO_PROXY env var (#7498)
+* resolve #7372 disable http error uploads and CI cleanup (#7498)
+
+### Contributors
+@kalefranz
+
+
 ## 4.5.5 (2018-06-29)
 
 ### Bug Fixes
