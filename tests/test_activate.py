@@ -1194,8 +1194,8 @@ class InteractiveShell(object):
     def sendline(self, s):
         return self.p.sendline(s)
 
-    def expect(self, pattern, timeout=-1, searchwindowsize=-1, async=False):
-        return self.p.expect(pattern, timeout, searchwindowsize, async)
+    def expect(self, pattern, timeout=-1, searchwindowsize=-1, async_=False):
+        return self.p.expect(pattern, timeout, searchwindowsize, async_)
 
     def assert_env_var(self, env_var, value, use_exact=False):
         # value is actually a regex
