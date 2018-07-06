@@ -9,6 +9,7 @@ import json
 from logging import getLogger
 import os
 import sys
+from textwrap import dedent
 from traceback import format_exception, format_exception_only
 
 from . import CondaError, CondaExitZero, CondaMultiError, text_type
@@ -420,7 +421,7 @@ class ChannelNotAllowed(ChannelError):
         from .common.url import maybe_unquote
         channel = Channel(channel)
         channel_name = channel.name
-        channel_url = maybe_unquote(channel.url(with_credentials=False))
+        channel_url = maybe_unquote(channel.base_url)
         message = dals("""
         Channel not included in whitelist:
           channel name: %(channel_name)s
@@ -430,19 +431,19 @@ class ChannelNotAllowed(ChannelError):
                                                 channel_name=channel_name)
 
 
-class InvalidUnavailableChannel(ChannelError):
+class UnavailableInvalidChannel(ChannelError):
 
-    def __init__(self, channel, http_error_code):
+    def __init__(self, channel, error_code):
         from .models.channel import Channel
         from .common.url import join_url, maybe_unquote
         channel = Channel(channel)
         channel_name = channel.name
-        channel_url = maybe_unquote(channel.url(with_credentials=False))
+        channel_url = maybe_unquote(channel.base_url)
         message = dals("""
-        Invalid or unavailable channel:
+        The channel is not accessible or is invalid.
           channel name: %(channel_name)s
           channel url: %(channel_url)s
-          HTTP error: %(http_error_code)d
+          error code: %(http_error_code)d
 
         You will need to adjust your conda configuration to proceed.
         Use `conda config --show channels` to view your configuration's current state,
@@ -450,17 +451,16 @@ class InvalidUnavailableChannel(ChannelError):
         """)
 
         if channel.scheme == 'file':
-            message += dals("""
-
+            message += dedent("""
             As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
             associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
             empty. Use `conda index %s`, or create `noarch/repodata.json`
             and associated `noarch/repodata.json.bz2`.
             """) % join_url(channel.location, channel.name)
 
-        super(InvalidUnavailableChannel, self).__init__(message, channel_url=channel_url,
+        super(UnavailableInvalidChannel, self).__init__(message, channel_url=channel_url,
                                                         channel_name=channel_name,
-                                                        http_error_code=http_error_code)
+                                                        error_code=error_code)
 
 
 class OperationNotAllowed(CondaError):
