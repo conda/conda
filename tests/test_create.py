@@ -401,7 +401,6 @@ class IntegrationTests(TestCase):
 
             stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5 --json --dry-run", use_exception_handler=True)
             assert_json_parsable(stdout)
-            assert not stderr
 
             # regression test for #5825
             # contents of LINK and UNLINK is expected to have Dist format
