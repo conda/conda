@@ -89,6 +89,8 @@ conda_build_test: &conda_build_test
             and not test_get_installed_version
             and not test_indirect_numpy_dependency
             and not test_only_lua_env
+            and not test_setuptools_test_requirements
+            and not alternate_type_wheel
           # skeleton_pypi skipped because of changes to PyPI API
           # expand_globs and build_expands_wildcards fail on circleci because of list ordering discrepancies
           # skipping numpy tests so circleci images don't need numpy (and mkl) installed
@@ -102,6 +104,8 @@ conda_build_test: &conda_build_test
           # test_get_installed_version invalid test when using 'conda init --dev'
           # test_indirect_numpy_dependency contains conda-forge
           # test_only_lua_env contains conda-forge
+          # test_setuptools_test_requirements upstream changes that affect 'conda skeleton'
+          # alternate_type_wheel broken with pip 10
         command: |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           conda info
@@ -117,11 +121,13 @@ conda_build_test: &conda_build_test
             and not skeleton_pypi
             and not env_creation_with_short_prefix_does_not_deadlock
             and not test_preferred_env
+            and not test_setuptools_test_requirements
           # skipping perl-cpan-Moo because of changes in cpan API
           # skipping cran-nmf because nmf was removed/archived in cran
           # skeleton_pypi skipped because of changes to PyPI API
           # env_creation_with_short_prefix_does_not_deadlock: error is prefix is too long
           # for test_preferred_env see https://github.com/conda/conda/issues/3912#issuecomment-374820599
+          # test_setuptools_test_requirements upstream changes that affect 'conda skeleton'
         command: |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           cd ~/conda-build
@@ -137,6 +143,12 @@ flake8: &flake8
 
 
 jobs:
+  # py37 main tests:
+  #   <<: *main_test
+  #   docker:
+  #     - image: condatest/linux-64-python-3.7
+  #   environment:
+  #     - CONDA_INSTRUMENTATION_ENABLED: true
   py36 main tests:
     <<: *main_test
     docker:
@@ -167,6 +179,7 @@ workflows:
   version: 2
   conda tests:
     jobs:
+      # - py37 main tests
       - py36 main tests
       - py27 main tests
 #      - 3.0 conda-build
