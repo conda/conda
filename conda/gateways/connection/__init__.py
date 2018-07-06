@@ -42,9 +42,9 @@ except ImportError:  # pragma: no cover
 
     # monkeypatch requests
     from pip._vendor.requests.utils import should_bypass_proxies
-    import requests.utils
-    requests.utils.should_bypass_proxies = partial(should_bypass_proxies_patched,
-                                                   should_bypass_proxies)
+    import pip._vendor.requests.utils
+    pip._vendor.requests.utils.should_bypass_proxies = partial(should_bypass_proxies_patched,
+                                                               should_bypass_proxies)
 
 
 dispatch_hook = dispatch_hook
