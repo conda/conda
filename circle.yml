@@ -150,11 +150,13 @@ conda_build_test: &conda_build_test
             and not skeleton_pypi
             and not env_creation_with_short_prefix_does_not_deadlock
             and not test_preferred_env
+            and not test_setuptools_test_requirements
           # skipping perl-cpan-Moo because of changes in cpan API
           # skipping cran-nmf because nmf was removed/archived in cran
           # skeleton_pypi skipped because of changes to PyPI API
           # env_creation_with_short_prefix_does_not_deadlock: error is prefix is too long
           # for test_preferred_env see https://github.com/conda/conda/issues/3912#issuecomment-374820599
+          # test_setuptools_test_requirements upstream changes that affect 'conda skeleton'
         command: |
           . /opt/conda/etc/profile.d/conda.sh
           conda activate base
