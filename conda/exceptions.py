@@ -790,11 +790,11 @@ def print_conda_exception(exc_val, exc_tb=None):
     if context.debug or context.verbosity > 0:
         sys.stderr.write(_format_exc(exc_val, exc_tb))
         sys.stderr.write('\n')
-    elif context.json and exc_val.return_code:
+    elif context.json:
         import json
-        stdoutlog = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
+        logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
         exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
-        stdoutlog.info("%s\n" % exc_json)
+        logger.info("%s\n" % exc_json)
     else:
         stderrlog = getLogger('conda.stderr')
         stderrlog.info("\n%r\n", exc_val)
