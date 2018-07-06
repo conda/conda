@@ -8,16 +8,17 @@ import os
 from os.path import isdir, isfile, join
 import re
 import sys
-import time
 import warnings
 
-from conda.models.version import version_relation_re
+import time
+
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .common.compat import ensure_text_type, iteritems, open, text_type
 from .core.prefix_data import PrefixData, linked
 from .exceptions import CondaFileIOError, CondaHistoryError
 from .gateways.disk.update import touch
 from .models.dist import Dist
+from .models.version import version_relation_re
 from .resolve import MatchSpec
 
 try:
