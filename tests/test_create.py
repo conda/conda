@@ -401,7 +401,6 @@ class IntegrationTests(TestCase):
 
             stdout, stderr = run_command(Commands.CREATE, prefix, "python=3.5 --json --dry-run", use_exception_handler=True)
             assert_json_parsable(stdout)
-            assert not stderr
 
             # regression test for #5825
             # contents of LINK and UNLINK is expected to have Dist format
@@ -1171,7 +1170,6 @@ class IntegrationTests(TestCase):
         with pytest.raises(DryRunExit):
             run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json")
         stdout, stderr = run_command(Commands.CREATE, prefix, "flask", "--dry-run", "--json", use_exception_handler=True)
-
         loaded = json.loads(stdout)
         names = set(d['name'] for d in loaded['actions']['LINK'])
         assert "python" in names

@@ -790,9 +790,9 @@ def print_conda_exception(exc_val, exc_tb=None):
     if context.debug or context.verbosity > 0:
         sys.stderr.write(_format_exc(exc_val, exc_tb))
         sys.stderr.write('\n')
-    elif context.json:
+    elif context.json and exc_val.return_code:
         import json
-        stdoutlog = getLogger('conda.stdout')
+        stdoutlog = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
         exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
         stdoutlog.info("%s\n" % exc_json)
     else:
@@ -842,13 +842,11 @@ class ExceptionHandler(object):
         return context.error_upload_url
 
     def handle_exception(self, exc_val, exc_tb):
-        return_code = getattr(exc_val, 'return_code', None)
-        if return_code == 0:
-            return 0
-        if isinstance(exc_val, CondaHTTPError):
-            return self.handle_reportable_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, CondaError):
-            return self.handle_application_exception(exc_val, exc_tb)
+            if exc_val.reportable:
+                return self.handle_reportable_application_exception(exc_val, exc_tb)
+            else:
+                return self.handle_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, UnicodeError) and PY2:
             return self.handle_application_exception(EncodingError(exc_val), exc_tb)
         if isinstance(exc_val, EnvironmentError):
@@ -865,8 +863,7 @@ class ExceptionHandler(object):
 
     def handle_application_exception(self, exc_val, exc_tb):
         self._print_conda_exception(exc_val, exc_tb)
-        rc = getattr(exc_val, 'return_code', None)
-        return rc if rc is not None else 1
+        return exc_val.return_code
 
     def _print_conda_exception(self, exc_val, exc_tb):
         print_conda_exception(exc_val, exc_tb)
@@ -893,8 +890,7 @@ class ExceptionHandler(object):
         if do_upload:
             self._execute_upload(error_report)
         self.print_upload_confirm(do_upload, ask_for_upload, ask_response)
-        rc = getattr(exc_val, 'return_code', None)
-        return rc if rc is not None else 1
+        return exc_val.return_code
 
     def get_error_report(self, exc_val, exc_tb):
         command = ' '.join(ensure_text_type(s) for s in sys.argv)
