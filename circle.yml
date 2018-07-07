@@ -179,7 +179,7 @@ workflows:
   version: 2
   conda tests:
     jobs:
-      - py37 main tests
+      # - py37 main tests
       - py36 main tests
       - py27 main tests
       # - 3.0 conda-build
