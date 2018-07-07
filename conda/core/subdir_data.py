@@ -14,7 +14,6 @@ from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, isdir, join, splitext
 import re
-from textwrap import dedent
 from time import time
 import warnings
 
@@ -28,7 +27,8 @@ from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, it
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
-from ..exceptions import CondaDependencyError, CondaHTTPError, NotWritableError
+from ..exceptions import (CondaDependencyError, CondaHTTPError, UnavailableInvalidChannel,
+                          NotWritableError)
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)
 from ..gateways.connection.session import CondaSession
@@ -426,43 +426,15 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         status_code = getattr(e.response, 'status_code', None)
         if status_code in (403, 404):
             if not url.endswith('/noarch'):
-                return None
-            else:
                 if context.allow_non_channel_urls:
-                    help_message = dedent("""
-                    WARNING: The remote server could not find the noarch directory for the
-                    requested channel with url: %s
-
-                    It is possible you have given conda an invalid channel. Please double-check
-                    your conda configuration using `conda config --show channels`.
-
-                    If the requested url is in fact a valid conda channel, please request that the
-                    channel administrator create `noarch/repodata.json` and associated
-                    `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
-                    $ mkdir noarch
-                    $ echo '{}' > noarch/repodata.json
-                    $ bzip2 -k noarch/repodata.json
-                    """) % maybe_unquote(dirname(url))
-                    stderrlog.warn(help_message)
+                    stderrlog.warning("Unable to retrieve repodata (%d error) for %s",
+                                      status_code, url)
                     return None
                 else:
-                    help_message = dals("""
-                    The remote server could not find the noarch directory for the
-                    requested channel with url: %s
-
-                    As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
-                    associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                    empty. please request that the channel administrator create
-                    `noarch/repodata.json` and associated `noarch/repodata.json.bz2` files.
-                    $ mkdir noarch
-                    $ echo '{}' > noarch/repodata.json
-                    $ bzip2 -k noarch/repodata.json
-
-                    You will need to adjust your conda configuration to proceed.
-                    Use `conda config --show channels` to view your configuration's current state.
-                    Further configuration help can be found at <%s>.
-                    """) % (maybe_unquote(dirname(url)),
-                            join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                    raise UnavailableInvalidChannel(Channel(dirname(url)), status_code)
+            else:
+                log.info("Unable to retrieve repodata (%d error) for %s", status_code, url)
+                return None
 
         elif status_code == 401:
             channel = Channel(url)
