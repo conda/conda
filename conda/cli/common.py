@@ -55,7 +55,7 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
     if context.always_yes:
         return True
     try:
-        choice = confirm(message=message, choices=('yes', 'no'))
+        choice = confirm(message=message, choices=('yes', 'no'), default=default)
     except KeyboardInterrupt as e:  # pragma: no cover
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.")

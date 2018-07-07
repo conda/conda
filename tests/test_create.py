@@ -808,7 +808,6 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.INSTALL, prefix,
                                          "--json --dry-run --force-reinstall python",
                                          use_exception_handler=True)
-            assert not stderr
             output_obj = json.loads(stdout.strip())
             unlink_actions = output_obj['actions']['UNLINK']
             link_actions = output_obj['actions']['LINK']
@@ -1252,7 +1251,6 @@ class IntegrationTests(TestCase):
             print(json_obj)
             assert any(rec["name"] == "flask" for rec in json_obj["actions"]["LINK"])
             assert not any(rec["name"] == "itsdangerous" for rec in json_obj["actions"]["LINK"])
-            assert not stderr
 
             stdout, stderr = run_command(Commands.SEARCH, prefix, "not-a-real-package", "--json",
                                          use_exception_handler=True)
