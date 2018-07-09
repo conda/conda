@@ -1,30 +1,34 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from ast import literal_eval
-import errno
+from errno import EACCES, EPERM
 import logging
 from operator import itemgetter
 import os
 from os.path import isdir, isfile, join
 import re
 import sys
+from textwrap import dedent
+import time
 import warnings
 
-import time
-
+from . import __version__ as CONDA_VERSION
+from ._vendor.auxlib.ish import dals
 from .base.constants import DEFAULTS_CHANNEL_NAME
+from .base.context import context
 from .common.compat import ensure_text_type, iteritems, open, text_type
+from .common.path import paths_equal
 from .core.prefix_data import PrefixData, linked
-from .exceptions import CondaFileIOError, CondaHistoryError
+from .exceptions import CondaHistoryError, CondaUpgradeError, NotWritableError
 from .gateways.disk.update import touch
 from .models.dist import Dist
-from .models.version import version_relation_re
+from .models.version import VersionOrder, version_relation_re
 from .resolve import MatchSpec
 
 try:
-    from cytoolz.itertoolz import groupby
+    from cytoolz.itertoolz import groupby, take
 except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import groupby  # NOQA
+    from ._vendor.toolz.itertoolz import groupby, take  # NOQA
 
 
 log = logging.getLogger(__name__)
@@ -37,6 +41,7 @@ class CondaHistoryWarning(Warning):
 def write_head(fo):
     fo.write("==> %s <==\n" % time.strftime('%Y-%m-%d %H:%M:%S'))
     fo.write("# cmd: %s\n" % (' '.join(ensure_text_type(s) for s in sys.argv)))
+    fo.write("# conda version: %s\n" % '.'.join(take(3, CONDA_VERSION.split('.'))))
 
 
 def is_diff(content):
@@ -76,6 +81,7 @@ class History(object):
 
     com_pat = re.compile(r'#\s*cmd:\s*(.+)')
     spec_pat = re.compile(r'#\s*(\w+)\s*specs:\s*(.+)?')
+    conda_v_pat = re.compile(r'#\s*conda version:\s*(.+)')
 
     def __init__(self, prefix):
         self.prefix = prefix
@@ -108,11 +114,11 @@ class History(object):
                 return
             curr = set(map(str, linked(self.prefix)))
             self.write_changes(last, curr)
-        except IOError as e:
-            if e.errno == errno.EACCES:
-                log.debug("Can't write the history file")
+        except EnvironmentError as e:
+            if e.errno in (EACCES, EPERM):
+                raise NotWritableError(self.path, e.errno)
             else:
-                raise CondaFileIOError(self.path, "Can't write the history file %s" % e)
+                raise
 
     def parse(self):
         """
@@ -178,6 +184,10 @@ class History(object):
                 argv[0] = 'conda'
             item['cmd'] = argv
 
+        m = cls.conda_v_pat.match(line)
+        if m:
+            item['conda_version'] = m.group(1)
+
         m = cls.spec_pat.match(line)
         if m:
             action, specs_string = m.groups()
@@ -220,6 +230,34 @@ class History(object):
             dists = groupby(itemgetter(0), unused_cont)
             item['unlink_dists'] = dists.get('-', ())
             item['link_dists'] = dists.get('+', ())
+
+        conda_versions_from_history = tuple(x['conda_version'] for x in res
+                                            if 'conda_version' in x)
+        if conda_versions_from_history:
+            minimum_conda_version = sorted(conda_versions_from_history, key=VersionOrder)[-1]
+            minimum_major_minor = '.'.join(take(2, minimum_conda_version.split('.')))
+            current_major_minor = '.'.join(take(2, CONDA_VERSION.split('.')))
+            if VersionOrder(current_major_minor) < VersionOrder(minimum_major_minor):
+                message = dals("""
+                This environment has previously been operated on by a conda version that's newer
+                than the conda currently being used. A newer version of conda is required.
+                  target environment location: %(target_prefix)s
+                  current conda version: %(conda_version)s
+                  minimum conda version: %(minimum_version)s
+                """) % {
+                    "target_prefix": self.prefix,
+                    "conda_version": CONDA_VERSION,
+                    "minimum_version": minimum_major_minor,
+                }
+                if not paths_equal(self.prefix, context.root_prefix):
+                    message += dedent("""
+                    Update conda and try again.
+                        $ conda install -p "%(base_prefix)s" "conda>=%(minimum_version)s"
+                    """) % {
+                        "base_prefix": context.root_prefix,
+                        "minimum_version": minimum_major_minor,
+                    }
+                raise CondaUpgradeError(message)
 
         return res
 
