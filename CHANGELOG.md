@@ -1,8 +1,16 @@
-## 4.5.7 (unreleased)
+## 4.5.7 (2018-07-09)
+
+### Improvements
+* resolve #7423 add upgrade error for unsupported repodata_version (#7415)
+* raise CondaUpgradeError for conda version downgrades on environments (#7517)
 
 ### Bug Fixes
-fix #7505 temp directory for UnlinkLinkTransaction should be in target prefix #7516
-fix #7506 requests monkeypatch fallback for old requests versions #7515
+* fix #7505 temp directory for UnlinkLinkTransaction should be in target prefix (#7516)
+* fix #7506 requests monkeypatch fallback for old requests versions (#7515)
+
+### Contributors
+@kalefranz
+@nehaljwani
 
 
 ## 4.5.6 (2018-07-06)
