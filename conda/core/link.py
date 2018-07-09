@@ -7,7 +7,6 @@ import os
 from os.path import basename, dirname, isdir, join
 from subprocess import CalledProcessError
 import sys
-from tempfile import mkdtemp
 from traceback import format_exception_only
 import warnings
 
