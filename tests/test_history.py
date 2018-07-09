@@ -1,9 +1,14 @@
-from os.path import dirname
+from os.path import dirname, isfile, join
 from pprint import pprint
+from shutil import copy2
 import unittest
 
+import pytest
+
+from conda.exceptions import CondaUpgradeError
+from conda.gateways.disk import mkdir_p
 from .decorators import skip_if_no_mock
-from .helpers import mock
+from .helpers import mock, tempdir
 from .test_create import make_temp_prefix
 
 from conda.history import History
@@ -82,15 +87,10 @@ class UserRequestsTestCase(unittest.TestCase):
                           'link_dists': ['+pyflakes-1.0.0-py27_0'],
                           })
 
-    def test_conda_comment_version_parsin(self):
-        test_cases = [
-            "# conda version: 4.5.1",
-            "# conda version: 4.5.1rc1",
-            "# conda version: 4.5.1dev0",
-        ]
-        for line in test_cases:
-            item = History._parse_comment_line(line)
-            assert not item
+    def test_conda_comment_version_parsing(self):
+        assert History._parse_comment_line("# conda version: 4.5.1") == {"conda_version": "4.5.1"}
+        assert History._parse_comment_line("# conda version: 4.5.1rc1") == {"conda_version": "4.5.1rc1"}
+        assert History._parse_comment_line("# conda version: 4.5.1dev0") == {"conda_version": "4.5.1dev0"}
 
     def test_specs_line_parsing_44(self):
         # New format (>=4.4)
@@ -183,3 +183,25 @@ class UserRequestsTestCase(unittest.TestCase):
                 'pandas', '_license >=1.0.0,<2.0',
             ],
         }
+
+
+def test_minimum_conda_version_error():
+    with tempdir() as prefix:
+        assert not isfile(join(prefix, 'conda-meta', 'history'))
+        mkdir_p(join(prefix, 'conda-meta'))
+        copy2(join(dirname(__file__), 'conda-meta', 'history'),
+              join(prefix, 'conda-meta', 'history'))
+
+        with open(join(prefix, 'conda-meta', 'history'), 'a') as fh:
+            fh.write("==> 2018-07-09 11:18:09 <==\n")
+            fh.write("# cmd: blarg\n")
+            fh.write("# conda version: 42.42.4242\n")
+
+        h = History(prefix)
+
+        with pytest.raises(CondaUpgradeError) as exc:
+            h.get_user_requests()
+        exception_string = repr(exc.value)
+        print(exception_string)
+        assert "minimum conda version: 42.42" in exception_string
+        assert "$ conda install -p" in exception_string
