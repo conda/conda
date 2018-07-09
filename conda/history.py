@@ -22,7 +22,7 @@ from .base.context import context
 from .common.compat import ensure_text_type, iteritems, open, text_type
 from .common.path import paths_equal
 from .core.prefix_data import PrefixData
-from .exceptions import CondaFileIOError, CondaHistoryError, CondaUpgradeError, NotWritableError
+from .exceptions import CondaHistoryError, CondaUpgradeError, NotWritableError
 from .gateways.disk.update import touch
 from .models.dist import dist_str_to_quad
 from .models.version import VersionOrder, version_relation_re
@@ -234,11 +234,13 @@ class History(object):
             item['unlink_dists'] = dists.get('-', ())
             item['link_dists'] = dists.get('+', ())
 
-        conda_versions_from_history = tuple(x['conda_version'] for x in res if 'conda_version' in x)
+        conda_versions_from_history = tuple(x['conda_version'] for x in res
+                                            if 'conda_version' in x)
         if conda_versions_from_history:
             minimum_conda_version = sorted(conda_versions_from_history, key=VersionOrder)[-1]
-            minimum_major_minor = '.'.join(minimum_conda_version.split('.')[:2])
-            if VersionOrder(CONDA_VERSION) < VersionOrder(minimum_major_minor):
+            minimum_major_minor = '.'.join(take(2, minimum_conda_version.split('.')))
+            current_major_minor = '.'.join(take(2, CONDA_VERSION.split('.')))
+            if VersionOrder(current_major_minor) < VersionOrder(minimum_major_minor):
                 message = dals("""
                 This environment has previously been operated on by a conda version that's newer
                 than the conda currently being used. A newer version of conda is required.
