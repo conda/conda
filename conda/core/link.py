@@ -279,7 +279,8 @@ class UnlinkLinkTransaction(object):
         sp = get_python_site_packages_short_path(python_version)
         transaction_context['target_site_packages_short_path'] = sp
 
-        transaction_context['temp_dir'] = mkdtemp()
+        transaction_context['temp_dir'] = join(target_prefix, '.condatmp')
+        mkdir_p(transaction_context['temp_dir'])
 
         unlink_action_groups = tuple(ActionGroup(
             'unlink',
