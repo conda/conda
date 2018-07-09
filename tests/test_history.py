@@ -1,22 +1,28 @@
-from os.path import dirname
+from os.path import dirname, isfile, join
+from pprint import pprint
+from shutil import copy2
 import unittest
 
+import pytest
+
+from conda.exceptions import CondaUpgradeError
+from conda.gateways.disk import mkdir_p
 from .decorators import skip_if_no_mock
-from .helpers import mock
+from .helpers import mock, tempdir
 from .test_create import make_temp_prefix
 
-from conda import history
+from conda.history import History
 
 
 class HistoryTestCase(unittest.TestCase):
     def test_works_as_context_manager(self):
-        h = history.History("/path/to/prefix")
+        h = History("/path/to/prefix")
         self.assertTrue(getattr(h, '__enter__'))
         self.assertTrue(getattr(h, '__exit__'))
 
     @skip_if_no_mock
     def test_calls_update_on_enter_and_exit(self):
-        h = history.History("/path/to/prefix")
+        h = History("/path/to/prefix")
         with mock.patch.object(h, 'update') as update:
             with h:
                 self.assertEqual(1, update.call_count)
@@ -25,15 +31,15 @@ class HistoryTestCase(unittest.TestCase):
 
     @skip_if_no_mock
     def test_returns_history_object_as_context_object(self):
-        h = history.History("/path/to/prefix")
+        h = History("/path/to/prefix")
         with mock.patch.object(h, 'update'):
             with h as h2:
                 self.assertEqual(h, h2)
 
     @skip_if_no_mock
     def test_empty_history_check_on_empty_env(self):
-        with mock.patch.object(history.History, 'file_is_empty') as mock_file_is_empty:
-            with history.History(make_temp_prefix()) as h:
+        with mock.patch.object(History, 'file_is_empty') as mock_file_is_empty:
+            with History(make_temp_prefix()) as h:
                 self.assertEqual(mock_file_is_empty.call_count, 0)
             self.assertEqual(mock_file_is_empty.call_count, 1)
             assert h.file_is_empty()
@@ -43,8 +49,8 @@ class HistoryTestCase(unittest.TestCase):
 
     @skip_if_no_mock
     def test_parse_on_empty_env(self):
-        with mock.patch.object(history.History, 'parse') as mock_parse:
-            with history.History(make_temp_prefix()) as h:
+        with mock.patch.object(History, 'parse') as mock_parse:
+            with History(make_temp_prefix()) as h:
                 self.assertEqual(mock_parse.call_count, 1)
                 self.assertEqual(len(h.parse()), 0)
         self.assertEqual(len(h.parse()), 1)
@@ -52,7 +58,7 @@ class HistoryTestCase(unittest.TestCase):
 
 class UserRequestsTestCase(unittest.TestCase):
 
-    h = history.History(dirname(__file__))
+    h = History(dirname(__file__))
     user_requests = h.get_user_requests()
 
     def test_len(self):
@@ -69,3 +75,122 @@ class UserRequestsTestCase(unittest.TestCase):
                           'cmd': ['conda', 'install', 'pyflakes'],
                           'date': '2016-02-18 22:53:20',
                           'specs': ['pyflakes', 'conda', 'python 2.7*']})
+
+    def test_conda_comment_version_parsing(self):
+        assert History._parse_comment_line("# conda version: 4.5.1") == {"conda_version": "4.5.1"}
+        assert History._parse_comment_line("# conda version: 4.5.1rc1") == {"conda_version": "4.5.1rc1"}
+        assert History._parse_comment_line("# conda version: 4.5.1dev0") == {"conda_version": "4.5.1dev0"}
+
+    def test_specs_line_parsing_44(self):
+        # New format (>=4.4)
+        item = History._parse_comment_line("# update specs: [\"param[version='>=1.5.1,<2.0']\"]")
+        pprint(item)
+        assert item == {
+            "action": "update",
+            "specs": [
+                "param[version='>=1.5.1,<2.0']",
+            ],
+            "update_specs": [
+                "param[version='>=1.5.1,<2.0']",
+            ],
+        }
+
+    def test_specs_line_parsing_43(self):
+        # Old format (<4.4)
+        item = History._parse_comment_line('# install specs: param >=1.5.1,<2.0')
+        pprint(item)
+        assert item == {
+            'action': 'install',
+            'specs': [
+                'param >=1.5.1,<2.0',
+            ],
+            'update_specs': [
+                'param >=1.5.1,<2.0',
+            ],
+        }
+
+        item = History._parse_comment_line('# install specs: param >=1.5.1,<2.0,0packagename >=1.0.0,<2.0')
+        pprint(item)
+        assert item == {
+            'action': 'install',
+            'specs': [
+                'param >=1.5.1,<2.0',
+                '0packagename >=1.0.0,<2.0',
+            ],
+            'update_specs': [
+                'param >=1.5.1,<2.0',
+                '0packagename >=1.0.0,<2.0',
+            ],
+        }
+
+        item = History._parse_comment_line('# install specs: python>=3.5.1,jupyter >=1.0.0,<2.0,matplotlib >=1.5.1,<2.0,numpy >=1.11.0,<2.0,pandas >=0.19.2,<1.0,psycopg2 >=2.6.1,<3.0,pyyaml >=3.12,<4.0,scipy >=0.17.0,<1.0')
+        pprint(item)
+        assert item == {
+            'action': 'install',
+            'specs': [
+                'python>=3.5.1',
+                'jupyter >=1.0.0,<2.0',
+                'matplotlib >=1.5.1,<2.0',
+                'numpy >=1.11.0,<2.0',
+                'pandas >=0.19.2,<1.0',
+                'psycopg2 >=2.6.1,<3.0',
+                'pyyaml >=3.12,<4.0',
+                'scipy >=0.17.0,<1.0',
+            ],
+            'update_specs': [
+                'python>=3.5.1',
+                'jupyter >=1.0.0,<2.0',
+                'matplotlib >=1.5.1,<2.0',
+                'numpy >=1.11.0,<2.0',
+                'pandas >=0.19.2,<1.0',
+                'psycopg2 >=2.6.1,<3.0',
+                'pyyaml >=3.12,<4.0',
+                'scipy >=0.17.0,<1.0',
+            ],
+        }
+
+        item = History._parse_comment_line('# install specs: _license >=1.0.0,<2.0')
+        pprint(item)
+        assert item == {
+            'action': 'install',
+            'specs': [
+                '_license >=1.0.0,<2.0',
+            ],
+            'update_specs': [
+                '_license >=1.0.0,<2.0',
+            ],
+        }
+
+        item = History._parse_comment_line('# install specs: pandas,_license >=1.0.0,<2.0')
+        pprint(item)
+        assert item == {
+            'action': 'install',
+            'specs': [
+                'pandas', '_license >=1.0.0,<2.0',
+            ],
+            'update_specs': [
+                'pandas', '_license >=1.0.0,<2.0',
+            ],
+        }
+
+
+def test_minimum_conda_version_error():
+    with tempdir() as prefix:
+        assert not isfile(join(prefix, 'conda-meta', 'history'))
+        mkdir_p(join(prefix, 'conda-meta'))
+        copy2(join(dirname(__file__), 'conda-meta', 'history'),
+              join(prefix, 'conda-meta', 'history'))
+
+        with open(join(prefix, 'conda-meta', 'history'), 'a') as fh:
+            fh.write("==> 2018-07-09 11:18:09 <==\n")
+            fh.write("# cmd: blarg\n")
+            fh.write("# conda version: 42.42.4242\n")
+
+        h = History(prefix)
+
+        with pytest.raises(CondaUpgradeError) as exc:
+            h.get_user_requests()
+        exception_string = repr(exc.value)
+        print(exception_string)
+        assert "minimum conda version: 42.42" in exception_string
+        assert "$ conda install -p" in exception_string
