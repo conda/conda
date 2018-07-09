@@ -1,3 +1,10 @@
+## 4.5.7 (unreleased)
+
+### Bug Fixes
+fix #7505 temp directory for UnlinkLinkTransaction should be in target prefix #7516
+fix #7506 requests monkeypatch fallback for old requests versions #7515
+
+
 ## 4.5.6 (2018-07-06)
 
 ### Bug Fixes
