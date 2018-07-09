@@ -139,33 +139,6 @@ class CreateInPrefixPathAction(PrefixPathAction):
         return join(prfx, win_path_ok(shrt_pth)) if prfx and shrt_pth else None
 
 
-# @with_metaclass(ABCMeta)
-# class CreateLeasedPathAction(CreateInPrefixPathAction):
-#     def __init__(self, transaction_context, package_info, source_prefix, source_short_path,
-#                  target_prefix, target_short_path):
-#         super(CreateLeasedPathAction, self).__init__(transaction_context, package_info,
-#                                                      source_prefix, source_short_path,
-#                                                      target_prefix, target_short_path)
-#         self.leased_path_entry = LeasedPathEntry(
-#             _path=target_short_path,
-#             target_path=self.source_full_path,
-#             target_prefix=source_prefix,
-#             leased_path=self.target_full_path,
-#             package_name=package_info.index_json_record.name,
-#             leased_path_type=self.leased_path_type,
-#         )
-#         self._execute_successful = False
-#
-#     def reverse(self):
-#         if self._execute_successful:
-#             log.trace("reversing leased path creation %s", self.target_full_path)
-#             rm_rf(self.target_full_path)
-#
-#     @abstractproperty
-#     def leased_path_type(self):
-#         raise NotImplementedError()
-
-
 class LinkPathAction(CreateInPrefixPathAction):
 
     @classmethod
@@ -874,59 +847,6 @@ class RegisterEnvironmentLocationAction(PathAction):
         raise NotImplementedError()
 
 
-# class RegisterPrivateEnvAction(EnvsDirectoryPathAction):
-#
-#     @classmethod
-#     def create_actions(cls, transaction_context, package_info, target_prefix, requested_spec,
-#                        leased_paths):
-#         preferred_env = package_info.repodata_record.preferred_env
-#         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
-#             return cls(transaction_context, package_info, context.root_prefix, preferred_env,
-#                        requested_spec, leased_paths),
-#         else:
-#             return ()
-#
-#     def __init__(self, transaction_context, package_info, root_prefix, env_name, requested_spec,
-#                  leased_paths):
-#         self.root_prefix = root_prefix
-#         self.env_name = ensure_pad(env_name)
-#         target_prefix = join(self.root_prefix, 'envs', self.env_name)
-#         super(RegisterPrivateEnvAction, self).__init__(transaction_context, target_prefix)
-#
-#         self.package_name = package_info.index_json_record.name
-#         self.requested_spec = requested_spec
-#         self.leased_paths = leased_paths
-#
-#         fn = basename(package_info.extracted_package_dir) + '.json'
-#         self.conda_meta_path = join(self.target_prefix, 'conda-meta', fn)
-#
-#     def execute(self):
-#         log.trace("registering private env for %s", self.target_prefix)
-#
-#         # touches env prefix entry in catalog.json
-#         # updates leased_paths
-#         from .envs_manager import EnvsDirectory
-#         ed = EnvsDirectory(self.envs_dir_path)
-#
-#         self.envs_dir_state = ed._get_state()
-#
-#         for leased_path_entry in self.leased_paths:
-#             ed.add_leased_path(leased_path_entry)
-#
-#         ed.add_preferred_env_package(self.env_name, self.package_name, self.conda_meta_path,
-#                                      self.requested_spec)
-#         ed.write_to_disk()
-#         self._execute_successful = True
-#
-#     def reverse(self):
-#         if self._execute_successful:
-#             log.trace("reversing environment unregistration in catalog for %s", self.target_prefix)  # NOQA
-#             from .envs_manager import EnvsDirectory
-#             ed = EnvsDirectory(self.envs_dir_path)
-#             ed._set_state(self.envs_dir_state)
-#             ed.write_to_disk()
-
-
 # ######################################################
 #  Removal of Paths within a Prefix
 # ######################################################
@@ -1042,62 +962,6 @@ class UnregisterEnvironmentLocationAction(PathAction):
     @property
     def target_full_path(self):
         raise NotImplementedError()
-
-
-# class UnregisterPrivateEnvAction(EnvsDirectoryPathAction):
-#
-#     @classmethod
-#     def create_actions(cls, transaction_context, linked_package_data, target_prefix):
-#         preferred_env = ensure_pad(linked_package_data.preferred_env)
-#         if preferred_env_matches_prefix(preferred_env, target_prefix, context.root_prefix):
-#             package_name = linked_package_data.name
-#
-#             from .envs_manager import EnvsDirectory
-#             envs_directory_path = EnvsDirectory.get_envs_directory_for_prefix(target_prefix)
-#             ed = EnvsDirectory(envs_directory_path)
-#
-#             ed.get_leased_path_entries_for_package(package_name)
-#
-#             leased_path_entries = ed.get_leased_path_entries_for_package(package_name)
-#             leased_paths_to_remove = tuple(lpe._path for lpe in leased_path_entries)
-#             unlink_leased_path_actions = (UnlinkPathAction(transaction_context, None,
-#                                                            context.root_prefix, lp)
-#                                           for lp in leased_paths_to_remove)
-#
-#             unregister_private_env_actions = cls(transaction_context, context.root_prefix,
-#                                                  package_name),
-#
-#             return concatv(unlink_leased_path_actions, unregister_private_env_actions)
-#
-#         else:
-#             return ()
-#
-#     def __init__(self, transaction_context, root_prefix, package_name):
-#         super(UnregisterPrivateEnvAction, self).__init__(transaction_context, root_prefix)
-#         self.root_prefix = root_prefix
-#         self.package_name = package_name
-#
-#     def execute(self):
-#         log.trace("unregistering private env for %s", self.package_name)
-#
-#         from .envs_manager import EnvsDirectory
-#         ed = EnvsDirectory(self.envs_dir_path)
-#
-#         self.envs_dir_state = ed._get_state()
-#
-#         ed.remove_preferred_env_package(self.package_name)
-#
-#         ed.write_to_disk()
-#         self._execute_successful = True
-#
-#     def reverse(self):
-#         if self._execute_successful:
-#             log.trace("reversing environment unregistration in catalog for %s",
-#                       self.target_prefix)
-#             from .envs_manager import EnvsDirectory
-#             ed = EnvsDirectory(self.envs_dir_path)
-#             ed._set_state(self.envs_dir_state)
-#             ed.write_to_disk()
 
 
 # ######################################################
