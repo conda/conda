@@ -443,7 +443,7 @@ class UnavailableInvalidChannel(ChannelError):
         The channel is not accessible or is invalid.
           channel name: %(channel_name)s
           channel url: %(channel_url)s
-          error code: %(http_error_code)d
+          error code: %(error_code)d
 
         You will need to adjust your conda configuration to proceed.
         Use `conda config --show channels` to view your configuration's current state,
