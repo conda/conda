@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from datetime import datetime
 from unittest import TestCase
 
 from conda._vendor.auxlib.collection import frozendict
@@ -240,6 +241,85 @@ class MatchSpecTests(TestCase):
         spec = MatchSpec(':*:python')
         assert 'namespace' not in spec._match_components
         assert text_type(spec) == 'python'
+
+    def test_namespace_wildcard_name_r_base(self):
+        assert str(MatchSpec("r-base")) == "r-base"
+        assert _parse_spec_str("r-base") == {
+            '_original_spec_str': 'r-base',
+            'name': 'r-base'
+        }
+        assert str(MatchSpec("r-ba*")) == "r-ba*"
+        assert _parse_spec_str("r-ba*") == {
+            '_original_spec_str': 'r-ba*',
+            'name': 'r-ba*',
+        }
+
+        r_rec = {
+            "build": "0",
+            "build_number": 0,
+            "name": "r-base",
+            "version": "3.1.2",
+        }
+        r_prec = PackageRecord.from_objects(r_rec)
+        assert r_prec.name == "r-base"
+
+        assert MatchSpec("r-base").match(r_prec)
+        assert MatchSpec("r-ba*").match(r_prec)
+        assert MatchSpec("r-b*e").match(r_prec)
+        assert not MatchSpec("r:ba*").match(r_prec)
+        assert not MatchSpec("r:b*e").match(r_prec)
+
+        assert MatchSpec("r-base").match(r_rec)
+        assert MatchSpec("r-ba*").match(r_rec)
+        assert MatchSpec("r-b*e").match(r_rec)
+        assert not MatchSpec("r:ba*").match(r_rec)
+        assert not MatchSpec("r:b*e").match(r_rec)
+
+    def test_namespace_wildcard_name_mro_base(self):
+        assert str(MatchSpec("mro-base")) == "mro-base"
+        assert _parse_spec_str("mro-base") == {
+            '_original_spec_str': 'mro-base',
+            'name': 'mro-base'
+        }
+        assert str(MatchSpec("mro-ba*")) == "mro-ba*"
+        assert _parse_spec_str("mro-ba*") == {
+            '_original_spec_str': 'mro-ba*',
+            'name': 'mro-ba*',
+        }
+
+        mro_rec = {
+            "build": "0",
+            "build_number": 0,
+            "name": "mro-base",
+            "version": "3.1.2",
+        }
+        mro_prec = PackageRecord.from_objects(mro_rec)
+        assert mro_prec.name == "mro-base"
+
+        assert MatchSpec("mro-base").match(mro_prec)
+        assert MatchSpec("mro-ba*").match(mro_prec)
+        assert MatchSpec("mro-b*e").match(mro_prec)
+        assert not MatchSpec("mro:ba*").match(mro_prec)
+        assert not MatchSpec("mro:b*e").match(mro_prec)
+
+        assert MatchSpec("mro-base").match(mro_rec)
+        assert MatchSpec("mro-ba*").match(mro_rec)
+        assert MatchSpec("mro-b*e").match(mro_rec)
+        assert not MatchSpec("mro:ba*").match(mro_rec)
+        assert not MatchSpec("mro:b*e").match(mro_rec)
+
+        r_rec = {
+            "build": "0",
+            "build_number": 0,
+            "name": "r-base",
+            "version": "3.1.2",
+        }
+        r_prec = PackageRecord.from_objects(r_rec)
+
+        assert MatchSpec("*r*-base").match(mro_rec)
+        assert MatchSpec("*r*-base").match(mro_prec)
+        assert MatchSpec("*r*-base").match(r_rec)
+        assert MatchSpec("*r*-base").match(r_prec)
 
     @pytest.mark.skip(reason="key-value features interface has been disabled in conda 4.4")
     def test_key_value_features_canonical_string_forms(self):
@@ -589,6 +669,43 @@ class SpecStrParsingTests(TestCase):
     #         "build": "py26_0",
     #     }
 
+    def test_parse_spec_str_no_name_channel(self):
+        assert _parse_spec_str("https://my.channel.com::numpy") == {
+            "channel": "https://my.channel.com",
+            "name": "numpy",
+            '_original_spec_str': 'https://my.channel.com::numpy',
+        }
+        assert _parse_spec_str("https://my.channel.com/win-64::numpy") == {
+            "channel": "https://my.channel.com",
+            "subdir": "win-64",
+            "name": "numpy",
+            '_original_spec_str': 'https://my.channel.com/win-64::numpy',
+        }
+        assert _parse_spec_str("https://my.channel.com:8080::numpy") == {
+            "channel": "https://my.channel.com:8080",
+            "name": "numpy",
+            '_original_spec_str': 'https://my.channel.com:8080::numpy',
+        }
+        assert _parse_spec_str("https://my.channel.com:8080:python:numpy") == {
+            "channel": "https://my.channel.com:8080",
+            "namespace": "python",
+            "name": "numpy",
+            '_original_spec_str': 'https://my.channel.com:8080:python:numpy',
+        }
+        assert _parse_spec_str("https://my.channel.com:8080/:python:numpy") == {
+            "channel": "https://my.channel.com:8080",
+            "namespace": "python",
+            "name": "numpy",
+            '_original_spec_str': 'https://my.channel.com:8080/:python:numpy',
+        }
+        assert _parse_spec_str("https://my.channel.com:8080/linux-32:python:numpy") == {
+            "channel": "https://my.channel.com:8080",
+            "subdir": "linux-32",
+            "namespace": "python",
+            "name": "numpy",
+            '_original_spec_str': 'https://my.channel.com:8080/linux-32:python:numpy',
+        }
+
     def test_parse_spec_str_no_brackets(self):
         assert _parse_spec_str("numpy") == {
             "name": "numpy",
@@ -768,6 +885,16 @@ class SpecStrParsingTests(TestCase):
             "name": "foo",
             "version": ">=1.0",
             '_original_spec_str': '*/linux-32::foo>=1.0',
+        }
+
+    def test_parse_namespace(self):
+        assert _parse_spec_str("r-base") == {
+            '_original_spec_str': 'r-base',
+            'name': 'r-base',
+        }
+        assert _parse_spec_str("mro-base") == {
+            '_original_spec_str': 'mro-base',
+            'name': 'mro-base',
         }
 
     def test_parse_parens(self):

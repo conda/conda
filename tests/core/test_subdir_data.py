@@ -10,7 +10,7 @@ from unittest import TestCase
 import pytest
 
 from conda.base.context import context, reset_context
-from conda.common.compat import iteritems
+from conda.common.compat import iteritems, PY2
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var, env_vars
 from conda.core.index import get_index
@@ -18,6 +18,7 @@ from conda.core.subdir_data import Response304ContentUnchanged, SubdirData, cach
     read_mod_and_etag
 from conda.exports import rm_rf
 from conda.gateways.disk.read import isfile
+from conda.gateways.logging import initialize_logging, set_verbosity
 from conda.models.channel import Channel
 from tests.helpers import get_index_r_4
 
@@ -95,7 +96,7 @@ class GetRepodataIntegrationTests(TestCase):
                     assert unknown or len(index) == len(index3)
 
     @pytest.mark.skipif(True, reason="Use with '-s' flag to get package report.")
-    def test_report_packages_with_multiple_namesapces(self):
+    def test_report_packages_with_multiple_namespaces(self):
         def make_namespace_groups(precs):
             ns_groups = defaultdict(lambda: defaultdict(list))
             for prec in precs:
@@ -109,9 +110,8 @@ class GetRepodataIntegrationTests(TestCase):
             for name, ns_map in namespace_groups.items():
                 keys = tuple(ns_map.keys())
                 if len(keys) > 1:
+                    # import pdb; pdb.set_trace()
                     print(name, keys)
-                    # print("\n>> %s <<" % name)
-                    # print(ns_map)
 
         channels = (
             "pkgs/main/linux-64",
@@ -159,7 +159,11 @@ class GetRepodataIntegrationTests(TestCase):
 
         assert 0
 
+    @pytest.mark.xfail(PY2, strict=True,
+                       reason="Currently not supporting python2 pickling protocol.")
     def test_write_and_read_pickled_repodata(self):
+        initialize_logging()
+        set_verbosity(2)
         channel = Channel("pkgs/main/linux-64")
         cache_key = SubdirData.cache_key(channel)
         SubdirData._cache_.pop(cache_key, None)

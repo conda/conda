@@ -198,6 +198,7 @@ class MatchSpec(object):
         'license',
         'license_family',
         'fn',
+        'legacy_name',
     )
     FIELD_NAMES_SET = frozenset(FIELD_NAMES)
     _MATCHER_CACHE = {}
@@ -263,11 +264,16 @@ class MatchSpec(object):
         in that record.  Returns True for a match, and False for no match.
         """
         if isinstance(rec, dict):
+            # TODO: consider AttrDict instead of PackageRecord
             from .records import PackageRecord
             rec = PackageRecord.from_objects(rec)
         for field_name, v in iteritems(self._match_components):
-            if not self._match_individual(rec, field_name, v):
-                return False
+            try:
+                if not self._match_individual(rec, field_name, v):
+                    return False
+            except AttributeError:
+                import pdb; pdb.set_trace()
+                assert 1
         return True
 
     def _match_individual(self, record, field_name, match_component):
@@ -582,7 +588,7 @@ def _parse_channel(channel_val):
     if not channel_val:
         return None, None
     chn = Channel(channel_val)
-    channel_name = chn.name
+    channel_name = chn.name or chn.base_url
     return channel_name, chn.subdir
 
 
@@ -697,13 +703,18 @@ def _parse_spec_str(spec_str):
         name, spec_str = m3.groups()
         if name is None:
             raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
-        if '-' in name:
+        if '-' in name and '*' not in name:
             namespace_prefix, reduced_name = name.split('-', 1)
-            if namespace_prefix in NAMESPACES:
-                if namespace is None or namespace == namespace_prefix:
-                    legacy_name = name  # NOQA
-                    name = reduced_name
-                    namespace = namespace_prefix
+            NON_COERCED_SPEC_NAMES = {
+                'r-base',
+            }
+            if namespace_prefix in NAMESPACES and (
+                    namespace == namespace_prefix
+                    or (namespace is None and name not in NON_COERCED_SPEC_NAMES)
+            ):
+                legacy_name = name  # NOQA
+                name = reduced_name
+                namespace = namespace_prefix
     else:
         raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
 

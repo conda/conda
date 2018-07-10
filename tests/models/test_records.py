@@ -8,6 +8,7 @@ from unittest import TestCase
 from conda.base.context import context
 from conda.common.compat import text_type
 from conda.models.channel import Channel
+from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord, PrefixRecord
 
 log = getLogger(__name__)
@@ -50,6 +51,10 @@ def test_r_base():
     assert prec.namespace == 'global'
     assert prec.legacy_name == 'r-base'
 
+    assert MatchSpec("r-base").match(prec)
+    assert not MatchSpec("r:base").match(prec)
+    assert not MatchSpec("base").match(prec)
+
     pprint(dict(prec.dump()))
     assert prec.dump() == {
         'arch': 'x86_64',
@@ -87,6 +92,8 @@ def test_r_base():
     assert prec2.name == 'r-base'
     assert prec2.namespace == 'global'
     assert prec2.legacy_name == 'r-base'
+
+    # r_base_2 =
 
 
 def test_legacy_name_overrides_name():
