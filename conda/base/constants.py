@@ -45,7 +45,7 @@ SEARCH_PATH = (
     '$CONDARC',
 )
 
-DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
+DEFAULT_CHANNEL_ALIAS = 'https://conda-static.anaconda.org'
 CONDA_HOMEPAGE_URL = 'https://conda.io'
 ERROR_UPLOAD_URL = 'https://conda.io/conda-post/unexpected-error'
 DEFAULTS_CHANNEL_NAME = 'defaults'
