@@ -841,7 +841,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "bleach=2")
             with pytest.raises(UnsatisfiableError):
                 run_command(Commands.INSTALL, prefix,
-                            "conda-forge::tensorflow>=1.4 --dry-run --freeze-installed")
+                            "conda-forge:python:tensorflow>=1.4 --dry-run --freeze-installed")
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     def test_install_features(self):

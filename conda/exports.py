@@ -66,7 +66,7 @@ from .resolve import MatchSpec, Resolve as _Resolve, Unsatisfiable  # NOQA
 MatchSpec = MatchSpec
 Unsatisfiable = Unsatisfiable
 from .exceptions import NoPackagesFoundError  # NOQA
-NoPackagesFound = NoPackagesFoundError
+NoPackagesFound = ResolvePackageNotFound = NoPackagesFoundError
 
 from .utils import hashsum_file, human_bytes, unix_path_to_win, url_path  # NOQA
 from .common.path import win_path_to_unix  # NOQA
