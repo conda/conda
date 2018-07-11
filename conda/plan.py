@@ -50,7 +50,8 @@ def print_dists(dists_extras):
     print(fmt % ('package', 'build'))
     print(fmt % ('-' * 27, '-' * 17))
     for prec, extra in dists_extras:
-        line = fmt % (prec.name + '-' + prec.version, prec.build)
+        pkg = prec.name if prec.namespace == "global" else "%s:%s" % (prec.namespace, prec.name)
+        line = fmt % (pkg + '-' + prec.version, prec.build)
         if extra:
             line += extra
         print(line)
@@ -118,7 +119,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
 
     for prec in actions.get(LINK, []):
         assert isinstance(prec, PackageRecord)
-        pkg = prec['name']
+        pkg = prec.name if prec.namespace == 'global' else '%s:%s' % (prec.namespace, prec.name)
         channels[pkg][1] = channel_str(prec)
         packages[pkg][1] = prec['version'] + '-' + prec['build']
         records[pkg][1] = prec
@@ -126,7 +127,7 @@ def display_actions(actions, index, show_channel_urls=None, specs_to_remove=(), 
         features[pkg][1] = ','.join(prec.get('features') or ())
     for prec in actions.get(UNLINK, []):
         assert isinstance(prec, PackageRecord)
-        pkg = prec['name']
+        pkg = prec.name if prec.namespace == 'global' else '%s:%s' % (prec.namespace, prec.name)
         channels[pkg][0] = channel_str(prec)
         packages[pkg][0] = prec['version'] + '-' + prec['build']
         records[pkg][0] = prec

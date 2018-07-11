@@ -117,8 +117,8 @@ The following packages will be downloaded:
 
     package                    |            build
     ---------------------------|-----------------
-    sympy-0.7.2                |           py27_0         4.2 MB
-    numpy-1.7.1                |           py27_0         5.7 MB
+    python:sympy-0.7.2         |           py27_0         4.2 MB
+    python:numpy-1.7.1         |           py27_0         5.7 MB
     ------------------------------------------------------------
                                            Total:         9.9 MB
 
@@ -197,7 +197,7 @@ The following packages will be REMOVED:
 
 The following packages will be UPDATED:
 
-    cython: 0.19-py33_0 --> 0.19.1-py33_0
+    python:cython: 0.19-py33_0 --> 0.19.1-py33_0
 
 """
 
@@ -212,7 +212,7 @@ The following packages will be UPDATED:
 
 The following packages will be DOWNGRADED:
 
-    cython: 0.19.1-py33_0 --> 0.19-py33_0
+    python:cython: 0.19.1-py33_0 --> 0.19-py33_0
 
 """
 
@@ -238,19 +238,19 @@ The following packages will be DOWNGRADED:
 
 The following NEW packages will be INSTALLED:
 
-    numpy:    1.7.1-py33_0
+    python:numpy:    1.7.1-py33_0
 
 The following packages will be REMOVED:
 
-    pip:      1.3.1-py33_1
+    python:pip:      1.3.1-py33_1
 
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0  --> 0.19.1-py33_0
+    python:cython:   0.19-py33_0  --> 0.19.1-py33_0
 
 The following packages will be DOWNGRADED:
 
-    dateutil: 2.1-py33_1   --> 1.5-py33_0   \n\
+    python:dateutil: 2.1-py33_1   --> 1.5-py33_0   \n\
 
 """
 
@@ -275,8 +275,8 @@ The following packages will be DOWNGRADED:
 
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0 --> 0.19.1-py33_0
-    dateutil: 1.5-py33_0  --> 2.1-py33_1   \n\
+    python:cython:   0.19-py33_0 --> 0.19.1-py33_0
+    python:dateutil: 1.5-py33_0  --> 2.1-py33_1   \n\
 
 """
 
@@ -291,8 +291,8 @@ The following packages will be UPDATED:
 
 The following packages will be DOWNGRADED:
 
-    cython:   0.19.1-py33_0 --> 0.19-py33_0
-    dateutil: 2.1-py33_1    --> 1.5-py33_0 \n\
+    python:cython:   0.19.1-py33_0 --> 0.19-py33_0
+    python:dateutil: 2.1-py33_1    --> 1.5-py33_0 \n\
 
 """
 
@@ -322,8 +322,8 @@ The following packages will be downloaded:
 
     package                    |            build
     ---------------------------|-----------------
-    sympy-0.7.2                |           py27_0         4.2 MB  <unknown>
-    numpy-1.7.1                |           py27_0         5.7 MB  <unknown>
+    python:sympy-0.7.2         |           py27_0         4.2 MB  <unknown>
+    python:numpy-1.7.1         |           py27_0         5.7 MB  <unknown>
     ------------------------------------------------------------
                                            Total:         9.9 MB
 
@@ -404,7 +404,7 @@ The following packages will be REMOVED:
 
 The following packages will be UPDATED:
 
-    cython: 0.19-py33_0 channel-1 --> 0.19.1-py33_0 channel-1
+    python:cython: 0.19-py33_0 channel-1 --> 0.19.1-py33_0 channel-1
 
 """
 
@@ -419,7 +419,7 @@ The following packages will be UPDATED:
 
 The following packages will be DOWNGRADED:
 
-    cython: 0.19.1-py33_0 channel-1 --> 0.19-py33_0 channel-1
+    python:cython: 0.19.1-py33_0 channel-1 --> 0.19-py33_0 channel-1
 
 """
 
@@ -446,19 +446,19 @@ The following packages will be DOWNGRADED:
 
 The following NEW packages will be INSTALLED:
 
-    numpy:    1.7.1-py33_0 channel-1
+    python:numpy:    1.7.1-py33_0 channel-1
 
 The following packages will be REMOVED:
 
-    pip:      1.3.1-py33_1 channel-1
+    python:pip:      1.3.1-py33_1 channel-1
 
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0  channel-1 --> 0.19.1-py33_0 channel-1
+    python:cython:   0.19-py33_0  channel-1 --> 0.19.1-py33_0 channel-1
 
 The following packages will be DOWNGRADED:
 
-    dateutil: 2.1-py33_1   channel-1 --> 1.5-py33_0    channel-1
+    python:dateutil: 2.1-py33_1   channel-1 --> 1.5-py33_0    channel-1
 
 """
 
@@ -483,8 +483,8 @@ The following packages will be DOWNGRADED:
 
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0 channel-1 --> 0.19.1-py33_0 channel-1
-    dateutil: 1.5-py33_0  channel-1 --> 2.1-py33_1    channel-1
+    python:cython:   0.19-py33_0 channel-1 --> 0.19.1-py33_0 channel-1
+    python:dateutil: 1.5-py33_0  channel-1 --> 2.1-py33_1    channel-1
 
 """
 
@@ -499,8 +499,8 @@ The following packages will be UPDATED:
 
 The following packages will be DOWNGRADED:
 
-    cython:   0.19.1-py33_0 channel-1 --> 0.19-py33_0 channel-1
-    dateutil: 2.1-py33_1    channel-1 --> 1.5-py33_0  channel-1
+    python:cython:   0.19.1-py33_0 channel-1 --> 0.19-py33_0 channel-1
+    python:dateutil: 2.1-py33_1    channel-1 --> 1.5-py33_0  channel-1
 
 """
 
@@ -530,8 +530,8 @@ The following packages will be DOWNGRADED:
 
 The following packages will be UPDATED:
 
-    cython:   0.19-py33_0 channel-1  --> 0.19.1-py33_0 my_channel
-    dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    channel-1 \n\
+    python:cython:   0.19-py33_0 channel-1  --> 0.19.1-py33_0 my_channel
+    python:dateutil: 1.5-py33_0  my_channel --> 2.1-py33_1    channel-1 \n\
 
 """
 
@@ -546,8 +546,8 @@ The following packages will be UPDATED:
 
 The following packages will be DOWNGRADED:
 
-    cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 channel-1 \n\
-    dateutil: 2.1-py33_1    channel-1  --> 1.5-py33_0  my_channel
+    python:cython:   0.19.1-py33_0 my_channel --> 0.19-py33_0 channel-1 \n\
+    python:dateutil: 2.1-py33_1    channel-1  --> 1.5-py33_0  my_channel
 
 """
 
@@ -788,8 +788,8 @@ def test_display_actions_features():
 
 The following NEW packages will be INSTALLED:
 
-    cython: 0.19-py33_0  \n\
-    numpy:  1.7.1-py33_p0 [mkl]
+    python:cython: 0.19-py33_0  \n\
+    python:numpy:  1.7.1-py33_p0 [mkl]
 
 """
 
@@ -810,8 +810,8 @@ The following NEW packages will be INSTALLED:
 
 The following packages will be REMOVED:
 
-    cython: 0.19-py33_0  \n\
-    numpy:  1.7.1-py33_p0 [mkl]
+    python:cython: 0.19-py33_0  \n\
+    python:numpy:  1.7.1-py33_p0 [mkl]
 
 """
 
@@ -834,7 +834,7 @@ The following packages will be REMOVED:
 
 The following packages will be DOWNGRADED:
 
-    numpy: 1.7.1-py33_p0 [mkl] --> 1.7.0-py33_p0 [mkl]
+    python:numpy: 1.7.1-py33_p0 [mkl] --> 1.7.0-py33_p0 [mkl]
 
 """
 
@@ -857,7 +857,7 @@ The following packages will be DOWNGRADED:
 
 The following packages will be UPDATED:
 
-    numpy: 1.7.0-py33_p0 [mkl] --> 1.7.1-py33_p0 [mkl]
+    python:numpy: 1.7.0-py33_p0 [mkl] --> 1.7.1-py33_p0 [mkl]
 
 """
 
@@ -881,7 +881,7 @@ The following packages will be UPDATED:
 
 The following packages will be UPDATED:
 
-    numpy: 1.7.1-py33_0 --> 1.7.1-py33_p0 [mkl]
+    python:numpy: 1.7.1-py33_0 --> 1.7.1-py33_p0 [mkl]
 
 """
 
@@ -904,7 +904,7 @@ The following packages will be UPDATED:
 
 The following packages will be UPDATED:
 
-    numpy: 1.7.1-py33_p0 [mkl] --> 1.7.1-py33_0
+    python:numpy: 1.7.1-py33_p0 [mkl] --> 1.7.1-py33_0
 
 """
     os.environ['CONDA_SHOW_CHANNEL_URLS'] = 'True'
@@ -927,8 +927,8 @@ The following packages will be UPDATED:
 
 The following NEW packages will be INSTALLED:
 
-    cython: 0.19-py33_0   channel-1
-    numpy:  1.7.1-py33_p0 channel-1 [mkl]
+    python:cython: 0.19-py33_0   channel-1
+    python:numpy:  1.7.1-py33_p0 channel-1 [mkl]
 
 """
 
@@ -949,8 +949,8 @@ The following NEW packages will be INSTALLED:
 
 The following packages will be REMOVED:
 
-    cython: 0.19-py33_0   channel-1
-    numpy:  1.7.1-py33_p0 channel-1 [mkl]
+    python:cython: 0.19-py33_0   channel-1
+    python:numpy:  1.7.1-py33_p0 channel-1 [mkl]
 
 """
 
@@ -973,7 +973,7 @@ The following packages will be REMOVED:
 
 The following packages will be DOWNGRADED:
 
-    numpy: 1.7.1-py33_p0 channel-1 [mkl] --> 1.7.0-py33_p0 channel-1 [mkl]
+    python:numpy: 1.7.1-py33_p0 channel-1 [mkl] --> 1.7.0-py33_p0 channel-1 [mkl]
 
 """
 
@@ -996,7 +996,7 @@ The following packages will be DOWNGRADED:
 
 The following packages will be UPDATED:
 
-    numpy: 1.7.0-py33_p0 channel-1 [mkl] --> 1.7.1-py33_p0 channel-1 [mkl]
+    python:numpy: 1.7.0-py33_p0 channel-1 [mkl] --> 1.7.1-py33_p0 channel-1 [mkl]
 
 """
 
@@ -1020,7 +1020,7 @@ The following packages will be UPDATED:
 
 The following packages will be UPDATED:
 
-    numpy: 1.7.1-py33_0 channel-1 --> 1.7.1-py33_p0 channel-1 [mkl]
+    python:numpy: 1.7.1-py33_0 channel-1 --> 1.7.1-py33_p0 channel-1 [mkl]
 
 """
 
@@ -1043,7 +1043,7 @@ The following packages will be UPDATED:
 
 The following packages will be UPDATED:
 
-    numpy: 1.7.1-py33_p0 channel-1 [mkl] --> 1.7.1-py33_0 channel-1
+    python:numpy: 1.7.1-py33_p0 channel-1 [mkl] --> 1.7.1-py33_0 channel-1
 
 """
 
