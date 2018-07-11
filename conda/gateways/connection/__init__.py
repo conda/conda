@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 from functools import partial
 
-def should_bypass_proxies_patched(should_bypass_proxies_func, url, no_proxy):
+def should_bypass_proxies_patched(should_bypass_proxies_func, url, no_proxy=None):
     # Monkey patch requests, per https://github.com/requests/requests/pull/4723
     if url.startswith("file://"):
         return True
