@@ -1,8 +1,11 @@
-## 4.5.7 (2018-07-10)
+## 4.5.8 (2018-07-10)
 
 ### Bug Fixes
 
 * fix #7524 should_bypass_proxies for requests 2.13.0 and earlier (#7525)
+
+### Contributors
+@kalefranz
 
 
 ## 4.5.7 (2018-07-09)
