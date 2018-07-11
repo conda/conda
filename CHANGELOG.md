@@ -33,6 +33,8 @@
 * add to conda.exports (#7217)
 * resolve #6845 add option -S / --satisfied-skip-solve to exit early for satisfied specs (#7291)
 * add NoBaseEnvironmentError and DirectoryNotACondaEnvironmentError (#7378)
+* replace menuinst subprocessing by ctypes win elevation (4.6.0a3) (#7426)
+* bump minimum requests version to stable, unbundled release (#7528)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
