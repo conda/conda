@@ -76,7 +76,7 @@ class TimestampField(NumberField):
             return super(TimestampField, self).__get__(instance, instance_type)
         except AttributeError:
             try:
-                return dt_to_timestamp(isoparse(instance.date))
+                return int(dt_to_timestamp(isoparse(instance.date)))
             except ValueError:
                 raise AttributeError()
 
