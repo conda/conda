@@ -32,7 +32,7 @@ from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
                                      StringField)
-from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
+from .._vendor.boltons.timeutils import UTC, dt_to_timestamp, isoparse
 from ..base.constants import NAMESPACES_MAP, NAMESPACE_PACKAGE_NAMES
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
@@ -93,7 +93,7 @@ class TimestampField(NumberField):
             return super(TimestampField, self).__get__(instance, instance_type)
         except AttributeError:
             try:
-                return dt_to_timestamp(isoparse(instance.date))
+                return int(dt_to_timestamp(isoparse(instance.date)))
             except ValueError:
                 raise AttributeError()
 

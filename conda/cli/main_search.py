@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
+from datetime import datetime
 
 from .install import calculate_channel_urls
 from ..base.context import context
@@ -88,22 +89,23 @@ def execute(args, parser):
             pretty_record(record)
 
     else:
-        builder = ['# %-13s %15s %15s  %-20s' % (
+        builder = ['# %-18s %15s %15s  %-20s' % (
             "Name",
             "Version",
             "Build",
             "Channel",
         )]
         for record in matches:
-            builder.append('%-15s %15s %15s  %-20s' % (
-                record.name,
+            builder.append('%-20s %15s %15s  %-20s' % (
+                record.name if record.namespace == "global"
+                else "%s:%s" % (record.namespace, record.name),
                 record.version,
                 record.build,
                 record.channel.name,
             ))
         print('\n'.join(builder))
 
-
+from .._vendor.boltons.timeutils import UTC
 def pretty_record(record):
     def push_line(display_name, attr_name):
         value = getattr(record, attr_name, None)
@@ -115,18 +117,23 @@ def pretty_record(record):
     builder.append('-'*len(builder[0]))
 
     push_line("file name", "fn")
+    push_line("namespace", "namespace")
     push_line("name", "name")
     push_line("version", "version")
     push_line("build string", "build")
     push_line("build number", "build_number")
     builder.append("%-12s: %s" % ("size", human_bytes(record.size)))
     push_line("arch", "arch")
-    push_line("constrains", "constrains")
     push_line("platform", "platform")
     push_line("license", "license")
     push_line("subdir", "subdir")
     push_line("url", "url")
     push_line("md5", "md5")
+    if record.timestamp:
+        date_str = datetime.fromtimestamp(record.timestamp, UTC).strftime('%Y-%m-%d %H:%M:%S %Z')
+        builder.append("%-12s: %s" % ("timestamp", date_str))
+    if record.constrains:
+        builder.append("%-12s: %s" % ("constraints", dashlist(record.constrains)))
     builder.append("%-12s: %s" % ("dependencies", dashlist(record.depends)))
     builder.append('\n')
     print('\n'.join(builder))
