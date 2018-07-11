@@ -30,14 +30,13 @@ log = getLogger(__name__)
 
 
 # TODO: for conda-build compatibility only
-# remove in conda 4.4
 class ResolvePackageNotFound(CondaError):
     def __init__(self, bad_deps):
         # bad_deps is a list of lists
         self.bad_deps = tuple(dep for deps in bad_deps for dep in deps if dep)
         message = '\n' + '\n'.join(('  - %s' % dep) for dep in self.bad_deps)
         super(ResolvePackageNotFound, self).__init__(message)
-NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
+NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
 
 class LockError(CondaError):
@@ -560,6 +559,7 @@ class PackagesNotFoundError(CondaError):
     def __init__(self, packages, channel_urls=()):
 
         format_list = lambda iterable: '  - ' + '\n  - '.join(text_type(x) for x in iterable)
+        self.packages = packages
 
         if channel_urls:
             message = dals("""

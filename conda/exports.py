@@ -62,10 +62,11 @@ delete_trash, move_to_trash = delete_trash, move_to_trash
 from .misc import untracked, walk_prefix  # NOQA
 untracked, walk_prefix = untracked, walk_prefix
 
-from .resolve import MatchSpec, ResolvePackageNotFound, Resolve as _Resolve, Unsatisfiable  # NOQA
+from .resolve import MatchSpec, Resolve as _Resolve, Unsatisfiable  # NOQA
 MatchSpec = MatchSpec
 Unsatisfiable = Unsatisfiable
-NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
+from .exceptions import NoPackagesFoundError  # NOQA
+NoPackagesFound = NoPackagesFoundError
 
 from .utils import hashsum_file, human_bytes, unix_path_to_win, url_path  # NOQA
 from .common.path import win_path_to_unix  # NOQA

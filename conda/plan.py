@@ -24,7 +24,7 @@ from .common.io import env_var, time_recorder
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
-from .exceptions import CondaIndexError, PackagesNotFoundError
+from .exceptions import CondaIndexError, PackagesNotFoundError, ResolvePackageNotFound
 from .history import History
 from .instructions import (FETCH, LINK, SYMLINK_CONDA, UNLINK)
 from .models.channel import Channel, prioritize_channels
@@ -471,7 +471,11 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
         solver = Solver(prefix, channels, subdirs, specs_to_add=specs)
         if index:
             solver._index = {prec: prec for prec in itervalues(index)}
-        txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
+        try:
+            txn = solver.solve_for_transaction(prune=prune, ignore_pinned=not pinned)
+        except PackagesNotFoundError as e:
+            raise ResolvePackageNotFound((e.packages,))
+
         prefix_setup = txn.prefix_setups[prefix]
         actions = get_blank_actions(prefix)
         actions['UNLINK'].extend(Dist(prec) for prec in prefix_setup.unlink_precs)

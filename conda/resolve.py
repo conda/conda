@@ -30,7 +30,6 @@ stdoutlog = getLogger('conda.stdoutlog')
 
 # used in conda build
 Unsatisfiable = UnsatisfiableError
-ResolvePackageNotFound = ResolvePackageNotFound
 
 
 class Resolve(object):
