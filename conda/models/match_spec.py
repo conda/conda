@@ -268,12 +268,8 @@ class MatchSpec(object):
             from .records import PackageRecord
             rec = PackageRecord.from_objects(rec)
         for field_name, v in iteritems(self._match_components):
-            try:
-                if not self._match_individual(rec, field_name, v):
-                    return False
-            except AttributeError:
-                import pdb; pdb.set_trace()
-                assert 1
+            if not self._match_individual(rec, field_name, v):
+                return False
         return True
 
     def _match_individual(self, record, field_name, match_component):

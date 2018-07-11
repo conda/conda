@@ -41,7 +41,7 @@ class Resolve(object):
         self.channels = channels
         self._channel_priorities_map = self._make_channel_priorities(channels) if channels else {}
 
-        groups = defaultdict(lambda: defaultdict(list))  # Dict[name, Dict[namespace, List[PackageRecord]]]
+        groups = defaultdict(lambda: defaultdict(list))  # Dict[name, Dict[namespace, List[PackageRecord]]]  # NOQA
         trackers = defaultdict(list)
 
         for prec in itervalues(index):
@@ -388,14 +388,14 @@ class Resolve(object):
                     # If all the matches all exist in the same namespace, then we shouldn't
                     # filter further.
                     # At the time of writing this code, it's uncertain if this second requirement
-                    # could lead to unexpected behavior. We may need to raise an error for potential
-                    # ambiguities rather than trying to be too smart here.
+                    # could lead to unexpected behavior. We may need to raise an error for
+                    # potential ambiguities rather than trying to be too smart here.
                     #
                     # See tests/test_resolve.py::test_required_namespaces for example cases.
                     res = tuple(prec for prec in res if prec.legacy_name == spec_name)
                     if not res:
-                        # If res is empty, that means there is ambiguity in which namespace is needed.
-                        # Effectively a tie.  Use the original result.
+                        # If res is empty, that means there is ambiguity in which namespace is
+                        # needed. Effectively a tie.  Use the original result.
                         res = _res
         elif spec.get_exact_value('track_features'):
             feature_names = spec.get_exact_value('track_features')
@@ -436,11 +436,7 @@ class Resolve(object):
             precs = self.groups.get(spec_name, {}).get(spec_namespace)
         else:
             precs = concat(itervalues(self.groups.get(spec_name, {})))
-        try:
-            return frozenset(prec.namespace for prec in precs if spec.match(prec))
-        except AttributeError:
-            import pdb; pdb.set_trace()
-            assert 1
+        return frozenset(prec.namespace for prec in precs if spec.match(prec))
 
     def required_namespaces(self, spec):
         # Gives a dict where the keys are specs based on spec, but with namespaces added.
@@ -600,8 +596,9 @@ class Resolve(object):
                                 sorted(precs_for_dep, key=self.version_key, reverse=True)
                             )
                             channel_names = ()
-                            raise PackageNamespaceConflictError(ms, namespaces, conflicting_packages,
-                                                                channel_names)
+                            raise PackageNamespaceConflictError(
+                                ms, namespaces, conflicting_packages, channel_names
+                            )
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
         log.debug("gen_clauses returning with clause count: %s", len(C.clauses))
@@ -629,7 +626,8 @@ class Resolve(object):
         # - At least one package in the group DOES require the feature
         # - A package that tracks the feature is installed
         for name, group in iteritems(self.groups):
-            prec_feats = {self.to_sat_name(prec): set(prec.features) for prec in concat(itervalues(group))}
+            prec_feats = {self.to_sat_name(prec): set(prec.features)
+                          for prec in concat(itervalues(group))}
             active_feats = set.union(*prec_feats.values()).intersection(self.trackers)
             for feat in active_feats:
                 clause_id_for_feature = self.push_MatchSpec(C, MatchSpec(track_features=feat))
@@ -671,7 +669,8 @@ class Resolve(object):
             #             rec.append(dist)
 
         for name, targets in iteritems(sdict):
-            pkgs = [(self.version_key(p), p) for p in concat(itervalues(self.groups.get(name, {})))]
+            _precs = concat(itervalues(self.groups.get(name, {})))
+            pkgs = [(self.version_key(p), p) for p in _precs]
             pkey = None
             # keep in mind that pkgs is already sorted according to version_key (a tuple,
             #    so composite sort key).  Later entries in the list are, by definition,
