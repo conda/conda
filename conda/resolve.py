@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import DEBUG, getLogger
+from operator import attrgetter
 
 from .base.constants import MAX_CHANNEL_PRIORITY
 from .base.context import context
@@ -40,23 +41,24 @@ class Resolve(object):
         self.channels = channels
         self._channel_priorities_map = self._make_channel_priorities(channels) if channels else {}
 
-        groups = {}
+        groups = defaultdict(lambda: defaultdict(list))  # Dict[name, Dict[namespace, List[PackageRecord]]]
         trackers = defaultdict(list)
 
-        for _, info in iteritems(index):
-            groups.setdefault(info['name'], []).append(info)
-            for feature_name in info.get('track_features') or ():
-                trackers[feature_name].append(info)
+        for prec in itervalues(index):
+            groups[prec.name][prec.namespace].append(prec)
+            for feature_name in prec.get('track_features') or ():
+                trackers[feature_name].append(prec)
 
-        self.groups = groups  # Dict[package_name, List[PackageRecord]]
+        self.groups = groups  # Dict[name, Dict[namespace, List[PackageRecord]]]
         self.trackers = trackers  # Dict[track_feature, List[PackageRecord]]
         self._cached_find_matches = {}  # Dict[MatchSpec, List[PackageRecord]]
         self._cached_find_matches_with_dependencies = {}  # Dict[MatchSpec, Set[PackageRecord]]
         self._reduced_index_cache = {}
 
         if sort:
-            for name, group in iteritems(groups):
-                groups[name] = sorted(group, key=self.version_key, reverse=True)
+            for name, ns_group in iteritems(groups):
+                for namespace, group in iteritems(ns_group):
+                    groups[name][namespace] = sorted(group, key=self.version_key, reverse=True)
 
     def default_filter(self, features=None, filter=None):
         # TODO: fix this import; this is bad
@@ -262,19 +264,20 @@ class Resolve(object):
         def filter_group(matches):
             match1 = next(ms for ms in matches)
             name = match1.name
-            group = self.groups.get(name, [])
+            group = self.groups.get(name, {})
 
             # Prune packages that don't match any of the patterns
             # or which have unsatisfiable dependencies
             nold = nnew = 0
-            for prec in group:
-                if filter.setdefault(prec, True):
-                    nold += 1
-                    sat = (self.match_any(matches, prec) and
-                           all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
-                               for ms in prec.ms_depends))
-                    filter[prec] = sat
-                    nnew += sat
+            for namespace, precs in iteritems(group):
+                for prec in precs:
+                    if filter.setdefault(prec, True):
+                        nold += 1
+                        sat = (self.match_any(matches, prec) and
+                               all(any(filter.get(f2, True) for f2 in self.find_matches(ms))
+                                   for ms in prec.ms_depends))
+                        filter[prec] = sat
+                        nnew += sat
 
             reduced = nnew < nold
             if reduced:
@@ -293,11 +296,12 @@ class Resolve(object):
             if reduced or name not in snames:
                 snames.add(name)
                 cdeps = {}
-                for prec in group:
-                    if filter.get(prec, True):
-                        for m2 in prec.ms_depends:
-                            if m2.get_exact_value('name') and not m2.optional:
-                                cdeps.setdefault(m2.name, []).append(m2)
+                for namespace, precs in iteritems(group):
+                    for prec in precs:
+                        if filter.get(prec, True):
+                            for m2 in prec.ms_depends:
+                                if m2.get_exact_value('name') and not m2.optional:
+                                    cdeps.setdefault(m2.name, []).append(m2)
                 for deps in itervalues(cdeps):
                     if len(deps) >= nnew:
                         res = filter_group(set(deps))
@@ -370,25 +374,29 @@ class Resolve(object):
 
         spec_name = spec.get_exact_value('name')
         if spec_name:
-            res = self.groups.get(spec_name, ())
-            if not spec.namespace and len(set(prec.namespace for prec in res)) > 1:
-                # If spec has a namespace, then we don't need any special filtering here.
-                # If not, then we need to match based on legacy name, not name.
-                # This specifically affects self.required_namespaces().
-                #
-                # The legacy name match should only apply if there is potential ambiguity.
-                # If all the matches all exist in the same namespace, then we shouldn't
-                # filter further.
-                # At the time of writing this code, it's uncertain if this second requirement
-                # could lead to unexpected behavior. We may need to raise an error for potential
-                # ambiguities rather than trying to be too smart here.
-                #
-                # See tests/test_resolve.py::test_required_namespaces for example cases.
-                res = tuple(prec for prec in res if prec.legacy_name == spec_name)
-                if not res:
-                    # If res is empty, that means there is ambiguity in which namespace is needed.
-                    # Effectively a tie.  Use the original result.
-                    res = self.groups.get(spec_name, ())
+            namespace = spec.get_exact_value('namespace')
+            if namespace:
+                res = self.groups[spec_name][namespace]
+            else:
+                res = _res = tuple(concat(itervalues(self.groups.get(spec_name, {}))))
+                if not spec.namespace and len(set(prec.namespace for prec in res)) > 1:
+                    # If spec has a namespace, then we don't need any special filtering here.
+                    # If not, then we need to match based on legacy name, not name.
+                    # This specifically affects self.required_namespaces().
+                    #
+                    # The legacy name match should only apply if there is potential ambiguity.
+                    # If all the matches all exist in the same namespace, then we shouldn't
+                    # filter further.
+                    # At the time of writing this code, it's uncertain if this second requirement
+                    # could lead to unexpected behavior. We may need to raise an error for potential
+                    # ambiguities rather than trying to be too smart here.
+                    #
+                    # See tests/test_resolve.py::test_required_namespaces for example cases.
+                    res = tuple(prec for prec in res if prec.legacy_name == spec_name)
+                    if not res:
+                        # If res is empty, that means there is ambiguity in which namespace is needed.
+                        # Effectively a tie.  Use the original result.
+                        res = _res
         elif spec.get_exact_value('track_features'):
             feature_names = spec.get_exact_value('track_features')
             res = concat(self.trackers.get(feature_name, ()) for feature_name in feature_names)
@@ -421,8 +429,18 @@ class Resolve(object):
         return result
 
     def available_namespaces(self, spec):
-        return frozenset(prec.namespace for prec in self.groups.get(spec.name, ())
-                         if spec.match(prec))
+        spec_name = spec.name
+        assert spec_name != '*', spec
+        spec_namespace = spec.namespace
+        if spec_namespace:
+            precs = self.groups.get(spec_name, {}).get(spec_namespace)
+        else:
+            precs = concat(itervalues(self.groups.get(spec_name, {})))
+        try:
+            return frozenset(prec.namespace for prec in precs if spec.match(prec))
+        except AttributeError:
+            import pdb; pdb.set_trace()
+            assert 1
 
     def required_namespaces(self, spec):
         # Gives a dict where the keys are specs based on spec, but with namespaces added.
@@ -498,7 +516,7 @@ class Resolve(object):
         ) if _tf)
 
         if package_name:
-            group = libs = self.groups.get(package_name, [])
+            group = libs = list(concat(itervalues(self.groups.get(spec.name, {}))))
             if namespace:
                 group = libs = [prec for prec in libs if prec.namespace == namespace]
         elif tf:
@@ -547,7 +565,7 @@ class Resolve(object):
     def gen_clauses(self):
         C = Clauses()
         for name, group in iteritems(self.groups):
-            for namespace, ns_group in iteritems(groupby('namespace', group)):
+            for namespace, ns_group in iteritems(group):
                 sat_group = [self.to_sat_name(prec) for prec in ns_group]
                 # Create one variable for each package
                 for sat_name in sat_group:
@@ -563,6 +581,27 @@ class Resolve(object):
         for prec in itervalues(self.index):
             nkey = C.Not(self.to_sat_name(prec))
             for ms in prec.ms_depends:
+                name = ms.get_exact_value('name')
+                if name:
+                    precs_for_dep = tuple(prec for prec in
+                                          concat(itervalues(self.groups.get(ms.name, {})))
+                                          if ms.match(prec))
+                    namespaces = groupby(attrgetter('namespace'), precs_for_dep)
+                    if len(namespaces) > 1:
+                        # Assume we only want the dependencies that have the same namespace
+                        # as the prec needing it. Be cautious here. This could potentially create
+                        # all sorts of hard to debug problems.
+                        if prec.namespace in namespaces:
+                            ms = MatchSpec(ms, namespace=prec.namespace)
+                        else:
+                            namespaces = tuple(sorted(namespaces))
+                            conflicting_packages = tuple(
+                                prec.record_id() for prec in
+                                sorted(precs_for_dep, key=self.version_key, reverse=True)
+                            )
+                            channel_names = ()
+                            raise PackageNamespaceConflictError(ms, namespaces, conflicting_packages,
+                                                                channel_names)
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
         log.debug("gen_clauses returning with clause count: %s", len(C.clauses))
@@ -590,7 +629,7 @@ class Resolve(object):
         # - At least one package in the group DOES require the feature
         # - A package that tracks the feature is installed
         for name, group in iteritems(self.groups):
-            prec_feats = {self.to_sat_name(prec): set(prec.features) for prec in group}
+            prec_feats = {self.to_sat_name(prec): set(prec.features) for prec in concat(itervalues(group))}
             active_feats = set.union(*prec_feats.values()).intersection(self.trackers)
             for feat in active_feats:
                 clause_id_for_feature = self.push_MatchSpec(C, MatchSpec(track_features=feat))
@@ -632,7 +671,7 @@ class Resolve(object):
             #             rec.append(dist)
 
         for name, targets in iteritems(sdict):
-            pkgs = [(self.version_key(p), p) for p in self.groups.get(name, [])]
+            pkgs = [(self.version_key(p), p) for p in concat(itervalues(self.groups.get(name, {})))]
             pkey = None
             # keep in mind that pkgs is already sorted according to version_key (a tuple,
             #    so composite sort key).  Later entries in the list are, by definition,
@@ -759,7 +798,7 @@ class Resolve(object):
             def get_(name, snames):
                 if name not in snames:
                     snames.add(name)
-                    for prec in self.groups.get(name, []):
+                    for prec in concat(itervalues(self.groups.get(name, {}))):
                         for ms in prec.ms_depends:
                             get_(ms.name, snames)
             # New addition: find the largest set of installed packages that
@@ -791,7 +830,6 @@ class Resolve(object):
 
         # Find the compliant packages
         len0 = len(specs)
-        specs = tuple(map(MatchSpec, specs))
         reduced_index = self.get_reduced_index(specs)
         if not reduced_index:
             return False if reduced_index is None else ([[]] if returnall else [])
@@ -811,7 +849,9 @@ class Resolve(object):
         speco = []  # optional packages
         specr = []  # requested packages
         speca = []  # all other packages
-        specm = set(r2.groups)  # missing from specs
+        specm = set(MatchSpec(namespace=namespace, name=name)
+                    for name, ns_group in iteritems(r2.groups)
+                    for namespace in ns_group)  # missing from specs
         for k, s in enumerate(specs):
             if s.name in specm:
                 specm.remove(s.name)

@@ -10,7 +10,7 @@ from conda._vendor.toolz.itertoolz import concat
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import env_var
-from conda.exceptions import UnsatisfiableError
+from conda.exceptions import UnsatisfiableError, PackagesNotFoundError
 from conda.exports import Resolve
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
@@ -111,9 +111,7 @@ class TestSolve(unittest.TestCase):
         assert a == b
 
     def test_accelerate(self):
-        self.assertEqual(
-            r1.install(['accelerate']),
-            r1.install(['accelerate', MatchSpec(track_features='mkl')]))
+        assert r1.solve((MatchSpec("accelerate"),)) == r1.solve((MatchSpec("accelerate"), MatchSpec(track_features='mkl')))
 
     def test_scipy_mkl(self):
         precs = r1.install(['scipy', 'python 2.7*', 'numpy 1.7*', MatchSpec(track_features='mkl')])
@@ -407,7 +405,7 @@ def test_unsat():
     assert raises(UnsatisfiableError, lambda: r1.install(['numpy 1.5*', 'scipy 0.12.0b1']))
     # numpy 1.5 does not have a python 3 package
     assert raises(UnsatisfiableError, lambda: r1.install(['numpy 1.5*', 'python 3*']))
-    assert raises(UnsatisfiableError, lambda: r1.install(['numpy 1.5*', 'numpy 1.6*']))
+    assert raises(UnsatisfiableError, lambda: r1.solve([MatchSpec('numpy 1.5*'), MatchSpec('numpy 1.6*')]))
 
 
 def test_nonexistent():
@@ -856,9 +854,9 @@ def test_optional_dependencies():
     index2.update({p1: p1, p2: p2, p3: p3})
     r = Resolve(index2)
 
-    assert convert_to_record_id(r.solve(['package1'])) == ('defaults:global:package1-1.0-0',)
-    assert convert_to_record_id(r.solve(['package2'])) == ('defaults:global:package2-2.0-0',)
-    assert convert_to_record_id(r.solve(['package1', 'package2'])) == (
+    assert convert_to_record_id(r.solve([MatchSpec('package1')])) == ('defaults:global:package1-1.0-0',)
+    assert convert_to_record_id(r.solve([MatchSpec('package2')])) == ('defaults:global:package2-2.0-0',)
+    assert convert_to_record_id(r.solve([MatchSpec('package1'), MatchSpec('package2')])) == (
         'defaults:global:package1-1.0-0',
         'defaults:global:package2-2.0-0',
     )
@@ -870,20 +868,20 @@ def test_optional_dependencies():
         'defaults::package1-1.0-0',
         'defaults::package2-2.0-0',
     }
-    result = r.solve(['package1'])
+    result = r.solve([MatchSpec('package1')])
     result = [rec.dist_str() for rec in result]
     assert result == [
         'defaults::package1-1.0-0',
     ]
-    result = r.solve(['package1', 'package2'])
-    assert result == r.solve(['package1', 'package2 >1.0'])
+    result = r.solve([MatchSpec('package1'), MatchSpec('package2')])
+    assert result == r.solve([MatchSpec('package1'), MatchSpec('package2 >1.0')])
     result = [rec.dist_str() for rec in result]
     assert result == [
         'defaults::package1-1.0-0',
         'defaults::package2-2.0-0',
     ]
-    assert raises(UnsatisfiableError, lambda: r.solve(['package1', 'package2 <2.0']))
-    assert raises(UnsatisfiableError, lambda: r.solve(['package1', 'package2 1.0']))
+    assert raises(UnsatisfiableError, lambda: r.solve([MatchSpec('package1'), MatchSpec('package2 <2.0')]))
+    assert raises(UnsatisfiableError, lambda: r.solve([MatchSpec('package1'), MatchSpec('package2 1.0')]))
 
 
 def test_irrational_version():
@@ -903,7 +901,7 @@ def test_irrational_version():
 
 def test_no_features():
     # Without this, there would be another solution including 'scipy-0.11.0-np16py26_p3.tar.bz2'.
-    result = r1.install(['python 2.6*', 'numpy 1.6*', 'scipy 0.11*'], returnall=True)
+    result = r1.install(tuple(MatchSpec(s) for s in ['python 2.6*', 'numpy 1.6*', 'scipy 0.11*']), returnall=True)
     result = [rec.dist_str() for rec in result]
     assert result == [
         'channel-1::numpy-1.6.2-py26_4',
@@ -984,8 +982,9 @@ def test_no_features():
 
     # This should not pick any mkl packages (the difference here is that none
     # of the specs directly have mkl versions)
-    result = r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*'], returnall=True)
+    result = r2.solve(tuple(MatchSpec(s) for s in ['pandas 0.12.0 np16py27_0', 'python 2.7*']), returnall=True)
     result = [rec.dist_str() for rec in result]
+    pprint(result)
     assert result == [
         'channel-1::dateutil-2.1-py27_1',
         'channel-1::numpy-1.6.2-py27_4',
@@ -1001,7 +1000,7 @@ def test_no_features():
         'channel-1::zlib-1.2.7-0',
     ]
 
-    result = r2.solve(['pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(track_features='mkl')], returnall=True)
+    result = r2.solve(tuple(MatchSpec(s) for s in ['pandas 0.12.0 np16py27_0', 'python 2.7*', MatchSpec(track_features='mkl')]), returnall=True)
     result = [rec.dist_str() for rec in result]
     assert result == [
         'channel-1::dateutil-2.1-py27_1',

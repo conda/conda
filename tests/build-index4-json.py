@@ -541,6 +541,13 @@ def main():
     if missing_in_whitelist:
         print(">>> missing 4 <<<")
         pprint(missing_in_whitelist)
+
+    # patch 'r' to be in global namespace
+    r_info_dicts = tuple(info for info in _keep.values() if info['name'] == 'r')
+    for info in r_info_dicts:
+        if any(dep.startswith("r-base") for dep in info['depends']):
+            info['namespace'] = "global"
+
     keep.update(_keep)
 
 
