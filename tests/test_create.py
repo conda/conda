@@ -557,6 +557,7 @@ class IntegrationTests(TestCase):
             assert stderr == ''
             self.assertIsInstance(stdout, str)
 
+    @pytest.mark.skipif(True, reason="pip 10 dropped --egg")
     def test_list_with_pip_egg(self):
         from conda.exports import rm_rf as _rm_rf
         with make_temp_env("python=3.5 pip") as prefix:
@@ -716,7 +717,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="nomkl not present on windows")
     def test_remove_features(self):
-        with make_temp_env("python=2 numpy nomkl") as prefix:
+        with make_temp_env("python=2 numpy=1.13 nomkl") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
             assert_package_is_installed(prefix, 'numpy')
             assert_package_is_installed(prefix, 'nomkl')
@@ -789,11 +790,11 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     def test_install_features(self):
-        with make_temp_env("python=2 numpy nomkl") as prefix:
+        with make_temp_env("python=2 numpy=1.13 nomkl") as prefix:
             numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
 
-        with make_temp_env("python=2 numpy") as prefix:
+        with make_temp_env("python=2 numpy=1.13") as prefix:
             numpy_details = get_conda_list_tuple(prefix, "numpy")
             assert len(numpy_details) == 3 or 'nomkl' not in numpy_details[3]
 
@@ -1167,11 +1168,10 @@ class IntegrationTests(TestCase):
                                          use_exception_handler=True)
             assert "not-a-real-package" in stderr
 
-    @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
-    def test_search_gawk_not_win_1(self):
-        with make_temp_env() as prefix:
-            stdout, stderr = run_command(Commands.SEARCH, prefix, "gawk", "--json", use_exception_handler=True)
-            json_obj = json_loads(stdout.replace("Fetching package metadata ...", "").strip())
+            stdout, stderr = run_command(Commands.SEARCH, prefix, "not-a-real-package", "--json",
+                                         use_exception_handler=True)
+            assert not stderr
+            json_obj = json_loads(stdout.strip())
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
