@@ -58,162 +58,162 @@ def test_prefix_graph_1():
     records, specs = get_conda_build_record_set()
     graph = PrefixGraph(records, specs)
 
-    nodes = tuple(rec.name for rec in graph.records)
+    nodes = tuple(rec.namekey for rec in graph.records)
     pprint(nodes)
     order = (
-        'intel-openmp',
-        'ca-certificates',
-        'conda-env',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'conda-verify',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
-        'requests',
-        'conda',
-        'conda-build',
+        'global:intel-openmp',
+        'global:ca-certificates',
+        'python:conda-env',
+        'global:libgcc-ng',
+        'global:libstdcxx-ng',
+        'global:libffi',
+        'global:ncurses',
+        'global:openssl',
+        'global:patchelf',
+        'global:tk',
+        'global:xz',
+        'global:yaml',
+        'global:zlib',
+        'global:libedit',
+        'global:readline',
+        'global:sqlite',
+        'global:python',
+        'python:asn1crypto',
+        'python:beautifulsoup4',
+        'python:certifi',
+        'python:chardet',
+        'python:filelock',
+        'python:glob2',
+        'python:idna',
+        'python:markupsafe',
+        'python:pkginfo',
+        'python:psutil',
+        'python:pycosat',
+        'python:pycparser',
+        'python:pysocks',
+        'python:pyyaml',
+        'python:ruamel_yaml',
+        'python:six',
+        'python:cffi',
+        'python:conda-verify',
+        'python:setuptools',
+        'python:cryptography',
+        'python:jinja2',
+        'python:pyopenssl',
+        'python:urllib3',
+        'python:requests',
+        'python:conda',
+        'python:conda-build',
     )
     assert nodes == order
 
     python_node = graph.get_node_by_name('python')
     python_ancestors = graph.all_ancestors(python_node)
-    nodes = tuple(rec.name for rec in python_ancestors)
+    nodes = tuple(rec.namekey for rec in python_ancestors)
     pprint(nodes)
     order = (
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'tk',
-        'xz',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
+        'global:ca-certificates',
+        'global:libgcc-ng',
+        'global:libstdcxx-ng',
+        'global:libffi',
+        'global:ncurses',
+        'global:openssl',
+        'global:tk',
+        'global:xz',
+        'global:zlib',
+        'global:libedit',
+        'global:readline',
+        'global:sqlite',
     )
     assert nodes == order
 
     python_descendants = graph.all_descendants(python_node)
-    nodes = tuple(rec.name for rec in python_descendants)
+    nodes = tuple(rec.namekey for rec in python_descendants)
     pprint(nodes)
     order = (
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'conda-verify',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
-        'requests',
-        'conda',
-        'conda-build',
+        'python:asn1crypto',
+        'python:beautifulsoup4',
+        'python:certifi',
+        'python:chardet',
+        'python:filelock',
+        'python:glob2',
+        'python:idna',
+        'python:markupsafe',
+        'python:pkginfo',
+        'python:psutil',
+        'python:pycosat',
+        'python:pycparser',
+        'python:pysocks',
+        'python:pyyaml',
+        'python:ruamel_yaml',
+        'python:six',
+        'python:cffi',
+        'python:conda-verify',
+        'python:setuptools',
+        'python:cryptography',
+        'python:jinja2',
+        'python:pyopenssl',
+        'python:urllib3',
+        'python:requests',
+        'python:conda',
+        'python:conda-build',
     )
     assert nodes == order
 
     # test remove_specs
     removed_nodes = graph.remove_spec(MatchSpec("requests"))
-    nodes = tuple(rec.name for rec in removed_nodes)
+    nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(nodes)
     order = (
-        'requests',
-        'conda',
-        'conda-build',
+        'python:requests',
+        'python:conda',
+        'python:conda-build',
     )
     assert nodes == order
 
-    nodes = tuple(rec.name for rec in graph.records)
+    nodes = tuple(rec.namekey for rec in graph.records)
     pprint(nodes)
     order = (
-        'conda-env',
-        'intel-openmp',
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'conda-verify',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
+        'python:conda-env',
+        'global:intel-openmp',
+        'global:ca-certificates',
+        'global:libgcc-ng',
+        'global:libstdcxx-ng',
+        'global:libffi',
+        'global:ncurses',
+        'global:openssl',
+        'global:patchelf',
+        'global:tk',
+        'global:xz',
+        'global:yaml',
+        'global:zlib',
+        'global:libedit',
+        'global:readline',
+        'global:sqlite',
+        'global:python',
+        'python:asn1crypto',
+        'python:beautifulsoup4',
+        'python:certifi',
+        'python:chardet',
+        'python:filelock',
+        'python:glob2',
+        'python:idna',
+        'python:markupsafe',
+        'python:pkginfo',
+        'python:psutil',
+        'python:pycosat',
+        'python:pycparser',
+        'python:pysocks',
+        'python:pyyaml',
+        'python:ruamel_yaml',
+        'python:six',
+        'python:cffi',
+        'python:conda-verify',
+        'python:setuptools',
+        'python:cryptography',
+        'python:jinja2',
+        'python:pyopenssl',
+        'python:urllib3',
     )
     assert nodes == order
 
@@ -230,47 +230,47 @@ def test_prefix_graph_1():
     )
     assert nodes == order
 
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     order = (
-        'conda-env',
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'conda-verify',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
+        'python:conda-env',
+        'global:ca-certificates',
+        'global:libgcc-ng',
+        'global:libstdcxx-ng',
+        'global:libffi',
+        'global:ncurses',
+        'global:openssl',
+        'global:patchelf',
+        'global:tk',
+        'global:xz',
+        'global:yaml',
+        'global:zlib',
+        'global:libedit',
+        'global:readline',
+        'global:sqlite',
+        'global:python',
+        'python:asn1crypto',
+        'python:beautifulsoup4',
+        'python:certifi',
+        'python:chardet',
+        'python:filelock',
+        'python:glob2',
+        'python:idna',
+        'python:markupsafe',
+        'python:pkginfo',
+        'python:psutil',
+        'python:pycosat',
+        'python:pycparser',
+        'python:pysocks',
+        'python:pyyaml',
+        'python:ruamel_yaml',
+        'python:six',
+        'python:cffi',
+        'python:conda-verify',
+        'python:setuptools',
+        'python:cryptography',
+        'python:jinja2',
+        'python:pyopenssl',
+        'python:urllib3',
     )
     pprint(removed_nodes)
     assert removed_nodes == order
@@ -283,108 +283,108 @@ def test_prefix_graph_2():
     conda_build_node = graph.get_node_by_name('conda-build')
     del graph.spec_matches[conda_build_node]
 
-    nodes = tuple(rec.name for rec in graph.records)
+    nodes = tuple(rec.namekey for rec in graph.records)
     pprint(nodes)
     order = (
-        'intel-openmp',
-        'ca-certificates',
-        'conda-env',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'conda-verify',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
-        'requests',
-        'conda',
-        'conda-build',
+        'global:intel-openmp',
+        'global:ca-certificates',
+        'python:conda-env',
+        'global:libgcc-ng',
+        'global:libstdcxx-ng',
+        'global:libffi',
+        'global:ncurses',
+        'global:openssl',
+        'global:patchelf',
+        'global:tk',
+        'global:xz',
+        'global:yaml',
+        'global:zlib',
+        'global:libedit',
+        'global:readline',
+        'global:sqlite',
+        'global:python',
+        'python:asn1crypto',
+        'python:beautifulsoup4',
+        'python:certifi',
+        'python:chardet',
+        'python:filelock',
+        'python:glob2',
+        'python:idna',
+        'python:markupsafe',
+        'python:pkginfo',
+        'python:psutil',
+        'python:pycosat',
+        'python:pycparser',
+        'python:pysocks',
+        'python:pyyaml',
+        'python:ruamel_yaml',
+        'python:six',
+        'python:cffi',
+        'python:conda-verify',
+        'python:setuptools',
+        'python:cryptography',
+        'python:jinja2',
+        'python:pyopenssl',
+        'python:urllib3',
+        'python:requests',
+        'python:conda',
+        'python:conda-build',
     )
     assert nodes == order
 
     removed_nodes = graph.prune()
-    remaining_nodes = tuple(rec.name for rec in graph.records)
+    remaining_nodes = tuple(rec.namekey for rec in graph.records)
     pprint(remaining_nodes)
     order = (
-        'intel-openmp',
-        'ca-certificates',
-        'conda-env',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'certifi',
-        'chardet',
-        'idna',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'cryptography',
-        'pyopenssl',
-        'urllib3',
-        'requests',
-        'conda',
+        'global:intel-openmp',
+        'global:ca-certificates',
+        'python:conda-env',
+        'global:libgcc-ng',
+        'global:libstdcxx-ng',
+        'global:libffi',
+        'global:ncurses',
+        'global:openssl',
+        'global:tk',
+        'global:xz',
+        'global:yaml',
+        'global:zlib',
+        'global:libedit',
+        'global:readline',
+        'global:sqlite',
+        'global:python',
+        'python:asn1crypto',
+        'python:certifi',
+        'python:chardet',
+        'python:idna',
+        'python:pycosat',
+        'python:pycparser',
+        'python:pysocks',
+        'python:ruamel_yaml',
+        'python:six',
+        'python:cffi',
+        'python:cryptography',
+        'python:pyopenssl',
+        'python:urllib3',
+        'python:requests',
+        'python:conda',
     )
     assert remaining_nodes == order
 
     order = (
-        'patchelf',
-        'beautifulsoup4',
-        'filelock',
-        'glob2',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pyyaml',
-        'conda-verify',
-        'setuptools',
-        'jinja2',
-        'conda-build',
+        'global:patchelf',
+        'python:beautifulsoup4',
+        'python:filelock',
+        'python:glob2',
+        'python:markupsafe',
+        'python:pkginfo',
+        'python:psutil',
+        'python:pyyaml',
+        'python:conda-verify',
+        'python:setuptools',
+        'python:jinja2',
+        'python:conda-build',
     )
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == order
 
@@ -395,169 +395,169 @@ def test_remove_youngest_descendant_nodes_with_specs():
 
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
 
-    remaining_nodes = tuple(rec.name for rec in graph.records)
+    remaining_nodes = tuple(rec.namekey for rec in graph.records)
     pprint(remaining_nodes)
     order = (
-        'ca-certificates',
-        'conda-env',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'conda-verify',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
-        'requests',
-        'conda',
+        'global:ca-certificates',
+        'python:conda-env',
+        'global:libgcc-ng',
+        'global:libstdcxx-ng',
+        'global:libffi',
+        'global:ncurses',
+        'global:openssl',
+        'global:patchelf',
+        'global:tk',
+        'global:xz',
+        'global:yaml',
+        'global:zlib',
+        'global:libedit',
+        'global:readline',
+        'global:sqlite',
+        'global:python',
+        'python:asn1crypto',
+        'python:beautifulsoup4',
+        'python:certifi',
+        'python:chardet',
+        'python:filelock',
+        'python:glob2',
+        'python:idna',
+        'python:markupsafe',
+        'python:pkginfo',
+        'python:psutil',
+        'python:pycosat',
+        'python:pycparser',
+        'python:pysocks',
+        'python:pyyaml',
+        'python:ruamel_yaml',
+        'python:six',
+        'python:cffi',
+        'python:conda-verify',
+        'python:setuptools',
+        'python:cryptography',
+        'python:jinja2',
+        'python:pyopenssl',
+        'python:urllib3',
+        'python:requests',
+        'python:conda',
     )
     assert remaining_nodes == order
 
     order = (
-        'intel-openmp',
-        'conda-build',
+        'global:intel-openmp',
+        'python:conda-build',
     )
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == order
 
     # again
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
 
-    remaining_nodes = tuple(rec.name for rec in graph.records)
+    remaining_nodes = tuple(rec.namekey for rec in graph.records)
     pprint(remaining_nodes)
     order = (
-        'conda-env',
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'patchelf',
-        'tk',
-        'xz',
-        'yaml',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'beautifulsoup4',
-        'certifi',
-        'chardet',
-        'filelock',
-        'glob2',
-        'idna',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pycparser',
-        'pysocks',
-        'pyyaml',
-        'ruamel_yaml',
-        'six',
-        'cffi',
-        'conda-verify',
-        'setuptools',
-        'cryptography',
-        'jinja2',
-        'pyopenssl',
-        'urllib3',
-        'requests',
+        'python:conda-env',
+        'global:ca-certificates',
+        'global:libgcc-ng',
+        'global:libstdcxx-ng',
+        'global:libffi',
+        'global:ncurses',
+        'global:openssl',
+        'global:patchelf',
+        'global:tk',
+        'global:xz',
+        'global:yaml',
+        'global:zlib',
+        'global:libedit',
+        'global:readline',
+        'global:sqlite',
+        'global:python',
+        'python:asn1crypto',
+        'python:beautifulsoup4',
+        'python:certifi',
+        'python:chardet',
+        'python:filelock',
+        'python:glob2',
+        'python:idna',
+        'python:markupsafe',
+        'python:pkginfo',
+        'python:psutil',
+        'python:pycosat',
+        'python:pycparser',
+        'python:pysocks',
+        'python:pyyaml',
+        'python:ruamel_yaml',
+        'python:six',
+        'python:cffi',
+        'python:conda-verify',
+        'python:setuptools',
+        'python:cryptography',
+        'python:jinja2',
+        'python:pyopenssl',
+        'python:urllib3',
+        'python:requests',
     )
     assert remaining_nodes == order
 
     order = (
-        'conda',
+        'python:conda',
     )
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == order
 
     # now test prune
     removed_nodes = graph.prune()
 
-    remaining_nodes = tuple(rec.name for rec in graph.records)
+    remaining_nodes = tuple(rec.namekey for rec in graph.records)
     pprint(remaining_nodes)
     order = (
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'tk',
-        'xz',
-        'zlib',
-        'libedit',
-        'readline',
-        'sqlite',
-        'python',
-        'asn1crypto',
-        'certifi',
-        'chardet',
-        'idna',
-        'pycparser',
-        'pysocks',
-        'six',
-        'cffi',
-        'cryptography',
-        'pyopenssl',
-        'urllib3',
-        'requests',
+        'global:ca-certificates',
+        'global:libgcc-ng',
+        'global:libstdcxx-ng',
+        'global:libffi',
+        'global:ncurses',
+        'global:openssl',
+        'global:tk',
+        'global:xz',
+        'global:zlib',
+        'global:libedit',
+        'global:readline',
+        'global:sqlite',
+        'global:python',
+        'python:asn1crypto',
+        'python:certifi',
+        'python:chardet',
+        'python:idna',
+        'python:pycparser',
+        'python:pysocks',
+        'python:six',
+        'python:cffi',
+        'python:cryptography',
+        'python:pyopenssl',
+        'python:urllib3',
+        'python:requests',
     )
     assert remaining_nodes == order
 
     order = (
-        'conda-env',
-        'patchelf',
-        'yaml',
-        'beautifulsoup4',
-        'filelock',
-        'glob2',
-        'markupsafe',
-        'pkginfo',
-        'psutil',
-        'pycosat',
-        'pyyaml',
-        'ruamel_yaml',
-        'conda-verify',
-        'setuptools',
-        'jinja2',
+        'python:conda-env',
+        'global:patchelf',
+        'global:yaml',
+        'python:beautifulsoup4',
+        'python:filelock',
+        'python:glob2',
+        'python:markupsafe',
+        'python:pkginfo',
+        'python:psutil',
+        'python:pycosat',
+        'python:pyyaml',
+        'python:ruamel_yaml',
+        'python:conda-verify',
+        'python:setuptools',
+        'python:jinja2',
     )
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == order
 
@@ -784,30 +784,30 @@ def test_deep_cyclical_dependency():
     # },
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
 
-    nodes = tuple(rec.name for rec in graph.records)
+    nodes = tuple(rec.namekey for rec in graph.records)
     pprint(nodes)
     order = (
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'tk',
-        'xz',
-        'zlib',
-        'libedit',
-        'readline',
-        'python',
-        'certifi',
-        'click',
-        'itsdangerous',
-        'markupsafe',
-        'werkzeug',
-        'setuptools',
-        'jinja2',
-        'flask',
-        'sqlite',  # deep cyclical dependency; guess this is what we get
+        'global:ca-certificates',
+        'global:libgcc-ng',
+        'global:libstdcxx-ng',
+        'global:libffi',
+        'global:ncurses',
+        'global:openssl',
+        'global:tk',
+        'global:xz',
+        'global:zlib',
+        'global:libedit',
+        'global:readline',
+        'global:python',
+        'python:certifi',
+        'python:click',
+        'python:itsdangerous',
+        'python:markupsafe',
+        'python:werkzeug',
+        'python:setuptools',
+        'python:jinja2',
+        'python:flask',
+        'global:sqlite',  # deep cyclical dependency; guess this is what we get
     )
     assert nodes == order
     sqlite_record = next(rec for rec in graph.graph if rec.name == 'sqlite')
@@ -816,63 +816,63 @@ def test_deep_cyclical_dependency():
     # test remove spec
     # because of this deep cyclical dependency, removing jinja2 will remove sqlite and python
     expected_removal = (
-        'python',
-        'certifi',
-        'click',
-        'itsdangerous',
-        'markupsafe',
-        'werkzeug',
-        'setuptools',
-        'jinja2',
-        'flask',
-        'sqlite',
+        'global:python',
+        'python:certifi',
+        'python:click',
+        'python:itsdangerous',
+        'python:markupsafe',
+        'python:werkzeug',
+        'python:setuptools',
+        'python:jinja2',
+        'python:flask',
+        'global:sqlite',
     )
 
     removed_nodes = graph.remove_spec(MatchSpec("sqlite"))
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
     removed_nodes = graph.remove_spec(MatchSpec("python"))
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
     removed_nodes = graph.remove_spec(MatchSpec("jinja2"))
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
     removed_nodes = graph.remove_spec(MatchSpec("markupsafe"))
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(removed_nodes)
     assert removed_nodes == expected_removal
 
 
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(removed_nodes)
     expected_removal = (
-        'flask',
+        'python:flask',
     )
     assert removed_nodes == expected_removal
 
     removed_nodes = graph.prune()
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(removed_nodes)
     expected_removal = (
-        'click',
-        'itsdangerous',
-        'werkzeug',
+        'python:click',
+        'python:itsdangerous',
+        'python:werkzeug',
     )
     assert removed_nodes == expected_removal
 
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
-    removed_nodes = tuple(rec.name for rec in removed_nodes)
+    removed_nodes = tuple(rec.namekey for rec in removed_nodes)
     pprint(removed_nodes)
     expected_removal = (
         # None, because of the cyclical dependency?
@@ -883,44 +883,44 @@ def test_deep_cyclical_dependency():
     graph = PrefixGraph(*get_sqlite_cyclical_record_set())
     markupsafe_node = graph.get_node_by_name('markupsafe')
     markupsafe_ancestors = graph.all_ancestors(markupsafe_node)
-    nodes = tuple(rec.name for rec in markupsafe_ancestors)
+    nodes = tuple(rec.namekey for rec in markupsafe_ancestors)
     pprint(nodes)
     order = (
-        'ca-certificates',
-        'libgcc-ng',
-        'libstdcxx-ng',
-        'libffi',
-        'ncurses',
-        'openssl',
-        'tk',
-        'xz',
-        'zlib',
-        'libedit',
-        'readline',
-        'python',
-        'certifi',
-        'markupsafe',
-        'setuptools',
-        'jinja2',
-        'sqlite',
+        'global:ca-certificates',
+        'global:libgcc-ng',
+        'global:libstdcxx-ng',
+        'global:libffi',
+        'global:ncurses',
+        'global:openssl',
+        'global:tk',
+        'global:xz',
+        'global:zlib',
+        'global:libedit',
+        'global:readline',
+        'global:python',
+        'python:certifi',
+        'python:markupsafe',
+        'python:setuptools',
+        'python:jinja2',
+        'global:sqlite',
     )
     assert nodes == order
     sqlite_record = next(rec for rec in graph.graph if rec.name == 'sqlite')
     assert sqlite_record.dist_str() == 'channel-4::sqlite-3.20.1-haaaaaaa_4'  # extra sanity check
 
     markupsafe_descendants = graph.all_descendants(markupsafe_node)
-    nodes = tuple(rec.name for rec in markupsafe_descendants)
+    nodes = tuple(rec.namekey for rec in markupsafe_descendants)
     pprint(nodes)
     order = (
-        'python',
-        'certifi',
-        'click',
-        'itsdangerous',
-        'markupsafe',
-        'werkzeug',
-        'setuptools',
-        'jinja2',
-        'flask',
-        'sqlite',
+        'global:python',
+        'python:certifi',
+        'python:click',
+        'python:itsdangerous',
+        'python:markupsafe',
+        'python:werkzeug',
+        'python:setuptools',
+        'python:jinja2',
+        'python:flask',
+        'global:sqlite',
     )
     assert nodes == order

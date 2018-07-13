@@ -387,6 +387,11 @@ class PackageRecord(DictSafeMixin, Entity):
     name = NameField()
     legacy_name = LegacyNameField()
 
+    @memoizedproperty
+    def namekey(self):
+        # The unique key for the package name, after the introduction of namespaces.
+        return self.namespace + ":" + self.name
+
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
 

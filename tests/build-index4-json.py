@@ -13,6 +13,7 @@ def main():
 
     * global:graphviz, python:graphviz, r:graphviz, and perl:graphviz packages
     * python:digest and r:digest packages
+    * perl:http-cookies and r:http-cookies
     * sqlite-3.20.1-haaaaaaa_4 has a deep cyclical dependency
     * python-3.6.2-hda45abc_19 has a later hash, but earlier timestamp than python-3.6.2-hca45abc_19
     * contains conda packages that constrain versions of conda-build
@@ -733,6 +734,51 @@ def main():
             "size": 123,
             "subdir": "noarch",
             "version": "8.9.10",
+        },
+        "r-http-cookies-8.9.10-r_0.tar.bz2": {
+            "build": "r_0",
+            "build_number": 0,
+            "depends": [
+                "r",
+            ],
+            "license": "Proprietary",
+            "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+            "name": "r-http-cookies",
+            "noarch": "generic",
+            "size": 123,
+            "subdir": "noarch",
+            "version": "8.9.10",
+        },
+        "rpy4-4.5.6-0.tar.bz2": {
+            "build": "0",
+            "build_number": 0,
+            "depends": [
+                "r",
+                "python",
+            ],
+            "license": "Proprietary",
+            "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+            "name": "rpy4",
+            "namespace": "python",
+            "noarch": "generic",
+            "size": 123,
+            "subdir": "noarch",
+            "version": "4.5.6",
+        },
+        "uses-rpy4-4.5.6-0.tar.bz2": {
+            "build": "0",
+            "build_number": 0,
+            "depends": [
+                "python",
+                "rpy4",
+            ],
+            "license": "Proprietary",
+            "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+            "name": "uses-rpy4",
+            "noarch": "generic",
+            "size": 123,
+            "subdir": "noarch",
+            "version": "4.5.6",
         },
     }
 

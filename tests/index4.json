@@ -55379,6 +55379,20 @@
     "timestamp": 1519525466653,
     "version": "1.3.5"
   },
+  "r-http-cookies-8.9.10-r_0.tar.bz2": {
+    "build": "r_0",
+    "build_number": 0,
+    "depends": [
+      "r"
+    ],
+    "license": "Proprietary",
+    "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+    "name": "r-http-cookies",
+    "noarch": "generic",
+    "size": 123,
+    "subdir": "noarch",
+    "version": "8.9.10"
+  },
   "r-httr-1.0.0-r3.2.0_0.tar.bz2": {
     "arch": "x86_64",
     "build": "r3.2.0_0",
@@ -77350,6 +77364,22 @@
     "timestamp": 1529357353596,
     "version": "2.19.1"
   },
+  "rpy4-4.5.6-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "r",
+      "python"
+    ],
+    "license": "Proprietary",
+    "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+    "name": "rpy4",
+    "namespace": "python",
+    "noarch": "generic",
+    "size": 123,
+    "subdir": "noarch",
+    "version": "4.5.6"
+  },
   "ruamel_yaml-0.11.14-py27h672d447_2.tar.bz2": {
     "build": "py27h672d447_2",
     "build_number": 2,
@@ -82395,6 +82425,21 @@
     "subdir": "linux-64",
     "timestamp": 1529348098316,
     "version": "1.23"
+  },
+  "uses-rpy4-4.5.6-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "depends": [
+      "python",
+      "rpy4"
+    ],
+    "license": "Proprietary",
+    "md5": "deadbeefdd677bc3ed98ddd4deadbeef",
+    "name": "uses-rpy4",
+    "noarch": "generic",
+    "size": 123,
+    "subdir": "noarch",
+    "version": "4.5.6"
   },
   "uses-spiffy-test-app-1.0-pyh7836eba_0.tar.bz2": {
     "arch": null,
