@@ -487,6 +487,10 @@ def install_actions_list(prefix, index, specs, force=False, only_names=None, alw
     #   version information
     required_solves = match_to_original_specs(specs, grouped_specs)
 
+    # This function is called so that we can ensure that conda hasn't
+    # downgraded since the last time it operated on this prefix
+    History(prefix).get_user_requests()
+
     actions = [get_actions_for_dists(specs_by_prefix, only_names, index, force,
                                      always_copy, prune, update_deps, pinned)
                for specs_by_prefix in required_solves]
