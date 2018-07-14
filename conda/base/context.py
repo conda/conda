@@ -209,6 +209,7 @@ class Context(Configuration):
     # ######################################################
     deps_modifier = PrimitiveParameter(DepsModifier.NOT_SET)
     update_modifier = PrimitiveParameter(UpdateModifier.UPDATE_SPECS)
+    featureless_minimization_feature_flag_enabled = PrimitiveParameter(True)
 
     # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
     # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
@@ -695,6 +696,7 @@ class Context(Configuration):
             # I don't think this documentation is correct any longer. # NOQA
             'target_prefix_override',
             # used to override prefix rewriting, for e.g. building docker containers or RPMs  # NOQA
+            'featureless_minimization_feature_flag_enabled',
         )),
     ))
 
