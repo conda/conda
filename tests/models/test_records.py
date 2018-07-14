@@ -420,7 +420,19 @@ class PrefixRecordTests(TestCase):
             build_number=2,
             timestamp=ts
         )
-        assert rec.timestamp == new_ts
+        assert rec.timestamp == ts
+        assert rec.dump()['timestamp'] == new_ts
+
+        ts = 1507565728
+        new_ts = ts * 1000
+        rec = PackageRecord(
+            name='test-package',
+            version='1.2.3',
+            build='2',
+            build_number=2,
+            timestamp=new_ts
+        )
+        assert rec.timestamp == ts
         assert rec.dump()['timestamp'] == new_ts
 
         ts = 1507565728999
@@ -432,5 +444,5 @@ class PrefixRecordTests(TestCase):
             build_number=2,
             timestamp=ts
         )
-        assert rec.timestamp == new_ts
+        assert rec.timestamp == 1507565728.999
         assert rec.dump()['timestamp'] == new_ts

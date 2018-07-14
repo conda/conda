@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import datetime
 
 from .install import calculate_channel_urls
+from .._vendor.boltons.timeutils import UTC
 from ..base.context import context
 from ..cli.common import stdout_json
 from ..common.compat import text_type
@@ -105,7 +106,7 @@ def execute(args, parser):
             ))
         print('\n'.join(builder))
 
-from .._vendor.boltons.timeutils import UTC
+
 def pretty_record(record):
     def push_line(display_name, attr_name):
         value = getattr(record, attr_name, None)
