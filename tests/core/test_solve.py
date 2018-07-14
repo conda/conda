@@ -20,7 +20,7 @@ from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
 from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
-from conda.resolve import MatchSpec
+from conda.resolve import MatchSpec, Resolve
 from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, get_index_r_5
 from conda.common.compat import iteritems
 
@@ -2278,6 +2278,96 @@ def test_freeze_deps_1():
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
         with pytest.raises(UnsatisfiableError):
             solver.solve_final_state(update_modifier=UpdateModifier.FREEZE_INSTALLED)
+
+
+def test_constrained_dependency_not_in_repodata():
+    # regression test for #7091
+    specs = MatchSpec("conda=4.5.3"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = (
+            'channel-4::ca-certificates-2018.03.07-0',
+            'channel-4::conda-env-2.6.0-1',
+            'channel-4::libgcc-ng-8.2.0-hdf63c60_0',
+            'channel-4::libstdcxx-ng-8.2.0-hdf63c60_0',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.1-hf484d3e_0',
+            'channel-4::openssl-1.0.2p-h14c3975_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::xz-5.2.4-h14c3975_4',
+            'channel-4::yaml-0.1.7-had09818_2',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.24.0-h84994c4_0',
+            'channel-4::python-3.6.6-hc3d631a_0',
+            'channel-4::asn1crypto-0.24.0-py36_0',
+            'channel-4::certifi-2018.8.13-py36_0',
+            'channel-4::chardet-3.0.4-py36_1',
+            'channel-4::cryptography-vectors-2.3-py36_0',
+            'channel-4::idna-2.7-py36_0',
+            'channel-4::pycosat-0.6.3-py36h14c3975_0',
+            'channel-4::pycparser-2.18-py36_1',
+            'channel-4::pysocks-1.6.8-py36_0',
+            'channel-4::ruamel_yaml-0.15.46-py36h14c3975_0',
+            'channel-4::six-1.11.0-py36_1',
+            'channel-4::cffi-1.11.5-py36h9745a5d_0',
+            'channel-4::cryptography-2.3-py36hb7f436b_0',
+            'channel-4::pyopenssl-18.0.0-py36_0',
+            'channel-4::urllib3-1.23-py36_0',
+            'channel-4::requests-2.19.1-py36_0',
+            'channel-4::conda-4.5.3-py36_0',
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    specs_to_add = MatchSpec("conda"),
+    with get_solver_4(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                      history_specs=specs) as solver:
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(link_precs))
+        unlink_order = (
+            'channel-4::conda-4.5.3-py36_0',
+        )
+        assert convert_to_dist_str(unlink_precs) == unlink_order
+
+        link_order = (
+            'channel-4::conda-4.5.10-py36_0',
+        )
+        assert convert_to_dist_str(link_precs) == link_order
+
+
+    # Remove cytoolz from index, which is a constrained dependency of conda.
+    # The result should be the same as before.
+    # Without a fix, conda will "ping pong" back and forth between the two states.
+    index, r = get_index_r_4()
+    new_index = {prec: prec for prec in index if prec.name != 'cytoolz'}
+    channel = Channel('https://conda.anaconda.org/channel-4/%s' % context.subdir)
+    r = Resolve(new_index, channels=(channel,))
+
+    specs_to_add = MatchSpec("conda"),
+    solver = Solver(TEST_PREFIX, (Channel('channel-4'),), (context.subdir,),
+                    specs_to_add=specs_to_add)
+    solver._index = new_index
+    solver._r = r
+    PrefixData._cache_.clear()
+    pd = PrefixData(TEST_PREFIX)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec)
+                                      for rec in final_state_1}
+
+    unlink_precs, link_precs = solver.solve_for_diff()
+    pprint(convert_to_dist_str(unlink_precs))
+    pprint(convert_to_dist_str(link_precs))
+    unlink_order = (
+        'channel-4::conda-4.5.3-py36_0',
+    )
+    assert convert_to_dist_str(unlink_precs) == unlink_order
+
+    link_order = (
+        'channel-4::conda-4.5.10-py36_0',
+    )
+    assert convert_to_dist_str(link_precs) == link_order
 
 
 class PrivateEnvTests(TestCase):
