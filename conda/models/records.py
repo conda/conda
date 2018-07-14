@@ -32,7 +32,7 @@ from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
                                      StringField)
-from .._vendor.boltons.timeutils import UTC, dt_to_timestamp, isoparse
+from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.constants import NAMESPACES_MAP, NAMESPACE_PACKAGE_NAMES
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
@@ -67,7 +67,7 @@ class TimestampField(NumberField):
         if val:
             val = int(val)
             if val > 253402300799:  # 9999-12-31
-                val //= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
+                val /= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
         return val
 
     @staticmethod
@@ -352,6 +352,10 @@ class PackageRecord(DictSafeMixin, Entity):
         return "%s:%s:%s-%s-%s" % (self.channel.canonical_name, self.namespace,
                                    self.name, self.version, self.build)
 
+    def record_id2(self):
+        return "%s/%s:%s:%s-%s-%s" % (self.channel.canonical_name, self.subdir, self.namespace,
+                                      self.name, self.version, self.build)
+
     arch = StringField(required=False, nullable=True)  # so legacy
     platform = EnumField(Platform, required=False, nullable=True)  # so legacy
 
@@ -391,6 +395,10 @@ class PackageRecord(DictSafeMixin, Entity):
     namespace = NamespaceField()
     name = NameField()
     legacy_name = LegacyNameField()
+
+    @property
+    def namekey(self):
+        return self.namespace + ":" + self.name
 
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)

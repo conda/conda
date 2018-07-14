@@ -5,14 +5,16 @@ from contextlib import contextmanager
 from datetime import datetime
 import os
 from pprint import pprint
+from textwrap import dedent
 from unittest import TestCase
 
 from os.path import join
 
 import pytest
 
+from conda._vendor.auxlib.ish import dals
 from conda.base.context import context, reset_context, Context
-from conda.common.io import env_var, env_vars, stderr_log_level
+from conda.common.io import env_var, env_vars, stderr_log_level, captured
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, Solver, UpdateModifier
 from conda.exceptions import UnsatisfiableError, PackagesNotFoundError
@@ -20,7 +22,7 @@ from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
 from conda.core.solve import SpecsGroup
-from conda.resolve import MatchSpec
+from conda.resolve import MatchSpec, Resolve
 from ..helpers import get_index_r_1, get_index_r_2, get_index_r_4, get_index_r_5
 from conda.common.compat import iteritems
 
@@ -1512,7 +1514,7 @@ def test_remove_with_constrained_dependencies():
 
 
 def test_priority_1():
-    specs = (MatchSpec("pandas"), MatchSpec("python=2.7"))
+    specs = MatchSpec("pandas"), MatchSpec("python=2.7"),
     with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
         with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
@@ -1533,21 +1535,68 @@ def test_priority_1():
                 'channel-2::pandas-0.20.2-np113py27_0',
             )
             assert convert_to_dist_str(final_state_1) == order
+            txn = solver.solve_for_transaction()
+            with captured() as c:
+                txn.print_transaction_summary()
+            print(c.stdout)
+            assert c.stdout == dedent("""
+            ## Package Plan ##
+
+              environment location: /a/test/c/prefix
+            
+              added / updated specs:
+                - pandas
+                - python=2.7
+            
+            
+            The following packages will be downloaded:
+            
+                package                    |            build
+                ---------------------------|-----------------
+                mkl-2017.0.1               |                0       128.2 MB  channel-2
+                openssl-1.0.2l             |                0         3.2 MB  channel-2
+                python-2.7.13              |                0        11.5 MB  channel-2
+                readline-6.2               |                2         606 KB  channel-2
+                sqlite-3.13.0              |                0         4.0 MB  channel-2
+                tk-8.5.18                  |                0         1.9 MB  channel-2
+                zlib-1.2.8                 |                3         101 KB  channel-2
+                python:dateutil-2.6.0      |           py27_0         232 KB  channel-2
+                python:numpy-1.13.0        |           py27_0         6.8 MB  channel-2
+                python:pandas-0.20.2       |      np113py27_0        19.2 MB  channel-2
+                python:pytz-2017.2         |           py27_0         204 KB  channel-2
+                python:six-1.10.0          |           py27_0          16 KB  channel-2
+                ------------------------------------------------------------
+                                                       Total:       175.9 MB
+            
+            The following NEW packages will be INSTALLED:
+            
+              mkl                channel-2/osx-64:global:mkl-2017.0.1-0
+              openssl            channel-2/osx-64:global:openssl-1.0.2l-0
+              python             channel-2/osx-64:global:python-2.7.13-0
+              readline           channel-2/osx-64:global:readline-6.2-2
+              sqlite             channel-2/osx-64:global:sqlite-3.13.0-0
+              tk                 channel-2/osx-64:global:tk-8.5.18-0
+              zlib               channel-2/osx-64:global:zlib-1.2.8-3
+              python:dateutil    channel-2/osx-64:python:dateutil-2.6.0-py27_0
+              python:numpy       channel-2/osx-64:python:numpy-1.13.0-py27_0
+              python:pandas      channel-2/osx-64:python:pandas-0.20.2-np113py27_0
+              python:pytz        channel-2/osx-64:python:pytz-2017.2-py27_0
+              python:six         channel-2/osx-64:python:six-1.10.0-py27_0
+
+
+            """)
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
-        with get_solver_aggregate_1(specs) as solver:
-            final_state_1 = solver.solve_final_state()
-            # PrefixDag(final_state_1, specs).open_url()
-            pprint(convert_to_dist_str(final_state_1))
+        with get_solver_aggregate_1(specs, prefix_records=final_state_1,
+                                    history_specs=specs) as solver:
+            final_state_2 = solver.solve_final_state()
+            pprint(convert_to_dist_str(final_state_2))
             order = (
-                'channel-4::blas-1.0-mkl',
                 'channel-4::ca-certificates-2018.03.07-0',
-                'channel-4::intel-openmp-2018.0.3-0',
                 'channel-2::libffi-3.2.1-1',
                 'channel-4::libgcc-ng-7.2.0-hdf63c60_3',
-                'channel-4::libgfortran-ng-7.2.0-hdf63c60_3',
                 'channel-4::libstdcxx-ng-7.2.0-hdf63c60_3',
-                'channel-4::mkl-2018.0.3-1',
+                'channel-2::mkl-2017.0.1-0',
                 'channel-4::ncurses-6.1-hf484d3e_0',
                 'channel-4::openssl-1.0.2o-h20670df_0',
                 'channel-4::tk-8.6.7-hc745277_3',
@@ -1556,16 +1605,193 @@ def test_priority_1():
                 'channel-4::readline-7.0-ha6073c6_4',
                 'channel-4::sqlite-3.24.0-h84994c4_0',
                 'channel-4::python-2.7.15-h1571d57_0',
-                'channel-4::numpy-base-1.14.5-py27hdbf6ddf_2',
-                'channel-4::pytz-2018.4-py27_0',
-                'channel-4::six-1.11.0-py27h5f960f1_1',
-                'channel-4::python-dateutil-2.7.3-py27_0',
-                'channel-4::mkl_fft-1.0.1-py27h3010b51_0',
-                'channel-4::mkl_random-1.0.1-py27h629b387_0',
-                'channel-4::numpy-1.14.5-py27hcd700cb_2',
+                'channel-2::numpy-1.13.0-py27_0',
+                'channel-2::pytz-2017.2-py27_0',
+                'channel-2::six-1.10.0-py27_0',
+                'channel-2::python-dateutil-2.6.0-py27_0',
                 'channel-4::pandas-0.23.1-py27h637b7d7_0',
             )
-            assert convert_to_dist_str(final_state_1) == order
+            assert convert_to_dist_str(final_state_2) == order
+            txn = solver.solve_for_transaction()
+            with captured() as c:
+                txn.print_transaction_summary()
+            print(c.stdout)
+            assert c.stdout == dedent("""
+            ## Package Plan ##
+
+              environment location: /a/test/c/prefix
+            
+              added / updated specs:
+                - pandas
+                - python=2.7
+            
+            
+            The following packages will be downloaded:
+            
+                package                    |            build
+                ---------------------------|-----------------
+                ca-certificates-2018.03.07 |                0         124 KB  channel-4
+                libedit-3.1.20170329       |       h6b74fdf_2         172 KB  channel-4
+                libffi-3.2.1               |                1          38 KB  channel-2
+                libgcc-ng-7.2.0            |       hdf63c60_3         6.1 MB  channel-4
+                libstdcxx-ng-7.2.0         |       hdf63c60_3         2.5 MB  channel-4
+                ncurses-6.1                |       hf484d3e_0         943 KB  channel-4
+                openssl-1.0.2o             |       h20670df_0         3.4 MB  channel-4
+                python-2.7.15              |       h1571d57_0        12.1 MB  channel-4
+                readline-7.0               |       ha6073c6_4         1.1 MB  channel-4
+                sqlite-3.24.0              |       h84994c4_0         1.8 MB  channel-4
+                tk-8.6.7                   |       hc745277_3         3.2 MB  channel-4
+                zlib-1.2.11                |       ha838bed_2         101 KB  channel-4
+                python:pandas-0.23.1       |   py27h637b7d7_0        11.8 MB  channel-4
+                ------------------------------------------------------------
+                                                       Total:        43.3 MB
+            
+            The following NEW packages will be INSTALLED:
+            
+              ca-certificates    channel-4/osx-64:global:ca-certificates-2018.03.07-0
+              libedit            channel-4/osx-64:global:libedit-3.1.20170329-h6b74fdf_2
+              libffi             channel-2/osx-64:global:libffi-3.2.1-1
+              libgcc-ng          channel-4/osx-64:global:libgcc-ng-7.2.0-hdf63c60_3
+              libstdcxx-ng       channel-4/osx-64:global:libstdcxx-ng-7.2.0-hdf63c60_3
+              ncurses            channel-4/osx-64:global:ncurses-6.1-hf484d3e_0
+            
+            The following packages will be UPDATED:
+            
+              openssl                       channel-2::openssl-1.0.2l-0 --> channel-4::openssl-1.0.2o-h20670df_0
+              python                         channel-2::python-2.7.13-0 --> channel-4::python-2.7.15-h1571d57_0
+              readline                        channel-2::readline-6.2-2 --> channel-4::readline-7.0-ha6073c6_4
+              sqlite                         channel-2::sqlite-3.13.0-0 --> channel-4::sqlite-3.24.0-h84994c4_0
+              tk                                 channel-2::tk-8.5.18-0 --> channel-4::tk-8.6.7-hc745277_3
+              zlib                              channel-2::zlib-1.2.8-3 --> channel-4::zlib-1.2.11-ha838bed_2
+              python:pandas        channel-2::pandas-0.20.2-np113py27_0 --> channel-4::pandas-0.23.1-py27h637b7d7_0
+
+
+            """)
+
+    with get_solver_aggregate_1(specs, prefix_records=final_state_2,
+                                history_specs=specs) as solver:
+        final_state_3 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_3))
+        order = (
+            'channel-4::ca-certificates-2018.03.07-0',
+            'channel-2::libffi-3.2.1-1',
+            'channel-4::libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4::libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-2::mkl-2017.0.1-0',
+            'channel-2::openssl-1.0.2l-0',
+            'channel-2::readline-6.2-2',
+            'channel-2::sqlite-3.13.0-0',
+            'channel-2::tk-8.5.18-0',
+            'channel-4::ncurses-6.1-hf484d3e_0',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1.20170329-h6b74fdf_2',
+            'channel-2::python-2.7.13-0',
+            'channel-2::numpy-1.13.0-py27_0',
+            'channel-2::pytz-2017.2-py27_0',
+            'channel-2::six-1.10.0-py27_0',
+            'channel-2::python-dateutil-2.6.0-py27_0',
+            'channel-2::pandas-0.20.2-np113py27_0',
+        )
+        assert convert_to_dist_str(final_state_3) == order
+        txn = solver.solve_for_transaction()
+        with captured() as c:
+            txn.print_transaction_summary()
+        print(c.stdout)
+        assert c.stdout == dedent("""
+        ## Package Plan ##
+        
+          environment location: /a/test/c/prefix
+        
+          added / updated specs:
+            - pandas
+            - python=2.7
+        
+        
+        The following packages will be downloaded:
+        
+            package                    |            build
+            ---------------------------|-----------------
+            openssl-1.0.2l             |                0         3.2 MB  channel-2
+            python-2.7.13              |                0        11.5 MB  channel-2
+            readline-6.2               |                2         606 KB  channel-2
+            sqlite-3.13.0              |                0         4.0 MB  channel-2
+            tk-8.5.18                  |                0         1.9 MB  channel-2
+            python:pandas-0.20.2       |      np113py27_0        19.2 MB  channel-2
+            ------------------------------------------------------------
+                                                   Total:        40.3 MB
+        
+        The following packages will be SUPERSEDED by a higher-priority channel:
+        
+          openssl              channel-4::openssl-1.0.2o-h20670df_0 --> channel-2::openssl-1.0.2l-0
+          python                channel-4::python-2.7.15-h1571d57_0 --> channel-2::python-2.7.13-0
+          readline               channel-4::readline-7.0-ha6073c6_4 --> channel-2::readline-6.2-2
+          sqlite                channel-4::sqlite-3.24.0-h84994c4_0 --> channel-2::sqlite-3.13.0-0
+          tk                         channel-4::tk-8.6.7-hc745277_3 --> channel-2::tk-8.5.18-0
+          python:pandas      channel-4::pandas-0.23.1-py27h637b7d7~ --> channel-2::pandas-0.20.2-np113py27_0
+
+
+        """)
+
+    specs_to_add = MatchSpec("six<1.10"),
+    specs_to_remove = MatchSpec("pytz"),
+    with get_solver_aggregate_1(specs_to_add=specs_to_add, specs_to_remove=specs_to_remove,
+                                prefix_records=final_state_3, history_specs=specs) as solver:
+        final_state_4 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_4))
+        order = (
+            'channel-4::ca-certificates-2018.03.07-0',
+            'channel-2::libffi-3.2.1-1',
+            'channel-4::libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4::libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-2::mkl-2017.0.1-0',
+            'channel-2::openssl-1.0.2l-0',
+            'channel-2::readline-6.2-2',
+            'channel-2::sqlite-3.13.0-0',
+            'channel-2::tk-8.5.18-0',
+            'channel-4::ncurses-6.1-hf484d3e_0',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1.20170329-h6b74fdf_2',
+            'channel-2::python-2.7.13-0',
+            'channel-2::numpy-1.13.0-py27_0',
+            'channel-2::six-1.9.0-py27_0',
+            'channel-2::python-dateutil-2.6.0-py27_0',
+        )
+        assert convert_to_dist_str(final_state_4) == order
+        txn = solver.solve_for_transaction()
+        with captured() as c:
+            txn.print_transaction_summary()
+        print(c.stdout)
+        assert c.stdout == dedent("""
+        ## Package Plan ##
+        
+          environment location: /a/test/c/prefix
+        
+          removed specs:
+            - pytz
+        
+          added / updated specs:
+            - six[version='<1.10']
+        
+        
+        The following packages will be downloaded:
+        
+            package                    |            build
+            ---------------------------|-----------------
+            python:six-1.9.0           |           py27_0          17 KB  channel-2
+            ------------------------------------------------------------
+                                                   Total:          17 KB
+        
+        The following packages will be REMOVED:
+        
+          python:pandas-0.20.2-np113py27_0
+          python:pytz-2017.2-py27_0
+        
+        The following packages will be DOWNGRADED:
+        
+          python:six                                  1.10.0-py27_0 --> 1.9.0-py27_0
+
+
+        """)
 
 
 def test_features_solve_1():
