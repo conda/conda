@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from functools import reduce
 import os
-from os.path import basename, dirname, join, split, splitext, expandvars, expanduser, abspath
+from os.path import basename, dirname, join, split, splitext, expandvars, expanduser, abspath, normcase  # NOQA
 import re
 
 from .compat import on_win, string_types
@@ -40,6 +40,19 @@ def is_path(value):
     if '://' in value:
         return False
     return re.match(PATH_MATCH_REGEX, value)
+
+
+def paths_equal(path1, path2):
+    """
+    Examples:
+        >>> paths_equal('/a/b/c', '/a/b/c/d/..')
+        True
+
+    """
+    if on_win:
+        return normcase(abspath(path1)) == normcase(abspath(path2))
+    else:
+        return abspath(path1) == abspath(path2)
 
 
 @memoize
