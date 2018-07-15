@@ -2,9 +2,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
-from errno import EACCES, ENOENT, EPERM, ENOTEMPTY, errorcode
+from os import makedirs
+from errno import EACCES, ENOENT, EPERM, ENOTEMPTY, EEXIST, errorcode
 from logging import getLogger
-from os.path import basename
+from os.path import basename, isdir
 from time import sleep
 
 from ...common.compat import on_win
@@ -48,3 +49,17 @@ def exp_backoff_fn(fn, *args, **kwargs):
                 raise
         else:
             return result
+
+
+def mkdir_p(path):
+    # putting this here to help with circular imports
+    try:
+        log.trace('making directory %s', path)
+        if path:
+            makedirs(path)
+            return isdir(path) and path
+    except EnvironmentError as e:
+        if e.errno == EEXIST and isdir(path):
+            return path
+        else:
+            raise
