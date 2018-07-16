@@ -43,7 +43,7 @@ def execute(args, parser):
         if context.json:
             stdout_json(ordered_result)
         else:
-            builder = ['# %-13s %15s %15s  %-20s %-20s' % (
+            builder = ['# %-23s %15s %15s  %-20s %-20s' % (
                 "Name",
                 "Version",
                 "Build",
@@ -52,8 +52,8 @@ def execute(args, parser):
             )]
             for pkg_group in ordered_result:
                 for prec in pkg_group['package_records']:
-                    builder.append('%-15s %15s %15s  %-20s %-20s' % (
-                        prec.name,
+                    builder.append('%-25s %15s %15s  %-20s %-20s' % (
+                        prec.name if prec.namespace == "global" else prec.namekey,
                         prec.version,
                         prec.build,
                         prec.channel.name,
@@ -98,8 +98,7 @@ def execute(args, parser):
         )]
         for record in matches:
             builder.append('%-20s %15s %15s  %-20s' % (
-                record.name if record.namespace == "global"
-                else "%s:%s" % (record.namespace, record.name),
+                record.name if record.namespace == "global" else record.namekey,
                 record.version,
                 record.build,
                 record.channel.name,

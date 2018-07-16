@@ -40,12 +40,14 @@ def list_packages(prefix, regex=None, format='human',
     if format == 'human':
         result.append('# packages in environment at %s:' % prefix)
         result.append('#')
-        result.append('# %-23s %-15s %15s  Channel' % ("Name", "Version", "Build"))
+        result.append('# %-33s %-15s %15s  Channel' % ("Name", "Version", "Build"))
 
     installed = sorted(PrefixData(prefix, pip_interop_enabled=True).iter_records(),
                        key=lambda x: x.name)
-
-    for prec in get_packages(installed, regex) if regex else installed:
+    precs = sorted(get_packages(installed, regex) if regex else installed,
+                   key=lambda x: (("0", x.name) if x.namespace == "global"
+                                  else (x.namespace, x.name)))
+    for prec in precs:
         if format == 'canonical':
             result.append(prec.dist_fields_dump() if context.json else prec.dist_str())
             continue
@@ -54,7 +56,12 @@ def list_packages(prefix, regex=None, format='human',
             continue
 
         features = set(prec.get('features') or ())
-        disp = '%(name)-25s %(version)-15s %(build)15s' % prec  # NOQA lgtm [py/percent-format/wrong-arguments]
+        nvb = {
+            "name": prec.name if prec.namespace == "global" else prec.namekey,
+            "version": prec.version,
+            "build": prec.build,
+        }
+        disp = '%(name)-35s %(version)-15s %(build)15s' % nvb  # NOQA lgtm [py/percent-format/wrong-arguments]
         disp += '  %s' % disp_features(features)
         schannel = prec.get('schannel')
         show_channel_urls = show_channel_urls or context.show_channel_urls
