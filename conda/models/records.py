@@ -356,6 +356,19 @@ class PackageRecord(DictSafeMixin, Entity):
         return "%s/%s:%s:%s-%s-%s" % (self.channel.canonical_name, self.subdir, self.namespace,
                                       self.name, self.version, self.build)
 
+    def dist_fields_dump(self):
+        return {
+            "base_url": self.channel.base_url,
+            "build_number": self.build_number,
+            "build_string": self.build,
+            "channel": self.channel.name,
+            "dist_name": self.dist_str().split(":")[-1],
+            "name": self.name,
+            "platform": self.subdir,
+            "version": self.version,
+        }
+
+
     arch = StringField(required=False, nullable=True)  # so legacy
     platform = EnumField(Platform, required=False, nullable=True)  # so legacy
 

@@ -167,14 +167,13 @@ def stdout_json(d):
 
 
 def stdout_json_success(success=True, **kwargs):
-    from ..models.dist import Dist
     result = {'success': success}
     actions = kwargs.pop('actions', None)
     if actions:
         if 'LINK' in actions:
-            actions['LINK'] = [Dist(prec) for prec in actions['LINK']]
+            actions['LINK'] = [prec.dist_fields_dump() for prec in actions['LINK']]
         if 'UNLINK' in actions:
-            actions['UNLINK'] = [Dist(prec) for prec in actions['UNLINK']]
+            actions['UNLINK'] = [prec.dist_fields_dump() for prec in actions['UNLINK']]
         result['actions'] = actions
     result.update(kwargs)
     stdout_json(result)
