@@ -70,6 +70,9 @@ if on_win:
 
 log = getLogger(__name__)
 
+CONDA_INITIALIZE_RE_BLOCK = (r"^# >>> conda initialize >>>(?:\n|\r\n)"
+                             r"([\s\S]*?)"
+                             r"# <<< conda initialize <<<(?:\n|\r\n)?")
 
 class Result:
     NEEDS_SUDO = "needs sudo"
@@ -859,7 +862,7 @@ def init_fish_user(target_path, conda_prefix):
 
     replace_str = "__CONDA_REPLACE_ME_123__"
     rc_content = re.sub(
-        r"^# >>> conda initialize >>>(?:\n|\r\n)([\s\S]*?)# <<< conda initialize <<<$",
+        CONDA_INITIALIZE_RE_BLOCK,
         replace_str,
         rc_content,
         flags=re.MULTILINE,
@@ -973,7 +976,7 @@ def init_sh_user(target_path, conda_prefix, shell):
 
     replace_str = "__CONDA_REPLACE_ME_123__"
     rc_content = re.sub(
-        r"^# >>> conda initialize >>>(?:\n|\r\n)([\s\S]*?)# <<< conda initialize <<<$",
+        CONDA_INITIALIZE_RE_BLOCK,
         replace_str,
         rc_content,
         flags=re.MULTILINE,

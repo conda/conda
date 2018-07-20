@@ -11,7 +11,7 @@ from ..compat import ensure_binary, on_win, string_types
 log = getLogger(__name__)
 
 if on_win:
-    from ctypes import (POINTER, Structure, WinError, c_ulong, c_char_p, c_int, c_ulonglong,
+    from ctypes import (POINTER, Structure, WinError, byref, c_ulong, c_char_p, c_int, c_ulonglong,
                         c_void_p, c_wchar_p, pointer, sizeof, windll)
     from ctypes.wintypes import HANDLE, BOOL, DWORD, HWND, HINSTANCE, HKEY
     PHANDLE = POINTER(HANDLE)
