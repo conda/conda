@@ -460,7 +460,7 @@ class CrossPlatformStLink(object):
             cls._st_nlink = cls._standard_st_nlink
         else:  # pragma: unix no cover
             # http://msdn.microsoft.com/en-us/library/windows/desktop/aa363858
-            from ctypes import POINTER, c_void_p, c_wchar_p
+            from ctypes import POINTER, Structure, c_void_p, c_wchar_p
             from ctypes.wintypes import DWORD, HANDLE, BOOL
 
             cls.CreateFile = windll.kernel32.CreateFileW
