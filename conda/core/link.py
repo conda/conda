@@ -40,9 +40,9 @@ from ..models.enums import LinkType
 from ..resolve import MatchSpec
 
 try:
-    from cytoolz.itertoolz import concat, concatv, groupby, interleave, take
+    from cytoolz.itertoolz import concat, concatv, interleave, take
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby, interleave, take  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, interleave, take  # NOQA
 
 log = getLogger(__name__)
 

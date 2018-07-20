@@ -42,7 +42,7 @@ def _get_activated_env_vars_win(env_location):
             "/C \"",
             "@SET PROMPT= ",
             "&&",
-            "@SET CONDA_CHANGEPS1=false"
+            "@SET CONDA_CHANGEPS1=false",
             "&&",
             "@CALL {0} activate \"{1}\"".format(conda_bat, env_location),
             "&&",

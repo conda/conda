@@ -7,7 +7,6 @@ from errno import EACCES, ELOOP, EPERM
 from io import open
 from logging import getLogger
 import os
-from os import X_OK, access, fstat
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 import sys
@@ -133,7 +132,7 @@ class ProgressFileWrapper(object):
     def __init__(self, fileobj, progress_update_callback):
         self.progress_file = fileobj
         self.progress_update_callback = progress_update_callback
-        self.progress_file_size = max(1, fstat(fileobj.fileno()).st_size)
+        self.progress_file_size = max(1, os.fstat(fileobj.fileno()).st_size)
         self.progress_max_pos = 0
 
     def __getattr__(self, name):
@@ -207,7 +206,7 @@ def make_menu(prefix, file_path, remove=False):
     try:
         import menuinst
         menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
-    except:
+    except Exception:
         stdoutlog.error("menuinst Exception", exc_info=True)
 
 
@@ -235,7 +234,7 @@ def _is_unix_executable_using_ORIGIN(path):
     if on_win:
         return False
     else:
-        return isfile(path) and not islink(path) and access(path, X_OK)
+        return isfile(path) and not islink(path) and os.access(path, os.X_OK)
 
 
 def _do_softlink(src, dst):

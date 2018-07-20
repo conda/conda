@@ -251,6 +251,6 @@ def sys_prefix_unfollowed():
         code = frame.f_code
         filename = code.co_filename
         unfollowed = dirname(dirname(filename))
-    except:
+    except Exception:
         return sys.prefix
     return unfollowed

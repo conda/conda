@@ -22,9 +22,9 @@ from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError
 
 try:
-    from cytoolz.itertoolz import concat, concatv, groupby
+    from cytoolz.itertoolz import concatv, groupby
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
+    from .._vendor.toolz.itertoolz import concatv, groupby  # NOQA
 
 
 class MatchSpecType(type):

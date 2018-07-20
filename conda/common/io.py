@@ -12,7 +12,7 @@ from errno import EPIPE, ESHUTDOWN
 from functools import wraps
 from itertools import cycle
 import json
-import logging
+import logging  # lgtm [py/import-and-import-from]
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os.path import dirname, isdir, isfile, join

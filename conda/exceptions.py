@@ -794,7 +794,6 @@ class NotWritableError(CondaError, OSError):
 
             In general, it's not advisable to use 'sudo conda'.
             """)
-            import os
             kwargs.update({
                 'uid': os.geteuid(),
                 'gid': os.getegid(),
@@ -913,7 +912,6 @@ def print_conda_exception(exc_val, exc_tb=None):
     if context.debug or context.verbosity > 0:
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
-        import json
         logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
         exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
         logger.info("%s\n" % exc_json)

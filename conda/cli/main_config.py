@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import collections
+from collections import OrderedDict, Mapping
 import json
 import os
 from os.path import isfile, join
@@ -36,7 +36,7 @@ def execute(args, parser):
 def format_dict(d):
     lines = []
     for k, v in iteritems(d):
-        if isinstance(v, collections.Mapping):
+        if isinstance(v, Mapping):
             if v:
                 lines.append("%s:" % k)
                 lines.append(pretty_map(v))
@@ -129,8 +129,6 @@ def execute_config(args, parser):
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
         else:
             paramater_names = context.list_parameters()
-
-        from collections import OrderedDict
 
         d = OrderedDict((key, getattr(context, key)) for key in paramater_names)
         if context.json:

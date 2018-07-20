@@ -8,7 +8,7 @@ from tempfile import mkdtemp
 
 
 # shim for conda-build
-from .common.compat import *
+from .common.compat import *  # lgtm [py/polluting-import]
 PY3 = PY3
 
 
