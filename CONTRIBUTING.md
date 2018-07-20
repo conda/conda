@@ -14,21 +14,25 @@ If your issue is a bug report or feature request for:
 
 ## Development Environment, Bash <!-- TODO: make this so (including the msys2 shell on Windows) -->
 
-To set up an environment to start developing on conda code, we recommend the followings steps
+To set up an environment to start developing on conda code, we recommend the following steps:
 
-1. Choose where you want the project located
+1. Fork the conda/conda repository, clone it locally anywhere you choose (an isolation miniconda
+   will be set up within the clone directory), and set up `git remote` to point to upstream
+   and fork. For detailed directions, see below.
+
+   1a. Choose where you want the repository located (not location of existing conda)
 
        CONDA_PROJECT_ROOT="$HOME/conda"
 
-2. Clone the project, with `origin` being the main repository. Make sure to click the `Fork`
-   button above so you have your own copy of this repo.
+   1b. Clone the project, with `upstream` being the main repository. Make sure to click the `Fork`
+       button above so you have your own copy of this repo.
 
        GITHUB_USERNAME=kalefranz
-       git clone git@github.com:conda/conda "$CONDA_PROJECT_ROOT"
+       git clone git@github.com:$GITHUB_USERNAME/conda "$CONDA_PROJECT_ROOT"
        cd "$CONDA_PROJECT_ROOT"
-       git remote --add $GITHUB_USERNAME git@github.com:$GITHUB_USERNAME/conda
+       git remote --add upstream git@github.com:conda/conda
 
-3. Create a local development environment, and activate that environment
+2. Create a local development environment, and activate that environment
 
        source ./dev/start
 
@@ -39,7 +43,7 @@ To set up an environment to start developing on conda code, we recommend the fol
    To be sure that the conda code being interpreted is the code in the project directory,
    look at the value of `conda location:` in the output of `conda info --all`.
 
-4. Run conda's unit tests using GNU make
+3. Run conda's unit tests using GNU make
 
        make unit
 
