@@ -38,9 +38,9 @@ from .resolve import MatchSpec, dashlist
 from .utils import human_bytes
 
 try:
-    from cytoolz.itertoolz import concat, concatv, remove
+    from cytoolz.itertoolz import concatv
 except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concat, concatv, remove  # NOQA
+    from ._vendor.toolz.itertoolz import concatv  # NOQA
 
 log = getLogger(__name__)
 

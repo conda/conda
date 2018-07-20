@@ -48,7 +48,7 @@ class CondaError(Exception):
     def __str__(self):
         try:
             return text_type(self.message % self._kwargs)
-        except:
+        except Exception:
             debug_message = "\n".join((
                 "class: " + self.__class__.__name__,
                 "message:",

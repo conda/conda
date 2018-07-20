@@ -3,31 +3,31 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from ctypes import c_ulong, c_char_p, c_int, c_void_p
 from enum import IntEnum
 from logging import getLogger
-import ctypes as ctypes
 
 from ..compat import ensure_binary, on_win, string_types
 
 log = getLogger(__name__)
 
 if on_win:
+    from ctypes import (POINTER, Structure, WinError, byref, c_ulong, c_char_p, c_int, c_ulonglong,
+                        c_void_p, c_wchar_p, pointer, sizeof, windll)
     from ctypes.wintypes import HANDLE, BOOL, DWORD, HWND, HINSTANCE, HKEY
-    PHANDLE = ctypes.POINTER(HANDLE)
-    PDWORD = ctypes.POINTER(DWORD)
+    PHANDLE = POINTER(HANDLE)
+    PDWORD = POINTER(DWORD)
     SEE_MASK_NOCLOSEPROCESS = 0x00000040
     INFINITE = -1
 
-    WaitForSingleObject = ctypes.windll.kernel32.WaitForSingleObject
+    WaitForSingleObject = windll.kernel32.WaitForSingleObject
     WaitForSingleObject.argtypes = (HANDLE, DWORD)
     WaitForSingleObject.restype = DWORD
 
-    CloseHandle = ctypes.windll.kernel32.CloseHandle
+    CloseHandle = windll.kernel32.CloseHandle
     CloseHandle.argtypes = (HANDLE, )
     CloseHandle.restype = BOOL
 
-    class ShellExecuteInfo(ctypes.Structure):
+    class ShellExecuteInfo(Structure):
         """
 https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-shellexecuteexa
 https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/ns-shellapi-_shellexecuteinfoa
@@ -52,15 +52,15 @@ https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/ns-shellapi-_shell
         ]
 
         def __init__(self, **kwargs):
-            ctypes.Structure.__init__(self)
-            self.cbSize = ctypes.sizeof(self)
+            Structure.__init__(self)
+            self.cbSize = sizeof(self)
             for field_name, field_value in kwargs.items():
                 if isinstance(field_value, string_types):
                     field_value = ensure_binary(field_value)
                 setattr(self, field_name, field_value)
 
-    PShellExecuteInfo = ctypes.POINTER(ShellExecuteInfo)
-    ShellExecuteEx = ctypes.windll.Shell32.ShellExecuteExA
+    PShellExecuteInfo = POINTER(ShellExecuteInfo)
+    ShellExecuteEx = windll.Shell32.ShellExecuteExA
     ShellExecuteEx.argtypes = (PShellExecuteInfo, )
     ShellExecuteEx.restype = BOOL
 
@@ -98,13 +98,13 @@ class ERROR(IntEnum):
 
 def get_free_space_on_windows(dir_name):
     result = None
-    free_bytes = ctypes.c_ulonglong(0)
+    free_bytes = c_ulonglong(0)
     try:
-        ctypes.windll.kernel32.GetDiskFreeSpaceExW(
-            ctypes.c_wchar_p(dir_name),
+        windll.kernel32.GetDiskFreeSpaceExW(
+            c_wchar_p(dir_name),
             None,
             None,
-            ctypes.pointer(free_bytes),
+            pointer(free_bytes),
         )
         result = free_bytes.value
     except Exception as e:
@@ -116,7 +116,7 @@ def is_admin_on_windows():  # pragma: unix no cover
     # http://stackoverflow.com/a/1026626/2127762
     result = False
     try:
-        result = ctypes.windll.shell32.IsUserAnAdmin() != 0
+        result = windll.shell32.IsUserAnAdmin() != 0
     except Exception as e:  # pragma: no cover
         log.info('%r', e)
         # result = 'unknown'
@@ -165,7 +165,7 @@ def run_as_admin(args, wait=True):
             lpDirectory=None,
             nShow=SW.HIDE,
         )
-        successful = ShellExecuteEx(ctypes.byref(execute_info))
+        successful = ShellExecuteEx(byref(execute_info))
         hprocess = execute_info.hProcess
     except Exception as e:
         successful = False
@@ -173,7 +173,7 @@ def run_as_admin(args, wait=True):
         log.info('%r', e)
 
     if not successful:
-        error_code = ctypes.WinError()
+        error_code = WinError()
     elif wait:
         _wait_and_close_handle(execute_info.hProcess)
 

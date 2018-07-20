@@ -102,7 +102,8 @@ spec_pat = re.compile(r'''
   (?P<pc>(?:[=!]=|[><]=?).+)       # new (pip-style) constraint(s)
 )?
 $                                  # end-of-line
-''', re.VERBOSE)
+''', re.VERBOSE)  # lgtm [py/regex/unmatchable-dollar]
+# This logic has been here for four years. Even if it's wrong, we're not changing it now.
 
 
 def strip_comment(line):

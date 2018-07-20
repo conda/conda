@@ -116,7 +116,7 @@ def get_info_dict(system=False):
 
     try:
         from conda_env import __version__ as conda_env_version
-    except:  # pragma: no cover
+    except Exception:  # pragma: no cover
         conda_env_version = "not installed"
 
     try:

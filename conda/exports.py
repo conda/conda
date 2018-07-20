@@ -140,10 +140,9 @@ from .core.package_cache_data import ProgressiveFetchExtract  # NOQA
 ProgressiveFetchExtract = ProgressiveFetchExtract
 
 
-from .exceptions import CondaHTTPError, LinkError, LockError, NoPackagesFoundError, PaddingError  # NOQA
+from .exceptions import CondaHTTPError, LockError  # NOQA
 from .exceptions import UnsatisfiableError  # NOQA
-CondaHTTPError, LinkError, LockError = CondaHTTPError, LinkError, LockError
-NoPackagesFoundError, PaddingError = NoPackagesFoundError, PaddingError
+CondaHTTPError, LockError = CondaHTTPError, LockError
 UnsatisfiableError = UnsatisfiableError
 
 

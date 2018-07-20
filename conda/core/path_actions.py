@@ -41,9 +41,9 @@ from ..models.records import (Link, PackageCacheRecord, PackageRecord, PathDataV
                               PrefixRecord)
 
 try:
-    from cytoolz.itertoolz import concat, concatv
+    from cytoolz.itertoolz import concatv
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv  # NOQA
+    from .._vendor.toolz.itertoolz import concatv  # NOQA
 
 log = getLogger(__name__)
 

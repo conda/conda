@@ -21,9 +21,9 @@ from .models.records import PackageRef
 from .models.version import VersionOrder
 
 try:
-    from cytoolz.itertoolz import concat, groupby
+    from cytoolz.itertoolz import concat
 except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concat, groupby  # NOQA
+    from ._vendor.toolz.itertoolz import concat  # NOQA
 
 log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')
@@ -924,8 +924,8 @@ class Resolve(object):
                      dashlist(', '.join(diff) for diff in diffs),
                      '\n  ... and others' if nsol > 10 else ''))
 
-        def stripfeat(sol):
-            return sol.split('[')[0]
+        # def stripfeat(sol):
+        #     return sol.split('[')[0]
 
         new_index = {self.to_sat_name(prec): prec for prec in itervalues(self.index)}
 

@@ -5,9 +5,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import defaultdict
 from logging import getLogger
-import os
 from os import listdir, lstat, walk
-from os.path import getsize, isdir, join
+from os.path import getsize, isdir, join, exists
 import sys
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -25,7 +24,7 @@ def find_tarballs():
         pkgs_dir = package_cache.pkgs_dir
         if not isdir(pkgs_dir):
             continue
-        root, _, filenames = next(os.walk(pkgs_dir))
+        root, _, filenames = next(walk(pkgs_dir))
         for fn in filenames:
             if fn.endswith(CONDA_TARBALL_EXTENSION) or fn.endswith(part_ext):
                 pkgs_dirs[pkgs_dir].append(fn)
@@ -72,7 +71,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
             try:
-                if rm_rf(os.path.join(pkgs_dir, fn)):
+                if rm_rf(join(pkgs_dir, fn)):
                     if verbose:
                         print("Removed %s" % fn)
                 else:
@@ -94,7 +93,7 @@ def find_pkgs():
     cross_platform_st_nlink = CrossPlatformStLink()
     pkgs_dirs = defaultdict(list)
     for pkgs_dir in context.pkgs_dirs:
-        if not os.path.exists(pkgs_dir):
+        if not exists(pkgs_dir):
             if not context.json:
                 print("WARNING: {0} does not exist".format(pkgs_dir))
             continue

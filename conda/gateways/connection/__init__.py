@@ -31,7 +31,7 @@ try:
 
     # monkeypatch requests
     from requests.utils import should_bypass_proxies
-    import requests.utils
+    import requests.utils  # lgtm [py/import-and-import-from]
     requests.utils.should_bypass_proxies = partial(should_bypass_proxies_patched,
                                                    should_bypass_proxies)
 except ImportError:  # pragma: no cover

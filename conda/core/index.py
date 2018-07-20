@@ -20,9 +20,9 @@ from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord
 from ..resolve import dashlist
 
 try:
-    from cytoolz.itertoolz import concat, concatv, groupby, take
+    from cytoolz.itertoolz import concat, concatv, groupby
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby, take  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 log = getLogger(__name__)
 

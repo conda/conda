@@ -23,7 +23,6 @@ from errno import EACCES, EEXIST, ENOENT, EPERM, EROFS
 import functools
 import logging
 import os
-from os import chmod, makedirs, stat
 from os.path import dirname, isdir, isfile, join, normcase, normpath
 import sys
 
@@ -72,7 +71,7 @@ if on_win:  # pragma: no cover
         """
         from .utils import shells
         try:
-            makedirs(dirname(dst))
+            os.makedirs(dirname(dst))
         except OSError as exc:  # Python >2.5
             if exc.errno == EEXIST and isdir(dirname(dst)):
                 pass
@@ -101,9 +100,9 @@ if on_win:  # pragma: no cover
                     f.write('source %s "$@"' % shells[shell]['path_to'](src))
             # Make the new file executable
             # http://stackoverflow.com/a/30463972/1170370
-            mode = stat(dst).st_mode
+            mode = os.stat(dst).st_mode
             mode |= (mode & 292) >> 2    # copy R bits to X
-            chmod(dst, mode)
+            os.chmod(dst, mode)
 
 
 # Should this be an API function?

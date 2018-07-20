@@ -41,7 +41,7 @@ def linux_get_libc_version():
         )
         try:
             val = str(confstr(v))
-        except:  # pragma: no cover
+        except Exception:  # pragma: no cover
             pass
         else:
             if val:

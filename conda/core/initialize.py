@@ -70,6 +70,9 @@ if on_win:
 
 log = getLogger(__name__)
 
+CONDA_INITIALIZE_RE_BLOCK = (r"^# >>> conda initialize >>>(?:\n|\r\n)"
+                             r"([\s\S]*?)"
+                             r"# <<< conda initialize <<<(?:\n|\r\n)?")
 
 class Result:
     NEEDS_SUDO = "needs sudo"
@@ -87,6 +90,7 @@ def install(conda_prefix):
     if not context.dry_run:
         assert not any(step['result'] == Result.NEEDS_SUDO for step in plan)
     print_plan_results(plan)
+    return 0
 
 
 def initialize(conda_prefix, shells, for_user, for_system, anaconda_prompt):
@@ -208,6 +212,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         print("now run  > .\\dev-init.bat")
     else:
         raise NotImplementedError()
+    return 0
 
 
 # #####################################################
@@ -857,7 +862,7 @@ def init_fish_user(target_path, conda_prefix):
 
     replace_str = "__CONDA_REPLACE_ME_123__"
     rc_content = re.sub(
-        r"^# >>> conda initialize >>>$([\s\S]*?)# <<< conda initialize <<<\n$",
+        CONDA_INITIALIZE_RE_BLOCK,
         replace_str,
         rc_content,
         flags=re.MULTILINE,
@@ -971,7 +976,7 @@ def init_sh_user(target_path, conda_prefix, shell):
 
     replace_str = "__CONDA_REPLACE_ME_123__"
     rc_content = re.sub(
-        r"^# >>> conda initialize >>>$([\s\S]*?)# <<< conda initialize <<<\n$",
+        CONDA_INITIALIZE_RE_BLOCK,
         replace_str,
         rc_content,
         flags=re.MULTILINE,
