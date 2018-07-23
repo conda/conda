@@ -40,11 +40,6 @@ from ..models.match_spec import MatchSpec
 from ..models.records import (Link, PackageCacheRecord, PackageRecord, PathDataV1, PathsData,
                               PrefixRecord)
 
-try:
-    from cytoolz.itertoolz import concatv
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concatv  # NOQA
-
 log = getLogger(__name__)
 
 REPR_IGNORE_KWARGS = (

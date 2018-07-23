@@ -940,7 +940,7 @@ class ExceptionHandler(object):
     def __call__(self, func, *args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except:
+        except:  # lgtm [py/catch-base-exception]
             _, exc_val, exc_tb = sys.exc_info()
             return self.handle_exception(exc_val, exc_tb)
 
