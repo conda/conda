@@ -77,7 +77,7 @@ conda_build_test: &conda_build_test
         name: checkout conda-build
         command: |
           cb_branch="${CONDA_BUILD:-master}"
-          git clone -b $cb_branch --depth 750 https://github.com/conda/conda-build.git ~/conda-build
+          git clone -b $cb_branch https://github.com/conda/conda-build.git ~/conda-build
           cd ~/conda-build
           sudo /opt/conda/bin/pip install --no-deps -U .
           git clone https://github.com/conda/conda_build_test_recipe.git ~/conda_build_test_recipe
