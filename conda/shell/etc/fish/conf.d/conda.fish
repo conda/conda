@@ -97,7 +97,7 @@ function __fish_conda_env_commands
 end
 
 function __fish_conda_envs
-  conda config --show envs_dirs | awk 'NR > 1 {print $2}' | xargs -IX find X -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort
+  conda config --show envs_dirs | awk 'NR > 1 {print $2}' | xargs -IX find X -maxdepth 1 -mindepth 1 -type d | xargs basename | sort
 end
 
 function __fish_conda_packages
