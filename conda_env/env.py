@@ -130,7 +130,7 @@ def from_file(filename):
 
 
 # TODO test explicitly
-class Dependencies(OrderedDict):
+class Dependencies(OrderedDict):  # lgtm [py/missing-equals]
     def __init__(self, raw, *args, **kwargs):
         super(Dependencies, self).__init__(*args, **kwargs)
         self.raw = raw

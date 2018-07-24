@@ -93,7 +93,7 @@ def specs_from_args(args, json=False):
     return [arg2spec(arg, json=json) for arg in args]
 
 
-spec_pat = re.compile(r'''
+spec_pat = re.compile(r'''         # lgtm [py/regex/unmatchable-dollar]
 (?P<name>[^=<>!\s]+)               # package name
 \s*                                # ignore spaces
 (
