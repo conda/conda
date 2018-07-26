@@ -35,12 +35,6 @@ except ImportError:
 log = getLogger(__name__)
 
 
-if on_win:
-    import ctypes
-    PYTHONIOENCODING = ctypes.cdll.kernel32.GetACP()
-else:
-    PYTHONIOENCODING = None
-
 POP_THESE = (
     'CONDA_SHLVL',
     'CONDA_DEFAULT_ENV',
@@ -708,7 +702,6 @@ class ShellWrapperUnitTests(TestCase):
         @SET "CONDA_PYTHON_EXE=%(sys_executable)s"
         @SET "CONDA_SHLVL=1"
         @SET "PATH=%(new_path)s"
-        @SET "PYTHONIOENCODING=%(PYTHONIOENCODING)s"
         @CALL "%(activate1)s"
         """) % {
             'converted_prefix': activator.path_conversion(self.prefix),
@@ -716,7 +709,6 @@ class ShellWrapperUnitTests(TestCase):
             'new_path': activator.pathsep_join(new_path_parts),
             'sys_executable': activator.path_conversion(sys.executable),
             'activate1': activator.path_conversion(join(self.prefix, 'etc', 'conda', 'activate.d', 'activate1.bat')),
-            'PYTHONIOENCODING': PYTHONIOENCODING,
             'conda_exe': activator.path_conversion(context.conda_exe),
         }
 

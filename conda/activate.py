@@ -719,13 +719,6 @@ class CmdExeActivator(_Activator):
 
         super(CmdExeActivator, self).__init__(arguments)
 
-    def _build_activate_shell_custom(self, export_vars):
-        if on_win:
-            import ctypes
-            export_vars.update({
-                "PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),
-            })
-
     def _hook_preamble(self):
         raise NotImplementedError()
 
