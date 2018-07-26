@@ -216,6 +216,7 @@ class PrefixData(object):
         """
         python_pkg_record = self._python_pkg_record
         site_packages_dir = get_python_site_packages_short_path(python_pkg_record.version)
+        print(site_packages_dir)
         site_packages_path = join(self.prefix_path, win_path_ok(site_packages_dir))
 
         if not python_pkg_record or not isdir(site_packages_path):
@@ -247,6 +248,7 @@ class PrefixData(object):
         for python_record in python_records:
             self.__prefix_records[python_record.name] = python_record
             new_packages[python_record.name] = python_record
+
          return new_packages
 
 
