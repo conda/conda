@@ -281,6 +281,14 @@ class Solver(object):
                     pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
                     specs_map['python'] = MatchSpec(python_spec, version=pinned_version)
 
+        # For the aggressive_update_packages configuration parameter, we strip any target
+        # that's been set.
+        if not context.offline:
+            for spec in context.aggressive_update_packages:
+                if spec.name in specs_map:
+                    old_spec = specs_map[spec.name]
+                    specs_map[spec.name] = MatchSpec(old_spec, target=None)
+
         # add in explicitly requested specs from specs_to_add
         # this overrides any name-matching spec already in the spec map
         specs_map.update((s.name, s) for s in specs_to_add)
@@ -298,7 +306,10 @@ class Solver(object):
             conda_prefix_rec = prefix_data.get('conda')
             if conda_prefix_rec:
                 conda_spec = specs_map['conda']
-                if not conda_spec.get('version'):
+                conda_in_specs_to_add_version = next(
+                    (spec.get('version') for spec in specs_to_add if spec.name == "conda"), None
+                )
+                if not conda_in_specs_to_add_version:
                     conda_spec = MatchSpec(conda_spec, version=">=%s" % conda_prefix_rec.version)
                 if context.auto_update_conda:
                     conda_spec = MatchSpec(conda_spec, target=None)
