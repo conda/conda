@@ -13,6 +13,7 @@
 # work in conjunction with the .mailmap file at the root of this repository.
 
 3kwa | Eugene Van den Bulke <eugene.vandenbulke@gmail.com> | 2018-06-01
+aburgm | Armin Burgmeier <aburgmeier@bloomberg.net> | 2018-07-24
 alanhdu | Alan Du <alanhdu@gmail.com> | 2018-06-05
 aldanor | Ivan Smirnov <i.s.smirnov@gmail.com> | 2018-07-24
 alexbw | Alex Wiltschko <alex.bw@gmail.com> | 2018-05-23
@@ -23,6 +24,7 @@ aterrel | Andy R. Terrel <andy.terrel@gmail.com> | Anaconda, Inc.
 basnijholt | Bas Nijholt <basnijholt@gmail.com> | 2018-06-04
 bearnshaw | Berton Earnshaw <berton.earnshaw@gmail.com> | 2018-06-04
 Bezier89 | James Sexton <TwistedLadder@gmail.com> | 2018-07-23
+bilderbuchi | Christoph Buchner <bilderbuchi@users.noreply.github.com> | 2018-07-25
 bkreider | Bradley Kreider <bkreider@continuum.io> | Anaconda, Inc.
 bluekeyes | Billy Keyes <bluekeyes@gmail.com> | 2018-05-23
 brentp | Brent Pedersen <bpederse@gmail.com> | 2018-07-23
@@ -34,9 +36,11 @@ csoja | Crystal Soja <crystal.soja@continuum.io> | Anaconda, Inc.
 cstich | Christoph Stich <christoph.n.stich@gmail.com> | 2018-06-13
 dan-blanchard | Dan Blanchard <dan.blanchard@gmail.com> | 2018-07-24
 dawehner | Daniel Wehner <dawehner@users.noreply.github.com> | 2018-06-02
+ddale | Darren Dale <dsdale24@gmail.com> | 2018-07-26
 dedalusj | Jacopo <dedalusj@gmail.com> | 2018-06-01
 delicb | Bojan Delic <bojan@delic.in.rs> | 2018-07-24
 desilinguist | Nitin Madnani <nmadnani@gmail.com> | 2018-06-01
+dhirschfeld | David Hirschfeld <david.hirschfeld@gazprom-mt.com> | 2018-07-25
 dmkent | David Kent <davidkent@fastmail.com.au> | 2018-07-23
 dorzel | Dylan Orzel <dylan.orzel@gmail.com> | Anaconda, Inc.
 dsludwig | Derek Ludwig <dludwig@continuum.io> | Anaconda, Inc.
@@ -77,6 +81,7 @@ loriab | Lori A. Burns <lori.burns@gmail.com> | 2018-07-24
 luc-j-bourhis | Luc J. Bourhis <luc_j_bourhis@mac.com> | 2018-06-04
 m-rossi | Marco Rossi <developer@marco-rossi.com> | 2018-06-09
 Maggie-M | Maggie Mari <maggie.mari@continuum.io> | Anaconda, Inc.
+majidaldo | majidaldo <majidaldosar-github@yahoo.com> | 2018-07-24
 malev | Marcos Vanetta <marcosvanetta@gmail.com> | Anaconda, Inc.
 marcelotrevisani | Marcelo Duarte Trevisani <marceloduartetrevisani@gmail.com> | 2018-06-04
 MaxNoe | Maximilian Noethe <maximilian.noethe@tu-dortmund.de> | 2018-07-24
@@ -100,6 +105,7 @@ nouiz | Frederic Bastien <nouiz@nouiz.org> | 2018-06-11
 ofek | Ofek Lev <ofekmeister@gmail.com> | 2018-06-04
 ohadravid | Ohad Ravid <ohad.rv@gmail.com> | 2018-07-24
 opoplawski | Orion Poplawski <orion@nwra.com> | 2018-06-04
+pelson | Phil Elson <pelson.pub@gmail.com> | 2018-07-25
 petebachant | Pete Bachant <petebachant@gmail.com> | 2018-05-23
 petercable | Peter Cable <petercable@gmail.com> | 2018-07-23
 pkgw | Peter Williams <peter@newton.cx> | 2018-06-04
@@ -113,6 +119,7 @@ scopatz | Anthony Scopatz <scopatz@gmail.com> | 2018-06-04
 scw | Shaun Walbridge <shaun.walbridge@gmail.com> | 2018-05-24
 sdvillal | santi <sdvillal@gmail.com> | 2018-06-01
 shadowwalkersb | shadow_walker <shadowwalkersb@gmail.com> | 2018-06-04
+ShannonGreen | Shannon Green <sgreen@cochlear.com> | 2018-07-26
 shoyer | Stephan Hoyer <shoyer@gmail.com> | all commits reviewed and exempt
 soapy1 | Sophia Castellarin <scastellarin@continuum.io> | Anaconda, Inc.
 soxofaan | Stefaan Lippens <stefaan@netlog.com> | 2018-06-06
