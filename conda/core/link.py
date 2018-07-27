@@ -40,9 +40,9 @@ from ..models.enums import LinkType
 from ..resolve import MatchSpec
 
 try:
-    from cytoolz.itertoolz import concat, concatv, interleave, take
+    from cytoolz.itertoolz import concat, concatv, groupby, interleave, take
 except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, interleave, take  # NOQA
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby, interleave, take  # NOQA
 
 log = getLogger(__name__)
 
@@ -109,7 +109,7 @@ def match_specs_to_dists(packages_info_to_link, specs):
     for spec in specs or ():
         spec = MatchSpec(spec)
         idx = next((q for q, pkg_info in enumerate(packages_info_to_link)
-                    if pkg_info.index_json_record.name == spec.name),
+                    if pkg_info.repodata_record.name == spec.name),
                    None)
         if idx is not None:
             matched_specs[idx] = spec
@@ -613,11 +613,11 @@ class UnlinkLinkTransaction(object):
         # this method determines the python version that will be present at the
         # end of the transaction
         linking_new_python = next((package_info for package_info in packages_info_to_link
-                                   if package_info.index_json_record.name == 'python'),
+                                   if package_info.repodata_record.name == 'python'),
                                   None)
         if linking_new_python:
             # is python being linked? we're done
-            full_version = linking_new_python.index_json_record.version
+            full_version = linking_new_python.repodata_record.version
             assert full_version
             log.debug("found in current transaction python version %s", full_version)
             return get_major_minor_version(full_version)
