@@ -135,6 +135,12 @@ class GetRepodataIntegrationTests(TestCase):
 
         assert 0
 
+    def test_namespace_attachment_to_deps(self):
+        sd = SubdirData(Channel("bioconda/linux-64")).load()
+        sd = SubdirData(Channel("conda-forge/linux-64")).load()
+        assert 0
+
+
     @pytest.mark.skipif(True, reason="Use with '-s' flag to ensure pickled repodata is working correctly.")
     def test_load_subdir_data_profiling(self):
         from conda.cli.main import init_loggers

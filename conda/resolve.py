@@ -452,6 +452,29 @@ class Resolve(object):
             ) - {namespace}
         return result
 
+    def _attach_namespaces(self):
+        new_index = {}
+        for prec in self.index:
+            depends = []
+            for spec in prec.ms_depends:
+                if spec.name == '*' or spec.namespace:
+                    depends.append(spec)
+                else:
+                    namespaces = set(prec.namespace for prec in self.find_matches(spec))
+                    if not namespaces:
+                        # If there aren't any matches, it's not going to matter what the namespace
+                        # is, so just add 'global'.
+                        depends.append(MatchSpec(spec, namespace='global'))
+                    elif len(namespaces) == 1:
+                        depends.append(MatchSpec(spec, namespace=namespaces.pop()))
+                    else:
+                        import pdb; pdb.set_trace()
+                        assert 0
+            new_prec = PackageRecord.from_objects(prec, depends=depends)
+            new_index[new_prec] = new_prec
+        self._new_index = new_index
+        return new_index
+
     def version_key(self, prec, vtype=None):
         channel = prec.channel
         channel_priority = self._channel_priorities_map.get(channel.name, 1)  # TODO: ask @mcg1969 why the default value is 1 here  # NOQA

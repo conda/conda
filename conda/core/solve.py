@@ -17,7 +17,8 @@ from .subdir_data import SubdirData
 from .. import CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
-from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier
+from ..base.constants import (DepsModifier, NAMESPACES_MAP, NAMESPACE_PACKAGE_NAMES,
+                              UNKNOWN_CHANNEL, UpdateModifier)
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, text_type
 from ..common.constants import NULL
@@ -421,6 +422,7 @@ class Solver(object):
             update_names = set()
             graph = PrefixGraph(solution, final_environment_specs)
             for spec in specs_to_add:
+                # TODO: get_node_by_name() is a problem area for namespaces
                 node = graph.get_node_by_name(spec.name)
                 for ancestor_record in graph.all_ancestors(node):
                     ancestor_name = ancestor_record.name
@@ -746,14 +748,18 @@ class SpecsGroup(object):
         return matches
 
     def declared_namespaces(self):
-        return frozenset(ns for ns in (spec.namespace for spec in self.iter_specs()) if ns)
+        namespace_packages = NAMESPACE_PACKAGE_NAMES & set(spec.name for spec in self.iter_specs())
+        return frozenset(concatv(
+            (ns for ns in (spec.namespace for spec in self.iter_specs()) if ns),
+            (NAMESPACES_MAP[name] for name in namespace_packages),
+        ))
 
     def non_namespaced_specs(self):
         return tuple(spec for spec in self.iter_specs() if not spec.namespace and spec.name != '*')
 
     def attach_namespaces(self, r):
         # first pass, determine all non-ambiguous cases
-        all_required_namespaces = set()
+        all_required_namespaces = {"global"}
         ambiguous_cases = {}
         specs_not_found = set()
         for spec in self.non_namespaced_specs():
@@ -777,21 +783,20 @@ class SpecsGroup(object):
 
         # second pass, try intersection with 'global', then intersection, then use union
         if not ambiguous_cases:
-            return
+            self.merge()
+            return self
 
+        all_required_namespaces.update(self.declared_namespaces())
         namespace_sets = tuple(set(spec.namespace for spec in case)
                                for case in itervalues(ambiguous_cases))
-        intersecting_namespaces = set.intersection(*namespace_sets) & all_required_namespaces
-        if not intersecting_namespaces:
-            intersecting_namespaces = set.intersection(*namespace_sets) & {"global"}
-            if not intersecting_namespaces:
-                intersecting_namespaces = set.intersection(*namespace_sets)
-                if not intersecting_namespaces:
-                    intersecting_namespaces = set.union(*namespace_sets)
+        active_namespaces = set(concat(
+            ns_set & all_required_namespaces or ns_set for ns_set in namespace_sets
+        ))
+
         for spec, required_namespaces in iteritems(ambiguous_cases):
             ns_map = {spec.namespace: spec for spec in required_namespaces}
             self.remove(spec)
-            for namespace in intersecting_namespaces:
+            for namespace in active_namespaces & set(ns_map):
                 new_spec = ns_map[namespace]
                 namespace_dependencies = required_namespaces[new_spec]
                 self.add_override(new_spec)
@@ -799,6 +804,7 @@ class SpecsGroup(object):
                 all_required_namespaces.update(namespace_dependencies)
 
         self.merge()
+        return self
 
 
 def get_pinned_specs(prefix):

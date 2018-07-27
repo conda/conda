@@ -10,6 +10,7 @@ from .match_spec import MatchSpec
 from .._vendor.boltons.setutils import IndexedSet
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, on_win
+from ..common.serialize import json_dump
 from ..exceptions import CyclicalDependencyError
 
 log = getLogger(__name__)
@@ -31,6 +32,7 @@ class PrefixGraph(object):
 
     def __init__(self, records, specs=()):
         records = tuple(records)
+        assert all(spec.namespace for spec in specs)
         specs = set(specs)
         graph = {}  # Dict[PrefixRecord, Set[PrefixRecord]]
         self.spec_matches = spec_matches = {}  # Dict[PrefixRecord, Set[MatchSpec]]
@@ -214,7 +216,7 @@ class PrefixGraph(object):
         while True:
             no_parent_nodes = IndexedSet(sorted(
                 (node for node, parents in iteritems(graph) if len(parents) == 0),
-                key=lambda x: x.name
+                key=lambda x: x.namekey
             ))
             if not no_parent_nodes:
                 break
@@ -240,7 +242,7 @@ class PrefixGraph(object):
         nodes_without_parents = (node for node in graph if not graph[node])
         disconnected_nodes = sorted(
             (node for node in nodes_without_parents if node not in nodes_that_are_parents),
-            key=lambda x: x.name
+            key=lambda x: x.namekey
         )
         for node in disconnected_nodes:
             yield node
@@ -269,6 +271,7 @@ class PrefixGraph(object):
         """
         Pop an item from the graph that has the fewest parents.
         In the case of a tie, use the node with the alphabetically-first package name.
+        Packages in the global namespace always come first.
         """
         node_with_fewest_parents = sorted(
             (len(parents), node.namespace == 'global' and '0' or node.namespace, node.name, node)
@@ -288,18 +291,18 @@ class PrefixGraph(object):
         # 1. Remove any circular dependency between python and pip. This typically comes about
         #    because of the add_pip_as_python_dependency configuration parameter.
         for node in graph:
-            if node.name == "python":
+            if node.namekey == "global:python":
                 parents = graph[node]
                 for parent in tuple(parents):
-                    if parent.name == 'pip':
+                    if parent.namekey == "python:pip":
                         parents.remove(parent)
 
         if on_win:
             # 2. Special case code for menuinst.
             #    Always link/unlink menuinst first/last on windows in case a subsequent
             #    package tries to import it to create/remove a shortcut.
-            menuinst_node = next((node for node in graph if node.name == 'menuinst'), None)
-            python_node = next((node for node in graph if node.name == 'python'), None)
+            menuinst_node = next((node for node in graph if node.namekey == 'python:menuinst'), None)
+            python_node = next((node for node in graph if node.namekey == 'global:python'), None)
             if menuinst_node:
                 # add menuinst as a parent if python is a parent and the node
                 # isn't a parent of menuinst
@@ -314,7 +317,7 @@ class PrefixGraph(object):
             #    that have entry points use conda's own conda.exe python entry point binary. If
             #    conda is going to be updated during an operation, the unlink / link order matters.
             #    See issue #6057.
-            conda_node = next((node for node in graph if node.name == 'conda'), None)
+            conda_node = next((node for node in graph if node.namekey == 'python:conda'), None)
             if conda_node:
                 # add conda as a parent if python is a parent and node isn't a parent of conda
                 conda_parents = graph[conda_node]
@@ -322,6 +325,14 @@ class PrefixGraph(object):
                     if (hasattr(node, 'noarch') and node.noarch == NoarchType.python
                             and node not in conda_parents):
                         parents.add(conda_node)
+
+    def _graph_repr(self):
+        return {prec.record_id(): sorted(p.record_id() for p in parents)
+                for prec, parents in iteritems(self.graph)}
+
+    def _specs_repr(self):
+        return {prec.record_id(): sorted(str(spec) for spec in specs)
+                for prec, specs in iteritems(self.spec_matches)}
 
 
 #     def dot_repr(self, title=None):  # pragma: no cover

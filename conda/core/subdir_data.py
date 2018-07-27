@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
-from collections import defaultdict
+from collections import defaultdict, Counter
 from contextlib import closing
 from errno import EACCES, ENODEV, EPERM
 from genericpath import getmtime, isfile
@@ -20,7 +20,7 @@ import warnings
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
-from ..base.constants import CONDA_HOMEPAGE_URL
+from ..base.constants import CONDA_HOMEPAGE_URL, NAMESPACE_PACKAGE_NAMES
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems,
                              string_types, text_type, with_metaclass)
@@ -375,6 +375,73 @@ class SubdirData(object):
             _names_index[package_record.name].append(package_record)
             for ftr_name in package_record.track_features:
                 _track_features_index[ftr_name].append(package_record)
+
+        # for package_record in _package_records:
+        #     depends = []
+        #     specs = tuple(MatchSpec(dep) for dep in package_record.depends)
+        #     for spec in specs:
+        #         spec_name = spec.name
+        #         if spec.namespace or '*' in spec_name:
+        #             depends.append(spec)
+        #         else:
+        #             prec_matches = tuple(prec for prec in _names_index[spec_name]
+        #                                  if spec.match(prec))
+        #             namespaces = set(prec.namespace for prec in prec_matches)
+        #             if not namespaces:
+        #                 # If there aren't any matches, then there is no safe assumption to make
+        #                 # here. Have to add the spec *without* a namespace for now.
+        #                 depends.append(spec)
+        #                 print(">> unknown <<", spec)
+        #             elif len(namespaces) == 1:
+        #                 depends.append(MatchSpec(spec, namespace=namespaces.pop()))
+        #             else:
+        #                 # try legacy_name match
+        #                 _prec_matches = tuple(prec for prec in prec_matches
+        #                                       if prec.legacy_name == spec_name)
+        #                 _namespaces = set(prec.namespace for prec in _prec_matches)
+        #                 if _namespaces:
+        #                     if len(_namespaces) == 1:
+        #                         depends.append(MatchSpec(spec, namespace=_namespaces.pop()))
+        #                     # elif spec_name in ('burrito', ):  # TODO: these will need patched repdoata
+        #                     #     depends.append(MatchSpec(spec, namespace='global'))
+        #                     else:
+        #                         # bioconda/linux-64/burrito
+        #                         counter = Counter(prec.namespace for prec in _prec_matches)
+        #                         first, second = counter.most_common(2)
+        #                         if first[1] / second[1] > 0.6:  # arbitrary
+        #                             namespace = first[0]
+        #                             new_spec = MatchSpec(spec, namespace=namespace)
+        #                             depends.append(new_spec)
+        #                             print(package_record.fn, str(new_spec))
+        #                         else:
+        #                             import pdb; pdb.set_trace()
+        #                             assert 0
+        #                 else:
+        #                     namespace_overrides = {  # legacy_name, namespace
+        #                         "yaml": "global",
+        #                     }
+        #                     if spec_name in namespace_overrides:
+        #                         depends.append(MatchSpec(spec, namespace=namespace_overrides[spec_name]))
+        #                     elif package_record.namespace in namespaces:
+        #                         # use the namespace that matches the current package_record
+        #                         depends.append(MatchSpec(spec, namespace=package_record.namespace))
+        #                     elif package_record.namespace == 'global':
+        #                         # see if it's global namespace because of the multiple-namespace
+        #                         # dependency rule
+        #                         # https://conda.anaconda.org/bioconda/linux-64/meme-4.11.1-py27pl5.22.0_3.tar.bz2
+        #                         spaces = {spec_name for spec in specs} & namespaces
+        #                         if spaces:
+        #                             assert len(spaces) == 1, (channel_url, package_record.fn)
+        #                             namespace, = spaces
+        #                             depends.append(MatchSpec(spec, namespace=namespace))
+        #                         else:
+        #                             import pdb; pdb.set_trace()
+        #                             assert 0
+        #
+        #                     else:
+        #                         import pdb; pdb.set_trace()
+        #                         assert 0
+        #     package_record.depends = depends
 
         self._internal_state = _internal_state
         return _internal_state

@@ -4,13 +4,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from pprint import pprint
 
 from conda._vendor.auxlib.decorators import memoize
+from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.context import reset_context
 from conda.common.io import env_var
+from conda.common.serialize import json_dump
+from conda.core.solve import SpecsGroup
 from conda.exceptions import CyclicalDependencyError
 from conda.models.match_spec import MatchSpec
 import conda.models.prefix_graph
 from conda.models.prefix_graph import PrefixGraph
 import pytest
+
+from conda.models.records import PackageRecord
 from tests.core.test_solve import get_solver_4, get_solver_5
 
 try:
@@ -23,7 +28,8 @@ def get_conda_build_record_set():
     specs = MatchSpec("conda"), MatchSpec("conda-build"), MatchSpec("intel-openmp"),
     with get_solver_4(specs) as solver:
         final_state = solver.solve_final_state()
-    return final_state, frozenset(specs)
+        sg = SpecsGroup(specs).attach_namespaces(solver._r)
+    return final_state, frozenset(sg.iter_specs())
 
 
 @memoize
@@ -31,7 +37,8 @@ def get_pandas_record_set():
     specs = MatchSpec("pandas"), MatchSpec("python=2.7"), MatchSpec("numpy 1.13")
     with get_solver_4(specs) as solver:
         final_state = solver.solve_final_state()
-    return final_state, frozenset(specs)
+        sg = SpecsGroup(specs).attach_namespaces(solver._r)
+    return final_state, frozenset(sg.iter_specs())
 
 
 @memoize
@@ -40,7 +47,8 @@ def get_windows_conda_build_record_set():
              MatchSpec("colour"), MatchSpec("uses-spiffy-test-app"),)
     with get_solver_5(specs) as solver:
         final_state = solver.solve_final_state()
-    return final_state, frozenset(specs)
+        sg = SpecsGroup(specs).attach_namespaces(solver._r)
+    return final_state, frozenset(sg.iter_specs())
 
 
 @memoize
@@ -49,7 +57,30 @@ def get_sqlite_cyclical_record_set():
     specs = MatchSpec("sqlite=3.20.1[build_number=4]"), MatchSpec("flask"),
     with get_solver_4(specs) as solver:
         final_state = solver.solve_final_state()
-    return final_state, frozenset(specs)
+        sg = SpecsGroup(specs).attach_namespaces(solver._r)
+    return final_state, frozenset(sg.iter_specs())
+
+
+@memoize
+def get_graphviz_record_set():
+    specs = MatchSpec("graphviz"), MatchSpec("openssl"), MatchSpec("digest"), MatchSpec("mime"),
+    with get_solver_4(specs) as solver:
+        final_state = solver.solve_final_state()
+        sg = SpecsGroup(specs).attach_namespaces(solver._r)
+
+        new_index = solver._r._attach_namespaces()
+        print(new_index)
+        assert 0
+
+        _final_state = IndexedSet()
+        for prec in final_state:
+            for spec in prec.depends:
+                required_namespaces = solver._r.required_namespaces(spec)
+
+        final_state = tuple(PackageRecord.from_objects(prec, depends=set(
+
+        )) for prec in final_state)
+    return final_state, frozenset(sg.iter_specs())
 
 
 def test_prefix_graph_1():
@@ -63,9 +94,9 @@ def test_prefix_graph_1():
     order = (
         'global:intel-openmp',
         'global:ca-certificates',
-        'python:conda-env',
         'global:libgcc-ng',
         'global:libstdcxx-ng',
+        'python:conda-env',
         'global:libffi',
         'global:ncurses',
         'global:openssl',
@@ -174,8 +205,8 @@ def test_prefix_graph_1():
     nodes = tuple(rec.namekey for rec in graph.records)
     pprint(nodes)
     order = (
-        'python:conda-env',
         'global:intel-openmp',
+        'python:conda-env',
         'global:ca-certificates',
         'global:libgcc-ng',
         'global:libstdcxx-ng',
@@ -218,7 +249,7 @@ def test_prefix_graph_1():
     assert nodes == order
 
     spec_matches = {
-        'channel-4::intel-openmp-2018.0.3-0': {'intel-openmp'},
+        'channel-4::intel-openmp-2018.0.3-0': {'global:intel-openmp'},
     }
     assert {node.dist_str(): set(str(ms) for ms in specs) for node, specs in graph.spec_matches.items()} == spec_matches
 
@@ -288,9 +319,9 @@ def test_prefix_graph_2():
     order = (
         'global:intel-openmp',
         'global:ca-certificates',
-        'python:conda-env',
         'global:libgcc-ng',
         'global:libstdcxx-ng',
+        'python:conda-env',
         'global:libffi',
         'global:ncurses',
         'global:openssl',
@@ -338,9 +369,9 @@ def test_prefix_graph_2():
     order = (
         'global:intel-openmp',
         'global:ca-certificates',
-        'python:conda-env',
         'global:libgcc-ng',
         'global:libstdcxx-ng',
+        'python:conda-env',
         'global:libffi',
         'global:ncurses',
         'global:openssl',
@@ -391,7 +422,7 @@ def test_prefix_graph_2():
 
 def test_remove_youngest_descendant_nodes_with_specs():
     records, specs = get_conda_build_record_set()
-    graph = PrefixGraph(records, tuple(specs) + (MatchSpec("requests"),))
+    graph = PrefixGraph(records, tuple(specs) + (MatchSpec("python:requests"),))
 
     removed_nodes = graph.remove_youngest_descendant_nodes_with_specs()
 
@@ -399,9 +430,9 @@ def test_remove_youngest_descendant_nodes_with_specs():
     pprint(remaining_nodes)
     order = (
         'global:ca-certificates',
-        'python:conda-env',
         'global:libgcc-ng',
         'global:libstdcxx-ng',
+        'python:conda-env',
         'global:libffi',
         'global:ncurses',
         'global:openssl',
@@ -806,8 +837,8 @@ def test_deep_cyclical_dependency():
         'python:werkzeug',
         'python:setuptools',
         'python:jinja2',
-        'python:flask',
         'global:sqlite',  # deep cyclical dependency; guess this is what we get
+        'python:flask',
     )
     assert nodes == order
     sqlite_record = next(rec for rec in graph.graph if rec.name == 'sqlite')
@@ -824,8 +855,8 @@ def test_deep_cyclical_dependency():
         'python:werkzeug',
         'python:setuptools',
         'python:jinja2',
-        'python:flask',
         'global:sqlite',
+        'python:flask',
     )
 
     removed_nodes = graph.remove_spec(MatchSpec("sqlite"))
@@ -920,7 +951,22 @@ def test_deep_cyclical_dependency():
         'python:werkzeug',
         'python:setuptools',
         'python:jinja2',
-        'python:flask',
         'global:sqlite',
+        'python:flask',
     )
     assert nodes == order
+
+
+def test_dependendencies_with_ambiguous_namespaces():
+    records, specs = get_graphviz_record_set()
+    graph = PrefixGraph(records, specs)
+
+    graph_repr = graph._graph_repr()
+    assert graph_repr["channel-4:r:graphviz-8.9.10-r_0"] == [
+        "channel-4:global:graphviz-2.40.1-h25d223c_0",
+        "channel-4:global:r-3.4.3-mro343_0",
+    ]
+
+    print(json_dump(graph._graph_repr()))
+    print(json_dump(graph._specs_repr()))
+    assert 0

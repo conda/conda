@@ -1453,9 +1453,9 @@ def test_remove_with_constrained_dependencies():
         assert not unlink_dists_1
         order = (
             'channel-4::ca-certificates-2018.03.07-0',
-            'channel-4::conda-env-2.6.0-h36134e3_1',
             'channel-4::libgcc-ng-7.2.0-hdf63c60_3',
             'channel-4::libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4::conda-env-2.6.0-h36134e3_1',
             'channel-4::libffi-3.2.1-hd88cf55_4',
             'channel-4::ncurses-6.1-hf484d3e_0',
             'channel-4::openssl-1.0.2o-h20670df_0',
@@ -1931,7 +1931,7 @@ def test_r_base_mro_base():
             solver.solve_final_state()
 
 
-def test_namespace_create_ambiguous_namespace():
+def test_namespace_create_ambiguous_namespace_01():
     # solution should contain global:graphviz only
     specs = MatchSpec("global:graphviz"),
     with get_solver_4(specs) as solver:
@@ -1971,6 +1971,7 @@ def test_namespace_create_ambiguous_namespace():
         pprint(convert_to_record_id(final_state_2))
         assert final_state_2 == final_state_1
 
+def test_namespace_create_ambiguous_namespace_2():
     # solution should contain global:graphviz and python:graphviz
     specs = MatchSpec("python:graphviz"),
     with get_solver_4(specs) as solver:
@@ -2012,6 +2013,7 @@ def test_namespace_create_ambiguous_namespace():
         )
         assert convert_to_record_id(final_state_1) == order
 
+def test_namespace_create_ambiguous_namespace_3():
     # solution should contain global:graphviz and python:graphviz
     specs = MatchSpec("ibis-framework"),
     with get_solver_4(specs) as solver:
@@ -2079,6 +2081,51 @@ def test_namespace_create_ambiguous_namespace():
         )
         assert convert_to_record_id(final_state_1) == order
 
+
+def test_namespace_create_ambiguous_namespace_4a():
+    # solution should contain global:graphviz and python:graphviz
+    specs = MatchSpec("graphviz"), MatchSpec("python"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:expat-2.2.5-he0dffb1_0',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:jpeg-9b-h024ee3a_2',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:libtool-2.4.6-h544aabb_3',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:ncurses-6.1-hf484d3e_0',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libtiff-4.0.9-he85c1e1_1',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:freetype-2.8-hab7d2ae_1',
+            'channel-4:global:sqlite-3.24.0-h84994c4_0',
+            'channel-4:global:fontconfig-2.12.6-h49f89f6_0',
+            'channel-4:global:python-3.6.6-hc3d631a_0',
+            'channel-4:global:cairo-1.14.12-h7636065_2',
+            'channel-4:global:harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4:global:pango-1.41.0-hd475d92_0',
+            'channel-4:global:graphviz-2.40.1-h25d223c_0',
+            'channel-4:python:graphviz-0.8.3-py36_0',
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+
+def test_namespace_create_ambiguous_namespace_4b():
     # solution should contain global:graphviz and python:graphviz
     specs = MatchSpec("graphviz"), MatchSpec("itsdangerous"),
     with get_solver_4(specs) as solver:
@@ -2121,6 +2168,7 @@ def test_namespace_create_ambiguous_namespace():
         )
         assert convert_to_record_id(final_state_1) == order
 
+def test_namespace_create_ambiguous_namespace_5():
     # solution should contain python:digest, r:digest
     specs = MatchSpec("digest"),
     with get_solver_4(specs) as solver:
@@ -2180,6 +2228,7 @@ def test_namespace_create_ambiguous_namespace():
         )
         assert convert_to_record_id(final_state_1) == order
 
+def test_namespace_create_ambiguous_namespace_6():
     # solution should contain global:graphviz, python:graphviz, r:graphviz, python:digest, r:digest
     specs = MatchSpec("graphviz"), MatchSpec("digest"),
     with get_solver_4(specs) as solver:
@@ -2276,6 +2325,7 @@ def test_namespace_create_ambiguous_namespace():
         )
         assert convert_to_record_id(final_state_1) == order
 
+def test_namespace_create_ambiguous_namespace_7():
     # solution should contain global:graphviz, python:graphviz, python:digest
     specs = MatchSpec("graphviz"), MatchSpec("digest"), MatchSpec("itsdangerous"),
     with get_solver_4(specs) as solver:
@@ -2325,6 +2375,7 @@ def test_namespace_create_ambiguous_namespace():
         )
         assert convert_to_record_id(final_state_1) == order
 
+def test_namespace_create_ambiguous_namespace_8():
     # solution should contain global:graphviz, python:graphviz, r:graphviz, python:digest, r:digest, r:mime
     specs = MatchSpec("graphviz"), MatchSpec("digest"), MatchSpec("itsdangerous"), MatchSpec("mime"),
     with get_solver_4(specs) as solver:
@@ -2422,6 +2473,328 @@ def test_namespace_create_ambiguous_namespace():
             'channel-4:r:graphviz-8.9.10-r_0',
         )
         assert convert_to_record_id(final_state_1) == order
+
+
+def test_namespace_two_step_process_1():
+    specs = MatchSpec("python"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:ncurses-6.1-hf484d3e_0',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:sqlite-3.24.0-h84994c4_0',
+            'channel-4:global:python-3.7.0-hc3d631a_0',
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+    # should get global:graphviz, python:graphviz
+    specs_to_add = MatchSpec("graphviz"),
+    with get_solver_4(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                      history_specs=specs) as solver:
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_record_id(unlink_precs))
+        pprint(convert_to_record_id(link_precs))
+        unlink_order = (
+            'channel-4:global:python-3.7.0-hc3d631a_0',
+        )
+        assert convert_to_record_id(unlink_precs) == unlink_order
+
+        link_order = (
+            'channel-4:global:expat-2.2.5-he0dffb1_0',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:jpeg-9b-h024ee3a_2',
+            'channel-4:global:libtool-2.4.6-h544aabb_3',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libtiff-4.0.9-he85c1e1_1',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:freetype-2.8-hab7d2ae_1',
+            'channel-4:global:fontconfig-2.12.6-h49f89f6_0',
+            'channel-4:global:python-3.6.6-hc3d631a_0',
+            'channel-4:global:cairo-1.14.12-h7636065_2',
+            'channel-4:global:harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4:global:pango-1.41.0-hd475d92_0',
+            'channel-4:global:graphviz-2.40.1-h25d223c_0',
+            'channel-4:python:graphviz-0.8.3-py36_0',
+        )
+        assert convert_to_record_id(link_precs) == link_order
+
+
+def test_namespace_remove_1():
+    specs = MatchSpec("itsdangerous"), MatchSpec("r-base"), MatchSpec("graphviz"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:_r-mutex-1.0.0-anacondar_1',
+            'channel-4:global:binutils_impl_linux-64-2.28.1-had2808c_3',
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libgfortran-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:binutils_linux-64-7.2.0-had2808c_27',
+            'channel-4:global:bzip2-1.0.6-h14c3975_5',
+            'channel-4:global:expat-2.2.5-he0dffb1_0',
+            'channel-4:global:gcc_impl_linux-64-7.2.0-habb00fd_3',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:gsl-2.4-h14c3975_4',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:jpeg-9b-h024ee3a_2',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:libopenblas-0.2.20-h9ac9557_7',
+            'channel-4:global:libtool-2.4.6-h544aabb_3',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:ncurses-6.0-h9df7e31_2',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:bwidget-1.9.11-0',
+            'channel-4:global:gcc_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:gfortran_impl_linux-64-7.2.0-hdf63c60_3',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:gxx_impl_linux-64-7.2.0-hdf63c60_3',
+            'channel-4:global:krb5-1.14.2-hcdc1b81_6',
+            'channel-4:global:libedit-3.1-heed3624_0',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libssh2-1.8.0-h9cfc8f7_4',
+            'channel-4:global:libtiff-4.0.9-he85c1e1_1',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:tktable-2.10-h14c3975_0',
+            'channel-4:global:freetype-2.8-hab7d2ae_1',
+            'channel-4:global:gfortran_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:gxx_linux-64-7.2.0-h550dcbe_27',
+            'channel-4:global:libcurl-7.60.0-h1ad7b7a_0',
+            'channel-4:global:sqlite-3.23.1-he433501_0',
+            'channel-4:global:curl-7.60.0-h84994c4_0',
+            'channel-4:global:fontconfig-2.12.6-h49f89f6_0',
+            'channel-4:global:python-3.6.5-hc3d631a_2',
+            'channel-4:global:cairo-1.14.12-h7636065_2',
+            'channel-4:python:itsdangerous-0.24-py36h93cc618_1',
+            'channel-4:global:harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4:global:pango-1.41.0-hd475d92_0',
+            'channel-4:global:graphviz-2.40.1-h25d223c_0',
+            'channel-4:global:r-base-3.4.3-h290ecf8_1',
+            'channel-4:r:boot-1.3_20-r343h889e2dd_0',
+            'channel-4:r:cluster-2.0.6-r343h4829c52_0',
+            'channel-4:r:codetools-0.2_15-r343h889e2dd_0',
+            'channel-4:r:foreign-0.8_69-r343h086d26f_0',
+            'channel-4:r:kernsmooth-2.23_15-r343h4829c52_4',
+            'channel-4:r:lattice-0.20_35-r343h086d26f_0',
+            'channel-4:r:mass-7.3_48-r343h086d26f_0',
+            'channel-4:r:nnet-7.3_12-r343h086d26f_0',
+            'channel-4:r:rpart-4.1_11-r343h086d26f_0',
+            'channel-4:r:spatial-7.3_11-r343h086d26f_4',
+            'channel-4:r:class-7.3_14-r343h086d26f_4',
+            'channel-4:r:matrix-1.2_12-r343h086d26f_0',
+            'channel-4:r:nlme-3.1_131-r343h4829c52_0',
+            'channel-4:r:mgcv-1.8_22-r343h086d26f_0',
+            'channel-4:r:survival-2.41_3-r343h086d26f_0',
+            'channel-4:r:recommended-3.4.3-r343_0',
+            'channel-4:global:r-3.4.3-r343_0',
+            'channel-4:python:graphviz-0.8.3-py36_0',
+            'channel-4:r:graphviz-8.9.10-r_0',
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+    # should remove all graphviz
+    specs_to_remove = MatchSpec("graphviz"),
+    with get_solver_4(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
+                      history_specs=specs) as solver:
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_record_id(link_precs))
+        pprint(convert_to_record_id(link_precs))
+        unlink_order = (
+
+        )
+        assert convert_to_record_id(unlink_precs) == unlink_order
+
+        link_order = (
+
+        )
+        assert convert_to_record_id(link_precs) == link_order
+
+    # should remove all graphviz
+    specs_to_remove = MatchSpec("global:graphviz"),
+    with get_solver_4(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
+                      history_specs=specs) as solver:
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_record_id(unlink_precs))
+        pprint(convert_to_record_id(link_precs))
+        assert convert_to_record_id(unlink_precs) == unlink_order
+        assert convert_to_record_id(link_precs) == link_order
+
+    # should remove python:graphviz
+    specs_to_remove = MatchSpec("python:graphviz"),
+    with get_solver_4(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
+                      history_specs=specs) as solver:
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_record_id(link_precs))
+        pprint(convert_to_record_id(link_precs))
+        unlink_order = (
+
+        )
+        assert convert_to_record_id(unlink_precs) == unlink_order
+
+        link_order = (
+
+        )
+        assert convert_to_record_id(link_precs) == link_order
+
+    # should remove all python:graphviz
+    specs_to_remove = MatchSpec("python-graphviz"),
+    with get_solver_4(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
+                      history_specs=specs) as solver:
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_record_id(unlink_precs))
+        pprint(convert_to_record_id(link_precs))
+        assert convert_to_record_id(unlink_precs) == unlink_order
+        assert convert_to_record_id(link_precs) == link_order
+
+
+def test_namespace_create_ambiguous_namespace_10():
+    specs = MatchSpec("itsdangerous"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            'channel-4:global:ca-certificates-2018.03.07-0',
+            'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+            'channel-4:global:libffi-3.2.1-hd88cf55_4',
+            'channel-4:global:ncurses-6.1-hf484d3e_0',
+            'channel-4:global:openssl-1.0.2o-h20670df_0',
+            'channel-4:global:tk-8.6.7-hc745277_3',
+            'channel-4:global:xz-5.2.4-h14c3975_4',
+            'channel-4:global:zlib-1.2.11-ha838bed_2',
+            'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4:global:readline-7.0-ha6073c6_4',
+            'channel-4:global:sqlite-3.24.0-h84994c4_0',
+            'channel-4:global:python-3.6.6-hc3d631a_0',
+            'channel-4:python:itsdangerous-0.24-py36h93cc618_1',
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+    # should get global:graphviz, python:graphviz
+    specs_to_add = MatchSpec("graphviz"),
+    with get_solver_4(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                      history_specs=specs) as solver:
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_record_id(unlink_precs))
+        pprint(convert_to_record_id(link_precs))
+        unlink_order = (
+        )
+        assert convert_to_record_id(unlink_precs) == unlink_order
+
+        link_order = (
+            'channel-4:global:expat-2.2.5-he0dffb1_0',
+            'channel-4:global:graphite2-1.3.11-h16798f4_2',
+            'channel-4:global:icu-58.2-h9c2bf20_1',
+            'channel-4:global:jpeg-9b-h024ee3a_2',
+            'channel-4:global:libtool-2.4.6-h544aabb_3',
+            'channel-4:global:libxcb-1.13-h1bed415_1',
+            'channel-4:global:pcre-8.42-h439df22_0',
+            'channel-4:global:pixman-0.34.0-hceecf20_3',
+            'channel-4:global:glib-2.56.1-h000015b_0',
+            'channel-4:global:libpng-1.6.34-hb9fc6fc_0',
+            'channel-4:global:libtiff-4.0.9-he85c1e1_1',
+            'channel-4:global:libxml2-2.9.8-h26e45fe_1',
+            'channel-4:global:freetype-2.8-hab7d2ae_1',
+            'channel-4:global:fontconfig-2.12.6-h49f89f6_0',
+            'channel-4:global:cairo-1.14.12-h7636065_2',
+            'channel-4:global:harfbuzz-1.7.6-h5f0a787_1',
+            'channel-4:global:pango-1.41.0-hd475d92_0',
+            'channel-4:global:graphviz-2.40.1-h25d223c_0',
+            'channel-4:python:graphviz-0.8.3-py36_0',
+        )
+        assert convert_to_record_id(link_precs) == link_order
+
+
+
+# def test_namespace_create_ambiguous_namespace_11():
+#     specs = MatchSpec("itsdangerous"),
+#     with get_solver_4(specs) as solver:
+#         final_state_1 = solver.solve_final_state()
+#         pprint(convert_to_record_id(final_state_1))
+#         order = (
+#             'channel-4:global:ca-certificates-2018.03.07-0',
+#             'channel-4:global:libgcc-ng-7.2.0-hdf63c60_3',
+#             'channel-4:global:libstdcxx-ng-7.2.0-hdf63c60_3',
+#             'channel-4:global:libffi-3.2.1-hd88cf55_4',
+#             'channel-4:global:ncurses-6.1-hf484d3e_0',
+#             'channel-4:global:openssl-1.0.2o-h20670df_0',
+#             'channel-4:global:tk-8.6.7-hc745277_3',
+#             'channel-4:global:xz-5.2.4-h14c3975_4',
+#             'channel-4:global:zlib-1.2.11-ha838bed_2',
+#             'channel-4:global:libedit-3.1.20170329-h6b74fdf_2',
+#             'channel-4:global:readline-7.0-ha6073c6_4',
+#             'channel-4:global:sqlite-3.24.0-h84994c4_0',
+#             'channel-4:global:python-3.6.6-hc3d631a_0',
+#             'channel-4:python:itsdangerous-0.24-py36h93cc618_1',
+#         )
+#         assert convert_to_record_id(final_state_1) == order
+#
+#     # should get global:graphviz, python:graphviz
+#     specs_to_add = MatchSpec("graphviz"), MatchSpec("http-cookies"),
+#     with get_solver_4(specs_to_add=specs_to_add, prefix_records=final_state_1,
+#                       history_specs=specs) as solver:
+#         unlink_precs, link_precs = solver.solve_for_diff()
+#         pprint(convert_to_record_id(unlink_precs))
+#         pprint(convert_to_record_id(link_precs))
+#         unlink_order = (
+#         )
+#         assert convert_to_record_id(unlink_precs) == unlink_order
+#
+#         link_order = (
+#
+#         )
+#         assert convert_to_record_id(link_precs) == link_order
+
+
+def test_namespace_create_ambiguous_namespace_12():
+    # should get python:digest, r:digest
+    specs = MatchSpec("uses-rpy4"), MatchSpec("http-cookies"),
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_record_id(final_state_1))
+        order = (
+            # should not include perl:http-cookies
+        )
+        assert convert_to_record_id(final_state_1) == order
+
+    # should get global:graphviz, python:graphviz
+    specs_to_add = MatchSpec("graphviz"),
+    with get_solver_4(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                      history_specs=specs) as solver:
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_record_id(unlink_precs))
+        pprint(convert_to_record_id(link_precs))
+        unlink_order = (
+        )
+        assert convert_to_record_id(unlink_precs) == unlink_order
+
+        link_order = (
+
+            # should have python:graphviz
+        )
+        assert convert_to_record_id(link_precs) == link_order
 
 
 def test_conda_env_namespace_patch():

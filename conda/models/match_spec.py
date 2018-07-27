@@ -390,7 +390,7 @@ class MatchSpec(object):
         builder = []
         name = self.get_exact_value('name')
         assert name
-        builder.append(name)
+        builder.append((self.namespace + ":" + name) if self.namespace else name)
 
         build = self.get_raw_value('build')
         version = self.get_raw_value('version')
