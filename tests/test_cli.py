@@ -52,7 +52,8 @@ class TestJson(unittest.TestCase):
         for key in keys:
             assert key in res
 
-        res = capture_json_with_argv('conda info conda --json')
+        res = capture_json_with_argv('conda info conda --json', disallow_stderr=False,
+                                     ignore_stderr=True)
         self.assertIsInstance(res, dict)
         self.assertIn('conda', res)
         self.assertIsInstance(res['conda'], list)
