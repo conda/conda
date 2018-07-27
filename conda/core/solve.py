@@ -281,17 +281,6 @@ class Solver(object):
                     pinned_version = get_major_minor_version(python_prefix_rec.version) + '.*'
                     specs_map['python'] = MatchSpec(python_spec, version=pinned_version)
 
-        # For the aggressive_update_packages configuration parameter, we strip any target
-        # that's been set.
-        if not context.offline:
-            for spec in context.aggressive_update_packages:
-                if spec.name in specs_map:
-                    old_spec = specs_map[spec.name]
-                    specs_map[spec.name] = MatchSpec(old_spec, target=None)
-            if (context.auto_update_conda and paths_equal(self.prefix, context.root_prefix)
-                    and any(dist.name == "conda" for dist in solution)):
-                specs_map["conda"] = MatchSpec("conda")
-
         # add in explicitly requested specs from specs_to_add
         # this overrides any name-matching spec already in the spec map
         specs_map.update((s.name, s) for s in specs_to_add)
@@ -302,6 +291,18 @@ class Solver(object):
             track_features_specs = tuple(MatchSpec(x + '@') for x in context.track_features)
         if not ignore_pinned:
             pinned_specs = get_pinned_specs(self.prefix)
+
+        # As a business rule, we never want to downgrade conda below the current version,
+        # unless that's requested explicitly by the user (which we actively discourage).
+        if 'conda' in specs_map and paths_equal(self.prefix, context.conda_prefix):
+            conda_prefix_rec = prefix_data.get('conda')
+            if conda_prefix_rec:
+                conda_spec = specs_map['conda']
+                if not conda_spec.get('version'):
+                    conda_spec = MatchSpec(conda_spec, version=">=%s" % conda_prefix_rec.version)
+                if context.auto_update_conda:
+                    conda_spec = MatchSpec(conda_spec, target=None)
+                specs_map['conda'] = conda_spec
 
         final_environment_specs = IndexedSet(concatv(
             itervalues(specs_map),
