@@ -329,6 +329,14 @@ class PackageRecord(DictSafeMixin, Entity):
             build=self.build,
         )
 
+    @property
+    def namekey(self):
+        return "global:" + self.name
+
+    def record_id(self):
+        return "%s/%s::%s-%s-%s" % (self.channel.canonical_name, self.subdir,
+                                    self.name, self.version, self.build)
+
 
 class Md5Field(StringField):
 

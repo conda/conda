@@ -22,10 +22,10 @@ from .prefix_data import PrefixData, get_python_version_for_prefix
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
-from ..base.constants import SafetyChecks
+from ..base.constants import DEFAULTS_CHANNEL_NAME, SafetyChecks
 from ..base.context import context
-from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win
-from ..common.io import Spinner, time_recorder
+from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
+from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
@@ -37,7 +37,9 @@ from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import hardlink_supported, is_conda_environment, softlink_supported
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
+from ..models.version import VersionOrder
 from ..resolve import MatchSpec
+from ..utils import human_bytes
 
 try:
     from cytoolz.itertoolz import concat, concatv, groupby, interleave, take
@@ -137,6 +139,18 @@ ActionGroup = namedtuple('ActionGroup', (
     'pkg_data',
     'actions',
     'target_prefix',
+))
+
+ChangeReport = namedtuple("ChangeReport", (
+    "prefix",
+    "specs_to_remove",
+    "specs_to_add",
+    "removed_precs",
+    "new_precs",
+    "updated_precs",
+    "downgraded_precs",
+    "superseded_precs",
+    "fetch_precs",
 ))
 
 
@@ -728,15 +742,192 @@ class UnlinkLinkTransaction(object):
         return legacy_action_groups
 
     def print_transaction_summary(self):
-        from ..plan import display_actions
         legacy_action_groups = self._make_legacy_action_groups()
 
+        download_urls = set(axn.url for axn in self._pfe.cache_actions)
+
         for actions, (prefix, stp) in zip(legacy_action_groups, iteritems(self.prefix_setups)):
-            pseudo_index = {prec: prec for prec in concatv(stp.unlink_precs, stp.link_precs)}
-            display_actions(actions, pseudo_index, show_channel_urls=context.show_channel_urls,
-                            specs_to_remove=stp.remove_specs, specs_to_add=stp.update_specs)
+            change_report = self._calculate_change_report(prefix, stp.unlink_precs, stp.link_precs,
+                                                          download_urls, stp.remove_specs,
+                                                          stp.update_specs)
+            change_report_str = self._change_report_str(change_report)
+            print(change_report_str)
 
         return legacy_action_groups
+
+    def _change_report_str(self, change_report):
+        builder = ['', '## Package Plan ##\n']
+        builder.append('  environment location: %s' % change_report.prefix)
+        builder.append('')
+        if change_report.specs_to_remove:
+            builder.append('  removed specs:%s'
+                           % dashlist(sorted(text_type(s) for s in change_report.specs_to_remove),
+                                      indent=4))
+            builder.append('')
+        if change_report.specs_to_add:
+            builder.append('  added / updated specs:%s'
+                           % dashlist(sorted(text_type(s) for s in change_report.specs_to_add),
+                                      indent=4))
+            builder.append('')
+
+        def channel_filt(s):
+            if context.show_channel_urls is False:
+                return ''
+            if context.show_channel_urls is None and s == DEFAULTS_CHANNEL_NAME:
+                return ''
+            return s
+
+        def print_dists(dists_extras):
+            lines = []
+            fmt = "    %-27s|%17s"
+            lines.append(fmt % ('package', 'build'))
+            lines.append(fmt % ('-' * 27, '-' * 17))
+            for prec, extra in dists_extras:
+                line = fmt % (strip_global(prec.namekey) + '-' + prec.version, prec.build)
+                if extra:
+                    line += extra
+                lines.append(line)
+            return lines
+
+        convert_namekey = lambda x: ("0:" + x[7:]) if x.startswith("global:") else x
+        strip_global = lambda x: x[7:] if x.startswith("global:") else x
+
+        if change_report.fetch_precs:
+            builder.append("\nThe following packages will be downloaded:\n")
+
+            disp_lst = []
+            total_download_bytes = 0
+            for prec in sorted(change_report.fetch_precs,
+                               key=lambda x: convert_namekey(x.namekey)):
+                extra = '%15s' % human_bytes(prec.size)
+                total_download_bytes += prec.size
+                schannel = channel_filt(text_type(prec.channel.canonical_name))
+                if schannel:
+                    extra += '  ' + schannel
+                disp_lst.append((prec, extra))
+            builder.extend(print_dists(disp_lst))
+
+            builder.append(' ' * 4 + '-' * 60)
+            builder.append(" " * 43 + "Total: %14s" % human_bytes(total_download_bytes))
+
+        def diff_strs(unlink_prec, link_prec):
+            channel_change = unlink_prec.channel.name != link_prec.channel.name
+            subdir_change = unlink_prec.subdir != link_prec.subdir
+            version_change = unlink_prec.version != link_prec.version
+            build_change = unlink_prec.build != link_prec.build
+
+            builder_left = []
+            builder_right = []
+
+            if channel_change or subdir_change:
+                builder_left.append(unlink_prec.channel.name)
+                builder_right.append(link_prec.channel.name)
+            if subdir_change:
+                builder_left.append("/" + unlink_prec.subdir)
+                builder_right.append("/" + link_prec.subdir)
+            if (channel_change or subdir_change) and (version_change or build_change):
+                builder_left.append("::" + unlink_prec.name + "-")
+                builder_right.append("::" + link_prec.name + "-")
+            if version_change or build_change:
+                builder_left.append(unlink_prec.version + "-" + unlink_prec.build)
+                builder_right.append(link_prec.version + "-" + link_prec.build)
+
+            return ''.join(builder_left), ''.join(builder_right)
+
+        def add_single(display_key, disp_str):
+            if len(display_key) > 18:
+                display_key = display_key[:17] + "~"
+            builder.append("  %-18s %s" % (display_key, disp_str))
+
+        def add_double(display_key, left_str, right_str):
+            if len(display_key) > 18:
+                display_key = display_key[:17] + "~"
+            if len(left_str) > 38:
+                left_str = left_str[:37] + "~"
+            builder.append("  %-18s %38s --> %s" % (display_key, left_str, right_str))
+
+        if change_report.new_precs:
+            builder.append("\nThe following NEW packages will be INSTALLED:\n")
+            for namekey in sorted(change_report.new_precs, key=convert_namekey):
+                link_prec = change_report.new_precs[namekey]
+                display_key = strip_global(namekey)
+                add_single(display_key, link_prec.record_id())
+
+        if change_report.removed_precs:
+            builder.append("\nThe following packages will be REMOVED:\n")
+            for namekey in sorted(change_report.removed_precs, key=convert_namekey):
+                unlink_prec = change_report.removed_precs[namekey]
+                builder.append("  " + "-".join(
+                    (unlink_prec.namekey, unlink_prec.version, unlink_prec.build)
+                ))
+
+        if change_report.updated_precs:
+            builder.append("\nThe following packages will be UPDATED:\n")
+            for namekey in sorted(change_report.updated_precs, key=convert_namekey):
+                unlink_prec, link_prec = change_report.updated_precs[namekey]
+                display_key = strip_global(namekey)
+                left_str, right_str = diff_strs(unlink_prec, link_prec)
+                add_double(display_key, left_str, right_str)
+
+        if change_report.superseded_precs:
+            builder.append("\nThe following packages will be SUPERSEDED "
+                           "by a higher-priority channel:\n")
+            for namekey in sorted(change_report.superseded_precs, key=convert_namekey):
+                unlink_prec, link_prec = change_report.superseded_precs[namekey]
+                display_key = strip_global(namekey)
+                left_str, right_str = diff_strs(unlink_prec, link_prec)
+                add_double(display_key, left_str, right_str)
+
+        if change_report.downgraded_precs:
+            builder.append("\nThe following packages will be DOWNGRADED:\n")
+            for namekey in sorted(change_report.downgraded_precs, key=convert_namekey):
+                unlink_prec, link_prec = change_report.downgraded_precs[namekey]
+                display_key = strip_global(namekey)
+                left_str, right_str = diff_strs(unlink_prec, link_prec)
+                add_double(display_key, left_str, right_str)
+        builder.append('')
+        builder.append('')
+        return "\n".join(builder)
+
+    @staticmethod
+    def _calculate_change_report(prefix, unlink_precs, link_precs, download_urls, specs_to_remove,
+                                 specs_to_add):
+        unlink_map = {prec.namekey: prec for prec in unlink_precs}
+        link_map = {prec.namekey: prec for prec in link_precs}
+        unlink_namekeys, link_namekeys = set(unlink_map), set(link_map)
+
+        removed_precs = {namekey: unlink_map[namekey]
+                         for namekey in (unlink_namekeys - link_namekeys)}
+        new_precs = {namekey: link_map[namekey]
+                     for namekey in (link_namekeys - unlink_namekeys)}
+
+        # updated means a version increase, or a build number increase
+        # downgraded means a version decrease, or build number decrease, but channel canonical_name
+        #   has to be the same
+        # superseded then should be everything else left over
+        updated_precs = {}
+        downgraded_precs = {}
+        superseded_precs = {}
+
+        common_namekeys = link_namekeys & unlink_namekeys
+        for namekey in common_namekeys:
+            unlink_prec, link_prec = unlink_map[namekey], link_map[namekey]
+            unlink_vo = VersionOrder(unlink_prec.version)
+            link_vo = VersionOrder(link_prec.version)
+            build_number_increases = link_prec.build_number > unlink_prec.build_number
+            if link_vo == unlink_vo and build_number_increases or link_vo > unlink_vo:
+                updated_precs[namekey] = (unlink_prec, link_prec)
+            elif (link_prec.channel.name == unlink_prec.channel.name
+                    and link_prec.subdir == unlink_prec.subdir):
+                downgraded_precs[namekey] = (unlink_prec, link_prec)
+            else:
+                superseded_precs[namekey] = (unlink_prec, link_prec)
+
+        fetch_precs = set(prec for prec in link_precs if prec.url in download_urls)
+        change_report = ChangeReport(prefix, specs_to_remove, specs_to_add, removed_precs,
+                                     new_precs, updated_precs, downgraded_precs, superseded_precs,
+                                     fetch_precs)
+        return change_report
 
 
 def run_script(prefix, prec, action='post-link', env_prefix=None):
