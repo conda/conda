@@ -96,6 +96,10 @@ def print_package_info(packages):
             for prec in result:
                 pretty_package(prec)
 
+    print("WARNING: 'conda info package_name' is deprecated.\n"
+          "          Use 'conda search package_name --info'.",
+          file=sys.stderr)
+
 
 def get_info_dict(system=False):
     try:

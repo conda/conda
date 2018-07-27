@@ -62,13 +62,13 @@ def captured(disallow_stderr=True):
             raise Exception("Got stderr output: %s" % c.stderr)
 
 
-def capture_json_with_argv(command, **kwargs):
-    stdout, stderr, exit_code = run_inprocess_conda_command(command)
+def capture_json_with_argv(command, disallow_stderr=True, ignore_stderr=False, **kwargs):
+    stdout, stderr, exit_code = run_inprocess_conda_command(command, disallow_stderr)
     if kwargs.get('relaxed'):
         match = re.match('\A.*?({.*})', stdout, re.DOTALL)
         if match:
             stdout = match.groups()[0]
-    elif stderr:
+    elif stderr and not ignore_stderr:
         # TODO should be exception
         return stderr
     try:
@@ -90,10 +90,10 @@ def assert_in(a, b, output=""):
     assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())
 
 
-def run_inprocess_conda_command(command):
+def run_inprocess_conda_command(command, disallow_stderr=True):
     # anything that uses this function is an integration test
     reset_context(())
-    with argv(split(command)), captured() as c:
+    with argv(split(command)), captured(disallow_stderr) as c:
         initialize_logging()
         try:
             exit_code = cli.main()
