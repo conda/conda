@@ -747,10 +747,26 @@ def test_conda_downgrade():
             pprint([Dist(rec).full_name for rec in unlink_precs])
             pprint([Dist(rec).full_name for rec in link_precs])
             unlink_order = (
-
+                'channel-4::requests-2.18.4-py36he2e5f8d_1',
+                'channel-4::pyopenssl-17.5.0-py36h20ba746_0',
+                'channel-4::cryptography-2.1.4-py36hd09be54_0',
+                'channel-4::setuptools-38.5.1-py36_0',
+                'channel-4::certifi-2018.1.18-py36_0',
+                'channel-4::python-3.6.4-hc3d631a_1',
+                'channel-4::openssl-1.0.2n-hb7f436b_0',
+                # no conda downgrade
             )
             link_order = (
+                'channel-2::openssl-1.0.2l-0',
+                'channel-4::python-3.6.3-h0ef2715_3',
+                'channel-2::certifi-2016.2.28-py36_0',
                 'channel-2::itsdangerous-0.24-py36_0',
+                'channel-2::pyparsing-2.1.4-py36_0',
+                'channel-2::requests-2.14.2-py36_0',
+                'channel-2::packaging-16.8-py36_0',
+                'channel-4::setuptools-36.5.0-py36he42e2e1_0',
+                'channel-2::cryptography-1.8.1-py36_0',
+                'channel-2::pyopenssl-17.0.0-py36_0',
             )
             assert tuple(unlink_precs) == tuple(solver._index[Dist(d)] for d in unlink_order)
             assert tuple(link_precs) == tuple(solver._index[Dist(d)] for d in link_order)
@@ -771,10 +787,27 @@ def test_conda_downgrade():
             pprint([Dist(rec).full_name for rec in unlink_precs])
             pprint([Dist(rec).full_name for rec in link_precs])
             unlink_order = (
+                # now conda gets downgraded
                 'channel-4::conda-4.4.10-py36_0',
+                'channel-4::requests-2.18.4-py36he2e5f8d_1',
+                'channel-4::pyopenssl-17.5.0-py36h20ba746_0',
+                'channel-4::cryptography-2.1.4-py36hd09be54_0',
+                'channel-4::setuptools-38.5.1-py36_0',
+                'channel-4::certifi-2018.1.18-py36_0',
+                'channel-4::python-3.6.4-hc3d631a_1',
+                'channel-4::openssl-1.0.2n-hb7f436b_0',
             )
             link_order = (
+                'channel-2::openssl-1.0.2l-0',
+                'channel-4::python-3.6.3-h0ef2715_3',
+                'channel-2::certifi-2016.2.28-py36_0',
                 'channel-2::itsdangerous-0.24-py36_0',
+                'channel-2::pyparsing-2.1.4-py36_0',
+                'channel-2::requests-2.14.2-py36_0',
+                'channel-2::setuptools-27.2.0-py36_0',
+                'channel-2::packaging-16.8-py36_0',
+                'channel-2::cryptography-1.8.1-py36_0',
+                'channel-2::pyopenssl-17.0.0-py36_0',
                 'channel-2::conda-4.3.21-py36_0',
             )
             assert tuple(unlink_precs) == tuple(solver._index[Dist(d)] for d in unlink_order)
