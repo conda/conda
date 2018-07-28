@@ -72,7 +72,7 @@ conda_build_test: &conda_build_test
           sudo su root -c ". utils/functions.sh && make_conda_entrypoint /opt/conda/bin/conda-env /opt/conda/bin/python ~circleci/conda 'from conda_env.cli.main import main'"
           site_packages=$(/opt/conda/bin/python -c "from distutils.sysconfig import get_python_lib as g; print(g())")
           sudo su -c "echo /home/circleci/conda > $site_packages/conda.pth"
-          sudo /opt/conda/bin/conda install -yq conda-verify
+          sudo /opt/conda/bin/conda install -yq 'conda-verify<3'
     - run:
         name: checkout conda-build
         command: |
