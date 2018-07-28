@@ -260,7 +260,6 @@ class PackageRecord(DictSafeMixin, Entity):
     def dist_str(self):
         return "%s::%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build)
 
-
     def dist_fields_dump(self):
         return {
             "base_url": self.channel.base_url,
@@ -272,7 +271,6 @@ class PackageRecord(DictSafeMixin, Entity):
             "platform": self.subdir,
             "version": self.version,
         }
-
 
     arch = StringField(required=False, nullable=True)  # so legacy
     platform = EnumField(Platform, required=False, nullable=True)  # so legacy
@@ -302,7 +300,6 @@ class PackageRecord(DictSafeMixin, Entity):
             MatchSpec(spec, optional=True) for spec in self.constrains or ()
         )})
         return tuple(itervalues(result))
-
 
     # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
     # PackageCacheRecord (`pcrec`) or PrefixRecord (`prefix_rec`)
@@ -334,6 +331,10 @@ class PackageRecord(DictSafeMixin, Entity):
         return "global:" + self.name
 
     def record_id(self):
+        # WARNING: This is right now only used in link.py _change_report_str(). It is not
+        #          the official record_id / uid until it gets namespace.  Even then, we might
+        #          make the format different.  Probably something like
+        #              channel_name/subdir:namespace:name-version-build_number-build_string
         return "%s/%s::%s-%s-%s" % (self.channel.canonical_name, self.subdir,
                                     self.name, self.version, self.build)
 
