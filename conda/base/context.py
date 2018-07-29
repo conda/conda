@@ -204,6 +204,7 @@ class Context(Configuration):
     update_dependencies = PrimitiveParameter(False, aliases=('update_deps',))
     _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
 
+    featureless_minimization_disabled_feature_flag = PrimitiveParameter(False)
     target_prefix_override = PrimitiveParameter('')
 
     # conda_build
@@ -594,6 +595,7 @@ class Context(Configuration):
             'dry_run',
             'enable_private_envs',
             'error_upload_url',  # should remain undocumented
+            'featureless_minimization_disabled_feature_flag',
             'force_32bit',
             'ignore_pinned',
             'migrated_custom_channels',
