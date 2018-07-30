@@ -16,6 +16,7 @@
   config (#7195)
 * resolve #6979, #7086 remove Dist from majority of project (#7216, #7252)
 * fix #7362 remove --license from conda info and related code paths (#7386)
+* resolve #7309 deprecate 'conda info package_name' (#7310)
 
 ### Improvements
 * import speedups (#7122)
@@ -49,6 +50,7 @@
 * resolve #7375 enable conda config --set update_modifier (#7377)
 * fix #5885 improve conda env error messages and add extra tests (#7395)
 * msys2 path conversion (#7389)
+* fix autocompletion in fish (#7575)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
@@ -68,6 +70,7 @@
 * @goanpeca
 * @kalefranz
 * @mbargull
+* @ohadravid
 
 
 ## 4.5.8 (2018-07-10)
