@@ -1212,8 +1212,8 @@ class IntegrationTests(TestCase):
         with pytest.raises(DryRunExit):
             run_command(Commands.CREATE, prefix, "flask", "--dry-run")
         stdout, stderr = run_command(Commands.CREATE, prefix, "flask", "--dry-run", use_exception_handler=True)
-        assert "flask:" in stdout
-        assert "python:" in stdout
+        assert ":flask" in stdout
+        assert ":python" in stdout
         assert join('another', 'place') in stdout
 
     def test_create_dry_run_json(self):

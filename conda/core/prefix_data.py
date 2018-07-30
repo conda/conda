@@ -23,7 +23,13 @@ from ..models.channel import Channel
 from ..models.enums import PackageType, PathType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
-from ..models.records import (PackageRef, PathData, PathDataV1, PathsData, PrefixRecord)
+from ..models.records import (PackageRecord, PathData, PathDataV1, PathsData, PrefixRecord)
+
+try:
+    from cytoolz.itertoolz import concat, concatv
+except ImportError:  # pragma: no cover
+    from .._vendor.toolz.itertoolz import concat, concatv  # NOQA
+
 
 log = getLogger(__name__)
 
@@ -133,7 +139,7 @@ class PrefixData(object):
             return (prefix_rec for prefix_rec in self.iter_records()
                     if param.match(prefix_rec))
         else:
-            assert isinstance(param, PackageRef)
+            assert isinstance(param, PackageRecord)
             return (prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param)
 
     @property
@@ -319,6 +325,7 @@ class PrefixData(object):
 
             python_rec = PrefixRecord(
                 package_type=package_type,
+                namespace='python',
                 name=pydist.name.lower(),
                 version=pydist.version,
                 channel=Channel('pypi'),

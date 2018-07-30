@@ -2,17 +2,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-                         +----------------+
-                         | BasePackageRef |
-                         +-------+--------+
-                                 |
-              +------------+     |     +-----------------+
-              | PackageRef <-----+-----> IndexJsonRecord |
-              +------+-----+           +-------+---------+
-                     |                         |
-                     +-----------+-------------+
-                                 |
-                         +-------v-------+
+                         +---------------+
                          | PackageRecord |
                          +--+---------+--+
 +--------------------+      |         |      +--------------+
@@ -27,6 +17,7 @@ from os.path import basename, join
 
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
+from .match_spec import MatchSpec
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
                                      StringField)
@@ -231,14 +222,12 @@ class PathsData(Entity):
     paths = ListField(PathData)
 
 
-class BasePackageRef(DictSafeMixin, Entity):
+class PackageRecord(DictSafeMixin, Entity):
     name = StringField()
     version = StringField()
     build = StringField(aliases=('build_string',))
     build_number = IntegerField()
 
-
-class PackageRef(BasePackageRef):
     # the canonical code abbreviation for PackageRef is `pref`
     # fields required to uniquely identifying a package
 
@@ -271,8 +260,17 @@ class PackageRef(BasePackageRef):
     def dist_str(self):
         return "%s::%s-%s-%s" % (self.channel.canonical_name, self.name, self.version, self.build)
 
-
-class IndexJsonRecord(BasePackageRef):
+    def dist_fields_dump(self):
+        return {
+            "base_url": self.channel.base_url,
+            "build_number": self.build_number,
+            "build_string": self.build,
+            "channel": self.channel.name,
+            "dist_name": self.dist_str().split(":")[-1],
+            "name": self.name,
+            "platform": self.subdir,
+            "version": self.version,
+        }
 
     arch = StringField(required=False, nullable=True)  # so legacy
     platform = EnumField(Platform, required=False, nullable=True)  # so legacy
@@ -283,7 +281,6 @@ class IndexJsonRecord(BasePackageRef):
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
 
-    subdir = SubdirField()
     noarch = NoarchField(NoarchType, required=False, nullable=True, default=None,
                          default_in_dump=False)  # TODO: rename to package_type
     preferred_env = StringField(required=False, nullable=True, default=None, default_in_dump=False)
@@ -304,10 +301,6 @@ class IndexJsonRecord(BasePackageRef):
         )})
         return tuple(itervalues(result))
 
-
-# conflicting attribute due to subdir on both IndexJsonRecord and PackageRef
-# probably unavoidable for now
-class PackageRecord(IndexJsonRecord, PackageRef):  # lgtm [py/conflicting-attributes]
     # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
     # PackageCacheRecord (`pcrec`) or PrefixRecord (`prefix_rec`)
     #
@@ -323,6 +316,27 @@ class PackageRecord(IndexJsonRecord, PackageRef):  # lgtm [py/conflicting-attrib
     def __str__(self):
         return "%s/%s::%s==%s=%s" % (self.channel.canonical_name, self.subdir, self.name,
                                      self.version, self.build)
+
+    def to_match_spec(self):
+        return MatchSpec(
+            channel=self.channel,
+            subdir=self.subdir,
+            name=self.name,
+            version=self.version,
+            build=self.build,
+        )
+
+    @property
+    def namekey(self):
+        return "global:" + self.name
+
+    def record_id(self):
+        # WARNING: This is right now only used in link.py _change_report_str(). It is not
+        #          the official record_id / uid until it gets namespace.  Even then, we might
+        #          make the format different.  Probably something like
+        #              channel_name/subdir:namespace:name-version-build_number-build_string
+        return "%s/%s::%s-%s-%s" % (self.channel.canonical_name, self.subdir,
+                                    self.name, self.version, self.build)
 
 
 class Md5Field(StringField):

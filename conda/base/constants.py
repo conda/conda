@@ -10,11 +10,10 @@ Another important source of "static" configuration is conda/models/enums.py.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from enum import Enum
 from os.path import join
 
-from enum import Enum
-
-from ..common.compat import on_win
+from ..common.compat import itervalues, on_win
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
@@ -50,18 +49,19 @@ CONDA_HOMEPAGE_URL = 'https://conda.io'
 ERROR_UPLOAD_URL = 'https://conda.io/conda-post/unexpected-error'
 DEFAULTS_CHANNEL_NAME = 'defaults'
 
-PLATFORM_DIRECTORIES = ("linux-64",
-                        "linux-32",
-                        "win-64",
-                        "win-32",
-                        "osx-64",
-                        "linux-ppc64le",
-                        "linux-armv6l",
-                        "linux-armv7l",
-                        "linux-aarch64",
-                        "zos-z",
-                        "noarch",
-                        )
+PLATFORM_DIRECTORIES = (
+    "noarch",
+    "linux-32",
+    "linux-64",
+    "linux-aarch64",
+    "linux-armv6l",
+    "linux-armv7l",
+    "linux-ppc64le",
+    "osx-64",
+    "win-32",
+    "win-64",
+    "zos-z",
+)
 
 RECOGNIZED_URL_SCHEMES = ('http', 'https', 'ftp', 's3', 'file')
 
@@ -172,3 +172,50 @@ class UpdateModifier(Enum):
 # Magic files for permissions determination
 PACKAGE_CACHE_MAGIC_FILE = 'urls.txt'
 PREFIX_MAGIC_FILE = join('conda-meta', 'history')
+
+
+# TODO: should be frozendict(), but I don't want to import frozendict from auxlib here.
+NAMESPACES_MAP = {  # base package name, namespace
+    "python": "python",
+    "r": "r",
+    "r-base": "r",
+    "mro-base": "r",
+    "erlang": "erlang",
+    "java": "java",
+    "openjdk": "java",
+    "julia": "julia",
+    "latex": "latex",
+    "lua": "lua",
+    "js": "nodejs",  # TODO: Ask Nick. Including typescript.
+    "node": "nodejs",
+    "pascal": "pascal",
+    "perl": "perl",
+    "php": "php",
+    "ruby": "ruby",
+
+    "m2-base": "m2",
+    "msys2-conda-epoch": "m2w64",
+}
+
+NAMESPACE_PACKAGE_NAMES = frozenset(NAMESPACES_MAP)
+NAMESPACES = frozenset(itervalues(NAMESPACES_MAP))
+
+# Namespace arbiters of uniqueness
+#  global: some repository established by Anaconda, Inc. and conda-forge
+#  python: https://pypi.org/simple
+#  r: https://cran.r-project.org/web/packages/available_packages_by_name.html
+#  erlang: https://hex.pm/packages
+#  java: https://repo1.maven.org/maven2/
+#  julia: https://pkg.julialang.org/
+#  latex: https://ctan.org/pkg
+#  lua: https://luarocks.org/m/root
+#  js: https://docs.npmjs.com/misc/registry
+#  pascal: ???
+#  perl: https://www.cpan.org/modules/01modules.index.html
+#  php: https://packagist.org/
+#  ruby: https://rubygems.org/gems
+#  clojure: https://clojars.org/
+
+
+# Not all python namespace packages are registered on PyPI. If a package
+# contains files in site-packages, it probably belongs in the python namespace.

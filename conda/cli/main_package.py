@@ -19,7 +19,6 @@ from ..core.prefix_data import PrefixData
 from ..gateways.disk.delete import rmtree
 from ..install import PREFIX_PLACEHOLDER
 from ..misc import untracked
-from ..models.dist import Dist
 
 
 def remove(prefix, files):
@@ -45,8 +44,8 @@ def execute(args, parser):
 
     if args.which:
         for path in args.which:
-            for dist in which_package(path):
-                print('%-50s  %s' % (path, dist))
+            for prec in which_package(path):
+                print('%-50s  %s' % (path, prec.dist_str()))
         return
 
     print('# prefix:', prefix)
@@ -212,7 +211,7 @@ def which_package(path):
 
     for prec in PrefixData(prefix).iter_records():
         if any(paths_equal(join(prefix, f), path) for f in prec['files'] or ()):
-            yield Dist(prec)
+            yield prec
 
 
 def which_prefix(path):

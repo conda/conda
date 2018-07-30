@@ -7,7 +7,7 @@ from errno import ENOENT
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
-import platform
+from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
@@ -16,10 +16,10 @@ from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDA
                         PathConflict, ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
-from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
+from .._vendor.frozendict import frozendict
 from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
 from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
                                     SequenceParameter, ValidationError)
@@ -230,7 +230,7 @@ class Context(Configuration):
     anaconda_upload = PrimitiveParameter(None, aliases=('binstar_upload',),
                                          element_type=(bool, NoneType))
     _croot = PrimitiveParameter('', aliases=('croot',))
-    conda_build = MapParameter(string_types, aliases=('conda-build',))
+    _conda_build = MapParameter(string_types, aliases=('conda-build',))
 
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:
@@ -328,8 +328,17 @@ class Context(Configuration):
         return path
 
     @property
+    def conda_build(self):
+        # conda-build needs its config map to be mutable
+        try:
+            return self.__conda_build
+        except AttributeError:
+            self.__conda_build = __conda_build = dict(self._conda_build)
+            return __conda_build
+
+    @property
     def arch_name(self):
-        m = platform.machine()
+        m = machine()
         if self.platform == 'linux' and m in non_x86_linux_machines:
             return m
         else:
@@ -347,7 +356,7 @@ class Context(Configuration):
     def subdir(self):
         if self._subdir:
             return self._subdir
-        m = platform.machine()
+        m = machine()
         if m in non_x86_linux_machines:
             return 'linux-%s' % m
         elif self.platform == 'zos':
@@ -998,6 +1007,7 @@ def conda_in_private_env():
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, argparse_args)
+    context.__dict__.pop('_Context__conda_build', None)
     from ..models.channel import Channel
     Channel._reset_state()
     # need to import here to avoid circular dependency
@@ -1006,6 +1016,7 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
 
 @memoize
 def _get_user_agent(context_platform):
+    import platform
     try:
         from requests import __version__ as REQUESTS_VERSION
     except ImportError:  # pragma: no cover

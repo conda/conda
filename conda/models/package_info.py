@@ -7,9 +7,9 @@ from logging import getLogger
 
 from .channel import Channel
 from .enums import NoarchType
-from .records import IndexJsonRecord, PackageRecord, PathsData
-from .._vendor.auxlib.entity import (ComposableField, Entity, EnumField,
-                                     ImmutableEntity, IntegerField, ListField, StringField)
+from .records import PackageRecord, PathsData
+from .._vendor.auxlib.entity import (ComposableField, Entity, EnumField, ImmutableEntity,
+                                     IntegerField, ListField, StringField)
 from ..common.compat import string_types
 
 log = getLogger(__name__)
@@ -49,7 +49,6 @@ class PackageInfo(ImmutableEntity):
     url = StringField()
 
     # attributes within the package tarball
-    index_json_record = ComposableField(IndexJsonRecord)
     icondata = StringField(required=False, nullable=True)
     package_metadata = ComposableField(PackageMetadata, required=False, nullable=True)
     paths_data = ComposableField(PathsData)
