@@ -309,8 +309,7 @@ class Solver(object):
         if not context.offline:
             for spec in context.aggressive_update_packages:
                 if spec.name in specs_map:
-                    old_spec = specs_map[spec.name]
-                    specs_map[spec.name] = MatchSpec(old_spec, target=None)
+                    specs_map[spec.name] = spec
 
         # add in explicitly requested specs from specs_to_add
         # this overrides any name-matching spec already in the spec map
