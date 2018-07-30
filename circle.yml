@@ -122,6 +122,7 @@ conda_build_test: &conda_build_test
             and not test_pypi_with_extra_specs
             and not test_setuptools_test_requirements
             and not alternate_type_wheel
+            and not rpm-libX11-devel
           # skeleton_pypi skipped because of changes to PyPI API
           # expand_globs and build_expands_wildcards fail on circleci because of list ordering discrepancies
           # skipping numpy tests so circleci images don't need numpy (and mkl) installed
@@ -134,6 +135,7 @@ conda_build_test: &conda_build_test
           # test_pypi_with_extra_specs because of the new PyPI
           # test_setuptools_test_requirements upstream changes that affect 'conda skeleton'
           # alternate_type_wheel broken with pip 10
+          # rpm-libX11-devel returns 404 error
         command: |
           . /opt/conda/etc/profile.d/conda.sh
           conda activate base
@@ -152,12 +154,14 @@ conda_build_test: &conda_build_test
             and not env_creation_with_short_prefix_does_not_deadlock
             and not test_preferred_env
             and not test_setuptools_test_requirements
+            and not rpm-libX11-devel
           # skipping perl-cpan-Moo because of changes in cpan API
           # skipping cran-nmf because nmf was removed/archived in cran
           # skeleton_pypi skipped because of changes to PyPI API
           # env_creation_with_short_prefix_does_not_deadlock: error is prefix is too long
           # for test_preferred_env see https://github.com/conda/conda/issues/3912#issuecomment-374820599
           # test_setuptools_test_requirements upstream changes that affect 'conda skeleton'
+          # rpm-libX11-devel returns 404 error
         command: |
           . /opt/conda/etc/profile.d/conda.sh
           conda activate base
