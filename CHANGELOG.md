@@ -16,6 +16,7 @@
   config (#7195)
 * resolve #6979, #7086 remove Dist from majority of project (#7216, #7252)
 * fix #7362 remove --license from conda info and related code paths (#7386)
+* resolve #7309 deprecate 'conda info package_name' (#7310)
 
 ### Improvements
 * import speedups (#7122)
@@ -49,6 +50,7 @@
 * resolve #7375 enable conda config --set update_modifier (#7377)
 * fix #5885 improve conda env error messages and add extra tests (#7395)
 * msys2 path conversion (#7389)
+* fix autocompletion in fish (#7575)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
@@ -68,16 +70,32 @@
 * @goanpeca
 * @kalefranz
 * @mbargull
+* @ohadravid
+
+
+## 4.5.9 (2018-07-30)
+
+### Improvements
+* resolve #7522 prevent conda from scheduling downgrades (#7598)
+* allow skipping feature maximization in resolver (#7601)
+
+### Bug Fixes
+* fix #7559 symlink stat in localfs adapter (#7561)
+* fix #7486 activate with no PATH set (#7562)
+* resolve #7522 prevent conda from scheduling downgrades (#7598)
+
+### Contributors
+* @kalefranz
+* @loriab
 
 
 ## 4.5.8 (2018-07-10)
 
 ### Bug Fixes
-
 * fix #7524 should_bypass_proxies for requests 2.13.0 and earlier (#7525)
 
 ### Contributors
-@kalefranz
+* @kalefranz
 
 
 ## 4.5.7 (2018-07-09)
@@ -91,8 +109,8 @@
 * fix #7506 requests monkeypatch fallback for old requests versions (#7515)
 
 ### Contributors
-@kalefranz
-@nehaljwani
+* @kalefranz
+* @nehaljwani
 
 
 ## 4.5.6 (2018-07-06)
@@ -104,7 +122,7 @@
 * resolve #7372 disable http error uploads and CI cleanup (#7498, #7501)
 
 ### Contributors
-@kalefranz
+* @kalefranz
 
 
 ## 4.5.5 (2018-06-29)

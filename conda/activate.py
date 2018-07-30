@@ -374,7 +374,7 @@ class _Activator(object):
         }
 
     def _get_starting_path_list(self):
-        path = self.environ['PATH']
+        path = self.environ.get('PATH', '')
         if on_win:
             # On Windows, the Anaconda Python interpreter prepends sys.prefix\Library\bin on
             # startup. It's a hack that allows users to avoid using the correct activation
