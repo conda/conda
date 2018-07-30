@@ -363,6 +363,10 @@ class SubdirData(object):
             if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
                 info['depends'].append('pip')
             info.update(meta_in_common)
+            if info.get('record_version', 0) > 1:
+                log.debug("Ignoring record_version %d from %s",
+                          info["record_version"], info['url'])
+                continue
             package_record = PackageRecord(**info)
 
             _package_records.append(package_record)
