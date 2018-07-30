@@ -93,17 +93,14 @@ def specs_from_args(args, json=False):
     return [arg2spec(arg, json=json) for arg in args]
 
 
-spec_pat = re.compile(r'''         # lgtm [py/regex/unmatchable-dollar]
-(?P<name>[^=<>!\s]+)               # package name
-\s*                                # ignore spaces
-(
-  (?P<cc>=[^=]+(=[^=]+)?)          # conda constraint
-  |
-  (?P<pc>(?:[=!]=|[><]=?).+)       # new (pip-style) constraint(s)
-)?
-$                                  # end-of-line
-''', re.VERBOSE)  # lgtm [py/regex/unmatchable-dollar]
-# This logic has been here for four years. Even if it's wrong, we're not changing it now.
+spec_pat = re.compile(r'(?P<name>[^=<>!\s]+)'  # package name  # lgtm [py/regex/unmatchable-dollar]
+                      r'\s*'  # ignore spaces
+                      r'('
+                      r'(?P<cc>=[^=]+(=[^=]+)?)'  # conda constraint
+                      r'|'
+                      r'(?P<pc>(?:[=!]=|[><]=?).+)'  # new (pip-style) constraint(s)
+                      r')?$',
+                      re.VERBOSE)  # lgtm [py/regex/unmatchable-dollar]
 
 
 def strip_comment(line):
