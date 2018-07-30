@@ -324,7 +324,7 @@ install_conda_build() {
     $prefix/$BIN_DIR/conda install -y \
         perl pytest-xdist pytest-catchlog pytest-mock \
         anaconda-client numpy \
-        filelock jinja2 conda-verify contextlib2 pkginfo \
+        filelock jinja2 conda-verify<3 contextlib2 pkginfo \
         glob2 beautifulsoup4 chardet pycrypto
     conda config --remove channels conda-forge
     if ! [ -n "$ON_WIN" ]; then

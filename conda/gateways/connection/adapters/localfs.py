@@ -7,7 +7,7 @@ from email.utils import formatdate
 import json
 from logging import getLogger
 from mimetypes import guess_type
-from os import lstat
+from os import stat
 from tempfile import SpooledTemporaryFile
 
 from .. import BaseAdapter, CaseInsensitiveDict, Response
@@ -27,7 +27,7 @@ class LocalFSAdapter(BaseAdapter):
         resp.url = request.url
 
         try:
-            stats = lstat(pathname)
+            stats = stat(pathname)
         except (IOError, OSError) as exc:
             resp.status_code = 404
             message = {

@@ -223,6 +223,7 @@ class Context(Configuration):
     force_reinstall = PrimitiveParameter(False)
 
     target_prefix_override = PrimitiveParameter('')
+    featureless_minimization_disabled_feature_flag = PrimitiveParameter(False)
 
     # conda_build
     bld_path = PrimitiveParameter('')
@@ -686,6 +687,7 @@ class Context(Configuration):
             'default_python',
             'enable_private_envs',
             'error_upload_url',  # should remain undocumented
+            'featureless_minimization_disabled_feature_flag',
             'force_32bit',
             'pip_interop_enabled',  # temporary feature flag
             'root_prefix',
