@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import Mapping
 from functools import reduce
+from logging import getLogger
 from operator import attrgetter
 from os.path import basename
 import re
@@ -27,6 +28,7 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
+log = getLogger(__name__)
 
 class MatchSpecType(type):
 
@@ -558,6 +560,12 @@ def _parse_spec_str(spec_str):
         ndx = spec_str.index('#')
         spec_str, _ = spec_str[:ndx], spec_str[ndx:]
         spec_str.strip()
+
+    # Step 1.b strip ' if ' anticipating future compatibility issues
+    spec_split = spec_str.split(' if ', 1)
+    if len(spec_split) > 1:
+        log.debug("Ignoring conditional in spec %s", spec_str)
+    spec_str = spec_split[0]
 
     # Step 2. done if spec_str is a tarball
     if spec_str.endswith(CONDA_TARBALL_EXTENSION):
