@@ -38,7 +38,7 @@ def get_solver(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_s
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_1()
+    get_index_r_1(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(TEST_PREFIX, (Channel('channel-1'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -51,7 +51,7 @@ def get_solver_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2()
+    get_index_r_2(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(TEST_PREFIX, (Channel('channel-2'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -64,7 +64,7 @@ def get_solver_3(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_3()
+    get_index_r_3(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(TEST_PREFIX, (Channel('channel-3'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -77,7 +77,7 @@ def get_solver_4(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_4()
+    get_index_r_4(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(TEST_PREFIX, (Channel('channel-4'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -90,7 +90,7 @@ def get_solver_5(specs_to_add=(), specs_to_remove=(), prefix_records=(), history
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_5()
+    get_index_r_5(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(TEST_PREFIX, (Channel('channel-5'),), (context.subdir,),
                         specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
@@ -103,8 +103,8 @@ def get_solver_aggregate_1(specs_to_add=(), specs_to_remove=(), prefix_records=(
     pd = PrefixData(TEST_PREFIX)
     pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
     spec_map = {spec.name: spec for spec in history_specs}
-    get_index_r_2()
-    get_index_r_4()
+    get_index_r_2(context.subdir)
+    get_index_r_4(context.subdir)
     with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
         solver = Solver(TEST_PREFIX, (Channel('channel-2'), Channel('channel-4'), ),
                         (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)

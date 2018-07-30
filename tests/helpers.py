@@ -150,19 +150,19 @@ def add_feature_records_legacy(index):
         index[rec] = rec
 
 @memoize
-def get_index_r_1():
+def get_index_r_1(subdir=context.subdir):
     with open(join(dirname(__file__), 'index.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
-                "subdir": context.subdir,
+                "subdir": subdir,
                 "arch": context.arch_name,
                 "platform": context.platform,
             },
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-1/%s' % context.subdir)
+    channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
     sd = SubdirData(channel)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
         sd._process_raw_repodata_str(json.dumps(repodata))
@@ -176,19 +176,19 @@ def get_index_r_1():
 
 
 @memoize
-def get_index_r_2():
+def get_index_r_2(subdir=context.subdir):
     with open(join(dirname(__file__), 'index2.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
-                "subdir": context.subdir,
+                "subdir": subdir,
                 "arch": context.arch_name,
                 "platform": context.platform,
             },
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-2/%s' % context.subdir)
+    channel = Channel('https://conda.anaconda.org/channel-2/%s' % subdir)
     sd = SubdirData(channel)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
         sd._process_raw_repodata_str(json.dumps(repodata))
@@ -201,19 +201,19 @@ def get_index_r_2():
 
 
 @memoize
-def get_index_r_3():
+def get_index_r_3(subdir=context.subdir):
     with open(join(dirname(__file__), 'index3.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
-                "subdir": context.subdir,
+                "subdir": subdir,
                 "arch": context.arch_name,
                 "platform": context.platform,
             },
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-3/%s' % context.subdir)
+    channel = Channel('https://conda.anaconda.org/channel-3/%s' % subdir)
     sd = SubdirData(channel)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
         sd._process_raw_repodata_str(json.dumps(repodata))
@@ -226,19 +226,19 @@ def get_index_r_3():
 
 
 @memoize
-def get_index_r_4():
+def get_index_r_4(subdir=context.subdir):
     with open(join(dirname(__file__), 'index4.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
-                "subdir": context.subdir,
+                "subdir": subdir,
                 "arch": context.arch_name,
                 "platform": context.platform,
             },
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-4/%s' % context.subdir)
+    channel = Channel('https://conda.anaconda.org/channel-4/%s' % subdir)
     sd = SubdirData(channel)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
         sd._process_raw_repodata_str(json.dumps(repodata))
@@ -252,19 +252,19 @@ def get_index_r_4():
 
 
 @memoize
-def get_index_r_5():
+def get_index_r_5(subdir=context.subdir):
     with open(join(dirname(__file__), 'index5.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
-                "subdir": context.subdir,
+                "subdir": subdir,
                 "arch": context.arch_name,
                 "platform": context.platform,
             },
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-5/%s' % context.subdir)
+    channel = Channel('https://conda.anaconda.org/channel-5/%s' % subdir)
     sd = SubdirData(channel)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", reset_context):
         sd._process_raw_repodata_str(json.dumps(repodata))
