@@ -613,6 +613,9 @@ class PosixActivator(_Activator):
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         ps1 = self.environ.get('PS1', '')
+        if 'POWERLINE_COMMAND' in ps1:
+            # Defer to powerline (https://github.com/powerline/powerline) if it's in use.
+            return
         current_prompt_modifier = self.environ.get('CONDA_PROMPT_MODIFIER')
         if current_prompt_modifier:
             ps1 = re.sub(re.escape(current_prompt_modifier), r'', ps1)
