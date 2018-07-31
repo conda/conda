@@ -623,9 +623,11 @@ class PosixActivator(_Activator):
         # proper escaping of single quotes that are already part of the string.
         # Best solution appears to be https://stackoverflow.com/a/1250279
         ps1 = ps1.replace("'", "'\"'\"'")
-        set_vars.update({
-            'PS1': conda_prompt_modifier + ps1,
-        })
+        # Only update PS1 if you are not using powerline to display the env
+        if 'POWERLINE_COMMAND' not in ps1:
+            set_vars.update({
+                'PS1': conda_prompt_modifier + ps1,
+            })
 
     def _hook_preamble(self):
         if on_win:
