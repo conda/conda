@@ -18,7 +18,7 @@ from ..common.compat import JSONDecodeError, itervalues, string_types, with_meta
 from ..common.constants import NULL
 from ..common.path import get_python_site_packages_short_path, win_path_ok
 from ..common.serialize import json_load
-from ..core.python_dist import (get_conda_anchor_files_and_records, get_python_record,
+from ..core.python_dist import (get_conda_anchor_files_and_records, get_python_records,
                                 get_site_packages_anchor_files)
 from ..exceptions import (BasicClobberError, CondaDependencyError, CorruptedEnvironmentError,
                           maybe_raise)
@@ -27,7 +27,7 @@ from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
-from ..models.records import (PackageRef, PrefixRecord)
+from ..models.records import PackageRecord, PrefixRecord
 
 try:
     from cytoolz.itertoolz import concat, concatv
@@ -216,7 +216,6 @@ class PrefixData(object):
         """
         python_pkg_record = self._python_pkg_record
         site_packages_dir = get_python_site_packages_short_path(python_pkg_record.version)
-        print(site_packages_dir)
         site_packages_path = join(self.prefix_path, win_path_ok(site_packages_dir))
 
         if not python_pkg_record or not isdir(site_packages_path):
@@ -249,7 +248,7 @@ class PrefixData(object):
             self.__prefix_records[python_record.name] = python_record
             new_packages[python_record.name] = python_record
 
-         return new_packages
+        return new_packages
 
 
 def get_python_version_for_prefix(prefix):
