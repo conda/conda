@@ -186,13 +186,10 @@ NAMESPACES_MAP = {  # base package name, namespace
     "julia": "julia",
     "latex": "latex",
     "lua": "lua",
-    "js": "nodejs",  # TODO: Ask Nick. Including typescript.
-    "node": "nodejs",
-    "pascal": "pascal",
+    "nodejs": "js",
     "perl": "perl",
     "php": "php",
     "ruby": "ruby",
-
     "m2-base": "m2",
     "msys2-conda-epoch": "m2w64",
 }
