@@ -8,11 +8,15 @@ from glob import glob
 from os import listdir
 from os.path import basename, isdir, isfile, join, dirname
 
-import re
 import csv
 import email.parser
-import json
+import os
+import platform
+import re
+import sys
+import warnings
 
+from .._vendor.frozendict import frozendict
 from ..common.compat import odict
 from ..common.path import win_path_ok
 from ..models.channel import Channel
@@ -21,189 +25,215 @@ from ..models.records import PathData, PathDataV1, PathsData, PrefixRecord
 
 
 # TODO: complete this list
-_PYPI_TO_CONDA = {
+PYPI_TO_CONDA = {
     'graphviz': 'python-graphviz',
 }
-# TODO: complete pattern with comments
-PYPI_SPEC_PATTERN = re.compile(r'(^[a-z|A-Z|_][a-zA-Z0-9_\-\.]*)(\[.*?\])?\(?(.*)\)?')
+# TODO: complete this list
+PYPI_CONDA_DEPS = {
+    'graphviz': ['graphviz'],  # What versions?
+}
+# This regex can process requirement including or not including name.
+# This is useful for parsing, for example, `Python-Version`
+PARTIAL_PYPI_SPEC_PATTERN = re.compile(r'''
+    # Text needs to be stripped and all extra spaces replaced by single spaces
+    (?P<name>^[A-Z0-9][A-Z0-9._-]*)?
+    \s?
+    (\[(?P<extras>.*)\])?
+    \s?
+    (?P<constraints>\(? \s? ([\w\d<>=!~,\s\.\*]*) \s? \)? )?
+    \s?
+''', re.VERBOSE | re.IGNORECASE)
+PySpec = namedtuple('PySpec', ['name', 'extras', 'constraints', 'marker', 'url'])
 
 
-PySpec = namedtuple('PySpec', ['name', 'extra', 'version', 'markers'])
-
-
-# Python Packages Metadata 2.1
-# -----------------------------------------------------------------------------
-METADATA_SINGLE_KEYS = frozenset((
-    'Metadata-Version',
-    'Name',
-    'Version',
-    'Summary',
-    'Description',
-    'Description-Content-Type',
-    'Keywords',
-    'Home-page',
-    'Download-URL',
-    'Author',
-    'Author-email',
-    'Maintainer',
-    'Maintainer-email',
-    'License',
-    # Deprecated
-    'Obsoleted-By',
-    'Private-Version',
-))
-METADATA_MULTIPLE_KEYS = frozenset((
-    'Platform',
-    'Supported-Platform',
-    'Classifier',
-    'Requires-Dist',
-    'Requires-External',
-    'Requires-Python',
-    'Project-URL',
-    'Provides-Extra',
-    'Provides-Dist',
-    'Obsoletes-Dist',
-    # Deprecated
-    'Extension',
-    'Obsoletes',
-    'Provides',
-    'Requires',
-    'Setup-Requires-Dist',
-))
-
-
-class MetadataConflictError(Exception):
+class MetadataWarning(Warning):
     pass
 
 
 class PythonDistributionMetadata(object):
     """
-    The canonical method to transform metadata fields into such a data
-    structure is as follows:
-      - The original key-value format should be read with
-        email.parser.HeaderParser
-      - All transformed keys should be reduced to lower case. Hyphens should
-        be replaced with underscores, but otherwise should retain all other
-        characters
-      - The transformed value for any field marked with "(Multiple-use")
-        should be a single list containing all the original values for the
-        given key
-      - The Keywords field should be converted to a list by splitting the
-        original value on whitespace characters
-      - The message body, if present, should be set to the value of the
-        description key.
-      - The result should be stored as a string-keyed dictionary.
+    Object representing the metada of a Python Distribution given by anchor
+    file (or directory) path.
 
     Notes
     -----
+      - https://packaging.python.org/specifications/core-metadata/
       - Metadata 2.1: https://www.python.org/dev/peps/pep-0566/
-      - Metadata 2.0: https://www.python.org/dev/peps/pep-0426/
+      - Metadata 2.0: https://www.python.org/dev/peps/pep-0426/ (Withdrawn)
       - Metadata 1.2: https://www.python.org/dev/peps/pep-0345/
       - Metadata 1.1: https://www.python.org/dev/peps/pep-0314/
       - Metadata 1.0: https://www.python.org/dev/peps/pep-0241/
-      - https://packaging.python.org/specifications/core-metadata/
     """
+    FILE_NAMES = ('METADATA', 'PKG-INFO')
 
-    # TODO: Define precedence
-    METADATA_FILE_NAMES = ('METADATA', 'PKG-INFO', 'metadata.json')
+    # Python Packages Metadata 2.1
+    # -----------------------------------------------------------------------------
+    SINGLE_USE_KEYS = frozendict([
+        ('Metadata-Version', 'metadata_version'),
+        ('Name', 'name'),
+        ('Version', 'version'),
+        ('Summary', 'summary'),
+        ('Description', 'description'),
+        ('Description-Content-Type', 'description_content_type'),
+        ('Keywords', 'keywords'),
+        ('Home-page', 'home_page'),
+        ('Download-URL', 'download_url'),
+        ('Author', 'author'),
+        ('Author-email', 'author_email'),
+        ('Maintainer', 'maintainer'),
+        ('Maintainer-email', 'maintainer_email'),
+        ('License', 'license'),
+        # Deprecated
+        ('Obsoleted-By', 'obsoleted_by'),  # Note: See 2.0
+        ('Private-Version', 'private_version'),  # Note: See 2.0
+    ])
+    MULTIPLE_USE_KEYS = frozendict([
+        ('Platform', 'platform'),
+        ('Supported-Platform', 'supported_platform'),
+        ('Classifier', 'classifier'),
+        ('Requires-Dist', 'requires_dist'),
+        ('Requires-External', 'requires_external'),
+        ('Requires-Python', 'requires_python'),
+        ('Project-URL', 'project_url'),
+        ('Provides-Extra', 'provides_extra'),
+        ('Provides-Dist', 'provides_dist'),
+        ('Obsoletes-Dist', 'obsoletes_dist'),
+        # Deprecated
+        ('Extension', 'extension'),  # Note: See 2.0
+        ('Obsoletes', 'obsoletes'),
+        ('Provides', 'provides'),
+        ('Requires', 'requires'),
+        ('Setup-Requires-Dist', 'setup_requires_dist'),  # Note: See 2.0
+    ])
 
     def __init__(self, path):
-        metadata_path = self._process_metadata_path(path, self.METADATA_FILE_NAMES)
+        metadata_path = self._process_path(path, self.FILE_NAMES)
         self._path = path
         self._data = self._read_metadata(metadata_path)
 
     @staticmethod
-    def _process_metadata_path(path, metadata_filenames):
-        """"""
-        if isdir(path):
-            for fname in metadata_filenames:
-                fpath = join(path, fname)
-                if isfile(fpath):
-                    metadata_path = fpath
-                    break
-        elif isfile(path):
-            # '<pkg>.egg-info' file contains metadata directly
-            metadata_path = path
+    def _process_path(path, metadata_filenames):
+        """Find metadata file inside dist-info folder, or check direct file."""
+        metadata_path = None
+        if path:
+            if isdir(path):
+                for fname in metadata_filenames:
+                    fpath = join(path, fname)
+                    if isfile(fpath):
+                        metadata_path = fpath
+                        break
+            elif isfile(path):
+                # '<pkg>.egg-info' file contains metadata directly
+                filenames = ['.egg-info']
+                if metadata_filenames:
+                    filenames.extend(metadata_filenames)
+                assert any(path.endswith(filename) for filename in filenames)
+                metadata_path = path
+            else:
+                # `path` does not exist
+                warnings.warn("Metadata path not found", MetadataWarning)
         else:
-            metadata_path = None
-            # raise MetadataConflictError
+            warnings.warn("Metadata path not found", MetadataWarning)
 
         return metadata_path
 
     @classmethod
-    def _read_metadata(cls, fpath):
-        """"""
-        if isfile(fpath):
-            if fpath.endswith('.json'):
-                data = cls._read_json_metadata(fpath)
-            else:
-                data = cls._parse_metadata(fpath)
-        else:
-            data = {}
-        return data
+    def _message_to_dict(cls, message):
+        """
+        Convert the RFC-822 headers data into a dictionary.
 
-    @staticmethod
-    def _read_json_metadata(fpath):
-        """"""
-        data = None
-        if isfile(fpath):
-            with open(fpath, 'r') as f:
-                data = json.loads(f.read())
-        return data
+        `message` is an email.parser.Message instance.
 
-    @staticmethod
-    def _parsed_metadata_to_json(data):
-        """Parse the original format which is stored as RFC-822 headers."""
+        The canonical method to transform metadata fields into such a data
+        structure is as follows:
+          - The original key-value format should be read with
+            email.parser.HeaderParser
+          - All transformed keys should be reduced to lower case. Hyphens
+            should be replaced with underscores, but otherwise should retain
+            all other characters
+          - The transformed value for any field marked with "(Multiple-use")
+            should be a single list containing all the original values for the
+            given key
+          - The Keywords field should be converted to a list by splitting the
+            original value on whitespace characters
+          - The message body, if present, should be set to the value of the
+            description key.
+          - The result should be stored as a string-keyed dictionary.
+        """
         new_data = odict()
 
-        if data:
-            for key, value in data.items():
-                new_key = key.lower().replace('-', '_')
-                if key in METADATA_MULTIPLE_KEYS:
+        if message:
+            for key, value in message.items():
+
+                if key in cls.MULTIPLE_USE_KEYS:
+                    new_key = cls.MULTIPLE_USE_KEYS[key]
                     if new_key not in new_data:
                         new_data[new_key] = [value]
                     else:
                         new_data[new_key].append(value)
-                elif key in METADATA_SINGLE_KEYS:
+
+                elif key in cls.SINGLE_USE_KEYS:
+                    new_key = cls.SINGLE_USE_KEYS[key]
                     new_data[new_key] = value
+
                 else:
-                    raise MetadataConflictError
+                    new_key = key.replace('-', '_').lower()
+                    new_data[new_key] = value
+                    # FIXME: Add this key anyway or just warn? Raise Exception?
+                    # Add as single key or as multiple key?
+                    warnings.warn("Key '{}' not recognized".format(key),
+                                  MetadataWarning)
 
-            # TODO: If we need to handle ALL edge cases we might just use the
-            # current metadata.py in distlib, or we could use a trimmed down
-            # version
-
-            # Multiple values should use plural keys?
-            # Handle body?
-            # Handle license?
+            # TODO: Handle license later on for convenience
+            # Check classifiers or license key
 
             # Handle keywords
             if 'keywords' in new_data:
-                # TODO: Handle comma, semicolon?
-                new_data['keywords'] = new_data['keywords'].split()
+                keywords = new_data['keywords']
+                if ';' in keywords:
+                    new_data['keywords'] = new_data['keywords'].split(';')
+                elif ',' in keywords:
+                    new_data['keywords'] = new_data['keywords'].split(',')
+                else:
+                    new_data['keywords'] = new_data['keywords'].split(' ')
 
         return new_data
 
     @classmethod
-    def _parse_metadata(cls, fpath):
-        """"""
-        data = {}
-        if isfile(fpath):
+    def _read_metadata(cls, fpath):
+        """
+        Read the original format which is stored as RFC-822 headers.
+        """
+        data = odict()
+        if fpath and isfile(fpath):
             parser = email.parser.HeaderParser()
+
             with open(fpath, 'r') as fp:
                 data = parser.parse(fp)
-        return cls._parsed_metadata_to_json(data)
 
-    def _get_multiple_data(self, key, exclude_markers=False):
-        """Helper method to get multiple data values by key."""
+        return cls._message_to_dict(data)
+
+    def _get_multiple_data(self, keys, exclude_markers=False):
+        """
+        Helper method to get multiple data values by keys.
+
+        Keys is an iterable including the prefered key in order, to include
+        values of key that might have been replaced (deprecated), for example
+        keys can be ['requires_dist', 'requires'], where the key 'requires' is
+        deprecated and replaced by 'requires_dist'.
+        """
         data = []
         if self._data:
-            raw_data = self._data.get(key, [])
-            for req in raw_data:
-                if exclude_markers:
-                    data.append(req.split(';')[0].strip())
-                else:
-                    data.append(req.strip())
+            for key in keys:
+                raw_data = self._data.get(key, [])
+                for req in raw_data:
+                    if exclude_markers:
+                        data.append(req.split(';')[0].strip())
+                    else:
+                        data.append(req.strip())
+                if data:
+                    break
+
         return frozenset(data)
 
     def get_dist_requirements(self, exclude_markers=False):
@@ -230,12 +260,11 @@ class PythonDistributionMetadata(object):
         -------
         frozenset(['pkginfo', 'PasteDeploy', 'zope.interface (>3.5.0)',
                    'pywin32 >1.0; sys_platform == "win32"'])
-        """
-        return self._get_multiple_data('requires_dist', exclude_markers=exclude_markers)
 
-    def get_extra_requirements(self, exclude_markers=False):
-        """"""
-        return self._get_multiple_data('requires_extra', exclude_markers=exclude_markers)
+        Return 'Requires' if 'Requires-Dist' is empty.
+        """
+        return self._get_multiple_data(['requires_dist', 'requires'],
+                                       exclude_markers=exclude_markers)
 
     def get_python_requirements(self, exclude_markers=False):
         """
@@ -254,7 +283,8 @@ class PythonDistributionMetadata(object):
         frozenset(['>=3', '>2.6,!=3.0.*,!=3.1.*', '~=2.6',
                    '>=3; sys_platform == "win32"'])
         """
-        return self._get_multiple_data('requires_python', exclude_markers=exclude_markers)
+        return self._get_multiple_data(['requires_python'],
+                                       exclude_markers=exclude_markers)
 
     def get_external_requirements(self, exclude_markers=False):
         """
@@ -282,11 +312,69 @@ class PythonDistributionMetadata(object):
         -------
         frozenset(['C', 'libpng (>=1.5)', 'make; sys_platform != "win32"'])
         """
-        return self._get_multiple_data('requires_external', exclude_markers=exclude_markers)
+        return self._get_multiple_data(['requires_external'],
+                                       exclude_markers=exclude_markers)
 
-    def get_extra_provides(self, exclude_markers=False):
-        """"""
-        return self._get_multiple_data('provides_extra', exclude_markers=exclude_markers)
+    def get_extra_provides(self):
+        """
+        New in version 2.1.
+
+        A string containing the name of an optional feature. Must be a valid
+        Python identifier. May be used to make a dependency conditional on
+        hether the optional feature has been requested.
+
+        Example
+        -------
+        frozenset(['pdf', 'doc', 'test', 'other ; some_marker >= 2.7'])
+        """
+        return self._get_multiple_data(['provides_extra'])
+
+    def get_dist_provides(self, exclude_markers=False):
+        """
+        Return `Provides` in case `Provides-Dist` is empty.
+        """
+        return self._get_multiple_data(['provides_dist', 'provides'],
+                                       exclude_markers=exclude_markers)
+
+    def get_dist_obsolete(self, exclude_markers=False):
+        """
+        New in version 1.2.
+
+        Changed in version 2.1: The field format specification was relaxed to
+        accept the syntax used by popular publishing tools.
+
+        Each entry contains a string describing a distutils project’s
+        distribution which this distribution renders obsolete, meaning that
+        the two projects should not be installed at the same time.
+
+        Version declarations can be supplied. Version numbers must be in the
+        format specified in Version specifiers [1].
+
+        The most common use of this field will be in case a project name
+        changes, e.g. Gorgon 2.3 gets subsumed into Torqued Python 1.0. When
+        you install Torqued Python, the Gorgon distribution should be removed.
+
+        Return `Obsoletes` in case `Obsoletes-Dist` is empty.
+
+        Example
+        -------
+        frozenset(['Gorgon', "OtherProject (<3.0) ; python_version == '2.7'"])
+
+        Notes
+        -----
+        - [1] https://packaging.python.org/specifications/version-specifiers/
+        """
+
+        return self._get_multiple_data(['obsoletes_dist', 'obsoletes'],
+                                       exclude_markers=exclude_markers)
+
+    def get_classifiers(self, exclude_markers=False):
+        """
+        Classifiers are described in PEP 301, and the Python Package Index
+        publishes a dynamic list of currently defined classifiers.
+        """
+        return self._get_multiple_data(['classifier'],
+                                       exclude_markers=exclude_markers)
 
     @property
     def name(self):
@@ -300,12 +388,14 @@ class PythonDistributionMetadata(object):
 # Dist classes
 # -----------------------------------------------------------------------------
 class BasePythonDistribution(object):
-    """"""
+    """
+    Base object describing a python distribution based on path to anchor file.
+    """
     SOURCES_FILES = ()  # Should be one, but many different options
     REQUIRED_FILES = ()
+    ENTRY_POINTS_FILES = ('entry_points.txt')
 
     def __init__(self, path):
-        """"""
         self._path = path
         self._check_files()
         self._source_file = None
@@ -332,7 +422,7 @@ class BasePythonDistribution(object):
 
     def get_paths(self):
         """
-        Read the list of installed files from record or source files.
+        Read the list of installed paths from record or source file.
 
         [(u'skdata/__init__.py', u'sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU', u'0'),
          (u'skdata/diabetes.py', None, None),
@@ -340,68 +430,91 @@ class BasePythonDistribution(object):
         ]
         """
         records = []
-        for fname in self.SOURCES_FILES:
-            fpath = join(self._path, fname)
-            if isfile(fpath):
-                self._source_file = fpath
-                break
-        try:
-            with open(fpath, newline='') as csvfile:
-                record_reader = csv.reader(csvfile, delimiter=',')
+        if isdir(self._path):
+            for fname in self.SOURCES_FILES:
+                fpath = join(self._path, fname)
+                if isfile(fpath):
+                    self._source_file = fpath
+                    break
+            try:
+                with open(fpath, newline='') as csvfile:
+                    record_reader = csv.reader(csvfile, delimiter=',')
 
-                for row in record_reader:
-                    missing = [None for i in range(len(row), 3)]
-                    path, checksum, size = row + missing
-                    path, checksum, size = self._check_path_data(path, checksum, size)
-                    records.append((path, checksum, size))
-        except Exception as e:
-            print(e)
+                    for row in record_reader:
+                        missing = [None for i in range(len(row), 3)]
+                        path, checksum, size = row + missing
+                        path, checksum, size = self._check_path_data(path, checksum, size)
+                        records.append((path, checksum, size))
+            except Exception as e:
+                print(e)
 
         return records
 
     def get_dist_requirements(self, exclude_markers=False):
         return self._metadata.get_dist_requirements(exclude_markers=exclude_markers)
 
-    def get_extra_requirements(self, exclude_markers=False):
-        return self._metadata.get_extra_requirements(exclude_markers=exclude_markers)
-
-    def get_extra_provides(self, exclude_markers=False):
-        return self._metadata.get_extra_provides(exclude_markers=exclude_markers)
-
     def get_python_requirements(self, exclude_markers=False):
         return self._metadata.get_python_requirements(exclude_markers=exclude_markers)
 
+    def get_external_requirements(self, exclude_markers=False):
+        return self._metadata.get_external_requirements(exclude_markers=exclude_markers)
+
+    def get_extra_provides(self):
+        return self._metadata.get_extra_provides()
+
     # Conda dependencies format
-    def get_dependencies(self, python_version=None):
-        reqs = self.get_dist_requirements(exclude_markers=True)
+    def get_dependencies(self, context):
+        """
+        Process metadata fields providing dependency information.
+
+        This includes normalizing fields, and evaluation environment markers.
+        """
+        # Process dependencies
+        reqs = self.get_dist_requirements(exclude_markers=False)
+        extras = self.get_extra_provides()
         norm_reqs = set([])
         for req in reqs:
-            parts = req.split(' ')
-            if len(parts) > 1:
-                name, ver = parts
-                req = norm_package_name(name) + ' ' + ''.join(parts[1:])
-            norm_reqs.add(req)
+            spec = parse_specification(req)
+            if evaluate_marker(spec.marker, context, extras):
+                norm_name = norm_package_name(spec.name)
+                conda_name = pypi_name_to_conda_name(norm_name)
+                if spec.constraints:
+                    norm_req = conda_name + ' ' + spec.constraints
+                else:
+                    norm_req = conda_name
+                norm_reqs.add(norm_req)
 
-        python_versions = self.get_python_requirements(exclude_markers=True)
+        # Add python dependency
+        context_py_ver = context.get('python_version')
+        python_versions = self.get_python_requirements(exclude_markers=False)
         if python_versions:
             pyvers = []
-            for pyver in python_versions:
-                parts = [i.strip() for i in pyver.split(',')]
-                pyver = 'python (' + ','.join(parts) + ')'
-                pyvers.append(pyver)
-            pyver = pyvers[0]
-        elif python_version:
-            # FIXME: fixed current one
-            pyver = 'python (==' + python_version + ')'
+            # print('python_versions', python_versions)
+            for pyver_req in python_versions:
+                pyspec = parse_specification(pyver_req)
+                if evaluate_marker(pyspec.marker, context, []):
+                    pyvers.append(pyspec.constraints)
+            if pyvers:
+                pyver = 'python ' + ','.join(pyvers)
+            else:
+                pyver = 'python'
+        elif context_py_ver:
+            pyver = 'python ==' + '.'.join(context_py_ver.split('.')[:2])
         else:
-            # FIXME: current one?
             pyver = 'python'
 
         norm_reqs.add(pyver)
+
         return frozenset(norm_reqs)
 
     def get_optional_dependencies(self):
         raise NotImplementedError
+
+    def get_entry_points(self):
+        raise NotImplementedError
+        # TODO: need to add entry points, "exports," and other files that might
+        # not be in RECORD
+        # config = ConfigParser.RawConfigParser()
 
     def get_paths_data(self):
         raise NotImplementedError
@@ -409,6 +522,10 @@ class BasePythonDistribution(object):
     @property
     def name(self):
         return self._metadata.name
+
+    @property
+    def norm_name(self):
+        return norm_package_name(self.name)
 
     @property
     def version(self):
@@ -425,10 +542,8 @@ class PythonInstalledDistribution(BasePythonDistribution):
     REQUIRED_FILES = ('METADATA', 'RECORD', 'INSTALLER')
 
     def get_paths_data(self):
-        """"""
         paths_data = []
-        records = self.get_paths()
-        for (path, checksum, size) in records:
+        for (path, checksum, size) in self.get_paths():
             sha256 = checksum[7:] if checksum else None
             paths_data.append(PathDataV1(
                 _path=path,
@@ -449,7 +564,6 @@ class PythonEggInfoDistribution(BasePythonDistribution):
     REQUIRED_FILES = ()
 
     def get_paths_data(self):
-        """"""
         paths_data = []
         for path, _, _ in self.get_paths():
             paths_data.append(PathData(
@@ -462,12 +576,15 @@ class PythonEggInfoDistribution(BasePythonDistribution):
 # Helper funcs
 # -----------------------------------------------------------------------------
 def norm_package_name(name):
-    """"""
-    return name.replace('.', '-').replace('_', '-').lower()
+    return name.replace('.', '-').replace('_', '-').lower() if name else ''
+
+
+def pypi_name_to_conda_name(pypi_name):
+    return PYPI_TO_CONDA.get(pypi_name, pypi_name) if pypi_name else ''
 
 
 def norm_package_version(version):
-    """"""
+    """Normalize a version by removing extra spaces and parentheses."""
     if version:
         version = ','.join(v.strip() for v in version.split(',')).strip()
 
@@ -479,26 +596,64 @@ def norm_package_version(version):
     return version
 
 
-def parse_requirement(requirement):
-    """"""
-    parts = requirement.split(';')
-    if len(parts) == 1:
-        spec = requirement
-        markers = None
-    else:
-        spec, markers = parts
-        markers = markers.strip()
+def split_spec(spec, sep):
+    """Split a spec by separator and return stripped start and end parts."""
+    parts = spec.rsplit(sep, 1)
+    spec_start = parts[0].strip()
+    spec_end = ''
+    if len(parts) == 2:
+        spec_end = parts[-1].strip()
+    return spec_start, spec_end
 
-    name, extra, version = PYPI_SPEC_PATTERN.match(spec).groups()
-    name = norm_package_name(name).strip()
-    extra = extra[1:-1] if extra else None
-    version = norm_package_version(version) if version else None
 
-    return PySpec(name, extra, version, markers)
+def parse_specification(spec):
+    """
+    Parse a requirement from a python distribution metadata and return a
+    namedtuple with name, extras, constraints, marker and url components.
+
+    This method does not enforce strict specifications but extracts the
+    information which is assumed to be *correct*. As such no errors are raised.
+
+    Example
+    -------
+    >>> parse_specification('requests[security]>=3.3.0 ; foo >= 2.7 or bar == 1')
+    PySpec(name='requests', extras=['security'], constraints='>=3.3.0',
+           marker='foo >= 2.7 or bar == 1', url=''])
+    """
+    name, extras, const = spec, [], ''
+
+    # Remove excess whitespace
+    spec = ' '.join(p for p in spec.split(' ') if p).strip()
+
+    # Extract marker (Assumes that there can only be one ';' inside the spec)
+    spec, marker = split_spec(spec, ';')
+
+    # Extract url (Assumes that there can only be one '@' inside the spec)
+    spec, url = split_spec(spec, '@')
+
+    # Find name, extras and constraints
+    r = PARTIAL_PYPI_SPEC_PATTERN.match(spec)
+    if r:
+        # Normalize name
+        name = r.group('name')
+        name = norm_package_name(name)  # TODO: Do we want this or not?
+
+        # Clean extras
+        extras = r.group('extras')
+        extras = [e.strip() for e in extras.split(',') if e] if extras else []
+
+        # Clean constraints
+        const = r.group('constraints')
+        const = ''.join(c for c in const.split(' ') if c).strip()
+        if const.startswith('(') and const.endswith(')'):
+            # Remove parens
+            const = const[1:-1]
+
+    return PySpec(name=name, extras=extras, constraints=const, marker=marker, url=url)
 
 
 def get_conda_anchor_files_and_records(python_records):
-    """"""
+    """Return the anchor files for the conda records of python packages."""
     anchor_file_endings = ('.egg-info/PKG-INFO', '.dist-info/RECORD', '.egg-info')
     conda_python_packages = odict()
 
@@ -512,7 +667,7 @@ def get_conda_anchor_files_and_records(python_records):
 
 
 def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
-    """"""
+    """Get all the anchor files for the site packages directory."""
     site_packages_anchor_files = set()
     for fname in listdir(site_packages_path):
         if fname.endswith('.dist-info'):
@@ -534,14 +689,19 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
 
 
 def get_dist_file_from_egg_link(egg_link_file, prefix_path):
-    """"""
+    """
+    Return the egg info file path following an egg link.
+
+    Return `None` if no egg-info is found or the path is no longer there.
+    """
     egg_info_full_path = None
 
     with open(join(prefix_path, win_path_ok(egg_link_file))) as fh:
-        # TODO: Will an egg-link always contain a single entry?
+        # Only the first item of an egg-link file is used
         egg_link_contents = fh.readlines()[0].strip()
 
     egg_info_fnames = glob(join(egg_link_contents, "*.egg-info"))
+
     if egg_info_fnames:
         assert len(egg_info_fnames) == 1, (egg_link_file, egg_info_fnames)
         egg_info_full_path = join(egg_link_contents, egg_info_fnames[0])
@@ -553,9 +713,14 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
 
 
 def get_python_distribution_info(anchor_file, prefix_path):
-    """"""
+    """
+    For a given anchor file return the python distribution.
+
+    Return `None` if the information was not found (can happen with egg-links).
+    """
     if anchor_file.endswith('.egg-link'):
         sp_reference = None
+        # This can be None in case the egg-info is no longer there
         dist_file = get_dist_file_from_egg_link(anchor_file, prefix_path)
         dist_cls = PythonEggInfoDistribution
         package_type = PackageType.SHADOW_PYTHON_EGG_LINK
@@ -577,30 +742,37 @@ def get_python_distribution_info(anchor_file, prefix_path):
     else:
         raise NotImplementedError()
 
-    try:
-        pydist = dist_cls(dist_file)
-    except MetadataConflictError:
-        print("MetadataConflictError:", anchor_file)
-        pydist = None
+    pydist = None
+
+    # An egg-link might reference a folder where egg-info is not available
+    if dist_file is not None:
+        try:
+            pydist = dist_cls(dist_file)
+        except Exception as error:
+            print('ERROR', error)
 
     return pydist, sp_reference, package_type
 
 
-def get_python_record(anchor_file, prefix_path, python_version=None):
+def get_python_record(anchor_file, prefix_path, context):
     """
     Convert a python package defined by an anchor file (Metadata information)
     into a conda prefix record object.
-    """
-    # TODO: normalize names against '.', '-', '_'
-    # TODO: ensure that this dist is *actually* the dist that matches conda-meta
-    # TODO: need to add entry points, "exports," and other files that might not be in RECORD  # NOQA
-    # TODO: need to add python (with version?) to deps
 
+    Return `None` if the python record cannot be created.
+    """
+    # TODO: ensure that this dist is actually the dist that matches conda-meta
     pydist, sp_reference, package_type = get_python_distribution_info(anchor_file, prefix_path)
 
     if pydist is None:
         return None
-    channel = Channel('pypi')
+
+    pypi_name = pydist.norm_name
+    conda_name = pypi_name_to_conda_name(pypi_name)
+
+    # TODO: Handle packages with different names (graphviz vs python-graphviz)
+    channel_name = 'pypi' if conda_name == pypi_name else 'pypi:' + pypi_name
+    channel = Channel(channel_name)
     build = 'pypi_0'
 
     if package_type == PackageType.SHADOW_PYTHON_EGG_INFO_FILE:
@@ -615,15 +787,20 @@ def get_python_record(anchor_file, prefix_path, python_version=None):
     else:
         raise NotImplementedError()
 
-    depends = pydist.get_dependencies()
-    print(pydist.name.lower())
-    print(depends)
-    print(pydist.get_extra_provides())
-    print('\n')
+    # TODO: This is currently adding additional conda dependencies for graphviz
+    # only, but other packages need something similar. This info should (could)
+    # be on the 'external_requirements', but that field is free form.
+    dependencies = pydist.get_dependencies(context)
+    extra_dependencies = PYPI_CONDA_DEPS.get(pypi_name, [])
+    all_dependencies = list(dependencies) + extra_dependencies
+    # print('{0} ({1})'.format(conda_name, pypi_name))
+    # for dependency in sorted(all_dependencies):
+    #     print('\t{}'.format(dependency))
+    # print('\n')
 
     python_rec = PrefixRecord(
         package_type=package_type,
-        name=pydist.name.lower(),
+        name=conda_name,
         version=pydist.version,
         channel=channel,
         subdir='pypi',
@@ -631,7 +808,122 @@ def get_python_record(anchor_file, prefix_path, python_version=None):
         build=build,
         build_number=0,
         paths_data=paths_data,
-        depends=depends,
+        depends=all_dependencies,
     )
 
     return python_rec
+
+
+def get_python_records(anchor_files, prefix_path, python_version):
+    """
+    Process all anchor files and return a python record.
+
+    This method evaluates the context needed for marker evaluation.
+    """
+    python_records = []
+    context = update_marker_context(python_version)
+    for anchor_file in sorted(anchor_files):
+        python_record = get_python_record(anchor_file, prefix_path, context)
+        if python_record:
+            python_records.append(python_record)
+    return python_records
+
+
+# Marker helper funcs
+# -----------------------------------------------------------------------------
+def evaluate_marker(marker_expr, context, extras):
+    """
+    Temporal simplified (and unsafe) version of marker evaluation.
+    """
+    # _safer_eval is a POC to test the logic, but the micro language will no
+    # longer be a subset of python so a specific lexer/parser is needed.
+    # TODO: The version used in distlib is compact, we could vendor that part?
+    # https://bitbucket.org/pypa/distlib/src/c9984aa2ecff1f9931cf4354d1abe5bdb415ea07/distlib/util.py
+    def _safer_eval(expr, local_context):
+        _local_context = frozendict(local_context.items())
+        try:
+            result = eval(expr, {"__builtins__": None}, _local_context)
+        except Exception as e:
+            result = True
+            print(e)
+
+        return result
+
+    if marker_expr:
+        # Extras may or may not be provided by the metadata, for every extra
+        # we evaluate the markers to obtain *all* possible packages.
+        # FIXME: This leads to including extra packages only used for doc
+        # generation or test running. Names are not standard, but a cleanup
+        # could be performed based on 'test', 'tests', 'doc' 'docs', 'doctest'
+        # 'doctests' etc.
+        if extras:
+            marker_results = []
+            for extra in extras:
+                context.update({'extra': extra})
+                # FIXME: Temporal eval to test functionality
+                marker_result = _safer_eval(marker_expr, context)
+                marker_results.append(marker_result)
+            marker_result = any(marker_results)
+        else:
+            # FIXME: Temporal eval to test functionality
+            marker_result = _safer_eval(marker_expr, context)
+        # print(marker_expr, marker_result)
+    else:
+        marker_result = True
+
+    return marker_result
+
+
+def update_marker_context(python_version):
+    """Update default marker context to include environment python version."""
+    updated_context = DEFAULT_MARKER_CONTEXT.copy()
+    context = {
+        'python_full_version': python_version,
+        'python_version': '.'.join(python_version.split('.')[:2]),
+        'extra': '',
+    }
+    updated_context.update(context)
+    return updated_context
+
+
+def get_default_marker_context():
+    """Return the default context dictionary to use when parsing markers."""
+
+    def format_full_version(info):
+        version = '%s.%s.%s' % (info.major, info.minor, info.micro)
+        kind = info.releaselevel
+        if kind != 'final':
+            version += kind[0] + str(info.serial)
+        return version
+
+    if hasattr(sys, 'implementation'):
+        implementation_version = format_full_version(sys.implementation.version)
+        implementation_name = sys.implementation.name
+    else:
+        implementation_version = '0'
+        implementation_name = ''
+
+    result = {
+        # See: https://www.python.org/dev/peps/pep-0508/#environment-markers
+        'implementation_name': implementation_name,
+        'implementation_version': implementation_version,
+        'os_name': os.name,
+        'platform_machine': platform.machine(),
+        'platform_python_implementation': platform.python_implementation(),
+        'platform_release': platform.release(),
+        'platform_system': platform.system(),
+        'platform_version': platform.version(),
+        'python_full_version': platform.python_version(),
+        'python_version': '.'.join(platform.python_version().split('.')[:2]),
+        'sys_platform': sys.platform,
+        # See: https://www.python.org/dev/peps/pep-0345/#environment-markers
+        'os.name': os.name,
+        'platform.python_implementation': platform.python_implementation(),
+        'platform.version': platform.version(),
+        'platform.machine': platform.machine(),
+        'sys.platform': sys.platform,
+    }
+    return result
+
+
+DEFAULT_MARKER_CONTEXT = get_default_marker_context()
