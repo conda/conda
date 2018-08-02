@@ -1005,8 +1005,9 @@ def test_no_features():
     ]
 
 
-#@pytest.mark.skipif(datetime.now() < datetime(2018, 9, 1), reason="bogus test; talk with @mcg1969")
-#def test_multiple_solution():
+@pytest.mark.skipif(datetime.now() < datetime(2018, 9, 1), reason="bogus test; talk with @mcg1969")
+def test_multiple_solution():
+    pass
 #    index2 = index.copy()
 #    fn = 'pandas-0.11.0-np16py27_1.tar.bz2'
 #    res1 = set([fn])

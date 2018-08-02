@@ -6,7 +6,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import tempfile
-import sys
 
 from conda.common.compat import odict
 from conda.core.prefix_data import PrefixData
@@ -15,21 +14,6 @@ from conda.core import python_dist as pd
 import pytest
 
 from .data import METADATA_VERSION_PATHS, PATH_TEST_ENV_1, PATH_TEST_ENV_2
-
-
-"""
-581-582,
-653,
-669,
-680,
-838,
-846,
-884-917,
-928-977,
-986-992,
-1058,
-1065-1066
-"""
 
 
 # Helpers
@@ -440,10 +424,8 @@ def test_metadata_read_metadata():
     temp_path, fpaths = _create_test_files((
         ('', 'PKG-INFO', 'Unknown-Key: unknown\n'),
     ))
-    with pytest.warns(pd.MetadataWarning):
-        output = func(fpaths[0])
-
-    expected_output = odict(unknown_key='unknown')
+    output = func(fpaths[0])
+    expected_output = odict()
     _print_output(output, expected_output)
     assert output == expected_output
 

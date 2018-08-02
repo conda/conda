@@ -2,13 +2,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Example packages:
-
+Example packages used in this data testing:
 - https://github.com/frejanordsiek/hdf5storage/blob/0.1.15/setup.py
 - https://github.com/dask/dask/blob/master/setup.py
 - https://github.com/rdegges/django-twilio/blob/master/setup.py
 - https://github.com/twilio/twilio-python/blob/master/setup.py
 - https://github.com/tox-dev/tox/blob/master/setup.py
+- https://github.com/cherrypy/cherrypy/blob/master/setup.py
+- https://github.com/jaraco/keyring/blob/master/setup.py
+- https://github.com/scrapy/scrapy/blob/master/setup.py
 """
 
 import os
