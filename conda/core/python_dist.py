@@ -17,11 +17,17 @@ import sys
 import warnings
 
 from .._vendor.frozendict import frozendict
-from ..common.compat import odict
+from ..common.compat import odict, StringIO
 from ..common.path import win_path_ok
 from ..models.channel import Channel
 from ..models.enums import PackageType, PathType
 from ..models.records import PathData, PathDataV1, PathsData, PrefixRecord
+
+
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
 
 
 # TODO: complete this list
@@ -30,7 +36,7 @@ PYPI_TO_CONDA = {
 }
 # TODO: complete this list
 PYPI_CONDA_DEPS = {
-    'graphviz': ['graphviz'],  # What versions?
+    'graphviz': ['graphviz'],  # What version constraints?
 }
 # This regex can process requirement including or not including name.
 # This is useful for parsing, for example, `Python-Version`
@@ -54,6 +60,10 @@ class PythonDistributionMetadata(object):
     """
     Object representing the metada of a Python Distribution given by anchor
     file (or directory) path.
+
+    This metadata is extracted from a single file. Python distributions might
+    create additional files that complement this metadata information, but
+    that is handled at the python distribution level.
 
     Notes
     -----
@@ -189,13 +199,7 @@ class PythonDistributionMetadata(object):
 
             # Handle keywords
             if 'keywords' in new_data:
-                keywords = new_data['keywords']
-                if ';' in keywords:
-                    new_data['keywords'] = new_data['keywords'].split(';')
-                elif ',' in keywords:
-                    new_data['keywords'] = new_data['keywords'].split(',')
-                else:
-                    new_data['keywords'] = new_data['keywords'].split(' ')
+                new_data['keywords'] = new_data['keywords'].split(' ')
 
         return new_data
 
@@ -213,7 +217,7 @@ class PythonDistributionMetadata(object):
 
         return cls._message_to_dict(data)
 
-    def _get_multiple_data(self, keys, exclude_markers=False):
+    def _get_multiple_data(self, keys):
         """
         Helper method to get multiple data values by keys.
 
@@ -227,16 +231,14 @@ class PythonDistributionMetadata(object):
             for key in keys:
                 raw_data = self._data.get(key, [])
                 for req in raw_data:
-                    if exclude_markers:
-                        data.append(req.split(';')[0].strip())
-                    else:
-                        data.append(req.strip())
+                    data.append(req.strip())
+
                 if data:
                     break
 
         return frozenset(data)
 
-    def get_dist_requirements(self, exclude_markers=False):
+    def get_dist_requirements(self):
         """
         Changed in version 2.1: The field format specification was relaxed to
         accept the syntax used by popular publishing tools.
@@ -256,6 +258,8 @@ class PythonDistributionMetadata(object):
           - An environment marker after a semicolon. This means that the
             requirement is only needed in the specified conditions.
 
+        This field may be followed by an environment marker after a semicolon.
+
         Example
         -------
         frozenset(['pkginfo', 'PasteDeploy', 'zope.interface (>3.5.0)',
@@ -263,10 +267,9 @@ class PythonDistributionMetadata(object):
 
         Return 'Requires' if 'Requires-Dist' is empty.
         """
-        return self._get_multiple_data(['requires_dist', 'requires'],
-                                       exclude_markers=exclude_markers)
+        return self._get_multiple_data(['requires_dist', 'requires'])
 
-    def get_python_requirements(self, exclude_markers=False):
+    def get_python_requirements(self):
         """
         New in version 1.2.
 
@@ -283,10 +286,9 @@ class PythonDistributionMetadata(object):
         frozenset(['>=3', '>2.6,!=3.0.*,!=3.1.*', '~=2.6',
                    '>=3; sys_platform == "win32"'])
         """
-        return self._get_multiple_data(['requires_python'],
-                                       exclude_markers=exclude_markers)
+        return self._get_multiple_data(['requires_python'])
 
-    def get_external_requirements(self, exclude_markers=False):
+    def get_external_requirements(self):
         """
         Changed in version 2.1: The field format specification was relaxed to
         accept the syntax used by popular publishing tools.
@@ -312,8 +314,7 @@ class PythonDistributionMetadata(object):
         -------
         frozenset(['C', 'libpng (>=1.5)', 'make; sys_platform != "win32"'])
         """
-        return self._get_multiple_data(['requires_external'],
-                                       exclude_markers=exclude_markers)
+        return self._get_multiple_data(['requires_external'])
 
     def get_extra_provides(self):
         """
@@ -325,18 +326,47 @@ class PythonDistributionMetadata(object):
 
         Example
         -------
-        frozenset(['pdf', 'doc', 'test', 'other ; some_marker >= 2.7'])
+        frozenset(['pdf', 'doc', 'test'])
         """
         return self._get_multiple_data(['provides_extra'])
 
-    def get_dist_provides(self, exclude_markers=False):
+    def get_dist_provides(self):
         """
+        New in version 1.2.
+
+        Changed in version 2.1: The field format specification was relaxed to
+        accept the syntax used by popular publishing tools.
+
+        Each entry contains a string naming a Distutils project which is
+        contained within this distribution. This field must include the project
+        identified in the Name field, followed by the version : Name (Version).
+
+        A distribution may provide additional names, e.g. to indicate that
+        multiple projects have been bundled together. For instance, source
+        distributions of the ZODB project have historically included the
+        transaction project, which is now available as a separate distribution.
+        Installing such a source distribution satisfies requirements for both
+        ZODB and transaction.
+
+        A distribution may also provide a “virtual” project name, which does
+        not correspond to any separately-distributed project: such a name might
+        be used to indicate an abstract capability which could be supplied by
+        one of multiple projects. E.g., multiple projects might supply RDBMS
+        bindings for use by a given ORM: each project might declare that it
+        provides ORM-bindings, allowing other projects to depend only on having
+        at most one of them installed.
+
+        A version declaration may be supplied and must follow the rules
+        described in Version specifiers. The distribution’s version number
+        will be implied if none is specified.
+
+        This field may be followed by an environment marker after a semicolon.
+
         Return `Provides` in case `Provides-Dist` is empty.
         """
-        return self._get_multiple_data(['provides_dist', 'provides'],
-                                       exclude_markers=exclude_markers)
+        return self._get_multiple_data(['provides_dist', 'provides'])
 
-    def get_dist_obsolete(self, exclude_markers=False):
+    def get_dist_obsolete(self):
         """
         New in version 1.2.
 
@@ -354,6 +384,8 @@ class PythonDistributionMetadata(object):
         changes, e.g. Gorgon 2.3 gets subsumed into Torqued Python 1.0. When
         you install Torqued Python, the Gorgon distribution should be removed.
 
+        This field may be followed by an environment marker after a semicolon.
+
         Return `Obsoletes` in case `Obsoletes-Dist` is empty.
 
         Example
@@ -365,16 +397,21 @@ class PythonDistributionMetadata(object):
         - [1] https://packaging.python.org/specifications/version-specifiers/
         """
 
-        return self._get_multiple_data(['obsoletes_dist', 'obsoletes'],
-                                       exclude_markers=exclude_markers)
+        return self._get_multiple_data(['obsoletes_dist', 'obsoletes'])
 
-    def get_classifiers(self, exclude_markers=False):
+    def get_classifiers(self):
         """
         Classifiers are described in PEP 301, and the Python Package Index
         publishes a dynamic list of currently defined classifiers.
+
+        This field may be followed by an environment marker after a semicolon.
+
+        Example
+        -------
+        frozenset(['Development Status :: 4 - Beta',
+                   "Environment :: Console (Text Based) ; os_name == "posix"])
         """
-        return self._get_multiple_data(['classifier'],
-                                       exclude_markers=exclude_markers)
+        return self._get_multiple_data(['classifier'])
 
     @property
     def name(self):
@@ -391,24 +428,34 @@ class BasePythonDistribution(object):
     """
     Base object describing a python distribution based on path to anchor file.
     """
-    SOURCES_FILES = ()  # Should be one, but many different options
-    REQUIRED_FILES = ()
-    ENTRY_POINTS_FILES = ('entry_points.txt')
+    SOURCES_FILES = ()   # Only one is used, but many names available
+    REQUIRES_FILES = ()  # Only one is used, but many names available
+    MANDATORY_FILES = ()
+    ENTRY_POINTS_FILES = ('entry_points.txt', )
 
-    def __init__(self, path):
-        self._path = path
+    def __init__(self, path_or_fpath):
+        if os.path.isfile(path_or_fpath):
+            self._fpath = path_or_fpath
+            self._path = os.path.dirname(path_or_fpath)
+        elif isdir(path_or_fpath):
+            self._fpath = None
+            self._path = path_or_fpath
+        else:
+            self._fpath = None
+            self._path = None
+
         self._check_files()
         self._source_file = None
-        self._metadata = PythonDistributionMetadata(path)
+        self._metadata = PythonDistributionMetadata(path_or_fpath)
+        self._provides_file_data = ()
+        self._requires_file_data = ()
 
     def _check_files(self):
         """Check the existence of mandatory files for a given distribution."""
-        if isdir(self._path):
-            for fname in self.REQUIRED_FILES:
+        for fname in self.MANDATORY_FILES:
+            if self._path:
                 fpath = join(self._path, fname)
                 assert isfile(fpath)
-        elif isfile(self._path):
-            pass
 
     def _check_path_data(self, path, checksum, size):
         """Normalizes record data content and format."""
@@ -420,57 +467,163 @@ class BasePythonDistribution(object):
 
         return path, checksum, size
 
+    @staticmethod
+    def _parse_requires_file_data(data, global_section='__global__'):
+        """
+        https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
+        """
+        requires = odict()
+        lines = [l.strip() for l in data.split('\n') if l]
+
+        if lines and not (lines[0].startswith('[') and lines[0].endswith(']')):
+            # Add dummy section for unsectioned items
+            lines = ['[{}]'.format(global_section)] + lines
+
+        # Parse sections
+        for line in lines:
+            if line.startswith('[') and line.endswith(']'):
+                section = line.strip()[1:-1]
+                requires[section] = []
+                continue
+
+            if line.strip():
+                requires[section].append(line.strip())
+
+        # Adapt to generic requirements
+        reqs = []
+        extras = []
+        for section, values in requires.items():
+            if section == global_section:
+                # This is the global section (same as dist_requires)
+                reqs.extend(values)
+            elif section.startswith(':'):
+                # The section is used as a marker.
+                marker = section.replace(':', '; ')
+                new_values = [v+marker for v in values]
+                reqs.extend(new_values)
+            else:
+                # The section is an extra.
+                extras.append(section)
+                marker = '; extra == "{}"'.format(section)
+                new_values = [v+marker for v in values]
+                reqs.extend(new_values)
+
+        return frozenset(reqs), extras
+
+    @staticmethod
+    def _parse_entries_file_data(data):
+        """
+        https://setuptools.readthedocs.io/en/latest/formats.html#entry-points-txt-entry-point-plugin-metadata
+        """
+        # FIXME: Use pkg_resources which provides API for this?
+        entries_data = odict()
+        config = ConfigParser()
+        config.optionxform = lambda x: x  # Avoid lowercasing keys
+        config.readfp(StringIO(data))
+        for section in config.sections():
+            entries_data[section] = odict(config.items(section))
+
+        return entries_data
+
+    def _load_requires_provides_file(self):
+        """
+        https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
+        """
+        # FIXME: Use pkg_resources which provides API for this?
+        requires = None
+        extras = None
+        for fname in self.REQUIRES_FILES:
+            fpath = os.path.join(self._path, fname)
+            if isfile(fpath):
+                with open(fpath, 'r') as fh:
+                    data = fh.read()
+
+                requires, extras = self._parse_requires_file_data(data)
+                self._provides_file_data = extras
+                self._requires_file_data = requires
+                break
+
+        return requires, extras
+
     def get_paths(self):
         """
         Read the list of installed paths from record or source file.
 
-        [(u'skdata/__init__.py', u'sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU', u'0'),
+        Example
+        -------
+        [(u'skdata/__init__.py', u'sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU', 0),
          (u'skdata/diabetes.py', None, None),
          ...
         ]
         """
         records = []
-        if isdir(self._path):
+        if self._path:
             for fname in self.SOURCES_FILES:
                 fpath = join(self._path, fname)
                 if isfile(fpath):
-                    self._source_file = fpath
                     break
-            try:
-                with open(fpath, newline='') as csvfile:
-                    record_reader = csv.reader(csvfile, delimiter=',')
+            else:
+                # For ended and no path was found
+                fpath = None
 
-                    for row in record_reader:
-                        missing = [None for i in range(len(row), 3)]
-                        path, checksum, size = row + missing
-                        path, checksum, size = self._check_path_data(path, checksum, size)
-                        records.append((path, checksum, size))
-            except Exception as e:
-                print(e)
+            self._source_file = fpath
+
+            if fpath:
+                try:
+                    with open(fpath, newline='') as csvfile:
+                        record_reader = csv.reader(csvfile, delimiter=',')
+
+                        for row in record_reader:
+                            missing = [None for i in range(len(row), 3)]
+                            path, checksum, size = row + missing
+                            path, checksum, size = self._check_path_data(path, checksum, size)
+                            records.append((path, checksum, size))
+                except Exception as e:
+                    print(e)
 
         return records
 
-    def get_dist_requirements(self, exclude_markers=False):
-        return self._metadata.get_dist_requirements(exclude_markers=exclude_markers)
+    def get_dist_requirements(self):
+        # FIXME: On some packages, requirements are not added to metadata,
+        # but on a separate requires.txt, see: python setup.py develop for
+        # anaconda-client. This is setuptools behavior.
+        # TODO: what is the dependency_links.txt on the same example?
+        data = self._metadata.get_dist_requirements()
+        if self._requires_file_data:
+            data = self._requires_file_data
+        elif not data:
+            self._load_requires_provides_file()
+            data = self._requires_file_data
+        return data
 
-    def get_python_requirements(self, exclude_markers=False):
-        return self._metadata.get_python_requirements(exclude_markers=exclude_markers)
+    def get_python_requirements(self):
+        return self._metadata.get_python_requirements()
 
-    def get_external_requirements(self, exclude_markers=False):
-        return self._metadata.get_external_requirements(exclude_markers=exclude_markers)
+    def get_external_requirements(self):
+        return self._metadata.get_external_requirements()
 
     def get_extra_provides(self):
-        return self._metadata.get_extra_provides()
+        # FIXME: On some packages, requirements are not added to metadata,
+        # but on a separate requires.txt, see: python setup.py develop for
+        # anaconda-client. This is setuptools behavior.
+        # TODO: what is the dependency_links.txt on the same example?
+        data = self._metadata.get_extra_provides()
+        if self._provides_file_data:
+            data = self._provides_file_data
+        elif not data:
+            self._load_requires_provides_file()
+            data = self._provides_file_data
 
-    # Conda dependencies format
-    def get_dependencies(self, context):
+        return data
+
+    def get_conda_dependencies(self, context):
         """
         Process metadata fields providing dependency information.
 
-        This includes normalizing fields, and evaluation environment markers.
+        This includes normalizing fields, and evaluating environment markers.
         """
         # Process dependencies
-        reqs = self.get_dist_requirements(exclude_markers=False)
+        reqs = self.get_dist_requirements()
         extras = self.get_extra_provides()
         norm_reqs = set([])
         for req in reqs:
@@ -486,7 +639,7 @@ class BasePythonDistribution(object):
 
         # Add python dependency
         context_py_ver = context.get('python_version')
-        python_versions = self.get_python_requirements(exclude_markers=False)
+        python_versions = self.get_python_requirements()
         if python_versions:
             pyvers = []
             # print('python_versions', python_versions)
@@ -511,10 +664,14 @@ class BasePythonDistribution(object):
         raise NotImplementedError
 
     def get_entry_points(self):
-        raise NotImplementedError
         # TODO: need to add entry points, "exports," and other files that might
         # not be in RECORD
-        # config = ConfigParser.RawConfigParser()
+        for fname in self.ENTRY_POINTS_FILES:
+            fpath = os.path.join(self._path, fname)
+            if isfile(fpath):
+                with open(fpath, 'r') as fh:
+                    data = fh.read()
+        return self._parse_entries_file_data(data)
 
     def get_paths_data(self):
         raise NotImplementedError
@@ -534,12 +691,16 @@ class BasePythonDistribution(object):
 
 class PythonInstalledDistribution(BasePythonDistribution):
     """
+    Python distribution installed via distutils.
+
     Notes
     -----
       - https://www.python.org/dev/peps/pep-0376/
     """
     SOURCES_FILES = ('RECORD', )
-    REQUIRED_FILES = ('METADATA', 'RECORD', 'INSTALLER')
+    REQUIRES_FILES = ()
+    MANDATORY_FILES = ('METADATA', 'RECORD', 'INSTALLER')
+    ENTRY_POINTS_FILES = ()
 
     def get_paths_data(self):
         paths_data = []
@@ -556,12 +717,16 @@ class PythonInstalledDistribution(BasePythonDistribution):
 
 class PythonEggInfoDistribution(BasePythonDistribution):
     """
+    Python distribution installed via setuptools.
+
     Notes
     -----
       - http://peak.telecommunity.com/DevCenter/EggFormats
     """
     SOURCES_FILES = ('SOURCES', 'SOURCES.txt')
-    REQUIRED_FILES = ()
+    REQUIRES_FILES = ('requires.txt', 'depends.txt')
+    MANDATORY_FILES = ()
+    ENTRY_POINTS_FILES = ('entry_points.txt', )
 
     def get_paths_data(self):
         paths_data = []
@@ -592,6 +757,8 @@ def norm_package_version(version):
             version = version[1:-1]
 
         version = ''.join(v for v in version if v.strip())
+    else:
+        version = ''
 
     return version
 
@@ -616,7 +783,6 @@ def parse_specification(spec):
 
     Example
     -------
-    >>> parse_specification('requests[security]>=3.3.0 ; foo >= 2.7 or bar == 1')
     PySpec(name='requests', extras=['security'], constraints='>=3.3.0',
            marker='foo >= 2.7 or bar == 1', url=''])
     """
@@ -697,7 +863,9 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     egg_info_full_path = None
 
     with open(join(prefix_path, win_path_ok(egg_link_file))) as fh:
-        # Only the first item of an egg-link file is used
+        # See: https://setuptools.readthedocs.io/en/latest/formats.html#egg-links
+        # "...Each egg-link file should contain a single file or directory name
+        # with no newlines..."
         egg_link_contents = fh.readlines()[0].strip()
 
     egg_info_fnames = glob(join(egg_link_contents, "*.egg-info"))
@@ -749,7 +917,7 @@ def get_python_distribution_info(anchor_file, prefix_path):
         try:
             pydist = dist_cls(dist_file)
         except Exception as error:
-            print('ERROR', error)
+            print('get_python_distribution_info', error)
 
     return pydist, sp_reference, package_type
 
@@ -790,13 +958,13 @@ def get_python_record(anchor_file, prefix_path, context):
     # TODO: This is currently adding additional conda dependencies for graphviz
     # only, but other packages need something similar. This info should (could)
     # be on the 'external_requirements', but that field is free form.
-    dependencies = pydist.get_dependencies(context)
+    dependencies = pydist.get_conda_dependencies(context)
     extra_dependencies = PYPI_CONDA_DEPS.get(pypi_name, [])
     all_dependencies = list(dependencies) + extra_dependencies
-    # print('{0} ({1})'.format(conda_name, pypi_name))
-    # for dependency in sorted(all_dependencies):
-    #     print('\t{}'.format(dependency))
-    # print('\n')
+    print('conda:{0} (pypi:{1})'.format(conda_name, pypi_name))
+    for dependency in sorted(all_dependencies):
+        print('\t{}'.format(dependency))
+    print('\n')
 
     python_rec = PrefixRecord(
         package_type=package_type,
@@ -832,9 +1000,7 @@ def get_python_records(anchor_files, prefix_path, python_version):
 # Marker helper funcs
 # -----------------------------------------------------------------------------
 def evaluate_marker(marker_expr, context, extras):
-    """
-    Temporal simplified (and unsafe) version of marker evaluation.
-    """
+    """Temporal simplified (and unsafe) version of marker evaluation."""
     # _safer_eval is a POC to test the logic, but the micro language will no
     # longer be a subset of python so a specific lexer/parser is needed.
     # TODO: The version used in distlib is compact, we could vendor that part?
@@ -842,9 +1008,9 @@ def evaluate_marker(marker_expr, context, extras):
     def _safer_eval(expr, local_context):
         _local_context = frozendict(local_context.items())
         try:
-            result = eval(expr, {"__builtins__": None}, _local_context)
+            result = eval(expr, {"__builtins__": {}}, _local_context)
         except Exception as e:
-            result = True
+            result = False
             print(e)
 
         return result
@@ -856,6 +1022,7 @@ def evaluate_marker(marker_expr, context, extras):
         # generation or test running. Names are not standard, but a cleanup
         # could be performed based on 'test', 'tests', 'doc' 'docs', 'doctest'
         # 'doctests' etc.
+        # TODO: Create a mapping of extras to ignore for pypi pkg?
         if extras:
             marker_results = []
             for extra in extras:

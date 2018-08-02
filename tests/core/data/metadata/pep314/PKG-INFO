@@ -1,8 +1,8 @@
 Metadata-Version: 1.1
 Name: BeagleVote
 Version: 1.0a2
-Platform: ObscureUnix, RareDOS
-Platform: SuperRareDOS
+Platform: ObscureUnix
+Platform: RareDOS
 Supported-Platform: RedHat 7.2
 Supported-Platform: i386-win32-2791
 Summary: A module for collecting votes from beagles.
