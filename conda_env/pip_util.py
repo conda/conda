@@ -58,11 +58,12 @@ def installed(prefix, output=True):
     pip_major_version = int(pip_version.split('.', 1)[0])
 
     env = os.environ.copy()
-    env[str('PIP_FORMAT')] = str('legacy')
     args.append('list')
 
     if pip_major_version >= 9:
         args += ['--format', 'json']
+    else:
+        env[str('PIP_FORMAT')] = str('legacy')
 
     try:
         pip_stdout = subprocess.check_output(args, universal_newlines=True, env=env)
