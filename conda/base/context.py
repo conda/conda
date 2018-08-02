@@ -21,8 +21,8 @@ from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
 from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
-from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
-                                    SequenceParameter, ValidationError)
+from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
+                                    PrimitiveParameter, SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
 from ..common.path import expand
 from ..common.os.linux import linux_get_libc_version
@@ -1161,7 +1161,7 @@ def get_prefix(ctx, args, search=True):  # pragma: no cover
 
 try:
     context = Context((), None)
-except LoadError as e:  # pragma: no cover
-    print(e, file=sys.stderr)
+except ConfigurationLoadError as e:  # pragma: no cover
+    print(repr(e), file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit
     sys.exit(1)
