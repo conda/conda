@@ -1,8 +1,8 @@
 Metadata-Version: 1.0
 Name: BeagleVote
 Version: 1.0a2
-Platform: POSIX
-Platform: Windows
+Platform: ObscureUnix
+Platform: RareDOS
 Summary: A module for collecting votes from beagles.
 Description: This module collects votes from beagles
              in order to determine their electoral wishes.
