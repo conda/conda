@@ -203,23 +203,27 @@ class PrefixData(object):
 
     def _load_site_packages(self):
         """
-        Load non conda python packages on the site packages of the prefix.
+        Load non-conda-installed python packages in the site-packages of the prefix.
 
-        Python packages not hanlded by conda are installed via other means,
+        Python packages not handled by conda are installed via other means,
         like using pip or using python setup.py develop for local development.
 
         Packages found that are not handled by conda are converted into a
         prefix record and handled in memory.
 
-        Packages clobbering conda packages are remove from the in memory
-        representation.
+        Packages clobbering conda packages (i.e. the conda-meta record) are
+        removed from the in memory representation.
         """
         python_pkg_record = self._python_pkg_record
+
+        if not python_pkg_record:
+            return {}
+
         site_packages_dir = get_python_site_packages_short_path(python_pkg_record.version)
         site_packages_path = join(self.prefix_path, win_path_ok(site_packages_dir))
 
-        if not python_pkg_record or not isdir(site_packages_path):
-            return
+        if not isdir(site_packages_path):
+            return {}
 
         # Get anchor files for corresponding conda (handled) python packages
         prefix_graph = PrefixGraph(self.iter_records())
