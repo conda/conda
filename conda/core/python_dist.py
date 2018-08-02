@@ -570,8 +570,15 @@ class BasePythonDistribution(object):
 
             if fpath:
                 try:
-                    with open(fpath, newline='') as csvfile:
-                        record_reader = csv.reader(csvfile, delimiter=',')
+                    if sys.version_info[0] == 2:  # Not named on 2.6
+                        kwargs = {}
+                        delimiter = str(u',').encode('utf-8')
+                    else:
+                        kwargs = {'newline': ''}
+                        delimiter = ','
+
+                    with open(fpath, **kwargs) as csvfile:
+                        record_reader = csv.reader(csvfile, delimiter=delimiter)
 
                         for row in record_reader:
                             missing = [None for i in range(len(row), 3)]
