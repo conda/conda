@@ -17,7 +17,7 @@ import sys
 import warnings
 
 from .._vendor.frozendict import frozendict
-from ..common.compat import odict, StringIO
+from ..common.compat import odict, PY2, StringIO
 from ..common.path import win_path_ok
 from ..models.channel import Channel
 from ..models.enums import PackageType, PathType
@@ -52,6 +52,85 @@ PARTIAL_PYPI_SPEC_PATTERN = re.compile(r'''
 PySpec = namedtuple('PySpec', ['name', 'extras', 'constraints', 'marker', 'url'])
 
 
+# Main functions
+# -----------------------------------------------------------------------------
+def get_python_records(anchor_files, prefix_path, python_version):
+    """
+    Process all anchor files and return a python record.
+
+    This method evaluates the context needed for marker evaluation.
+    """
+    python_records = []
+    context = update_marker_context(python_version)
+    for anchor_file in sorted(anchor_files):
+        python_record = get_python_record(anchor_file, prefix_path, context)
+        if python_record:
+            python_records.append(python_record)
+    return python_records
+
+
+def get_python_record(anchor_file, prefix_path, context):
+    """
+    Convert a python package defined by an anchor file (Metadata information)
+    into a conda prefix record object.
+
+    Return `None` if the python record cannot be created.
+    """
+    # TODO: ensure that this dist is actually the dist that matches conda-meta
+    pydist, sp_reference, package_type = get_python_distribution_info(anchor_file, prefix_path)
+
+    if pydist is None:
+        return None
+
+    pypi_name = pydist.norm_name
+    conda_name = pypi_name_to_conda_name(pypi_name)
+
+    # TODO: Handle packages with different names (graphviz vs python-graphviz)
+    channel_name = 'pypi' if conda_name == pypi_name else 'pypi:' + pypi_name
+    channel = Channel(channel_name)
+    build = 'pypi_0'
+
+    if package_type == PackageType.SHADOW_PYTHON_EGG_INFO_FILE:
+        paths_data = None
+    elif package_type in (PackageType.SHADOW_PYTHON_DIST_INFO,
+                          PackageType.SHADOW_PYTHON_EGG_INFO_DIR):
+        paths_data = pydist.get_paths_data()
+    elif package_type == PackageType.SHADOW_PYTHON_EGG_LINK:
+        paths_data = pydist.get_paths_data()
+        channel = Channel('<develop>')
+        build = 'dev_0'
+    else:
+        raise NotImplementedError()
+
+    # TODO: This is currently adding additional conda dependencies for graphviz
+    # only, but other packages need something similar. This info should (could)
+    # be on the 'external_requirements', but that field is free form.
+    dependencies = pydist.get_conda_dependencies(context)
+    extra_dependencies = PYPI_CONDA_DEPS.get(pypi_name, [])
+    all_dependencies = list(dependencies) + extra_dependencies
+    # print('conda:{0} (pypi:{1})'.format(conda_name, pypi_name))
+    # for dependency in sorted(all_dependencies):
+    #     print('\t{}'.format(dependency))
+    # print('\n')
+
+    python_rec = PrefixRecord(
+        package_type=package_type,
+        name=conda_name,
+        version=pydist.version,
+        channel=channel,
+        subdir='pypi',
+        fn=sp_reference,
+        build=build,
+        build_number=0,
+        paths_data=paths_data,
+        depends=all_dependencies,
+    )
+
+    return python_rec
+
+
+# Python distribution/eggs metadata
+# -----------------------------------------------------------------------------
 class MetadataWarning(Warning):
     pass
 
@@ -78,43 +157,43 @@ class PythonDistributionMetadata(object):
 
     # Python Packages Metadata 2.1
     # -----------------------------------------------------------------------------
-    SINGLE_USE_KEYS = frozendict([
+    SINGLE_USE_KEYS = frozendict((
         ('Metadata-Version', 'metadata_version'),
         ('Name', 'name'),
         ('Version', 'version'),
-        ('Summary', 'summary'),
-        ('Description', 'description'),
-        ('Description-Content-Type', 'description_content_type'),
-        ('Keywords', 'keywords'),
-        ('Home-page', 'home_page'),
-        ('Download-URL', 'download_url'),
-        ('Author', 'author'),
-        ('Author-email', 'author_email'),
-        ('Maintainer', 'maintainer'),
-        ('Maintainer-email', 'maintainer_email'),
+        # ('Summary', 'summary'),
+        # ('Description', 'description'),
+        # ('Description-Content-Type', 'description_content_type'),
+        # ('Keywords', 'keywords'),
+        # ('Home-page', 'home_page'),
+        # ('Download-URL', 'download_url'),
+        # ('Author', 'author'),
+        # ('Author-email', 'author_email'),
+        # ('Maintainer', 'maintainer'),
+        # ('Maintainer-email', 'maintainer_email'),
         ('License', 'license'),
-        # Deprecated
-        ('Obsoleted-By', 'obsoleted_by'),  # Note: See 2.0
-        ('Private-Version', 'private_version'),  # Note: See 2.0
-    ])
-    MULTIPLE_USE_KEYS = frozendict([
+        # # Deprecated
+        # ('Obsoleted-By', 'obsoleted_by'),  # Note: See 2.0
+        # ('Private-Version', 'private_version'),  # Note: See 2.0
+    ))
+    MULTIPLE_USE_KEYS = frozendict((
         ('Platform', 'platform'),
         ('Supported-Platform', 'supported_platform'),
-        ('Classifier', 'classifier'),
+        # ('Classifier', 'classifier'),
         ('Requires-Dist', 'requires_dist'),
         ('Requires-External', 'requires_external'),
         ('Requires-Python', 'requires_python'),
-        ('Project-URL', 'project_url'),
+        # ('Project-URL', 'project_url'),
         ('Provides-Extra', 'provides_extra'),
-        ('Provides-Dist', 'provides_dist'),
-        ('Obsoletes-Dist', 'obsoletes_dist'),
-        # Deprecated
-        ('Extension', 'extension'),  # Note: See 2.0
-        ('Obsoletes', 'obsoletes'),
-        ('Provides', 'provides'),
+        # ('Provides-Dist', 'provides_dist'),
+        # ('Obsoletes-Dist', 'obsoletes_dist'),
+        # # Deprecated
+        # ('Extension', 'extension'),  # Note: See 2.0
+        # ('Obsoletes', 'obsoletes'),
+        # ('Provides', 'provides'),
         ('Requires', 'requires'),
-        ('Setup-Requires-Dist', 'setup_requires_dist'),  # Note: See 2.0
-    ])
+        # ('Setup-Requires-Dist', 'setup_requires_dist'),  # Note: See 2.0
+    ))
 
     def __init__(self, path):
         metadata_path = self._process_path(path, self.FILE_NAMES)
@@ -186,20 +265,7 @@ class PythonDistributionMetadata(object):
                     new_key = cls.SINGLE_USE_KEYS[key]
                     new_data[new_key] = value
 
-                else:
-                    new_key = key.replace('-', '_').lower()
-                    new_data[new_key] = value
-                    # FIXME: Add this key anyway or just warn? Raise Exception?
-                    # Add as single key or as multiple key?
-                    warnings.warn("Key '{}' not recognized".format(key),
-                                  MetadataWarning)
-
             # TODO: Handle license later on for convenience
-            # Check classifiers or license key
-
-            # Handle keywords
-            if 'keywords' in new_data:
-                new_data['keywords'] = new_data['keywords'].split(' ')
 
         return new_data
 
@@ -489,7 +555,7 @@ class BasePythonDistribution(object):
             if line.strip():
                 requires[section].append(line.strip())
 
-        # Adapt to generic requirements
+        # Adapt to *standard* requirements (add env markers to requirements)
         reqs = []
         extras = []
         for section, values in requires.items():
@@ -497,12 +563,13 @@ class BasePythonDistribution(object):
                 # This is the global section (same as dist_requires)
                 reqs.extend(values)
             elif section.startswith(':'):
-                # The section is used as a marker.
+                # The section is used as a marker
+                # Example: ":python_version < '3'"
                 marker = section.replace(':', '; ')
                 new_values = [v+marker for v in values]
                 reqs.extend(new_values)
             else:
-                # The section is an extra.
+                # The section is an extra, i.e. "docs", or "tests"...
                 extras.append(section)
                 marker = '; extra == "{}"'.format(section)
                 new_values = [v+marker for v in values]
@@ -530,10 +597,9 @@ class BasePythonDistribution(object):
         https://setuptools.readthedocs.io/en/latest/formats.html#requires-txt
         """
         # FIXME: Use pkg_resources which provides API for this?
-        requires = None
-        extras = None
+        requires, extras = None, None
         for fname in self.REQUIRES_FILES:
-            fpath = os.path.join(self._path, fname)
+            fpath = join(self._path, fname)
             if isfile(fpath):
                 with open(fpath, 'r') as fh:
                     data = fh.read()
@@ -570,11 +636,11 @@ class BasePythonDistribution(object):
 
             if fpath:
                 try:
-                    if sys.version_info[0] == 2:  # Not named on 2.6
-                        kwargs = {}
+                    kwargs = {}
+                    if PY2:
                         delimiter = str(u',').encode('utf-8')
                     else:
-                        kwargs = {'newline': ''}
+                        kwargs['newline'] = ''
                         delimiter = ','
 
                     with open(fpath, **kwargs) as csvfile:
@@ -613,7 +679,6 @@ class BasePythonDistribution(object):
         # FIXME: On some packages, requirements are not added to metadata,
         # but on a separate requires.txt, see: python setup.py develop for
         # anaconda-client. This is setuptools behavior.
-        # TODO: what is the dependency_links.txt on the same example?
         data = self._metadata.get_extra_provides()
         if self._provides_file_data:
             data = self._provides_file_data
@@ -674,7 +739,7 @@ class BasePythonDistribution(object):
         # TODO: need to add entry points, "exports," and other files that might
         # not be in RECORD
         for fname in self.ENTRY_POINTS_FILES:
-            fpath = os.path.join(self._path, fname)
+            fpath = join(self._path, fname)
             if isfile(fpath):
                 with open(fpath, 'r') as fh:
                     data = fh.read()
@@ -745,7 +810,7 @@ class PythonEggInfoDistribution(BasePythonDistribution):
         return PathsData(paths_version=1, paths=paths_data)
 
 
-# Helper funcs
+# Helper functions
 # -----------------------------------------------------------------------------
 def norm_package_name(name):
     return name.replace('.', '-').replace('_', '-').lower() if name else ''
@@ -929,82 +994,7 @@ def get_python_distribution_info(anchor_file, prefix_path):
     return pydist, sp_reference, package_type
 
 
-def get_python_record(anchor_file, prefix_path, context):
-    """
-    Convert a python package defined by an anchor file (Metadata information)
-    into a conda prefix record object.
-
-    Return `None` if the python record cannot be created.
-    """
-    # TODO: ensure that this dist is actually the dist that matches conda-meta
-    pydist, sp_reference, package_type = get_python_distribution_info(anchor_file, prefix_path)
-
-    if pydist is None:
-        return None
-
-    pypi_name = pydist.norm_name
-    conda_name = pypi_name_to_conda_name(pypi_name)
-
-    # TODO: Handle packages with different names (graphviz vs python-graphviz)
-    channel_name = 'pypi' if conda_name == pypi_name else 'pypi:' + pypi_name
-    channel = Channel(channel_name)
-    build = 'pypi_0'
-
-    if package_type == PackageType.SHADOW_PYTHON_EGG_INFO_FILE:
-        paths_data = None
-    elif package_type in (PackageType.SHADOW_PYTHON_DIST_INFO,
-                          PackageType.SHADOW_PYTHON_EGG_INFO_DIR):
-        paths_data = pydist.get_paths_data()
-    elif package_type == PackageType.SHADOW_PYTHON_EGG_LINK:
-        paths_data = pydist.get_paths_data()
-        channel = Channel('<develop>')
-        build = 'dev_0'
-    else:
-        raise NotImplementedError()
-
-    # TODO: This is currently adding additional conda dependencies for graphviz
-    # only, but other packages need something similar. This info should (could)
-    # be on the 'external_requirements', but that field is free form.
-    dependencies = pydist.get_conda_dependencies(context)
-    extra_dependencies = PYPI_CONDA_DEPS.get(pypi_name, [])
-    all_dependencies = list(dependencies) + extra_dependencies
-    print('conda:{0} (pypi:{1})'.format(conda_name, pypi_name))
-    for dependency in sorted(all_dependencies):
-        print('\t{}'.format(dependency))
-    print('\n')
-
-    python_rec = PrefixRecord(
-        package_type=package_type,
-        name=conda_name,
-        version=pydist.version,
-        channel=channel,
-        subdir='pypi',
-        fn=sp_reference,
-        build=build,
-        build_number=0,
-        paths_data=paths_data,
-        depends=all_dependencies,
-    )
-
-    return python_rec
-
-
-def get_python_records(anchor_files, prefix_path, python_version):
-    """
-    Process all anchor files and return a python record.
-
-    This method evaluates the context needed for marker evaluation.
-    """
-    python_records = []
-    context = update_marker_context(python_version)
-    for anchor_file in sorted(anchor_files):
-        python_record = get_python_record(anchor_file, prefix_path, context)
-        if python_record:
-            python_records.append(python_record)
-    return python_records
-
-
-# Marker helper funcs
+# Environment markers helper functions
 # -----------------------------------------------------------------------------
 def evaluate_marker(marker_expr, context, extras):
     """Temporal simplified (and unsafe) version of marker evaluation."""
