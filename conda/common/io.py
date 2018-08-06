@@ -31,7 +31,40 @@ from .._vendor.tqdm import tqdm
 
 log = getLogger(__name__)
 
-_FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s")
+
+class DeltaSecondsFormatter(Formatter):
+    """
+    Logging formatter with additional attributes for run time logging.
+
+    Attributes:
+      `delta_secs`:
+        Elapsed seconds since last log/format call (or creation of logger).
+      `relative_created_secs`:
+        Like `relativeCreated`, time relative to the initialization of the
+        `logging` module but conveniently scaled to seconds as a `float` value.
+    """
+    def __init__(self, fmt=None, datefmt=None, style='%'):
+        self.prev_time = time()
+        super(DeltaSecondsFormatter, self).__init__(fmt=fmt, datefmt=datefmt, style=style)
+
+    def format(self, record):
+        now = time()
+        prev_time = self.prev_time
+        self.prev_time = max(self.prev_time, now)
+        record.delta_secs =  now - prev_time
+        record.relative_created_secs = record.relativeCreated / 1000
+        return super(DeltaSecondsFormatter, self).format(record)
+
+
+if os.environ.get('CONDA_INSTRUMENTATION_ENABLED'):
+    _FORMATTER = DeltaSecondsFormatter(
+        "%(relative_created_secs) 9.3f %(delta_secs) 9.3f "
+        "%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s"
+    )
+else:
+    _FORMATTER = Formatter(
+        "%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s"
+    )
 
 
 def dashlist(iterable, indent=2):
