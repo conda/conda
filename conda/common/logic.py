@@ -34,6 +34,7 @@ from logging import getLogger
 import pycosat
 
 from .compat import iteritems
+from .io import time_recorder
 
 log = getLogger(__name__)
 
@@ -367,6 +368,7 @@ class Clauses(object):
             ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity)
         return ret[target]
 
+    @time_recorder(module_name=__name__)
     def LinearBound_(self, equation, lo, hi, preprocess, polarity):
         if preprocess:
             equation, offset = self.LB_Preprocess_(equation)
@@ -399,6 +401,13 @@ class Clauses(object):
         return self.Eval_(self.LinearBound_, (equation, lo, hi, preprocess),
                           polarity, name, conv=False)
 
+    @time_recorder(module_name=__name__)
+    def _run_sat(self, clauses, m, limit):
+        log.debug("Invoking SAT with clause count: %s", len(clauses))
+        solution = pycosat.solve(clauses, vars=m, prop_limit=limit)
+        return solution
+
+    @time_recorder(module_name=__name__)
     def sat(self, additional=None, includeIf=False, names=False, limit=0):
         """
         Calculate a SAT solution for the current clause set.
@@ -434,8 +443,7 @@ class Clauses(object):
                 if not additional[-1]:
                     return None
                 clauses = tuple(chain(clauses, additional))
-        log.debug("Invoking SAT with clause count: %s", len(clauses))
-        solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
+        solution = self._run_sat(clauses, self.m, limit)
         if solution in ("UNSAT", "UNKNOWN"):
             return None
         if additional and includeIf:
@@ -459,6 +467,7 @@ class Clauses(object):
             yield sol
             exclude.append([-k for k in sol if -m <= k <= m])
 
+    @time_recorder(module_name=__name__)
     def minimize(self, objective, bestsol=None, trymax=False):
         """
         Minimize the objective function given either by (coeff, integer)
