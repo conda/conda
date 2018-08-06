@@ -44,3 +44,27 @@ dbf79d98cbb32c27f1ceff22346eb919eb2ec797 | David Froger <david.froger@inria.fr> 
 d4538c4e5b58b016ead3053014ec32cf4c4171e1 | Mansour Moufid <mansourmoufid@gmail.com> | eliteraspberries | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
 ea6594ef8546c3ce9b3d1e6049d9b1979d27429c | Mansour Moufid <mansourmoufid@gmail.com> | eliteraspberries | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
 20eba0e732c3ed0adef45a7d83709842f1821bb2 | Blake Nicholson <blake.nicholson@principled.io> | blake-nicholson | 2018-08-06 by kalefranz | minor bug fix
+5b2d94b96648093195be31081efedbd74a67eac4 | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+4371734334bf9baf58a01f950a9be19066fa2ef2 | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+3b436442a565fb1e4413207b918466537f5f5f94 | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+43212827405d7a8beac4f2e7f39939672f9a811e | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+077442a5593f0d996ffcdf2b8ab87e5c99ce4692 | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+a5aa40d9e5bdafcec09e114fa03dfeb793e22f61 | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+cc59c0036356ba3e96cbf4c4001ec09660444e56 | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+c0a04c0db65e7b188746fabfacbd9fa6340b1c6c | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+f2a8837e448fbdb7ad3ceb764beea0c5e81f72d9 | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+ba2e106c72716f3b4b975ae929c3e6508d8640a9 | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+8338caf3c67af9546b6fddd0cac40ff43dc8efd7 | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+3a37c2d3ed5612af4bd939acd67fd9dc8c2fe890 | Korijn van Golen <korijn@gmail.com> | Korijn | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+45d988552bb94fff204aaf2180b300eb2d1fb0e6 | ARF1 <arik@funke.eu> | ARF1 | 2018-08-06 by kalefranz | empty commit
+a959834e21c5cd43334b85f0dc77ad802384d311 | ARF1 <arik@funke.eu> | ARF1 | 2018-08-06 by kalefranz | merge commit
+3c37ae48213592b9e969dd08cc941fa501e4b3a0 | ARF1 <arik@funke.eu> | ARF1 | 2018-08-06 by kalefranz | remove unused imports
+0ed5675832835f66e3f22e854cad2e61ce480f0e | ARF1 <arik@funke.eu> | ARF1 | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+052a0fc8f7c10edc9b47690228f7ebe572768f35 | ARF1 <arik@funke.eu> | ARF1 | 2018-08-06 by kalefranz | adapted from ntfsutils Copyright (c) 2012, the Mozilla Foundation; reimplemented in 456c4a35ba09873af1d48858b5b3b29823848c41 by kalefranz
+2de7632098579d58ff2ce50968156e6be1bfb271 | ARF1 <arik@funke.eu> | ARF1 | 2018-08-06 by kalefranz | adapted from ntfsutils Copyright (c) 2012, the Mozilla Foundation; reimplemented in 456c4a35ba09873af1d48858b5b3b29823848c41 by kalefranz
+73660c42889d8920b32169409240ef3c29fa4516 | Ed Reed <ed.r.reed@lmco.com> | edwardreed81 | 2018-08-06 by kalefranz | whitespace adjustment
+02fa9d78a2bfe1b184d446518c568acaedb44249 | Ed Reed <ed.r.reed@lmco.com> | edwardreed81 | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+8b329b23f7855915bd53f58e16ccdecfa8cea1e2 | Nate Coraor <nate@bx.psu.edu> | natefoo | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+89a16bdda51fea8d5b9ef039631d511e47adedb9 | makbigc <makszechun@gmail.com> | makbigc | 2018-08-06 by kalefranz | reimplemented in f3dabe7250118fd6967a7b3d1f1daf72fa78904f
+e3efc33dc8dc8df81aa451f288afc6c27caad447 | Rollin Thomas <rcthomas@lbl.gov> | rcthomas | 2018-08-06 by kalefranz | minor bug fix
+4575a52132b77a1b8ab33517a0462201df8558b2 | Rollin Thomas <rcthomas@lbl.gov> | rcthomas | 2018-08-06 by kalefranz | minor bug fix
