@@ -60,9 +60,13 @@ class Clauses(object):
             self.indices[-m] = nname
         return m
 
-    def new_var(self, name=None):
+    def _new_var(self):
         m = self.m + 1
         self.m = m
+        return m
+
+    def new_var(self, name=None):
+        m = self._new_var()
         if name:
             self.name_var(m, name)
         return m
@@ -74,17 +78,21 @@ class Clauses(object):
         return self.indices.get(m)
 
     def Assign_(self, vals, name=None):
-        tvals = type(vals)
-        if tvals is tuple:
-            x = self.new_var()
+        x = self._assign_no_name(vals)
+        if not name:
+            return x
+        if isinstance(x, bool):
+            x = self._new_var()
+            self.clauses.append((x,) if vals else (-x,))
+        return self.name_var(x, name)
+
+    def _assign_no_name(self, vals):
+        if isinstance(vals, tuple):
+            x = self._new_var()
             self.clauses.extend((-x,) + y for y in vals[0])
             self.clauses.extend((x,) + y for y in vals[1])
-        elif tvals is bool and name:
-            x = self.new_var()
-            self.clauses.append((x,) if vals else (-x,))
-        else:
-            x = vals
-        return self.name_var(x, name) if name else x
+            return x
+        return vals
 
     def Convert_(self, x):
         tx = type(x)
@@ -97,8 +105,11 @@ class Clauses(object):
             args = self.Convert_(args)
         nz = len(self.clauses)
         vals = func(*args, polarity=polarity)
+        if name is None:
+            return self._assign_no_name(vals)
         if name is not False:
             return self.Assign_(vals, name)
+        # eval without assignment:
         tvals = type(vals)
         if tvals is tuple:
             self.clauses.extend(vals[0])
@@ -108,6 +119,7 @@ class Clauses(object):
         else:
             self.clauses = self.clauses[:nz]
             self.unsat = self.unsat or polarity != vals
+        return None
 
     def Combine_(self, args, polarity):
         if any(v is False for v in args):
@@ -353,31 +365,39 @@ class Clauses(object):
         target = (nterms-1, 0, total)
         call_stack = [target]
         ret = {}
+        call_stack_append = call_stack.append
+        call_stack_pop = call_stack.pop
+        ret_get = ret.get
+        ITE_ = self.ITE_
+        _assign_no_name = self._assign_no_name
+
         csum = 0
         while call_stack:
             ndx, csum, total = call_stack[-1]
             lower_limit = lo - csum
             upper_limit = hi - csum
             if lower_limit <= 0 and upper_limit >= total:
-                ret[call_stack.pop()] = True
+                ret[call_stack_pop()] = True
                 continue
             if lower_limit > total or upper_limit < 0:
-                ret[call_stack.pop()] = False
+                ret[call_stack_pop()] = False
                 continue
             LC, LA = equation[ndx]
             ndx -= 1
             total -= LC
             hi_key = (ndx, csum if LA < 0 else csum + LC, total)
-            thi = ret.get(hi_key)
+            thi = ret_get(hi_key)
             if thi is None:
-                call_stack.append(hi_key)
+                call_stack_append(hi_key)
                 continue
             lo_key = (ndx, csum + LC if LA < 0 else csum, total)
-            tlo = ret.get(lo_key)
+            tlo = ret_get(lo_key)
             if tlo is None:
-                call_stack.append(lo_key)
+                call_stack_append(lo_key)
                 continue
-            ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity)
+            vals = ITE_(abs(LA), thi, tlo, polarity)
+            var = _assign_no_name(vals)
+            ret[call_stack_pop()] = var
         return ret[target]
 
     @time_recorder(module_name=__name__)
