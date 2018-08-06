@@ -507,6 +507,8 @@ as_completed = as_completed
 class time_recorder(ContextDecorator):  # pragma: no cover
     start_time = None
     record_file = expand(join('~', '.conda', 'instrumentation-record.csv'))
+    total_call_num = defaultdict(int)
+    total_run_time = defaultdict(float)
 
     def __init__(self, entry_name):
         self.entry_name = entry_name
@@ -519,11 +521,19 @@ class time_recorder(ContextDecorator):  # pragma: no cover
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.start_time:
+            entry_name = self.entry_name
             end_time = time()
             run_time = end_time - self.start_time
+            self.total_call_num[entry_name] += 1
+            self.total_run_time[entry_name] += run_time
+            total_call_num = self.total_call_num[entry_name]
+            total_run_time = self.total_run_time[entry_name]
             self._ensure_dir()
             with open(self.record_file, 'a') as fh:
-                fh.write("%s,%s\n" % (self.entry_name, run_time))
+                fh.write(
+                    "%s,%f,%f,%d\n" % (entry_name, run_time, total_run_time, total_call_num))
+            # log.debug(
+            #     '%s %9.3f %9.3f %d', entry_name, run_time, total_run_time, total_call_num)
 
     @memoizemethod
     def _ensure_dir(self):
