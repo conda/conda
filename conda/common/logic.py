@@ -140,9 +140,11 @@ class Clauses(object):
             return False
         if f is True:
             return g
-        if g is True or f is g:
+        if g is True:
             return f
-        if f is -g:
+        if f == g:
+            return f
+        if f == -g:
             return False
         if g < f:
             f, g = g, f
@@ -158,9 +160,11 @@ class Clauses(object):
             return True
         if f is False:
             return g
-        if g is False or f is g:
+        if g is False:
             return f
-        if f is -g:
+        if f == g:
+            return f
+        if f == -g:
             return True
         if g < f:
             f, g = g, f
@@ -180,9 +184,9 @@ class Clauses(object):
             return f
         if g is True:
             return -f
-        if f is g:
+        if f == g:
             return False
-        if f is -g:
+        if f == -g:
             return True
         if g < f:
             f, g = g, f
@@ -198,17 +202,25 @@ class Clauses(object):
             return t
         if c is False:
             return f
-        if t is True or t is c:
+        if t is True:
             return self.Or_(c, f, polarity)
-        if t is False or t is -c:
+        if t is False:
             return self.And_(-c, f, polarity)
-        if f is False or f is c:
+        if f is False:
             return self.And_(c, t, polarity)
-        if f is True or f is -c:
+        if f is True:
             return self.Or_(t, -c, polarity)
-        if t is f:
+        if t == c:
+            return self.Or_(c, f, polarity)
+        if t == -c:
+            return self.And_(-c, f, polarity)
+        if f == c:
+            return self.And_(c, t, polarity)
+        if f == -c:
+            return self.Or_(t, -c, polarity)
+        if t == f:
             return t
-        if t is -f:
+        if t == -f:
             return self.Xor_(c, f, polarity)
         if t < f:
             t, f, c = f, t, -c
