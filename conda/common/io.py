@@ -510,8 +510,23 @@ class time_recorder(ContextDecorator):  # pragma: no cover
     total_call_num = defaultdict(int)
     total_run_time = defaultdict(float)
 
-    def __init__(self, entry_name):
+    def __init__(self, entry_name=None, module_name=None):
         self.entry_name = entry_name
+        self.module_name = module_name
+
+    def _set_entry_name(self, f):
+        if self.entry_name is None:
+            if hasattr(f, '__qualname__'):
+                entry_name = f.__qualname__
+            else:
+                entry_name = ':' + f.__name__
+            if self.module_name:
+                entry_name = '.'.join((self.module_name, entry_name))
+            self.entry_name = entry_name
+
+    def __call__(self, f):
+        self._set_entry_name(f)
+        return super(time_recorder, self).__call__(f)
 
     def __enter__(self):
         enabled = os.environ.get('CONDA_INSTRUMENTATION_ENABLED')
