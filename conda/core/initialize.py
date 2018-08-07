@@ -60,7 +60,6 @@ from ..gateways.disk.read import compute_md5sum
 from ..gateways.subprocess import subprocess_call
 
 if on_win:
-    import platform
     if PY2:
         import _winreg as winreg
     else:
@@ -1119,9 +1118,9 @@ def init_cmd_exe_registry(target_path, conda_prefix):
 
 
 def init_long_path(target_path):
-    win_ver, win_rev = platform.platform().split('-')[1:3]
+    win_ver, _, win_rev = context.os_distribution_name_version[1].split('.')
     # win10, build 14352 was the first preview release that supported this
-    if int(win_ver) >= 10 and int(win_rev.split('.')[-1]) >= 14352:
+    if int(win_ver) >= 10 and int(win_rev) >= 14352:
         prev_value, value_type = _read_windows_registry(target_path)
         if prev_value != "1":
             if context.verbosity:
