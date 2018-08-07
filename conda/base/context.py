@@ -204,7 +204,7 @@ class Context(Configuration):
     update_dependencies = PrimitiveParameter(False, aliases=('update_deps',))
     _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
 
-    featureless_minimization_disabled_feature_flag = PrimitiveParameter(False)
+    featureless_minimization_disabled_feature_flag = PrimitiveParameter(True)
     target_prefix_override = PrimitiveParameter('')
 
     # conda_build
