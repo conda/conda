@@ -70,6 +70,12 @@ conda_build_test: &conda_build_test
           conda create -n blarg -yq --download-only libpng=1.6.17
 
     - run:
+        name: conda-build conda
+        command: |
+          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+          conda build ~/conda/conda.recipe
+
+    - run:
         name: conda-build tests [parallel]
         environment:
           CONDABUILD_SKIP: >
@@ -137,12 +143,6 @@ conda_build_test: &conda_build_test
           cd ~/conda-build
           py.test --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$CONDABUILD_SKIP"
           /opt/conda/bin/python -m conda.common.io
-
-    - run:
-        name: conda-build conda
-        command: |
-          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
-          conda build ~/conda/conda.recipe
 
 
 flake8: &flake8
