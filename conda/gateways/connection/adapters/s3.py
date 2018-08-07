@@ -47,15 +47,11 @@ class S3Adapter(BaseAdapter):
         from botocore.exceptions import BotoCoreError, ClientError
         bucket_name, key_string = url_to_s3_info(request.url)
 
-        # Get the key without validation that it exists and that we have
-        # permissions to list its contents.
         key = boto3.resource('s3').Object(bucket_name, key_string[1:])
 
         try:
             response = key.get()
         except (BotoCoreError, ClientError) as exc:
-            # This exception will occur if the bucket does not exist or if the
-            # user does not have permission to list its contents.
             resp.status_code = 404
             message = {
                 "error": "error downloading file from s3",
@@ -88,16 +84,10 @@ class S3Adapter(BaseAdapter):
         conn = boto.connect_s3()
 
         bucket_name, key_string = url_to_s3_info(request.url)
-
-        # Get the bucket without validation that it exists and that we have
-        # permissions to list its contents.
         bucket = conn.get_bucket(bucket_name, validate=False)
-
         try:
             key = bucket.get_key(key_string)
         except boto.exception.S3ResponseError as exc:
-            # This exception will occur if the bucket does not exist or if the
-            # user does not have permission to list its contents.
             resp.status_code = 404
             resp.raw = exc
             return resp
