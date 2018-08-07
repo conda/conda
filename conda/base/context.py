@@ -612,6 +612,24 @@ class Context(Configuration):
         return " ".join(builder)
 
     @memoizedproperty
+    def requests_version(self):
+        try:
+            from requests import __version__ as REQUESTS_VERSION
+        except ImportError:  # pragma: no cover
+            try:
+                from pip._vendor.requests import __version__ as REQUESTS_VERSION
+            except ImportError:
+                REQUESTS_VERSION = "unknown"
+        return REQUESTS_VERSION
+
+    @memoizedproperty
+    def python_implementation_name_version(self):
+        # CPython, Jython
+        # '2.7.14'
+        import platform
+        return platform.python_implementation(), platform.python_version()
+
+    @memoizedproperty
     def platform_system_release(self):
         # tuple of system name and release version
         #
@@ -624,27 +642,17 @@ class Context(Configuration):
         return platform.system(), platform.release()
 
     @memoizedproperty
-    def python_implementation_name_version(self):
-        # CPython, Jython
-        # '2.7.14'
-        import platform
-        return platform.python_implementation(), platform.python_version()
-
-    @memoizedproperty
-    def libc_family_version(self):
-        # tuple of lic_family and libc_version
-        # None, None if not on Linux
-        libc_family, libc_version = linux_get_libc_version()
-        return libc_family, libc_version
-
-    @memoizedproperty
     def os_distribution_name_version(self):
         # tuple of os distribution name and version
+        # e.g.
+        #   'debian', '9'
+        #   'OSX', '10.13.6'
+        #   'Windows', '10.0.17134'
         platform_name = self.platform_system_release[0]
         if platform_name == 'Linux':
-            from .._vendor.distro import linux_distribution
+            from .._vendor.distro import id, version
             try:
-                distinfo = linux_distribution(full_distribution_name=False)
+                distinfo = id(), version(best=True)
             except Exception as e:
                 log.debug('%r', e, exc_info=True)
                 distinfo = ('Linux', 'unknown')
@@ -660,15 +668,11 @@ class Context(Configuration):
         return distribution_name, distribution_version
 
     @memoizedproperty
-    def requests_version(self):
-        try:
-            from requests import __version__ as REQUESTS_VERSION
-        except ImportError:  # pragma: no cover
-            try:
-                from pip._vendor.requests import __version__ as REQUESTS_VERSION
-            except ImportError:
-                REQUESTS_VERSION = "unknown"
-        return REQUESTS_VERSION
+    def libc_family_version(self):
+        # tuple of lic_family and libc_version
+        # None, None if not on Linux
+        libc_family, libc_version = linux_get_libc_version()
+        return libc_family, libc_version
 
     @memoizedproperty
     def cpu_flags(self):
