@@ -598,12 +598,83 @@ class Context(Configuration):
         return self.anaconda_upload
 
     @property
-    def user_agent(self):
-        return _get_user_agent(self.platform)
-
-    @property
     def verbosity(self):
         return 2 if self.debug else self._verbosity
+
+    @memoizedproperty
+    def user_agent(self):
+        builder = ["conda/%s requests/%s" % (CONDA_VERSION, self.requests_version)]
+        builder.append("%s/%s" % self.python_implementation_name_version)
+        builder.append("%s/%s" % self.platform_system_release)
+        builder.append("%s/%s" % self.os_distribution_name_version)
+        if self.libc_family_version[0]:
+            builder.append("%s/%s" % self.libc_family_version)
+        return " ".join(builder)
+
+    @memoizedproperty
+    def platform_system_release(self):
+        # tuple of system name and release version
+        #
+        # `uname -s` Linux, Windows, Darwin, Java
+        #
+        # `uname -r`
+        # '17.4.0' for macOS
+        # '10' or 'NT' for Windows
+        import platform
+        return platform.system(), platform.release()
+
+    @memoizedproperty
+    def python_implementation_name_version(self):
+        # CPython, Jython
+        # '2.7.14'
+        import platform
+        return platform.python_implementation(), platform.python_version()
+
+    @memoizedproperty
+    def libc_family_version(self):
+        # tuple of lic_family and libc_version
+        # None, None if not on Linux
+        libc_family, libc_version = linux_get_libc_version()
+        return libc_family, libc_version
+
+    @memoizedproperty
+    def os_distribution_name_version(self):
+        # tuple of os distribution name and version
+        platform_name = self.platform_system_release[0]
+        if platform_name == 'Linux':
+            from .._vendor.distro import linux_distribution
+            try:
+                distinfo = linux_distribution(full_distribution_name=False)
+            except Exception as e:
+                log.debug('%r', e, exc_info=True)
+                distinfo = ('Linux', 'unknown')
+            distribution_name, distribution_version = distinfo[0], distinfo[1]
+        elif platform_name == 'Darwin':
+            import platform
+            distribution_name = 'OSX'
+            distribution_version = platform.mac_ver()[0]
+        else:
+            import platform
+            distribution_name = platform.system()
+            distribution_version = platform.version()
+        return distribution_name, distribution_version
+
+    @memoizedproperty
+    def requests_version(self):
+        try:
+            from requests import __version__ as REQUESTS_VERSION
+        except ImportError:  # pragma: no cover
+            try:
+                from pip._vendor.requests import __version__ as REQUESTS_VERSION
+            except ImportError:
+                REQUESTS_VERSION = "unknown"
+        return REQUESTS_VERSION
+
+    @memoizedproperty
+    def cpu_flags(self):
+        # DANGER: This is rather slow
+        info = _get_cpu_info()
+        return info['flags']
 
     @property
     def category_map(self):
@@ -1015,46 +1086,10 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
 
 
 @memoize
-def _get_user_agent(context_platform):
-    import platform
-    try:
-        from requests import __version__ as REQUESTS_VERSION
-    except ImportError:  # pragma: no cover
-        try:
-            from pip._vendor.requests import __version__ as REQUESTS_VERSION
-        except ImportError:
-            REQUESTS_VERSION = "unknown"
-
-    _user_agent = ("conda/{conda_ver} "
-                   "requests/{requests_ver} "
-                   "{python}/{py_ver} "
-                   "{system}/{kernel} {dist}/{ver}")
-
-    libc_family, libc_ver = linux_get_libc_version()
-    if context_platform == 'linux':
-        from .._vendor.distro import linux_distribution
-        try:
-            distinfo = linux_distribution(full_distribution_name=False)
-        except Exception as e:
-            log.debug('%r', e, exc_info=True)
-            distinfo = ('Linux', 'unknown')
-        dist, ver = distinfo[0], distinfo[1]
-    elif context_platform == 'osx':
-        dist = 'OSX'
-        ver = platform.mac_ver()[0]
-    else:
-        dist = platform.system()
-        ver = platform.version()
-
-    user_agent = _user_agent.format(conda_ver=CONDA_VERSION,
-                                    requests_ver=REQUESTS_VERSION,
-                                    python=platform.python_implementation(),
-                                    py_ver=platform.python_version(),
-                                    system=platform.system(), kernel=platform.release(),
-                                    dist=dist, ver=ver)
-    if libc_ver:
-        user_agent += " {}/{}".format(libc_family, libc_ver)
-    return user_agent
+def _get_cpu_info():
+    # DANGER: This is rather slow
+    from .._vendor.cpuinfo import get_cpu_info
+    return frozendict(get_cpu_info())
 
 
 def locate_prefix_by_name(name, envs_dirs=None):
