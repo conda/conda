@@ -50,7 +50,6 @@ foo: bar
 
 test_env_name_1 = "env-1"
 test_env_name_2 = "snowflakes"
-test_env_name_3 = "env_foo"
 
 
 def escape_for_winpath(p):
@@ -243,28 +242,14 @@ class NewIntegrationTests(unittest.TestCase):
     def setUp(self):
         if env_is_created(test_env_name_2):
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
-        if env_is_created(test_env_name_3):
-            run_env_command(Commands.ENV_REMOVE, test_env_name_3)
 
     def tearDown(self):
         if env_is_created(test_env_name_2):
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
-        if env_is_created(test_env_name_3):
-            run_env_command(Commands.ENV_REMOVE, test_env_name_3)
 
-    def test_create_remove_env(self):
-        """
-            Test conda create and remove env
-        """
-
-        run_conda_command(Commands.CREATE, test_env_name_3)
-        self.assertTrue(env_is_created(test_env_name_3))
-
-        run_env_command(Commands.ENV_REMOVE, test_env_name_3)
-        self.assertFalse(env_is_created(test_env_name_3))
-
-        with pytest.raises(EnvironmentLocationNotFound) as execinfo:
-            run_env_command(Commands.ENV_REMOVE, 'does-not-exist')
+    def test_non_existant_env_raises_on_remove(self):
+        with pytest.raises(EnvironmentLocationNotFound):
+            run_env_command(Commands.ENV_REMOVE, 'no-conda-environment-here')
 
     def test_env_export(self):
         """
@@ -272,7 +257,7 @@ class NewIntegrationTests(unittest.TestCase):
         """
 
         run_conda_command(Commands.CREATE, test_env_name_2, "flask")
-        self.assertTrue(env_is_created(test_env_name_2))
+        assert env_is_created(test_env_name_2)
 
         snowflake, e,  = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
 
@@ -293,6 +278,10 @@ class NewIntegrationTests(unittest.TestCase):
             assert len(env_description['dependencies'])
             for spec_str in env_description['dependencies']:
                 assert spec_str.count('=') == 1
+
+        run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+        assert not env_is_created(test_env_name_2)
+
 
     def test_list(self):
         """
