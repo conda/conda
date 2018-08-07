@@ -1123,13 +1123,13 @@ def init_long_path(target_path):
     # win10, build 14352 was the first preview release that supported this
     if int(win_ver) >= 10 and int(win_rev.split('.')[-1]) >= 14352:
         prev_value, value_type = _read_windows_registry(target_path)
-        if prev_value != 1:
+        if prev_value != "1":
             if context.verbosity:
                 print('\n')
                 print(target_path)
-                print(make_diff(prev_value, 1))
+                print(make_diff(prev_value, "1"))
             if not context.dry_run:
-                _write_windows_registry(target_path, 1, winreg.REG_DWORD)
+                _write_windows_registry(target_path, "1", winreg.REG_DWORD)
             return Result.MODIFIED
         else:
             return Result.NO_CHANGE
