@@ -47,7 +47,7 @@ from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
 from ..activate import CshActivator, FishActivator, PosixActivator, XonshActivator
 from ..base.context import context
-from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_unicode, on_mac,
+from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_text_type, on_mac,
                              on_win, open)
 from ..common.path import (expand, get_bin_directory_short_path, get_python_short_path,
                            get_python_site_packages_short_path, win_path_ok)
@@ -60,6 +60,7 @@ from ..gateways.disk.read import compute_md5sum
 from ..gateways.subprocess import subprocess_call
 
 if on_win:
+    import platform
     if PY2:
         import _winreg as winreg
     else:
@@ -453,6 +454,15 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'conda_prefix': conda_prefix,
                 },
             })
+            # it would be nice to enable this on a user-level basis, but unfortunately, it is
+            #    a system-level key only.
+            plan.append({
+                'function': init_long_path.__name__,
+                'kwargs': {
+                    'target_path': 'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\'
+                                   'FileSystem\\LongPathsEnabled'
+                }
+            })
         if anaconda_prompt:
             plan.append({
                 'function': install_anaconda_prompt.__name__,
@@ -529,7 +539,8 @@ def run_plan_elevated(plan):
                           file=sys.stderr)
 
                 with open(temp_path) as fh:
-                    _plan = json.loads(ensure_unicode(fh.read()))
+                    _plan = json.loads(ensure_text_type(fh.read()))
+
             finally:
                 if temp_path and lexists(temp_path):
                     rm_rf(temp_path)
@@ -560,7 +571,7 @@ def run_plan_from_stdin():
 
 def run_plan_from_temp_file(temp_path):
     with open(temp_path) as fh:
-        plan = json.loads(ensure_unicode(fh.read()))
+        plan = json.loads(ensure_text_type(fh.read()))
     run_plan(plan)
     with open(temp_path, 'w+b') as fh:
         fh.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
@@ -1105,6 +1116,29 @@ def init_cmd_exe_registry(target_path, conda_prefix):
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
+
+
+def init_long_path(target_path):
+    win_ver, win_rev = platform.platform().split('-')[1:3]
+    # win10, build 14352 was the first preview release that supported this
+    if int(win_ver) >= 10 and int(win_rev.split('.')[-1]) >= 14352:
+        prev_value, value_type = _read_windows_registry(target_path)
+        if prev_value != 1:
+            if context.verbosity:
+                print('\n')
+                print(target_path)
+                print(make_diff(prev_value, 1))
+            if not context.dry_run:
+                _write_windows_registry(target_path, 1, winreg.REG_DWORD)
+            return Result.MODIFIED
+        else:
+            return Result.NO_CHANGE
+    else:
+        if context.verbosity:
+            print('\n')
+            print('Not setting long path registry key; Windows version must be at least 10 with '
+                  'the fall 2016 "Anniversary update" or newer.')
+            return Result.NO_CHANGE
 
 
 def remove_conda_in_sp_dir(target_path):
