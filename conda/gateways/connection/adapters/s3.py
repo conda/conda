@@ -51,17 +51,14 @@ class S3Adapter(BaseAdapter):
 
         try:
             response = key.get()
-        except (BotoCoreError, ClientError) as exc:
+        except (BotoCoreError, ClientError) as e:
             resp.status_code = 404
             message = {
                 "error": "error downloading file from s3",
                 "path": request.url,
-                "exception": repr(exc),
+                "exception": repr(e),
             }
-            fh = SpooledTemporaryFile()
-            fh.write(ensure_binary(json.dumps(message)))
-            fh.seek(0)
-            resp.raw = fh
+            resp.raw = self._write_tempfile(lambda x: x.write(ensure_binary(json.dumps(message))))
             resp.close = resp.raw.close
             return resp
 
@@ -72,10 +69,7 @@ class S3Adapter(BaseAdapter):
             "Last-Modified": key_headers['last-modified'],
         })
 
-        f = SpooledTemporaryFile()
-        key.download_fileobj(f)
-        f.seek(0)
-        resp.raw = f
+        resp.raw = self._write_tempfile(key.download_fileobj)
         resp.close = resp.raw.close
 
         return resp
@@ -101,12 +95,15 @@ class S3Adapter(BaseAdapter):
                 "Last-Modified": modified,
             })
 
-            fh = SpooledTemporaryFile()
-            key.get_contents_to_file(fh)
-            fh.seek(0)
-            resp.raw = fh
+            resp.raw = self._write_tempfile(key.get_contents_to_file)
             resp.close = resp.raw.close
         else:
             resp.status_code = 404
 
         return resp
+
+    def _write_tempfile(self, writer_callable):
+        fh = SpooledTemporaryFile()
+        writer_callable(fh)
+        fh.seek(0)
+        return fh

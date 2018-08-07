@@ -4,13 +4,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 import os
 from os.path import abspath, join
+from subprocess import PIPE, Popen
 import sys
 from tempfile import NamedTemporaryFile
 
 from ..base.context import context
 from ..common.compat import ensure_binary, iteritems, on_win
-from ..gateways.disk.delete import rm_rf
-from ..gateways.subprocess import subprocess_call
 
 
 def get_activated_env_vars():
@@ -37,9 +36,7 @@ def _get_activated_env_vars_win(env_location):
                 "@%CONDA_PYTHON_EXE% -c \"import os, json; print(json.dumps(dict(os.environ)))\""
             ))
         # TODO: refactor into single function along with code in conda.core.link.run_script
-        cmd_builder = [
-            "%s" % os.getenv('COMSPEC', 'cmd.exe'),
-            "/C \"",
+        inner_builder = (
             "@SET PROMPT= ",
             "&&",
             "@SET CONDA_CHANGEPS1=false",
@@ -47,16 +44,15 @@ def _get_activated_env_vars_win(env_location):
             "@CALL {0} activate \"{1}\"".format(conda_bat, env_location),
             "&&",
             "\"{0}\"".format(tf.name),
-            "\"",
-        ]
-        cmd = " ".join(cmd_builder)
-        result = subprocess_call(cmd)
+        )
+        cmd = "{0} /C \"{1}\"".format(os.getenv('COMSPEC', 'cmd.exe'), " ".join(inner_builder))
+        stdout = _check_output(cmd)
     finally:
         if temp_path:
+            from ..gateways.disk.delete import rm_rf
             rm_rf(temp_path)
 
-    assert not result.stderr, result.stderr
-    env_var_map = json.loads(result.stdout)
+    env_var_map = json.loads(stdout)
     return env_var_map
 
 
@@ -66,20 +62,24 @@ def _get_activated_env_vars_unix(env_location):
     except KeyError:
         conda_exe = abspath(join(sys.prefix, 'bin', 'conda'))
 
-    cmd_builder = [
-        "sh -c \'"
+    inner_builder = (
         "eval \"$(\"{0}\" shell.posix hook)\"".format(conda_exe),
         "&&",
         "conda activate \"{0}\"".format(env_location),
         "&&",
         "\"$CONDA_PYTHON_EXE\" -c \"import os, json; print(json.dumps(dict(os.environ)))\"",
-        "\'",
-    ]
-    cmd = " ".join(cmd_builder)
-    result = subprocess_call(cmd)
-    assert not result.stderr, result.stderr
-    env_var_map = json.loads(result.stdout)
+    )
+    cmd = ("sh", "-c", " ".join(inner_builder))
+    env_var_map = json.loads(_check_output(cmd))
     return env_var_map
+
+
+def _check_output(cmd):
+    p = Popen(cmd, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    rc = p.returncode
+    assert rc == 0 and not stderr, (rc, stderr)
+    return stdout
 
 
 def execute(args, parser):
