@@ -64,7 +64,11 @@ a959834e21c5cd43334b85f0dc77ad802384d311 | ARF1 <arik@funke.eu> | ARF1 | 2018-08
 2de7632098579d58ff2ce50968156e6be1bfb271 | ARF1 <arik@funke.eu> | ARF1 | 2018-08-06 by kalefranz | adapted from ntfsutils Copyright (c) 2012, the Mozilla Foundation; reimplemented in 456c4a35ba09873af1d48858b5b3b29823848c41 by kalefranz
 73660c42889d8920b32169409240ef3c29fa4516 | Ed Reed <ed.r.reed@lmco.com> | edwardreed81 | 2018-08-06 by kalefranz | whitespace adjustment
 02fa9d78a2bfe1b184d446518c568acaedb44249 | Ed Reed <ed.r.reed@lmco.com> | edwardreed81 | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
+24677752ee4184ecd6a33f756abd771b5371d09f | Ed Reed <ed.r.reed@lmco.com> | edwardreed81 | 2018-08-06 by kalefranz | reimplemented in 073eff67302542a4474f164edec369c244750bcc
+346da6939dd5a75b4aa70c45cc010e918b871702 | Ed Reed <ed.r.reed@lmco.com> | edwardreed81 | 2018-08-06 by kalefranz | irrelevant following 073eff67302542a4474f164edec369c244750bcc
 8b329b23f7855915bd53f58e16ccdecfa8cea1e2 | Nate Coraor <nate@bx.psu.edu> | natefoo | 2018-08-06 by kalefranz | irrelevant in master as of 2018-08-06
 89a16bdda51fea8d5b9ef039631d511e47adedb9 | makbigc <makszechun@gmail.com> | makbigc | 2018-08-06 by kalefranz | reimplemented in f3dabe7250118fd6967a7b3d1f1daf72fa78904f
 e3efc33dc8dc8df81aa451f288afc6c27caad447 | Rollin Thomas <rcthomas@lbl.gov> | rcthomas | 2018-08-06 by kalefranz | minor bug fix
 4575a52132b77a1b8ab33517a0462201df8558b2 | Rollin Thomas <rcthomas@lbl.gov> | rcthomas | 2018-08-06 by kalefranz | minor bug fix
+36d74572782c32386d8260732826e42abea5db83 | Michael Heilman <mheilman@civisanalytics.com> | mheilman | 2018-08-06 by kalefranz | duplicate of a93835b046681ae44c8be1dbc114ad39176a3c3c
+a93835b046681ae44c8be1dbc114ad39176a3c3c | Michael Heilman <mheilman@civisanalytics.com> | mheilman | 2018-08-06 by kalefranz | removed contribution in 995540d72811232f1d6711bb5a9cfcf8f57f0c0b
