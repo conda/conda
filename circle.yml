@@ -73,6 +73,7 @@ conda_build_test: &conda_build_test
         name: conda-build conda
         command: |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+          rm -rf ~/conda/conda.egg-info
           conda build ~/conda/conda.recipe
 
     - run:
