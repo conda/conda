@@ -41,6 +41,7 @@ test_script:
   - CALL dev-init.bat
   - py.test %ADD_COV% -m "not integration and not installed" -v
   - py.test %ADD_COV% --cov-append -m "integration and not installed" -v
-  - conda build conda.recipe
+  - DEL /Q /F conda.egg-info
+  - conda.exe build conda.recipe
   - codecov --env PYTHON_VERSION --required
   - python -m conda.common.io
