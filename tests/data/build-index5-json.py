@@ -1,19 +1,20 @@
 import json
-from os.path import dirname, join
+from os.path import abspath, dirname, join
 from pprint import pprint
 
 from conda.core.subdir_data import fetch_repodata_remote_request
 
+DATA_DIR = abspath(join(dirname(__file__), "..", "..", "test-data", "repodata"))
 
 def save_data_source(url, name):
     raw_repodata_str = fetch_repodata_remote_request(url, None, None)
     json.loads(raw_repodata_str)
-    with open(join(dirname(__file__), "repodata", name + ".json"), 'w') as fh:
+    with open(join(DATA_DIR, name + ".json"), 'w') as fh:
         json.dump(json.loads(raw_repodata_str), fh, indent=2, sort_keys=True, separators=(',', ': '))
 
 
 def read_data_source(name):
-    with open(join(dirname(__file__), "repodata", name + ".json")) as fh:
+    with open(join(DATA_DIR, name + ".json")) as fh:
         return json.load(fh)
 
 
