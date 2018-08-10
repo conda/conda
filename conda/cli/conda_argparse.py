@@ -961,7 +961,7 @@ def configure_parser_run(sub_parsers):
     Example usage:
 
         $ conda create -y -n my-python-2-env python=2
-        $ conda run -n my-python-2-env python -- --version
+        $ conda run -n my-python-2-env python --version
     """)
 
     epilog = dedent("""
