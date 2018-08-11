@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from glob import glob
+import fnmatch
 from logging import getLogger
 from os import listdir
 from os.path import basename, isdir, isfile, join, lexists, dirname
@@ -65,8 +65,10 @@ class PrefixData(object):
 
     def load(self):
         self.__prefix_records = {}
-        for meta_file in glob(join(self.prefix_path, 'conda-meta', '*.json')):
-            self._load_single_record(meta_file)
+        _conda_meta_dir = join(self.prefix_path, 'conda-meta')
+        if lexists(_conda_meta_dir):
+            for meta_file in fnmatch.filter(listdir(_conda_meta_dir), '*.json'):
+                self._load_single_record(join(_conda_meta_dir, meta_file))
         if self._pip_interop_enabled:
             self._load_site_packages()
 
@@ -349,7 +351,8 @@ class PrefixData(object):
         for egg_link_file in egg_link_files:
             with open(join(self.prefix_path, win_path_ok(egg_link_file))) as fh:
                 egg_link_contents = fh.readlines()[0].strip()
-            egg_info_fns = glob(join(egg_link_contents, "*.egg-info"))
+            if lexists(egg_link_contents):
+                egg_info_fns = fnmatch.filter(listdir(egg_link_contents), '*.egg-info')
             if not egg_info_fns:
                 continue
             assert len(egg_info_fns) == 1, (egg_link_file, egg_info_fns)
