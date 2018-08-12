@@ -525,8 +525,11 @@ def _parse_spec_str(spec_str):
             }
         else:
             # url is not a channel
+            name, version, build = _parse_legacy_dist(spec_str.split('/')[-1])
             return {
-                'name': '*',
+                'name': name,
+                'version': version,
+                'build': build,
                 'fn': basename(spec_str),
                 'url': spec_str,
             }
