@@ -29,8 +29,9 @@ through the Require and Prevent functions.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from array import array
 from itertools import chain, combinations
-from logging import getLogger
+from logging import DEBUG, getLogger
 import pycosat
 
 from .compat import iteritems
@@ -39,17 +40,85 @@ from .io import time_recorder
 log = getLogger(__name__)
 
 
+class ClauseList(object):
+    def __init__(self):
+        self._clause_list = []
+        self.append = self._clause_list.append
+        self.extend = self._clause_list.extend
+        self.get_clause_count = self._clause_list.__len__
+
+    def save_state(self):
+        return len(self._clause_list)
+
+    def restore_state(self, saved_state):
+        len_clauses = saved_state
+        self._clause_list[len_clauses:] = []
+
+    def as_list(self):
+        return self._clause_list
+
+    def as_array(self):
+        clause_array = array('i')
+        for c in self._clause_list:
+            clause_array.extend(c)
+            clause_array.append(0)
+        return clause_array
+
+
+class ClauseArray(object):
+    def __init__(self):
+        self._clause_array = array('i')
+        self._array_append = self._clause_array.append
+        self._array_extend = self._clause_array.extend
+
+    def extend(self, clauses):
+        for clause in clauses:
+            self.append(clause)
+
+    def append(self, clause):
+        self._array_extend(clause)
+        self._array_append(0)
+
+    def get_clause_count(self):
+        return self._clause_array.count(0)
+
+    def save_state(self):
+        return len(self._clause_array)
+
+    def restore_state(self, saved_state):
+        len_clause_array = saved_state
+        self._clause_array[len_clause_array:] = array('i')
+
+    def as_list(self):
+        clause = []
+        for v in self._clause_array:
+            if v == 0:
+                yield tuple(clause)
+                clause.clear()
+            else:
+                clause.append(v)
+
+    def as_array(self):
+        return self._clause_array
+
+
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
 # SAT," Eén and Sörensson).
 class Clauses(object):
     def __init__(self, m=0):
-        self.clauses = []
         self.names = {}
         self.indices = {}
         self.unsat = False
         self.m = m
+        self._clauses = ClauseList()
+        # bind some methods of _clauses to reduce call overhead
+        self.add_clause = self._clauses.append
+        self.add_clauses = self._clauses.extend
+        self.get_clause_count = self._clauses.get_clause_count
+        self.save_state = self._clauses.save_state
+        self.restore_state = self._clauses.restore_state
 
     def name_var(self, m, name):
         nname = '!' + name
@@ -83,14 +152,14 @@ class Clauses(object):
             return x
         if isinstance(x, bool):
             x = self._new_var()
-            self.clauses.append((x,) if vals else (-x,))
+            self.add_clause((x,) if vals else (-x,))
         return self.name_var(x, name)
 
     def _assign_no_name(self, vals):
         if isinstance(vals, tuple):
             x = self._new_var()
-            self.clauses.extend((-x,) + y for y in vals[0])
-            self.clauses.extend((x,) + y for y in vals[1])
+            self.add_clauses((-x,) + y for y in vals[0])
+            self.add_clauses((x,) + y for y in vals[1])
             return x
         return vals
 
@@ -103,7 +172,7 @@ class Clauses(object):
     def Eval_(self, func, args, polarity, name, conv=True):
         if conv:
             args = self.Convert_(args)
-        nz = len(self.clauses)
+        saved_state = self.save_state()
         vals = func(*args, polarity=polarity)
         if name is None:
             return self._assign_no_name(vals)
@@ -112,12 +181,12 @@ class Clauses(object):
         # eval without assignment:
         tvals = type(vals)
         if tvals is tuple:
-            self.clauses.extend(vals[0])
-            self.clauses.extend(vals[1])
+            self.add_clauses(vals[0])
+            self.add_clauses(vals[1])
         elif tvals is not bool:
-            self.clauses.append((vals if polarity else -vals,))
+            self.add_clause((vals if polarity else -vals,))
         else:
-            self.clauses = self.clauses[:nz]
+            self.restore_state(saved_state)
             self.unsat = self.unsat or polarity != vals
         return None
 
@@ -430,13 +499,25 @@ class Clauses(object):
         return res
 
     def LinearBound(self, equation, lo, hi, preprocess=True, polarity=None, name=None):
-        return self.Eval_(self.LinearBound_, (equation, lo, hi, preprocess),
-                          polarity, name, conv=False)
+        if log.isEnabledFor(DEBUG):
+            old_clause_count = self.get_clause_count()
+        ret = self.Eval_(
+            self.LinearBound_, (equation, lo, hi, preprocess), polarity, name, conv=False)
+        if log.isEnabledFor(DEBUG):
+            new_clause_count = self.get_clause_count() - old_clause_count
+            log.debug(
+                'new clauses: %d (%.0f%%)',
+                new_clause_count, 100.0 * new_clause_count / max(1, old_clause_count),
+            )
+        return ret
 
     @time_recorder(module_name=__name__)
-    def _run_sat(self, clauses, m, limit):
-        log.debug("Invoking SAT with clause count: %s", len(clauses))
-        solution = pycosat.solve(clauses, vars=m, prop_limit=limit)
+    def _run_sat(self, clauses, m, limit=0):
+        if log.isEnabledFor(DEBUG):
+            log.debug("Invoking SAT with clause count: %s", self.get_clause_count())
+        solution = pycosat.solve(clauses.as_list(), vars=m, prop_limit=limit)
+        if sat_solution in ("UNSAT", "UNKNOWN"):
+            return None
         return solution
 
     @time_recorder(module_name=__name__)
@@ -452,7 +533,7 @@ class Clauses(object):
             return None
         if not self.m:
             return set() if names else []
-        clauses = self.clauses
+        saved_state = self.save_state()
         if additional:
             def preproc(eqs):
                 def preproc_(cc):
@@ -474,12 +555,12 @@ class Clauses(object):
             if additional:
                 if not additional[-1]:
                     return None
-                clauses = tuple(chain(clauses, additional))
-        solution = self._run_sat(clauses, self.m, limit)
-        if solution in ("UNSAT", "UNKNOWN"):
+                self.add_clauses(additional)
+        solution = self._run_sat(self._clauses, self.m, limit=limit)
+        if additional and (solution is None or not includeIf):
+            self.restore_state(saved_state)
+        if solution is None:
             return None
-        if additional and includeIf:
-            self.clauses.extend(additional)
         if names:
             return set(nm for nm in (self.indices.get(s) for s in solution) if nm and nm[0] != '!')
         return solution
@@ -546,7 +627,9 @@ class Clauses(object):
             # need to generate the constraints at least once
             hi = bestval
             m_orig = self.m
-            nz = len(self.clauses)
+            if log.isEnabledFor(DEBUG):
+                nz = self.get_clause_count()
+            saved_state = self.save_state()
             if trymax and not peak:
                 try0 = hi - 1
 
@@ -563,8 +646,9 @@ class Clauses(object):
                         self.Require(self.Any, temp)
                 else:
                     self.Require(self.LinearBound, objective, lo, mid, False)
-                log.trace('Bisection attempt: (%d,%d), (%d+%d) clauses' %
-                          (lo, mid, nz, len(self.clauses)-nz))
+                if log.isEnabledFor(DEBUG):
+                    log.trace('Bisection attempt: (%d,%d), (%d+%d) clauses' %
+                              (lo, mid, nz, self.get_clause_count() - nz))
                 newsol = self.sat()
                 if newsol is None:
                     lo = mid + 1
@@ -581,8 +665,8 @@ class Clauses(object):
                     if done:
                         break
                 self.m = m_orig
-                if len(self.clauses) > nz:
-                    self.clauses = self.clauses[:nz]
+                if self.save_state() != saved_state:
+                    self.restore_state(saved_state)
                 self.unsat = False
                 try0 = None
 

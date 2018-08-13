@@ -502,18 +502,24 @@ class Resolve(object):
             for ms in self.ms_depends(prec):
                 C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
-        log.debug("gen_clauses returning with clause count: %s", len(C.clauses))
+        if log.isEnabledFor(DEBUG):
+            log.debug("gen_clauses returning with clause count: %d", C.get_clause_count())
         return C
 
     def generate_spec_constraints(self, C, specs):
         result = [(self.push_MatchSpec(C, ms),) for ms in specs]
-        log.debug("generate_spec_constraints returning with clause count: %s", len(C.clauses))
+        if log.isEnabledFor(DEBUG):
+            log.debug(
+                "generate_spec_constraints returning with clause count: %d",
+                C.get_clause_count())
         return result
 
     def generate_feature_count(self, C):
         result = {self.push_MatchSpec(C, MatchSpec(track_features=name)): 1
                   for name in iterkeys(self.trackers)}
-        log.debug("generate_feature_count returning with clause count: %s", len(C.clauses))
+        if log.isEnabledFor(DEBUG):
+            log.debug(
+                "generate_feature_count returning with clause count: %d", C.get_clause_count())
         return result
 
     def generate_update_count(self, C, specs):
