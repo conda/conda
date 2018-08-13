@@ -1,3 +1,16 @@
+# 4.5.10 (2018-08-13)
+
+### Bug Fixes
+* fix conda env compatibility with pip 18 (#7627)
+* fix py37 compat 4.5.x (#7641)
+* fix #7451 don't print name, version, and size if unknown (#7648)
+* replace glob with fnmatch in PrefixData (#7645)
+
+### Contributors
+* @jesse-
+* @nehaljwani
+
+
 ## 4.5.9 (2018-07-30)
 
 ### Improvements
