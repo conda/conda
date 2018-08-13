@@ -619,7 +619,7 @@ class ProgressiveFetchExtract(object):
         if len(desc) > 0:
             desc = "%-20.20s | " % (desc)
         if len(size_str) > 0:
-            desc += "%-7s | " % (size_str)
+            desc += "%-9s | " % (size_str)
 
         progress_bar = ProgressBar(desc, not context.verbosity and not context.quiet, context.json)
 
