@@ -627,11 +627,15 @@ class ProgressiveFetchExtract(object):
         if cache_axn is None and extract_axn is None:
             return
 
-        desc = "%s-%s" % (prec_or_spec.name, prec_or_spec.version)
-        if len(desc) > 20:
-            desc = desc[:20]
+        desc = ''
+        if prec_or_spec.name and prec_or_spec.version:
+            desc = "%s-%s" % (prec_or_spec.name or '', prec_or_spec.version or '')
         size = getattr(prec_or_spec, 'size', None)
-        desc = "%-20s | %8s | " % (desc, size and human_bytes(size) or '')
+        size_str = size and human_bytes(size) or ''
+        if len(desc) > 0:
+            desc = "%-20.20s | " % desc
+        if len(size_str) > 0:
+            desc += "%-9s | " % size_str
 
         progress_bar = ProgressBar(desc, not context.verbosity and not context.quiet, context.json)
 

@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from glob import glob
+import fnmatch
+from os import listdir
 from logging import getLogger
 from os import listdir
 from os.path import basename, isdir, isfile, join, lexists, dirname
@@ -65,8 +66,10 @@ class PrefixData(object):
 
     def load(self):
         self.__prefix_records = {}
-        for meta_file in glob(join(self.prefix_path, 'conda-meta', '*.json')):
-            self._load_single_record(meta_file)
+        _conda_meta_dir = join(self.prefix_path, 'conda-meta')
+        if lexists(_conda_meta_dir):
+            for meta_file in fnmatch.filter(listdir(_conda_meta_dir), '*.json'):
+                self._load_single_record(join(_conda_meta_dir, meta_file))
         if self._pip_interop_enabled:
             self._load_site_packages()
 
