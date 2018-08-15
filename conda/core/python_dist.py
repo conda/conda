@@ -4,19 +4,18 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
-from glob import glob
 from os import listdir
-from os.path import basename, isdir, isfile, join, dirname
+from os.path import basename, dirname, isdir, isfile, join, lexists
 
 import csv
 import email.parser
+import fnmatch
 import os
-import platform
 import re
-import sys
 import warnings
 
 from .._vendor.frozendict import frozendict
+from ..core.python_markers import interpret, update_marker_context
 from ..common.compat import odict, PY2, StringIO
 from ..common.path import win_path_ok
 from ..models.channel import Channel
@@ -700,7 +699,16 @@ class BasePythonDistribution(object):
         norm_reqs = set([])
         for req in reqs:
             spec = parse_specification(req)
-            if evaluate_marker(spec.marker, context, extras):
+            extra_results = []
+
+            # TODO: For now all extras are included
+            for extra in extras:
+                temp_context = context.copy()
+                temp_context.update({'extra': extra})
+                if spec.marker:
+                    extra_results.append(interpret(spec.marker, temp_context))
+
+            if any(extra_results):
                 norm_name = norm_package_name(spec.name)
                 conda_name = pypi_name_to_conda_name(norm_name)
                 if spec.constraints:
@@ -714,11 +722,16 @@ class BasePythonDistribution(object):
         python_versions = self.get_python_requirements()
         if python_versions:
             pyvers = []
+
             # print('python_versions', python_versions)
             for pyver_req in python_versions:
                 pyspec = parse_specification(pyver_req)
-                if evaluate_marker(pyspec.marker, context, []):
+                if pyspec.marker:
+                    if interpret(pyspec.marker, context):
+                        pyvers.append(pyspec.constraints)
+                else:
                     pyvers.append(pyspec.constraints)
+
             if pyvers:
                 pyver = 'python ' + ','.join(pyvers)
             else:
@@ -771,7 +784,9 @@ class PythonInstalledDistribution(BasePythonDistribution):
     """
     SOURCES_FILES = ('RECORD', )
     REQUIRES_FILES = ()
-    MANDATORY_FILES = ('METADATA', 'RECORD', 'INSTALLER')
+    MANDATORY_FILES = ('METADATA', )
+    # FIXME: Do this check? Disabled for tests where only Metadata file is stored
+    # MANDATORY_FILES = ('METADATA', 'RECORD', 'INSTALLER')
     ENTRY_POINTS_FILES = ()
 
     def get_paths_data(self):
@@ -915,6 +930,12 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
                 anchor_file = "%s/%s" % (site_packages_dir, fname)
             else:
                 anchor_file = "%s/%s/%s" % (site_packages_dir, fname, "PKG-INFO")
+        elif fname.endswith(".egg"):
+            if isdir(join(site_packages_path, fname)):
+                anchor_file = "%s/%s/%s/%s" % (site_packages_dir, fname, "EGG-INFO", "PKG-INFO")
+            # FIXME: If it is a .egg file, we need to unzip the content to be
+            # able. Do this once and leave the directory, and remove the egg
+            # (which is a zip file in disguise?)
         elif fname.endswith('.egg-link'):
             anchor_file = "%s/%s" % (site_packages_dir, fname)
         elif fname.endswith('.pth'):
@@ -922,7 +943,6 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
         else:
             continue
         site_packages_anchor_files.add(anchor_file)
-
     return site_packages_anchor_files
 
 
@@ -940,7 +960,10 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
         # with no newlines..."
         egg_link_contents = fh.readlines()[0].strip()
 
-    egg_info_fnames = glob(join(egg_link_contents, "*.egg-info"))
+    if lexists(egg_link_contents):
+        egg_info_fnames = fnmatch.filter(listdir(egg_link_contents), '*.egg-info')
+    else:
+        egg_info_fnames = ()
 
     if egg_info_fnames:
         assert len(egg_info_fnames) == 1, (egg_link_file, egg_info_fnames)
@@ -979,6 +1002,11 @@ def get_python_distribution_info(anchor_file, prefix_path):
         dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
         dist_cls = PythonEggInfoDistribution
         package_type = PackageType.SHADOW_PYTHON_EGG_INFO_DIR
+    elif ".egg" in anchor_file:
+        sp_reference = basename(dirname(anchor_file))
+        dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
+        dist_cls = PythonEggInfoDistribution
+        package_type = PackageType.SHADOW_PYTHON_EGG_INFO_DIR        
     else:
         raise NotImplementedError()
 
@@ -989,105 +1017,6 @@ def get_python_distribution_info(anchor_file, prefix_path):
         try:
             pydist = dist_cls(dist_file)
         except Exception as error:
-            print('get_python_distribution_info', error)
+            print('ERROR!: get_python_distribution_info', error)
 
     return pydist, sp_reference, package_type
-
-
-# Environment markers helper functions
-# -----------------------------------------------------------------------------
-def evaluate_marker(marker_expr, context, extras):
-    """Temporal simplified (and unsafe) version of marker evaluation."""
-    # _safer_eval is a POC to test the logic, but the micro language will no
-    # longer be a subset of python so a specific lexer/parser is needed.
-    # TODO: The version used in distlib is compact, we could vendor that part?
-    # https://bitbucket.org/pypa/distlib/src/c9984aa2ecff1f9931cf4354d1abe5bdb415ea07/distlib/util.py
-    def _safer_eval(expr, local_context):
-        _local_context = frozendict(local_context.items())
-        try:
-            result = eval(expr, {"__builtins__": {}}, _local_context)
-        except Exception as e:
-            result = False
-            print(e)
-
-        return result
-
-    if marker_expr:
-        # Extras may or may not be provided by the metadata, for every extra
-        # we evaluate the markers to obtain *all* possible packages.
-        # FIXME: This leads to including extra packages only used for doc
-        # generation or test running. Names are not standard, but a cleanup
-        # could be performed based on 'test', 'tests', 'doc' 'docs', 'doctest'
-        # 'doctests' etc.
-        # TODO: Create a mapping of extras to ignore for pypi pkg?
-        if extras:
-            marker_results = []
-            for extra in extras:
-                context.update({'extra': extra})
-                # FIXME: Temporal eval to test functionality
-                marker_result = _safer_eval(marker_expr, context)
-                marker_results.append(marker_result)
-            marker_result = any(marker_results)
-        else:
-            # FIXME: Temporal eval to test functionality
-            marker_result = _safer_eval(marker_expr, context)
-        # print(marker_expr, marker_result)
-    else:
-        marker_result = True
-
-    return marker_result
-
-
-def update_marker_context(python_version):
-    """Update default marker context to include environment python version."""
-    updated_context = DEFAULT_MARKER_CONTEXT.copy()
-    context = {
-        'python_full_version': python_version,
-        'python_version': '.'.join(python_version.split('.')[:2]),
-        'extra': '',
-    }
-    updated_context.update(context)
-    return updated_context
-
-
-def get_default_marker_context():
-    """Return the default context dictionary to use when parsing markers."""
-
-    def format_full_version(info):
-        version = '%s.%s.%s' % (info.major, info.minor, info.micro)
-        kind = info.releaselevel
-        if kind != 'final':
-            version += kind[0] + str(info.serial)
-        return version
-
-    if hasattr(sys, 'implementation'):
-        implementation_version = format_full_version(sys.implementation.version)
-        implementation_name = sys.implementation.name
-    else:
-        implementation_version = '0'
-        implementation_name = ''
-
-    result = {
-        # See: https://www.python.org/dev/peps/pep-0508/#environment-markers
-        'implementation_name': implementation_name,
-        'implementation_version': implementation_version,
-        'os_name': os.name,
-        'platform_machine': platform.machine(),
-        'platform_python_implementation': platform.python_implementation(),
-        'platform_release': platform.release(),
-        'platform_system': platform.system(),
-        'platform_version': platform.version(),
-        'python_full_version': platform.python_version(),
-        'python_version': '.'.join(platform.python_version().split('.')[:2]),
-        'sys_platform': sys.platform,
-        # See: https://www.python.org/dev/peps/pep-0345/#environment-markers
-        'os.name': os.name,
-        'platform.python_implementation': platform.python_implementation(),
-        'platform.version': platform.version(),
-        'platform.machine': platform.machine(),
-        'sys.platform': sys.platform,
-    }
-    return result
-
-
-DEFAULT_MARKER_CONTEXT = get_default_marker_context()

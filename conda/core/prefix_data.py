@@ -5,12 +5,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from fnmatch import filter as fnmatch_filter
 from logging import getLogger
-<<<<<<< HEAD
 from os import listdir
-from os.path import basename, dirname, isdir, isfile, join, lexists
-=======
 from os.path import basename, isdir, isfile, join, lexists
->>>>>>> Add code to handle python dists (remove distlib dependency) and refactor code
 
 from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
 from ..base.context import context
