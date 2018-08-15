@@ -10,6 +10,7 @@ from os.path import basename, dirname, isdir, isfile, join, lexists
 import csv
 import email.parser
 import fnmatch
+import io
 import os
 import re
 import warnings
@@ -277,7 +278,9 @@ class PythonDistributionMetadata(object):
         if fpath and isfile(fpath):
             parser = email.parser.HeaderParser()
 
-            with open(fpath, 'r') as fp:
+            # FIXME: Is this a correct assumption for the encoding?
+            # This was needed due to some errors on windows
+            with io.open(fpath, 'r', encoding='utf-8') as fp:
                 data = parser.parse(fp)
 
         return cls._message_to_dict(data)
@@ -1014,6 +1017,7 @@ def get_python_distribution_info(anchor_file, prefix_path):
 
     # An egg-link might reference a folder where egg-info is not available
     if dist_file is not None:
+        pydist = dist_cls(dist_file)
         try:
             pydist = dist_cls(dist_file)
         except Exception as error:
