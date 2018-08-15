@@ -13,7 +13,8 @@ from conda.core import python_dist as pd
 
 import pytest
 
-from .data import METADATA_VERSION_PATHS, PATH_TEST_ENV_1, PATH_TEST_ENV_2
+from .data import (METADATA_VERSION_PATHS, PATH_TEST_ENV_1, PATH_TEST_ENV_2,
+                   PATH_TEST_ENV_3, PATH_TEST_ENV_4)
 
 
 # Helpers
@@ -325,54 +326,6 @@ def test_get_python_distribution_info():
             assert output[0].name == output_names[i]
         else:
             assert output[0] is None
-
-
-# Markers
-# -----------------------------------------------------------------------------
-def test_evaluate_marker():
-    # See: https://www.python.org/dev/peps/pep-0508/#complete-grammar
-    # ((marker_expr, context, extras, expected_output), ...)
-    test_cases = (
-        # Valid context
-        ('spam == "1.0"', {'spam': '1.0'}, [], True),
-        # Not in context
-        ('spam == "1.0"', {}, [], False),
-        ('spam2 == "1.0"', {'spam': '1.0'}, [], False),
-        # Malformed
-        ('spam2 = "1.0"', {'spam': '1.0'}, [], False),
-        # Should parse as (a and b) or c
-        ("a=='a' and b=='b' or c=='c'", {'a': 'a', 'b': 'b', 'c': ''}, [], True),
-        # Overriding precedence -> a and (b or c)
-        ("a=='a' and (b=='b' or c=='c')", {'a': 'a', 'b': '', 'c': ''}, [], False),
-        # Overriding precedence -> (a or b) and c
-        ("(a=='a' or b=='b') and c=='c'", {'a': 'a', 'b': '', 'c': ''}, [], False),
-        # Extras
-        ("extra=='doc'", {}, ['doc', 'pdf'], True),
-        ("extra=='test'", {}, ['doc', 'pdf'], False),
-    )
-    for marker_expr, context, extras, expected_output in test_cases:
-        output = pd.evaluate_marker(marker_expr, context, extras)
-        _print_output(marker_expr, context, extras, output, expected_output)
-        assert output is expected_output
-
-
-def test_update_marker_context():
-    pyver = '2.8.1'
-    context = pd.update_marker_context(pyver)
-    _print_output(pyver, context)
-    assert context['extra'] == ''
-    assert context['python_version'] == '.'.join(pyver.split('.')[:2])
-    assert context['python_full_version'] == pyver
-
-
-def test_get_default_marker_context():
-    context = pd.get_default_marker_context()
-    for key, val in context.items():
-        # Check deprecated keys have same value as new keys (. -> _)
-        if '.' in key:
-            other_val = context.get(key.replace('.', '_'))
-            _print_output(val, other_val)
-            assert val == other_val
 
 
 # Metadata
@@ -724,27 +677,50 @@ def test_python_dist_egg_fpath():
 # Prefix Data
 # -----------------------------------------------------------------------------
 def test_pip_interop():
-    pass
-#    test_cases = {
-#        PATH_TEST_ENV_1: [
-#            'anaconda-client', 'conda', 'loghub', 'libsass', 'python-graphviz',
-#        ],
-#        PATH_TEST_ENV_2: [
-#            'anaconda-client', 'conda', 'python-graphviz',
-#            'asn1crypto', 'babel', 'cffi', 'chardet', 'cryptography', 'dask',
-#            'django', 'django-phonenumber-field', 'django-twilio', 'enum34',
-#            'h5py', 'hdf5storage', 'idna', 'ipaddress', 'numpy', 'packaging',
-#            'phonenumberslite', 'pluggy', 'py', 'pycparser', 'pyjwt',
-#            'pyopenssl', 'pyparsing', 'pytz', 'requests', 'six', 'tox',
-#            'twilio', 'urllib3', 'virtualenv'
-#        ]
-#    }
-#
-#    for path, expected_output in test_cases.items():
-#        prefixdata = PrefixData(path, pip_interop_enabled=True)
-#        prefixdata.load()
-#        records = prefixdata._load_site_packages()
-#        record_names = tuple(sorted(records.keys()))
-#        for record_name in record_names:
-#            _print_output(expected_output, record_names)
-#            assert record_name in expected_output
+    test_cases = (
+        # OSX
+        (PATH_TEST_ENV_1,
+         ('asn1crypto', 'babel', 'backports-functools-lru-cache', 'cffi', 'chardet',
+          'cheroot', 'cherrypy', 'configparser', 'cryptography', 'cssselect', 'dask',
+          'django', 'django-phonenumber-field', 'django-twilio', 'entrypoints',
+          'enum34', 'h5py', 'idna', 'ipaddress', 'jaraco-functools', 'lxml',
+          'more-itertools', 'numpy', 'parsel', 'phonenumberslite', 'pip', 'pluggy',
+          'portend', 'py', 'pycparser', 'pyjwt', 'pyopenssl', 'pytz', 'queuelib',
+          'requests', 'scrapy', 'service-identity', 'six', 'tempora', 'tox', 'twisted',
+          'urllib3', 'virtualenv', 'w3lib')
+        ),
+        (PATH_TEST_ENV_2,
+         ('asn1crypto', 'attrs', 'automat', 'babel', 'backports-functools-lru-cache',
+          'cffi', 'chardet', 'cheroot', 'cherrypy', 'constantly', 'cryptography',
+          'cssselect', 'dask', 'django', 'django-phonenumber-field', 'django-twilio',
+          'entrypoints', 'h5py', 'hdf5storage', 'hyperlink', 'idna', 'incremental',
+          'jaraco-functools', 'keyring', 'lxml', 'more-itertools', 'numpy', 'parsel',
+          'phonenumberslite', 'pip', 'pluggy', 'portend', 'py', 'pyasn1', 'pyasn1-modules',
+          'pycparser', 'pydispatcher', 'pyhamcrest', 'pyjwt', 'pyopenssl', 'pysocks', 'pytz',
+          'queuelib', 'requests', 'scrapy', 'service-identity', 'six', 'tempora', 'tox',
+          'twilio', 'twisted', 'urllib3', 'virtualenv', 'w3lib', 'zope-interface')
+        ),
+        # Windows
+        (PATH_TEST_ENV_3,
+         ()
+        ),
+        (PATH_TEST_ENV_4,
+         ()
+        ),
+    )
+
+    for path, expected_output in test_cases:
+        if os.path.isdir(path):
+            prefixdata = PrefixData(path, pip_interop_enabled=True)
+            prefixdata.load()
+            records = prefixdata._load_site_packages()
+            record_names = tuple(sorted(records.keys()))
+            print('RECORDS', record_names)
+            assert len(record_names), len(expected_output)
+            _print_output(expected_output, record_names)
+            for record_name in record_names:
+                _print_output(record_name)
+                assert record_name in expected_output
+            for record_name in expected_output:
+                _print_output(record_name)
+                assert record_name in record_names

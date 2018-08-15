@@ -1006,7 +1006,7 @@ def get_python_distribution_info(anchor_file, prefix_path):
         sp_reference = basename(dirname(anchor_file))
         dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
         dist_cls = PythonEggInfoDistribution
-        package_type = PackageType.SHADOW_PYTHON_EGG_INFO_DIR        
+        package_type = PackageType.SHADOW_PYTHON_EGG_INFO_DIR
     else:
         raise NotImplementedError()
 

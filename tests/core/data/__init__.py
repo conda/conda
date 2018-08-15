@@ -3,25 +3,26 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """
 Example packages used in this data testing:
-- https://github.com/frejanordsiek/hdf5storage/blob/0.1.15/setup.py
-- https://github.com/dask/dask/blob/master/setup.py
-- https://github.com/rdegges/django-twilio/blob/master/setup.py
-- https://github.com/twilio/twilio-python/blob/master/setup.py
-- https://github.com/tox-dev/tox/blob/master/setup.py
-- https://github.com/cherrypy/cherrypy/blob/master/setup.py
-- https://github.com/jaraco/keyring/blob/master/setup.py
-- https://github.com/scrapy/scrapy/blob/master/setup.py
+- https://github.com/cherrypy/cherrypy.git
+- https://github.com/dask/dask.git
+- https://github.com/rdegges/django-twilio.git
+- https://github.com/frejanordsiek/hdf5storage.git
+- https://github.com/jaraco/keyring.git
+- https://github.com/scrapy/scrapy.git
+- https://github.com/tox-dev/tox.git
+- https://github.com/twilio/twilio-python.git
 """
 
 import os
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-PATH_TEST_ENV_1 = os.path.join(HERE, 'env1')
-PATH_TEST_ENV_2 = os.path.join(HERE, 'env2')
-#SITE_PACKAGES_PATH_1 = os.path.join(PATH_TEST_ENV_1, 'lib', 'python3.6', 'site-packages')
-#SITE_PACKAGES_PATH_2 = os.path.join(PATH_TEST_ENV_2, 'lib', 'python2.7', 'site-packages')
-#PATH_EGG_1 = os.path.join(HERE, 'eggdata', 'egg1')
-#PATH_EGG_2 = os.path.join(HERE, 'eggdata', 'egg2')
+
+# Test environment installed using either `pip install <pth-to-wheel>` or
+# `python setup.py install`
+PATH_TEST_ENV_1 = os.path.join(HERE, 'envpy27osx')
+PATH_TEST_ENV_2 = os.path.join(HERE, 'envpy37osx_whl')
+PATH_TEST_ENV_3 = os.path.join(HERE, 'envpy27win')
+PATH_TEST_ENV_4 = os.path.join(HERE, 'envpy37win_whl')
 
 METADATA_241_PATH = os.path.join(HERE, 'metadata', 'pep241', 'PKG-INFO')
 METADATA_314_PATH = os.path.join(HERE, 'metadata', 'pep314', 'PKG-INFO')
