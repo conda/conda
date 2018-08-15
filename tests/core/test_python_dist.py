@@ -676,31 +676,9 @@ def test_python_dist_egg_fpath():
 
 # Prefix Data
 # -----------------------------------------------------------------------------
-def test_pip_interop():
+@pytest.mark.skipif(os.name != 'nt', reason="Windows tests")
+def test_pip_interop_windows():
     test_cases = (
-        # OSX
-        (PATH_TEST_ENV_1,
-         ('asn1crypto', 'babel', 'backports-functools-lru-cache', 'cffi', 'chardet',
-          'cheroot', 'cherrypy', 'configparser', 'cryptography', 'cssselect', 'dask',
-          'django', 'django-phonenumber-field', 'django-twilio', 'entrypoints',
-          'enum34', 'h5py', 'idna', 'ipaddress', 'jaraco-functools', 'lxml',
-          'more-itertools', 'numpy', 'parsel', 'phonenumberslite', 'pip', 'pluggy',
-          'portend', 'py', 'pycparser', 'pyjwt', 'pyopenssl', 'pytz', 'queuelib',
-          'requests', 'scrapy', 'service-identity', 'six', 'tempora', 'tox', 'twisted',
-          'urllib3', 'virtualenv', 'w3lib')
-        ),
-        (PATH_TEST_ENV_2,
-         ('asn1crypto', 'attrs', 'automat', 'babel', 'backports-functools-lru-cache',
-          'cffi', 'chardet', 'cheroot', 'cherrypy', 'constantly', 'cryptography',
-          'cssselect', 'dask', 'django', 'django-phonenumber-field', 'django-twilio',
-          'entrypoints', 'h5py', 'hdf5storage', 'hyperlink', 'idna', 'incremental',
-          'jaraco-functools', 'keyring', 'lxml', 'more-itertools', 'numpy', 'parsel',
-          'phonenumberslite', 'pip', 'pluggy', 'portend', 'py', 'pyasn1', 'pyasn1-modules',
-          'pycparser', 'pydispatcher', 'pyhamcrest', 'pyjwt', 'pyopenssl', 'pysocks', 'pytz',
-          'queuelib', 'requests', 'scrapy', 'service-identity', 'six', 'tempora', 'tox',
-          'twilio', 'twisted', 'urllib3', 'virtualenv', 'w3lib', 'zope-interface')
-        ),
-        # Windows
         (PATH_TEST_ENV_3,
          ('babel', 'backports-functools-lru-cache', 'chardet', 'cheroot', 'cherrypy',
          'cssselect', 'dask', 'django', 'django-phonenumber-field', 'django-twilio',
@@ -721,6 +699,49 @@ def test_pip_interop():
         'pyhamcrest', 'pyjwt', 'pyopenssl', 'pytz', 'pywin32', 'pywin32-ctypes',
         'queuelib', 'requests', 'scrapy', 'service-identity', 'six', 'tempora', 'tox',
         'twilio', 'twisted', 'urllib3', 'virtualenv', 'w3lib', 'zope-interface')
+        ),
+    )
+
+    for path, expected_output in test_cases:
+        if os.path.isdir(path):
+            prefixdata = PrefixData(path, pip_interop_enabled=True)
+            prefixdata.load()
+            records = prefixdata._load_site_packages()
+            record_names = tuple(sorted(records.keys()))
+            print('RECORDS', record_names)
+            assert len(record_names), len(expected_output)
+            _print_output(expected_output, record_names)
+            for record_name in record_names:
+                _print_output(record_name)
+                assert record_name in expected_output
+            for record_name in expected_output:
+                _print_output(record_name)
+                assert record_name in record_names
+
+
+@pytest.mark.skipif(os.name == 'nt', reason="Windows tests")
+def test_pip_interop_osx():
+    test_cases = (
+        (PATH_TEST_ENV_1,
+         ('asn1crypto', 'babel', 'backports-functools-lru-cache', 'cffi', 'chardet',
+          'cheroot', 'cherrypy', 'configparser', 'cryptography', 'cssselect', 'dask',
+          'django', 'django-phonenumber-field', 'django-twilio', 'entrypoints',
+          'enum34', 'h5py', 'idna', 'ipaddress', 'jaraco-functools', 'lxml',
+          'more-itertools', 'numpy', 'parsel', 'phonenumberslite', 'pip', 'pluggy',
+          'portend', 'py', 'pycparser', 'pyjwt', 'pyopenssl', 'pytz', 'queuelib',
+          'requests', 'scrapy', 'service-identity', 'six', 'tempora', 'tox', 'twisted',
+          'urllib3', 'virtualenv', 'w3lib')
+        ),
+        (PATH_TEST_ENV_2,
+         ('asn1crypto', 'attrs', 'automat', 'babel', 'backports-functools-lru-cache',
+          'cffi', 'chardet', 'cheroot', 'cherrypy', 'constantly', 'cryptography',
+          'cssselect', 'dask', 'django', 'django-phonenumber-field', 'django-twilio',
+          'entrypoints', 'h5py', 'hdf5storage', 'hyperlink', 'idna', 'incremental',
+          'jaraco-functools', 'keyring', 'lxml', 'more-itertools', 'numpy', 'parsel',
+          'phonenumberslite', 'pip', 'pluggy', 'portend', 'py', 'pyasn1', 'pyasn1-modules',
+          'pycparser', 'pydispatcher', 'pyhamcrest', 'pyjwt', 'pyopenssl', 'pysocks', 'pytz',
+          'queuelib', 'requests', 'scrapy', 'service-identity', 'six', 'tempora', 'tox',
+          'twilio', 'twisted', 'urllib3', 'virtualenv', 'w3lib', 'zope-interface')
         ),
     )
 
