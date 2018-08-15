@@ -926,6 +926,7 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
     """Get all the anchor files for the site packages directory."""
     site_packages_anchor_files = set()
     for fname in listdir(site_packages_path):
+        anchor_file = None
         if fname.endswith('.dist-info'):
             anchor_file = "%s/%s/%s" % (site_packages_dir, fname, 'RECORD')
         elif fname.endswith(".egg-info"):
@@ -945,7 +946,10 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
             continue
         else:
             continue
-        site_packages_anchor_files.add(anchor_file)
+
+        if anchor_file:
+            site_packages_anchor_files.add(anchor_file)
+
     return site_packages_anchor_files
 
 
