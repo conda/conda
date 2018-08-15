@@ -702,10 +702,25 @@ def test_pip_interop():
         ),
         # Windows
         (PATH_TEST_ENV_3,
-         ()
+         ('babel', 'backports-functools-lru-cache', 'chardet', 'cheroot', 'cherrypy',
+         'cssselect', 'dask', 'django', 'django-phonenumber-field', 'django-twilio',
+         'entrypoints', 'h5py', 'idna', 'jaraco-functools', 'lxml', 'more-itertools',
+         'numpy', 'parsel', 'phonenumberslite', 'pluggy', 'portend', 'py', 'pyjwt',
+         'pyopenssl', 'pytz', 'pywin32', 'pywin32-ctypes', 'queuelib', 'requests',
+         'scrapy', 'service-identity', 'six', 'tempora', 'tox', 'urllib3', 'virtualenv',
+         'w3lib')
         ),
         (PATH_TEST_ENV_4,
-         ()
+         ('asn1crypto', 'attrs', 'automat', 'babel', 'backports-functools-lru-cache',
+         'cffi', 'chardet', 'cheroot', 'cherrypy', 'configparser', 'constantly',
+         'cryptography', 'cssselect', 'dask', 'django', 'django-phonenumber-field',
+         'django-twilio', 'entrypoints', 'enum34', 'functools32', 'h5py', 'hdf5storage',
+         'hyperlink', 'idna', 'incremental', 'ipaddress', 'jaraco-functools', 'keyring',
+         'lxml', 'more-itertools', 'numpy', 'parsel', 'phonenumberslite', 'pluggy',
+        'portend', 'py', 'pyasn1', 'pyasn1-modules', 'pycparser', 'pydispatcher',
+        'pyhamcrest', 'pyjwt', 'pyopenssl', 'pytz', 'pywin32', 'pywin32-ctypes',
+        'queuelib', 'requests', 'scrapy', 'service-identity', 'six', 'tempora', 'tox',
+        'twilio', 'twisted', 'urllib3', 'virtualenv', 'w3lib', 'zope-interface')
         ),
     )
 

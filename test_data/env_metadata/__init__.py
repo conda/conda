@@ -21,8 +21,8 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 # `python setup.py install`
 PATH_TEST_ENV_1 = os.path.join(HERE, 'envpy27osx')
 PATH_TEST_ENV_2 = os.path.join(HERE, 'envpy37osx_whl')
-PATH_TEST_ENV_3 = os.path.join(HERE, 'envpy27win')
-PATH_TEST_ENV_4 = os.path.join(HERE, 'envpy37win_whl')
+PATH_TEST_ENV_3 = os.path.join(HERE, 'envpy37win')
+PATH_TEST_ENV_4 = os.path.join(HERE, 'envpy27win_whl')
 
 METADATA_241_PATH = os.path.join(HERE, 'metadata', 'pep241', 'PKG-INFO')
 METADATA_314_PATH = os.path.join(HERE, 'metadata', 'pep314', 'PKG-INFO')
