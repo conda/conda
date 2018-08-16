@@ -153,7 +153,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # save_data_source("https://repo.anaconda.com/pkgs/main/win-64", "main_win-64")
+    # save_data_source("https://conda-static.anaconda.org/main/win-64", "main_win-64")
     # save_data_source("https://conda.anaconda.org/conda-test/noarch", "conda-test_noarch")
-    # save_data_source("https://conda.anaconda.org/main/noarch", "main_noarch")
+    # save_data_source("https://conda-static.anaconda.org/main/noarch", "main_noarch")
     main()

@@ -82,6 +82,7 @@ def test_prefix_graph_1():
         'beautifulsoup4',
         'certifi',
         'chardet',
+        'cryptography-vectors',
         'filelock',
         'glob2',
         'idna',
@@ -95,7 +96,6 @@ def test_prefix_graph_1():
         'ruamel_yaml',
         'six',
         'cffi',
-        'conda-verify',
         'setuptools',
         'cryptography',
         'jinja2',
@@ -135,6 +135,7 @@ def test_prefix_graph_1():
         'beautifulsoup4',
         'certifi',
         'chardet',
+        'cryptography-vectors',
         'filelock',
         'glob2',
         'idna',
@@ -148,7 +149,6 @@ def test_prefix_graph_1():
         'ruamel_yaml',
         'six',
         'cffi',
-        'conda-verify',
         'setuptools',
         'cryptography',
         'jinja2',
@@ -195,6 +195,7 @@ def test_prefix_graph_1():
         'beautifulsoup4',
         'certifi',
         'chardet',
+        'cryptography-vectors',
         'filelock',
         'glob2',
         'idna',
@@ -208,7 +209,6 @@ def test_prefix_graph_1():
         'ruamel_yaml',
         'six',
         'cffi',
-        'conda-verify',
         'setuptools',
         'cryptography',
         'jinja2',
@@ -218,7 +218,7 @@ def test_prefix_graph_1():
     assert nodes == order
 
     spec_matches = {
-        'channel-4::intel-openmp-2018.0.0-hc7b2577_8': {'intel-openmp'},
+        'channel-4::intel-openmp-2018.0.3-0': {'intel-openmp'},
     }
     assert {node.dist_str(): set(str(ms) for ms in specs) for node, specs in graph.spec_matches.items()} == spec_matches
 
@@ -226,7 +226,7 @@ def test_prefix_graph_1():
     nodes = tuple(rec.dist_str() for rec in graph.records)
     pprint(nodes)
     order = (
-        'channel-4::intel-openmp-2018.0.0-hc7b2577_8',
+        'channel-4::intel-openmp-2018.0.3-0',
     )
     assert nodes == order
 
@@ -252,6 +252,7 @@ def test_prefix_graph_1():
         'beautifulsoup4',
         'certifi',
         'chardet',
+        'cryptography-vectors',
         'filelock',
         'glob2',
         'idna',
@@ -265,7 +266,6 @@ def test_prefix_graph_1():
         'ruamel_yaml',
         'six',
         'cffi',
-        'conda-verify',
         'setuptools',
         'cryptography',
         'jinja2',
@@ -307,6 +307,7 @@ def test_prefix_graph_2():
         'beautifulsoup4',
         'certifi',
         'chardet',
+        'cryptography-vectors',
         'filelock',
         'glob2',
         'idna',
@@ -320,7 +321,6 @@ def test_prefix_graph_2():
         'ruamel_yaml',
         'six',
         'cffi',
-        'conda-verify',
         'setuptools',
         'cryptography',
         'jinja2',
@@ -355,6 +355,7 @@ def test_prefix_graph_2():
         'asn1crypto',
         'certifi',
         'chardet',
+        'cryptography-vectors',
         'idna',
         'pycosat',
         'pycparser',
@@ -379,7 +380,6 @@ def test_prefix_graph_2():
         'pkginfo',
         'psutil',
         'pyyaml',
-        'conda-verify',
         'setuptools',
         'jinja2',
         'conda-build',
@@ -418,6 +418,7 @@ def test_remove_youngest_descendant_nodes_with_specs():
         'beautifulsoup4',
         'certifi',
         'chardet',
+        'cryptography-vectors',
         'filelock',
         'glob2',
         'idna',
@@ -431,7 +432,6 @@ def test_remove_youngest_descendant_nodes_with_specs():
         'ruamel_yaml',
         'six',
         'cffi',
-        'conda-verify',
         'setuptools',
         'cryptography',
         'jinja2',
@@ -476,6 +476,7 @@ def test_remove_youngest_descendant_nodes_with_specs():
         'beautifulsoup4',
         'certifi',
         'chardet',
+        'cryptography-vectors',
         'filelock',
         'glob2',
         'idna',
@@ -489,7 +490,6 @@ def test_remove_youngest_descendant_nodes_with_specs():
         'ruamel_yaml',
         'six',
         'cffi',
-        'conda-verify',
         'setuptools',
         'cryptography',
         'jinja2',
@@ -528,6 +528,7 @@ def test_remove_youngest_descendant_nodes_with_specs():
         'asn1crypto',
         'certifi',
         'chardet',
+        'cryptography-vectors',
         'idna',
         'pycparser',
         'pysocks',
@@ -553,7 +554,6 @@ def test_remove_youngest_descendant_nodes_with_specs():
         'pycosat',
         'pyyaml',
         'ruamel_yaml',
-        'conda-verify',
         'setuptools',
         'jinja2',
     )
