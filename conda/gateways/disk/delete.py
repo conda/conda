@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import ENOENT
@@ -188,7 +190,7 @@ else:  # pragma: no cover
         def rm(fn, childpath):
             try:
                 fn(childpath)
-            except:
+            except Exception:
                 if not ignore_errors:
                     if onerror is None:
                         raise
@@ -371,7 +373,7 @@ else:  # pragma: no cover
             if bool(self):
                 try:
                     CloseHandle(self)
-                except:
+                except Exception:
                     pass
 
         def __enter__(self):

@@ -1,3 +1,5 @@
+@REM Copyright (C) 2012 Anaconda, Inc
+@REM SPDX-License-Identifier: BSD-3-Clause
 @REM Test first character and last character of %1 to see if first character is a "
 @REM   but the last character isn't.
 @REM This was a bug as described in https://github.com/ContinuumIO/menuinst/issues/60

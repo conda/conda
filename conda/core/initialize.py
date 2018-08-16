@@ -1,4 +1,33 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
+Sections in this module are
+
+  1. top-level functions
+  2. plan creators
+  3. plan runners
+  4. individual operations
+  5. helper functions
+
+The top-level functions compose and execute full plans.
+
+A plan is created by composing various individual operations.  The plan data structure is a
+list of dicts, where each dict represents an individual operation.  The dict contains two
+keys--`function` and `kwargs`--where function is the name of the individual operation function
+within this module.
+
+Each individual operation must
+
+  a) return a `Result` (i.e. NEEDS_SUDO, MODIFIED, or NO_CHANGE)
+  b) have no side effects if context.dry_run is True
+  c) be verbose and descriptive about the changes being made or proposed is context.verbosity >= 1
+
+The plan runner functions take the plan (list of dicts) as an argument, and then coordinate the
+execution of each individual operation.  The docstring for `run_plan_elevated()` has details on
+how that strategy is implemented.
+
+"""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from difflib import unified_diff
@@ -18,7 +47,7 @@ from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
 from ..activate import CshActivator, FishActivator, PosixActivator, XonshActivator
 from ..base.context import context
-from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_unicode, on_mac,
+from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_text_type, on_mac,
                              on_win, open)
 from ..common.path import (expand, get_bin_directory_short_path, get_python_short_path,
                            get_python_site_packages_short_path, win_path_ok)
@@ -41,6 +70,9 @@ if on_win:
 
 log = getLogger(__name__)
 
+CONDA_INITIALIZE_RE_BLOCK = (r"^# >>> conda initialize >>>(?:\n|\r\n)"
+                             r"([\s\S]*?)"
+                             r"# <<< conda initialize <<<(?:\n|\r\n)?")
 
 class Result:
     NEEDS_SUDO = "needs sudo"
@@ -48,12 +80,17 @@ class Result:
     NO_CHANGE = "no change"
 
 
+# #####################################################
+# top-level functions
+# #####################################################
+
 def install(conda_prefix):
     plan = make_install_plan(conda_prefix)
     run_plan(plan)
     if not context.dry_run:
         assert not any(step['result'] == Result.NEEDS_SUDO for step in plan)
     print_plan_results(plan)
+    return 0
 
 
 def initialize(conda_prefix, shells, for_user, for_system, anaconda_prompt):
@@ -75,22 +112,6 @@ def initialize(conda_prefix, shells, for_user, for_system, anaconda_prompt):
     if any(step['result'] == Result.NEEDS_SUDO for step in plan):
         print("Operation failed.", file=sys.stderr)
         return 1
-
-
-def _get_python_info(prefix):
-    python_exe = join(prefix, get_python_short_path())
-    result = subprocess_call("%s --version" % python_exe)
-    stdout, stderr = result.stdout.strip(), result.stderr.strip()
-    if stderr:
-        python_version = stderr.split()[1]
-    elif stdout:  # pragma: no cover
-        python_version = stdout.split()[1]
-    else:  # pragma: no cover
-        raise ValueError("No python version information available.")
-
-    site_packages_dir = join(prefix,
-                             win_path_ok(get_python_site_packages_short_path(python_version)))
-    return python_exe, python_version, site_packages_dir
 
 
 def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
@@ -191,7 +212,12 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         print("now run  > .\\dev-init.bat")
     else:
         raise NotImplementedError()
+    return 0
 
+
+# #####################################################
+# plan creators
+# #####################################################
 
 def make_install_plan(conda_prefix):
     try:
@@ -427,6 +453,15 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                     'conda_prefix': conda_prefix,
                 },
             })
+            # it would be nice to enable this on a user-level basis, but unfortunately, it is
+            #    a system-level key only.
+            plan.append({
+                'function': init_long_path.__name__,
+                'kwargs': {
+                    'target_path': 'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\'
+                                   'FileSystem\\LongPathsEnabled'
+                }
+            })
         if anaconda_prompt:
             plan.append({
                 'function': install_anaconda_prompt.__name__,
@@ -451,6 +486,10 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
     return plan
 
 
+# #####################################################
+# plan runners
+# #####################################################
+
 def run_plan(plan):
     for step in plan:
         previous_result = step.get('result', None)
@@ -465,29 +504,42 @@ def run_plan(plan):
 
 
 def run_plan_elevated(plan):
+    """
+    The strategy of this function differs between unix and Windows.  Both strategies use a
+    subprocess call, where the subprocess is run with elevated privileges.  The executable
+    invoked with the subprocess is `python -m conda.core.initialize`, so see the
+    `if __name__ == "__main__"` at the bottom of this module.
+
+    For unix platforms, we convert the plan list to json, and then call this module with
+    `sudo python -m conda.core.initialize` while piping the plan json to stdin.  We collect json
+    from stdout for the results of the plan execution with elevated privileges.
+
+    For Windows, we create a temporary file that holds the json content of the plan.  The
+    subprocess reads the content of the file, modifies the content of the file with updated
+    execution status, and then closes the file.  This process then reads the content of that file
+    for the individual operation execution results, and then deletes the file.
+
+    """
+
     if any(step['result'] == Result.NEEDS_SUDO for step in plan):
         if on_win:
-            from menuinst.win_elevate import runAsAdmin
-            # https://github.com/ContinuumIO/menuinst/blob/master/menuinst/windows/win_elevate.py  # no stdin / stdout / stderr pipe support  # NOQA
-            # https://github.com/saltstack/salt-windows-install/blob/master/deps/salt/python/App/Lib/site-packages/win32/Demos/pipes/runproc.py  # NOQA
-            # https://github.com/twonds/twisted/blob/master/twisted/internet/_dumbwin32proc.py
-            # https://stackoverflow.com/a/19982092/2127762
-            # https://www.codeproject.com/Articles/19165/Vista-UAC-The-Definitive-Guide
-
-            # from menuinst.win_elevate import isUserAdmin, runAsAdmin
-            # I do think we can pipe to stdin, so we're going to have to write to a temp file and read in the elevated process  # NOQA
-
+            from ..common.os.windows import run_as_admin
             temp_path = None
             try:
                 with NamedTemporaryFile('w+b', suffix='.json', delete=False) as tf:
                     # the default mode is 'w+b', and universal new lines don't work in that mode
                     tf.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
                     temp_path = tf.name
-                rc = runAsAdmin((sys.executable, '-m',  'conda.initialize',  '"%s"' % temp_path))
-                assert rc == 0
+                python_exe = '"%s"' % abspath(sys.executable)
+                hinstance, error_code = run_as_admin((python_exe, '-m',  'conda.core.initialize',
+                                                      '"%s"' % temp_path))
+                if error_code is not None:
+                    print("ERROR during elevated execution.\n  rc: %s" % error_code,
+                          file=sys.stderr)
 
                 with open(temp_path) as fh:
-                    _plan = json.loads(ensure_unicode(fh.read()))
+                    _plan = json.loads(ensure_text_type(fh.read()))
+
             finally:
                 if temp_path and lexists(temp_path):
                     rm_rf(temp_path)
@@ -495,7 +547,7 @@ def run_plan_elevated(plan):
         else:
             stdin = json.dumps(plan)
             result = subprocess_call(
-                'sudo %s -m conda.initialize' % sys.executable,
+                'sudo %s -m conda.core.initialize' % sys.executable,
                 env={},
                 path=os.getcwd(),
                 stdin=stdin
@@ -518,7 +570,7 @@ def run_plan_from_stdin():
 
 def run_plan_from_temp_file(temp_path):
     with open(temp_path) as fh:
-        plan = json.loads(ensure_unicode(fh.read()))
+        plan = json.loads(ensure_text_type(fh.read()))
     run_plan(plan)
     with open(temp_path, 'w+b') as fh:
         fh.write(ensure_binary(json.dumps(plan, ensure_ascii=False)))
@@ -537,6 +589,10 @@ def print_plan_results(plan, stream=None):
     else:
         print("No action taken.", file=stream)
 
+
+# #####################################################
+# individual operations
+# #####################################################
 
 def make_entry_point(target_path, conda_prefix, module, func):
     # target_path: join(conda_prefix, 'bin', 'conda')
@@ -816,7 +872,7 @@ def init_fish_user(target_path, conda_prefix):
 
     replace_str = "__CONDA_REPLACE_ME_123__"
     rc_content = re.sub(
-        r"^# >>> conda initialize >>>$([\s\S]*?)# <<< conda initialize <<<\n$",
+        CONDA_INITIALIZE_RE_BLOCK,
         replace_str,
         rc_content,
         flags=re.MULTILINE,
@@ -930,7 +986,7 @@ def init_sh_user(target_path, conda_prefix, shell):
 
     replace_str = "__CONDA_REPLACE_ME_123__"
     rc_content = re.sub(
-        r"^# >>> conda initialize >>>$([\s\S]*?)# <<< conda initialize <<<\n$",
+        CONDA_INITIALIZE_RE_BLOCK,
         replace_str,
         rc_content,
         flags=re.MULTILINE,
@@ -987,17 +1043,23 @@ def _read_windows_registry(target_path):  # pragma: no cover
     main_key, the_rest = target_path.split('\\', 1)
     subkey_str, value_name = the_rest.rsplit('\\', 1)
     main_key = getattr(winreg, main_key)
+
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_READ)
     except EnvironmentError as e:
         if e.errno != ENOENT:
             raise
         return None, None
+
     try:
         value_tuple = winreg.QueryValueEx(key, value_name)
         value_value = value_tuple[0].strip()
         value_type = value_tuple[1]
         return value_value, value_type
+    except Exception:
+        # [WinError 2] The system cannot find the file specified
+        winreg.CloseKey(key)
+        return None, None
     finally:
         winreg.CloseKey(key)
 
@@ -1053,6 +1115,29 @@ def init_cmd_exe_registry(target_path, conda_prefix):
         return Result.MODIFIED
     else:
         return Result.NO_CHANGE
+
+
+def init_long_path(target_path):
+    win_ver, _, win_rev = context.os_distribution_name_version[1].split('.')
+    # win10, build 14352 was the first preview release that supported this
+    if int(win_ver) >= 10 and int(win_rev) >= 14352:
+        prev_value, value_type = _read_windows_registry(target_path)
+        if prev_value != "1":
+            if context.verbosity:
+                print('\n')
+                print(target_path)
+                print(make_diff(prev_value, "1"))
+            if not context.dry_run:
+                _write_windows_registry(target_path, "1", winreg.REG_DWORD)
+            return Result.MODIFIED
+        else:
+            return Result.NO_CHANGE
+    else:
+        if context.verbosity:
+            print('\n')
+            print('Not setting long path registry key; Windows version must be at least 10 with '
+                  'the fall 2016 "Anniversary update" or newer.')
+            return Result.NO_CHANGE
 
 
 def remove_conda_in_sp_dir(target_path):
@@ -1170,8 +1255,28 @@ def make_dev_egg_info_file(target_path):
     return Result.MODIFIED
 
 
+# #####################################################
+# helper functions
+# #####################################################
+
 def make_diff(old, new):
     return '\n'.join(unified_diff(old.splitlines(), new.splitlines()))
+
+
+def _get_python_info(prefix):
+    python_exe = join(prefix, get_python_short_path())
+    result = subprocess_call("%s --version" % python_exe)
+    stdout, stderr = result.stdout.strip(), result.stderr.strip()
+    if stderr:
+        python_version = stderr.split()[1]
+    elif stdout:  # pragma: no cover
+        python_version = stdout.split()[1]
+    else:  # pragma: no cover
+        raise ValueError("No python version information available.")
+
+    site_packages_dir = join(prefix,
+                             win_path_ok(get_python_site_packages_short_path(python_version)))
+    return python_exe, python_version, site_packages_dir
 
 
 if __name__ == "__main__":

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from datetime import timedelta
@@ -7,6 +9,7 @@ import json
 from logging import getLogger
 import os
 import sys
+from textwrap import dedent
 from traceback import format_exception, format_exception_only
 
 from . import CondaError, CondaExitZero, CondaMultiError, text_type
@@ -17,7 +20,6 @@ from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
-from .common.url import maybe_unquote
 
 try:
     from cytoolz.itertoolz import groupby
@@ -45,11 +47,16 @@ class LockError(CondaError):
 
 
 class ArgumentError(CondaError):
+    return_code = 2
+
     def __init__(self, message, **kwargs):
         super(ArgumentError, self).__init__(message, **kwargs)
 
 
 class CommandArgumentError(ArgumentError):
+    # TODO: Consolidate with ArgumentError.
+    return_code = 2
+
     def __init__(self, message, **kwargs):
         command = ' '.join(ensure_text_type(s) for s in sys.argv)
         super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
@@ -226,6 +233,7 @@ class CommandNotFoundError(CondaError):
         activate_commands = {
             'activate',
             'deactivate',
+            'run',
         }
         conda_commands = {
             'clean',
@@ -317,6 +325,29 @@ class EnvironmentNameNotFound(CondaError):
         super(EnvironmentNameNotFound, self).__init__(message, environment_name=environment_name)
 
 
+class NoBaseEnvironmentError(CondaError):
+
+    def __init__(self):
+        message = dals("""
+        This conda installation has no default base environment. Use
+        'conda create' to create new environments and 'conda activate' to
+        activate environments.
+        """)
+        super(NoBaseEnvironmentError, self).__init__(message)
+
+
+class DirectoryNotACondaEnvironmentError(CondaError):
+
+    def __init__(self, target_directory):
+        message = dals("""
+        The target directory exists, but it is not a conda environment.
+        Use 'conda create' to convert the directory to a conda environment.
+          target directory: %(target_directory)s
+        """)
+        super(DirectoryNotACondaEnvironmentError, self).__init__(message,
+                                                                 target_directory=target_directory)
+
+
 class CondaEnvironmentError(CondaError, EnvironmentError):
     def __init__(self, message, *args):
         msg = '%s' % message
@@ -348,9 +379,9 @@ class LinkError(CondaError):
 
 
 class CondaOSError(CondaError, OSError):
-    def __init__(self, message):
+    def __init__(self, message, **kwargs):
         msg = '%s' % message
-        super(CondaOSError, self).__init__(msg)
+        super(CondaOSError, self).__init__(msg, **kwargs)
 
 
 class ProxyError(CondaError):
@@ -381,15 +412,55 @@ class CondaKeyError(CondaError, KeyError):
 
 
 class ChannelError(CondaError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(ChannelError, self).__init__(msg)
+    pass
 
 
 class ChannelNotAllowed(ChannelError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(ChannelNotAllowed, self).__init__(msg, *args)
+    def __init__(self, channel):
+        from .models.channel import Channel
+        from .common.url import maybe_unquote
+        channel = Channel(channel)
+        channel_name = channel.name
+        channel_url = maybe_unquote(channel.base_url)
+        message = dals("""
+        Channel not included in whitelist:
+          channel name: %(channel_name)s
+          channel url: %(channel_url)s
+        """)
+        super(ChannelNotAllowed, self).__init__(message, channel_url=channel_url,
+                                                channel_name=channel_name)
+
+
+class UnavailableInvalidChannel(ChannelError):
+
+    def __init__(self, channel, error_code):
+        from .models.channel import Channel
+        from .common.url import join_url, maybe_unquote
+        channel = Channel(channel)
+        channel_name = channel.name
+        channel_url = maybe_unquote(channel.base_url)
+        message = dals("""
+        The channel is not accessible or is invalid.
+          channel name: %(channel_name)s
+          channel url: %(channel_url)s
+          error code: %(error_code)d
+
+        You will need to adjust your conda configuration to proceed.
+        Use `conda config --show channels` to view your configuration's current state,
+        and use `conda config --show-sources` to view config file locations.
+        """)
+
+        if channel.scheme == 'file':
+            message += dedent("""
+            As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
+            associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+            empty. Use `conda index %s`, or create `noarch/repodata.json`
+            and associated `noarch/repodata.json.bz2`.
+            """) % join_url(channel.location, channel.name)
+
+        super(UnavailableInvalidChannel, self).__init__(message, channel_url=channel_url,
+                                                        channel_name=channel_name,
+                                                        error_code=error_code)
 
 
 class OperationNotAllowed(CondaError):
@@ -425,6 +496,7 @@ class MD5MismatchError(CondaError):
           expected md5 sum: %(expected_md5sum)s
           actual md5 sum: %(actual_md5sum)s
         """)
+        from .common.url import maybe_unquote
         url = maybe_unquote(url)
         super(MD5MismatchError, self).__init__(message, url=url, target_full_path=target_full_path,
                                                expected_md5sum=expected_md5sum,
@@ -446,6 +518,7 @@ class PackageNotInstalledError(CondaError):
 class CondaHTTPError(CondaError):
     def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):
+        from .common.url import maybe_unquote
         _message = dals("""
         HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s
@@ -596,8 +669,8 @@ class RemoveError(CondaError):
 
 class DisallowedPackageError(CondaError):
     def __init__(self, package_ref, **kwargs):
-        from .models.records import PackageRef
-        package_ref = PackageRef.from_objects(package_ref)
+        from .models.records import PackageRecord
+        package_ref = PackageRecord.from_objects(package_ref)
         message = ("The package '%(dist_str)s' is disallowed by configuration.\n"
                    "See 'conda config --show disallowed_packages'.")
         super(DisallowedPackageError, self).__init__(message, package_ref=package_ref,
@@ -611,9 +684,9 @@ class CondaIndexError(CondaError, IndexError):
 
 
 class CondaValueError(CondaError, ValueError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(CondaValueError, self).__init__(msg)
+
+    def __init__(self, message, *args, **kwargs):
+        super(CondaValueError, self).__init__(message, *args, **kwargs)
 
 
 class CondaTypeError(CondaError, TypeError):
@@ -625,8 +698,8 @@ class CondaTypeError(CondaError, TypeError):
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles, **kwargs):
         from .resolve import dashlist
-        from .models.records import PackageRef
-        packages_with_cycles = tuple(PackageRef.from_objects(p) for p in packages_with_cycles)
+        from .models.records import PackageRecord
+        packages_with_cycles = tuple(PackageRecord.from_objects(p) for p in packages_with_cycles)
         message = "Cyclic dependencies exist among these items: %s" % dashlist(
             p.dist_str() for p in packages_with_cycles
         )
@@ -721,7 +794,6 @@ class NotWritableError(CondaError, OSError):
 
             In general, it's not advisable to use 'sudo conda'.
             """)
-            import os
             kwargs.update({
                 'uid': os.geteuid(),
                 'gid': os.getegid(),
@@ -840,14 +912,9 @@ def print_conda_exception(exc_val, exc_tb=None):
     if context.debug or context.verbosity > 0:
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
-        if rc == 0:
-            # suppress DryRunExit and CondaSystemExit messages
-            pass
-        else:
-            import json
-            stdoutlog = getLogger('conda.stdout')
-            exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
-            stdoutlog.error("%s\n" % exc_json)
+        logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
+        exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
+        logger.info("%s\n" % exc_json)
     else:
         stderrlog = getLogger('conda.stderr')
         if rc == 0:
@@ -873,7 +940,7 @@ class ExceptionHandler(object):
     def __call__(self, func, *args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except:
+        except:  # lgtm [py/catch-base-exception]
             _, exc_val, exc_tb = sys.exc_info()
             return self.handle_exception(exc_val, exc_tb)
 
@@ -898,10 +965,11 @@ class ExceptionHandler(object):
         return context.error_upload_url
 
     def handle_exception(self, exc_val, exc_tb):
-        if isinstance(exc_val, CondaHTTPError):
-            return self.handle_reportable_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, CondaError):
-            return self.handle_application_exception(exc_val, exc_tb)
+            if exc_val.reportable:
+                return self.handle_reportable_application_exception(exc_val, exc_tb)
+            else:
+                return self.handle_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, UnicodeError) and PY2:
             return self.handle_application_exception(EncodingError(exc_val), exc_tb)
         if isinstance(exc_val, EnvironmentError):
@@ -918,8 +986,7 @@ class ExceptionHandler(object):
 
     def handle_application_exception(self, exc_val, exc_tb):
         self._print_conda_exception(exc_val, exc_tb)
-        rc = getattr(exc_val, 'return_code', None)
-        return rc if rc is not None else 1
+        return exc_val.return_code
 
     def _print_conda_exception(self, exc_val, exc_tb):
         print_conda_exception(exc_val, exc_tb)
@@ -946,8 +1013,7 @@ class ExceptionHandler(object):
         if do_upload:
             self._execute_upload(error_report)
         self.print_upload_confirm(do_upload, ask_for_upload, ask_response)
-        rc = getattr(exc_val, 'return_code', None)
-        return rc if rc is not None else 1
+        return exc_val.return_code
 
     def get_error_report(self, exc_val, exc_tb):
         command = ' '.join(ensure_text_type(s) for s in sys.argv)

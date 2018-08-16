@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from os.path import basename, dirname
@@ -52,7 +55,7 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
     if context.always_yes:
         return True
     try:
-        choice = confirm(message=message, choices=('yes', 'no'))
+        choice = confirm(message=message, choices=('yes', 'no'), default=default)
     except KeyboardInterrupt as e:  # pragma: no cover
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.")
@@ -90,16 +93,14 @@ def specs_from_args(args, json=False):
     return [arg2spec(arg, json=json) for arg in args]
 
 
-spec_pat = re.compile(r'''
-(?P<name>[^=<>!\s]+)               # package name
-\s*                                # ignore spaces
-(
-  (?P<cc>=[^=]+(=[^=]+)?)          # conda constraint
-  |
-  (?P<pc>(?:[=!]=|[><]=?).+)       # new (pip-style) constraint(s)
-)?
-$                                  # end-of-line
-''', re.VERBOSE)
+spec_pat = re.compile(r'(?P<name>[^=<>!\s]+)'  # package name  # lgtm [py/regex/unmatchable-dollar]
+                      r'\s*'  # ignore spaces
+                      r'('
+                      r'(?P<cc>=[^=]+(=[^=]+)?)'  # conda constraint
+                      r'|'
+                      r'(?P<pc>(?:[=!]=|[><]=?).+)'  # new (pip-style) constraint(s)
+                      r')?$',
+                      re.VERBOSE)  # lgtm [py/regex/unmatchable-dollar]
 
 
 def strip_comment(line):
@@ -165,6 +166,13 @@ def stdout_json(d):
 
 def stdout_json_success(success=True, **kwargs):
     result = {'success': success}
+    actions = kwargs.pop('actions', None)
+    if actions:
+        if 'LINK' in actions:
+            actions['LINK'] = [prec.dist_fields_dump() for prec in actions['LINK']]
+        if 'UNLINK' in actions:
+            actions['UNLINK'] = [prec.dist_fields_dump() for prec in actions['UNLINK']]
+        result['actions'] = actions
     result.update(kwargs)
     stdout_json(result)
 
@@ -195,7 +203,7 @@ def print_envs_list(known_conda_prefixes, output=True):
 
 
 def check_non_admin():
-    from ..common.platform import is_admin
+    from ..common.os import is_admin
     if not context.non_admin_enabled and not is_admin():
         from ..exceptions import OperationNotAllowed
         raise OperationNotAllowed(dals("""

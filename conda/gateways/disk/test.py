@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
@@ -40,11 +42,6 @@ def file_path_is_writable(path):
 
 @memoize
 def hardlink_supported(source_file, dest_dir):
-    # Some file systems (e.g. BeeGFS) do not support hard-links
-    # between files in different directories. Depending on the
-    # file system configuration, a symbolic link may be created
-    # instead. If a symbolic link is created instead of a hard link,
-    # return False.
     test_file = join(dest_dir, '.tmp.%s.%s' % (basename(source_file), text_type(uuid4())[:8]))
     assert isfile(source_file), source_file
     assert isdir(dest_dir), dest_dir
@@ -52,6 +49,8 @@ def hardlink_supported(source_file, dest_dir):
         rm_rf(test_file)
     assert not lexists(test_file), test_file
     try:
+        # BeeGFS is a file system that does not support hard links between files in different
+        # directories. Sometimes a soft link will be created with the hard link system call.
         create_link(source_file, test_file, LinkType.hardlink, force=True)
         is_supported = not islink(test_file)
         if is_supported:

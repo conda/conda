@@ -1,15 +1,12 @@
-# (c) 2012-2016 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
 from logging import getLogger
-import os
 from os import listdir, lstat, walk
-from os.path import getsize, isdir, join
+from os.path import getsize, isdir, join, exists
 import sys
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -27,7 +24,7 @@ def find_tarballs():
         pkgs_dir = package_cache.pkgs_dir
         if not isdir(pkgs_dir):
             continue
-        root, _, filenames = next(os.walk(pkgs_dir))
+        root, _, filenames = next(walk(pkgs_dir))
         for fn in filenames:
             if fn.endswith(CONDA_TARBALL_EXTENSION) or fn.endswith(part_ext):
                 pkgs_dirs[pkgs_dir].append(fn)
@@ -74,7 +71,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
             try:
-                if rm_rf(os.path.join(pkgs_dir, fn)):
+                if rm_rf(join(pkgs_dir, fn)):
                     if verbose:
                         print("Removed %s" % fn)
                 else:
@@ -96,7 +93,7 @@ def find_pkgs():
     cross_platform_st_nlink = CrossPlatformStLink()
     pkgs_dirs = defaultdict(list)
     for pkgs_dir in context.pkgs_dirs:
-        if not os.path.exists(pkgs_dir):
+        if not exists(pkgs_dir):
             if not context.json:
                 print("WARNING: {0} does not exist".format(pkgs_dir))
             continue

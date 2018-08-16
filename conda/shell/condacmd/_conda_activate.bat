@@ -1,3 +1,5 @@
+@REM Copyright (C) 2012 Anaconda, Inc
+@REM SPDX-License-Identifier: BSD-3-Clause
 @REM Helper routine for activation, deactivation, and reactivation.
 
 @IF "%CONDA_PS1_BACKUP%"=="" GOTO FIXUP43

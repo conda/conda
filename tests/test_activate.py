@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from datetime import datetime
 from logging import getLogger
 import os
 from os.path import dirname, isdir, join
@@ -1130,9 +1131,9 @@ class InteractiveShell(object):
         },
         'cmd.exe': {
             'activator': 'cmd.exe',
-            'init_command': 'set CONDA_SHLVL= '
-                            '&& conda\\shell\\condacmd\\conda_hook.bat '
-                            '&& set CONDA_EXE="python -m conda"',
+            'init_command': 'set "CONDA_SHLVL=" '
+                            '&& @CALL conda\\shell\\condacmd\\conda_hook.bat '
+                            '&& set "CONDA_EXE=python -m conda"',
             'print_env_var': '@echo %%%s%%',
         },
         'csh': {
@@ -1163,8 +1164,7 @@ class InteractiveShell(object):
         from pexpect.popen_spawn import PopenSpawn
 
         # remove all CONDA_ env vars
-        env = os.environ.copy()
-        env = {str(k): str(v) for k, v in iteritems(env)}
+        env = {str(k): str(v) for k, v in iteritems(os.environ)}
         remove_these = {var_name for var_name in env if var_name.startswith('CONDA_')}
         for var_name in remove_these:
             del env[var_name]
@@ -1178,6 +1178,7 @@ class InteractiveShell(object):
         PATH = joiner(self.activator.path_conversion(concatv(
             (dirname(sys.executable),),
             self.activator._get_starting_path_list(),
+            (dirname(which(self.shell_name)),),
         )))
         self.original_path = PATH
         env = {
@@ -1185,7 +1186,7 @@ class InteractiveShell(object):
             'PYTHONPATH': CONDA_PACKAGE_ROOT,
             'PATH': PATH,
         }
-        for name, val in env.items():
+        for name, val in iteritems(env):
             p.sendline(self.activator.export_var_tmpl % (name, val))
 
         if self.init_command:
@@ -1201,8 +1202,8 @@ class InteractiveShell(object):
     def sendline(self, s):
         return self.p.sendline(s)
 
-    def expect(self, pattern, timeout=-1, searchwindowsize=-1, async=False):
-        return self.p.expect(pattern, timeout, searchwindowsize, async)
+    def expect(self, pattern, timeout=-1, searchwindowsize=-1, async_=False):
+        return self.p.expect(pattern, timeout, searchwindowsize, async_)
 
     def assert_env_var(self, env_var, value, use_exact=False):
         # value is actually a regex
@@ -1272,19 +1273,21 @@ class ShellWrapperIntegrationTests(TestCase):
     def basic_posix(self, shell):
         num_paths_added = len(tuple(PosixActivator()._get_path_dirs(self.prefix)))
         shell.assert_env_var('CONDA_SHLVL', '0')
-        PATH0 = shell.get_env_var('PATH')
+        PATH0 = shell.get_env_var('PATH').strip(':')
 
         shell.sendline('conda activate base')
         # shell.sendline('env | sort')
         shell.assert_env_var('PS1', '(base).*')
         shell.assert_env_var('CONDA_SHLVL', '1')
-        PATH1 = shell.get_env_var('PATH')
+        PATH1 = shell.get_env_var('PATH').strip(':')
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         shell.sendline('conda activate "%s"' % self.prefix)
         # shell.sendline('env | sort')
         shell.assert_env_var('CONDA_SHLVL', '2')
         shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
-        PATH2 = shell.get_env_var('PATH')
+        PATH2 = shell.get_env_var('PATH').strip(':')
+        assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
 
         shell.sendline('env | sort | grep CONDA')
         shell.expect('CONDA_')
@@ -1297,16 +1300,20 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.expect('PATH=')
         shell.assert_env_var('PS1', '(charizard).*')
         shell.assert_env_var('CONDA_SHLVL', '3')
-        PATH3 = shell.get_env_var('PATH')
-
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
+        PATH3 = shell.get_env_var('PATH').strip(':')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
 
-        shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
+        shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
         shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
         shell.assert_env_var('?', '0', True)
         # TODO: assert that reactivate worked correctly
+
+        shell.sendline('sqlite3 -version')
+        shell.expect('3\.21\..*\n')
+
+        # conda run integration test
+        shell.sendline('conda run sqlite3 -version')
+        shell.expect('3\.21\..*\n')
 
         # regression test for #6840
         shell.sendline('conda install --blah')
@@ -1316,17 +1323,17 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '2')
-        PATH = shell.get_env_var('PATH')
+        PATH = shell.get_env_var('PATH').strip(':')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '1')
-        PATH = shell.get_env_var('PATH')
+        PATH = shell.get_env_var('PATH').strip(':')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '0')
-        PATH = shell.get_env_var('PATH')
+        PATH = shell.get_env_var('PATH').strip(':')
         assert len(PATH0.split(':')) == len(PATH.split(':'))
 
         shell.sendline(shell.print_env_var % 'PS1')
@@ -1335,16 +1342,16 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '0')
-        PATH0 = shell.get_env_var('PATH')
+        PATH0 = shell.get_env_var('PATH').strip(':')
 
         shell.sendline('conda activate "%s"' % self.prefix2)
         shell.assert_env_var('CONDA_SHLVL', '1')
-        PATH1 = shell.get_env_var('PATH')
+        PATH1 = shell.get_env_var('PATH').strip(':')
         assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
 
         shell.sendline('conda activate "%s" --stack' % self.prefix3)
         shell.assert_env_var('CONDA_SHLVL', '2')
-        PATH2 = shell.get_env_var('PATH')
+        PATH2 = shell.get_env_var('PATH').strip(':')
         assert 'charizard' in PATH2
         assert 'venusaur' in PATH2
         assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH2.split(':'))
@@ -1358,7 +1365,7 @@ class ShellWrapperIntegrationTests(TestCase):
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '2')
-        PATH4 = shell.get_env_var('PATH')
+        PATH4 = shell.get_env_var('PATH').strip(':')
         assert 'charizard' in PATH4
         assert 'venusaur' in PATH4
         assert PATH4 == PATH2
@@ -1446,10 +1453,17 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.assert_env_var('CONDA_SHLVL', '2\r')
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
 
-            shell.sendline('conda install -yq sqlite openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
-            shell.expect('Executing transaction: ...working... done.*\n', timeout=25)
+            shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
+            shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
             shell.assert_env_var('errorlevel', '0', True)
             # TODO: assert that reactivate worked correctly
+
+            shell.sendline('sqlite3 -version')
+            shell.expect('3\.21\..*\n')
+
+            # conda run integration test
+            shell.sendline('conda run sqlite3 -version')
+            shell.expect('3\.21\..*\n')
 
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '1\r')

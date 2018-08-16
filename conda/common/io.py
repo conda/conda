@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
@@ -10,7 +12,7 @@ from errno import EPIPE, ESHUTDOWN
 from functools import wraps
 from itertools import cycle
 import json
-import logging
+import logging  # lgtm [py/import-and-import-from]
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os.path import dirname, isdir, isfile, join

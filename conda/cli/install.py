@@ -1,33 +1,32 @@
-# (c) Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 import os
-from os.path import abspath, basename, exists, isdir
+from os.path import abspath, basename, exists, isdir, isfile, join
 
 from . import common
 from .common import check_non_admin
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
-from ..base.constants import ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
+from ..common.path import paths_equal
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
-from ..core.solve import Solver
+from ..core.solve import DepsModifier, Solver
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
-                          CondaValueError, DirectoryNotFoundError, DryRunExit,
-                          EnvironmentLocationNotFound,
-                          PackageNotInstalledError, PackagesNotFoundError, TooManyArgumentsError,
-                          UnsatisfiableError)
+                          CondaValueError, DirectoryNotACondaEnvironmentError,
+                          DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
+                          NoBaseEnvironmentError, PackageNotInstalledError, PackagesNotFoundError,
+                          TooManyArgumentsError, UnsatisfiableError)
+from ..gateways.disk.create import mkdir_p
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
-from ..plan import (revert_actions)
+from ..plan import revert_actions
 from ..resolve import ResolvePackageNotFound
 
 log = getLogger(__name__)
@@ -142,12 +141,32 @@ def install(args, parser, command='install'):
         check_prefix(prefix, json=context.json)
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
-    if isupdate and not (args.file or args.update_all or args.packages):
+    if isupdate and not (args.file or args.packages
+                         or context.update_modifier == UpdateModifier.UPDATE_ALL):
         raise CondaValueError("""no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
 # $ conda update --prefix %s anaconda
 """ % prefix)
+
+    if not newenv:
+        if isdir(prefix):
+            if not isfile(join(prefix, 'conda-meta', 'history')):
+                if paths_equal(prefix, context.conda_prefix):
+                    raise NoBaseEnvironmentError()
+                else:
+                    raise DirectoryNotACondaEnvironmentError(prefix)
+            else:
+                # fall-through expected under normal operation
+                pass
+        else:
+            if args.mkdir:
+                try:
+                    mkdir_p(prefix)
+                except EnvironmentError as e:
+                    raise CondaOSError("Could not create directory: %s" % prefix, caused_by=e)
+            else:
+                raise EnvironmentLocationNotFound(prefix)
 
     args_packages = [s.strip('"\'') for s in args.packages]
     if newenv and not args.no_default_packages:
@@ -193,7 +212,7 @@ def install(args, parser, command='install'):
 
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
-    if isupdate and not args.update_all:
+    if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
         prefix_data = PrefixData(prefix)
         for spec in specs:
             spec = MatchSpec(spec)
@@ -213,15 +232,6 @@ def install(args, parser, command='install'):
         print_activate(args.name if args.name else prefix)
         return
 
-    if not isdir(prefix) and not newenv:
-        if args.mkdir:
-            try:
-                os.makedirs(prefix)
-            except OSError:
-                raise CondaOSError("Error: could not create directory: %s" % prefix)
-        else:
-            raise EnvironmentLocationNotFound(prefix)
-
     try:
         if isinstall and args.revision:
             index = get_index(channel_urls=index_args['channel_urls'],
@@ -230,8 +240,13 @@ def install(args, parser, command='install'):
                               unknown=index_args['unknown'], prefix=prefix)
             unlink_link_transaction = revert_actions(prefix, get_revision(args.revision), index)
         else:
+            if isupdate:
+                deps_modifier = context.deps_modifier or DepsModifier.UPDATE_SPECS
+            else:
+                deps_modifier = context.deps_modifier
             solver = Solver(prefix, context.channels, context.subdirs, specs_to_add=specs)
             unlink_link_transaction = solver.solve_for_transaction(
+                deps_modifier=deps_modifier,
                 force_reinstall=context.force_reinstall or context.force,
             )
 

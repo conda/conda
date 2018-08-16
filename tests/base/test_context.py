@@ -253,8 +253,7 @@ class ContextCustomRcTests(TestCase):
         assert context.aggressive_update_packages == tuple()
         specs = ['certifi', 'openssl>=1.1']
         with env_var('CONDA_AGGRESSIVE_UPDATE_PACKAGES', ','.join(specs), reset_context):
-            assert context.aggressive_update_packages == tuple(
-                MatchSpec(s, optional=True) for s in specs)
+            assert context.aggressive_update_packages == tuple(MatchSpec(s) for s in specs)
 
 
 class ContextDefaultRcTests(TestCase):

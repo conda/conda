@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import reduce
 from logging import getLogger
 import os
-from os.path import abspath, basename, expanduser, expandvars, join, normpath, split, splitext
+from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
 import subprocess
 
@@ -57,7 +59,10 @@ def paths_equal(path1, path2):
         True
 
     """
-    return normpath(abspath(path1)) == normpath(abspath(path2))
+    if on_win:
+        return normcase(abspath(path1)) == normcase(abspath(path2))
+    else:
+        return abspath(path1) == abspath(path2)
 
 
 @memoize
@@ -89,8 +94,7 @@ def tokenized_startswith(test_iterable, startswith_iterable):
 
 
 def get_all_directories(files):
-    directories = sorted(set(tuple(f.split('/')[:-1]) for f in files))
-    return directories or ()
+    return sorted(set(tuple(f.split('/')[:-1]) for f in files) - {()})
 
 
 def get_leaf_directories(files):
@@ -121,7 +125,8 @@ def explode_directories(child_directories, already_split=False):
     # get all directories including parents
     # use already_split=True for the result of get_all_directories()
     maybe_split = lambda x: x if already_split else x.split('/')
-    return set(concat(accumulate(join, maybe_split(directory)) for directory in child_directories))
+    return set(concat(accumulate(join, maybe_split(directory))
+                      for directory in child_directories if directory))
 
 
 def pyc_path(py_path, python_major_minor_version):

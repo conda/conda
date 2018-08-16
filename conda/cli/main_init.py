@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
@@ -46,6 +48,5 @@ def execute(args, parser):
             for_user = False
 
         anaconda_prompt = on_win and args.anaconda_prompt
-        anaconda_prompt = on_win  # TODO: probably remove and leave --anaconda-prompt as a flag
         return initialize(context.conda_prefix, selected_shells, for_user, args.system,
                           anaconda_prompt)

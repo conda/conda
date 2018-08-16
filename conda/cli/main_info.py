@@ -1,20 +1,15 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import OrderedDict
 import json
 from logging import getLogger
 import os
-from os import listdir
 from os.path import exists, expanduser, isfile, join
 import re
 import sys
-from textwrap import dedent
 
 from .common import print_envs_list, stdout_json
 from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
@@ -36,7 +31,7 @@ def get_user_site():  # pragma: no cover
         if not on_win:
             if exists(expanduser('~/.local/lib')):
                 python_re = re.compile('python\d\.\d')
-                for path in listdir(expanduser('~/.local/lib/')):
+                for path in os.listdir(expanduser('~/.local/lib/')):
                     if python_re.match(path):
                         site_dirs.append("~/.local/lib/%s" % path)
         else:
@@ -45,7 +40,7 @@ def get_user_site():  # pragma: no cover
             APPDATA = os.environ[str('APPDATA')]
             if exists(join(APPDATA, 'Python')):
                 site_dirs = [join(APPDATA, 'Python', i) for i in
-                             listdir(join(APPDATA, 'PYTHON'))]
+                             os.listdir(join(APPDATA, 'PYTHON'))]
     except (IOError, OSError) as e:
         log.debug('Error accessing user site directory.\n%r', e)
     return site_dirs
@@ -101,6 +96,10 @@ def print_package_info(packages):
             for prec in result:
                 pretty_package(prec)
 
+    print("WARNING: 'conda info package_name' is deprecated.\n"
+          "          Use 'conda search package_name --info'.",
+          file=sys.stderr)
+
 
 def get_info_dict(system=False):
     try:
@@ -120,7 +119,7 @@ def get_info_dict(system=False):
 
     try:
         from conda_env import __version__ as conda_env_version
-    except:  # pragma: no cover
+    except Exception:  # pragma: no cover
         conda_env_version = "not installed"
 
     try:
@@ -179,7 +178,7 @@ def get_info_dict(system=False):
         netrc_file=netrc_file,
     )
     if on_win:
-        from ..common.platform import is_admin_on_windows
+        from ..common.os.windows import is_admin_on_windows
         info_dict['is_windows_admin'] = is_admin_on_windows()
     else:
         info_dict['UID'] = os.geteuid()
@@ -299,7 +298,7 @@ def execute(args, parser):
             print(json.dumps({"channels": context.channels}))
         return 0
 
-    options = 'envs', 'system', 'license'
+    options = 'envs', 'system'
 
     if args.all or context.json:
         for option in options:
@@ -336,18 +335,6 @@ def execute(args, parser):
             for name, value in sorted(iteritems(info_dict['env_vars'])):
                 print("%s: %s" % (name, value))
             print()
-
-    if args.license and not context.json:
-        try:
-            from _license import show_info
-            show_info()  # pragma: no cover
-        except ImportError:
-            print(dedent("""
-                WARNING: could not import _license.show_info
-                # try:
-                # $ conda install -n root _license"""))
-        except Exception as e:  # pragma: no cover
-            log.warn('%r', e)
 
     if context.json:
         stdout_json(info_dict)

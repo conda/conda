@@ -1,30 +1,31 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import ENOENT
 from logging import getLogger
 import os
-from os.path import (abspath, basename, expanduser, isdir, isfile, join, normpath,
-                     split as path_split)
+from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
 from platform import machine
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
                         DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS,
-                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
-                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks)
+                        DepsModifier, ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE,
+                        PathConflict, ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
-from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
+from .._vendor.frozendict import frozendict
 from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
-from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
-                                    SequenceParameter, ValidationError)
+from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
+                                    PrimitiveParameter, SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
 from ..common.path import expand
-from ..common.platform import linux_get_libc_version
+from ..common.os.linux import linux_get_libc_version
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
 try:
@@ -122,6 +123,8 @@ class Context(Configuration):
     force_32bit = PrimitiveParameter(False)
     non_admin_enabled = PrimitiveParameter(True)
 
+    pip_interop_enabled = PrimitiveParameter(False)
+
     # Safety & Security
     _aggressive_update_packages = SequenceParameter(string_types,
                                                     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
@@ -134,7 +137,6 @@ class Context(Configuration):
                                             string_delimiter='&')
     rollback_enabled = PrimitiveParameter(True)
     track_features = SequenceParameter(string_types)
-    use_pip = PrimitiveParameter(True)
     use_index_cache = PrimitiveParameter(False)
 
     _root_prefix = PrimitiveParameter("", aliases=('root_dir', 'root_prefix'))
@@ -205,24 +207,30 @@ class Context(Configuration):
     # ######################################################
     # ##               Solver Configuration               ##
     # ######################################################
-    no_deps = PrimitiveParameter(False)  # CLI-only
-    only_deps = PrimitiveParameter(False)   # CLI-only
-    update_deps = PrimitiveParameter(False, aliases=('update_dependencies',))
-    update_all = PrimitiveParameter(False)
-    freeze_installed = PrimitiveParameter(False)
+    deps_modifier = PrimitiveParameter(DepsModifier.NOT_SET)
+    update_modifier = PrimitiveParameter(UpdateModifier.UPDATE_SPECS)
+
+    # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
+    # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
+    #
+    # freeze_installed = PrimitiveParameter(False)
+    # update_deps = PrimitiveParameter(False, aliases=('update_dependencies',))
+    # update_specs = PrimitiveParameter(False)
+    # update_all = PrimitiveParameter(False)
 
     prune = PrimitiveParameter(False)
     force_remove = PrimitiveParameter(False)
     force_reinstall = PrimitiveParameter(False)
 
     target_prefix_override = PrimitiveParameter('')
+    featureless_minimization_disabled_feature_flag = PrimitiveParameter(False)
 
     # conda_build
     bld_path = PrimitiveParameter('')
     anaconda_upload = PrimitiveParameter(None, aliases=('binstar_upload',),
                                          element_type=(bool, NoneType))
     _croot = PrimitiveParameter('', aliases=('croot',))
-    conda_build = MapParameter(string_types, aliases=('conda-build',))
+    _conda_build = MapParameter(string_types, aliases=('conda-build',))
 
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:
@@ -318,6 +326,15 @@ class Context(Configuration):
         path = join(self.croot, 'svn_cache')
         conda_bld_ensure_dir(path)
         return path
+
+    @property
+    def conda_build(self):
+        # conda-build needs its config map to be mutable
+        try:
+            return self.__conda_build
+        except AttributeError:
+            self.__conda_build = __conda_build = dict(self._conda_build)
+            return __conda_build
 
     @property
     def arch_name(self):
@@ -455,49 +472,7 @@ class Context(Configuration):
     @property
     def aggressive_update_packages(self):
         from ..models.match_spec import MatchSpec
-        return tuple(MatchSpec(s, optional=True) for s in self._aggressive_update_packages)
-
-    @property
-    def deps_modifier(self):
-        from ..core.solve import DepsModifier
-
-        param_names = (
-            'no_deps',
-            'only_deps',
-            'update_deps',
-            'update_all',
-            'freeze_installed',
-        )
-        params_map = {name: getattr(self, name) for name in param_names}
-        truthy_params = {name for name, value in iteritems(params_map) if value}
-
-        if {'update_deps', 'only_deps'} <= truthy_params:
-            result = DepsModifier.UPDATE_DEPS_ONLY_DEPS
-            truthy_params -= {'update_deps', 'only_deps'}
-        elif 'update_deps' in truthy_params:
-            result = DepsModifier.UPDATE_DEPS
-            truthy_params.remove('update_deps')
-        elif 'only_deps' in truthy_params:
-            result = DepsModifier.ONLY_DEPS
-            truthy_params.remove('only_deps')
-        elif 'no_deps' in truthy_params:
-            result = DepsModifier.NO_DEPS
-            truthy_params.remove('no_deps')
-        elif 'update_all' in truthy_params:
-            result = DepsModifier.UPDATE_ALL
-            truthy_params.remove('update_all')
-        elif 'freeze_installed' in truthy_params:
-            result = DepsModifier.FREEZE_INSTALLED
-            truthy_params.remove('freeze_installed')
-        else:
-            result = None
-
-        if truthy_params:
-            from .. import CondaError
-            params_map = {k: v for k, v in iteritems(params_map) if v}
-            raise CondaError("Invalid Configuration State: %s" % params_map)
-
-        return result
+        return tuple(MatchSpec(s) for s in self._aggressive_update_packages)
 
     @property
     def target_prefix(self):
@@ -510,13 +485,13 @@ class Context(Configuration):
         if self._root_prefix:
             return abspath(expanduser(self._root_prefix))
         elif conda_in_private_env():
-            return normpath(join(self.conda_prefix, '..', '..'))
+            return abspath(join(self.conda_prefix, '..', '..'))
         else:
             return self.conda_prefix
 
     @property
     def conda_prefix(self):
-        return normpath(sys.prefix)
+        return abspath(sys.prefix)
 
     @property
     def conda_exe(self):
@@ -623,12 +598,87 @@ class Context(Configuration):
         return self.anaconda_upload
 
     @property
-    def user_agent(self):
-        return _get_user_agent(self.platform)
-
-    @property
     def verbosity(self):
         return 2 if self.debug else self._verbosity
+
+    @memoizedproperty
+    def user_agent(self):
+        builder = ["conda/%s requests/%s" % (CONDA_VERSION, self.requests_version)]
+        builder.append("%s/%s" % self.python_implementation_name_version)
+        builder.append("%s/%s" % self.platform_system_release)
+        builder.append("%s/%s" % self.os_distribution_name_version)
+        if self.libc_family_version[0]:
+            builder.append("%s/%s" % self.libc_family_version)
+        return " ".join(builder)
+
+    @memoizedproperty
+    def requests_version(self):
+        try:
+            from requests import __version__ as REQUESTS_VERSION
+        except ImportError:  # pragma: no cover
+            try:
+                from pip._vendor.requests import __version__ as REQUESTS_VERSION
+            except ImportError:
+                REQUESTS_VERSION = "unknown"
+        return REQUESTS_VERSION
+
+    @memoizedproperty
+    def python_implementation_name_version(self):
+        # CPython, Jython
+        # '2.7.14'
+        import platform
+        return platform.python_implementation(), platform.python_version()
+
+    @memoizedproperty
+    def platform_system_release(self):
+        # tuple of system name and release version
+        #
+        # `uname -s` Linux, Windows, Darwin, Java
+        #
+        # `uname -r`
+        # '17.4.0' for macOS
+        # '10' or 'NT' for Windows
+        import platform
+        return platform.system(), platform.release()
+
+    @memoizedproperty
+    def os_distribution_name_version(self):
+        # tuple of os distribution name and version
+        # e.g.
+        #   'debian', '9'
+        #   'OSX', '10.13.6'
+        #   'Windows', '10.0.17134'
+        platform_name = self.platform_system_release[0]
+        if platform_name == 'Linux':
+            from .._vendor.distro import id, version
+            try:
+                distinfo = id(), version(best=True)
+            except Exception as e:
+                log.debug('%r', e, exc_info=True)
+                distinfo = ('Linux', 'unknown')
+            distribution_name, distribution_version = distinfo[0], distinfo[1]
+        elif platform_name == 'Darwin':
+            import platform
+            distribution_name = 'OSX'
+            distribution_version = platform.mac_ver()[0]
+        else:
+            import platform
+            distribution_name = platform.system()
+            distribution_version = platform.version()
+        return distribution_name, distribution_version
+
+    @memoizedproperty
+    def libc_family_version(self):
+        # tuple of lic_family and libc_version
+        # None, None if not on Linux
+        libc_family, libc_version = linux_get_libc_version()
+        return libc_family, libc_version
+
+    @memoizedproperty
+    def cpu_flags(self):
+        # DANGER: This is rather slow
+        info = _get_cpu_info()
+        return info['flags']
 
     @property
     def category_map(self):
@@ -701,11 +751,8 @@ class Context(Configuration):
             'verbosity',
         )),
         ('CLI-only', (
-            'no_deps',
-            'only_deps',
-            'freeze_installed',
-            'update_deps',
-            'update_all',
+            'deps_modifier',
+            'update_modifier',
 
             'force',
             'force_remove',
@@ -716,7 +763,6 @@ class Context(Configuration):
             'ignore_pinned',
             'use_index_cache',
             'use_local',
-            'use_pip',
         )),
         ('Hidden and Undocumented', (
             'allow_cycles',  # allow cyclical dependencies, or raise
@@ -725,7 +771,9 @@ class Context(Configuration):
             'default_python',
             'enable_private_envs',
             'error_upload_url',  # should remain undocumented
+            'featureless_minimization_disabled_feature_flag',
             'force_32bit',
+            'pip_interop_enabled',  # temporary feature flag
             'root_prefix',
             'subdir',
             'subdirs',
@@ -1013,11 +1061,6 @@ class Context(Configuration):
             'use_index_cache': dals("""
                 Use cache of channel index files, even if it has expired.
                 """),
-            'use_pip': dals("""
-                Include non-conda-installed python packages with conda list. This does not
-                affect any conda command or functionality other than the output of the
-                command conda list.
-                """),
             'verbosity': dals("""
                 Sets output log level. 0 is warn. 1 is info. 2 is debug. 3 is trace.
                 """),
@@ -1039,6 +1082,7 @@ def conda_in_private_env():
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, argparse_args)
+    context.__dict__.pop('_Context__conda_build', None)
     from ..models.channel import Channel
     Channel._reset_state()
     # need to import here to avoid circular dependency
@@ -1046,46 +1090,10 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
 
 
 @memoize
-def _get_user_agent(context_platform):
-    import platform
-    try:
-        from requests import __version__ as REQUESTS_VERSION
-    except ImportError:  # pragma: no cover
-        try:
-            from pip._vendor.requests import __version__ as REQUESTS_VERSION
-        except ImportError:
-            REQUESTS_VERSION = "unknown"
-
-    _user_agent = ("conda/{conda_ver} "
-                   "requests/{requests_ver} "
-                   "{python}/{py_ver} "
-                   "{system}/{kernel} {dist}/{ver}")
-
-    libc_family, libc_ver = linux_get_libc_version()
-    if context_platform == 'linux':
-        from .._vendor.distro import linux_distribution
-        try:
-            distinfo = linux_distribution(full_distribution_name=False)
-        except Exception as e:
-            log.debug('%r', e, exc_info=True)
-            distinfo = ('Linux', 'unknown')
-        dist, ver = distinfo[0], distinfo[1]
-    elif context_platform == 'osx':
-        dist = 'OSX'
-        ver = platform.mac_ver()[0]
-    else:
-        dist = platform.system()
-        ver = platform.version()
-
-    user_agent = _user_agent.format(conda_ver=CONDA_VERSION,
-                                    requests_ver=REQUESTS_VERSION,
-                                    python=platform.python_implementation(),
-                                    py_ver=platform.python_version(),
-                                    system=platform.system(), kernel=platform.release(),
-                                    dist=dist, ver=ver)
-    if libc_ver:
-        user_agent += " {}/{}".format(libc_family, libc_ver)
-    return user_agent
+def _get_cpu_info():
+    # DANGER: This is rather slow
+    from .._vendor.cpuinfo import get_cpu_info
+    return frozendict(get_cpu_info())
 
 
 def locate_prefix_by_name(name, envs_dirs=None):
@@ -1102,7 +1110,7 @@ def locate_prefix_by_name(name, envs_dirs=None):
             continue
         prefix = join(envs_dir, name)
         if isdir(prefix):
-            return prefix
+            return abspath(prefix)
 
     from ..exceptions import EnvironmentNameNotFound
     raise EnvironmentNameNotFound(name)
@@ -1142,14 +1150,11 @@ def determine_target_prefix(ctx, args=None):
     elif prefix_path is not None:
         return expand(prefix_path)
     else:
-        if '/' in prefix_name:
+        if any(x in prefix_name for x in ('/', ' ')):
             from ..exceptions import CondaValueError
-            raise CondaValueError("'/' not allowed in environment name: %s" %
-                                  prefix_name)
-        if ' ' in prefix_name:
-            from ..exceptions import CondaValueError
-            raise CondaValueError("Space not allowed in environment name: '%s'" %
-                                  prefix_name)
+            builder = ["Invalid environment name: '" + prefix_name + "'"]
+            builder.append("  character not allowed: '" + "/" if "/" in prefix_name else " " + "'")
+            raise CondaValueError("\n".join(builder))
         if prefix_name in (ROOT_ENV_NAME, 'root'):
             return ctx.root_prefix
         else:
@@ -1192,7 +1197,7 @@ def get_prefix(ctx, args, search=True):  # pragma: no cover
 
 try:
     context = Context((), None)
-except LoadError as e:  # pragma: no cover
-    print(e, file=sys.stderr)
+except ConfigurationLoadError as e:  # pragma: no cover
+    print(repr(e), file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit
     sys.exit(1)

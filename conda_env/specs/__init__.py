@@ -1,22 +1,38 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
+import os
+
 from .binstar import BinstarSpec
-from .yaml_file import YamlFileSpec
 from .notebook import NotebookSpec
 from .requirements import RequirementsSpec
-from ..exceptions import SpecNotFound
-
-all_specs = [
-    BinstarSpec,
-    NotebookSpec,
-    YamlFileSpec,
-    RequirementsSpec
-]
+from .yaml_file import YamlFileSpec
+from ..exceptions import (EnvironmentFileExtensionNotValid, EnvironmentFileNotFound,
+                          SpecNotFound)
 
 
 def detect(**kwargs):
-    specs = []
-    for SpecClass in all_specs:
+    # Check file existence
+    filename = kwargs.get('filename')
+    if filename and not os.path.isfile(filename):
+        raise EnvironmentFileNotFound(filename=filename)
+
+    # Check extensions
+    all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
+    fname, ext = os.path.splitext(filename)
+    if ext == '' or ext not in all_valid_exts:
+        raise EnvironmentFileExtensionNotValid(filename)
+    elif ext in YamlFileSpec.extensions:
+        specs = [YamlFileSpec]
+    elif ext in RequirementsSpec.extensions:
+        specs = [RequirementsSpec]
+    else:
+        specs = [NotebookSpec, BinstarSpec]
+
+    # Check specifications
+    for SpecClass in specs:
         spec = SpecClass(**kwargs)
-        specs.append(spec)
         if spec.can_handle():
             return spec
 

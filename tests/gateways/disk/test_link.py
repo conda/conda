@@ -7,11 +7,13 @@ from tempfile import gettempdir
 from unittest import TestCase
 import uuid
 
-from conda.common.compat import on_win, PY2
+import pytest
 
+from conda.common.compat import on_win, PY2
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import link, islink, readlink, stat_nlink, symlink
+from conda.gateways.disk.test import softlink_supported
 from conda.gateways.disk.update import touch
 
 log = getLogger(__name__)
@@ -59,6 +61,10 @@ class LinkSymlinkUnlinkIslinkReadlinkTests(TestCase):
         touch(path1_real_file)
         assert isfile(path1_real_file)
         assert not islink(path1_real_file)
+
+        if not softlink_supported(path1_real_file, self.test_dir) and on_win:
+            pytest.skip("softlink not supported")
+
 
         symlink(path1_real_file, path2_symlink)
         assert exists(path2_symlink)

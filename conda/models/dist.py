@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
@@ -6,7 +8,7 @@ from logging import getLogger
 import re
 
 from .channel import Channel
-from .records import PackageRecord, PackageRef
+from .records import PackageRecord
 from .package_info import PackageInfo
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
@@ -29,25 +31,30 @@ class DistType(EntityType):
     def __call__(cls, *args, **kwargs):
         if len(args) == 1 and not kwargs:
             value = args[0]
-            if isinstance(value, Dist):
-                return value
-            elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
-                return value.dist
+            if value in Dist._cache_:
+                return Dist._cache_[value]
+            elif isinstance(value, Dist):
+                dist = value
             elif isinstance(value, PackageRecord):
-                return Dist.from_string(value.fn, channel_override=value.channel.canonical_name)
+                dist = Dist.from_string(value.fn, channel_override=value.channel.canonical_name)
+            elif hasattr(value, 'dist') and isinstance(value.dist, Dist):
+                dist = value.dist
             elif isinstance(value, PackageInfo):
-                return Dist.from_string(value.repodata_record.fn,
+                dist = Dist.from_string(value.repodata_record.fn,
                                         channel_override=value.channel.canonical_name)
             elif isinstance(value, Channel):
-                return Dist.from_url(value.url())
+                dist = Dist.from_url(value.url())
             else:
-                return Dist.from_string(value)
+                dist = Dist.from_string(value)
+            Dist._cache_[value] = dist
+            return dist
         else:
             return super(DistType, cls).__call__(*args, **kwargs)
 
 
 @with_metaclass(DistType)
 class Dist(Entity):
+    _cache_ = {}
     _lazy_validate = True
 
     channel = StringField(required=False, nullable=True, immutable=True)
@@ -73,7 +80,7 @@ class Dist(Entity):
                                    platform=platform)
 
     def to_package_ref(self):
-        return PackageRef(
+        return PackageRecord(
             channel=self.channel,
             subdir=self.platform,
             name=self.name,
@@ -123,6 +130,11 @@ class Dist(Entity):
 
     def to_matchspec(self):
         return ' '.join(self.quad[:3])
+
+    def to_match_spec(self):
+        from .match_spec import MatchSpec
+        base = '='.join(self.quad[:3])
+        return MatchSpec("%s::%s" % (self.channel, base) if self.channel else base)
 
     @classmethod
     def from_string(cls, string, channel_override=NULL):
@@ -280,3 +292,14 @@ class Dist(Entity):
     @property
     def fn(self):
         return self.to_filename()
+
+
+def dist_str_to_quad(dist_str):
+    if dist_str.endswith(CONDA_TARBALL_EXTENSION):
+        dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
+    if '::' in dist_str:
+        channel_str, dist_str = dist_str.split("::", 1)
+    else:
+        channel_str = UNKNOWN_CHANNEL
+    name, version, build = dist_str.rsplit('-', 2)
+    return name, version, build, channel_str

@@ -274,6 +274,8 @@ class InitializeTests(TestCase):
             assert len(steps) == 2
             steps = tuple(step for step in plan if step['function'] == 'install_anaconda_prompt')
             assert len(steps) == 2
+            steps = tuple(step for step in plan if step['function'] == 'init_long_path')
+            assert len(steps) == 1
 
     def test_make_entry_point(self):
         with tempdir() as conda_temp_prefix:
@@ -332,10 +334,12 @@ class InitializeTests(TestCase):
             with open(target_path) as fh:
                 created_file_contents = fh.read()
 
-            first_line, remainder = created_file_contents.split('\n', 1)
             if on_win:
+                first_line, second_line, remainder = created_file_contents.split('\n', 2)
                 assert first_line == "export CONDA_EXE=\"$(cygpath '%s')\"" % context.conda_exe
+                assert second_line == "export CONDA_BAT=\"%s\"" % join(context.conda_prefix, 'condacmd', 'conda.bat')
             else:
+                first_line, remainder = created_file_contents.split('\n', 1)
                 assert first_line == 'export CONDA_EXE="%s"' % context.conda_exe
 
             with open(join(CONDA_PACKAGE_ROOT, 'shell', 'etc', 'profile.d', 'conda.sh')) as fh:
@@ -767,6 +771,34 @@ class InitializeTests(TestCase):
 
         expected = "echo hello & \"c:\\Users\\Lars\\miniconda\\condacmd\\conda_hook.bat\" & echo \"world\""
         assert c.stdout.strip().splitlines()[-1][1:] == expected
+
+    @pytest.mark.skipif(not on_win, reason="win-only test")
+    def test_init_enable_long_path(self):
+        self.dummy_value = "0"
+
+        def _read_windows_registry_mock(target_path):
+            return self.dummy_value, "REG_DWORD"
+
+        def _write_windows_registry_mock(target_path, value, dtype):
+            self.dummy_value = value
+
+        from conda.core import initialize
+        orig_read_windows_registry = initialize._read_windows_registry
+        initialize._read_windows_registry = _read_windows_registry_mock
+        orig_write_windows_registry = initialize._write_windows_registry
+        initialize._write_windows_registry = _write_windows_registry_mock
+        orig_join = initialize.join
+        initialize.join = ntpath.join
+
+        try:
+            target_path = r'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem\\LongPathsEnabled'
+            assert initialize._read_windows_registry(target_path)[0] == "0"
+            initialize.init_long_path(target_path)
+            assert initialize._read_windows_registry(target_path)[0] == "1"
+        finally:
+            initialize._read_windows_registry = orig_read_windows_registry
+            initialize._write_windows_registry = orig_write_windows_registry
+            initialize.join = orig_join
 
     def test_init_sh_system(self):
         with tempdir() as td:

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
@@ -12,7 +14,6 @@ from logging import DEBUG, getLogger
 from mmap import ACCESS_READ, mmap
 from os.path import dirname, isdir, join, splitext
 import re
-from textwrap import dedent
 from time import time
 import warnings
 
@@ -26,7 +27,8 @@ from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, it
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed
 from ..common.url import join_url, maybe_unquote
 from ..core.package_cache_data import PackageCacheData
-from ..exceptions import CondaDependencyError, CondaHTTPError, NotWritableError
+from ..exceptions import (CondaDependencyError, CondaHTTPError, CondaUpgradeError,
+                          NotWritableError, UnavailableInvalidChannel)
 from ..gateways.connection import (ConnectionError, HTTPError, InsecureRequestWarning,
                                    InvalidSchema, SSLError)
 from ..gateways.connection.session import CondaSession
@@ -34,9 +36,8 @@ from ..gateways.disk import mkdir_p, mkdir_p_sudo_safe
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.update import touch
 from ..models.channel import Channel, all_channel_urls
-from ..models.dist import Dist
 from ..models.match_spec import MatchSpec
-from ..models.records import PackageRecord, PackageRef
+from ..models.records import PackageRecord
 
 try:
     from cytoolz.itertoolz import concat, take
@@ -51,7 +52,8 @@ except ImportError:  # pragma: no cover
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderrlog')
 
-REPODATA_PICKLE_VERSION = 18
+REPODATA_PICKLE_VERSION = 25
+MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
 
@@ -113,7 +115,7 @@ class SubdirData(object):
                     if param.match(prec):
                         yield prec
         else:
-            assert isinstance(param, PackageRef)
+            assert isinstance(param, PackageRecord)
             for prec in self._names_index[param.name]:
                 if prec == param:
                     yield prec
@@ -146,9 +148,18 @@ class SubdirData(object):
 
     def load(self):
         _internal_state = self._load()
+        if _internal_state["repodata_version"] > MAX_REPODATA_VERSION:
+            raise CondaUpgradeError(dals("""
+                The current version of conda is too old to read repodata from
+
+                    %s
+
+                (This version only supports repodata_version 1.)
+                Please update conda to use this channel.
+                """) % self.url_w_subdir)
+
         self._internal_state = _internal_state
         self._package_records = _internal_state['_package_records']
-        self._package_dists = _internal_state['_package_dists']  # only needed as an optimization for conda-build  # NOQA
         self._names_index = _internal_state['_names_index']
         self._track_features_index = _internal_state['_track_features_index']
         self._loaded = True
@@ -158,11 +169,6 @@ class SubdirData(object):
         if not self._loaded:
             self.load()
         return iter(self._package_records)
-
-    def iter_dists_records(self):
-        if not self._loaded:
-            self.load()
-        return zip(self._package_dists, self._package_records)
 
     def _load(self):
         try:
@@ -175,7 +181,6 @@ class SubdirData(object):
                           self.url_w_subdir, self.cache_path_json)
                 return {
                     '_package_records': (),
-                    '_package_dists': (),
                     '_names_index': defaultdict(list),
                     '_track_features_index': defaultdict(list),
                 }
@@ -311,7 +316,6 @@ class SubdirData(object):
         schannel = self.channel.canonical_name
 
         self._package_records = _package_records = []
-        self._package_dists = _package_dists = []  # creating and caching these here is an optimization for conda-build  # NOQA
         self._names_index = _names_index = defaultdict(list)
         self._track_features_index = _track_features_index = defaultdict(list)
 
@@ -322,7 +326,6 @@ class SubdirData(object):
             'cache_path_base': self.cache_path_base,
 
             '_package_records': _package_records,
-            '_package_dists': _package_dists,
             '_names_index': _names_index,
             '_track_features_index': _track_features_index,
 
@@ -333,7 +336,17 @@ class SubdirData(object):
             '_add_pip': add_pip,
             '_pickle_version': REPODATA_PICKLE_VERSION,
             '_schannel': schannel,
+            'repodata_version': json_obj.get('repodata_version', 0),
         }
+        if _internal_state["repodata_version"] > MAX_REPODATA_VERSION:
+            raise CondaUpgradeError(dals("""
+                The current version of conda is too old to read repodata from
+
+                    %s
+
+                (This version only supports repodata_version 1.)
+                Please update conda to use this channel.
+                """) % self.url_w_subdir)
 
         meta_in_common = {  # just need to make this once, then apply with .update()
             'arch': json_obj.get('info', {}).get('arch'),
@@ -350,10 +363,13 @@ class SubdirData(object):
             if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
                 info['depends'].append('pip')
             info.update(meta_in_common)
+            if info.get('record_version', 0) > 1:
+                log.debug("Ignoring record_version %d from %s",
+                          info["record_version"], info['url'])
+                continue
             package_record = PackageRecord(**info)
 
             _package_records.append(package_record)
-            _package_dists.append(Dist(package_record))
             _names_index[package_record.name].append(package_record)
             for ftr_name in package_record.track_features:
                 _track_features_index[ftr_name].append(package_record)
@@ -435,43 +451,15 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         status_code = getattr(e.response, 'status_code', None)
         if status_code in (403, 404):
             if not url.endswith('/noarch'):
-                return None
-            else:
                 if context.allow_non_channel_urls:
-                    help_message = dedent("""
-                    WARNING: The remote server could not find the noarch directory for the
-                    requested channel with url: %s
-
-                    It is possible you have given conda an invalid channel. Please double-check
-                    your conda configuration using `conda config --show channels`.
-
-                    If the requested url is in fact a valid conda channel, please request that the
-                    channel administrator create `noarch/repodata.json` and associated
-                    `noarch/repodata.json.bz2` files, even if `noarch/repodata.json` is empty.
-                    $ mkdir noarch
-                    $ echo '{}' > noarch/repodata.json
-                    $ bzip2 -k noarch/repodata.json
-                    """) % maybe_unquote(dirname(url))
-                    stderrlog.warn(help_message)
+                    stderrlog.warning("Unable to retrieve repodata (%d error) for %s",
+                                      status_code, url)
                     return None
                 else:
-                    help_message = dals("""
-                    The remote server could not find the noarch directory for the
-                    requested channel with url: %s
-
-                    As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
-                    associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
-                    empty. please request that the channel administrator create
-                    `noarch/repodata.json` and associated `noarch/repodata.json.bz2` files.
-                    $ mkdir noarch
-                    $ echo '{}' > noarch/repodata.json
-                    $ bzip2 -k noarch/repodata.json
-
-                    You will need to adjust your conda configuration to proceed.
-                    Use `conda config --show channels` to view your configuration's current state.
-                    Further configuration help can be found at <%s>.
-                    """) % (maybe_unquote(dirname(url)),
-                            join_url(CONDA_HOMEPAGE_URL, 'docs/config.html'))
+                    raise UnavailableInvalidChannel(Channel(dirname(url)), status_code)
+            else:
+                log.info("Unable to retrieve repodata (%d error) for %s", status_code, url)
+                return None
 
         elif status_code == 401:
             channel = Channel(url)
@@ -589,14 +577,6 @@ def make_feature_record(feature_name):
         build_number=0,
         fn=pkg_name,
     )
-
-
-def collect_all_repodata_as_index(use_cache, channel_urls):
-    index = {}
-    for url in channel_urls:
-        sd = SubdirData(Channel(url))
-        index.update(sd.iter_dists_records())
-    return index
 
 
 def cache_fn_url(url):

@@ -28,6 +28,7 @@ from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import islink, stat_nlink
 from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_md5sum, compute_sha256sum
+from conda.gateways.disk.test import softlink_supported
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType, NoarchType, PathType
 from conda.models.records import PathDataV1
@@ -107,6 +108,9 @@ class PathActionsTests(TestCase):
         assert axns == ()
 
     def test_CompilePycAction_noarch_python(self):
+        if not softlink_supported(__file__, self.prefix) and on_win:
+            pytest.skip("softlink not supported")
+
         target_python_version = '%d.%d' % sys.version_info[:2]
         sp_dir = get_python_site_packages_short_path(target_python_version)
         transaction_context = {
@@ -261,6 +265,9 @@ class PathActionsTests(TestCase):
         assert not lexists(axn.target_full_path)
 
     def test_simple_LinkPathAction_softlink(self):
+        if not softlink_supported(__file__, self.prefix) and on_win:
+            pytest.skip("softlink not supported")
+
         source_full_path = make_test_file(self.pkgs_dir)
         target_short_path = source_short_path = basename(source_full_path)
 

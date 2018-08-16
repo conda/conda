@@ -43,9 +43,8 @@ conda_build_test: &conda_build_test
         command: |
           sudo su root -c "/opt/conda/bin/conda install -yq conda-verify"
           cb_branch="${CONDA_BUILD:-master}"
-          git clone -b $cb_branch --depth 750 https://github.com/conda/conda-build.git ~/conda-build
-          cd ~/conda-build
-          sudo /opt/conda/bin/pip install --no-deps -U .
+          git clone -b $cb_branch https://github.com/conda/conda-build.git ~/conda-build
+          sudo /opt/conda/bin/pip install --no-deps -U ~/conda-build
           git clone https://github.com/conda/conda_build_test_recipe.git ~/conda_build_test_recipe
           /opt/conda/bin/conda info
           sudo chown -R $(id -nu):$(id -ng) /opt/conda  # conda-build tests assume writable base prefix
@@ -66,7 +65,16 @@ conda_build_test: &conda_build_test
           conda create -n blarg -yq --download-only python=3.4
           conda create -n blarg -yq --download-only python=3.5
           conda create -n blarg -yq --download-only python=3.6
+          conda create -n blarg -yq --download-only python=3.7
+          conda create -n blarg -yq --download-only python setuptools cython certifi
           conda create -n blarg -yq --download-only libpng=1.6.17
+
+    - run:
+        name: conda-build conda
+        command: |
+          eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
+          rm -rf ~/conda/conda.egg-info
+          conda build ~/conda/conda.recipe
 
     - run:
         name: conda-build tests [parallel]
@@ -84,6 +92,13 @@ conda_build_test: &conda_build_test
             and not test_name_with_version_specified
             and not test_pypi_with_setup_options
             and not test_pypi_with_extra_specs
+            and not test_ensure_valid_spec_on_run_and_test
+            and not test_get_installed_version
+            and not test_indirect_numpy_dependency
+            and not test_only_lua_env
+            and not test_setuptools_test_requirements
+            and not alternate_type_wheel
+            and not rpm-libX11-devel
           # skeleton_pypi skipped because of changes to PyPI API
           # expand_globs and build_expands_wildcards fail on circleci because of list ordering discrepancies
           # skipping numpy tests so circleci images don't need numpy (and mkl) installed
@@ -94,11 +109,17 @@ conda_build_test: &conda_build_test
           # test_name_with_version_specified because of the new PyPI
           # test_pypi_with_setup_options because of the new PyPI
           # test_pypi_with_extra_specs because of the new PyPI
+          # test_get_installed_version invalid test when using 'conda init --dev'
+          # test_indirect_numpy_dependency contains conda-forge
+          # test_only_lua_env contains conda-forge
+          # test_setuptools_test_requirements upstream changes that affect 'conda skeleton'
+          # alternate_type_wheel broken with pip 10
+          # rpm-libX11-devel returns 404 error
         command: |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           conda info
           cd ~/conda-build
-          py.test --basetemp /tmp/cb -v --durations=20 -n 3 -m "not serial" tests -k "$CONDABUILD_SKIP"
+          py.test --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$CONDABUILD_SKIP"
 
     - run:
         name: conda-build tests [serial]
@@ -109,11 +130,15 @@ conda_build_test: &conda_build_test
             and not skeleton_pypi
             and not env_creation_with_short_prefix_does_not_deadlock
             and not test_preferred_env
+            and not test_setuptools_test_requirements
+            and not rpm-libX11-devel
           # skipping perl-cpan-Moo because of changes in cpan API
           # skipping cran-nmf because nmf was removed/archived in cran
           # skeleton_pypi skipped because of changes to PyPI API
           # env_creation_with_short_prefix_does_not_deadlock: error is prefix is too long
           # for test_preferred_env see https://github.com/conda/conda/issues/3912#issuecomment-374820599
+          # test_setuptools_test_requirements upstream changes that affect 'conda skeleton'
+          # rpm-libX11-devel returns 404 error
         command: |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           cd ~/conda-build
@@ -129,6 +154,12 @@ flake8: &flake8
 
 
 jobs:
+  py37 main tests:
+    <<: *main_test
+    docker:
+      - image: condatest/linux-64-python-3.7
+    environment:
+      - CONDA_INSTRUMENTATION_ENABLED: true
   py36 main tests:
     <<: *main_test
     docker:
@@ -141,15 +172,15 @@ jobs:
       - image: condatest/linux-64-python-2.7
     environment:
       - CONDA_INSTRUMENTATION_ENABLED: true
-  3.0 conda-build:
+#  3.0 conda-build:
+#    <<: *conda_build_test
+#    environment:
+#      - CONDA_BUILD: 3.0.21
+#      - CONDA_INSTRUMENTATION_ENABLED: true
+  3.10 conda-build:
     <<: *conda_build_test
     environment:
-      - CONDA_BUILD: 3.0.21
-      - CONDA_INSTRUMENTATION_ENABLED: true
-  2.1 conda-build:
-    <<: *conda_build_test
-    environment:
-      - CONDA_BUILD: 2.1.17
+      - CONDA_BUILD: 3.10.1
       - CONDA_INSTRUMENTATION_ENABLED: true
   flake8: *flake8
 
@@ -159,8 +190,9 @@ workflows:
   version: 2
   conda tests:
     jobs:
+      # - py37 main tests
       - py36 main tests
       - py27 main tests
-      - 3.0 conda-build
-      - 2.1 conda-build
+      # - 3.0 conda-build
+      - 3.10 conda-build
       - flake8

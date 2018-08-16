@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import copy
@@ -140,25 +142,38 @@ class Channel(object):
 
     @property
     def canonical_name(self):
+        try:
+            return self.__canonical_name
+        except AttributeError:
+            pass
+
         for multiname, channels in iteritems(context.custom_multichannels):
             for channel in channels:
                 if self.name == channel.name:
-                    return multiname
+                    cn = self.__canonical_name = multiname
+                    return cn
 
         for that_name in context.custom_channels:
             if self.name and tokenized_startswith(self.name.split('/'), that_name.split('/')):
-                return self.name
+                cn = self.__canonical_name = self.name
+                return cn
 
-        if any(c.location == self.location
-               for c in concatv((context.channel_alias,), context.migrated_channel_aliases)):
-            return self.name
+        if any(c.location == self.location for c in concatv(
+                (context.channel_alias,),
+                context.migrated_channel_aliases,
+        )):
+            cn = self.__canonical_name = self.name
+            return cn
 
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
         if self.scheme:
-            return "%s://%s" % (self.scheme, join_url(self.location, self.name))
+            cn = self.__canonical_name = "%s://%s" % (self.scheme,
+                                                      join_url(self.location, self.name))
+            return cn
         else:
-            return join_url(self.location, self.name).lstrip('/')
+            cn = self.__canonical_name = join_url(self.location, self.name).lstrip('/')
+            return cn
 
     def urls(self, with_credentials=False, subdirs=None):
         if subdirs is None:
@@ -239,14 +254,7 @@ class Channel(object):
             return base
 
     def __repr__(self):
-        return ("Channel(scheme=%r, auth=%r, location=%r, token=%r, name=%r, platform=%r, "
-                "package_filename=%r)" % (self.scheme,
-                                          self.auth and "%s:<PASSWORD>" % self.auth.split(':')[0],
-                                          self.location,
-                                          self.token and "<TOKEN>",
-                                          self.name,
-                                          self.platform,
-                                          self.package_filename))
+        return 'Channel("%s")' % (join_url(self.name, self.subdir) if self.subdir else self.name)
 
     def __eq__(self, other):
         if isinstance(other, Channel):

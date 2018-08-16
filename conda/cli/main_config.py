@@ -1,8 +1,9 @@
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import collections
+from collections import OrderedDict, Mapping
 import json
 import os
 from os.path import isfile, join
@@ -11,7 +12,7 @@ from textwrap import wrap
 
 from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import PathConflict, SafetyChecks
+from ..base.constants import PathConflict, SafetyChecks, DepsModifier, UpdateModifier
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, iteritems, itervalues, string_types
 from ..common.configuration import pretty_list, pretty_map
@@ -35,7 +36,7 @@ def execute(args, parser):
 def format_dict(d):
     lines = []
     for k, v in iteritems(d):
-        if isinstance(v, collections.Mapping):
+        if isinstance(v, Mapping):
             if v:
                 lines.append("%s:" % k)
                 lines.append(pretty_map(v))
@@ -128,8 +129,6 @@ def execute_config(args, parser):
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
         else:
             paramater_names = context.list_parameters()
-
-        from collections import OrderedDict
 
         d = OrderedDict((key, getattr(context, key)) for key in paramater_names)
         if context.json:
@@ -348,6 +347,8 @@ def execute_config(args, parser):
 
         yaml.representer.RoundTripRepresenter.add_representer(SafetyChecks, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(PathConflict, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(DepsModifier, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
 
         try:
             with open(rc_path, 'w') as rc:

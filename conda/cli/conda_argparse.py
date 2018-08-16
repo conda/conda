@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from argparse import (ArgumentParser as ArgumentParserBase, RawDescriptionHelpFormatter, SUPPRESS,
-                      _CountAction, _HelpAction)
+from argparse import (ArgumentParser as ArgumentParserBase, REMAINDER, RawDescriptionHelpFormatter,
+                      SUPPRESS, _CountAction, _HelpAction)
 from logging import getLogger
 import os
 from os.path import abspath, expanduser, join
@@ -11,7 +13,7 @@ import sys
 from textwrap import dedent
 
 from .. import __version__
-from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL
+from ..base.constants import COMPATIBLE_SHELLS, CONDA_HOMEPAGE_URL, DepsModifier, UpdateModifier
 from ..common.constants import NULL
 
 log = getLogger(__name__)
@@ -63,30 +65,12 @@ def generate_parser():
     configure_parser_package(sub_parsers)
     configure_parser_remove(sub_parsers)
     configure_parser_remove(sub_parsers, name='uninstall')
+    configure_parser_run(sub_parsers)
     configure_parser_search(sub_parsers)
     configure_parser_update(sub_parsers)
     configure_parser_update(sub_parsers, name='upgrade')
 
     return p
-
-
-def generate_pip_parser():
-    p = ArgumentParser(
-        description='conda is a tool for managing and deploying applications,'
-                    ' environments and packages.',
-    )
-    p.add_argument(
-        '-V', '--version',
-        action='version',
-        version='conda %s' % __version__,
-        help="Show the conda version number and exit."
-    )
-    sub_parsers = p.add_subparsers(
-        metavar='command',
-        dest='cmd',
-    )
-    configure_parser_info(sub_parsers)
-    configure_parser_init(sub_parsers)
 
 
 def do_call(args, parser):
@@ -143,7 +127,7 @@ class ArgumentParser(ArgumentParserBase):
             else:
                 argument = None
             if argument and argument.dest == "cmd":
-                m = re.match(r"invalid choice: u?'([\w\-]*?)'", exc.message)
+                m = re.match(r"invalid choice: u?'([-\w]*?)'", exc.message)
                 if m:
                     cmd = m.group(1)
                     if not cmd:
@@ -156,13 +140,7 @@ class ArgumentParser(ArgumentParserBase):
                             raise CommandNotFoundError(cmd)
                         args = [find_executable('conda-' + cmd)]
                         args.extend(sys.argv[2:])
-                        p = Popen(args)
-                        try:
-                            p.communicate()
-                        except KeyboardInterrupt:
-                            p.wait()
-                        finally:
-                            sys.exit(p.returncode)
+                        _exec(args, os.environ)
 
         super(ArgumentParser, self).error(message)
 
@@ -177,6 +155,24 @@ class ArgumentParser(ArgumentParserBase):
                 builder.append("conda commands available from other packages:")
                 builder.extend('  %s' % cmd for cmd in sorted(other_commands))
                 print('\n'.join(builder))
+
+
+def _exec(executable_args, env_vars):
+    return (_exec_win if on_win else _exec_unix)(executable_args, env_vars)
+
+
+def _exec_win(executable_args, env_vars):
+    p = Popen(executable_args, env=env_vars)
+    try:
+        p.communicate()
+    except KeyboardInterrupt:
+        p.wait()
+    finally:
+        sys.exit(p.returncode)
+
+
+def _exec_unix(executable_args, env_vars):
+    os.execvpe(executable_args[0], executable_args, env_vars)
 
 
 class NullCountAction(_CountAction):
@@ -286,7 +282,7 @@ def configure_parser_info(sub_parsers):
     p.add_argument(
         '-l', "--license",
         action="store_true",
-        help="Display information about the local conda licenses list.",
+        help=SUPPRESS,
     )
     p.add_argument(
         '-s', "--system",
@@ -305,12 +301,11 @@ def configure_parser_info(sub_parsers):
         help='Display list of channels with tokens exposed.',
     )
 
-    # TODO: deprecate 'conda info <PACKAGE>'
     p.add_argument(
         'packages',
         action="store",
         nargs='*',
-        help="Display information about packages.",
+        help=SUPPRESS,
     )
 
     p.set_defaults(func='.main_info.execute')
@@ -685,17 +680,17 @@ def configure_parser_install(sub_parsers):
     Conda attempts to install the newest versions of the requested packages. To
     accomplish this, it may update some packages that are already installed, or
     install additional packages. To prevent existing packages from updating,
-    use the --no-update-deps option. This may force conda to install older
+    use the --freeze-installed option. This may force conda to install older
     versions of the requested packages, and it does not prevent additional
     dependency packages from being installed.
 
-    If you wish to skip dependency checking altogether, use the '--force'
+    If you wish to skip dependency checking altogether, use the '--no-deps'
     option. This may result in an environment with incompatible packages, so
     this option must be used with great caution.
 
     conda can also be called with a list of explicit conda package filenames
     (e.g. ./lxml-3.2.0-py27_0.tar.bz2). Using conda in this mode implies the
-    --force option, and should likewise be used with great caution. Explicit
+    --no-deps option, and should likewise be used with great caution. Explicit
     filenames and package specifications cannot be mixed in a single command.
     """)
     example = dedent("""
@@ -727,14 +722,7 @@ def configure_parser_install(sub_parsers):
         help="Ensure that any user-requested package for the current operation is uninstalled and "
              "reinstalled, even if that package already exists in the environment.",
     )
-    solver_mode_options.add_argument(
-        "--update-all",
-        action="store_true",
-        help="Update all installed packages in the environment.",
-        dest='update_all',
-        default=NULL,
-    )
-
+    add_parser_update_modifiers(solver_mode_options)
     package_install_options.add_argument(
         '-m', "--mkdir",
         action="store_true",
@@ -963,6 +951,47 @@ def configure_parser_remove(sub_parsers, name='remove'):
     p.set_defaults(func='.main_remove.execute')
 
 
+def configure_parser_run(sub_parsers):
+    help = "Run an executable in a conda environment. [Experimental]"
+    descr = help + dedent("""
+
+    Use '--' (double dash) to separate CLI flags for 'conda run' from CLI flags sent to
+    the process being launched.
+
+    Example usage:
+
+        $ conda create -y -n my-python-2-env python=2
+        $ conda run -n my-python-2-env python -- --version
+    """)
+
+    epilog = dedent("""
+    """)
+
+    p = sub_parsers.add_parser(
+        'run',
+        description=descr,
+        help=help,
+        epilog=epilog,
+    )
+
+    add_parser_prefix(p)
+    p.add_argument(
+        "-v", "--verbose",
+        action=NullCountAction,
+        help="Use once for info, twice for debug, three times for trace.",
+        dest="verbosity",
+        default=NULL,
+    )
+
+    p.add_argument(
+        'executable_call',
+        nargs=REMAINDER,
+        help="Executable name, with additional arguments to be passed to the executable "
+             "on invocation.",
+    )
+    p.set_defaults(func='.main_run.execute')
+
+
 def configure_parser_search(sub_parsers):
     descr = dedent("""Search for packages and display associated information.
     The input is a MatchSpec, a query language for conda packages.
@@ -1118,13 +1147,7 @@ def configure_parser_update(sub_parsers, name='update'):
         help="Ensure that any user-requested package for the current operation is uninstalled and "
              "reinstalled, even if that package already exists in the environment.",
     )
-    solver_mode_options.add_argument(
-        "--update-all", "--all",
-        action="store_true",
-        help="Update all installed packages in the environment.",
-        dest='update_all',
-        default=NULL,
-    )
+    add_parser_update_modifiers(solver_mode_options)
 
     package_install_options.add_argument(
         "--clobber",
@@ -1339,6 +1362,7 @@ def add_parser_channels(p):
 
 def add_parser_solver_mode(p):
     solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
+    deps_modifiers = solver_mode_options.add_mutually_exclusive_group()
     solver_mode_options.add_argument(
         "--channel-priority",
         action="store_true",
@@ -1354,30 +1378,22 @@ def add_parser_solver_mode(p):
         help="Package version takes precedence over channel priority. "
              "Overrides the value given by `conda config --show channel_priority`."
     )
-    solver_mode_options.add_argument(
-        "--update-deps",
-        action="store_true",
-        dest="update_deps",
-        default=NULL,
-        help="Update dependencies.",
-    )
-    solver_mode_options.add_argument(
-        "--freeze-installed", "--no-update-deps",
-        action="store_true",
-        dest="freeze_installed",
-        default=NULL,
-        help="Don't update or change already-installed dependencies.",
-    )
-    solver_mode_options.add_argument(
+    deps_modifiers.add_argument(
         "--no-deps",
-        action="store_true",
+        action="store_const",
+        const=DepsModifier.NO_DEPS,
+        dest="deps_modifier",
         help="Do not install, update, remove, or change dependencies. This WILL lead "
              "to broken environments and inconsistent behavior. Use at your own risk.",
+        default=NULL,
     )
-    solver_mode_options.add_argument(
+    deps_modifiers.add_argument(
         "--only-deps",
-        action="store_true",
+        action="store_const",
+        const=DepsModifier.ONLY_DEPS,
+        dest="deps_modifier",
         help="Only install dependencies.",
+        default=NULL,
     )
     solver_mode_options.add_argument(
         "--no-pin",
@@ -1387,6 +1403,44 @@ def add_parser_solver_mode(p):
         help="Ignore pinned file.",
     )
     return solver_mode_options
+
+
+def add_parser_update_modifiers(solver_mode_options):
+    update_modifiers = solver_mode_options.add_mutually_exclusive_group()
+    update_modifiers.add_argument(
+        "--freeze-installed", "--no-update-deps",
+        action="store_const",
+        const=UpdateModifier.FREEZE_INSTALLED,
+        dest="update_modifier",
+        default=NULL,
+        help="Do not update or change already-installed dependencies.",
+    )
+    update_modifiers.add_argument(
+        "--update-deps",
+        action="store_const",
+        const=UpdateModifier.UPDATE_DEPS,
+        dest="update_modifier",
+        default=NULL,
+        help="Update dependencies.",
+    )
+    update_modifiers.add_argument(
+        "-S", "--satisfied-skip-solve",
+        action="store_const",
+        const=UpdateModifier.SPECS_SATISFIED_SKIP_SOLVE,
+        dest="update_modifier",
+        default=NULL,
+        help="Exit early and do not run the solver if the requested specs are satisfied. "
+             "Also skips aggressive updates as configured by 'aggressive_update_packages'. "
+             "Similar to the default behavior of 'pip install'.",
+    )
+    update_modifiers.add_argument(
+        "--update-all", "--all",
+        action="store_const",
+        const=UpdateModifier.UPDATE_ALL,
+        dest="update_modifier",
+        help="Update all installed packages in the environment.",
+        default=NULL,
+    )
 
 
 def add_parser_prune(p):

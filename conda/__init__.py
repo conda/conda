@@ -1,5 +1,6 @@
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """OS-agnostic, system-level binary package manager."""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
@@ -33,6 +34,7 @@ CONDA_PACKAGE_ROOT = dirname(__file__)
 
 class CondaError(Exception):
     return_code = 1
+    reportable = False  # Exception may be reported to core maintainers
 
     def __init__(self, message, caused_by=None, **kwargs):
         self.message = message
@@ -46,7 +48,7 @@ class CondaError(Exception):
     def __str__(self):
         try:
             return text_type(self.message % self._kwargs)
-        except:
+        except Exception:
             debug_message = "\n".join((
                 "class: " + self.__class__.__name__,
                 "message:",

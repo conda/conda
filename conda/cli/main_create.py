@@ -1,6 +1,6 @@
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
@@ -22,7 +22,7 @@ def execute(args, parser):
         if paths_equal(context.target_prefix, context.root_prefix):
             raise CondaValueError("The target prefix is the base prefix. Aborting.")
         confirm_yn("WARNING: A conda environment already exists at '%s'\n"
-                   "Removing existing environment" % context.target_prefix,
+                   "Remove existing environment" % context.target_prefix,
                    default='no',
                    dry_run=False)
         log.info("Removing existing environment %s", context.target_prefix)
