@@ -151,7 +151,7 @@ def add_feature_records_legacy(index):
 
 @memoize
 def get_index_r_1(subdir=context.subdir):
-    with open(join(dirname(__file__), 'index.json')) as fi:
+    with open(join(dirname(__file__), 'data', 'index.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -177,7 +177,7 @@ def get_index_r_1(subdir=context.subdir):
 
 @memoize
 def get_index_r_2(subdir=context.subdir):
-    with open(join(dirname(__file__), 'index2.json')) as fi:
+    with open(join(dirname(__file__), 'data', 'index2.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -202,7 +202,7 @@ def get_index_r_2(subdir=context.subdir):
 
 @memoize
 def get_index_r_3(subdir=context.subdir):
-    with open(join(dirname(__file__), 'index3.json')) as fi:
+    with open(join(dirname(__file__), 'data', 'index3.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -227,7 +227,7 @@ def get_index_r_3(subdir=context.subdir):
 
 @memoize
 def get_index_r_4(subdir=context.subdir):
-    with open(join(dirname(__file__), 'index4.json')) as fi:
+    with open(join(dirname(__file__), 'data', 'index4.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -253,7 +253,7 @@ def get_index_r_4(subdir=context.subdir):
 
 @memoize
 def get_index_r_5(subdir=context.subdir):
-    with open(join(dirname(__file__), 'index5.json')) as fi:
+    with open(join(dirname(__file__), 'data', 'index5.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {

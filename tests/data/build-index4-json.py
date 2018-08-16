@@ -1,4 +1,6 @@
 import json
+from os.path import dirname, join
+
 import requests
 
 
@@ -254,7 +256,7 @@ def main():
 
     keep.update(additional_records)
 
-    with open('index4.json', 'w') as fh:
+    with open(join(dirname(__file__), 'index4.json'), 'w') as fh:
         fh.write(json.dumps(keep, indent=2, sort_keys=True, separators=(',', ': ')))
 
 
