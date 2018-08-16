@@ -11,12 +11,6 @@ def save_data_source(url, name):
         json.dump(json.loads(raw_repodata_str), fh, indent=2, sort_keys=True, separators=(',', ': '))
 
 
-def save_data_sources():
-    save_data_source("https://repo.anaconda.com/pkgs/free/linux-64", "free_linux-64")
-    save_data_source("https://conda.anaconda.org/conda-test/noarch", "conda-test_noarch")
-    save_data_source("https://conda.anaconda.org/conda-test/linux-64", "conda-test_linux-64")
-
-
 def read_data_source(name):
     with open(join(dirname(__file__), "repodata", name + ".json")) as fh:
         return json.load(fh)
@@ -187,5 +181,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # save_data_sources()
+    # save_data_source("https://repo.anaconda.com/pkgs/free/linux-64", "free_linux-64")
+    # save_data_source("https://conda.anaconda.org/conda-test/noarch", "conda-test_noarch")
+    # save_data_source("https://conda.anaconda.org/conda-test/linux-64", "conda-test_linux-64")
     main()

@@ -1,14 +1,24 @@
 import json
 from os.path import dirname, join
+from pprint import pprint
 
-import requests
+from conda.core.subdir_data import fetch_repodata_remote_request
+
+
+def save_data_source(url, name):
+    raw_repodata_str = fetch_repodata_remote_request(url, None, None)
+    json.loads(raw_repodata_str)
+    with open(join(dirname(__file__), "repodata", name + ".json"), 'w') as fh:
+        json.dump(json.loads(raw_repodata_str), fh, indent=2, sort_keys=True, separators=(',', ': '))
+
+
+def read_data_source(name):
+    with open(join(dirname(__file__), "repodata", name + ".json")) as fh:
+        return json.load(fh)
 
 
 def main():
-    r1 = requests.get('https://repo.anaconda.com/pkgs/main/win-64/repodata.json')
-    r1.raise_for_status()
-
-    r1json = r1.json()
+    r1json = read_data_source("main_win-64")
 
     packages = {}
     packages.update(r1json['packages'])
@@ -77,6 +87,15 @@ def main():
         'markupsafe',
         'wincertstore',
 
+        'click',
+        'future',
+        'backports.functools_lru_cache',
+        'cryptography-vectors',
+        'backports',
+
+        'colour',
+        'affine',
+
     )
 
     keep = {}
@@ -92,17 +111,12 @@ def main():
 
     if missing_in_whitelist:
         print(">>> missing <<<")
-        print(missing_in_whitelist)
+        pprint(missing_in_whitelist)
 
-
-    r2 = requests.get('https://conda.anaconda.org/conda-test/noarch/repodata.json')
-    r2.raise_for_status()
-    r2json = r2.json()
+    r2json = read_data_source("conda-test_noarch")
     keep.update(r2json['packages'])
 
-    r3 = requests.get('https://repo.continuum.io/pkgs/main/noarch/repodata.json')
-    r3.raise_for_status()
-    r3json = r3.json()
+    r3json = read_data_source("main_noarch")
     keep.update(r3json['packages'])
 
     # additional_records = {
@@ -139,4 +153,7 @@ def main():
 
 
 if __name__ == "__main__":
+    # save_data_source("https://repo.anaconda.com/pkgs/main/win-64", "main_win-64")
+    # save_data_source("https://conda.anaconda.org/conda-test/noarch", "conda-test_noarch")
+    # save_data_source("https://conda.anaconda.org/main/noarch", "main_noarch")
     main()
