@@ -59,7 +59,8 @@
       "logilab-common 0.61.0",
       "python 2.6*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "0088de1906f23b2e6741aaa8cc2889bc",
     "name": "astroid",
     "size": 147970,
@@ -73,7 +74,8 @@
       "logilab-common 0.61.0",
       "python 2.7*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "332f9d4657123f5ee53ebe1917871aa3",
     "name": "astroid",
     "size": 147717,
@@ -87,7 +89,8 @@
       "logilab-common 0.61.0",
       "python 3.3*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "cb63293fdc7d292e8c401c477413a914",
     "name": "astroid",
     "size": 162171,
@@ -101,7 +104,8 @@
       "logilab-common 0.61.0",
       "python 3.4*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "aefa0f647849bfb27fbe2e9d67119c3c",
     "name": "astroid",
     "size": 155019,
@@ -115,7 +119,8 @@
       "logilab-common 0.61.0",
       "python 2.6*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "929e3c8e096bb31e80cb848ae152c120",
     "name": "astroid",
     "size": 159948,
@@ -129,7 +134,8 @@
       "logilab-common 0.61.0",
       "python 2.7*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "e6bbe4a0b228a7e06970800be859c776",
     "name": "astroid",
     "size": 159562,
@@ -143,7 +149,8 @@
       "logilab-common 0.61.0",
       "python 3.3*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "63f35a32c0a8ca2763beaf4f6c5e85cb",
     "name": "astroid",
     "size": 172935,
@@ -157,7 +164,8 @@
       "logilab-common 0.61.0",
       "python 3.4*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "4894e237f48a3b1af3245887bfde6d89",
     "name": "astroid",
     "size": 163751,
@@ -171,7 +179,8 @@
       "logilab-common 0.61.0",
       "python 2.6*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "110697685fee8634c07e3833aafd57f2",
     "name": "astroid",
     "size": 162776,
@@ -185,7 +194,8 @@
       "logilab-common 0.61.0",
       "python 2.7*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "b05deab8e35d719836a8963e28eb6201",
     "name": "astroid",
     "size": 162176,
@@ -199,7 +209,8 @@
       "logilab-common 0.61.0",
       "python 3.3*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "7c8dd9dcbf020e42a654201d15ccab06",
     "name": "astroid",
     "size": 174861,
@@ -213,7 +224,8 @@
       "logilab-common 0.61.0",
       "python 3.4*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "5ce2e2af131f6be6a80e06fb10dbdfb2",
     "name": "astroid",
     "size": 166129,
@@ -227,7 +239,8 @@
       "logilab-common 0.62.1",
       "python 2.6*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "a4749ce25349ec745bed456f7f14e2d4",
     "name": "astroid",
     "size": 184766,
@@ -241,7 +254,8 @@
       "logilab-common 0.62.1",
       "python 2.7*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "283dd909ead730fc0dff0d54a7135f9b",
     "name": "astroid",
     "size": 183538,
@@ -255,7 +269,8 @@
       "logilab-common 0.62.1",
       "python 3.3*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "59769327c1961a09c3939b2dfc965ade",
     "name": "astroid",
     "size": 196674,
@@ -269,7 +284,8 @@
       "logilab-common 0.62.1",
       "python 3.4*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "c8e11c77fd8feee27d4f5b7a66c4b5b4",
     "name": "astroid",
     "size": 190754,
@@ -283,7 +299,8 @@
       "logilab-common 0.62.1",
       "python 2.6*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "132bc6d5e70ed85447f24bc4c56a7d9c",
     "name": "astroid",
     "size": 188009,
@@ -297,7 +314,8 @@
       "logilab-common 0.62.1",
       "python 2.7*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "bcf65471ec00c471ca88801c10a50cdd",
     "name": "astroid",
     "size": 186932,
@@ -311,7 +329,8 @@
       "logilab-common 0.62.1",
       "python 3.3*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "daa03145d2bdb97d064270af801fd9d9",
     "name": "astroid",
     "size": 199255,
@@ -325,7 +344,8 @@
       "logilab-common 0.62.1",
       "python 3.4*"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "e0c4fa005c3ba72b31b8d54a5273691f",
     "name": "astroid",
     "size": 194030,
@@ -340,7 +360,8 @@
       "python 2.7*",
       "six"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "f251536a9996dd15f7555043f5df7839",
     "name": "astroid",
     "size": 197010,
@@ -355,7 +376,8 @@
       "python 3.3*",
       "six"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "297bf14419224ec04aa24c4c4ec7490a",
     "name": "astroid",
     "size": 206382,
@@ -370,7 +392,8 @@
       "python 3.4*",
       "six"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "683c4143f26a3de1b3aeea23f3f81893",
     "name": "astroid",
     "size": 204744,
@@ -385,7 +408,8 @@
       "python 2.7*",
       "six"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "79f6d086c3eb99c4b5f5f6791c960c68",
     "name": "astroid",
     "size": 210282,
@@ -400,7 +424,8 @@
       "python 3.3*",
       "six"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "3359a0cc79419b46724705f22215e87c",
     "name": "astroid",
     "size": 218805,
@@ -415,7 +440,8 @@
       "python 3.4*",
       "six"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "5788d408806fca726852d277337cb146",
     "name": "astroid",
     "size": 222718,
@@ -430,7 +456,8 @@
       "python 3.5*",
       "six"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "2eb76e271fcec56676973aec4c431c49",
     "name": "astroid",
     "size": 222684,
@@ -449,7 +476,8 @@
       "six",
       "wrapt 1.10.6"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "3b40509c48a7469cde018b8d4e3d3150",
     "name": "astroid",
     "size": 247951,
@@ -466,7 +494,8 @@
       "six",
       "wrapt 1.10.6"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "ac63aed4fded94c1b89419f828bb2960",
     "name": "astroid",
     "size": 263477,
@@ -483,7 +512,8 @@
       "six",
       "wrapt 1.10.6"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "007415c3e3bb2ed8ad9cec0acda911e6",
     "name": "astroid",
     "size": 262518,
@@ -499,7 +529,8 @@
       "six",
       "wrapt"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "91683916e0276efea37ef977d5d11eef",
     "name": "astroid",
     "size": 249557,
@@ -515,7 +546,8 @@
       "six",
       "wrapt"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "9a773336276c691e198dc31db9b4c87c",
     "name": "astroid",
     "size": 264485,
@@ -531,7 +563,8 @@
       "six",
       "wrapt"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "7d836df3955f2c7409626a1a682204ce",
     "name": "astroid",
     "size": 263265,
@@ -547,7 +580,8 @@
       "six",
       "wrapt"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "9a0a4d5f56de32316fe9d767c7c4cd8f",
     "name": "astroid",
     "size": 269789,
@@ -563,7 +597,8 @@
       "six",
       "wrapt"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "cf0e2013b32ecb5465efc9086ce67271",
     "name": "astroid",
     "size": 257077,
@@ -579,7 +614,8 @@
       "six",
       "wrapt"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "f288cf039e0c6d21893390075013a639",
     "name": "astroid",
     "size": 272342,
@@ -595,7 +631,8 @@
       "six",
       "wrapt"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "7f5ab86d85c9b59acc780652da42c030",
     "name": "astroid",
     "size": 271511,
@@ -611,11 +648,71 @@
       "six",
       "wrapt"
     ],
-    "license": "LGPL",
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
     "md5": "2cfa20367dd7b4f4a2c48decc8e038d5",
     "name": "astroid",
     "size": 270889,
     "version": "1.4.9"
+  },
+  "astroid-1.5.3-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-06-20",
+    "depends": [
+      "enum34",
+      "functools_lru_cache",
+      "lazy-object-proxy",
+      "python 2.7*",
+      "setuptools",
+      "singledispatch",
+      "six",
+      "wrapt"
+    ],
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
+    "md5": "127975b44d466f3ce405949271e8fe9b",
+    "name": "astroid",
+    "size": 342897,
+    "version": "1.5.3"
+  },
+  "astroid-1.5.3-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-06-20",
+    "depends": [
+      "lazy-object-proxy",
+      "python 3.5*",
+      "setuptools",
+      "singledispatch",
+      "six",
+      "wrapt"
+    ],
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
+    "md5": "316041e187a1e7cb2e11940f37ae78f1",
+    "name": "astroid",
+    "size": 353257,
+    "version": "1.5.3"
+  },
+  "astroid-1.5.3-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-06-20",
+    "depends": [
+      "lazy-object-proxy",
+      "python 3.6*",
+      "setuptools",
+      "singledispatch",
+      "six",
+      "wrapt"
+    ],
+    "license": "LGPL version 2.1",
+    "license_family": "LGPL",
+    "md5": "084804e5dc272f11ed0bffabc69c32c5",
+    "name": "astroid",
+    "size": 346727,
+    "version": "1.5.3"
   },
   "backports-1.0-py27_0.tar.bz2": {
     "build": "py27_0",
@@ -1573,6 +1670,70 @@
     "name": "bokeh",
     "size": 3979032,
     "version": "0.12.6"
+  },
+  "bokeh-0.12.7-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-29",
+    "depends": [
+      "bkcharts >=0.2",
+      "futures >=3.0.3",
+      "jinja2 >=2.7",
+      "numpy",
+      "python 2.7*",
+      "python-dateutil >=2.1",
+      "pyyaml >=3.10",
+      "requests >=1.2.3",
+      "six >=1.5.2",
+      "tornado >=4.3"
+    ],
+    "license": "BSD",
+    "md5": "1918888fa96e27cd308e74889695b3bb",
+    "name": "bokeh",
+    "size": 4266999,
+    "version": "0.12.7"
+  },
+  "bokeh-0.12.7-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-29",
+    "depends": [
+      "bkcharts >=0.2",
+      "jinja2 >=2.7",
+      "numpy",
+      "python 3.5*",
+      "python-dateutil >=2.1",
+      "pyyaml >=3.10",
+      "requests >=1.2.3",
+      "six >=1.5.2",
+      "tornado >=4.3"
+    ],
+    "license": "BSD",
+    "md5": "d8b6e1eae53b2cc42bcabb9bc973cf95",
+    "name": "bokeh",
+    "size": 4300516,
+    "version": "0.12.7"
+  },
+  "bokeh-0.12.7-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-29",
+    "depends": [
+      "bkcharts >=0.2",
+      "jinja2 >=2.7",
+      "numpy",
+      "python 3.6*",
+      "python-dateutil >=2.1",
+      "pyyaml >=3.10",
+      "requests >=1.2.3",
+      "six >=1.5.2",
+      "tornado >=4.3"
+    ],
+    "license": "BSD",
+    "md5": "22b2377efba78ce56c94ce359f50d653",
+    "name": "bokeh",
+    "size": 4289615,
+    "version": "0.12.7"
   },
   "bokeh-0.2-np17py27_0.tar.bz2": {
     "build": "np17py27_0",
@@ -3192,7 +3353,8 @@
       "jmespath >=0.7.1,<1.0.0",
       "python 2.7*"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "16b97a60f6d044eaf81057a3690ea476",
     "name": "boto3",
     "size": 93240,
@@ -3207,7 +3369,8 @@
       "jmespath >=0.7.1,<1.0.0",
       "python 3.4*"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "d28f4a8319e73c0bf11351681865c700",
     "name": "boto3",
     "size": 95916,
@@ -3222,7 +3385,8 @@
       "jmespath >=0.7.1,<1.0.0",
       "python 3.5*"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "9efb68075cfbabc3a5765daa8385b0b4",
     "name": "boto3",
     "size": 95754,
@@ -3238,7 +3402,8 @@
       "jmespath >=0.7.1,<1.0.0",
       "python 2.7*"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "3d8193fcd2881fcb6205794a1c228139",
     "name": "boto3",
     "size": 96075,
@@ -3253,7 +3418,8 @@
       "jmespath >=0.7.1,<1.0.0",
       "python 3.4*"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "7716a3c98c8752476b69a50cc85fb95e",
     "name": "boto3",
     "size": 99059,
@@ -3268,7 +3434,8 @@
       "jmespath >=0.7.1,<1.0.0",
       "python 3.5*"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "8e30b6b7cea7149de6c60debcdd67706",
     "name": "boto3",
     "size": 98815,
@@ -3284,7 +3451,8 @@
       "jmespath >=0.7.1,<1.0.0",
       "python 2.7*"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "8dceb1478ae8197bfd25d6ae97c7f1e3",
     "name": "boto3",
     "size": 96950,
@@ -3299,7 +3467,8 @@
       "jmespath >=0.7.1,<1.0.0",
       "python 3.4*"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "27d04fa23783b60e4b030b48041e89e9",
     "name": "boto3",
     "size": 99875,
@@ -3314,7 +3483,8 @@
       "jmespath >=0.7.1,<1.0.0",
       "python 3.5*"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "1537c617627d583db22113f3d0554479",
     "name": "boto3",
     "size": 99704,
@@ -3330,7 +3500,8 @@
       "python 2.7*",
       "s3transfer >=0.1.0,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "726f41600cc60b220f67d376119f50eb",
     "name": "boto3",
     "size": 96826,
@@ -3346,7 +3517,8 @@
       "python 3.4*",
       "s3transfer >=0.1.0,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "e936c2210fe1f07e059b7328b2f9a236",
     "name": "boto3",
     "size": 97554,
@@ -3362,7 +3534,8 @@
       "python 3.5*",
       "s3transfer >=0.1.0,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
+    "license_family": "Apache",
     "md5": "9afd75d52d6806ca7593590034efa684",
     "name": "boto3",
     "size": 97349,
@@ -3378,7 +3551,7 @@
       "python 2.7*",
       "s3transfer >=0.1.0,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
     "license_family": "Apache",
     "md5": "5aa0ab22253c100e54dd935c0dcd2449",
     "name": "boto3",
@@ -3395,7 +3568,7 @@
       "python 3.4*",
       "s3transfer >=0.1.0,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
     "license_family": "Apache",
     "md5": "7a991e1c549795064365ed15262e8b46",
     "name": "boto3",
@@ -3412,7 +3585,7 @@
       "python 3.5*",
       "s3transfer >=0.1.0,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
     "license_family": "Apache",
     "md5": "05f9922ea425828642a0e039b9e5080f",
     "name": "boto3",
@@ -3429,7 +3602,7 @@
       "python 2.7*",
       "s3transfer >=0.1.0,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
     "license_family": "Apache",
     "md5": "2452c0317dcae670028939cd1cdcd384",
     "name": "boto3",
@@ -3446,7 +3619,7 @@
       "python 3.4*",
       "s3transfer >=0.1.0,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
     "license_family": "Apache",
     "md5": "9bf7eabe343624bdf26c54e9649aa3ad",
     "name": "boto3",
@@ -3463,7 +3636,7 @@
       "python 3.5*",
       "s3transfer >=0.1.0,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
     "license_family": "Apache",
     "md5": "67f254c2d547ff5731f41b6e0a5a16a8",
     "name": "boto3",
@@ -3480,7 +3653,7 @@
       "python 3.6*",
       "s3transfer >=0.1.0,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
     "license_family": "Apache",
     "md5": "8f71307ae4220210a7e63628bc112e41",
     "name": "boto3",
@@ -3497,7 +3670,7 @@
       "python 2.7*",
       "s3transfer >=0.1.10,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
     "license_family": "Apache",
     "md5": "e62f3f4a1f58690f84a5d041332f9569",
     "name": "boto3",
@@ -3514,7 +3687,7 @@
       "python 3.5*",
       "s3transfer >=0.1.10,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
     "license_family": "Apache",
     "md5": "b49b968114deebcf0e47e12892510206",
     "name": "boto3",
@@ -3531,12 +3704,63 @@
       "python 3.6*",
       "s3transfer >=0.1.10,<0.2.0"
     ],
-    "license": "Apache",
+    "license": "Apache 2.0",
     "license_family": "Apache",
     "md5": "1c9aac35564697cd4993ab59fe027ad4",
     "name": "boto3",
     "size": 112750,
     "version": "1.4.4"
+  },
+  "boto3-1.4.5-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-03",
+    "depends": [
+      "botocore >=1.5.0,<1.6.0",
+      "jmespath >=0.7.1,<1.0.0",
+      "python 2.7*",
+      "s3transfer >=0.1.10,<0.2.0"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "ccd7b2de76313e2db3d96d4e521928f5",
+    "name": "boto3",
+    "size": 108160,
+    "version": "1.4.5"
+  },
+  "boto3-1.4.5-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-03",
+    "depends": [
+      "botocore >=1.5.0,<1.6.0",
+      "jmespath >=0.7.1,<1.0.0",
+      "python 3.5*",
+      "s3transfer >=0.1.10,<0.2.0"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "937e2723de4c2173f287ae341c742420",
+    "name": "boto3",
+    "size": 113959,
+    "version": "1.4.5"
+  },
+  "boto3-1.4.5-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-03",
+    "depends": [
+      "botocore >=1.5.0,<1.6.0",
+      "jmespath >=0.7.1,<1.0.0",
+      "python 3.6*",
+      "s3transfer >=0.1.10,<0.2.0"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "48dfaf5fd04fff40db6aee8c11959747",
+    "name": "boto3",
+    "size": 113527,
+    "version": "1.4.5"
   },
   "botocore-1.3.23-py27_0.tar.bz2": {
     "build": "py27_0",
@@ -4880,6 +5104,108 @@
     "name": "botocore",
     "size": 2549338,
     "version": "1.5.61"
+  },
+  "botocore-1.5.67-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-06-14",
+    "depends": [
+      "docutils >=0.10",
+      "jmespath >=0.7.1,<1.0.0",
+      "python 2.7*",
+      "python-dateutil >=2.1,<3.0.0"
+    ],
+    "license": "Apache License 2.0",
+    "license_family": "Apache",
+    "md5": "51a060e3c707436b10466a041f926b3d",
+    "name": "botocore",
+    "size": 2530811,
+    "version": "1.5.67"
+  },
+  "botocore-1.5.67-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-06-14",
+    "depends": [
+      "docutils >=0.10",
+      "jmespath >=0.7.1,<1.0.0",
+      "python 3.5*",
+      "python-dateutil >=2.1,<3.0.0"
+    ],
+    "license": "Apache License 2.0",
+    "license_family": "Apache",
+    "md5": "d83f7af1f41b6c1cb6c8cd0d54134e38",
+    "name": "botocore",
+    "size": 2588597,
+    "version": "1.5.67"
+  },
+  "botocore-1.5.67-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-06-14",
+    "depends": [
+      "docutils >=0.10",
+      "jmespath >=0.7.1,<1.0.0",
+      "python 3.6*",
+      "python-dateutil >=2.1,<3.0.0"
+    ],
+    "license": "Apache License 2.0",
+    "license_family": "Apache",
+    "md5": "66526148f0cd67052177d93514a745c8",
+    "name": "botocore",
+    "size": 2573711,
+    "version": "1.5.67"
+  },
+  "botocore-1.5.92-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-03",
+    "depends": [
+      "docutils >=0.10",
+      "jmespath >=0.7.1,<1.0.0",
+      "python 2.7*",
+      "python-dateutil >=2.1,<3.0.0"
+    ],
+    "license": "Apache License 2.0",
+    "license_family": "Apache",
+    "md5": "347be40d48427eadf3da079d4a162832",
+    "name": "botocore",
+    "size": 2598411,
+    "version": "1.5.92"
+  },
+  "botocore-1.5.92-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-03",
+    "depends": [
+      "docutils >=0.10",
+      "jmespath >=0.7.1,<1.0.0",
+      "python 3.5*",
+      "python-dateutil >=2.1,<3.0.0"
+    ],
+    "license": "Apache License 2.0",
+    "license_family": "Apache",
+    "md5": "0ad218f61ecb09f0fe27ac13067cd9ca",
+    "name": "botocore",
+    "size": 2609500,
+    "version": "1.5.92"
+  },
+  "botocore-1.5.92-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-03",
+    "depends": [
+      "docutils >=0.10",
+      "jmespath >=0.7.1,<1.0.0",
+      "python 3.6*",
+      "python-dateutil >=2.1,<3.0.0"
+    ],
+    "license": "Apache License 2.0",
+    "license_family": "Apache",
+    "md5": "3c3becdc3f257cd25798b789058fa070",
+    "name": "botocore",
+    "size": 2586811,
+    "version": "1.5.92"
   },
   "certifi-14.05.14-py26_0.tar.bz2": {
     "build": "py26_0",
@@ -6816,6 +7142,45 @@
     "name": "cloudpickle",
     "size": 21191,
     "version": "0.2.2"
+  },
+  "cloudpickle-0.4.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-14",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "dc3af055d00078b429d16e61ac1308aa",
+    "name": "cloudpickle",
+    "size": 23978,
+    "version": "0.4.0"
+  },
+  "cloudpickle-0.4.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-14",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "a1c6af2e96eddaf744a55b3981e3338f",
+    "name": "cloudpickle",
+    "size": 24336,
+    "version": "0.4.0"
+  },
+  "cloudpickle-0.4.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-14",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "39de18ff027e31dc408907a1f9b70cdf",
+    "name": "cloudpickle",
+    "size": 24272,
+    "version": "0.4.0"
   },
   "colorama-0.2.7-py26_0.tar.bz2": {
     "build": "py26_0",
@@ -13238,6 +13603,433 @@
     "size": 519791,
     "version": "4.3.21"
   },
+  "conda-4.3.22-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-06-12",
+    "depends": [
+      "conda-env >=2.6",
+      "enum34",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 2.7*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "bcdbd6dbab893acd707c6e7f906a9c6b",
+    "name": "conda",
+    "size": 505217,
+    "version": "4.3.22"
+  },
+  "conda-4.3.22-py34_0.tar.bz2": {
+    "build": "py34_0",
+    "build_number": 0,
+    "date": "2017-06-12",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 3.4*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "f6eeab1f2d296e83c595e7a40b1dd394",
+    "name": "conda",
+    "size": 531242,
+    "version": "4.3.22"
+  },
+  "conda-4.3.22-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-06-12",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 3.5*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "3954c1718100d44919a656d05397afcb",
+    "name": "conda",
+    "size": 528513,
+    "version": "4.3.22"
+  },
+  "conda-4.3.22-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-06-12",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 3.6*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "9bc4d011efa8227fbc0f9c49f0055e26",
+    "name": "conda",
+    "size": 521471,
+    "version": "4.3.22"
+  },
+  "conda-4.3.23-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-24",
+    "depends": [
+      "conda-env >=2.6",
+      "enum34",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2.0",
+      "python 2.7*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "bc4667ddfaeb35c209c3dbd103b31d46",
+    "name": "conda",
+    "size": 519271,
+    "version": "4.3.23"
+  },
+  "conda-4.3.23-py34_0.tar.bz2": {
+    "build": "py34_0",
+    "build_number": 0,
+    "date": "2017-07-25",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2.0",
+      "python 3.4*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "e7395e6a7a210908700197043cae30e2",
+    "name": "conda",
+    "size": 530355,
+    "version": "4.3.23"
+  },
+  "conda-4.3.23-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-24",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2.0",
+      "python 3.5*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "955ffec26beb4cfd2848d8a18b00c355",
+    "name": "conda",
+    "size": 527869,
+    "version": "4.3.23"
+  },
+  "conda-4.3.23-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-24",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2.0",
+      "python 3.6*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "37fb999876fbb0a052762b778af55d06",
+    "name": "conda",
+    "size": 523034,
+    "version": "4.3.23"
+  },
+  "conda-4.3.24-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-31",
+    "depends": [
+      "conda-env >=2.6",
+      "enum34",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 2.7*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "3d8ca5240f0b87e23d95828b51772eb4",
+    "name": "conda",
+    "size": 505096,
+    "version": "4.3.24"
+  },
+  "conda-4.3.24-py34_0.tar.bz2": {
+    "build": "py34_0",
+    "build_number": 0,
+    "date": "2017-07-31",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 3.4*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "78208baa93eb05d667295e78da33401f",
+    "name": "conda",
+    "size": 531160,
+    "version": "4.3.24"
+  },
+  "conda-4.3.24-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-31",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 3.5*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "59d25d5ccee2044e5e3478a6b31c44ff",
+    "name": "conda",
+    "size": 528891,
+    "version": "4.3.24"
+  },
+  "conda-4.3.24-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-31",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 3.6*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "5cbadd5f3399a74988e404633e53f716",
+    "name": "conda",
+    "size": 520598,
+    "version": "4.3.24"
+  },
+  "conda-4.3.25-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-16",
+    "depends": [
+      "conda-env >=2.6",
+      "enum34",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 2.7*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "2f9caf5f70fd49eec0bf7e78dcad01cd",
+    "name": "conda",
+    "size": 506170,
+    "version": "4.3.25"
+  },
+  "conda-4.3.25-py34_0.tar.bz2": {
+    "build": "py34_0",
+    "build_number": 0,
+    "date": "2017-08-16",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 3.4*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "48547f326dafd00810e57be0324620d6",
+    "name": "conda",
+    "size": 531448,
+    "version": "4.3.25"
+  },
+  "conda-4.3.25-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-16",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 3.5*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "aeb44eeed98746060a81fdfddf17547e",
+    "name": "conda",
+    "size": 528810,
+    "version": "4.3.25"
+  },
+  "conda-4.3.25-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-16",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2",
+      "python 3.6*",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "8d185c8a60c4355566b5ff01a5f2ba06",
+    "name": "conda",
+    "size": 522183,
+    "version": "4.3.25"
+  },
+  "conda-4.3.27-py27hff99c7a_0.tar.bz2": {
+    "build": "py27hff99c7a_0",
+    "build_number": 0,
+    "date": "2017-09-22",
+    "depends": [
+      "conda-env >=2.6",
+      "enum34",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2.0",
+      "python >=2.7,<2.8.0a0",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "fcf31f31ff9c639b176d0cae4d119071",
+    "name": "conda",
+    "size": 519692,
+    "timestamp": 1506080072319,
+    "version": "4.3.27"
+  },
+  "conda-4.3.27-py35h1706b01_0.tar.bz2": {
+    "build": "py35h1706b01_0",
+    "build_number": 0,
+    "date": "2017-09-22",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2.0",
+      "python >=3.5,<3.6.0a0",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "c6339a57edde101313f44ad80732925a",
+    "name": "conda",
+    "size": 527710,
+    "timestamp": 1506080093174,
+    "version": "4.3.27"
+  },
+  "conda-4.3.27-py36h2866c0b_0.tar.bz2": {
+    "build": "py36h2866c0b_0",
+    "build_number": 0,
+    "date": "2017-09-22",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2.0",
+      "python >=3.6,<3.7.0a0",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "5a51e317f9507e86511bdb472a2ebfad",
+    "name": "conda",
+    "size": 523175,
+    "timestamp": 1506080114791,
+    "version": "4.3.27"
+  },
+  "conda-4.3.30-py27h6ae6dc7_0.tar.bz2": {
+    "build": "py27h6ae6dc7_0",
+    "build_number": 0,
+    "date": "2017-10-17",
+    "depends": [
+      "conda-env >=2.6",
+      "enum34",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2.0",
+      "python >=2.7,<2.8.0a0",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "cb78a85049bfa4f0cbae25f61b660485",
+    "name": "conda",
+    "size": 519462,
+    "timestamp": 1508271588500,
+    "version": "4.3.30"
+  },
+  "conda-4.3.30-py34h69bfab2_0.tar.bz2": {
+    "build": "py34h69bfab2_0",
+    "build_number": 0,
+    "date": "2017-10-17",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2.0",
+      "python >=3.4,<3.5.0a0",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "1ecfc669916182c451ab2fbe1a77de02",
+    "name": "conda",
+    "size": 531126,
+    "timestamp": 1508271577660,
+    "version": "4.3.30"
+  },
+  "conda-4.3.30-py35hf9359ed_0.tar.bz2": {
+    "build": "py35hf9359ed_0",
+    "build_number": 0,
+    "date": "2017-10-17",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2.0",
+      "python >=3.5,<3.6.0a0",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "081dcf18d1291f82483b7c108e1361f3",
+    "name": "conda",
+    "size": 528857,
+    "timestamp": 1508271605880,
+    "version": "4.3.30"
+  },
+  "conda-4.3.30-py36h5d9f9f4_0.tar.bz2": {
+    "build": "py36h5d9f9f4_0",
+    "build_number": 0,
+    "date": "2017-10-17",
+    "depends": [
+      "conda-env >=2.6",
+      "pycosat >=0.6.1",
+      "pyopenssl >=16.2.0",
+      "python >=3.6,<3.7.0a0",
+      "requests >=2.12.4",
+      "ruamel_yaml >=0.11.14"
+    ],
+    "license": "BSD",
+    "md5": "4074a41829c87c39bcf39c6233de8b42",
+    "name": "conda",
+    "size": 523765,
+    "timestamp": 1508271608124,
+    "version": "4.3.30"
+  },
   "conda-4.3.4-py27_0.tar.bz2": {
     "build": "py27_0",
     "build_number": 0,
@@ -14464,6 +15256,7 @@
     "license": "BSD",
     "md5": "2960d60b70d36823df7d9daea41decd0",
     "name": "conda-env",
+    "namespace": "python",
     "size": 502,
     "version": "2.6.0"
   },
@@ -14476,7 +15269,8 @@
       "python 2.6*",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "dde7af1ec74df66e0443b9322eb90e27",
     "name": "cryptography",
     "size": 602603,
@@ -14491,7 +15285,8 @@
       "python 2.7*",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "29ddd69ca2da998ac153990cabf07e5f",
     "name": "cryptography",
     "size": 602275,
@@ -14506,7 +15301,8 @@
       "python 3.3*",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "cfc17fef05c633110ff3971da1131b05",
     "name": "cryptography",
     "size": 607259,
@@ -14521,7 +15317,8 @@
       "python 3.4*",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "607f23cd33d53291afd7047617e5715f",
     "name": "cryptography",
     "size": 619037,
@@ -14536,7 +15333,8 @@
       "python 2.6*",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "0d427133095334332f641f5d3b52f85f",
     "name": "cryptography",
     "size": 622050,
@@ -14551,7 +15349,8 @@
       "python 2.7*",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "84b0a77a2099f517f5b02ba3193e8e85",
     "name": "cryptography",
     "size": 622949,
@@ -14566,7 +15365,8 @@
       "python 3.3*",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "d6bd8bc2b5a35d978deb49f27bf8b386",
     "name": "cryptography",
     "size": 627816,
@@ -14581,7 +15381,8 @@
       "python 3.4*",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "93a92b5246720404fb2d7bad950a32ab",
     "name": "cryptography",
     "size": 638567,
@@ -14599,7 +15400,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "4a8de8e12d355f3bdb03a2e9afc23a76",
     "name": "cryptography",
     "size": 719090,
@@ -14617,7 +15419,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "c1fc7253ededdc2f4d295840f6d0836f",
     "name": "cryptography",
     "size": 723792,
@@ -14635,7 +15438,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "54207f00f860d67dba931b8a9a744eae",
     "name": "cryptography",
     "size": 725342,
@@ -14652,7 +15456,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "181c8e72ff37e1a6cdfe1b9b8ff9e056",
     "name": "cryptography",
     "size": 743652,
@@ -14670,7 +15475,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "f64cc3f7652e3adaa547e8b5b6138ab7",
     "name": "cryptography",
     "size": 718791,
@@ -14688,7 +15494,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "e0214ccc5086421614a3fc24bd8b1931",
     "name": "cryptography",
     "size": 723977,
@@ -14706,7 +15513,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "5f05f06cb34f4a831d1b5e8bcfa31303",
     "name": "cryptography",
     "size": 725217,
@@ -14723,7 +15531,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "391f5a2db8dba141a907c6d95d7ff4c6",
     "name": "cryptography",
     "size": 747339,
@@ -14741,7 +15550,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "e35075b9e7c82866126a9af71abb5623",
     "name": "cryptography",
     "size": 718922,
@@ -14759,7 +15569,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "b7b4446dc0bdf2b00ea4ec5f27bd66d2",
     "name": "cryptography",
     "size": 724046,
@@ -14777,7 +15588,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "946a1ae5f01a5d0f2363a3e079cd7ec4",
     "name": "cryptography",
     "size": 725397,
@@ -14794,7 +15606,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "5c700d13dfab27e27fbc16d0f8e55cac",
     "name": "cryptography",
     "size": 747533,
@@ -14814,7 +15627,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "bfeace2b1edaf2eaa83488e8a4ef274a",
     "name": "cryptography",
     "size": 779900,
@@ -14834,7 +15648,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "2a11689d8c6422b99b507e075d3e5d25",
     "name": "cryptography",
     "size": 781412,
@@ -14853,7 +15668,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "7a18f936fd34a4fea964fa2db2969df1",
     "name": "cryptography",
     "size": 791984,
@@ -14871,7 +15687,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "65ab09054ca71762c79152b41a08ad0f",
     "name": "cryptography",
     "size": 805979,
@@ -14891,7 +15708,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "99a1fcc24710a80edf374f7c4f3862a5",
     "name": "cryptography",
     "size": 779659,
@@ -14911,7 +15729,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "b7b73c599a00b5af77eaaab46f002efa",
     "name": "cryptography",
     "size": 781566,
@@ -14930,7 +15749,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "06a129f0e33805a372f4625809ef9269",
     "name": "cryptography",
     "size": 791910,
@@ -14948,7 +15768,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "df1e9c051ef782e53d3b5e388712dc7a",
     "name": "cryptography",
     "size": 806049,
@@ -14968,7 +15789,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "caace55736f58a402a415abb7e6d86e3",
     "name": "cryptography",
     "size": 777733,
@@ -14988,7 +15810,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "ff71998835dcf0bbb666db939bd4e266",
     "name": "cryptography",
     "size": 778234,
@@ -15007,7 +15830,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "d47cae41c0187c81c531dcb6346747f6",
     "name": "cryptography",
     "size": 782420,
@@ -15025,7 +15849,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "0b46cb05e040032fe10fb7b413b51ac3",
     "name": "cryptography",
     "size": 806194,
@@ -15043,7 +15868,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "b01a39e5f5e98c03f6e68c153979f610",
     "name": "cryptography",
     "size": 806563,
@@ -15063,7 +15889,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "1c4529e4ab79bb70151bf721bf912753",
     "name": "cryptography",
     "size": 839764,
@@ -15081,7 +15908,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "6f59122a786cedd025b66726f1957ac9",
     "name": "cryptography",
     "size": 845231,
@@ -15099,7 +15927,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "1f623176070ef3764db1f8815b235809",
     "name": "cryptography",
     "size": 845734,
@@ -15119,7 +15948,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "2bc942cff0a09c636a20722c57dabedf",
     "name": "cryptography",
     "size": 839317,
@@ -15137,7 +15967,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "1fc7228789944a53aa97ead3a3a15632",
     "name": "cryptography",
     "size": 844893,
@@ -15155,7 +15986,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "003c012e370a42912d25e5d346f3baf1",
     "name": "cryptography",
     "size": 845517,
@@ -15175,7 +16007,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "78493a2d615452a9421de68594e3df9a",
     "name": "cryptography",
     "size": 876033,
@@ -15193,7 +16026,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "4d7794fa34b942528893974373c8efef",
     "name": "cryptography",
     "size": 881203,
@@ -15211,7 +16045,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "d910845cce8723a084cefd2b97471517",
     "name": "cryptography",
     "size": 881701,
@@ -15231,7 +16066,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "bb6bac4220c6a0adde4b2d1d1c5f9099",
     "name": "cryptography",
     "size": 893738,
@@ -15249,7 +16085,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "491644390d5d9e5fe91426fd131d264f",
     "name": "cryptography",
     "size": 897585,
@@ -15267,7 +16104,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "28f70296ee6792fc1d465b910483bf4a",
     "name": "cryptography",
     "size": 897945,
@@ -15287,7 +16125,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "bcc6dfbcbc1e9edd5fa7528db3f34d1d",
     "name": "cryptography",
     "size": 894313,
@@ -15305,7 +16144,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "1a225e2f131456eabfedaaf0723ae751",
     "name": "cryptography",
     "size": 899075,
@@ -15323,7 +16163,8 @@
       "setuptools",
       "six"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "15a15481756bd3b1985b9c62499d658d",
     "name": "cryptography",
     "size": 898847,
@@ -15344,7 +16185,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "e67cd4d77290612a3dbfc0e1bb802787",
     "name": "cryptography",
     "size": 894705,
@@ -15363,7 +16205,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "7da26151da33d53809b9ecc36f36d186",
     "name": "cryptography",
     "size": 899824,
@@ -15382,7 +16225,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "b985b7076dec5606e82e02a2035c3ba0",
     "name": "cryptography",
     "size": 899986,
@@ -15403,7 +16247,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "4440592638b2e14d271974e652df2913",
     "name": "cryptography",
     "size": 920101,
@@ -15422,7 +16267,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "49e3a8b3371e15e484b9bae597f6d772",
     "name": "cryptography",
     "size": 924509,
@@ -15441,7 +16287,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "fd754abcdd6d9da5aeaba9c40b329a8f",
     "name": "cryptography",
     "size": 924483,
@@ -15462,7 +16309,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "3e84f44595ea5f5f6fbf2f7b31fb5800",
     "name": "cryptography",
     "size": 910316,
@@ -15481,7 +16329,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "3b3f059afe174cae28a12e0c8f8b3fce",
     "name": "cryptography",
     "size": 915218,
@@ -15500,7 +16349,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "ae760f12eab48ce835e5a65ca2d9015c",
     "name": "cryptography",
     "size": 913913,
@@ -15521,7 +16371,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "081333932117698a621f6f577a813c13",
     "name": "cryptography",
     "size": 827403,
@@ -15540,7 +16391,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "01911846fb2ae9a3e3593147b93bb757",
     "name": "cryptography",
     "size": 819767,
@@ -15559,7 +16411,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "42f6b84514695f9e550caa04cfecaff2",
     "name": "cryptography",
     "size": 818060,
@@ -15580,7 +16433,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "af03c1cde0584396f9422324701f6136",
     "name": "cryptography",
     "size": 829309,
@@ -15599,7 +16453,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "ab290b90405092f442c1119b9b6536fa",
     "name": "cryptography",
     "size": 821420,
@@ -15618,7 +16473,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "e9eaded46812e595886320266c7b022f",
     "name": "cryptography",
     "size": 819057,
@@ -15639,7 +16495,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "5891b1c461141b161e151b00c1f5823f",
     "name": "cryptography",
     "size": 856967,
@@ -15658,7 +16515,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "631af113279679c95b42a26fb6748ea6",
     "name": "cryptography",
     "size": 853565,
@@ -15677,7 +16535,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "ce5e363fdc12bb63e694ca9d77f80a58",
     "name": "cryptography",
     "size": 850720,
@@ -15698,7 +16557,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "53008a7e8ef3540d47f85d333c7e5c40",
     "name": "cryptography",
     "size": 868626,
@@ -15717,7 +16577,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "a52e9a09fc75fd63140dfc1ad86809aa",
     "name": "cryptography",
     "size": 864520,
@@ -15736,7 +16597,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "d617cead3ba718ed2351eb0a71fb9ebd",
     "name": "cryptography",
     "size": 862003,
@@ -15755,7 +16617,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "4159cc727d0d862bd67ee8d1664b7b13",
     "name": "cryptography",
     "size": 863093,
@@ -15777,7 +16640,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "aee6f5c6766c589dcec2ff252043126e",
     "name": "cryptography",
     "size": 870175,
@@ -15797,7 +16661,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "1f760433deb43989aa7ad0570fba073d",
     "name": "cryptography",
     "size": 867418,
@@ -15817,7 +16682,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "342375e108d886ce9511437d24307492",
     "name": "cryptography",
     "size": 866367,
@@ -15837,7 +16703,8 @@
       "setuptools",
       "six >=1.4.1"
     ],
-    "license": "Apache",
+    "license": "Apache and BSD",
+    "license_family": "Apache",
     "md5": "df22c1437512cc8a56b93cd84654d577",
     "name": "cryptography",
     "size": 865871,
@@ -16596,6 +17463,120 @@
     "name": "dask",
     "size": 892192,
     "version": "0.15.0"
+  },
+  "dask-0.15.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-16",
+    "depends": [
+      "bokeh",
+      "cloudpickle >=0.2.1",
+      "numpy",
+      "pandas >=0.19.0",
+      "partd >=0.3.8",
+      "python 2.7*",
+      "toolz >=0.7.3"
+    ],
+    "license": "BSD",
+    "md5": "fa148376801649a83ae3b22c5d30ec6e",
+    "name": "dask",
+    "size": 864300,
+    "version": "0.15.1"
+  },
+  "dask-0.15.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-16",
+    "depends": [
+      "bokeh",
+      "cloudpickle >=0.2.1",
+      "numpy",
+      "pandas >=0.19.0",
+      "partd >=0.3.8",
+      "python 3.5*",
+      "toolz >=0.7.3"
+    ],
+    "license": "BSD",
+    "md5": "b83d63eca707e6660a4f2973bf0bc6e4",
+    "name": "dask",
+    "size": 903908,
+    "version": "0.15.1"
+  },
+  "dask-0.15.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-16",
+    "depends": [
+      "bokeh",
+      "cloudpickle >=0.2.1",
+      "numpy",
+      "pandas >=0.19.0",
+      "partd >=0.3.8",
+      "python 3.6*",
+      "toolz >=0.7.3"
+    ],
+    "license": "BSD",
+    "md5": "4c945f05811c42fd76513718b3394247",
+    "name": "dask",
+    "size": 896102,
+    "version": "0.15.1"
+  },
+  "dask-0.15.2-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-28",
+    "depends": [
+      "bokeh",
+      "cloudpickle >=0.2.1",
+      "numpy",
+      "pandas >=0.19.0",
+      "partd >=0.3.8",
+      "python 2.7*",
+      "toolz >=0.7.3"
+    ],
+    "license": "BSD",
+    "md5": "a3c9d8af5d9c4a731dc6a967b79c6377",
+    "name": "dask",
+    "size": 879891,
+    "version": "0.15.2"
+  },
+  "dask-0.15.2-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-28",
+    "depends": [
+      "bokeh",
+      "cloudpickle >=0.2.1",
+      "numpy",
+      "pandas >=0.19.0",
+      "partd >=0.3.8",
+      "python 3.5*",
+      "toolz >=0.7.3"
+    ],
+    "license": "BSD",
+    "md5": "cac9206c88fe478f8fb13cd1039d9a6f",
+    "name": "dask",
+    "size": 917780,
+    "version": "0.15.2"
+  },
+  "dask-0.15.2-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-28",
+    "depends": [
+      "bokeh",
+      "cloudpickle >=0.2.1",
+      "numpy",
+      "pandas >=0.19.0",
+      "partd >=0.3.8",
+      "python 3.6*",
+      "toolz >=0.7.3"
+    ],
+    "license": "BSD",
+    "md5": "74759d7e95fe039c49c2be46aa4bfb43",
+    "name": "dask",
+    "size": 913833,
+    "version": "0.15.2"
   },
   "dask-0.3.0-np19py26_0.tar.bz2": {
     "build": "np19py26_0",
@@ -18151,6 +19132,45 @@
     "name": "decorator",
     "size": 7174,
     "version": "4.0.9"
+  },
+  "decorator-4.1.2-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-28",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "94c7fa7039d8a0f50804043ee65152c5",
+    "name": "decorator",
+    "size": 14553,
+    "version": "4.1.2"
+  },
+  "decorator-4.1.2-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-28",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "3e16e7903d5df517ceba2c05e5846886",
+    "name": "decorator",
+    "size": 14815,
+    "version": "4.1.2"
+  },
+  "decorator-4.1.2-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-28",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "aed24c160dc2d5357a8746313c21d86b",
+    "name": "decorator",
+    "size": 14733,
+    "version": "4.1.2"
   },
   "dill-0.2.2-py26_0.tar.bz2": {
     "build": "py26_0",
@@ -20512,6 +21532,235 @@
     "size": 617638,
     "version": "1.17.0"
   },
+  "distributed-1.17.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-06-15",
+    "depends": [
+      "bokeh >=0.12.3",
+      "click >=6.6",
+      "cloudpickle >=0.2.2",
+      "msgpack-python",
+      "psutil",
+      "python 2.7*",
+      "six",
+      "sortedcontainers",
+      "tblib",
+      "toolz >=0.7.4",
+      "tornado >=4.2",
+      "zict >=0.1.2"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "6763c867a0e10e25cbb83684eecbb917",
+    "name": "distributed",
+    "size": 601039,
+    "version": "1.17.1"
+  },
+  "distributed-1.17.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-06-15",
+    "depends": [
+      "bokeh >=0.12.3",
+      "click >=6.6",
+      "cloudpickle >=0.2.2",
+      "msgpack-python",
+      "psutil",
+      "python 3.5*",
+      "six",
+      "sortedcontainers",
+      "tblib",
+      "toolz >=0.7.4",
+      "tornado >=4.2",
+      "zict >=0.1.2"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "a7c3f5157cf3d46e833cc08e159de6af",
+    "name": "distributed",
+    "size": 626985,
+    "version": "1.17.1"
+  },
+  "distributed-1.17.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-06-15",
+    "depends": [
+      "bokeh >=0.12.3",
+      "click >=6.6",
+      "cloudpickle >=0.2.2",
+      "msgpack-python",
+      "psutil",
+      "python 3.6*",
+      "six",
+      "sortedcontainers",
+      "tblib",
+      "toolz >=0.7.4",
+      "tornado >=4.2",
+      "zict >=0.1.2"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "5c6f4765b16b1f553bfe102a31a75f2e",
+    "name": "distributed",
+    "size": 617908,
+    "version": "1.17.1"
+  },
+  "distributed-1.18.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-16",
+    "depends": [
+      "bokeh >=0.12.3",
+      "click >=6.6",
+      "cloudpickle >=0.2.2",
+      "futures",
+      "msgpack-python",
+      "psutil",
+      "python 2.7*",
+      "singledispatch",
+      "six",
+      "sortedcontainers",
+      "tblib",
+      "toolz >=0.7.4",
+      "tornado >=4.4",
+      "zict >=0.1.2"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "90b79fa78623c5e7db1d8596c682f9ad",
+    "name": "distributed",
+    "size": 622253,
+    "version": "1.18.0"
+  },
+  "distributed-1.18.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-16",
+    "depends": [
+      "bokeh >=0.12.3",
+      "click >=6.6",
+      "cloudpickle >=0.2.2",
+      "msgpack-python",
+      "psutil",
+      "python 3.5*",
+      "six",
+      "sortedcontainers",
+      "tblib",
+      "toolz >=0.7.4",
+      "tornado >=4.4",
+      "zict >=0.1.2"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "d0c3b75432a2037425478d76ba0870bc",
+    "name": "distributed",
+    "size": 646690,
+    "version": "1.18.0"
+  },
+  "distributed-1.18.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-16",
+    "depends": [
+      "bokeh >=0.12.3",
+      "click >=6.6",
+      "cloudpickle >=0.2.2",
+      "msgpack-python",
+      "psutil",
+      "python 3.6*",
+      "six",
+      "sortedcontainers",
+      "tblib",
+      "toolz >=0.7.4",
+      "tornado >=4.4",
+      "zict >=0.1.2"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "82b9c0f86b97afcfdec11222db6f0457",
+    "name": "distributed",
+    "size": 639918,
+    "version": "1.18.0"
+  },
+  "distributed-1.18.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-28",
+    "depends": [
+      "bokeh >=0.12.3",
+      "click >=6.6",
+      "cloudpickle >=0.2.2",
+      "futures",
+      "msgpack-python",
+      "psutil",
+      "python 2.7*",
+      "singledispatch",
+      "six",
+      "sortedcontainers",
+      "tblib",
+      "toolz >=0.7.4",
+      "tornado >=4.4.3",
+      "zict >=0.1.2"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "f73c8c1ce1fbeddc3a8aea35a80472d7",
+    "name": "distributed",
+    "size": 640267,
+    "version": "1.18.1"
+  },
+  "distributed-1.18.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-28",
+    "depends": [
+      "bokeh >=0.12.3",
+      "click >=6.6",
+      "cloudpickle >=0.2.2",
+      "msgpack-python",
+      "psutil",
+      "python 3.5*",
+      "six",
+      "sortedcontainers",
+      "tblib",
+      "toolz >=0.7.4",
+      "tornado >=4.4.3",
+      "zict >=0.1.2"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "69856ebdba8186f28a8c1d39f2b9843c",
+    "name": "distributed",
+    "size": 669105,
+    "version": "1.18.1"
+  },
+  "distributed-1.18.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-28",
+    "depends": [
+      "bokeh >=0.12.3",
+      "click >=6.6",
+      "cloudpickle >=0.2.2",
+      "msgpack-python",
+      "psutil",
+      "python 3.6*",
+      "six",
+      "sortedcontainers",
+      "tblib",
+      "toolz >=0.7.4",
+      "tornado >=4.4.3",
+      "zict >=0.1.2"
+    ],
+    "license": "BSD 3-Clause",
+    "license_family": "BSD",
+    "md5": "8b6f0659b0f4fd6799a1574af527a5d5",
+    "name": "distributed",
+    "size": 657831,
+    "version": "1.18.1"
+  },
   "distributed-1.8.1-py27_0.tar.bz2": {
     "build": "py27_0",
     "build_number": 0,
@@ -21196,6 +22445,48 @@
     "name": "docutils",
     "size": 711877,
     "version": "0.13.1"
+  },
+  "docutils-0.14-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-10",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "Public-Domain, PSF, 2-clause BSD, GPLv3",
+    "license_family": "GPL3",
+    "md5": "0fd74b698c671cb89411f1643e40cbe1",
+    "name": "docutils",
+    "size": 702532,
+    "version": "0.14"
+  },
+  "docutils-0.14-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-10",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "Public-Domain, PSF, 2-clause BSD, GPLv3",
+    "license_family": "GPL3",
+    "md5": "24ad8842c4faecee2409a4e517dc2892",
+    "name": "docutils",
+    "size": 730853,
+    "version": "0.14"
+  },
+  "docutils-0.14-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-10",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "Public-Domain, PSF, 2-clause BSD, GPLv3",
+    "license_family": "GPL3",
+    "md5": "cdd5ba4ba80176b4ffe5e568a071e259",
+    "name": "docutils",
+    "size": 722629,
+    "version": "0.14"
   },
   "docutils-0.9.1-py26_0.tar.bz2": {
     "build": "py26_0",
@@ -21995,6 +23286,33 @@
     "name": "funcsigs",
     "size": 17992,
     "version": "1.0.2"
+  },
+  "funcsigs-1.0.2-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-06-21",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "Apache",
+    "md5": "832288383a7400405c55167d0a0aaa5f",
+    "name": "funcsigs",
+    "size": 20654,
+    "version": "1.0.2"
+  },
+  "functools_lru_cache-1.4-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-06-20",
+    "depends": [
+      "backports",
+      "python 2.7*"
+    ],
+    "license": "MIT",
+    "md5": "9fa884f50b15feef1e720f0afcd0bc92",
+    "name": "functools_lru_cache",
+    "size": 8694,
+    "version": "1.4"
   },
   "futures-2.1.6-py26_0.tar.bz2": {
     "build": "py26_0",
@@ -23699,6 +25017,58 @@
     "name": "idna",
     "size": 123781,
     "version": "2.5"
+  },
+  "idna-2.6-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-14",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "b52deed1b644124846541d5116c52c74",
+    "name": "idna",
+    "size": 124753,
+    "version": "2.6"
+  },
+  "idna-2.6-py34_0.tar.bz2": {
+    "build": "py34_0",
+    "build_number": 0,
+    "date": "2017-08-14",
+    "depends": [
+      "python 3.4*"
+    ],
+    "license": "BSD",
+    "md5": "a70f9e5d13d395f6974e7baa6d5c420f",
+    "name": "idna",
+    "size": 125764,
+    "version": "2.6"
+  },
+  "idna-2.6-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-14",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "c2c4eff03afc4cdb4d1cd07bfab731c9",
+    "name": "idna",
+    "size": 125583,
+    "version": "2.6"
+  },
+  "idna-2.6-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-14",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "9c8495c448b2187e854c2169597ba362",
+    "name": "idna",
+    "size": 124632,
+    "version": "2.6"
   },
   "ipaddress-1.0.14-py27_0.tar.bz2": {
     "build": "py27_0",
@@ -26752,6 +28122,45 @@
     "size": 54655,
     "version": "1.2.2"
   },
+  "lazy-object-proxy-1.3.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-06-19",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "e05497ea74404f87f0435967ca3ff06d",
+    "name": "lazy-object-proxy",
+    "size": 54003,
+    "version": "1.3.1"
+  },
+  "lazy-object-proxy-1.3.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-06-19",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "cff8362b3f0bdb7a7ff38f1af743643d",
+    "name": "lazy-object-proxy",
+    "size": 54686,
+    "version": "1.3.1"
+  },
+  "lazy-object-proxy-1.3.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-06-19",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "05dcc1980d0c1dad0cdc6d02591da812",
+    "name": "lazy-object-proxy",
+    "size": 54703,
+    "version": "1.3.1"
+  },
   "libevent-2.0.20-0.tar.bz2": {
     "build": "0",
     "build_number": 0,
@@ -27397,6 +28806,63 @@
     "size": 11808186,
     "version": "0.18.0"
   },
+  "llvmlite-0.19.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-06",
+    "depends": [
+      "enum34",
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "4c80b75050dc95ecaf80d9ee4cdcdadb",
+    "name": "llvmlite",
+    "size": 11792085,
+    "version": "0.19.0"
+  },
+  "llvmlite-0.19.0-py34_0.tar.bz2": {
+    "build": "py34_0",
+    "build_number": 0,
+    "date": "2017-07-06",
+    "depends": [
+      "python 3.4*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "eef93b8dcf324b94e0bdfc26d195a5f6",
+    "name": "llvmlite",
+    "size": 11798585,
+    "version": "0.19.0"
+  },
+  "llvmlite-0.19.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-06",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "f60726b26befa8e0cda4661e8e307932",
+    "name": "llvmlite",
+    "size": 11800319,
+    "version": "0.19.0"
+  },
+  "llvmlite-0.19.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-06",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "86b808b24fba74585f7fce319d6794b5",
+    "name": "llvmlite",
+    "size": 11799500,
+    "version": "0.19.0"
+  },
   "llvmlite-0.2.0-py26_0.tar.bz2": {
     "build": "py26_0",
     "build_number": 0,
@@ -27514,6 +28980,63 @@
     "name": "llvmlite",
     "size": 7704085,
     "version": "0.2.2"
+  },
+  "llvmlite-0.20.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-09-06",
+    "depends": [
+      "enum34",
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "be0e1083f71d7814991f9e62789fee74",
+    "name": "llvmlite",
+    "size": 11788860,
+    "version": "0.20.0"
+  },
+  "llvmlite-0.20.0-py34_0.tar.bz2": {
+    "build": "py34_0",
+    "build_number": 0,
+    "date": "2017-09-06",
+    "depends": [
+      "python 3.4*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "f1bf04c8eae87ee54f88cf929e0919b3",
+    "name": "llvmlite",
+    "size": 11790537,
+    "version": "0.20.0"
+  },
+  "llvmlite-0.20.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-09-06",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "71a75773dd78d2a08d94008abd33fdf5",
+    "name": "llvmlite",
+    "size": 11793304,
+    "version": "0.20.0"
+  },
+  "llvmlite-0.20.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-09-06",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "80a000535012892cca5fb40697eaf2b4",
+    "name": "llvmlite",
+    "size": 11792967,
+    "version": "0.20.0"
   },
   "llvmlite-0.4.0-py26_0.tar.bz2": {
     "build": "py26_0",
@@ -29394,6 +30917,84 @@
     "size": 203923,
     "version": "1.0.2"
   },
+  "lz4-0.10.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-06-14",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "0ed1ccc85f9f10f2e81dcfb6bf8d633a",
+    "name": "lz4",
+    "size": 342924,
+    "version": "0.10.0"
+  },
+  "lz4-0.10.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-06-14",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "2315e0ba832ba2575b27be8b1bfe7de5",
+    "name": "lz4",
+    "size": 343322,
+    "version": "0.10.0"
+  },
+  "lz4-0.10.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-06-14",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "73ec721f0a15171433c52d40cb97cb46",
+    "name": "lz4",
+    "size": 343472,
+    "version": "0.10.0"
+  },
+  "lz4-0.10.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-05",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "88d1e7d03577409f3912ce1e140568fb",
+    "name": "lz4",
+    "size": 342751,
+    "version": "0.10.1"
+  },
+  "lz4-0.10.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-05",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "d9ae91f9dca3587d2fa6b8e4d3ec82e6",
+    "name": "lz4",
+    "size": 343379,
+    "version": "0.10.1"
+  },
+  "lz4-0.10.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-05",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "dc856f33844efe1e4bd922e26b01e14a",
+    "name": "lz4",
+    "size": 343615,
+    "version": "0.10.1"
+  },
   "lz4-0.7.0-py27_0.tar.bz2": {
     "build": "py27_0",
     "build_number": 0,
@@ -29771,6 +31372,58 @@
     "size": 35421,
     "version": "0.23"
   },
+  "markupsafe-1.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "f458502c95ceb28ec65ccf9f78d65ece",
+    "name": "markupsafe",
+    "size": 31300,
+    "version": "1.0"
+  },
+  "markupsafe-1.0-py34_0.tar.bz2": {
+    "build": "py34_0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [
+      "python 3.4*"
+    ],
+    "license": "BSD",
+    "md5": "bd680561c1ab7e3ba2238c210d945fcc",
+    "name": "markupsafe",
+    "size": 32614,
+    "version": "1.0"
+  },
+  "markupsafe-1.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "e8b892dce686fd82f5eb7d88fffdd2a3",
+    "name": "markupsafe",
+    "size": 32585,
+    "version": "1.0"
+  },
+  "markupsafe-1.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "cbb32664ad4f94a72f1e4e3521453ba4",
+    "name": "markupsafe",
+    "size": 32064,
+    "version": "1.0"
+  },
   "meta-0.4.2.dev-py26_0.tar.bz2": {
     "build": "py26_0",
     "build_number": 0,
@@ -29845,6 +31498,18 @@
     "name": "mkl",
     "size": 134470673,
     "version": "2017.0.1"
+  },
+  "mkl-2017.0.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2017-06-26",
+    "depends": [],
+    "license": "proprietary - Intel",
+    "license_family": "Proprietary",
+    "md5": "76cfa5d21e73db338ffccdbe0af8a727",
+    "name": "mkl",
+    "size": 135839394,
+    "version": "2017.0.3"
   },
   "mpc-1.0.1-0.tar.bz2": {
     "build": "0",
@@ -31468,13 +33133,13 @@
     "build_number": 0,
     "date": "2017-01-10",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 2.7*"
     ],
     "license": "BSD",
-    "md5": "6a4b02a2b7132993c21ef2ef60b25913",
+    "md5": "cce8af7961ca8d4f39ee5678ae8da04e",
     "name": "numpy",
-    "size": 6609597,
+    "size": 6655073,
     "version": "1.11.3"
   },
   "numpy-1.11.3-py27_nomkl_0.tar.bz2": {
@@ -31498,13 +33163,13 @@
     "build_number": 0,
     "date": "2017-01-10",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 3.4*"
     ],
     "license": "BSD",
-    "md5": "0decd6504866e124d8c784f295001ca9",
+    "md5": "68de42a4758e48f3af7df77aacfd5c1a",
     "name": "numpy",
-    "size": 7016829,
+    "size": 6983073,
     "version": "1.11.3"
   },
   "numpy-1.11.3-py34_nomkl_0.tar.bz2": {
@@ -31528,13 +33193,13 @@
     "build_number": 0,
     "date": "2017-01-10",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 3.5*"
     ],
     "license": "BSD",
-    "md5": "8a332705401b9dd39afe5fe5556bd984",
+    "md5": "0e62156d5e0b79dc511a13bc9be88a81",
     "name": "numpy",
-    "size": 6983027,
+    "size": 6980383,
     "version": "1.11.3"
   },
   "numpy-1.11.3-py35_nomkl_0.tar.bz2": {
@@ -31558,13 +33223,13 @@
     "build_number": 0,
     "date": "2017-01-10",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 3.6*"
     ],
     "license": "BSD",
-    "md5": "d17f8d1ef626c34c6213b2b7d323f362",
+    "md5": "3af64244bdb5cbfaadc6ebb9d369c2d8",
     "name": "numpy",
-    "size": 6995831,
+    "size": 7007004,
     "version": "1.11.3"
   },
   "numpy-1.11.3-py36_nomkl_0.tar.bz2": {
@@ -31588,13 +33253,13 @@
     "build_number": 0,
     "date": "2017-02-03",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 2.7*"
     ],
     "license": "BSD",
-    "md5": "d1e6f3ab4716577cce18594c1cdbb999",
+    "md5": "1538aa694c51ed89be126f6943c42f14",
     "name": "numpy",
-    "size": 6912133,
+    "size": 6965177,
     "version": "1.12.0"
   },
   "numpy-1.12.0-py27_nomkl_0.tar.bz2": {
@@ -31618,13 +33283,13 @@
     "build_number": 0,
     "date": "2017-02-04",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 3.5*"
     ],
     "license": "BSD",
-    "md5": "6fde9754d1678bde0fec8ca4c021ed1d",
+    "md5": "7d1eadeaeaff153b67adf94e0e499df7",
     "name": "numpy",
-    "size": 7318970,
+    "size": 7377916,
     "version": "1.12.0"
   },
   "numpy-1.12.0-py35_nomkl_0.tar.bz2": {
@@ -31648,13 +33313,13 @@
     "build_number": 0,
     "date": "2017-02-04",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 3.6*"
     ],
     "license": "BSD",
-    "md5": "128a4fa3521add67235bdd4537262a84",
+    "md5": "f0d77b20dc07f8bcd1eb3f192bdad6f3",
     "name": "numpy",
-    "size": 7342981,
+    "size": 7322860,
     "version": "1.12.0"
   },
   "numpy-1.12.0-py36_nomkl_0.tar.bz2": {
@@ -31678,13 +33343,13 @@
     "build_number": 0,
     "date": "2017-03-18",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 2.7*"
     ],
     "license": "BSD",
-    "md5": "15f10b951e15ae034810356dec55214b",
+    "md5": "a1dcb98184c45a93daf66042d44d6122",
     "name": "numpy",
-    "size": 6918677,
+    "size": 6963743,
     "version": "1.12.1"
   },
   "numpy-1.12.1-py27_nomkl_0.tar.bz2": {
@@ -31708,13 +33373,13 @@
     "build_number": 0,
     "date": "2017-06-12",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 3.4*"
     ],
     "license": "BSD",
-    "md5": "1615e2139ddb55551610cea20ea09627",
+    "md5": "e1acb9e2d1017c49803162ab1c8c8043",
     "name": "numpy",
-    "size": 7384285,
+    "size": 7376775,
     "version": "1.12.1"
   },
   "numpy-1.12.1-py35_0.tar.bz2": {
@@ -31722,13 +33387,13 @@
     "build_number": 0,
     "date": "2017-03-18",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 3.5*"
     ],
     "license": "BSD",
-    "md5": "099c631c5a2a814bf2099c1d0cdf7a00",
+    "md5": "fa544a6d6b3df642d335d76a05f761d8",
     "name": "numpy",
-    "size": 7325498,
+    "size": 7392394,
     "version": "1.12.1"
   },
   "numpy-1.12.1-py35_nomkl_0.tar.bz2": {
@@ -31752,13 +33417,13 @@
     "build_number": 0,
     "date": "2017-03-18",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 3.6*"
     ],
     "license": "BSD",
-    "md5": "283cddd1fffd304b77b97c876428de00",
+    "md5": "2a6c1d90d9f1064a3751849f1df95b49",
     "name": "numpy",
-    "size": 7344190,
+    "size": 7340936,
     "version": "1.12.1"
   },
   "numpy-1.12.1-py36_nomkl_0.tar.bz2": {
@@ -31782,13 +33447,13 @@
     "build_number": 0,
     "date": "2017-06-07",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 2.7*"
     ],
     "license": "BSD",
-    "md5": "9f16e222dd575ce40dd7a2ecdd70c723",
+    "md5": "845007e615c5adeb92f85a0717a3a1ce",
     "name": "numpy",
-    "size": 7143042,
+    "size": 7147460,
     "version": "1.13.0"
   },
   "numpy-1.13.0-py27_nomkl_0.tar.bz2": {
@@ -31812,13 +33477,13 @@
     "build_number": 0,
     "date": "2017-06-12",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 3.4*"
     ],
     "license": "BSD",
-    "md5": "68322d553d377e7479d38ba61bdaafff",
+    "md5": "cf7999b2f3e3feca74032ead84999377",
     "name": "numpy",
-    "size": 7623472,
+    "size": 7610839,
     "version": "1.13.0"
   },
   "numpy-1.13.0-py35_0.tar.bz2": {
@@ -31826,13 +33491,13 @@
     "build_number": 0,
     "date": "2017-06-07",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 3.5*"
     ],
     "license": "BSD",
-    "md5": "665988156c728490cd565b3d4dd3e8a0",
+    "md5": "d68716f2fc3868c4f22f15396cd96762",
     "name": "numpy",
-    "size": 7567895,
+    "size": 7514110,
     "version": "1.13.0"
   },
   "numpy-1.13.0-py35_nomkl_0.tar.bz2": {
@@ -31856,13 +33521,13 @@
     "build_number": 0,
     "date": "2017-06-07",
     "depends": [
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "python 3.6*"
     ],
     "license": "BSD",
-    "md5": "e031925b84799aca713790a9a7144fb9",
+    "md5": "b44275d38377288e63542abae1ea0902",
     "name": "numpy",
-    "size": 7575432,
+    "size": 7538894,
     "version": "1.13.0"
   },
   "numpy-1.13.0-py36_nomkl_0.tar.bz2": {
@@ -31880,6 +33545,96 @@
     "name": "numpy",
     "size": 7574679,
     "version": "1.13.0"
+  },
+  "numpy-1.13.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-07",
+    "depends": [
+      "mkl 2017.0.*",
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "cfdf78aec55bf85987b74b4a3338d960",
+    "name": "numpy",
+    "size": 7141185,
+    "version": "1.13.1"
+  },
+  "numpy-1.13.1-py27_nomkl_0.tar.bz2": {
+    "build": "py27_nomkl_0",
+    "build_number": 0,
+    "date": "2017-07-07",
+    "depends": [
+      "libgfortran 3.0.0",
+      "openblas 0.2.19",
+      "python 2.7*"
+    ],
+    "features": "nomkl",
+    "license": "BSD",
+    "md5": "37e7c952a35545b5d108701850af8f9f",
+    "name": "numpy",
+    "size": 7142050,
+    "version": "1.13.1"
+  },
+  "numpy-1.13.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-07",
+    "depends": [
+      "mkl 2017.0.*",
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "de917e49c6f2942d047583cdd103ef9b",
+    "name": "numpy",
+    "size": 7567143,
+    "version": "1.13.1"
+  },
+  "numpy-1.13.1-py35_nomkl_0.tar.bz2": {
+    "build": "py35_nomkl_0",
+    "build_number": 0,
+    "date": "2017-07-07",
+    "depends": [
+      "libgfortran 3.0.0",
+      "openblas 0.2.19",
+      "python 3.5*"
+    ],
+    "features": "nomkl",
+    "license": "BSD",
+    "md5": "054d0bac323fc2a58eea86822a8b4e31",
+    "name": "numpy",
+    "size": 7568264,
+    "version": "1.13.1"
+  },
+  "numpy-1.13.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-07",
+    "depends": [
+      "mkl 2017.0.*",
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "ab929d35e7c8a9d95ae7ab28cc19511f",
+    "name": "numpy",
+    "size": 7576137,
+    "version": "1.13.1"
+  },
+  "numpy-1.13.1-py36_nomkl_0.tar.bz2": {
+    "build": "py36_nomkl_0",
+    "build_number": 0,
+    "date": "2017-07-07",
+    "depends": [
+      "libgfortran 3.0.0",
+      "openblas 0.2.19",
+      "python 3.6*"
+    ],
+    "features": "nomkl",
+    "license": "BSD",
+    "md5": "4a35d89ecc914c55a7b8246a2515e7d0",
+    "name": "numpy",
+    "size": 7576539,
+    "version": "1.13.1"
   },
   "numpy-1.5.1-py26_1.tar.bz2": {
     "build": "py26_1",
@@ -35629,6 +37384,54 @@
     "size": 22313413,
     "version": "0.20.2"
   },
+  "pandas-0.20.3-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-20",
+    "depends": [
+      "numpy >=1.12",
+      "python 2.7*",
+      "python-dateutil",
+      "pytz"
+    ],
+    "license": "BSD",
+    "md5": "12b368585c95be82b1b3f32ebc218dc5",
+    "name": "pandas",
+    "size": 19833836,
+    "version": "0.20.3"
+  },
+  "pandas-0.20.3-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-20",
+    "depends": [
+      "numpy >=1.12",
+      "python 3.5*",
+      "python-dateutil",
+      "pytz"
+    ],
+    "license": "BSD",
+    "md5": "a86691224a2d5d757058a3c9e6db3aca",
+    "name": "pandas",
+    "size": 21822962,
+    "version": "0.20.3"
+  },
+  "pandas-0.20.3-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-20",
+    "depends": [
+      "numpy >=1.12",
+      "python 3.6*",
+      "python-dateutil",
+      "pytz"
+    ],
+    "license": "BSD",
+    "md5": "70d6c4e21646bbf952cf662e6075e938",
+    "name": "pandas",
+    "size": 22014724,
+    "version": "0.20.3"
+  },
   "pandas-0.8.1-np16py26_0.tar.bz2": {
     "build": "np16py26_0",
     "build_number": 0,
@@ -36879,6 +38682,49 @@
     "name": "pathlib2",
     "size": 31962,
     "version": "2.2.1"
+  },
+  "pathlib2-2.3.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-01",
+    "depends": [
+      "python 2.7*",
+      "scandir",
+      "six"
+    ],
+    "license": "MIT",
+    "md5": "e5c66c68f1e5bd32597e90ae3444fc30",
+    "name": "pathlib2",
+    "size": 31175,
+    "version": "2.3.0"
+  },
+  "pathlib2-2.3.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-01",
+    "depends": [
+      "python 3.5*",
+      "six"
+    ],
+    "license": "MIT",
+    "md5": "432c69532f89cff8cdb1cd70a41925c3",
+    "name": "pathlib2",
+    "size": 32382,
+    "version": "2.3.0"
+  },
+  "pathlib2-2.3.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-01",
+    "depends": [
+      "python 3.6*",
+      "six"
+    ],
+    "license": "MIT",
+    "md5": "f292eb409c5672e2aeb4d0e6dc356ed0",
+    "name": "pathlib2",
+    "size": 32260,
+    "version": "2.3.0"
   },
   "pexpect-3.3-py26_0.tar.bz2": {
     "build": "py26_0",
@@ -38856,6 +40702,51 @@
     "size": 348771,
     "version": "1.0.14"
   },
+  "prompt_toolkit-1.0.15-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [
+      "python 2.7*",
+      "six >=1.9.0",
+      "wcwidth"
+    ],
+    "license": "BSD",
+    "md5": "02dd36fe876cbd155f7aaa87a6ba1d29",
+    "name": "prompt_toolkit",
+    "size": 338647,
+    "version": "1.0.15"
+  },
+  "prompt_toolkit-1.0.15-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [
+      "python 3.5*",
+      "six >=1.9.0",
+      "wcwidth"
+    ],
+    "license": "BSD",
+    "md5": "43df089d9590fc34eced2ff9bbd17809",
+    "name": "prompt_toolkit",
+    "size": 352567,
+    "version": "1.0.15"
+  },
+  "prompt_toolkit-1.0.15-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [
+      "python 3.6*",
+      "six >=1.9.0",
+      "wcwidth"
+    ],
+    "license": "BSD",
+    "md5": "d804d356f69a72ccc3e405de917ee595",
+    "name": "prompt_toolkit",
+    "size": 349060,
+    "version": "1.0.15"
+  },
   "prompt_toolkit-1.0.3-py27_0.tar.bz2": {
     "build": "py27_0",
     "build_number": 0,
@@ -40499,6 +42390,48 @@
     "size": 21620,
     "version": "0.5.1"
   },
+  "ptyprocess-0.5.2-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-31",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "ISC",
+    "license_family": "Other",
+    "md5": "5562e72aec80c013abbeb6f0cace4b38",
+    "name": "ptyprocess",
+    "size": 22358,
+    "version": "0.5.2"
+  },
+  "ptyprocess-0.5.2-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-31",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "ISC",
+    "license_family": "Other",
+    "md5": "a70d93102aa6d813f4ecc829755ce718",
+    "name": "ptyprocess",
+    "size": 22856,
+    "version": "0.5.2"
+  },
+  "ptyprocess-0.5.2-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-31",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "ISC",
+    "license_family": "Other",
+    "md5": "a5fba3e267d92a19784e7b6ff2a3498d",
+    "name": "ptyprocess",
+    "size": 22863,
+    "version": "0.5.2"
+  },
   "pyasn1-0.1.4-py26_0.tar.bz2": {
     "build": "py26_0",
     "build_number": 0,
@@ -41357,6 +43290,62 @@
     "name": "pycparser",
     "size": 162463,
     "version": "2.17"
+  },
+  "pycparser-2.18-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-28",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "a9f6755209e506ee9abd95bcd46ae5ef",
+    "name": "pycparser",
+    "size": 169251,
+    "version": "2.18"
+  },
+  "pycparser-2.18-py34_0.tar.bz2": {
+    "build": "py34_0",
+    "build_number": 0,
+    "date": "2017-07-28",
+    "depends": [
+      "python 3.4*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "22ed63fd5bf2edadfb1ef958901e0454",
+    "name": "pycparser",
+    "size": 173196,
+    "version": "2.18"
+  },
+  "pycparser-2.18-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-28",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "b6701cb5806e4be176a92aa9560a7500",
+    "name": "pycparser",
+    "size": 172140,
+    "version": "2.18"
+  },
+  "pycparser-2.18-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-28",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "license_family": "BSD",
+    "md5": "fe128a0543c91c627e830984ce564d21",
+    "name": "pycparser",
+    "size": 171155,
+    "version": "2.18"
   },
   "pycparser-2.9.1-py26_0.tar.bz2": {
     "build": "py26_0",
@@ -42503,6 +44492,58 @@
     "name": "pyparsing",
     "size": 75861,
     "version": "2.1.4"
+  },
+  "pyparsing-2.2.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-31",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "MIT",
+    "md5": "0cb1ee8d8c89f53ec41e7c8f688feb4e",
+    "name": "pyparsing",
+    "size": 96128,
+    "version": "2.2.0"
+  },
+  "pyparsing-2.2.0-py34_0.tar.bz2": {
+    "build": "py34_0",
+    "build_number": 0,
+    "date": "2017-08-01",
+    "depends": [
+      "python 3.4*"
+    ],
+    "license": "MIT",
+    "md5": "bf62f1e30e7d1c494e8cc60f46acd421",
+    "name": "pyparsing",
+    "size": 98314,
+    "version": "2.2.0"
+  },
+  "pyparsing-2.2.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-31",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "MIT",
+    "md5": "507d62211bba69eff4d3391ce060df19",
+    "name": "pyparsing",
+    "size": 98798,
+    "version": "2.2.0"
+  },
+  "pyparsing-2.2.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-31",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "MIT",
+    "md5": "1208d97fa0d5ff176b840724a0f3efdc",
+    "name": "pyparsing",
+    "size": 98665,
+    "version": "2.2.0"
   },
   "python-1.0.1-0.tar.bz2": {
     "build": "0",
@@ -43975,6 +46016,25 @@
     "space_anchor": true,
     "version": "3.5.3"
   },
+  "python-3.5.4-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2017-08-14",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "xz 5.2.*",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "9c949f2b52e4d1d6faac202f3f322bfe",
+    "name": "python",
+    "size": 16708430,
+    "space_anchor": true,
+    "version": "3.5.4"
+  },
   "python-3.6.0-0.tar.bz2": {
     "build": "0",
     "build_number": 0,
@@ -44032,6 +46092,25 @@
     "space_anchor": true,
     "version": "3.6.1"
   },
+  "python-3.6.2-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2017-07-20",
+    "depends": [
+      "openssl 1.0.2*",
+      "readline 6.2",
+      "sqlite 3.13.*",
+      "tk 8.5.18",
+      "xz 5.2.*",
+      "zlib 1.2.*"
+    ],
+    "license": "PSF",
+    "md5": "af3113b3788bf5790552ae7aca46cfb5",
+    "name": "python",
+    "size": 17256241,
+    "space_anchor": true,
+    "version": "3.6.2"
+  },
   "python-dateutil-2.4.1-py26_0.tar.bz2": {
     "build": "py26_0",
     "build_number": 0,
@@ -44040,7 +46119,8 @@
       "python 2.6*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "6659f956f203ad28b820a58cd7c0ee88",
     "name": "python-dateutil",
     "size": 222521,
@@ -44054,7 +46134,8 @@
       "python 2.7*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "8b0c2a43d634133fa5dfafd989b422a0",
     "name": "python-dateutil",
     "size": 223294,
@@ -44068,7 +46149,8 @@
       "python 3.3*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "8750ccbc98efcaca9574101e93baa6ed",
     "name": "python-dateutil",
     "size": 224114,
@@ -44082,7 +46164,8 @@
       "python 3.4*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "871a0342c080d827b22c92815dc0abaf",
     "name": "python-dateutil",
     "size": 224503,
@@ -44096,7 +46179,8 @@
       "python 2.6*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "7a925dbc32980fc4afb06fdab1a23031",
     "name": "python-dateutil",
     "size": 223807,
@@ -44110,7 +46194,8 @@
       "python 2.7*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "67138f2410bb8147a31601de0bffe43a",
     "name": "python-dateutil",
     "size": 224175,
@@ -44124,7 +46209,8 @@
       "python 3.3*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "1887c48f63efbf339884f162f9876c1f",
     "name": "python-dateutil",
     "size": 225428,
@@ -44138,7 +46224,8 @@
       "python 3.4*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "7e7f759bd868079d63d4d5fedaf9d2df",
     "name": "python-dateutil",
     "size": 225997,
@@ -44152,7 +46239,8 @@
       "python 3.5*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "430dfa68a83946dd40314917fbd79aec",
     "name": "python-dateutil",
     "size": 225129,
@@ -44166,7 +46254,8 @@
       "python 2.7*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "c4010c48bc1d87dfff18bfa568eb2840",
     "name": "python-dateutil",
     "size": 239059,
@@ -44180,7 +46269,8 @@
       "python 3.4*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "9c3d6d117052ac5fa26fdcde274556d1",
     "name": "python-dateutil",
     "size": 241013,
@@ -44194,7 +46284,8 @@
       "python 3.5*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "d80846844fc586ed5839ea7db71c483e",
     "name": "python-dateutil",
     "size": 240556,
@@ -44208,7 +46299,8 @@
       "python 2.7*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "61e5f17720d8d90f4291d7b5c5b9518f",
     "name": "python-dateutil",
     "size": 240967,
@@ -44222,7 +46314,8 @@
       "python 3.4*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "aab951acd0d8cbffb8efe8fcf3ff072c",
     "name": "python-dateutil",
     "size": 242792,
@@ -44236,7 +46329,8 @@
       "python 3.5*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "5d5522c40ffe77e87c6d23d77b172e57",
     "name": "python-dateutil",
     "size": 242323,
@@ -44250,7 +46344,8 @@
       "python 2.7*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "e891a36237b04de47ab673f0014cd6a4",
     "name": "python-dateutil",
     "size": 241489,
@@ -44264,7 +46359,8 @@
       "python 3.4*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "ae59aebe2735f90c66e02470a8241b1f",
     "name": "python-dateutil",
     "size": 243512,
@@ -44278,7 +46374,8 @@
       "python 3.5*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "b5b545ce03d78f839eea38b3f003bb61",
     "name": "python-dateutil",
     "size": 242917,
@@ -44292,7 +46389,8 @@
       "python 2.7*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "39119a3715a0f93f03a0df9d18f44e67",
     "name": "python-dateutil",
     "size": 241616,
@@ -44306,7 +46404,8 @@
       "python 3.4*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "dd2922085086658dafddb94002e278ef",
     "name": "python-dateutil",
     "size": 243467,
@@ -44320,7 +46419,8 @@
       "python 3.5*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "5e6480b81d96363efa904307ab45f1df",
     "name": "python-dateutil",
     "size": 242956,
@@ -44334,7 +46434,8 @@
       "python 2.7*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "7dac7f35c1dd37dae460bde5cc341800",
     "name": "python-dateutil",
     "size": 237656,
@@ -44348,7 +46449,8 @@
       "python 3.4*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "338a7256fb92ff4df4ccb8f4132b41e2",
     "name": "python-dateutil",
     "size": 240025,
@@ -44362,7 +46464,8 @@
       "python 3.5*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "f9d1586f23155717f8da862e5cf9c1ef",
     "name": "python-dateutil",
     "size": 239135,
@@ -44376,11 +46479,72 @@
       "python 3.6*",
       "six"
     ],
-    "license": "BSD",
+    "license": "Simplified BSD",
+    "license_family": "BSD",
     "md5": "a55bbc8824956c45630e8739c537ead2",
     "name": "python-dateutil",
     "size": 242202,
     "version": "2.6.0"
+  },
+  "python-dateutil-2.6.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-26",
+    "depends": [
+      "python 2.7*",
+      "six"
+    ],
+    "license": "Simplified BSD",
+    "license_family": "BSD",
+    "md5": "2516334e880ec93dd002d35afae17d9f",
+    "name": "python-dateutil",
+    "size": 241847,
+    "version": "2.6.1"
+  },
+  "python-dateutil-2.6.1-py34_0.tar.bz2": {
+    "build": "py34_0",
+    "build_number": 0,
+    "date": "2017-07-26",
+    "depends": [
+      "python 3.4*",
+      "six"
+    ],
+    "license": "Simplified BSD",
+    "license_family": "BSD",
+    "md5": "c8856b2a60cdc3798dd8bebf2f09bc24",
+    "name": "python-dateutil",
+    "size": 244219,
+    "version": "2.6.1"
+  },
+  "python-dateutil-2.6.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-26",
+    "depends": [
+      "python 3.5*",
+      "six"
+    ],
+    "license": "Simplified BSD",
+    "license_family": "BSD",
+    "md5": "91e53020b7a9b461c96cbcb622db34f3",
+    "name": "python-dateutil",
+    "size": 243618,
+    "version": "2.6.1"
+  },
+  "python-dateutil-2.6.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-26",
+    "depends": [
+      "python 3.6*",
+      "six"
+    ],
+    "license": "Simplified BSD",
+    "license_family": "BSD",
+    "md5": "466391b2698ddab149a10436c1fc6621",
+    "name": "python-dateutil",
+    "size": 242593,
+    "version": "2.6.1"
   },
   "pytz-2012d-py26_0.tar.bz2": {
     "build": "py26_0",
@@ -49155,6 +51319,90 @@
     "size": 29563,
     "version": "0.1.0"
   },
+  "s3fs-0.1.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-07-05",
+    "depends": [
+      "boto3",
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "df6d4a9e55df098fe8e6287c324abd6b",
+    "name": "s3fs",
+    "size": 30812,
+    "version": "0.1.1"
+  },
+  "s3fs-0.1.1-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-07-05",
+    "depends": [
+      "boto3",
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "0b222f4a1715a686233f25fee12e19b7",
+    "name": "s3fs",
+    "size": 31804,
+    "version": "0.1.1"
+  },
+  "s3fs-0.1.1-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-07-05",
+    "depends": [
+      "boto3",
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "11f53cd1b1d338f1c1cde6d3484faa40",
+    "name": "s3fs",
+    "size": 31687,
+    "version": "0.1.1"
+  },
+  "s3fs-0.1.2-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-15",
+    "depends": [
+      "boto3",
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "65665ff7d378fb49ed1cec3f7c0940c8",
+    "name": "s3fs",
+    "size": 30779,
+    "version": "0.1.2"
+  },
+  "s3fs-0.1.2-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-15",
+    "depends": [
+      "boto3",
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "bc10515e76537397e746d92822bf7076",
+    "name": "s3fs",
+    "size": 31789,
+    "version": "0.1.2"
+  },
+  "s3fs-0.1.2-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-15",
+    "depends": [
+      "boto3",
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "e74e560cc79946c3b826522f01ec51e2",
+    "name": "s3fs",
+    "size": 31700,
+    "version": "0.1.2"
+  },
   "s3transfer-0.1.10-py27_0.tar.bz2": {
     "build": "py27_0",
     "build_number": 0,
@@ -52091,14 +54339,14 @@
     "date": "2017-01-10",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.11*",
       "python 2.7*"
     ],
     "license": "BSD",
-    "md5": "05c566df6871a1dda975297b8e94eb00",
+    "md5": "6525e6da5c0d55eea576a32534348124",
     "name": "scipy",
-    "size": 32358299,
+    "size": 32524033,
     "version": "0.18.1"
   },
   "scipy-0.18.1-np111py27_nomkl_0.tar.bz2": {
@@ -52157,14 +54405,14 @@
     "date": "2017-01-10",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.11*",
       "python 3.4*"
     ],
     "license": "BSD",
-    "md5": "fccbd592532c7ecafb393de5814d8689",
+    "md5": "834dbdc115c3b93f54144b642d0e524a",
     "name": "scipy",
-    "size": 32903319,
+    "size": 32804267,
     "version": "0.18.1"
   },
   "scipy-0.18.1-np111py34_nomkl_0.tar.bz2": {
@@ -52223,14 +54471,14 @@
     "date": "2017-01-10",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.11*",
       "python 3.5*"
     ],
     "license": "BSD",
-    "md5": "c9d3142f46f137253dc024e11f61ec2c",
+    "md5": "8d79ea2008c8c753bd7e770b7b15d8cb",
     "name": "scipy",
-    "size": 32751307,
+    "size": 32608797,
     "version": "0.18.1"
   },
   "scipy-0.18.1-np111py35_nomkl_0.tar.bz2": {
@@ -52289,14 +54537,14 @@
     "date": "2017-01-10",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.11*",
       "python 3.6*"
     ],
     "license": "BSD",
-    "md5": "c23a2e5a83d2827aa9072864b6a6b429",
+    "md5": "dc03d3af9efe036de928b2bc511660b7",
     "name": "scipy",
-    "size": 32735397,
+    "size": 32571566,
     "version": "0.18.1"
   },
   "scipy-0.18.1-np111py36_nomkl_0.tar.bz2": {
@@ -52339,14 +54587,14 @@
     "date": "2017-02-03",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.12*",
       "python 2.7*"
     ],
     "license": "BSD",
-    "md5": "a012ae9983febd5e2ee3224a914c4363",
+    "md5": "421adf86e12a056d32f31874e4ef4d28",
     "name": "scipy",
-    "size": 32378119,
+    "size": 32523431,
     "version": "0.18.1"
   },
   "scipy-0.18.1-np112py27_nomkl_1.tar.bz2": {
@@ -52372,14 +54620,14 @@
     "date": "2017-02-04",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.12*",
       "python 3.5*"
     ],
     "license": "BSD",
-    "md5": "b854f66a77af3406f92a0051cbdc9fdd",
+    "md5": "3cf319cc8fb6c20865f67cd9467866a8",
     "name": "scipy",
-    "size": 32746823,
+    "size": 32595434,
     "version": "0.18.1"
   },
   "scipy-0.18.1-np112py35_nomkl_1.tar.bz2": {
@@ -52405,14 +54653,14 @@
     "date": "2017-02-04",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.12*",
       "python 3.6*"
     ],
     "license": "BSD",
-    "md5": "fda868cd1568b3292baeaf69bab5e912",
+    "md5": "153e5d3ae006871f84b908c1dbb7e934",
     "name": "scipy",
-    "size": 32754050,
+    "size": 32572365,
     "version": "0.18.1"
   },
   "scipy-0.18.1-np112py36_nomkl_1.tar.bz2": {
@@ -52438,14 +54686,14 @@
     "date": "2017-03-12",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.11*",
       "python 2.7*"
     ],
     "license": "BSD",
-    "md5": "94ac93c2a32bc5b67e6c3227b49e920c",
+    "md5": "3f8ee0ae246e2ac84fae3f7e1f43c00a",
     "name": "scipy",
-    "size": 36777946,
+    "size": 37048159,
     "version": "0.19.0"
   },
   "scipy-0.19.0-np111py27_nomkl_0.tar.bz2": {
@@ -52471,14 +54719,14 @@
     "date": "2017-03-13",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.11*",
       "python 3.5*"
     ],
     "license": "BSD",
-    "md5": "f50552d584ebd4428b722363cbd9ec04",
+    "md5": "23e780162106f45f924b959fedbf2c31",
     "name": "scipy",
-    "size": 37808446,
+    "size": 37787123,
     "version": "0.19.0"
   },
   "scipy-0.19.0-np111py35_nomkl_0.tar.bz2": {
@@ -52504,14 +54752,14 @@
     "date": "2017-03-13",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.11*",
       "python 3.6*"
     ],
     "license": "BSD",
-    "md5": "6173cef749b3fbf99283f64cab017433",
+    "md5": "082ee27dc4bdc0bb704be1a6ad2edfe1",
     "name": "scipy",
-    "size": 37804278,
+    "size": 37609416,
     "version": "0.19.0"
   },
   "scipy-0.19.0-np111py36_nomkl_0.tar.bz2": {
@@ -52537,14 +54785,14 @@
     "date": "2017-03-13",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.12*",
       "python 2.7*"
     ],
     "license": "BSD",
-    "md5": "7c04a78df69a24cdde303e07f19d95f3",
+    "md5": "d77510312f88dbd74a5d6c467be0c19d",
     "name": "scipy",
-    "size": 36775942,
+    "size": 37045643,
     "version": "0.19.0"
   },
   "scipy-0.19.0-np112py27_nomkl_0.tar.bz2": {
@@ -52570,14 +54818,14 @@
     "date": "2017-03-13",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.12*",
       "python 3.5*"
     ],
     "license": "BSD",
-    "md5": "96daa489098cb852920f75789fd4208f",
+    "md5": "a2ed4cfc073ffb529a44b22b9232477b",
     "name": "scipy",
-    "size": 37803575,
+    "size": 37780561,
     "version": "0.19.0"
   },
   "scipy-0.19.0-np112py35_nomkl_0.tar.bz2": {
@@ -52603,14 +54851,14 @@
     "date": "2017-03-13",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.12*",
       "python 3.6*"
     ],
     "license": "BSD",
-    "md5": "43bd97b9d5e2288b1769d26940c683ad",
+    "md5": "68995dd18afe264457dad0f7a6b244c6",
     "name": "scipy",
-    "size": 37800469,
+    "size": 37610017,
     "version": "0.19.0"
   },
   "scipy-0.19.0-np112py36_nomkl_0.tar.bz2": {
@@ -52636,14 +54884,14 @@
     "date": "2017-06-07",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.13*",
       "python 2.7*"
     ],
     "license": "BSD",
-    "md5": "fe5a7ff0a18a9a1fc40a8220c5046c03",
+    "md5": "ab95b324510e9cc362dfee2c47a4d41a",
     "name": "scipy",
-    "size": 36779358,
+    "size": 37060704,
     "version": "0.19.0"
   },
   "scipy-0.19.0-np113py27_nomkl_0.tar.bz2": {
@@ -52669,14 +54917,14 @@
     "date": "2017-06-08",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.13*",
       "python 3.5*"
     ],
     "license": "BSD",
-    "md5": "0d87eff6f8eef6a914b436e3628d75b7",
+    "md5": "be1c46475b9b3a5775346d83d2dbfb02",
     "name": "scipy",
-    "size": 37801648,
+    "size": 37773911,
     "version": "0.19.0"
   },
   "scipy-0.19.0-np113py35_nomkl_0.tar.bz2": {
@@ -52702,14 +54950,14 @@
     "date": "2017-06-07",
     "depends": [
       "libgfortran 3.0.0",
-      "mkl 2017.0.1",
+      "mkl 2017.0.*",
       "numpy 1.13*",
       "python 3.6*"
     ],
     "license": "BSD",
-    "md5": "a50fe3cca1185b4692cb82895f591592",
+    "md5": "dc3f0c0037843036110100eb923113ae",
     "name": "scipy",
-    "size": 37831993,
+    "size": 37634975,
     "version": "0.19.0"
   },
   "scipy-0.19.0-np113py36_nomkl_0.tar.bz2": {
@@ -52729,6 +54977,204 @@
     "size": 37823381,
     "version": "0.19.0"
   },
+  "scipy-0.19.1-np112py27_0.tar.bz2": {
+    "build": "np112py27_0",
+    "build_number": 0,
+    "date": "2017-06-27",
+    "depends": [
+      "libgfortran 3.0.0",
+      "mkl 2017.0.*",
+      "numpy 1.12*",
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "8e7c1e0d6d43191edcbeb531bcdefe4a",
+    "name": "scipy",
+    "size": 36908481,
+    "version": "0.19.1"
+  },
+  "scipy-0.19.1-np112py27_nomkl_0.tar.bz2": {
+    "build": "np112py27_nomkl_0",
+    "build_number": 0,
+    "date": "2017-06-27",
+    "depends": [
+      "libgfortran 3.0.0",
+      "numpy 1.12*",
+      "openblas 0.2.19",
+      "python 2.7*"
+    ],
+    "features": "nomkl",
+    "license": "BSD",
+    "md5": "3396a24c276078d3f5d7edec591ba87f",
+    "name": "scipy",
+    "size": 36899992,
+    "version": "0.19.1"
+  },
+  "scipy-0.19.1-np112py35_0.tar.bz2": {
+    "build": "np112py35_0",
+    "build_number": 0,
+    "date": "2017-06-27",
+    "depends": [
+      "libgfortran 3.0.0",
+      "mkl 2017.0.*",
+      "numpy 1.12*",
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "2ccac4a2874b52c6c89c928f2f454b2e",
+    "name": "scipy",
+    "size": 38005025,
+    "version": "0.19.1"
+  },
+  "scipy-0.19.1-np112py35_nomkl_0.tar.bz2": {
+    "build": "np112py35_nomkl_0",
+    "build_number": 0,
+    "date": "2017-06-27",
+    "depends": [
+      "libgfortran 3.0.0",
+      "numpy 1.12*",
+      "openblas 0.2.19",
+      "python 3.5*"
+    ],
+    "features": "nomkl",
+    "license": "BSD",
+    "md5": "61bad4b5c82cf9ae5e5179227f32f6a0",
+    "name": "scipy",
+    "size": 38003897,
+    "version": "0.19.1"
+  },
+  "scipy-0.19.1-np112py36_0.tar.bz2": {
+    "build": "np112py36_0",
+    "build_number": 0,
+    "date": "2017-06-27",
+    "depends": [
+      "libgfortran 3.0.0",
+      "mkl 2017.0.*",
+      "numpy 1.12*",
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "eb2ea69afa5b704760691a56f92246c6",
+    "name": "scipy",
+    "size": 38059945,
+    "version": "0.19.1"
+  },
+  "scipy-0.19.1-np112py36_nomkl_0.tar.bz2": {
+    "build": "np112py36_nomkl_0",
+    "build_number": 0,
+    "date": "2017-06-27",
+    "depends": [
+      "libgfortran 3.0.0",
+      "numpy 1.12*",
+      "openblas 0.2.19",
+      "python 3.6*"
+    ],
+    "features": "nomkl",
+    "license": "BSD",
+    "md5": "54a12897b47bc9ced97fd03663d97314",
+    "name": "scipy",
+    "size": 38060784,
+    "version": "0.19.1"
+  },
+  "scipy-0.19.1-np113py27_0.tar.bz2": {
+    "build": "np113py27_0",
+    "build_number": 0,
+    "date": "2017-06-26",
+    "depends": [
+      "libgfortran 3.0.0",
+      "mkl 2017.0.*",
+      "numpy 1.13*",
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "3e237d8c7b559a4d1f94ad06af3b7070",
+    "name": "scipy",
+    "size": 36944022,
+    "version": "0.19.1"
+  },
+  "scipy-0.19.1-np113py27_nomkl_0.tar.bz2": {
+    "build": "np113py27_nomkl_0",
+    "build_number": 0,
+    "date": "2017-06-26",
+    "depends": [
+      "libgfortran 3.0.0",
+      "numpy 1.13*",
+      "openblas 0.2.19",
+      "python 2.7*"
+    ],
+    "features": "nomkl",
+    "license": "BSD",
+    "md5": "0ae891d0a6079808fddf29e2678378a5",
+    "name": "scipy",
+    "size": 36933022,
+    "version": "0.19.1"
+  },
+  "scipy-0.19.1-np113py35_0.tar.bz2": {
+    "build": "np113py35_0",
+    "build_number": 0,
+    "date": "2017-06-26",
+    "depends": [
+      "libgfortran 3.0.0",
+      "mkl 2017.0.*",
+      "numpy 1.13*",
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "b16dad0d9acce7c3d55455dfc907a7dc",
+    "name": "scipy",
+    "size": 38042216,
+    "version": "0.19.1"
+  },
+  "scipy-0.19.1-np113py35_nomkl_0.tar.bz2": {
+    "build": "np113py35_nomkl_0",
+    "build_number": 0,
+    "date": "2017-06-26",
+    "depends": [
+      "libgfortran 3.0.0",
+      "numpy 1.13*",
+      "openblas 0.2.19",
+      "python 3.5*"
+    ],
+    "features": "nomkl",
+    "license": "BSD",
+    "md5": "cf93139dcbfcd19403b481f16563d2a0",
+    "name": "scipy",
+    "size": 38041908,
+    "version": "0.19.1"
+  },
+  "scipy-0.19.1-np113py36_0.tar.bz2": {
+    "build": "np113py36_0",
+    "build_number": 0,
+    "date": "2017-06-26",
+    "depends": [
+      "libgfortran 3.0.0",
+      "mkl 2017.0.*",
+      "numpy 1.13*",
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "d76a7817b7aa99237f8ba94b3c3809b0",
+    "name": "scipy",
+    "size": 38113452,
+    "version": "0.19.1"
+  },
+  "scipy-0.19.1-np113py36_nomkl_0.tar.bz2": {
+    "build": "np113py36_nomkl_0",
+    "build_number": 0,
+    "date": "2017-06-26",
+    "depends": [
+      "libgfortran 3.0.0",
+      "numpy 1.13*",
+      "openblas 0.2.19",
+      "python 3.6*"
+    ],
+    "features": "nomkl",
+    "license": "BSD",
+    "md5": "ea159f2df86914164662067a824e5328",
+    "name": "scipy",
+    "size": 38095840,
+    "version": "0.19.1"
+  },
   "setuptools-1.3.2-py26_0.tar.bz2": {
     "build": "py26_0",
     "build_number": 0,
@@ -52737,6 +55183,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "f289017495b5c91525d7b099014b7bf0",
     "name": "setuptools",
     "size": 496467,
@@ -52750,6 +55197,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "3d941260ae9fcdae15db56a363f519c8",
     "name": "setuptools",
     "size": 494468,
@@ -52763,6 +55211,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "6d047966954147552d30e2af8bb19788",
     "name": "setuptools",
     "size": 510997,
@@ -52776,6 +55225,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "fed5ef94fe47c5ee81541ce46172a53f",
     "name": "setuptools",
     "size": 502569,
@@ -52789,6 +55239,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "64d77d6501939f38f8178248d5c3dff4",
     "name": "setuptools",
     "size": 500562,
@@ -52802,6 +55253,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "54b8952b748f6a2584f868be29c07fc9",
     "name": "setuptools",
     "size": 517474,
@@ -52815,6 +55267,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "a9855c0034ed3f79be1aa32a4fa0da1c",
     "name": "setuptools",
     "size": 443188,
@@ -52828,6 +55281,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "83f316d28e8c520f9e297fe2769fdbd6",
     "name": "setuptools",
     "size": 440471,
@@ -52841,6 +55295,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "b5c69f3ca8c437975413d3dc18c1f846",
     "name": "setuptools",
     "size": 455936,
@@ -52854,6 +55309,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "28c8b4a19fdd4d5cab1e973bfcf46636",
     "name": "setuptools",
     "size": 445542,
@@ -52867,6 +55323,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "ad2f92149e7aba986a0ebdfab8a7677f",
     "name": "setuptools",
     "size": 448876,
@@ -52880,6 +55337,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "a8df22113fbc5e4dedd26567c78294f3",
     "name": "setuptools",
     "size": 446029,
@@ -52893,6 +55351,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "49018517b41ec8cd5066148e33d19167",
     "name": "setuptools",
     "size": 461843,
@@ -52906,6 +55365,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "f62939b3eb9d8a64caf2bffcbc237d60",
     "name": "setuptools",
     "size": 451379,
@@ -52919,6 +55379,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "56b7de0c831c4929e5c95f50c994fd29",
     "name": "setuptools",
     "size": 449186,
@@ -52932,6 +55393,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "f4ec3c673b9533d797c4365d0997b7c0",
     "name": "setuptools",
     "size": 446347,
@@ -52945,6 +55407,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "0d07b21b895d7d00e94e6e7473aacf85",
     "name": "setuptools",
     "size": 462235,
@@ -52958,6 +55421,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "9b88cdae4b16f68c16a4a505bd37366a",
     "name": "setuptools",
     "size": 451781,
@@ -52971,6 +55435,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "836d4e48d651acd09734e329613fc7c5",
     "name": "setuptools",
     "size": 449564,
@@ -52984,6 +55449,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "365d09ec239ea739f79cc777b6024a96",
     "name": "setuptools",
     "size": 446648,
@@ -52997,6 +55463,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "156823fb6cfde9a566c68e8ddd466d2a",
     "name": "setuptools",
     "size": 462467,
@@ -53010,6 +55477,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "7797bf2a888255964f1690e4ca2af9a4",
     "name": "setuptools",
     "size": 452052,
@@ -53023,6 +55491,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "33818945536901bc7e19ccbda1856860",
     "name": "setuptools",
     "size": 449602,
@@ -53036,6 +55505,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "9c278cd9c411b96e9866d5dbb4c410cc",
     "name": "setuptools",
     "size": 446843,
@@ -53049,6 +55519,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "923a4439e6bbfb2301eb9f1cbfd3e5fa",
     "name": "setuptools",
     "size": 462837,
@@ -53062,6 +55533,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "7c88e034d6773a767540eae7b6be0f21",
     "name": "setuptools",
     "size": 452171,
@@ -53075,6 +55547,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "800696e35f863777ba284141b925112f",
     "name": "setuptools",
     "size": 449550,
@@ -53088,6 +55561,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "3536c9aac821de3a1c64e33bca093677",
     "name": "setuptools",
     "size": 446733,
@@ -53101,6 +55575,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "a5b0e1f853bd89a2f7529cb8e99302f2",
     "name": "setuptools",
     "size": 462635,
@@ -53114,6 +55589,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "fce1d8325ebac39381a906aae406176d",
     "name": "setuptools",
     "size": 452005,
@@ -53127,6 +55603,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "048ee63d0d405a02301b6f3ea4f5b1eb",
     "name": "setuptools",
     "size": 448547,
@@ -53140,6 +55617,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "cdab3d8b21ab5af83cc9331bb31064b6",
     "name": "setuptools",
     "size": 445737,
@@ -53153,6 +55631,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "34290e35de6d4bdd1257600d771ccc33",
     "name": "setuptools",
     "size": 461671,
@@ -53166,6 +55645,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "fb678efdd11d8eb721e50363a48ee0a7",
     "name": "setuptools",
     "size": 450968,
@@ -53179,6 +55659,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "83432c9c3d6b573e484010cda057359f",
     "name": "setuptools",
     "size": 448686,
@@ -53192,6 +55673,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "4eceb223644bdd44a11c20c880750cc9",
     "name": "setuptools",
     "size": 445807,
@@ -53205,6 +55687,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "a3477d39b6be784c2176566e577c3ac1",
     "name": "setuptools",
     "size": 461580,
@@ -53218,6 +55701,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "0e06004da39721c93be94f98b3592473",
     "name": "setuptools",
     "size": 450950,
@@ -53231,6 +55715,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "c798417173c74f4304433a6c4ea75fd3",
     "name": "setuptools",
     "size": 448462,
@@ -53244,6 +55729,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "63e875c067d5f7c34ab9332e6cdc2b52",
     "name": "setuptools",
     "size": 445519,
@@ -53257,6 +55743,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "5dd8b67ad25693088b7fef26c6899f67",
     "name": "setuptools",
     "size": 461485,
@@ -53270,6 +55757,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "bd4f2d3229c2e7044e6fe19d1d0be0ab",
     "name": "setuptools",
     "size": 451028,
@@ -53283,6 +55771,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "df4101d04b8253fa612946b2542f44b7",
     "name": "setuptools",
     "size": 448299,
@@ -53296,6 +55785,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "abaa8b26d6b5098d9856d229fb11b5d5",
     "name": "setuptools",
     "size": 445389,
@@ -53309,6 +55799,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "bbc2f9f29f522669aa58d69284b4963b",
     "name": "setuptools",
     "size": 461392,
@@ -53322,6 +55813,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "d38dbdf080b7f6366917f6fda06b5ffe",
     "name": "setuptools",
     "size": 450738,
@@ -53335,6 +55827,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "2350742b576f312deb8fc4de31950320",
     "name": "setuptools",
     "size": 448377,
@@ -53348,6 +55841,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "050b8882d82f0b40df57a4c98c405f87",
     "name": "setuptools",
     "size": 445582,
@@ -53361,6 +55855,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "6c7a4aac06876e5090c08e4a44e46cca",
     "name": "setuptools",
     "size": 461420,
@@ -53374,6 +55869,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "87f84c9a0b7770215b483dca60235379",
     "name": "setuptools",
     "size": 450805,
@@ -53387,6 +55883,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "6aeef1d4898f4ff7cc57da57c4e1f605",
     "name": "setuptools",
     "size": 448685,
@@ -53400,6 +55897,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "13a391c25c403b110f88dd3cd8f030a8",
     "name": "setuptools",
     "size": 445655,
@@ -53413,6 +55911,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "0b8589ca57c33d5f4a230af6ce5a1d58",
     "name": "setuptools",
     "size": 461698,
@@ -53426,6 +55925,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "9ecf12ed1a2f9e66684d8154eecd059c",
     "name": "setuptools",
     "size": 451093,
@@ -53439,6 +55939,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "4e4435120b23908d009460e226807bff",
     "name": "setuptools",
     "size": 448791,
@@ -53452,6 +55953,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "5309ecf041dce0d10b6ad1d5d09268c4",
     "name": "setuptools",
     "size": 445974,
@@ -53465,6 +55967,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "ec99a310d7c79b9b7f30fc3da781bd48",
     "name": "setuptools",
     "size": 461940,
@@ -53478,6 +55981,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "776a53085d8a4e97a0f0d7c34aa42add",
     "name": "setuptools",
     "size": 451493,
@@ -53491,7 +55995,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "77cf484eec64901ca5c15bc975c72d24",
     "name": "setuptools",
     "size": 448827,
@@ -53505,7 +56009,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "c98335273ccbc727e975a957dcd30051",
     "name": "setuptools",
     "size": 448443,
@@ -53519,7 +56023,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "716ab0a64098464e20a11e58fc7b3c86",
     "name": "setuptools",
     "size": 445977,
@@ -53533,7 +56037,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "5f737efd4732b70367cc44de4f9cc282",
     "name": "setuptools",
     "size": 445528,
@@ -53547,7 +56051,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "505cc22ae73c659f9ce884e68e9dfe07",
     "name": "setuptools",
     "size": 462003,
@@ -53561,7 +56065,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "60c035b0289747a849f14205ace3b367",
     "name": "setuptools",
     "size": 461518,
@@ -53575,7 +56079,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "0b39dac5521eb0a3b90062c846a92b3b",
     "name": "setuptools",
     "size": 451459,
@@ -53589,7 +56093,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "9e3c0bfaaac07a9e0bba79009e45f666",
     "name": "setuptools",
     "size": 451046,
@@ -53603,7 +56107,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "5c4a59bc66dd1d10415735a5a5935d5f",
     "name": "setuptools",
     "size": 448377,
@@ -53617,7 +56121,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "445d19548674466f7a9bb9515c829787",
     "name": "setuptools",
     "size": 445591,
@@ -53631,7 +56135,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "0e2464a2a325a476752f276fe1137b4c",
     "name": "setuptools",
     "size": 461494,
@@ -53645,7 +56149,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "8cb9105528acfc76b21f528f0480616e",
     "name": "setuptools",
     "size": 450991,
@@ -53659,7 +56163,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "0c044d0e289fcbcd1f69ce51a06a5f3c",
     "name": "setuptools",
     "size": 350878,
@@ -53673,7 +56177,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "ab9ecc5db3e2151d4af638f6f919f0a8",
     "name": "setuptools",
     "size": 348836,
@@ -53687,7 +56191,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "1973e628a36693ec0e93b8346703fa9e",
     "name": "setuptools",
     "size": 362080,
@@ -53701,7 +56205,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "ef2eee452faad01ee0d2b581a81922f9",
     "name": "setuptools",
     "size": 353101,
@@ -53715,7 +56219,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "805324ec8ab172246e3b529af9170fe6",
     "name": "setuptools",
     "size": 351203,
@@ -53729,7 +56233,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "d0f2ee033c5fdd11f27e6c780612cbf6",
     "name": "setuptools",
     "size": 349069,
@@ -53743,7 +56247,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "5cb88ff1fc5e09a0a0202fa87536b92a",
     "name": "setuptools",
     "size": 362395,
@@ -53757,7 +56261,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "b0fad382b9a0595cdab88fca7d21af96",
     "name": "setuptools",
     "size": 353417,
@@ -53771,7 +56275,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "7029f73588e11d93bb35a7395e33fac2",
     "name": "setuptools",
     "size": 351383,
@@ -53785,7 +56289,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "9db35424d39cd598014dd1060745f4a1",
     "name": "setuptools",
     "size": 349232,
@@ -53799,7 +56303,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "0e7682d62cfc8753dfadd8e857f4ba6a",
     "name": "setuptools",
     "size": 362580,
@@ -53813,7 +56317,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "c74b7b8acfb2d66c4963c001f481c3ed",
     "name": "setuptools",
     "size": 353611,
@@ -53827,7 +56331,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "1df9a5e8e3091df81a39d3369417253c",
     "name": "setuptools",
     "size": 350871,
@@ -53841,7 +56345,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "370a8901c257d1689f4041f79816b756",
     "name": "setuptools",
     "size": 348847,
@@ -53855,7 +56359,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "0e771271053dd9e974a22c06c16bb826",
     "name": "setuptools",
     "size": 361967,
@@ -53869,7 +56373,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "355e88eb9bfd619bec3f35762bd2f300",
     "name": "setuptools",
     "size": 352992,
@@ -53883,7 +56387,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "8c119b3644f81f8ba989c1d61790dbb3",
     "name": "setuptools",
     "size": 349142,
@@ -53897,7 +56401,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "51f61bbc7e25f3bf40e488e88eb985ff",
     "name": "setuptools",
     "size": 362336,
@@ -53911,7 +56415,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "0cee637da4cbda1c577a11da2de30fdb",
     "name": "setuptools",
     "size": 353335,
@@ -53925,7 +56429,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "37691903a0dc3c5856545ddbf1f25820",
     "name": "setuptools",
     "size": 352123,
@@ -53939,7 +56443,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "34a037aad1056aed892d0f5c14f007fe",
     "name": "setuptools",
     "size": 350053,
@@ -53953,7 +56457,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "e6a66ef6be6216d40fba292f0e06ac5d",
     "name": "setuptools",
     "size": 363280,
@@ -53967,7 +56471,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "da52938f02dff9acd6bac713e1e50b2f",
     "name": "setuptools",
     "size": 354276,
@@ -53981,7 +56485,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "c6a3d344c1b8046373102d412de90ec9",
     "name": "setuptools",
     "size": 352983,
@@ -53995,7 +56499,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "abe1828e0d85d760e958faf49342224c",
     "name": "setuptools",
     "size": 350091,
@@ -54009,7 +56513,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "cc50d6c7cd1be79e50363ad31411b995",
     "name": "setuptools",
     "size": 363339,
@@ -54023,7 +56527,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "a51e1ec74d5ab96c579ed46875ad7ec5",
     "name": "setuptools",
     "size": 354239,
@@ -54037,7 +56541,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "bccb473936a2505cc55779730a8f04ea",
     "name": "setuptools",
     "size": 353064,
@@ -54051,7 +56555,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "5df76bec761d0ceb59710552ac761482",
     "name": "setuptools",
     "size": 350384,
@@ -54065,7 +56569,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "e061fe5d73832b7df7fb4355a9ca3325",
     "name": "setuptools",
     "size": 363645,
@@ -54079,7 +56583,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "637dfa0582982b63962dffb3194db47b",
     "name": "setuptools",
     "size": 354572,
@@ -54093,7 +56597,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "70cd7f54230565103d91b51e79854969",
     "name": "setuptools",
     "size": 353370,
@@ -54107,7 +56611,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "8803029da2b31fa8471cc8564195540f",
     "name": "setuptools",
     "size": 353407,
@@ -54121,7 +56625,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "e70d7ee7d6396f42469463e78989eacd",
     "name": "setuptools",
     "size": 366796,
@@ -54135,7 +56639,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "12c717b1434e5f934452ed19b1f25905",
     "name": "setuptools",
     "size": 357535,
@@ -54149,7 +56653,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "93a7482ff509d0ff48014a776647fe9f",
     "name": "setuptools",
     "size": 356483,
@@ -54163,7 +56667,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "b3b32403202ede558497b026597482e6",
     "name": "setuptools",
     "size": 353509,
@@ -54177,7 +56681,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "efc1bc285220a142e62e34c834a63a52",
     "name": "setuptools",
     "size": 366918,
@@ -54191,7 +56695,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "c1e9c777cfc9ae0d0f5ca4cba35cf455",
     "name": "setuptools",
     "size": 357600,
@@ -54205,7 +56709,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "c5ac27708cb403f9fa320e063c3e8c97",
     "name": "setuptools",
     "size": 356539,
@@ -54219,7 +56723,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "9b598c28a3f3c212e64981b4aa9e287b",
     "name": "setuptools",
     "size": 353644,
@@ -54233,7 +56737,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "b38bf53b6fceea496ad540f28be02166",
     "name": "setuptools",
     "size": 367169,
@@ -54247,7 +56751,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "4b6d8dd782401ed85a0eb8787b869edd",
     "name": "setuptools",
     "size": 357874,
@@ -54261,7 +56765,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "b4156d7fc5eff6cb08f689c8adf054e1",
     "name": "setuptools",
     "size": 356732,
@@ -54275,7 +56779,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "d20bf67157c2c5ba207a076e05a6c9b5",
     "name": "setuptools",
     "size": 373255,
@@ -54289,7 +56793,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "33bdb2aa8cca82d880b653410e17e773",
     "name": "setuptools",
     "size": 387281,
@@ -54303,7 +56807,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "f95326756967cba68ed98b0570da2662",
     "name": "setuptools",
     "size": 377654,
@@ -54317,7 +56821,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "1e5aaed8f2d40048bdb3989437d15703",
     "name": "setuptools",
     "size": 376526,
@@ -54331,7 +56835,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "408a281647a078b62bb4db4e31987550",
     "name": "setuptools",
     "size": 373558,
@@ -54345,7 +56849,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "3682275b25ea5f0a6a029c588094b968",
     "name": "setuptools",
     "size": 387474,
@@ -54359,7 +56863,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "4fca6806d6914a9c4d8d8be63b10f2a7",
     "name": "setuptools",
     "size": 378085,
@@ -54373,7 +56877,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "9fbb2e03d4ef5059e842b1c2aaa96575",
     "name": "setuptools",
     "size": 376861,
@@ -54387,6 +56891,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "a23a7159b7afc939e7d6253a852de60d",
     "name": "setuptools",
     "size": 467334,
@@ -54400,6 +56905,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "76fabce3e7575ac08352e452ac9bac43",
     "name": "setuptools",
     "size": 465243,
@@ -54413,6 +56919,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "bac0939bf6b26b96f0b7fcb67c054fed",
     "name": "setuptools",
     "size": 481076,
@@ -54426,6 +56933,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "7fd84ea31d486bb215bb425df0c54d6a",
     "name": "setuptools",
     "size": 468345,
@@ -54439,6 +56947,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "e57ad857f547c94eaf931c581e4544e9",
     "name": "setuptools",
     "size": 466322,
@@ -54452,6 +56961,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "6327855ad41edee9262972458ab03582",
     "name": "setuptools",
     "size": 482396,
@@ -54465,6 +56975,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "0c2e270729ba69a446fe2744b854a61f",
     "name": "setuptools",
     "size": 470549,
@@ -54478,6 +56989,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "5169a441913a78541bd822caa67ec14d",
     "name": "setuptools",
     "size": 468413,
@@ -54491,6 +57003,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "87094ff3400e52c1845735830f16eab5",
     "name": "setuptools",
     "size": 484611,
@@ -54504,7 +57017,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "85afb3a45262bebbc7171b9fb95e3b02",
     "name": "setuptools",
     "size": 376758,
@@ -54518,7 +57031,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "d5b88763280a303a0431e4b38bd12815",
     "name": "setuptools",
     "size": 390891,
@@ -54532,7 +57045,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "21a37f6096e683cbdafa883debde25c4",
     "name": "setuptools",
     "size": 381303,
@@ -54546,7 +57059,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "278e8959419e755ff27771e52aeb9662",
     "name": "setuptools",
     "size": 380059,
@@ -54560,7 +57073,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "298a72ee2ca5346141c5fd87367a20ab",
     "name": "setuptools",
     "size": 463688,
@@ -54574,7 +57087,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "c1f35c08f508d99dfcfb5fcef2245537",
     "name": "setuptools",
     "size": 469842,
@@ -54588,7 +57101,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "64675c22a4c99b808faef46410eb4627",
     "name": "setuptools",
     "size": 468419,
@@ -54602,7 +57115,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "30a2079ac7783bea76dec29bf842e599",
     "name": "setuptools",
     "size": 463085,
@@ -54616,7 +57129,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "842cc563105f890dd75d768617f8099d",
     "name": "setuptools",
     "size": 469141,
@@ -54630,7 +57143,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "d44cfbe0610237d340b27387c83d5107",
     "name": "setuptools",
     "size": 467775,
@@ -54644,7 +57157,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "814cb2030f34322d1e1b673c7ebbeac6",
     "name": "setuptools",
     "size": 463336,
@@ -54658,7 +57171,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "4fb759829930357c67d09a81cb9fe0b1",
     "name": "setuptools",
     "size": 469385,
@@ -54672,7 +57185,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "0d1912d06e4f483b170c4aa4212d72ac",
     "name": "setuptools",
     "size": 467833,
@@ -54686,7 +57199,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "ea82831b2c9fc1b14610a3dffaa01a34",
     "name": "setuptools",
     "size": 463790,
@@ -54700,7 +57213,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "b9a4e9a1d9104d1c11650e7c6ea589dd",
     "name": "setuptools",
     "size": 469788,
@@ -54714,7 +57227,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "807157c5ccceaa42fc1b3d3f068f106d",
     "name": "setuptools",
     "size": 468342,
@@ -54728,7 +57241,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "623516ce87c0de681bba84c6fbb49616",
     "name": "setuptools",
     "size": 466217,
@@ -54742,7 +57255,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "510d8318e00315406a9d991245ab43c2",
     "name": "setuptools",
     "size": 472444,
@@ -54756,7 +57269,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "abcd051fc6a2bf5bb8cefb537419fd3a",
     "name": "setuptools",
     "size": 470985,
@@ -54770,7 +57283,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "f976caaa45dbd2e45beb4cea5e732ec3",
     "name": "setuptools",
     "size": 466207,
@@ -54784,7 +57297,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "c58da341486b0185a7016c68fa1d033b",
     "name": "setuptools",
     "size": 472250,
@@ -54798,7 +57311,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "99b531d52189e79a1b1077b67f8ed315",
     "name": "setuptools",
     "size": 470893,
@@ -54812,7 +57325,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "d7d5fc8dc9120a46e969f0d15b172978",
     "name": "setuptools",
     "size": 466177,
@@ -54826,7 +57339,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "7b7566ae6678317e1226764bd61e9128",
     "name": "setuptools",
     "size": 472242,
@@ -54840,7 +57353,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "ca42e49f80eebe206989cec09aace9fa",
     "name": "setuptools",
     "size": 470793,
@@ -54854,7 +57367,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "f9c002124e3fa07264a855badec4334e",
     "name": "setuptools",
     "size": 485078,
@@ -54868,7 +57381,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "ec450846f5136fb79eef135abe1b11a0",
     "name": "setuptools",
     "size": 491394,
@@ -54882,7 +57395,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
-    "license_family": "PSF",
+    "license_family": "MIT",
     "md5": "8576cd3d4fc004d87c46bfd8a8c293f4",
     "name": "setuptools",
     "size": 489952,
@@ -54896,6 +57409,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "690f27a76e6bfc644bca237ec332f926",
     "name": "setuptools",
     "size": 530757,
@@ -54909,6 +57423,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "ba7f8b95c1eab6df5a5d5cbe24f5c6d1",
     "name": "setuptools",
     "size": 537324,
@@ -54922,6 +57437,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "903b4602e21b49a45e63e13aaf4548db",
     "name": "setuptools",
     "size": 535724,
@@ -54935,6 +57451,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "96b639928547b4f837f7d4d1ed5f2d7e",
     "name": "setuptools",
     "size": 533533,
@@ -54948,6 +57465,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "82c14d0de53a68882f978901886a1ab6",
     "name": "setuptools",
     "size": 540170,
@@ -54961,6 +57479,7 @@
       "python 3.5*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "6983319a60af4b25f870f8bdc2ecab06",
     "name": "setuptools",
     "size": 538640,
@@ -54974,6 +57493,7 @@
       "python 3.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "60640e363589264b8a956af1f682764e",
     "name": "setuptools",
     "size": 535464,
@@ -54987,6 +57507,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "ea577cce545067f2c6890133ddc87d68",
     "name": "setuptools",
     "size": 470964,
@@ -55000,6 +57521,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "20d2aa746f8b24fdd1276e9b7e439a5c",
     "name": "setuptools",
     "size": 468977,
@@ -55013,6 +57535,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "af7a221d2e2feaf1b08a322be415620d",
     "name": "setuptools",
     "size": 484909,
@@ -55026,6 +57549,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "9a96e96b83af717cbc78460dd8325662",
     "name": "setuptools",
     "size": 474497,
@@ -55039,6 +57563,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "91e261f55f35ce91de4c23661f4097ae",
     "name": "setuptools",
     "size": 477954,
@@ -55052,6 +57577,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "2c0231178b5ea637f1d541c40416b571",
     "name": "setuptools",
     "size": 475872,
@@ -55065,6 +57591,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "a92745efd9aff693f1bd9efaeec508b2",
     "name": "setuptools",
     "size": 492091,
@@ -55078,6 +57605,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "f57c6fbd41596cece1aba1daa73d9057",
     "name": "setuptools",
     "size": 481403,
@@ -55091,6 +57619,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "7b81f876c5cb2aa78e2031a529206cec",
     "name": "setuptools",
     "size": 480035,
@@ -55104,6 +57633,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "dd41c60a2f59a6679e5a1bc4e52d676e",
     "name": "setuptools",
     "size": 477953,
@@ -55117,6 +57647,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "08779792294a2bb27944f983992879d0",
     "name": "setuptools",
     "size": 494098,
@@ -55130,6 +57661,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "85825049fb26cfd8c8b15e6c35cb5476",
     "name": "setuptools",
     "size": 483435,
@@ -55143,6 +57675,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "d64a9e44c5ada4ef5961fc59e957470c",
     "name": "setuptools",
     "size": 480855,
@@ -55156,6 +57689,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "706c1d569401a12c4bee66972c57376b",
     "name": "setuptools",
     "size": 478685,
@@ -55169,6 +57703,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "d82b732e6a71973e3e1281aad3d0b7e3",
     "name": "setuptools",
     "size": 494884,
@@ -55182,10 +57717,101 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "93c472771174f0b195a6b33622b60dcc",
     "name": "setuptools",
     "size": 484322,
     "version": "3.6"
+  },
+  "setuptools-36.4.0-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-09-05",
+    "depends": [
+      "certifi",
+      "python 2.7*"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "902a0f97b1a5bfb3aa5813589c0992ec",
+    "name": "setuptools",
+    "size": 570194,
+    "version": "36.4.0"
+  },
+  "setuptools-36.4.0-py27_1.tar.bz2": {
+    "build": "py27_1",
+    "build_number": 1,
+    "date": "2017-09-21",
+    "depends": [
+      "certifi",
+      "python 2.7*"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "8e3885bfb279698bca458febd1c09fb1",
+    "name": "setuptools",
+    "size": 570649,
+    "version": "36.4.0"
+  },
+  "setuptools-36.4.0-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-09-05",
+    "depends": [
+      "certifi",
+      "python 3.5*"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "658a308fe5b036ed1b889083cae3b78c",
+    "name": "setuptools",
+    "size": 580619,
+    "version": "36.4.0"
+  },
+  "setuptools-36.4.0-py35_1.tar.bz2": {
+    "build": "py35_1",
+    "build_number": 1,
+    "date": "2017-09-21",
+    "depends": [
+      "certifi",
+      "python 3.5*"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "b63cd3db6c9e3228ba8f566417291b97",
+    "name": "setuptools",
+    "size": 581070,
+    "version": "36.4.0"
+  },
+  "setuptools-36.4.0-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-09-05",
+    "depends": [
+      "certifi",
+      "python 3.6*"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "9e968863ea00cb9c536db9f2b9e8dd8b",
+    "name": "setuptools",
+    "size": 575253,
+    "version": "36.4.0"
+  },
+  "setuptools-36.4.0-py36_1.tar.bz2": {
+    "build": "py36_1",
+    "build_number": 1,
+    "date": "2017-09-21",
+    "depends": [
+      "certifi",
+      "python 3.6*"
+    ],
+    "license": "MIT",
+    "license_family": "MIT",
+    "md5": "b24c4e7e9836f9b5b0c90132cdb3ae84",
+    "name": "setuptools",
+    "size": 576382,
+    "version": "36.4.0"
   },
   "setuptools-5.7-py26_0.tar.bz2": {
     "build": "py26_0",
@@ -55195,6 +57821,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "6c338c597f8803d4510fbc1f3d745a74",
     "name": "setuptools",
     "size": 439255,
@@ -55208,6 +57835,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "304d10280d79cb5b3bdc07087e62361e",
     "name": "setuptools",
     "size": 439384,
@@ -55221,6 +57849,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "9ba13c60739f970c4fcd197fad947b69",
     "name": "setuptools",
     "size": 436935,
@@ -55234,6 +57863,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "4b6102bec503d108c8fd9739739505f9",
     "name": "setuptools",
     "size": 436944,
@@ -55247,6 +57877,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "6f55d73099601db6a5d189d69453c15c",
     "name": "setuptools",
     "size": 451893,
@@ -55260,6 +57891,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "876a51b23534a6e0fd8cbf4b70f7653f",
     "name": "setuptools",
     "size": 451949,
@@ -55273,6 +57905,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "002af9a59b985371cb25be04cfae6e65",
     "name": "setuptools",
     "size": 442270,
@@ -55286,6 +57919,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "8099b54ce9f7d8702b63b3f7662954df",
     "name": "setuptools",
     "size": 442433,
@@ -55299,6 +57933,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "3678f0a4b771a8c8c9751e44e792c236",
     "name": "setuptools",
     "size": 438515,
@@ -55312,6 +57947,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "02e4a7b27b10e27994344ace598918c1",
     "name": "setuptools",
     "size": 436077,
@@ -55325,6 +57961,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "79c6755f8402740f75b2e93288288b93",
     "name": "setuptools",
     "size": 450965,
@@ -55338,6 +57975,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "06eeb1694063006123dfa713915f6364",
     "name": "setuptools",
     "size": 441400,
@@ -55351,6 +57989,7 @@
       "python 2.6*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "8997d12e6da41de2515f6613f786d0f0",
     "name": "setuptools",
     "size": 449338,
@@ -55364,6 +58003,7 @@
       "python 2.7*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "c3dd24c0f1081ce396378f191990c035",
     "name": "setuptools",
     "size": 446867,
@@ -55377,6 +58017,7 @@
       "python 3.3*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "86b084e4ba5628a71715e0be1d679085",
     "name": "setuptools",
     "size": 462062,
@@ -55390,6 +58031,7 @@
       "python 3.4*"
     ],
     "license": "MIT",
+    "license_family": "MIT",
     "md5": "e6a59df88606799d008e3830db28b69d",
     "name": "setuptools",
     "size": 452415,
@@ -56204,6 +58846,31 @@
     "size": 46008,
     "version": "1.5.7"
   },
+  "spiffy-test-app-0.5-pyh6afbcc8_0.tar.bz2": {
+    "arch": null,
+    "binstar": {
+      "channel": "main",
+      "owner_id": "58596cc93d1b550ffad38672",
+      "package_id": "58a77840f9e4b211570d691f"
+    },
+    "build": "pyh6afbcc8_0",
+    "build_number": 0,
+    "depends": [
+      "python"
+    ],
+    "has_prefix": false,
+    "machine": null,
+    "md5": "144fe52ea318dcaf0a4df905152c9f9c",
+    "name": "spiffy-test-app",
+    "noarch": "python",
+    "operatingsystem": null,
+    "platform": null,
+    "requires": [],
+    "size": 4937,
+    "subdir": "noarch",
+    "target-triplet": "None-any-None",
+    "version": "0.5"
+  },
   "spiffy-test-app-1.0-py27h7c48563_0.tar.bz2": {
     "arch": "x86_64",
     "binstar": {
@@ -56378,6 +59045,20 @@
     "name": "ssl_match_hostname",
     "size": 6285,
     "version": "3.4.0.2"
+  },
+  "ssl_match_hostname-3.5.0.1-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [
+      "backports",
+      "python 2.7*"
+    ],
+    "license": "PSF",
+    "md5": "aa115acd56e7a009155b5949eed2f5bc",
+    "name": "ssl_match_hostname",
+    "size": 8157,
+    "version": "3.5.0.1"
   },
   "system-5.8-0.tar.bz2": {
     "build": "0",
@@ -58063,6 +60744,51 @@
     "name": "tornado",
     "size": 651475,
     "version": "4.5.1"
+  },
+  "tornado-4.5.2-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-28",
+    "depends": [
+      "backports_abc >=0.4",
+      "python 2.7*",
+      "singledispatch",
+      "ssl_match_hostname"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "b1dff106cc04d10499b8d0d90758c947",
+    "name": "tornado",
+    "size": 606629,
+    "version": "4.5.2"
+  },
+  "tornado-4.5.2-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-28",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "7d1b76aa707a7666a139801c4de70176",
+    "name": "tornado",
+    "size": 656872,
+    "version": "4.5.2"
+  },
+  "tornado-4.5.2-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-28",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "Apache 2.0",
+    "license_family": "Apache",
+    "md5": "1310ad9ae039a1bd5dde67831c68fac3",
+    "name": "tornado",
+    "size": 651698,
+    "version": "4.5.2"
   },
   "traitlets-4.0.0-py27_0.tar.bz2": {
     "build": "py27_0",
@@ -59936,6 +62662,45 @@
     "size": 67966,
     "version": "1.10.10"
   },
+  "wrapt-1.10.11-py27_0.tar.bz2": {
+    "build": "py27_0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [
+      "python 2.7*"
+    ],
+    "license": "BSD",
+    "md5": "e246ea8899be625a83b596767be0a082",
+    "name": "wrapt",
+    "size": 65595,
+    "version": "1.10.11"
+  },
+  "wrapt-1.10.11-py35_0.tar.bz2": {
+    "build": "py35_0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [
+      "python 3.5*"
+    ],
+    "license": "BSD",
+    "md5": "a1ebf52bbff72cbea03e8053088a0c95",
+    "name": "wrapt",
+    "size": 68322,
+    "version": "1.10.11"
+  },
+  "wrapt-1.10.11-py36_0.tar.bz2": {
+    "build": "py36_0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [
+      "python 3.6*"
+    ],
+    "license": "BSD",
+    "md5": "33aec2bc8f8e3779a6676a5b51d2dcd0",
+    "name": "wrapt",
+    "size": 68230,
+    "version": "1.10.11"
+  },
   "wrapt-1.10.6-py27_0.tar.bz2": {
     "build": "py27_0",
     "build_number": 0,
@@ -60074,6 +62839,18 @@
     "name": "xz",
     "size": 685547,
     "version": "5.2.2"
+  },
+  "xz-5.2.3-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [],
+    "license": "Public-Domain, GPL",
+    "license_family": "GPL2",
+    "md5": "585458787b315ac1e5fb3a1ee71cad75",
+    "name": "xz",
+    "size": 682600,
+    "version": "5.2.3"
   },
   "yaml-0.1.4-0.tar.bz2": {
     "build": "0",
@@ -60410,6 +63187,18 @@
     "name": "zict",
     "size": 17606,
     "version": "0.1.2"
+  },
+  "zlib-1.2.11-0.tar.bz2": {
+    "build": "0",
+    "build_number": 0,
+    "date": "2017-08-18",
+    "depends": [],
+    "license": "zlib",
+    "license_family": "Other",
+    "md5": "34b5be58250b2f53176640a8ae8723a7",
+    "name": "zlib",
+    "size": 111828,
+    "version": "1.2.11"
   },
   "zlib-1.2.7-0.tar.bz2": {
     "build": "0",

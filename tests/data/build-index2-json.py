@@ -1,20 +1,31 @@
 import json
 from os.path import dirname, join
 
-import requests
+from conda.core.subdir_data import fetch_repodata_remote_request
+
+
+def save_data_source(url, name):
+    raw_repodata_str = fetch_repodata_remote_request(url, None, None)
+    json.loads(raw_repodata_str)
+    with open(join(dirname(__file__), "repodata", name + ".json"), 'w') as fh:
+        json.dump(json.loads(raw_repodata_str), fh, indent=2, sort_keys=True, separators=(',', ': '))
+
+
+def save_data_sources():
+    save_data_source("https://repo.anaconda.com/pkgs/free/linux-64", "free_linux-64")
+    save_data_source("https://conda.anaconda.org/conda-test/noarch", "conda-test_noarch")
+    save_data_source("https://conda.anaconda.org/conda-test/linux-64", "conda-test_linux-64")
+
+
+def read_data_source(name):
+    with open(join(dirname(__file__), "repodata", name + ".json")) as fh:
+        return json.load(fh)
 
 
 def main():
-    r1 = requests.get('https://repo.anaconda.com/pkgs/free/linux-64/repodata.json')
-    r1.raise_for_status()
-    r2 = requests.get('https://conda.anaconda.org/conda-test/noarch/repodata.json')
-    r2.raise_for_status()
-    r3 = requests.get('https://conda.anaconda.org/conda-test/linux-64/repodata.json')
-    r3.raise_for_status()
-
-    r1json = r1.json()
-    r2json = r2.json()
-    r3json = r3.json()
+    r1json = read_data_source("free_linux-64")
+    r2json = read_data_source("conda-test_noarch")
+    r3json = read_data_source("conda-test_linux-64")
 
     packages = r3json['packages'].copy()
     packages.update(r1json['packages'])
@@ -151,46 +162,12 @@ def main():
         'zeromq',
         'zict',
         'zlib',
-    )
 
-    # keep = {}
-    # missing_in_whitelist = set()
-    #
-    # for fn, info in packages.items():
-    #     if info['name'] in keep_list:
-    #         keep[fn] = info
-    #         for dep in info['depends']:
-    #             dep = dep.split()[0]
-    #             if dep not in keep_list:
-    #                 missing_in_whitelist.add(dep)
-    #
-    # if missing_in_whitelist:
-    #     print(">>> missing <<<")
-    #     print(missing_in_whitelist)
-    #
-    # with open('index2.json', 'w') as fh:
-    #     fh.write(json.dumps(keep, indent=2, sort_keys=True, separators=(',', ': ')))
-
-
-
-    keep_list = (
-        'needs-spiffy-test-app',
-        'openssl',
-        'python',
-        'readline',
-        'spiffy-test-app',
-        'sqlite',
         'system',
-        'tk',
-        'uses-spiffy-test-app',
-        'xz',
-        'zlib',
+        'functools_lru_cache',
     )
-
 
     keep = {}
-    # packages = r2json['packages'].copy()
-    # packages.update(r3json['packages'])
     missing_in_whitelist = set()
 
     for fn, info in packages.items():
@@ -205,10 +182,10 @@ def main():
         print(">>> missing <<<")
         print(missing_in_whitelist)
 
-
-    with open(join(dirname(__file__), 'index3.json'), 'w') as fh:
+    with open(join(dirname(__file__), 'index2.json'), 'w') as fh:
         fh.write(json.dumps(keep, indent=2, sort_keys=True, separators=(',', ': ')))
 
 
 if __name__ == "__main__":
+    # save_data_sources()
     main()

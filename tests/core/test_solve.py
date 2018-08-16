@@ -143,8 +143,7 @@ def test_prune_1():
 
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # PrefixDag(final_state_1, specs).open_url()
-        print(convert_to_dist_str(final_state_1))
+        pprint(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::libnvvm-1.0-p0',
             'channel-1::mkl-rt-11.0-p0',
@@ -175,23 +174,21 @@ def test_prune_1():
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         unlink_precs, link_precs = solver.solve_for_diff(prune=False)
-        # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(link_precs))
         unlink_order = (
             'channel-1::accelerate-1.1.0-np16py27_p0',
             'channel-1::numbapro-0.11.0-np16py27_p0',
         )
-        assert convert_to_dist_str(unlink_precs) == unlink_order
-
-        print(convert_to_dist_str(link_precs))
         link_order = ()
+        assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
     with get_solver(specs_to_remove=specs_to_remove, prefix_records=final_state_1,
                     history_specs=specs) as solver:
         unlink_precs, link_precs = solver.solve_for_diff(prune=True)
-        # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(link_precs))
         unlink_order = (
             'channel-1::accelerate-1.1.0-np16py27_p0',
             'channel-1::mkl-11.0-np16py27_p0',
@@ -209,12 +206,10 @@ def test_prune_1():
             'channel-1::mkl-rt-11.0-p0',
             'channel-1::libnvvm-1.0-p0',
         )
-        assert convert_to_dist_str(unlink_precs) == unlink_order
-
-        print(convert_to_dist_str(link_precs))
         link_order = (
             'channel-1::numpy-1.6.2-py27_4',
         )
+        assert convert_to_dist_str(unlink_precs) == unlink_order
         assert convert_to_dist_str(link_precs) == link_order
 
 
@@ -680,21 +675,20 @@ def test_conda_downgrade():
     with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
         with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
-            # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_1))
+            pprint(convert_to_dist_str(final_state_1))
             order = (
                 'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
                 'channel-2::conda-env-2.6.0-0',
                 'channel-2::libffi-3.2.1-1',
                 'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
                 'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+                'channel-2::xz-5.2.3-0',
+                'channel-2::zlib-1.2.11-0',
                 'channel-4::ncurses-6.0-h9df7e31_2',
                 'channel-4::openssl-1.0.2n-hb7f436b_0',
                 'channel-4::patchelf-0.9-hf79760b_2',
                 'channel-4::tk-8.6.7-hc745277_3',
-                'channel-4::xz-5.2.3-h55aa19d_2',
                 'channel-4::yaml-0.1.7-had09818_2',
-                'channel-4::zlib-1.2.11-ha838bed_2',
                 'channel-4::libedit-3.1-heed3624_0',
                 'channel-4::readline-7.0-ha6073c6_4',
                 'channel-4::sqlite-3.22.0-h1bed415_0',
@@ -705,12 +699,12 @@ def test_conda_downgrade():
                 'channel-4::chardet-3.0.4-py36h0f667ec_1',
                 'channel-4::filelock-3.0.4-py36_0',
                 'channel-4::glob2-0.6-py36he249c77_0',
-                'channel-4::idna-2.6-py36h82fb2a8_1',
-                'channel-4::markupsafe-1.0-py36hd9260cd_1',
+                'channel-2::idna-2.6-py36_0',
+                'channel-2::markupsafe-1.0-py36_0',
                 'channel-4::pkginfo-1.4.1-py36h215d178_1',
                 'channel-4::psutil-5.4.3-py36h14c3975_0',
                 'channel-4::pycosat-0.6.3-py36h0a5515d_0',
-                'channel-4::pycparser-2.18-py36hf9f622e_1',
+                'channel-2::pycparser-2.18-py36_0',
                 'channel-4::pysocks-1.6.7-py36hd97a5b1_1',
                 'channel-4::pyyaml-3.12-py36hafb9ca4_1',
                 'channel-4::ruamel_yaml-0.15.35-py36h14c3975_1',
@@ -724,7 +718,7 @@ def test_conda_downgrade():
                 'channel-4::urllib3-1.22-py36hbe7ace6_0',
                 'channel-4::requests-2.18.4-py36he2e5f8d_1',
                 'channel-4::conda-4.4.10-py36_0',
-                'channel-4::conda-build-3.5.1-py36_0',
+                'channel-4::conda-build-3.5.1-py36_0'
             )
             assert convert_to_dist_str(final_state_1) == order
 
@@ -735,7 +729,6 @@ def test_conda_downgrade():
         with get_solver_aggregate_1(specs_to_add=specs_to_add, prefix_records=final_state_1,
                                     history_specs=specs) as solver:
             unlink_precs, link_precs = solver.solve_for_diff()
-            # PrefixDag(final_state_1, specs).open_url()
             pprint(convert_to_dist_str(unlink_precs))
             pprint(convert_to_dist_str(link_precs))
             unlink_order = (
@@ -753,10 +746,10 @@ def test_conda_downgrade():
                 'channel-4::python-3.6.3-h0ef2715_3',
                 'channel-2::certifi-2016.2.28-py36_0',
                 'channel-2::itsdangerous-0.24-py36_0',
-                'channel-2::pyparsing-2.1.4-py36_0',
+                'channel-2::pyparsing-2.2.0-py36_0',
                 'channel-2::requests-2.14.2-py36_0',
                 'channel-2::packaging-16.8-py36_0',
-                'channel-4::setuptools-36.5.0-py36he42e2e1_0',
+                'channel-2::setuptools-36.4.0-py36_1',
                 'channel-2::cryptography-1.8.1-py36_0',
                 'channel-2::pyopenssl-17.0.0-py36_0',
             )
@@ -794,13 +787,13 @@ def test_conda_downgrade():
                 'channel-4::python-3.6.3-h0ef2715_3',
                 'channel-2::certifi-2016.2.28-py36_0',
                 'channel-2::itsdangerous-0.24-py36_0',
-                'channel-2::pyparsing-2.1.4-py36_0',
+                'channel-2::pyparsing-2.2.0-py36_0',
                 'channel-2::requests-2.14.2-py36_0',
-                'channel-2::setuptools-27.2.0-py36_0',
                 'channel-2::packaging-16.8-py36_0',
+                'channel-2::setuptools-36.4.0-py36_1',
                 'channel-2::cryptography-1.8.1-py36_0',
                 'channel-2::pyopenssl-17.0.0-py36_0',
-                'channel-2::conda-4.3.21-py36_0',
+                'channel-2::conda-4.3.30-py36h5d9f9f4_0',
             )
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order
@@ -1673,21 +1666,20 @@ def test_priority_1():
         with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
             with get_solver_aggregate_1(specs) as solver:
                 final_state_1 = solver.solve_final_state()
-                # PrefixDag(final_state_1, specs).open_url()
                 pprint(convert_to_dist_str(final_state_1))
                 order = (
-                    'channel-2::mkl-2017.0.1-0',
+                    'channel-2::mkl-2017.0.3-0',
                     'channel-2::openssl-1.0.2l-0',
                     'channel-2::readline-6.2-2',
                     'channel-2::sqlite-3.13.0-0',
                     'channel-2::tk-8.5.18-0',
-                    'channel-2::zlib-1.2.8-3',
+                    'channel-2::zlib-1.2.11-0',
                     'channel-2::python-2.7.13-0',
-                    'channel-2::numpy-1.13.0-py27_0',
+                    'channel-2::numpy-1.13.1-py27_0',
                     'channel-2::pytz-2017.2-py27_0',
                     'channel-2::six-1.10.0-py27_0',
-                    'channel-2::python-dateutil-2.6.0-py27_0',
-                    'channel-2::pandas-0.20.2-np113py27_0',
+                    'channel-2::python-dateutil-2.6.1-py27_0',
+                    'channel-2::pandas-0.20.3-py27_0',
                 )
                 assert convert_to_dist_str(final_state_1) == order
                 txn = solver.solve_for_transaction()
@@ -1708,35 +1700,35 @@ def test_priority_1():
                 
                     package                    |            build
                     ---------------------------|-----------------
-                    mkl-2017.0.1               |                0       128.2 MB  channel-2
-                    numpy-1.13.0               |           py27_0         6.8 MB  channel-2
+                    mkl-2017.0.3               |                0       129.5 MB  channel-2
+                    numpy-1.13.1               |           py27_0         6.8 MB  channel-2
                     openssl-1.0.2l             |                0         3.2 MB  channel-2
-                    pandas-0.20.2              |      np113py27_0        19.2 MB  channel-2
+                    pandas-0.20.3              |           py27_0        18.9 MB  channel-2
                     python-2.7.13              |                0        11.5 MB  channel-2
-                    python-dateutil-2.6.0      |           py27_0         232 KB  channel-2
+                    python-dateutil-2.6.1      |           py27_0         236 KB  channel-2
                     pytz-2017.2                |           py27_0         204 KB  channel-2
                     readline-6.2               |                2         606 KB  channel-2
                     six-1.10.0                 |           py27_0          16 KB  channel-2
                     sqlite-3.13.0              |                0         4.0 MB  channel-2
                     tk-8.5.18                  |                0         1.9 MB  channel-2
-                    zlib-1.2.8                 |                3         101 KB  channel-2
+                    zlib-1.2.11                |                0         109 KB  channel-2
                     ------------------------------------------------------------
-                                                           Total:       175.9 MB
+                                                           Total:       176.9 MB
                 
                 The following NEW packages will be INSTALLED:
                 
-                  mkl                channel-2/linux-64::mkl-2017.0.1-0
-                  numpy              channel-2/linux-64::numpy-1.13.0-py27_0
+                  mkl                channel-2/linux-64::mkl-2017.0.3-0
+                  numpy              channel-2/linux-64::numpy-1.13.1-py27_0
                   openssl            channel-2/linux-64::openssl-1.0.2l-0
-                  pandas             channel-2/linux-64::pandas-0.20.2-np113py27_0
+                  pandas             channel-2/linux-64::pandas-0.20.3-py27_0
                   python             channel-2/linux-64::python-2.7.13-0
-                  python-dateutil    channel-2/linux-64::python-dateutil-2.6.0-py27_0
+                  python-dateutil    channel-2/linux-64::python-dateutil-2.6.1-py27_0
                   pytz               channel-2/linux-64::pytz-2017.2-py27_0
                   readline           channel-2/linux-64::readline-6.2-2
                   six                channel-2/linux-64::six-1.10.0-py27_0
                   sqlite             channel-2/linux-64::sqlite-3.13.0-0
                   tk                 channel-2/linux-64::tk-8.5.18-0
-                  zlib               channel-2/linux-64::zlib-1.2.8-3
+                  zlib               channel-2/linux-64::zlib-1.2.11-0
     
     
                 """)
@@ -1752,11 +1744,11 @@ def test_priority_1():
                     'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
                     'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
                     'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-                    'channel-2::mkl-2017.0.1-0',
+                    'channel-2::mkl-2017.0.3-0',
+                    'channel-2::zlib-1.2.11-0',
                     'channel-4::ncurses-6.0-h9df7e31_2',
                     'channel-4::openssl-1.0.2n-hb7f436b_0',
                     'channel-4::tk-8.6.7-hc745277_3',
-                    'channel-4::zlib-1.2.11-ha838bed_2',
                     'channel-4::libedit-3.1-heed3624_0',
                     'channel-4::readline-7.0-ha6073c6_4',
                     'channel-4::sqlite-3.22.0-h1bed415_0',
@@ -1764,7 +1756,7 @@ def test_priority_1():
                     'channel-4::numpy-1.14.1-py27h3dfced4_1',
                     'channel-2::pytz-2017.2-py27_0',
                     'channel-2::six-1.10.0-py27_0',
-                    'channel-2::python-dateutil-2.6.0-py27_0',
+                    'channel-2::python-dateutil-2.6.1-py27_0',
                     'channel-4::pandas-0.22.0-py27hf484d3e_0',
                 )
                 assert convert_to_dist_str(final_state_2) == order
@@ -1800,9 +1792,8 @@ def test_priority_1():
                     readline-7.0               |       ha6073c6_4         1.1 MB  channel-4
                     sqlite-3.22.0              |       h1bed415_0         1.5 MB  channel-4
                     tk-8.6.7                   |       hc745277_3         3.2 MB  channel-4
-                    zlib-1.2.11                |       ha838bed_2         101 KB  channel-4
                     ------------------------------------------------------------
-                                                           Total:        45.8 MB
+                                                           Total:        45.7 MB
                 
                 The following NEW packages will be INSTALLED:
                 
@@ -1816,14 +1807,13 @@ def test_priority_1():
                 
                 The following packages will be UPDATED:
                 
-                  numpy                      channel-2::numpy-1.13.0-py27_0 --> channel-4::numpy-1.14.1-py27h3dfced4_1
+                  numpy                      channel-2::numpy-1.13.1-py27_0 --> channel-4::numpy-1.14.1-py27h3dfced4_1
                   openssl                       channel-2::openssl-1.0.2l-0 --> channel-4::openssl-1.0.2n-hb7f436b_0
-                  pandas               channel-2::pandas-0.20.2-np113py27_0 --> channel-4::pandas-0.22.0-py27hf484d3e_0
+                  pandas                    channel-2::pandas-0.20.3-py27_0 --> channel-4::pandas-0.22.0-py27hf484d3e_0
                   python                         channel-2::python-2.7.13-0 --> channel-4::python-2.7.14-h1571d57_29
                   readline                        channel-2::readline-6.2-2 --> channel-4::readline-7.0-ha6073c6_4
                   sqlite                         channel-2::sqlite-3.13.0-0 --> channel-4::sqlite-3.22.0-h1bed415_0
                   tk                                 channel-2::tk-8.5.18-0 --> channel-4::tk-8.6.7-hc745277_3
-                  zlib                              channel-2::zlib-1.2.8-3 --> channel-4::zlib-1.2.11-ha838bed_2
     
     
                 """)
@@ -1835,23 +1825,23 @@ def test_priority_1():
             order = (
                 'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
                 'channel-2::libffi-3.2.1-1',
-                'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
                 'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+                'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
                 'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-                'channel-2::mkl-2017.0.1-0',
+                'channel-2::mkl-2017.0.3-0',
                 'channel-2::openssl-1.0.2l-0',
                 'channel-2::readline-6.2-2',
                 'channel-2::sqlite-3.13.0-0',
                 'channel-2::tk-8.5.18-0',
+                'channel-2::zlib-1.2.11-0',
                 'channel-4::ncurses-6.0-h9df7e31_2',
-                'channel-4::zlib-1.2.11-ha838bed_2',
-                'channel-4::libedit-3.1-heed3624_0',
                 'channel-2::python-2.7.13-0',
-                'channel-2::numpy-1.13.0-py27_0',
+                'channel-4::libedit-3.1-heed3624_0',
+                'channel-4::numpy-1.14.1-py27h3dfced4_1',
                 'channel-2::pytz-2017.2-py27_0',
                 'channel-2::six-1.10.0-py27_0',
-                'channel-2::python-dateutil-2.6.0-py27_0',
-                'channel-2::pandas-0.20.2-np113py27_0',
+                'channel-2::python-dateutil-2.6.1-py27_0',
+                'channel-2::pandas-0.20.3-py27_0',
             )
             assert convert_to_dist_str(final_state_3) == order
             txn = solver.solve_for_transaction()
@@ -1872,21 +1862,19 @@ def test_priority_1():
             
                 package                    |            build
                 ---------------------------|-----------------
-                numpy-1.13.0               |           py27_0         6.8 MB  channel-2
                 openssl-1.0.2l             |                0         3.2 MB  channel-2
-                pandas-0.20.2              |      np113py27_0        19.2 MB  channel-2
+                pandas-0.20.3              |           py27_0        18.9 MB  channel-2
                 python-2.7.13              |                0        11.5 MB  channel-2
                 readline-6.2               |                2         606 KB  channel-2
                 sqlite-3.13.0              |                0         4.0 MB  channel-2
                 tk-8.5.18                  |                0         1.9 MB  channel-2
                 ------------------------------------------------------------
-                                                       Total:        47.1 MB
+                                                       Total:        40.0 MB
             
             The following packages will be SUPERSEDED by a higher-priority channel:
             
-              numpy              channel-4::numpy-1.14.1-py27h3dfced4_1 --> channel-2::numpy-1.13.0-py27_0
               openssl              channel-4::openssl-1.0.2n-hb7f436b_0 --> channel-2::openssl-1.0.2l-0
-              pandas             channel-4::pandas-0.22.0-py27hf484d3e~ --> channel-2::pandas-0.20.2-np113py27_0
+              pandas             channel-4::pandas-0.22.0-py27hf484d3e~ --> channel-2::pandas-0.20.3-py27_0
               python               channel-4::python-2.7.14-h1571d57_29 --> channel-2::python-2.7.13-0
               readline               channel-4::readline-7.0-ha6073c6_4 --> channel-2::readline-6.2-2
               sqlite                channel-4::sqlite-3.22.0-h1bed415_0 --> channel-2::sqlite-3.13.0-0
@@ -1904,21 +1892,21 @@ def test_priority_1():
             order = (
                 'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
                 'channel-2::libffi-3.2.1-1',
-                'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
                 'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
+                'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
                 'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
-                'channel-2::mkl-2017.0.1-0',
+                'channel-2::mkl-2017.0.3-0',
                 'channel-2::openssl-1.0.2l-0',
                 'channel-2::readline-6.2-2',
                 'channel-2::sqlite-3.13.0-0',
                 'channel-2::tk-8.5.18-0',
+                'channel-2::zlib-1.2.11-0',
                 'channel-4::ncurses-6.0-h9df7e31_2',
-                'channel-4::zlib-1.2.11-ha838bed_2',
-                'channel-4::libedit-3.1-heed3624_0',
                 'channel-2::python-2.7.13-0',
-                'channel-2::numpy-1.13.0-py27_0',
+                'channel-4::libedit-3.1-heed3624_0',
+                'channel-4::numpy-1.14.1-py27h3dfced4_1',
                 'channel-2::six-1.9.0-py27_0',
-                'channel-2::python-dateutil-2.6.0-py27_0',
+                'channel-2::python-dateutil-2.6.1-py27_0',
             )
             assert convert_to_dist_str(final_state_4) == order
             txn = solver.solve_for_transaction()
@@ -1947,7 +1935,7 @@ def test_priority_1():
             
             The following packages will be REMOVED:
             
-              global:pandas-0.20.2-np113py27_0
+              global:pandas-0.20.3-py27_0
               global:pytz-2017.2-py27_0
             
             The following packages will be DOWNGRADED:
@@ -1966,8 +1954,7 @@ def test_features_solve_1():
     with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
         with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
-            # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_1))
+            pprint(convert_to_dist_str(final_state_1))
             order = (
                 'channel-2::nomkl-1.0-0',
                 'channel-2::libgfortran-3.0.0-1',
@@ -1975,18 +1962,17 @@ def test_features_solve_1():
                 'channel-2::readline-6.2-2',
                 'channel-2::sqlite-3.13.0-0',
                 'channel-2::tk-8.5.18-0',
-                'channel-2::zlib-1.2.8-3',
+                'channel-2::zlib-1.2.11-0',
                 'channel-2::openblas-0.2.19-0',
                 'channel-2::python-2.7.13-0',
-                'channel-2::numpy-1.13.0-py27_nomkl_0',
+                'channel-2::numpy-1.13.1-py27_nomkl_0',
             )
             assert convert_to_dist_str(final_state_1) == order
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
         with get_solver_aggregate_1(specs) as solver:
             final_state_1 = solver.solve_final_state()
-            # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_1))
+            pprint(convert_to_dist_str(final_state_1))
             order = (
                 'channel-2::nomkl-1.0-0',
                 'channel-4::ca-certificates-2017.08.26-h1d4fec5_0',
@@ -1994,11 +1980,11 @@ def test_features_solve_1():
                 'channel-4::libgcc-ng-7.2.0-h7cc24e2_2',
                 'channel-4::libgfortran-ng-7.2.0-h9f7466a_2',
                 'channel-4::libstdcxx-ng-7.2.0-h7a57d05_2',
+                'channel-2::zlib-1.2.11-0',
                 'channel-4::libopenblas-0.2.20-h9ac9557_4',
                 'channel-4::ncurses-6.0-h9df7e31_2',
                 'channel-4::openssl-1.0.2n-hb7f436b_0',
                 'channel-4::tk-8.6.7-hc745277_3',
-                'channel-4::zlib-1.2.11-ha838bed_2',
                 'channel-4::libedit-3.1-heed3624_0',
                 'channel-4::readline-7.0-ha6073c6_4',
                 'channel-4::sqlite-3.22.0-h1bed415_0',
@@ -2013,15 +1999,14 @@ def test_freeze_deps_1():
     specs = MatchSpec("six=1.7"),
     with get_solver_2(specs) as solver:
         final_state_1 = solver.solve_final_state()
-        # PrefixDag(final_state_1, specs).open_url()
-        print(convert_to_dist_str(final_state_1))
+        pprint(convert_to_dist_str(final_state_1))
         order = (
             'channel-2::openssl-1.0.2l-0',
             'channel-2::readline-6.2-2',
             'channel-2::sqlite-3.13.0-0',
             'channel-2::tk-8.5.18-0',
-            'channel-2::xz-5.2.2-1',
-            'channel-2::zlib-1.2.8-3',
+            'channel-2::xz-5.2.3-0',
+            'channel-2::zlib-1.2.11-0',
             'channel-2::python-3.4.5-0',
             'channel-2::six-1.7.3-py34_0',
         )
@@ -2029,98 +2014,86 @@ def test_freeze_deps_1():
 
     specs_to_add = MatchSpec("bokeh"),
     with get_solver_2(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
-        final_state_2 = solver.solve_final_state()
-        # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_2))
-        order = (
-            'channel-2::mkl-2017.0.1-0',
-            'channel-2::openssl-1.0.2l-0',
-            'channel-2::readline-6.2-2',
-            'channel-2::sqlite-3.13.0-0',
-            'channel-2::tk-8.5.18-0',
-            'channel-2::xz-5.2.2-1',
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(link_precs))
+        unlink_order = ()
+        link_order = (
+            'channel-2::mkl-2017.0.3-0',
             'channel-2::yaml-0.1.6-0',
-            'channel-2::zlib-1.2.8-3',
-            'channel-2::python-3.4.5-0',
             'channel-2::backports_abc-0.5-py34_0',
-            'channel-2::markupsafe-0.23-py34_2',
+            'channel-2::markupsafe-1.0-py34_0',
             'channel-2::numpy-1.13.0-py34_0',
             'channel-2::pyyaml-3.12-py34_0',
             'channel-2::requests-2.14.2-py34_0',
             'channel-2::setuptools-27.2.0-py34_0',
-            'channel-2::six-1.7.3-py34_0',
             'channel-2::jinja2-2.9.6-py34_0',
-            'channel-2::python-dateutil-2.6.0-py34_0',
+            'channel-2::python-dateutil-2.6.1-py34_0',
             'channel-2::tornado-4.4.2-py34_0',
             'channel-2::bokeh-0.12.4-py34_0',
         )
-        assert convert_to_dist_str(final_state_2) == order
+        assert convert_to_dist_str(unlink_precs) == unlink_order
+        assert convert_to_dist_str(link_precs) == link_order
 
     # now we can't install the latest bokeh 0.12.5, but instead we get bokeh 0.12.4
     specs_to_add = MatchSpec("bokeh"),
     with get_solver_2(specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
-        final_state_2 = solver.solve_final_state()
-        # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_2))
-        order = (
-            'channel-2::mkl-2017.0.1-0',
-            'channel-2::openssl-1.0.2l-0',
-            'channel-2::readline-6.2-2',
-            'channel-2::sqlite-3.13.0-0',
-            'channel-2::tk-8.5.18-0',
-            'channel-2::xz-5.2.2-1',
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(link_precs))
+        unlink_order = ()
+        link_order = (
+            'channel-2::mkl-2017.0.3-0',
             'channel-2::yaml-0.1.6-0',
-            'channel-2::zlib-1.2.8-3',
-            'channel-2::python-3.4.5-0',
             'channel-2::backports_abc-0.5-py34_0',
-            'channel-2::markupsafe-0.23-py34_2',
+            'channel-2::markupsafe-1.0-py34_0',
             'channel-2::numpy-1.13.0-py34_0',
             'channel-2::pyyaml-3.12-py34_0',
             'channel-2::requests-2.14.2-py34_0',
             'channel-2::setuptools-27.2.0-py34_0',
-            'channel-2::six-1.7.3-py34_0',
             'channel-2::jinja2-2.9.6-py34_0',
-            'channel-2::python-dateutil-2.6.0-py34_0',
+            'channel-2::python-dateutil-2.6.1-py34_0',
             'channel-2::tornado-4.4.2-py34_0',
             'channel-2::bokeh-0.12.4-py34_0',
         )
-        assert convert_to_dist_str(final_state_2) == order
+        assert convert_to_dist_str(unlink_precs) == unlink_order
+        assert convert_to_dist_str(link_precs) == link_order
 
     # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
     specs_to_add = MatchSpec("bokeh=0.12.5"),
     with get_solver_2(specs_to_add, prefix_records=final_state_1,
                       history_specs=(MatchSpec("six=1.7"), MatchSpec("python=3.4"))) as solver:
-        final_state_2 = solver.solve_final_state()
-        # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_2))
-        order = (
-            'channel-2::xz-5.2.2-1',
-            'channel-2::mkl-2017.0.1-0',
-            'channel-2::openssl-1.0.2l-0',
-            'channel-2::readline-6.2-2',
-            'channel-2::sqlite-3.13.0-0',
-            'channel-2::tk-8.5.18-0',
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(link_precs))
+        unlink_order = (
+            'channel-2::six-1.7.3-py34_0',
+            'channel-2::python-3.4.5-0',
+        )
+        link_order = (
+            'channel-2::mkl-2017.0.3-0',
             'channel-2::yaml-0.1.6-0',
-            'channel-2::zlib-1.2.8-3',
             'channel-2::python-2.7.13-0',
             'channel-2::backports-1.0-py27_0',
             'channel-2::backports_abc-0.5-py27_0',
+            'channel-2::certifi-2016.2.28-py27_0',
             'channel-2::futures-3.1.1-py27_0',
-            'channel-2::markupsafe-0.23-py27_2',
-            'channel-2::numpy-1.13.0-py27_0',
+            'channel-2::markupsafe-1.0-py27_0',
+            'channel-2::numpy-1.13.1-py27_0',
             'channel-2::pyyaml-3.12-py27_0',
             'channel-2::requests-2.14.2-py27_0',
-            'channel-2::setuptools-27.2.0-py27_0',
             'channel-2::six-1.7.3-py27_0',
-            'channel-2::jinja2-2.9.6-py27_0',
-            'channel-2::python-dateutil-2.6.0-py27_0',
+            'channel-2::python-dateutil-2.6.1-py27_0',
+            'channel-2::setuptools-36.4.0-py27_1',
             'channel-2::singledispatch-3.4.0.3-py27_0',
-            'channel-2::ssl_match_hostname-3.4.0.2-py27_1',
-            'channel-2::tornado-4.5.1-py27_0',
+            'channel-2::ssl_match_hostname-3.5.0.1-py27_0',
+            'channel-2::jinja2-2.9.6-py27_0',
+            'channel-2::tornado-4.5.2-py27_0',
             'channel-2::bokeh-0.12.5-py27_1',
         )
-        assert convert_to_dist_str(final_state_2) == order
+        assert convert_to_dist_str(unlink_precs) == unlink_order
+        assert convert_to_dist_str(link_precs) == link_order
 
     # here, the python=3.4 spec can't be satisfied, so it's dropped, and we go back to py27
     specs_to_add = MatchSpec("bokeh=0.12.5"),
