@@ -102,6 +102,104 @@ class ClauseArray(object):
         return self._clause_array
 
 
+class SatSolver(object):
+    @time_recorder(module_name=__name__)
+    def run(self, clauses, m, **kwargs):
+        solver = self.setup(clauses, m, **kwargs)
+        sat_solution = self.invoke(solver)
+        solution = self.process_solution(sat_solution)
+        return solution
+
+    @time_recorder(module_name=__name__)
+    def setup(self, clauses, m, **kwargs):
+        raise NotImplementedError()
+
+    @time_recorder(module_name=__name__)
+    def invoke(self, solver):
+        raise NotImplementedError()
+
+    @time_recorder(module_name=__name__)
+    def process_solution(self, sat_solution):
+        raise NotImplementedError()
+
+
+class PycoSatSolver(SatSolver):
+    @time_recorder(module_name=__name__)
+    def setup(self, clauses, m, limit=0):
+        # NOTE: the iterative solving isn't actually used here, we just call
+        #       itersolve to separate setup from the actual run.
+        return pycosat.itersolve(clauses.as_list(), vars=m, prop_limit=limit)
+        # return pycosat.itersolve(clauses.as_array(), vars=m, prop_limit=limit)
+
+    @time_recorder(module_name=__name__)
+    def invoke(self, iter_sol):
+        # sat_solution = pycosat.solve(clauses.as_list(), vars=m, prop_limit=limit)
+        try:
+            sat_solution = next(iter_sol)
+        except StopIteration:
+            sat_solution = "UNSAT"
+        del iter_sol
+        return sat_solution
+
+    @time_recorder(module_name=__name__)
+    def process_solution(self, sat_solution):
+        if sat_solution in ("UNSAT", "UNKNOWN"):
+            return None
+        return sat_solution
+
+
+class CryptoMiniSatSolver(SatSolver):
+    @time_recorder(module_name=__name__)
+    def setup(self, clauses, m, threads=1):
+        from pycryptosat import Solver
+        solver = Solver(threads=threads)
+        solver.add_clauses(clauses.as_list())
+        return solver
+
+    @time_recorder(module_name=__name__)
+    def invoke(self, solver):
+        sat, sat_solution = solver.solve()
+        if not sat:
+            sat_solution = None
+        return sat_solution
+
+    @time_recorder(module_name=__name__)
+    def process_solution(self, solution):
+        if not solution:
+            return None
+        # first element of solution is always None
+        solution = [i for i, b in enumerate(solution) if b]
+        return solution
+
+
+class PySatSolver(SatSolver):
+    @time_recorder(module_name=__name__)
+    def setup(self, clauses, m, **kwargs):
+        from pysat import solvers
+        solver = solvers.Glucose4()
+        # FIXME upstream: pysat.solvers require a clause to be a list...
+        clauses = list(map(list, clauses.as_list()))
+        solver.append_formula(clauses)
+        return solver
+
+    @time_recorder(module_name=__name__)
+    def invoke(self, solver):
+        if not solver.solve():
+            sat_solution = None
+        else:
+            sat_solution = solver.get_model()
+        solver.delete()
+        return sat_solution
+
+    @time_recorder(module_name=__name__)
+    def process_solution(self, sat_solution):
+        if sat_solution is None:
+            solution = None
+        else:
+            solution = sat_solution
+        return solution
+
+
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
@@ -515,9 +613,9 @@ class Clauses(object):
     def _run_sat(self, clauses, m, limit=0):
         if log.isEnabledFor(DEBUG):
             log.debug("Invoking SAT with clause count: %s", self.get_clause_count())
-        solution = pycosat.solve(clauses.as_list(), vars=m, prop_limit=limit)
-        if sat_solution in ("UNSAT", "UNKNOWN"):
-            return None
+        solution = PycoSatSolver().run(clauses, m, limit=limit)
+        # solution = PySatSolver().run(clauses, m)
+        # solution = CryptoMiniSatSolver().run(clauses, m, threads=1)
         return solution
 
     @time_recorder(module_name=__name__)
