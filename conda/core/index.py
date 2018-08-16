@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from collections import defaultdict
 from itertools import chain
 from logging import getLogger
 
@@ -14,7 +15,7 @@ from ..base.context import context
 from ..common.compat import itervalues
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, time_recorder
 from ..exceptions import ChannelNotAllowed
-from ..models.channel import Channel, all_channel_urls
+from ..models.channel import Channel, MultiChannel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord
 from ..resolve import dashlist
@@ -135,7 +136,7 @@ def calculate_channel_urls(channel_urls=(), prepend=True, platform=None, use_loc
     return all_channel_urls(channel_urls, subdirs=subdirs)
 
 
-def get_reduced_index(prefix, channels, subdirs, specs):
+def get_reduced_index(prefix, channels, subdirs, specs, strict_channel_priority):
 
     # # this block of code is a "combine" step intended to filter out redundant specs
     # # causes a problem with py.test tests/core/test_solve.py -k broken_install
@@ -243,4 +244,36 @@ def get_reduced_index(prefix, channels, subdirs, specs):
             rec = make_feature_record(ftr_str)
             reduced_index[rec] = rec
 
+        if strict_channel_priority:
+            reduced_index = _apply_strict_channel_priority(reduced_index, channels)
         return reduced_index
+
+
+def _apply_strict_channel_priority(index, channels):
+    """ Return an index of packages with strict channel priority
+
+    Packages in lower priority channels with names which appear in a higher
+    priority channel are removed from the index.
+    """
+    # sort the index by channel name
+    by_channel = defaultdict(dict)
+    for key, value in index.items():
+        by_channel[key.channel.name][key] = value
+
+    filtered_index = {}
+    pkg_names = set()
+    for channel in channels:
+        if isinstance(channel, MultiChannel):
+            c_index = {}
+            for sub_channel in channel._channels:
+                name = Channel(sub_channel).name
+                c_index.update(by_channel[name])
+        else:
+            name = channel.name
+            c_index = by_channel[name]
+        # retain packages whose name is not in an higher priority channel
+        to_add = {k: v for k, v in c_index.items() if k.name not in pkg_names}
+        filtered_index.update(to_add)
+        pkg_names.update([i.name for i in to_add])
+    filtered_index.update(by_channel.get('@', {}))
+    return filtered_index
