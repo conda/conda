@@ -472,7 +472,7 @@ class _Activator(object):
     def _default_env(self, prefix):
         if paths_equal(prefix, context.root_prefix):
             return ROOT_ENV_NAME
-        elif any(paths_equal(dirname(prefix), env_dir) for env_dir in context.envs_dirs)
+        elif any(paths_equal(dirname(prefix), env_dir) for env_dir in context.envs_dirs):
             return basename(prefix)
         else:
           return prefix
