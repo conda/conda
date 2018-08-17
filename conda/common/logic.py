@@ -217,6 +217,7 @@ class Clauses(object):
         self.get_clause_count = self._clauses.get_clause_count
         self.save_state = self._clauses.save_state
         self.restore_state = self._clauses.restore_state
+        self.as_list = self._clauses.as_list
 
     def name_var(self, m, name):
         nname = '!' + name
@@ -308,7 +309,7 @@ class Clauses(object):
     def Require(self, what, *args):
         return what.__get__(self, Clauses)(*args, polarity=True, name=False)
 
-    def Not_(self, x, polarity, add_new_clauses=False):
+    def Not_(self, x, polarity=None, add_new_clauses=False):
         return (not x) if type(x) is bool else -x
 
     def Not(self, x, polarity=None, name=None):
