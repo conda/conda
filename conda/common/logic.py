@@ -308,13 +308,13 @@ class Clauses(object):
     def Require(self, what, *args):
         return what.__get__(self, Clauses)(*args, polarity=True, name=False)
 
-    def Not_(self, x, polarity=None):
+    def Not_(self, x, polarity, add_new_clauses=False):
         return (not x) if type(x) is bool else -x
 
     def Not(self, x, polarity=None, name=None):
         return self.Eval_(self.Not_, (x,), polarity, name)
 
-    def And_(self, f, g, polarity=None):
+    def And_(self, f, g, polarity, add_new_clauses=False):
         if f is False or g is False:
             return False
         if f is True:
@@ -327,6 +327,13 @@ class Clauses(object):
             return False
         if g < f:
             f, g = g, f
+        if add_new_clauses:
+            x = self.new_var()
+            if polarity in (True, None):
+                self.add_clauses([(-x, f,), (-x, g,)])
+            if polarity in (False, None):
+                self.add_clauses([(x, -f, -g)])
+            return x
         pval = [(f,), (g,)] if polarity in (True, None) else []
         nval = [(-f, -g)] if polarity in (False, None) else []
         return pval, nval
@@ -334,7 +341,7 @@ class Clauses(object):
     def And(self, f, g, polarity=None, name=None):
         return self.Eval_(self.And_, (f, g), polarity, name)
 
-    def Or_(self, f, g, polarity):
+    def Or_(self, f, g, polarity, add_new_clauses=False):
         if f is True or g is True:
             return True
         if f is False:
@@ -347,6 +354,13 @@ class Clauses(object):
             return True
         if g < f:
             f, g = g, f
+        if add_new_clauses:
+            x = self.new_var()
+            if polarity in (True, None):
+                self.add_clauses([(-x, f, g)])
+            if polarity in (False, None):
+                self.add_clauses([(x, -f,), (x, -g,)])
+            return x
         pval = [(f, g)] if polarity in (True, None) else []
         nval = [(-f,), (-g,)] if polarity in (False, None) else []
         return pval, nval
@@ -354,11 +368,11 @@ class Clauses(object):
     def Or(self, f, g, polarity=None, name=None):
         return self.Eval_(self.Or_, (f, g), polarity, name)
 
-    def Xor_(self, f, g, polarity):
+    def Xor_(self, f, g, polarity, add_new_clauses=False):
         if f is False:
             return g
         if f is True:
-            return self.Not_(g, polarity)
+            return self.Not_(g, polarity, add_new_clauses=add_new_clauses)
         if g is False:
             return f
         if g is True:
@@ -369,6 +383,13 @@ class Clauses(object):
             return True
         if g < f:
             f, g = g, f
+        if add_new_clauses:
+            x = self.new_var()
+            if polarity in (True, None):
+                self.add_clauses([(-x, f, g), (-x, -f, -g)])
+            if polarity in (False, None):
+                self.add_clauses([(x, -f, g), (x, f, -g)])
+            return x
         pval = [(f, g), (-f, -g)] if polarity in (True, None) else []
         nval = [(-f, g), (f, -g)] if polarity in (False, None) else []
         return pval, nval
@@ -376,36 +397,43 @@ class Clauses(object):
     def Xor(self, f, g, polarity=None, name=None):
         return self.Eval_(self.Xor_, (f, g), polarity, name)
 
-    def ITE_(self, c, t, f, polarity):
+    def ITE_(self, c, t, f, polarity, add_new_clauses=False):
         if c is True:
             return t
         if c is False:
             return f
         if t is True:
-            return self.Or_(c, f, polarity)
+            return self.Or_(c, f, polarity, add_new_clauses=add_new_clauses)
         if t is False:
-            return self.And_(-c, f, polarity)
+            return self.And_(-c, f, polarity, add_new_clauses=add_new_clauses)
         if f is False:
-            return self.And_(c, t, polarity)
+            return self.And_(c, t, polarity, add_new_clauses=add_new_clauses)
         if f is True:
-            return self.Or_(t, -c, polarity)
+            return self.Or_(t, -c, polarity, add_new_clauses=add_new_clauses)
         if t == c:
-            return self.Or_(c, f, polarity)
+            return self.Or_(c, f, polarity, add_new_clauses=add_new_clauses)
         if t == -c:
-            return self.And_(-c, f, polarity)
+            return self.And_(-c, f, polarity, add_new_clauses=add_new_clauses)
         if f == c:
-            return self.And_(c, t, polarity)
+            return self.And_(c, t, polarity, add_new_clauses=add_new_clauses)
         if f == -c:
-            return self.Or_(t, -c, polarity)
+            return self.Or_(t, -c, polarity, add_new_clauses=add_new_clauses)
         if t == f:
             return t
         if t == -f:
-            return self.Xor_(c, f, polarity)
+            return self.Xor_(c, f, polarity, add_new_clauses=add_new_clauses)
         if t < f:
             t, f, c = f, t, -c
         # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
         # The third clause in each group is redundant but assists the unit
         # propagation in the SAT solver.
+        if add_new_clauses:
+            x = self.new_var()
+            if polarity in (True, None):
+                self.add_clauses([(-x, -c, t), (-x, c, f), (-x, t, f)])
+            if polarity in (False, None):
+                self.add_clauses([(x, -c, -t), (x, c, -f), (x, -t, -f)])
+            return x
         pval = [(-c, t), (c, f), (t, f)] if polarity in (True, None) else []
         nval = [(-c, -t), (c, -f), (-t, -f)] if polarity in (False, None) else []
         return pval, nval
@@ -536,7 +564,6 @@ class Clauses(object):
         call_stack_pop = call_stack.pop
         ret_get = ret.get
         ITE_ = self.ITE_
-        _assign_no_name = self._assign_no_name
 
         csum = 0
         while call_stack:
@@ -562,9 +589,7 @@ class Clauses(object):
             if tlo is None:
                 call_stack_append(lo_key)
                 continue
-            vals = ITE_(abs(LA), thi, tlo, polarity)
-            var = _assign_no_name(vals)
-            ret[call_stack_pop()] = var
+            ret[call_stack_pop()] = ITE_(abs(LA), thi, tlo, polarity, add_new_clauses=True)
         return ret[target]
 
     @time_recorder(module_name=__name__)
