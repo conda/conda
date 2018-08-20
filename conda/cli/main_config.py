@@ -2,7 +2,6 @@
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import collections
 import json
 import os
 from os.path import isfile, join
@@ -13,17 +12,11 @@ from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.constants import PathConflict, SafetyChecks
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import isiterable, iteritems, itervalues, string_types, text_type
+from ..common.compat import (Mapping, Sequence, isiterable, iteritems, itervalues, string_types,
+                             text_type)
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_dump, yaml_load
-
-try:
-    from collections.abc import Sequence, Mapping
-    str_type = str
-except ImportError:  # python 2
-    from collections import Sequence, Mapping
-    str_type = basestring
 
 try:
     from cytoolz.itertoolz import concat, groupby
@@ -42,7 +35,7 @@ def execute(args, parser):
 def format_dict(d):
     lines = []
     for k, v in iteritems(d):
-        if isinstance(v, collections.Mapping):
+        if isinstance(v, Mapping):
             if v:
                 lines.append("%s:" % k)
                 lines.append(pretty_map(v))
@@ -264,8 +257,8 @@ def execute_config(args, parser):
             if key not in sequence_parameters:
                 from ..exceptions import CondaValueError
                 raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
-            if not (isinstance(rc_config.get(key, []), Sequence) and not 
-                    isinstance(rc_config.get(key, []), str_type)):
+            if not (isinstance(rc_config.get(key, []), Sequence) and not
+                    isinstance(rc_config.get(key, []), string_types)):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
