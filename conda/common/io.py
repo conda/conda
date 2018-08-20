@@ -43,15 +43,15 @@ class DeltaSecondsFormatter(Formatter):
         Like `relativeCreated`, time relative to the initialization of the
         `logging` module but conveniently scaled to seconds as a `float` value.
     """
-    def __init__(self, fmt=None, datefmt=None, style='%'):
+    def __init__(self, fmt=None, datefmt=None):
         self.prev_time = time()
-        super(DeltaSecondsFormatter, self).__init__(fmt=fmt, datefmt=datefmt, style=style)
+        super(DeltaSecondsFormatter, self).__init__(fmt=fmt, datefmt=datefmt)
 
     def format(self, record):
         now = time()
         prev_time = self.prev_time
         self.prev_time = max(self.prev_time, now)
-        record.delta_secs =  now - prev_time
+        record.delta_secs = now - prev_time
         record.relative_created_secs = record.relativeCreated / 1000
         return super(DeltaSecondsFormatter, self).format(record)
 
