@@ -1,12 +1,12 @@
-import pytest
-import tempfile
-from conda.gateways.disk.delete import rm_rf
-from datetime import datetime
 from os.path import exists, join
+import tempfile
 from unittest import TestCase
 
-from .test_create import (Commands, PYTHON_BINARY, package_is_installed, make_temp_env,
-                          make_temp_prefix, run_command)
+from conda.gateways.disk.delete import rm_rf
+import pytest
+
+from .test_create import (Commands, PYTHON_BINARY, make_temp_env, make_temp_prefix,
+                          package_is_installed, run_command)
 
 
 @pytest.mark.integration
@@ -70,10 +70,13 @@ class ExportIntegrationTests(TestCase):
             assert package_is_installed(prefix, 'python=3')
 
             run_command(Commands.INSTALL, prefix, "six", "-c", "conda-forge")
-            assert package_is_installed(prefix, "six")
+            assert package_is_installed(prefix, "conda-forge::six")
 
             output, error = run_command(Commands.LIST, prefix, "--explicit")
-            self.assertIn("conda-forge", output)
+            assert not error
+            assert "conda-forge" in output
+
+            urls1 = set(url for url in output.split() if url.startswith("http"))
 
             try:
                 with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
@@ -84,7 +87,9 @@ class ExportIntegrationTests(TestCase):
 
                     assert package_is_installed(prefix2, "python")
                     assert package_is_installed(prefix2, "six")
-                output2, _ = run_command(Commands.LIST, prefix2, "--explicit")
-                self.assertEqual(output, output2)
+                output2, error2 = run_command(Commands.LIST, prefix2, "--explicit")
+                assert not error2
+                urls2 = set(url for url in output2.split() if url.startswith("http"))
+                assert urls1 == urls2
             finally:
                 rm_rf(env_txt.name)
