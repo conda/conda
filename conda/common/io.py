@@ -541,12 +541,11 @@ class time_recorder(ContextDecorator):  # pragma: no cover
             run_time = end_time - self.start_time
             self.total_call_num[entry_name] += 1
             self.total_run_time[entry_name] += run_time
-            total_call_num = self.total_call_num[entry_name]
-            total_run_time = self.total_run_time[entry_name]
             self._ensure_dir()
             with open(self.record_file, 'a') as fh:
-                fh.write(
-                    "%s,%f,%f,%d\n" % (entry_name, run_time, total_run_time, total_call_num))
+                fh.write("%s,%f\n" % (entry_name, run_time))
+            # total_call_num = self.total_call_num[entry_name]
+            # total_run_time = self.total_run_time[entry_name]
             # log.debug(
             #     '%s %9.3f %9.3f %d', entry_name, run_time, total_run_time, total_call_num)
 
