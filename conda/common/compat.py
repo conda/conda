@@ -115,6 +115,11 @@ elif PY2:  # pragma: py3 no cover
 from collections import OrderedDict as odict  # NOQA
 odict = odict
 
+if PY3:
+    from collections.abc import Sequence, Mapping  # NOQA
+else:
+    from collections import Sequence, Mapping  # NOQA
+
 from io import open as io_open  # NOQA
 
 
