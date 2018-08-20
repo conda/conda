@@ -56,9 +56,10 @@ class DeltaSecondsFormatter(Formatter):
         return super(DeltaSecondsFormatter, self).format(record)
 
 
-if os.environ.get('CONDA_INSTRUMENTATION_ENABLED'):
+
+if boolify(os.environ.get('CONDA_TIMED_LOGGING')):
     _FORMATTER = DeltaSecondsFormatter(
-        "%(relative_created_secs) 9.3f %(delta_secs) 9.3f "
+        "%(relative_created_secs) 7.2f %(delta_secs) 7.2f "
         "%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s"
     )
 else:
