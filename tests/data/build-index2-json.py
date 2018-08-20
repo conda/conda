@@ -181,7 +181,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # save_data_source("https://repo.anaconda.com/pkgs/free/linux-64", "free_linux-64")
+    save_data_source("https://conda-static.anaconda.org/free/linux-64", "free_linux-64")
     # save_data_source("https://conda.anaconda.org/conda-test/noarch", "conda-test_noarch")
     # save_data_source("https://conda.anaconda.org/conda-test/linux-64", "conda-test_linux-64")
     main()
