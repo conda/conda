@@ -20,7 +20,7 @@ from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
-from ..common.io import Spinner
+from ..common.io import time_recorder, Spinner
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import PackagesNotFoundError
 from ..gateways.logging import TRACE
@@ -436,6 +436,7 @@ class Solver(object):
             solution = tuple(graph.graph)
 
         self._check_solution(solution, pinned_specs)
+        time_recorder.log_totals()
 
         solution = IndexedSet(PrefixGraph(solution).graph)
         log.debug("solved prefix %s\n"

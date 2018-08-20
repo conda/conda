@@ -550,6 +550,20 @@ class time_recorder(ContextDecorator):  # pragma: no cover
             # log.debug(
             #     '%s %9.3f %9.3f %d', entry_name, run_time, total_run_time, total_call_num)
 
+    @classmethod
+    def log_totals(cls):
+        enabled = os.environ.get('CONDA_INSTRUMENTATION_ENABLED')
+        if not (enabled and boolify(enabled)):
+            return
+        log.info('=== time_recorder total time and calls ===')
+        for entry_name in sorted(cls.total_run_time.keys()):
+            log.info(
+                'TOTAL %9.3f % 9d %s',
+                cls.total_run_time[entry_name],
+                cls.total_call_num[entry_name],
+                entry_name,
+            )
+
     @memoizemethod
     def _ensure_dir(self):
         if not isdir(dirname(self.record_file)):

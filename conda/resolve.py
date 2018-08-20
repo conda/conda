@@ -799,7 +799,7 @@ class Resolve(object):
         self.restore_bad(pkgs, preserve)
         return pkgs
 
-    @time_recorder("resolve_solve")
+    @time_recorder(module_name=__name__)
     def solve(self, specs, returnall=False, _remove=False):
         # type: (List[str], bool) -> List[PackageRecord]
         if log.isEnabledFor(DEBUG):
