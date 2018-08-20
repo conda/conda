@@ -1,3 +1,13 @@
+# 4.5.11 (unreleased)
+
+### Improvements
+* resolve #7672 compatibility with ruamel.yaml 0.15.54 (#7675)
+
+### Contributors
+* @CJ-Wright
+* @mbargull
+
+
 # 4.5.10 (2018-08-13)
 
 ### Bug Fixes
