@@ -5,8 +5,8 @@ from unittest import TestCase
 from conda.gateways.disk.delete import rm_rf
 import pytest
 
-from .test_create import (Commands, PYTHON_BINARY, make_temp_env, make_temp_prefix,
-                          package_is_installed, run_command)
+from .test_create import Commands, PYTHON_BINARY, make_temp_env, make_temp_prefix, \
+    package_is_installed, run_command
 
 
 @pytest.mark.integration
