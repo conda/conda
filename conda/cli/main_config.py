@@ -20,6 +20,13 @@ from ..common.io import timeout
 from ..common.serialize import yaml, yaml_dump, yaml_load
 
 try:
+    from collections.abc import Sequence, Mapping
+    str_type = str
+except ImportError:  # python 2
+    from collections import Sequence, Mapping
+    str_type = basestring
+
+try:
     from cytoolz.itertoolz import concat, groupby
 except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, groupby  # NOQA
@@ -283,7 +290,8 @@ def execute_config(args, parser):
             if key not in sequence_parameters:
                 from ..exceptions import CondaValueError
                 raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
-            if not isinstance(rc_config.get(key, []), list):
+            if not (isinstance(rc_config.get(key, []), Sequence) and not 
+                    isinstance(rc_config.get(key, []), str_type)):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
