@@ -67,6 +67,7 @@
 * rename common.platform to common.os and split among windows, linux, and unix utils (#7396)
 * fix windows test failures when symlink not available (#7369)
 * test building conda using conda-build (#7251)
+* solver test metadata updates (#7664)
 
 ### Preview Releases
 
