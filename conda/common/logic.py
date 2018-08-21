@@ -623,17 +623,8 @@ class Clauses(object):
         return res
 
     def LinearBound(self, equation, lo, hi, preprocess=True, polarity=None, name=None):
-        if log.isEnabledFor(DEBUG):
-            old_clause_count = self.get_clause_count()
-        ret = self.Eval_(
+        return self.Eval_(
             self.LinearBound_, (equation, lo, hi, preprocess), polarity, name, conv=False)
-        if log.isEnabledFor(DEBUG):
-            new_clause_count = self.get_clause_count() - old_clause_count
-            log.debug(
-                'new clauses: %d (%.0f%%)',
-                new_clause_count, 100.0 * new_clause_count / max(1, old_clause_count),
-            )
-        return ret
 
     @time_recorder(module_name=__name__)
     def _run_sat(self, clauses, m, limit=0):
