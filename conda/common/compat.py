@@ -63,6 +63,8 @@ elif PY2:  # pragma: py3 no cover
     from itertools import izip as zip, izip_longest as zip_longest
     JSONDecodeError = ValueError
 
+Mapping = Mapping
+Sequence = Sequence
 StringIO = StringIO
 zip = zip
 zip_longest = zip_longest
