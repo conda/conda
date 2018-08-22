@@ -41,23 +41,38 @@ log = getLogger(__name__)
 
 
 class ClauseList(object):
+    """Storage for the CNF clauses, represented as a list of tuples of ints."""
     def __init__(self):
         self._clause_list = []
+        # Methods append and extend are directly bound for performance reasons,
+        # to avoid call overhead and lookups.
         self.append = self._clause_list.append
         self.extend = self._clause_list.extend
         self.get_clause_count = self._clause_list.__len__
 
     def save_state(self):
+        """
+        Get state information to be able to revert temporary additions of
+        supplementary clauses.  ClauseList: state is simply the number of clauses.
+        """
         return len(self._clause_list)
 
     def restore_state(self, saved_state):
+        """
+        Restore state saved via `save_state`.
+        Removes clauses that were added after the sate has been saved.
+        """
         len_clauses = saved_state
         self._clause_list[len_clauses:] = []
 
     def as_list(self):
+        """Return clauses as a list of tuples of ints."""
         return self._clause_list
 
     def as_array(self):
+        """
+        Return clauses as a flat int array, each clause being terminated by 0.
+        """
         clause_array = array('i')
         for c in self._clause_list:
             clause_array.extend(c)
@@ -66,8 +81,14 @@ class ClauseList(object):
 
 
 class ClauseArray(object):
+    """
+    Storage for the CNF clauses, represented as a flat int array.
+    Each clause is terminated by int(0).
+    """
     def __init__(self):
         self._clause_array = array('i')
+        # Methods append and extend are directly bound for performance reasons,
+        # to avoid call overhead and lookups.
         self._array_append = self._clause_array.append
         self._array_extend = self._clause_array.extend
 
@@ -80,16 +101,32 @@ class ClauseArray(object):
         self._array_append(0)
 
     def get_clause_count(self):
+        """
+        Return number of stored clauses.
+        This is an O(n) operation since we don't store the number of clauses
+        explicitly due to performance reasons (Python interpreter overhead in
+        self.append).
+        """
         return self._clause_array.count(0)
 
     def save_state(self):
+        """
+        Get state information to be able to revert temporary additions of
+        supplementary clauses. ClauseArray: state is the length of the int
+        array, NOT number of clauses.
+        """
         return len(self._clause_array)
 
     def restore_state(self, saved_state):
+        """
+        Restore state saved via `save_state`.
+        Removes clauses that were added after the sate has been saved.
+        """
         len_clause_array = saved_state
         self._clause_array[len_clause_array:] = array('i')
 
     def as_list(self):
+        """Return clauses as a list of tuples of ints."""
         clause = []
         for v in self._clause_array:
             if v == 0:
@@ -99,10 +136,16 @@ class ClauseArray(object):
                 clause.append(v)
 
     def as_array(self):
+        """
+        Return clauses as a flat int array, each clause being terminated by 0.
+        """
         return self._clause_array
 
 
 class SatSolver(object):
+    """
+    Simple wrapper to call a SAT solver given a ClauseList/ClauseArray instance.
+    """
     @time_recorder(module_name=__name__)
     def run(self, clauses, m, **kwargs):
         solver = self.setup(clauses, m, **kwargs)
@@ -112,28 +155,35 @@ class SatSolver(object):
 
     @time_recorder(module_name=__name__)
     def setup(self, clauses, m, **kwargs):
+        """Create a solver instance, add the clauses to it, and return it."""
         raise NotImplementedError()
 
     @time_recorder(module_name=__name__)
     def invoke(self, solver):
+        """Start the actual SAT solving and return the calculated solution."""
         raise NotImplementedError()
 
     @time_recorder(module_name=__name__)
     def process_solution(self, sat_solution):
+        """
+        Process the solution returned by self.invoke.
+        Returns a list of satisfied variables or None if no solution is found.
+        """
         raise NotImplementedError()
 
 
 class PycoSatSolver(SatSolver):
     @time_recorder(module_name=__name__)
     def setup(self, clauses, m, limit=0):
-        # NOTE: the iterative solving isn't actually used here, we just call
+        # NOTE: The iterative solving isn't actually used here, we just call
         #       itersolve to separate setup from the actual run.
         return pycosat.itersolve(clauses.as_list(), vars=m, prop_limit=limit)
+        # If we add support for passing the clauses as an integer stream to the
+        # solvers, we could also use clauses.as_array like this:
         # return pycosat.itersolve(clauses.as_array(), vars=m, prop_limit=limit)
 
     @time_recorder(module_name=__name__)
     def invoke(self, iter_sol):
-        # sat_solution = pycosat.solve(clauses.as_list(), vars=m, prop_limit=limit)
         try:
             sat_solution = next(iter_sol)
         except StopIteration:
@@ -167,7 +217,7 @@ class CryptoMiniSatSolver(SatSolver):
     def process_solution(self, solution):
         if not solution:
             return None
-        # first element of solution is always None
+        # The first element of the solution is always None.
         solution = [i for i, b in enumerate(solution) if b]
         return solution
 
@@ -211,7 +261,7 @@ class Clauses(object):
         self.unsat = False
         self.m = m
         self._clauses = ClauseList()
-        # bind some methods of _clauses to reduce call overhead
+        # Bind some methods of _clauses to reduce lookups and call overhead.
         self.add_clause = self._clauses.append
         self.add_clauses = self._clauses.extend
         self.get_clause_count = self._clauses.get_clause_count
@@ -329,6 +379,10 @@ class Clauses(object):
         if g < f:
             f, g = g, f
         if add_new_clauses:
+            # This is equivalent to running self._assign_no_name(pval, nval) on
+            # the (pval, nval) tuple we return below. Duplicating the code here
+            # is an important performance tweak to avoid the costly generator
+            # expressions and tuple additions in self._assign_no_name.
             x = self.new_var()
             if polarity in (True, None):
                 self.add_clauses([(-x, f,), (-x, g,)])
@@ -590,6 +644,11 @@ class Clauses(object):
             if tlo is None:
                 call_stack_append(lo_key)
                 continue
+            # NOTE: The following ITE_ call is _the_ hotspot of the Python-side
+            # computations for the overall minimization run. For performance we
+            # avoid calling self._assign_no_name here via add_new_clauses=True.
+            # If we want to translate parts of the code to a compiled language,
+            # self.BDD_ (+ its downward call stack) is the prime candidate!
             ret[call_stack_pop()] = ITE_(abs(LA), thi, tlo, polarity, add_new_clauses=True)
         return ret[target]
 
@@ -743,6 +802,7 @@ class Clauses(object):
             hi = bestval
             m_orig = self.m
             if log.isEnabledFor(DEBUG):
+                # This is only used for the log message below.
                 nz = self.get_clause_count()
             saved_state = self.save_state()
             if trymax and not peak:
@@ -780,6 +840,8 @@ class Clauses(object):
                     if done:
                         break
                 self.m = m_orig
+                # Since we only ever _add_ clauses and only remove then via
+                # self.restore_state, it's fine to test on equality only.
                 if self.save_state() != saved_state:
                     self.restore_state(saved_state)
                 self.unsat = False
