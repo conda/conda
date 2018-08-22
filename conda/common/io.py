@@ -56,7 +56,6 @@ class DeltaSecondsFormatter(Formatter):
         return super(DeltaSecondsFormatter, self).format(record)
 
 
-
 if boolify(os.environ.get('CONDA_TIMED_LOGGING')):
     _FORMATTER = DeltaSecondsFormatter(
         "%(relative_created_secs) 7.2f %(delta_secs) 7.2f "
