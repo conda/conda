@@ -49,6 +49,7 @@ elif PY2:  # pragma: py3 no cover
 # #############################
 
 if PY3:  # pragma: py2 no cover
+    from collections.abc import Mapping, Sequence
     from io import StringIO
     from itertools import zip_longest
     if sys.version_info[1] >= 5:
@@ -57,10 +58,13 @@ if PY3:  # pragma: py2 no cover
     else:
         JSONDecodeError = ValueError
 elif PY2:  # pragma: py3 no cover
+    from collections import Mapping, Sequence
     from cStringIO import StringIO
     from itertools import izip as zip, izip_longest as zip_longest
     JSONDecodeError = ValueError
 
+Mapping = Mapping
+Sequence = Sequence
 StringIO = StringIO
 zip = zip
 zip_longest = zip_longest

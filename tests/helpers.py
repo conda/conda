@@ -151,7 +151,7 @@ def add_feature_records_legacy(index):
 
 @memoize
 def get_index_r_1(subdir=context.subdir):
-    with open(join(dirname(__file__), 'index.json')) as fi:
+    with open(join(dirname(__file__), 'data', 'index.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -177,7 +177,7 @@ def get_index_r_1(subdir=context.subdir):
 
 @memoize
 def get_index_r_2(subdir=context.subdir):
-    with open(join(dirname(__file__), 'index2.json')) as fi:
+    with open(join(dirname(__file__), 'data', 'index2.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -201,33 +201,8 @@ def get_index_r_2(subdir=context.subdir):
 
 
 @memoize
-def get_index_r_3(subdir=context.subdir):
-    with open(join(dirname(__file__), 'index3.json')) as fi:
-        packages = json.load(fi)
-        repodata = {
-            "info": {
-                "subdir": subdir,
-                "arch": context.arch_name,
-                "platform": context.platform,
-            },
-            "packages": packages,
-        }
-
-    channel = Channel('https://conda.anaconda.org/channel-3/%s' % subdir)
-    sd = SubdirData(channel)
-    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
-        sd._process_raw_repodata_str(json.dumps(repodata))
-    sd._loaded = True
-    SubdirData._cache_[channel.url(with_credentials=True)] = sd
-
-    index = {prec: prec for prec in sd._package_records}
-    r = Resolve(index, channels=(channel,))
-    return index, r
-
-
-@memoize
 def get_index_r_4(subdir=context.subdir):
-    with open(join(dirname(__file__), 'index4.json')) as fi:
+    with open(join(dirname(__file__), 'data', 'index4.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
@@ -253,7 +228,7 @@ def get_index_r_4(subdir=context.subdir):
 
 @memoize
 def get_index_r_5(subdir=context.subdir):
-    with open(join(dirname(__file__), 'index5.json')) as fi:
+    with open(join(dirname(__file__), 'data', 'index5.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {

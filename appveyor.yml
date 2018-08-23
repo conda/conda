@@ -29,6 +29,7 @@ init:
 
 install:
   - '%PYTHON_ROOT%\\Scripts\\conda install -y -c conda-canary -c defaults -c conda-forge python=%PYTHON_VERSION% pycosat conda requests ruamel_yaml pytest pytest-cov pytest-timeout mock responses pexpect pywin32'
+  - "%PYTHON_ROOT%\\Scripts\\conda install -yq conda-build"
   # conda install -y -c defaults -c conda-forge pytest pytest-cov pytest-timeout mock responses pexpect xonsh
   # TODO: add xonsh for PY3 builds
   - "%PYTHON_ROOT%\\Scripts\\pip install codecov==2.0.5"
@@ -40,5 +41,7 @@ test_script:
   - CALL dev-init.bat
   - py.test %ADD_COV% -m "not integration and not installed" -v
   - py.test %ADD_COV% --cov-append -m "integration and not installed" -v
+  - DEL /Q /F conda.egg-info
+  - conda.exe build conda.recipe
   - codecov --env PYTHON_VERSION --required
   - python -m conda.common.io

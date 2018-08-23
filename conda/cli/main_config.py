@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import OrderedDict, Mapping
+from collections import OrderedDict
 import json
 import os
 from os.path import isfile, join
@@ -12,9 +12,9 @@ from textwrap import wrap
 
 from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import PathConflict, SafetyChecks, DepsModifier, UpdateModifier
+from ..base.constants import DepsModifier, PathConflict, SafetyChecks, UpdateModifier
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import isiterable, iteritems, itervalues, string_types
+from ..common.compat import Mapping, Sequence, isiterable, iteritems, itervalues, string_types
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_dump, yaml_load
@@ -283,7 +283,8 @@ def execute_config(args, parser):
             if key not in sequence_parameters:
                 from ..exceptions import CondaValueError
                 raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
-            if not isinstance(rc_config.get(key, []), list):
+            if not (isinstance(rc_config.get(key, []), Sequence) and not
+                    isinstance(rc_config.get(key, []), string_types)):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))

@@ -4,8 +4,8 @@
 * resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
   config (#7195, #7226, #7233)
 * resolve #7087 add non-conda-installed python packages into PrefixData (#7067, #7370)
-* conda initialize (#6518, #7388)
-* resolve #2682 add conda run experimental support (#7320)
+* conda initialize (#6518, #7388, #7629)
+* resolve #2682 add conda run experimental support (#7320, #7625)
 
 ### Deprecations/Breaking Changes
 * resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
@@ -36,6 +36,9 @@
 * add NoBaseEnvironmentError and DirectoryNotACondaEnvironmentError (#7378)
 * replace menuinst subprocessing by ctypes win elevation (4.6.0a3) (#7426)
 * bump minimum requests version to stable, unbundled release (#7528)
+* resolve #7591 updates and improvements from namespace PR for 4.6 (#7599)
+* resolve #7592 compatibility shims (#7606)
+* user-agent context refactor (#7630)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
@@ -51,6 +54,9 @@
 * fix #5885 improve conda env error messages and add extra tests (#7395)
 * msys2 path conversion (#7389)
 * fix autocompletion in fish (#7575)
+* fix #3982 following 4.4 activation refactor (#7607)
+* fix #7242 configuration load error message (#7243)
+* fix conda env compatibility with pip 18 (#7612)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
@@ -60,6 +66,8 @@
 * add copyright headers (#7367)
 * rename common.platform to common.os and split among windows, linux, and unix utils (#7396)
 * fix windows test failures when symlink not available (#7369)
+* test building conda using conda-build (#7251)
+* solver test metadata updates (#7664)
 
 ### Preview Releases
 
@@ -68,9 +76,34 @@
 
 ### Contributors
 * @goanpeca
+* @jesse-
 * @kalefranz
 * @mbargull
+* @msarahan
 * @ohadravid
+
+
+# 4.5.11 (unreleased)
+
+### Improvements
+* resolve #7672 compatibility with ruamel.yaml 0.15.54 (#7675)
+
+### Contributors
+* @CJ-Wright
+* @mbargull
+
+
+# 4.5.10 (2018-08-13)
+
+### Bug Fixes
+* fix conda env compatibility with pip 18 (#7627)
+* fix py37 compat 4.5.x (#7641)
+* fix #7451 don't print name, version, and size if unknown (#7648)
+* replace glob with fnmatch in PrefixData (#7645)
+
+### Contributors
+* @jesse-
+* @nehaljwani
 
 
 ## 4.5.9 (2018-07-30)
