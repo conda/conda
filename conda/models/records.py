@@ -236,7 +236,11 @@ class PackageRef(BasePackageRef):
                 self.build_number, self.build)
 
     def __hash__(self):
-        return hash(self._pkey)
+        try:
+            return self._hash
+        except AttributeError:
+            self._hash = hash(self._pkey)
+        return self._hash
 
     def __eq__(self, other):
         return self._pkey == other._pkey

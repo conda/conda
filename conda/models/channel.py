@@ -142,6 +142,13 @@ class Channel(object):
 
     @property
     def canonical_name(self):
+        try:
+            return self.__canonical_name
+        except AttributeError:
+            self.__canonical_name = self._compute_canonical_name()
+        return self.__canonical_name
+
+    def _compute_canonical_name(self):
         for multiname, channels in iteritems(context.custom_multichannels):
             for channel in channels:
                 if self.name == channel.name:
