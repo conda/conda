@@ -35,7 +35,6 @@ from logging import DEBUG, getLogger
 import pycosat
 
 from .compat import iteritems
-from .io import time_recorder
 
 log = getLogger(__name__)
 
@@ -146,24 +145,20 @@ class SatSolver(object):
     """
     Simple wrapper to call a SAT solver given a ClauseList/ClauseArray instance.
     """
-    @time_recorder(module_name=__name__)
     def run(self, clauses, m, **kwargs):
         solver = self.setup(clauses, m, **kwargs)
         sat_solution = self.invoke(solver)
         solution = self.process_solution(sat_solution)
         return solution
 
-    @time_recorder(module_name=__name__)
     def setup(self, clauses, m, **kwargs):
         """Create a solver instance, add the clauses to it, and return it."""
         raise NotImplementedError()
 
-    @time_recorder(module_name=__name__)
     def invoke(self, solver):
         """Start the actual SAT solving and return the calculated solution."""
         raise NotImplementedError()
 
-    @time_recorder(module_name=__name__)
     def process_solution(self, sat_solution):
         """
         Process the solution returned by self.invoke.
@@ -173,7 +168,6 @@ class SatSolver(object):
 
 
 class PycoSatSolver(SatSolver):
-    @time_recorder(module_name=__name__)
     def setup(self, clauses, m, limit=0):
         # NOTE: The iterative solving isn't actually used here, we just call
         #       itersolve to separate setup from the actual run.
@@ -182,7 +176,6 @@ class PycoSatSolver(SatSolver):
         # solvers, we could also use clauses.as_array like this:
         # return pycosat.itersolve(clauses.as_array(), vars=m, prop_limit=limit)
 
-    @time_recorder(module_name=__name__)
     def invoke(self, iter_sol):
         try:
             sat_solution = next(iter_sol)
@@ -191,7 +184,6 @@ class PycoSatSolver(SatSolver):
         del iter_sol
         return sat_solution
 
-    @time_recorder(module_name=__name__)
     def process_solution(self, sat_solution):
         if sat_solution in ("UNSAT", "UNKNOWN"):
             return None
@@ -199,21 +191,18 @@ class PycoSatSolver(SatSolver):
 
 
 class CryptoMiniSatSolver(SatSolver):
-    @time_recorder(module_name=__name__)
     def setup(self, clauses, m, threads=1):
         from pycryptosat import Solver
         solver = Solver(threads=threads)
         solver.add_clauses(clauses.as_list())
         return solver
 
-    @time_recorder(module_name=__name__)
     def invoke(self, solver):
         sat, sat_solution = solver.solve()
         if not sat:
             sat_solution = None
         return sat_solution
 
-    @time_recorder(module_name=__name__)
     def process_solution(self, solution):
         if not solution:
             return None
@@ -223,7 +212,6 @@ class CryptoMiniSatSolver(SatSolver):
 
 
 class PySatSolver(SatSolver):
-    @time_recorder(module_name=__name__)
     def setup(self, clauses, m, **kwargs):
         from pysat import solvers
         solver = solvers.Glucose4()
@@ -232,7 +220,6 @@ class PySatSolver(SatSolver):
         solver.append_formula(clauses)
         return solver
 
-    @time_recorder(module_name=__name__)
     def invoke(self, solver):
         if not solver.solve():
             sat_solution = None
@@ -241,7 +228,6 @@ class PySatSolver(SatSolver):
         solver.delete()
         return sat_solution
 
-    @time_recorder(module_name=__name__)
     def process_solution(self, sat_solution):
         if sat_solution is None:
             solution = None
@@ -652,7 +638,6 @@ class Clauses(object):
             ret[call_stack_pop()] = ITE_(abs(LA), thi, tlo, polarity, add_new_clauses=True)
         return ret[target]
 
-    @time_recorder(module_name=__name__)
     def LinearBound_(self, equation, lo, hi, preprocess, polarity):
         if preprocess:
             equation, offset = self.LB_Preprocess_(equation)
@@ -685,7 +670,6 @@ class Clauses(object):
         return self.Eval_(
             self.LinearBound_, (equation, lo, hi, preprocess), polarity, name, conv=False)
 
-    @time_recorder(module_name=__name__)
     def _run_sat(self, clauses, m, limit=0):
         if log.isEnabledFor(DEBUG):
             log.debug("Invoking SAT with clause count: %s", self.get_clause_count())
@@ -694,7 +678,6 @@ class Clauses(object):
         # solution = CryptoMiniSatSolver().run(clauses, m, threads=1)
         return solution
 
-    @time_recorder(module_name=__name__)
     def sat(self, additional=None, includeIf=False, names=False, limit=0):
         """
         Calculate a SAT solution for the current clause set.
@@ -754,7 +737,6 @@ class Clauses(object):
             yield sol
             exclude.append([-k for k in sol if -m <= k <= m])
 
-    @time_recorder(module_name=__name__)
     def minimize(self, objective, bestsol=None, trymax=False):
         """
         Minimize the objective function given either by (coeff, integer)
