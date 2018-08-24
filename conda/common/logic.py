@@ -29,13 +29,211 @@ through the Require and Prevent functions.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from array import array
 from itertools import chain, combinations
-from logging import getLogger
+from logging import DEBUG, getLogger
 import pycosat
 
 from .compat import iteritems
 
 log = getLogger(__name__)
+
+
+class ClauseList(object):
+    """Storage for the CNF clauses, represented as a list of tuples of ints."""
+    def __init__(self):
+        self._clause_list = []
+        # Methods append and extend are directly bound for performance reasons,
+        # to avoid call overhead and lookups.
+        self.append = self._clause_list.append
+        self.extend = self._clause_list.extend
+        self.get_clause_count = self._clause_list.__len__
+
+    def save_state(self):
+        """
+        Get state information to be able to revert temporary additions of
+        supplementary clauses.  ClauseList: state is simply the number of clauses.
+        """
+        return len(self._clause_list)
+
+    def restore_state(self, saved_state):
+        """
+        Restore state saved via `save_state`.
+        Removes clauses that were added after the sate has been saved.
+        """
+        len_clauses = saved_state
+        self._clause_list[len_clauses:] = []
+
+    def as_list(self):
+        """Return clauses as a list of tuples of ints."""
+        return self._clause_list
+
+    def as_array(self):
+        """
+        Return clauses as a flat int array, each clause being terminated by 0.
+        """
+        clause_array = array('i')
+        for c in self._clause_list:
+            clause_array.extend(c)
+            clause_array.append(0)
+        return clause_array
+
+
+class ClauseArray(object):
+    """
+    Storage for the CNF clauses, represented as a flat int array.
+    Each clause is terminated by int(0).
+    """
+    def __init__(self):
+        self._clause_array = array('i')
+        # Methods append and extend are directly bound for performance reasons,
+        # to avoid call overhead and lookups.
+        self._array_append = self._clause_array.append
+        self._array_extend = self._clause_array.extend
+
+    def extend(self, clauses):
+        for clause in clauses:
+            self.append(clause)
+
+    def append(self, clause):
+        self._array_extend(clause)
+        self._array_append(0)
+
+    def get_clause_count(self):
+        """
+        Return number of stored clauses.
+        This is an O(n) operation since we don't store the number of clauses
+        explicitly due to performance reasons (Python interpreter overhead in
+        self.append).
+        """
+        return self._clause_array.count(0)
+
+    def save_state(self):
+        """
+        Get state information to be able to revert temporary additions of
+        supplementary clauses. ClauseArray: state is the length of the int
+        array, NOT number of clauses.
+        """
+        return len(self._clause_array)
+
+    def restore_state(self, saved_state):
+        """
+        Restore state saved via `save_state`.
+        Removes clauses that were added after the sate has been saved.
+        """
+        len_clause_array = saved_state
+        self._clause_array[len_clause_array:] = array('i')
+
+    def as_list(self):
+        """Return clauses as a list of tuples of ints."""
+        clause = []
+        for v in self._clause_array:
+            if v == 0:
+                yield tuple(clause)
+                clause.clear()
+            else:
+                clause.append(v)
+
+    def as_array(self):
+        """
+        Return clauses as a flat int array, each clause being terminated by 0.
+        """
+        return self._clause_array
+
+
+class SatSolver(object):
+    """
+    Simple wrapper to call a SAT solver given a ClauseList/ClauseArray instance.
+    """
+    def run(self, clauses, m, **kwargs):
+        solver = self.setup(clauses, m, **kwargs)
+        sat_solution = self.invoke(solver)
+        solution = self.process_solution(sat_solution)
+        return solution
+
+    def setup(self, clauses, m, **kwargs):
+        """Create a solver instance, add the clauses to it, and return it."""
+        raise NotImplementedError()
+
+    def invoke(self, solver):
+        """Start the actual SAT solving and return the calculated solution."""
+        raise NotImplementedError()
+
+    def process_solution(self, sat_solution):
+        """
+        Process the solution returned by self.invoke.
+        Returns a list of satisfied variables or None if no solution is found.
+        """
+        raise NotImplementedError()
+
+
+class PycoSatSolver(SatSolver):
+    def setup(self, clauses, m, limit=0):
+        # NOTE: The iterative solving isn't actually used here, we just call
+        #       itersolve to separate setup from the actual run.
+        return pycosat.itersolve(clauses.as_list(), vars=m, prop_limit=limit)
+        # If we add support for passing the clauses as an integer stream to the
+        # solvers, we could also use clauses.as_array like this:
+        # return pycosat.itersolve(clauses.as_array(), vars=m, prop_limit=limit)
+
+    def invoke(self, iter_sol):
+        try:
+            sat_solution = next(iter_sol)
+        except StopIteration:
+            sat_solution = "UNSAT"
+        del iter_sol
+        return sat_solution
+
+    def process_solution(self, sat_solution):
+        if sat_solution in ("UNSAT", "UNKNOWN"):
+            return None
+        return sat_solution
+
+
+class CryptoMiniSatSolver(SatSolver):
+    def setup(self, clauses, m, threads=1):
+        from pycryptosat import Solver
+        solver = Solver(threads=threads)
+        solver.add_clauses(clauses.as_list())
+        return solver
+
+    def invoke(self, solver):
+        sat, sat_solution = solver.solve()
+        if not sat:
+            sat_solution = None
+        return sat_solution
+
+    def process_solution(self, solution):
+        if not solution:
+            return None
+        # The first element of the solution is always None.
+        solution = [i for i, b in enumerate(solution) if b]
+        return solution
+
+
+class PySatSolver(SatSolver):
+    def setup(self, clauses, m, **kwargs):
+        from pysat import solvers
+        solver = solvers.Glucose4()
+        # FIXME upstream: pysat.solvers require a clause to be a list...
+        clauses = list(map(list, clauses.as_list()))
+        solver.append_formula(clauses)
+        return solver
+
+    def invoke(self, solver):
+        if not solver.solve():
+            sat_solution = None
+        else:
+            sat_solution = solver.get_model()
+        solver.delete()
+        return sat_solution
+
+    def process_solution(self, sat_solution):
+        if sat_solution is None:
+            solution = None
+        else:
+            solution = sat_solution
+        return solution
 
 
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
@@ -44,11 +242,18 @@ log = getLogger(__name__)
 # SAT," Eén and Sörensson).
 class Clauses(object):
     def __init__(self, m=0):
-        self.clauses = []
         self.names = {}
         self.indices = {}
         self.unsat = False
         self.m = m
+        self._clauses = ClauseList()
+        # Bind some methods of _clauses to reduce lookups and call overhead.
+        self.add_clause = self._clauses.append
+        self.add_clauses = self._clauses.extend
+        self.get_clause_count = self._clauses.get_clause_count
+        self.save_state = self._clauses.save_state
+        self.restore_state = self._clauses.restore_state
+        self.as_list = self._clauses.as_list
 
     def name_var(self, m, name):
         nname = '!' + name
@@ -59,9 +264,13 @@ class Clauses(object):
             self.indices[-m] = nname
         return m
 
-    def new_var(self, name=None):
+    def _new_var(self):
         m = self.m + 1
         self.m = m
+        return m
+
+    def new_var(self, name=None):
+        m = self._new_var()
         if name:
             self.name_var(m, name)
         return m
@@ -73,17 +282,21 @@ class Clauses(object):
         return self.indices.get(m)
 
     def Assign_(self, vals, name=None):
-        tvals = type(vals)
-        if tvals is tuple:
-            x = self.new_var()
-            self.clauses.extend((-x,) + y for y in vals[0])
-            self.clauses.extend((x,) + y for y in vals[1])
-        elif tvals is bool and name:
-            x = self.new_var()
-            self.clauses.append((x,) if vals else (-x,))
-        else:
-            x = vals
-        return self.name_var(x, name) if name else x
+        x = self._assign_no_name(vals)
+        if not name:
+            return x
+        if isinstance(x, bool):
+            x = self._new_var()
+            self.add_clause((x,) if vals else (-x,))
+        return self.name_var(x, name)
+
+    def _assign_no_name(self, vals):
+        if isinstance(vals, tuple):
+            x = self._new_var()
+            self.add_clauses((-x,) + y for y in vals[0])
+            self.add_clauses((x,) + y for y in vals[1])
+            return x
+        return vals
 
     def Convert_(self, x):
         tx = type(x)
@@ -94,19 +307,23 @@ class Clauses(object):
     def Eval_(self, func, args, polarity, name, conv=True):
         if conv:
             args = self.Convert_(args)
-        nz = len(self.clauses)
+        saved_state = self.save_state()
         vals = func(*args, polarity=polarity)
+        if name is None:
+            return self._assign_no_name(vals)
         if name is not False:
             return self.Assign_(vals, name)
+        # eval without assignment:
         tvals = type(vals)
         if tvals is tuple:
-            self.clauses.extend(vals[0])
-            self.clauses.extend(vals[1])
+            self.add_clauses(vals[0])
+            self.add_clauses(vals[1])
         elif tvals is not bool:
-            self.clauses.append((vals if polarity else -vals,))
+            self.add_clause((vals if polarity else -vals,))
         else:
-            self.clauses = self.clauses[:nz]
+            self.restore_state(saved_state)
             self.unsat = self.unsat or polarity != vals
+        return None
 
     def Combine_(self, args, polarity):
         if any(v is False for v in args):
@@ -128,23 +345,36 @@ class Clauses(object):
     def Require(self, what, *args):
         return what.__get__(self, Clauses)(*args, polarity=True, name=False)
 
-    def Not_(self, x, polarity=None):
+    def Not_(self, x, polarity=None, add_new_clauses=False):
         return (not x) if type(x) is bool else -x
 
     def Not(self, x, polarity=None, name=None):
         return self.Eval_(self.Not_, (x,), polarity, name)
 
-    def And_(self, f, g, polarity=None):
+    def And_(self, f, g, polarity, add_new_clauses=False):
         if f is False or g is False:
             return False
         if f is True:
             return g
-        if g is True or f is g:
+        if g is True:
             return f
-        if f is -g:
+        if f == g:
+            return f
+        if f == -g:
             return False
         if g < f:
             f, g = g, f
+        if add_new_clauses:
+            # This is equivalent to running self._assign_no_name(pval, nval) on
+            # the (pval, nval) tuple we return below. Duplicating the code here
+            # is an important performance tweak to avoid the costly generator
+            # expressions and tuple additions in self._assign_no_name.
+            x = self.new_var()
+            if polarity in (True, None):
+                self.add_clauses([(-x, f,), (-x, g,)])
+            if polarity in (False, None):
+                self.add_clauses([(x, -f, -g)])
+            return x
         pval = [(f,), (g,)] if polarity in (True, None) else []
         nval = [(-f, -g)] if polarity in (False, None) else []
         return pval, nval
@@ -152,17 +382,26 @@ class Clauses(object):
     def And(self, f, g, polarity=None, name=None):
         return self.Eval_(self.And_, (f, g), polarity, name)
 
-    def Or_(self, f, g, polarity):
+    def Or_(self, f, g, polarity, add_new_clauses=False):
         if f is True or g is True:
             return True
         if f is False:
             return g
-        if g is False or f is g:
+        if g is False:
             return f
-        if f is -g:
+        if f == g:
+            return f
+        if f == -g:
             return True
         if g < f:
             f, g = g, f
+        if add_new_clauses:
+            x = self.new_var()
+            if polarity in (True, None):
+                self.add_clauses([(-x, f, g)])
+            if polarity in (False, None):
+                self.add_clauses([(x, -f,), (x, -g,)])
+            return x
         pval = [(f, g)] if polarity in (True, None) else []
         nval = [(-f,), (-g,)] if polarity in (False, None) else []
         return pval, nval
@@ -170,21 +409,28 @@ class Clauses(object):
     def Or(self, f, g, polarity=None, name=None):
         return self.Eval_(self.Or_, (f, g), polarity, name)
 
-    def Xor_(self, f, g, polarity):
+    def Xor_(self, f, g, polarity, add_new_clauses=False):
         if f is False:
             return g
         if f is True:
-            return self.Not_(g, polarity)
+            return self.Not_(g, polarity, add_new_clauses=add_new_clauses)
         if g is False:
             return f
         if g is True:
             return -f
-        if f is g:
+        if f == g:
             return False
-        if f is -g:
+        if f == -g:
             return True
         if g < f:
             f, g = g, f
+        if add_new_clauses:
+            x = self.new_var()
+            if polarity in (True, None):
+                self.add_clauses([(-x, f, g), (-x, -f, -g)])
+            if polarity in (False, None):
+                self.add_clauses([(x, -f, g), (x, f, -g)])
+            return x
         pval = [(f, g), (-f, -g)] if polarity in (True, None) else []
         nval = [(-f, g), (f, -g)] if polarity in (False, None) else []
         return pval, nval
@@ -192,28 +438,43 @@ class Clauses(object):
     def Xor(self, f, g, polarity=None, name=None):
         return self.Eval_(self.Xor_, (f, g), polarity, name)
 
-    def ITE_(self, c, t, f, polarity):
+    def ITE_(self, c, t, f, polarity, add_new_clauses=False):
         if c is True:
             return t
         if c is False:
             return f
-        if t is True or t is c:
-            return self.Or_(c, f, polarity)
-        if t is False or t is -c:
-            return self.And_(-c, f, polarity)
-        if f is False or f is c:
-            return self.And_(c, t, polarity)
-        if f is True or f is -c:
-            return self.Or_(t, -c, polarity)
-        if t is f:
+        if t is True:
+            return self.Or_(c, f, polarity, add_new_clauses=add_new_clauses)
+        if t is False:
+            return self.And_(-c, f, polarity, add_new_clauses=add_new_clauses)
+        if f is False:
+            return self.And_(c, t, polarity, add_new_clauses=add_new_clauses)
+        if f is True:
+            return self.Or_(t, -c, polarity, add_new_clauses=add_new_clauses)
+        if t == c:
+            return self.Or_(c, f, polarity, add_new_clauses=add_new_clauses)
+        if t == -c:
+            return self.And_(-c, f, polarity, add_new_clauses=add_new_clauses)
+        if f == c:
+            return self.And_(c, t, polarity, add_new_clauses=add_new_clauses)
+        if f == -c:
+            return self.Or_(t, -c, polarity, add_new_clauses=add_new_clauses)
+        if t == f:
             return t
-        if t is -f:
-            return self.Xor_(c, f, polarity)
+        if t == -f:
+            return self.Xor_(c, f, polarity, add_new_clauses=add_new_clauses)
         if t < f:
             t, f, c = f, t, -c
         # Basically, c ? t : f is equivalent to (c AND t) OR (NOT c AND f)
         # The third clause in each group is redundant but assists the unit
         # propagation in the SAT solver.
+        if add_new_clauses:
+            x = self.new_var()
+            if polarity in (True, None):
+                self.add_clauses([(-x, -c, t), (-x, c, f), (-x, t, f)])
+            if polarity in (False, None):
+                self.add_clauses([(x, -c, -t), (x, c, -f), (x, -t, -f)])
+            return x
         pval = [(-c, t), (c, f), (t, f)] if polarity in (True, None) else []
         nval = [(-c, -t), (c, -f), (-t, -f)] if polarity in (False, None) else []
         return pval, nval
@@ -340,31 +601,41 @@ class Clauses(object):
         target = (nterms-1, 0, total)
         call_stack = [target]
         ret = {}
+        call_stack_append = call_stack.append
+        call_stack_pop = call_stack.pop
+        ret_get = ret.get
+        ITE_ = self.ITE_
+
         csum = 0
         while call_stack:
             ndx, csum, total = call_stack[-1]
             lower_limit = lo - csum
             upper_limit = hi - csum
             if lower_limit <= 0 and upper_limit >= total:
-                ret[call_stack.pop()] = True
+                ret[call_stack_pop()] = True
                 continue
             if lower_limit > total or upper_limit < 0:
-                ret[call_stack.pop()] = False
+                ret[call_stack_pop()] = False
                 continue
             LC, LA = equation[ndx]
             ndx -= 1
             total -= LC
             hi_key = (ndx, csum if LA < 0 else csum + LC, total)
-            thi = ret.get(hi_key)
+            thi = ret_get(hi_key)
             if thi is None:
-                call_stack.append(hi_key)
+                call_stack_append(hi_key)
                 continue
             lo_key = (ndx, csum + LC if LA < 0 else csum, total)
-            tlo = ret.get(lo_key)
+            tlo = ret_get(lo_key)
             if tlo is None:
-                call_stack.append(lo_key)
+                call_stack_append(lo_key)
                 continue
-            ret[call_stack.pop()] = self.ITE(abs(LA), thi, tlo, polarity)
+            # NOTE: The following ITE_ call is _the_ hotspot of the Python-side
+            # computations for the overall minimization run. For performance we
+            # avoid calling self._assign_no_name here via add_new_clauses=True.
+            # If we want to translate parts of the code to a compiled language,
+            # self.BDD_ (+ its downward call stack) is the prime candidate!
+            ret[call_stack_pop()] = ITE_(abs(LA), thi, tlo, polarity, add_new_clauses=True)
         return ret[target]
 
     def LinearBound_(self, equation, lo, hi, preprocess, polarity):
@@ -396,8 +667,16 @@ class Clauses(object):
         return res
 
     def LinearBound(self, equation, lo, hi, preprocess=True, polarity=None, name=None):
-        return self.Eval_(self.LinearBound_, (equation, lo, hi, preprocess),
-                          polarity, name, conv=False)
+        return self.Eval_(
+            self.LinearBound_, (equation, lo, hi, preprocess), polarity, name, conv=False)
+
+    def _run_sat(self, clauses, m, limit=0):
+        if log.isEnabledFor(DEBUG):
+            log.debug("Invoking SAT with clause count: %s", self.get_clause_count())
+        solution = PycoSatSolver().run(clauses, m, limit=limit)
+        # solution = PySatSolver().run(clauses, m)
+        # solution = CryptoMiniSatSolver().run(clauses, m, threads=1)
+        return solution
 
     def sat(self, additional=None, includeIf=False, names=False, limit=0):
         """
@@ -411,7 +690,7 @@ class Clauses(object):
             return None
         if not self.m:
             return set() if names else []
-        clauses = self.clauses
+        saved_state = self.save_state()
         if additional:
             def preproc(eqs):
                 def preproc_(cc):
@@ -433,13 +712,12 @@ class Clauses(object):
             if additional:
                 if not additional[-1]:
                     return None
-                clauses = tuple(chain(clauses, additional))
-        log.debug("Invoking SAT with clause count: %s", len(clauses))
-        solution = pycosat.solve(clauses, vars=self.m, prop_limit=limit)
-        if solution in ("UNSAT", "UNKNOWN"):
+                self.add_clauses(additional)
+        solution = self._run_sat(self._clauses, self.m, limit=limit)
+        if additional and (solution is None or not includeIf):
+            self.restore_state(saved_state)
+        if solution is None:
             return None
-        if additional and includeIf:
-            self.clauses.extend(additional)
         if names:
             return set(nm for nm in (self.indices.get(s) for s in solution) if nm and nm[0] != '!')
         return solution
@@ -505,7 +783,10 @@ class Clauses(object):
             # need to generate the constraints at least once
             hi = bestval
             m_orig = self.m
-            nz = len(self.clauses)
+            if log.isEnabledFor(DEBUG):
+                # This is only used for the log message below.
+                nz = self.get_clause_count()
+            saved_state = self.save_state()
             if trymax and not peak:
                 try0 = hi - 1
 
@@ -522,8 +803,9 @@ class Clauses(object):
                         self.Require(self.Any, temp)
                 else:
                     self.Require(self.LinearBound, objective, lo, mid, False)
-                log.trace('Bisection attempt: (%d,%d), (%d+%d) clauses' %
-                          (lo, mid, nz, len(self.clauses)-nz))
+                if log.isEnabledFor(DEBUG):
+                    log.trace('Bisection attempt: (%d,%d), (%d+%d) clauses' %
+                              (lo, mid, nz, self.get_clause_count() - nz))
                 newsol = self.sat()
                 if newsol is None:
                     lo = mid + 1
@@ -540,8 +822,10 @@ class Clauses(object):
                     if done:
                         break
                 self.m = m_orig
-                if len(self.clauses) > nz:
-                    self.clauses = self.clauses[:nz]
+                # Since we only ever _add_ clauses and only remove then via
+                # self.restore_state, it's fine to test on equality only.
+                if self.save_state() != saved_state:
+                    self.restore_state(saved_state)
                 self.unsat = False
                 try0 = None
 

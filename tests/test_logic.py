@@ -126,22 +126,22 @@ def my_TEST(Mfunc, Cfunc, mmin, mmax, is_iter):
                 Cneg.Prevent(Cfunc.__get__(Cneg,Clauses), *ij)
             tsol = Mfunc(*ij)
             if type(tsol) is bool:
-                assert x is tsol, (ij2, Cfunc.__name__, C.clauses)
-                assert Cpos.unsat == (not tsol) and not Cpos.clauses, (ij, 'Require(%s)')
-                assert Cneg.unsat == tsol and not Cneg.clauses, (ij, 'Prevent(%s)')
+                assert x is tsol, (ij2, Cfunc.__name__, C.as_list())
+                assert Cpos.unsat == (not tsol) and not Cpos.as_list(), (ij, 'Require(%s)')
+                assert Cneg.unsat == tsol and not Cneg.as_list(), (ij, 'Prevent(%s)')
                 continue
             for sol in C.itersolve([(x,)]):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is True, (ij2, sol, Cfunc.__name__, C.clauses)
+                assert qsol is True, (ij2, sol, Cfunc.__name__, C.as_list())
             for sol in Cpos.itersolve([]):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is True, (ij, sol,'Require(%s)' % Cfunc.__name__, Cpos.clauses)
+                assert qsol is True, (ij, sol,'Require(%s)' % Cfunc.__name__, Cpos.as_list())
             for sol in C.itersolve([(C.Not(x),)]):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is False, (ij2, sol, Cfunc.__name__, C.clauses)
+                assert qsol is False, (ij2, sol, Cfunc.__name__, C.as_list())
             for sol in Cneg.itersolve([]):
                 qsol = Mfunc(*my_SOL(ij,sol))
-                assert qsol is False, (ij, sol,'Prevent(%s)' % Cfunc.__name__, Cneg.clauses)
+                assert qsol is False, (ij, sol,'Prevent(%s)' % Cfunc.__name__, Cneg.as_list())
 
 
 def test_NOT():
@@ -182,7 +182,7 @@ def test_AMONE():
     x1 = C1.AtMostOne_BDD((1,2,3,4,5,6,7,8,9,10))
     C2 = Clauses(10)
     x2 = C2.AtMostOne((1,2,3,4,5,6,7,8,9,10))
-    assert x1 == x2 and C1.clauses == C2.clauses
+    assert x1 == x2 and C1.as_list() == C2.as_list()
 
 
 @pytest.mark.integration  # only because this test is slow
@@ -236,14 +236,14 @@ def test_LinearBound():
         Cneg.Prevent(Cneg.LinearBound, eq, rhs[0], rhs[1])
         if x is not False:
             for _, sol in zip(range(max_iter), C.itersolve([] if x is True else [(x,)],N)):
-                assert rhs[0] <= my_EVAL(eq2,sol) <= rhs[1], C.clauses
+                assert rhs[0] <= my_EVAL(eq2,sol) <= rhs[1], C.as_list()
         if x is not True:
             for _, sol in zip(range(max_iter), C.itersolve([] if x is True else [(C.Not(x),)],N)):
-                assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), C.clauses
+                assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), C.as_list()
         for _, sol in zip(range(max_iter), Cpos.itersolve([],N)):
-            assert rhs[0] <= my_EVAL(eq2,sol) <= rhs[1], ('Cpos',Cpos.clauses)
+            assert rhs[0] <= my_EVAL(eq2,sol) <= rhs[1], ('Cpos',Cpos.as_list())
         for _, sol in zip(range(max_iter), Cneg.itersolve([],N)):
-            assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), ('Cneg',Cneg.clauses)
+            assert not(rhs[0] <= my_EVAL(eq2,sol) <= rhs[1]), ('Cneg',Cneg.as_list())
 
 
 def test_sat():
