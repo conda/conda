@@ -858,7 +858,7 @@ class UnlinkLinkTransaction(object):
             for namekey in sorted(change_report.removed_precs, key=convert_namekey):
                 unlink_prec = change_report.removed_precs[namekey]
                 builder.append("  " + "-".join(
-                    (unlink_prec.namekey, unlink_prec.version, unlink_prec.build)
+                    (unlink_prec.name, unlink_prec.version, unlink_prec.build)
                 ))
 
         if change_report.updated_precs:
