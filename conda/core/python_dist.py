@@ -13,6 +13,7 @@ import re
 import warnings
 
 from .python_markers import interpret
+from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.frozendict import frozendict
 from ..common.compat import PY2, StringIO, itervalues, odict, open
 from ..common.path import (get_major_minor_version, get_python_site_packages_short_path, pyc_path,
@@ -450,7 +451,7 @@ class BasePythonDistribution(object):
     """
     Base object describing a python distribution based on path to anchor file.
     """
-    SOURCES_FILES = ()   # Only one is used, but many names available
+    MANIFEST_FILES = ()   # Only one is used, but many names available
     REQUIRES_FILES = ()  # Only one is used, but many names available
     MANDATORY_FILES = ()
     ENTRY_POINTS_FILES = ('entry_points.txt', )
@@ -463,18 +464,14 @@ class BasePythonDistribution(object):
         self.python_version = python_version
 
         if anchor_full_path and isfile(anchor_full_path):
-            self._fpath = anchor_full_path
-            self._path = dirname(anchor_full_path)
+            self._metadata_dir_full_path = dirname(anchor_full_path)
         elif anchor_full_path and isdir(anchor_full_path):
-            self._fpath = None
-            self._path = anchor_full_path
+            self._metadata_dir_full_path = anchor_full_path
         else:
-            self._fpath = None
-            self._path = None
+            self._metadata_dir_full_path = None
             # raise RuntimeError("Path not found: %s", anchor_full_path)
 
         self._check_files()
-        self._source_file = None
         self._metadata = PythonDistributionMetadata(anchor_full_path)
         self._provides_file_data = ()
         self._requires_file_data = ()
@@ -482,14 +479,14 @@ class BasePythonDistribution(object):
     def _check_files(self):
         """Check the existence of mandatory files for a given distribution."""
         for fname in self.MANDATORY_FILES:
-            if self._path:
-                fpath = join(self._path, fname)
+            if self._metadata_dir_full_path:
+                fpath = join(self._metadata_dir_full_path, fname)
                 assert isfile(fpath)
 
     def _check_path_data(self, path, checksum, size):
         """Normalizes record data content and format."""
         if checksum:
-            assert checksum.startswith('sha256='), (self._path, path, checksum)
+            assert checksum.startswith('sha256='), (self._metadata_dir_full_path, path, checksum)
             checksum = checksum[7:]
         else:
             checksum = None
@@ -563,7 +560,7 @@ class BasePythonDistribution(object):
         # FIXME: Use pkg_resources which provides API for this?
         requires, extras = None, None
         for fname in self.REQUIRES_FILES:
-            fpath = join(self._path, fname)
+            fpath = join(self._metadata_dir_full_path, fname)
             if isfile(fpath):
                 with open(fpath, 'r') as fh:
                     data = fh.read()
@@ -575,7 +572,17 @@ class BasePythonDistribution(object):
 
         return requires, extras
 
-    def get_paths(self):
+    @memoizedproperty
+    def manifest_full_path(self):
+        manifest_full_path = None
+        if self._metadata_dir_full_path:
+            for fname in self.MANIFEST_FILES:
+                manifest_full_path = join(self._metadata_dir_full_path, fname)
+                if isfile(manifest_full_path):
+                    break
+        return manifest_full_path
+
+    def _get_paths(self):
         """
         Read the list of installed paths from record or source file.
 
@@ -586,54 +593,48 @@ class BasePythonDistribution(object):
          ...
         ]
         """
-        if self._path:
-            for fname in self.SOURCES_FILES:
-                fpath = join(self._path, fname)
-                if isfile(fpath):
-                    break
+        manifest_full_path = self.manifest_full_path
+        if manifest_full_path:
+            python_version = self.python_version
+            sp_dir = get_python_site_packages_short_path(python_version) + "/"
+            prepend_metadata_dirname = basename(manifest_full_path) == "installed-files.txt"
+            if prepend_metadata_dirname:
+                path_prepender = basename(dirname(manifest_full_path)) + "/"
             else:
-                # For ended and no path was found
-                fpath = None
+                path_prepender = ""
 
-            self._source_file = fpath
-
-            if fpath:
-                python_version = self.python_version
-                sp_dir = get_python_site_packages_short_path(python_version) + "/"
-                is_installed_files_txt = fpath.endswith("installed-files.txt")
-                prepend_path = (basename(dirname(fpath)) + "/") if is_installed_files_txt else ""
-
-                def process_csv_row(row):
-                    cleaned_path = normpath("%s%s%s" % (sp_dir, prepend_path, row[0]))
-                    if len(row) == 3:
-                        checksum, size = row[1:]
-                        if checksum:
-                            assert checksum.startswith('sha256='), (self._path, cleaned_path, checksum)
-                            checksum = checksum[7:]
-                        else:
-                            checksum = None
-                        size = int(size) if size else None
+            def process_csv_row(row):
+                cleaned_path = normpath("%s%s%s" % (sp_dir, path_prepender, row[0]))
+                if len(row) == 3:
+                    checksum, size = row[1:]
+                    if checksum:
+                        assert checksum.startswith('sha256='), (self._metadata_dir_full_path,
+                                                                cleaned_path, checksum)
+                        checksum = checksum[7:]
                     else:
-                        checksum = size = None
-                    return cleaned_path, checksum, size
+                        checksum = None
+                    size = int(size) if size else None
+                else:
+                    checksum = size = None
+                return cleaned_path, checksum, size
 
-                csv_delimiter = ','
-                if PY2:
-                    csv_delimiter = csv_delimiter.encode('utf-8')
-                with open(fpath) as csvfile:
-                    record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
-                    # format of each record is (path, checksum, size)
-                    records = [process_csv_row(row) for row in record_reader if row[0]]
-                files = set(record[0] for record in records)
+            csv_delimiter = ','
+            if PY2:
+                csv_delimiter = csv_delimiter.encode('utf-8')
+            with open(manifest_full_path) as csvfile:
+                record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
+                # format of each record is (path, checksum, size)
+                records = [process_csv_row(row) for row in record_reader if row[0]]
+            files = set(record[0] for record in records)
 
-                _pyc_path = pyc_path
-                py_file_re = re.compile(r'^[^\t\n\r\f\v]+/site-packages/[^\t\n\r\f\v]+\.py$')
+            _pyc_path = pyc_path
+            py_file_re = re.compile(r'^[^\t\n\r\f\v]+/site-packages/[^\t\n\r\f\v]+\.py$')
 
-                missing_pyc_files = (ff for ff in (
-                    _pyc_path(f, python_version) for f in files if py_file_re.match(f)
-                ) if ff not in files)
-                records = sorted(records + [(pf, None, None) for pf in missing_pyc_files])
-                return records
+            missing_pyc_files = (ff for ff in (
+                _pyc_path(f, python_version) for f in files if py_file_re.match(f)
+            ) if ff not in files)
+            records = sorted(records + [(pf, None, None) for pf in missing_pyc_files])
+            return records
 
         return []
 
@@ -705,7 +706,7 @@ class BasePythonDistribution(object):
         # TODO: need to add entry points, "exports," and other files that might
         # not be in RECORD
         for fname in self.ENTRY_POINTS_FILES:
-            fpath = join(self._path, fname)
+            fpath = join(self._metadata_dir_full_path, fname)
             if isfile(fpath):
                 with open(fpath, 'r') as fh:
                     data = fh.read()
@@ -758,7 +759,7 @@ class PythonInstalledDistribution(BasePythonDistribution):
     -----
       - https://www.python.org/dev/peps/pep-0376/
     """
-    SOURCES_FILES = ('RECORD', )
+    MANIFEST_FILES = ('RECORD',)
     REQUIRES_FILES = ()
     MANDATORY_FILES = ('METADATA', )
     # FIXME: Do this check? Disabled for tests where only Metadata file is stored
@@ -775,7 +776,7 @@ class PythonInstalledDistribution(BasePythonDistribution):
     def get_paths_data(self):
         paths_data = [PathDataV1(
             _path=path, path_type=PathType.hardlink, sha256=checksum, size_in_bytes=size
-        ) for (path, checksum, size) in self.get_paths()]
+        ) for (path, checksum, size) in self._get_paths()]
         files = [pd._path for pd in paths_data]
         return PathsData(paths_version=1, paths=paths_data), files
 
@@ -788,7 +789,7 @@ class PythonEggInfoDistribution(BasePythonDistribution):
     -----
       - http://peak.telecommunity.com/DevCenter/EggFormats
     """
-    SOURCES_FILES = ('installed-files.txt', 'SOURCES', 'SOURCES.txt')
+    MANIFEST_FILES = ('installed-files.txt', 'SOURCES', 'SOURCES.txt')
     REQUIRES_FILES = ('requires.txt', 'depends.txt')
     MANDATORY_FILES = ()
     ENTRY_POINTS_FILES = ('entry_points.txt', )
@@ -798,13 +799,16 @@ class PythonEggInfoDistribution(BasePythonDistribution):
         self.sp_reference = sp_reference
 
     def get_paths_data(self):
-        files = [path for path, _, _ in self.get_paths()]
-        paths_data = [PathData(_path=path, path_type=PathType.hardlink) for path in files]
-        return PathsData(paths_version=1, paths=paths_data), files
+        if self.package_type == PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE:
+            files = [path for path, _, _ in self._get_paths()]
+            paths_data = [PathData(_path=path, path_type=PathType.hardlink) for path in files]
+            return PathsData(paths_version=1, paths=paths_data), files
+        else:
+            return PathsData(paths_version=1, paths=()), ()
 
     @property
     def package_type(self):
-        if self._source_file and basename(self._source_file) == "installed-files.txt":
+        if self.manifest_full_path and basename(self.manifest_full_path) == "installed-files.txt":
             return PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
         else:
             return PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE

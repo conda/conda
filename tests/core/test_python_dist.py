@@ -535,7 +535,7 @@ def test_dist_get_paths():
     temp_path, fpaths = _create_test_files((('', 'SOURCES.txt', content), ))
 
     dist = pd.PythonEggInfoDistribution(temp_path, "2.7", None)
-    output = dist.get_paths()
+    output = dist._get_paths()
     expected_output = [('lib/python2.7/site-packages/foo/bar', '1', 45),
                        ('lib/python2.7/site-packages/foo/spam', None, None)]
     _print_output(output, expected_output)
@@ -545,10 +545,10 @@ def test_dist_get_paths():
 def test_dist_get_paths_no_paths():
     temp_path = tempfile.mkdtemp()
     dist = pd.PythonEggInfoDistribution(temp_path, "2.7", None)
-    output = dist.get_paths()
-    expected_output = []
-    _print_output(output, expected_output)
-    assert output == expected_output
+    paths_data, files = dist.get_paths_data()
+    expected_output = ()
+    _print_output(files, expected_output)
+    assert files == expected_output
 
 
 def test_get_dist_requirements():
@@ -695,7 +695,7 @@ def test_python_dist_info_conda_dependencies_3():
 
 def test_python_dist_egg_path():
     test_files = (
-        ('', 'SOURCES.txt', 'foo/bar\nfoo/spam\n'),
+        ('', 'installed-files.txt', 'foo/bar\nfoo/spam\n'),
     )
     temp_path, fpaths = _create_test_files(test_files)
     path = os.path.dirname(fpaths[0])
@@ -1221,3 +1221,36 @@ def test_cherrypy_py27_osx_no_binary():
         "subdir": "pypi",
         "version": "17.2.0"
     }
+
+
+def test_six_py27_osx_no_binary_unmanageable():
+    anchor_files = (
+        "lib/python2.7/site-packages/six-1.11.0-py2.7.egg-info/PKG-INFO",
+    )
+    prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
+    prefix_recs = get_python_records(anchor_files, prefix_path, "2.7")
+    assert len(prefix_recs) == 1
+    prefix_rec = prefix_recs[0]
+
+    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    files = dumped_rec.pop("files")
+    paths_data = dumped_rec.pop("paths_data")
+    print(json_dump(dumped_rec))
+    assert dumped_rec == {
+        "build": "pypi_0",
+        "build_number": 0,
+        "channel": "https://conda.anaconda.org/pypi",
+        "constrains": [],
+        "depends": [
+            "python 2.7.*"
+        ],
+        "fn": "six-1.11.0-py2.7.egg-info",
+        "name": "six",
+        "package_type": "virtual_python_egg_unmanageable",
+        "subdir": "pypi",
+        "version": "1.11.0"
+    }
+    assert not files
+    assert not prefix_rec.paths_data.paths

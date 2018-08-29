@@ -138,6 +138,13 @@ class PackageType(Enum):
             PackageType.NOARCH_PYTHON,
         }
 
+    @staticmethod
+    def unmanageable_package_types():
+        return {
+            PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+            PackageType.VIRTUAL_PYTHON_EGG_LINK,
+        }
+
 
 class NoarchType(Enum):
     generic = 'generic'

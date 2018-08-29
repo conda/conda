@@ -260,14 +260,13 @@ class MatchSpec(object):
             return None
 
     def __repr__(self):
-        builder = []
-        builder += ["%s=%r" % (c, self._match_components[c])
-                    for c in self.FIELD_NAMES if c in self._match_components]
-        if self.optional:
-            builder.append("optional=True")
+        builder = ["%s(\"%s\"" % (self.__class__.__name__, self)]
         if self.target:
-            builder.append("target=%r" % self.target)
-        return '%s("%s")' % (self.__class__.__name__, self)
+            builder.append(", target=\"%s\"" % self.target)
+        if self.optional:
+            builder.append(", optional=True")
+        builder.append(")")
+        return "".join(builder)
 
     def __str__(self):
         builder = []
