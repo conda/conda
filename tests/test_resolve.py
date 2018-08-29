@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+from os.path import join
 from pprint import pprint
 import unittest
 
@@ -9,12 +10,14 @@ import pytest
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import env_var
+from conda.core.python_dist import get_python_record
 from conda.exceptions import UnsatisfiableError
 from conda.models.channel import Channel
+from conda.models.enums import PackageType
 from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
 
-from .helpers import get_index_r_1, raises, get_index_r_4
+from .helpers import get_index_r_1, raises, get_index_r_4, TEST_DATA_DIR
 
 index, r, = get_index_r_1()
 f_mkl = set(['mkl'])
@@ -156,6 +159,22 @@ def test_get_dists():
     dist_strs = [prec.dist_str() for prec in reduced_index]
     assert 'channel-1::anaconda-1.5.0-np17py27_0' in dist_strs
     assert 'channel-1::dynd-python-0.3.0-np17py33_0' in dist_strs
+
+
+def test_get_reduced_index_unmanageable():
+    index, r = get_index_r_4()
+    index = index.copy()
+    channels = r.channels
+    prefix_path = join(TEST_DATA_DIR, "env_metadata", "envpy27osx")
+    anchor_file = "lib/python2.7/site-packages/requests-2.19.1-py2.7.egg/EGG-INFO/PKG-INFO"
+    py_rec = get_python_record(anchor_file, prefix_path, "2.7")
+    assert py_rec.package_type == PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
+
+    index[py_rec] = py_rec
+    new_r = Resolve(index, channels=channels)
+    reduced_index = new_r.get_reduced_index((MatchSpec("requests"),))
+    new_r2 = Resolve(reduced_index, True, True, channels=channels)
+    assert len(new_r2.groups["requests"]) == 1, new_r2.groups["requests"]
 
 
 def test_generate_eq_1():

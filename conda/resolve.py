@@ -7,7 +7,7 @@ from collections import defaultdict
 from itertools import chain
 from logging import DEBUG, getLogger
 
-from ._vendor.toolz import concat
+from ._vendor.toolz import concat, groupby
 from .base.constants import MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
@@ -265,6 +265,20 @@ class Resolve(object):
             match1 = next(ms for ms in matches)
             name = match1.name
             group = self.groups.get(name, [])
+
+            # If any packages in the group are unmanageable, then all manageable packages have
+            # to be removed, so that the solver can *only* select the unmanageable packages.
+            # This assumes that only *installed* unmanageable packages are actually added
+            # to this index.
+            grouped_unmanageable = groupby(lambda rec: rec.is_unmanageable, group)
+            if grouped_unmanageable.get(True):
+                for prec in grouped_unmanageable.get(False, ()):
+                    filter[prec] = False
+
+            # What is 'filter'??? 'filter' is a dict where keys are precs and values are either
+            # 'True' or 'False'. It's really a defaultdict(lambda: True). The prec is by default
+            # included in the reduced index, but can be marked for exclusion by setting its value
+            # to False.
 
             # Prune packages that don't match any of the patterns
             # or which have unsatisfiable dependencies
