@@ -12,10 +12,11 @@ from os.path import basename, dirname, isdir, isfile, join, lexists, normpath
 import re
 import warnings
 
-from .python_markers import update_marker_context, interpret
+from .python_markers import interpret
 from .._vendor.frozendict import frozendict
 from ..common.compat import PY2, StringIO, itervalues, odict, open
-from ..common.path import get_python_site_packages_short_path, win_path_ok, pyc_path
+from ..common.path import (get_major_minor_version, get_python_site_packages_short_path, pyc_path,
+                           win_path_ok)
 from ..models.channel import Channel
 from ..models.enums import PackageType, PathType
 from ..models.records import PathData, PathDataV1, PathsData, PrefixRecord
@@ -61,16 +62,16 @@ def get_python_records(anchor_files, prefix_path, python_version):
 
     This method evaluates the context needed for marker evaluation.
     """
-    python_records = []
-    ctx = update_marker_context(python_version)
-    for anchor_file in sorted(anchor_files):
-        python_record = get_python_record(anchor_file, prefix_path, ctx)
-        if python_record:
-            python_records.append(python_record)
-    return python_records
+    python_version = get_major_minor_version(python_version)
+    return tuple(
+        pyrec for pyrec in (
+            get_python_record(anchor_file, prefix_path, python_version)
+            for anchor_file in sorted(anchor_files)
+        ) if pyrec
+    )
 
 
-def get_python_record(anchor_file, prefix_path, ctx):
+def get_python_record(anchor_file, prefix_path, python_version):
     """
     Convert a python package defined by an anchor file (Metadata information)
     into a conda prefix record object.
@@ -78,61 +79,8 @@ def get_python_record(anchor_file, prefix_path, ctx):
     Return `None` if the python record cannot be created.
     """
     # TODO: ensure that this dist is actually the dist that matches conda-meta
-    pydist, sp_reference, package_type = get_python_distribution_info(anchor_file, prefix_path)
-
-    if pydist is None:
-        return None
-
-    python_version = ctx["python_version"]
-    pypi_name = pydist.norm_name
-    conda_name = pypi_name_to_conda_name(pypi_name)
-
-    # TODO: Handle packages with different names (graphviz vs python-graphviz)
-    channel_name = 'pypi' if conda_name == pypi_name else 'pypi:' + pypi_name
-    channel = Channel(channel_name)
-    build = 'pypi_0'
-
-    if package_type == PackageType.SHADOW_PYTHON_EGG_INFO_FILE:
-        paths_data = None
-        files = None
-    elif package_type in (PackageType.SHADOW_PYTHON_DIST_INFO,
-                          PackageType.SHADOW_PYTHON_EGG_INFO_DIR):
-        paths_data, files = pydist.get_paths_data(python_version)
-    elif package_type == PackageType.SHADOW_PYTHON_EGG_LINK:
-        paths_data, files = pydist.get_paths_data(python_version)
-        channel = Channel('<develop>')
-        build = 'dev_0'
-    else:
-        raise NotImplementedError()
-
-    # TODO: This is currently adding additional conda dependencies for graphviz
-    # only, but other packages need something similar. This info should (could)
-    # be on the 'external_requirements', but that field is free form.
-    depends, constrains = pydist.get_conda_dependencies(python_version)
-    # extra_dependencies = PYPI_CONDA_DEPS.get(pypi_name, [])
-    # all_dependencies = sorted(list(dependencies) + extra_dependencies)
-
-    # print('conda:{0} (pypi:{1})'.format(conda_name, pypi_name))
-    # for dependency in sorted(all_dependencies):
-    #     print('\t{}'.format(dependency))
-    # print('\n')
-
-    python_rec = PrefixRecord(
-        package_type=package_type,
-        name=conda_name,
-        version=pydist.version,
-        channel=channel,
-        subdir='pypi',
-        fn=sp_reference,
-        build=build,
-        build_number=0,
-        paths_data=paths_data,
-        files=files,
-        depends=depends,
-        constrains=constrains,
-    )
-
-    return python_rec
+    pydist = get_python_distribution_info(prefix_path, anchor_file, python_version)
+    return None if pydist is None else pydist.prefix_record
 
 
 # Python distribution/eggs metadata
@@ -507,21 +455,27 @@ class BasePythonDistribution(object):
     MANDATORY_FILES = ()
     ENTRY_POINTS_FILES = ('entry_points.txt', )
 
-    def __init__(self, path_or_fpath):
-        if isfile(path_or_fpath):
-            self._fpath = path_or_fpath
-            self._path = dirname(path_or_fpath)
-        elif isdir(path_or_fpath):
+    channel = Channel("pypi")
+    build = "pypi_0"
+
+    def __init__(self, anchor_full_path, python_version):
+        self.anchor_full_path = anchor_full_path
+        self.python_version = python_version
+
+        if anchor_full_path and isfile(anchor_full_path):
+            self._fpath = anchor_full_path
+            self._path = dirname(anchor_full_path)
+        elif anchor_full_path and isdir(anchor_full_path):
             self._fpath = None
-            self._path = path_or_fpath
+            self._path = anchor_full_path
         else:
             self._fpath = None
             self._path = None
-            # raise RuntimeError("Path not found: %s", path_or_fpath)
+            # raise RuntimeError("Path not found: %s", anchor_full_path)
 
         self._check_files()
         self._source_file = None
-        self._metadata = PythonDistributionMetadata(path_or_fpath)
+        self._metadata = PythonDistributionMetadata(anchor_full_path)
         self._provides_file_data = ()
         self._requires_file_data = ()
 
@@ -621,7 +575,7 @@ class BasePythonDistribution(object):
 
         return requires, extras
 
-    def get_paths(self, python_version):
+    def get_paths(self):
         """
         Read the list of installed paths from record or source file.
 
@@ -644,12 +598,24 @@ class BasePythonDistribution(object):
             self._source_file = fpath
 
             if fpath:
+                python_version = self.python_version
                 sp_dir = get_python_site_packages_short_path(python_version) + "/"
                 is_installed_files_txt = fpath.endswith("installed-files.txt")
                 prepend_path = (basename(dirname(fpath)) + "/") if is_installed_files_txt else ""
-                norm_row = lambda row: len(row) == 3 and row or [row[0], None, None]
-                norm_path = lambda row: (normpath("%s%s%s" % (sp_dir, prepend_path, row[0])), row[1], row[2])
-                py_file_re = re.compile(r'^[^\t\n\r\f\v]+/site-packages/[^\t\n\r\f\v]+\.py$')
+
+                def process_csv_row(row):
+                    cleaned_path = normpath("%s%s%s" % (sp_dir, prepend_path, row[0]))
+                    if len(row) == 3:
+                        checksum, size = row[1:]
+                        if checksum:
+                            assert checksum.startswith('sha256='), (self._path, cleaned_path, checksum)
+                            checksum = checksum[7:]
+                        else:
+                            checksum = None
+                        size = int(size) if size else None
+                    else:
+                        checksum = size = None
+                    return cleaned_path, checksum, size
 
                 csv_delimiter = ','
                 if PY2:
@@ -657,17 +623,19 @@ class BasePythonDistribution(object):
                 with open(fpath) as csvfile:
                     record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
                     # format of each record is (path, checksum, size)
-                    records = [self._check_path_data(*norm_path(norm_row(row)))
-                               for row in record_reader if row[0]]
+                    records = [process_csv_row(row) for row in record_reader if row[0]]
                 files = set(record[0] for record in records)
-                pyc_files = (ff for ff in (
-                    pyc_path(f, python_version) for f in files if py_file_re.match(f)
+
+                _pyc_path = pyc_path
+                py_file_re = re.compile(r'^[^\t\n\r\f\v]+/site-packages/[^\t\n\r\f\v]+\.py$')
+
+                missing_pyc_files = (ff for ff in (
+                    _pyc_path(f, python_version) for f in files if py_file_re.match(f)
                 ) if ff not in files)
-                records = sorted(records + [(pf, None, None) for pf in pyc_files])
+                records = sorted(records + [(pf, None, None) for pf in missing_pyc_files])
                 return records
 
         return []
-
 
     def get_dist_requirements(self):
         # FIXME: On some packages, requirements are not added to metadata,
@@ -701,13 +669,13 @@ class BasePythonDistribution(object):
 
         return data
 
-    def get_conda_dependencies(self, python_version):
+    def get_conda_dependencies(self):
         """
         Process metadata fields providing dependency information.
 
         This includes normalizing fields, and evaluating environment markers.
         """
-        python_spec = "python %s.*" % ".".join(python_version.split('.')[:2])
+        python_spec = "python %s.*" % ".".join(self.python_version.split('.')[:2])
 
         def pyspec_to_norm_req(pyspec):
             conda_name = pypi_name_to_conda_name(norm_package_name(pyspec.name))
@@ -719,7 +687,7 @@ class BasePythonDistribution(object):
         depends = set(pyspec_to_norm_req(pyspec) for pyspec in marker_groups.pop("", ()))
         extras = marker_groups.pop("extra", ())
         execution_context = {
-            "python_version": python_version,
+            "python_version": self.python_version,
         }
         depends.update(
             pyspec_to_norm_req(pyspec) for pyspec in concat(itervalues(marker_groups))
@@ -743,7 +711,7 @@ class BasePythonDistribution(object):
                     data = fh.read()
         return self._parse_entries_file_data(data)
 
-    def get_paths_data(self, python_version):
+    def get_paths_data(self):
         raise NotImplementedError
 
     @property
@@ -755,8 +723,31 @@ class BasePythonDistribution(object):
         return norm_package_name(self.name)
 
     @property
+    def conda_name(self):
+        return pypi_name_to_conda_name(self.norm_name)
+
+    @property
     def version(self):
         return self._metadata.version
+
+    @property
+    def prefix_record(self):
+        paths_data, files = self.get_paths_data()
+        depends, constrains = self.get_conda_dependencies()
+        return PrefixRecord(
+            package_type=self.package_type,
+            name=self.conda_name,
+            version=self.version,
+            channel=self.channel,
+            subdir="pypi",
+            fn=self.sp_reference,
+            build=self.build,
+            build_number=0,
+            paths_data=paths_data,
+            files=files,
+            depends=depends,
+            constrains=constrains,
+        )
 
 
 class PythonInstalledDistribution(BasePythonDistribution):
@@ -774,10 +765,17 @@ class PythonInstalledDistribution(BasePythonDistribution):
     # MANDATORY_FILES = ('METADATA', 'RECORD', 'INSTALLER')
     ENTRY_POINTS_FILES = ()
 
-    def get_paths_data(self, python_version):
+    package_type = PackageType.VIRTUAL_PYTHON_WHEEL
+
+    def __init__(self, prefix_path, anchor_file, python_version):
+        anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
+        super(PythonInstalledDistribution, self).__init__(anchor_full_path, python_version)
+        self.sp_reference = basename(dirname(anchor_file))
+
+    def get_paths_data(self):
         paths_data = [PathDataV1(
             _path=path, path_type=PathType.hardlink, sha256=checksum, size_in_bytes=size
-        ) for (path, checksum, size) in self.get_paths(python_version)]
+        ) for (path, checksum, size) in self.get_paths()]
         files = [pd._path for pd in paths_data]
         return PathsData(paths_version=1, paths=paths_data), files
 
@@ -795,10 +793,33 @@ class PythonEggInfoDistribution(BasePythonDistribution):
     MANDATORY_FILES = ()
     ENTRY_POINTS_FILES = ('entry_points.txt', )
 
-    def get_paths_data(self, python_version):
-        files = [path for path, _, _ in self.get_paths(python_version)]
+    def __init__(self, anchor_full_path, python_version, sp_reference):
+        super(PythonEggInfoDistribution, self).__init__(anchor_full_path, python_version)
+        self.sp_reference = sp_reference
+
+    def get_paths_data(self):
+        files = [path for path, _, _ in self.get_paths()]
         paths_data = [PathData(_path=path, path_type=PathType.hardlink) for path in files]
         return PathsData(paths_version=1, paths=paths_data), files
+
+    @property
+    def package_type(self):
+        if self._source_file and basename(self._source_file) == "installed-files.txt":
+            return PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
+        else:
+            return PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
+
+
+class PythonEggLinkDistribution(PythonEggInfoDistribution):
+
+    package_type = PackageType.VIRTUAL_PYTHON_EGG_LINK
+
+    def __init__(self, prefix_path, anchor_file, python_version):
+        anchor_full_path = get_dist_file_from_egg_link(anchor_file, prefix_path)
+        sp_reference = None  # This can be None in case the egg-info is no longer there
+        super(PythonEggLinkDistribution, self).__init__(anchor_full_path, python_version, sp_reference)
+        self.channel = Channel("<develop>")
+        self.build = "dev_0"
 
 
 # Helper functions
@@ -955,49 +976,59 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     return egg_info_full_path
 
 
-def get_python_distribution_info(anchor_file, prefix_path):
+def get_python_distribution_info(prefix_path, anchor_file, python_version):
     """
     For a given anchor file return the python distribution.
 
     Return `None` if the information was not found (can happen with egg-links).
     """
     if anchor_file.endswith('.egg-link'):
-        sp_reference = None
-        # This can be None in case the egg-info is no longer there
-        dist_file = get_dist_file_from_egg_link(anchor_file, prefix_path)
-        dist_cls = PythonEggInfoDistribution
-        package_type = PackageType.SHADOW_PYTHON_EGG_LINK
+        return PythonEggLinkDistribution(prefix_path, anchor_file, python_version)
+        # sp_reference = None
+        # # This can be None in case the egg-info is no longer there
+        # dist_file = get_dist_file_from_egg_link(anchor_file, prefix_path)
+        # dist_cls = PythonEggInfoDistribution
+        # package_type = PackageType.VIRTUAL_PYTHON_EGG_LINK
     elif ".dist-info" in anchor_file:
-        sp_reference = basename(dirname(anchor_file))
-        dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
-        dist_cls = PythonInstalledDistribution
-        package_type = PackageType.SHADOW_PYTHON_DIST_INFO
+        return PythonInstalledDistribution(prefix_path, anchor_file, python_version)
+        # sp_reference = basename(dirname(anchor_file))
+        # dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
+        # dist_cls = PythonInstalledDistribution
+        # package_type = PackageType.VIRTUAL_PYTHON_WHEEL
     elif anchor_file.endswith(".egg-info"):
+        anchor_full_path = join(prefix_path, win_path_ok(anchor_file))
         sp_reference = basename(anchor_file)
-        dist_file = join(prefix_path, win_path_ok(anchor_file))
-        dist_cls = PythonEggInfoDistribution
-        package_type = PackageType.SHADOW_PYTHON_EGG_INFO_FILE
+        return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+        # sp_reference = basename(anchor_file)
+        # dist_cls = PythonEggInfoDistribution
+        # package_type = PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
     elif ".egg-info" in anchor_file:
+        anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
         sp_reference = basename(dirname(anchor_file))
-        dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
-        dist_cls = PythonEggInfoDistribution
-        package_type = PackageType.SHADOW_PYTHON_EGG_INFO_DIR
+        return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+        # sp_reference = basename(dirname(anchor_file))
+        # dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
+        # dist_cls = PythonEggInfoDistribution
+        # package_type = PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
     elif ".egg" in anchor_file:
+        anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
         sp_reference = basename(dirname(anchor_file))
-        dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
-        dist_cls = PythonEggInfoDistribution
-        package_type = PackageType.SHADOW_PYTHON_EGG_INFO_DIR
+        return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+        # sp_reference = basename(dirname(anchor_file))
+        # dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
+        # dist_cls = PythonEggInfoDistribution
+        # package_type = PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
     else:
         raise NotImplementedError()
 
-    pydist = None
-
-    # An egg-link might reference a folder where egg-info is not available
-    if dist_file is not None:
-        pydist = dist_cls(dist_file)
-        try:
-            pydist = dist_cls(dist_file)
-        except Exception as error:
-            print('ERROR!: get_python_distribution_info', error)
-
-    return pydist, sp_reference, package_type
+    # pydist = None
+    #
+    # # An egg-link might reference a folder where egg-info is not available
+    # if dist_file is not None:
+    #     pydist = dist_cls(dist_file)
+    #     try:
+    #         pydist = dist_cls(dist_file)
+    #     except Exception as error:
+    #         print('ERROR!: get_python_distribution_info', error)
+    #
+    # return pydist, sp_reference, package_type

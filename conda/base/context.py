@@ -119,7 +119,7 @@ class Context(Configuration):
     force_32bit = PrimitiveParameter(False)
     non_admin_enabled = PrimitiveParameter(True)
 
-    pip_interop_enabled = PrimitiveParameter(False)
+    pip_interop_enabled = PrimitiveParameter(True)
 
     # Safety & Security
     _aggressive_update_packages = SequenceParameter(string_types,
