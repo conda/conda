@@ -4,23 +4,55 @@
 """Test for python distribution information and metadata handling."""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from contextlib import contextmanager
 import os
+from os.path import dirname, isdir
+from pprint import pprint
 import tempfile
 
-from conda.common.compat import odict
+from conda.common.compat import odict, on_win
+from conda.common.serialize import json_dump, json_load
+from conda.common.url import join
 from conda.core.prefix_data import PrefixData
 from conda.core import python_dist as pd
+from conda.core.python_dist import get_python_records
 
 import pytest
 
-from .data import (METADATA_VERSION_PATHS, PATH_TEST_ENV_1, PATH_TEST_ENV_2,
-                   PATH_TEST_ENV_3, PATH_TEST_ENV_4)
+from test_data.env_metadata import (
+    METADATA_VERSION_PATHS, PATH_TEST_ENV_1, PATH_TEST_ENV_2, PATH_TEST_ENV_3, PATH_TEST_ENV_4,
+    __file__ as env_metadata_file,
+)
 
+ENV_METADATA_DIR = dirname(env_metadata_file)
 
 # Helpers
 # -----------------------------------------------------------------------------
 class DummyPythonRecord:
     files = []
+
+
+@contextmanager
+def set_on_win(val):
+    import conda.common.path
+    import conda.core.prefix_data
+    import conda.core.python_dist
+    on_win_saved = conda.common.path.on_win
+    win_path_ok_saved_1 = conda.core.prefix_data.win_path_ok
+    win_path_ok_saved_2 = conda.core.python_dist.win_path_ok
+    rm_rf_saved = conda.core.prefix_data.rm_rf
+    try:
+        conda.common.path.on_win = val
+        conda.core.prefix_data.rm_rf = lambda x: None
+        if val and not on_win:
+            conda.core.prefix_data.win_path_ok = lambda x: x
+            conda.core.python_dist.win_path_ok = lambda x: x
+        yield
+    finally:
+        conda.common.path.on_win = on_win_saved
+        conda.core.prefix_data.win_path_ok = win_path_ok_saved_1
+        conda.core.python_dist.win_path_ok = win_path_ok_saved_2
+        conda.core.prefix_data.rm_rf = rm_rf_saved
 
 
 def _create_test_files(test_files):
@@ -427,8 +459,8 @@ def test_metadata():
 # -----------------------------------------------------------------------------
 def test_basepydist_check_path_data():
     test_cases = (
-        (('path', 'sha256=1', '45'), ('path', 'sha256=1', 45), None),
-        (('path', 'sha256=1', 45), ('path', 'sha256=1', 45), None),
+        (('path', 'sha256=1', '45'), ('path', '1', 45), None),
+        (('path', 'sha256=1', 45), ('path', '1', 45), None),
         (('path', '', 45), ('path', None, 45), None),
         (('path', None, 45), ('path', None, 45), None),
         (('path', 'md5=', 45), (), AssertionError),
@@ -501,8 +533,9 @@ def test_dist_get_paths():
     temp_path, fpaths = _create_test_files((('', 'SOURCES.txt', content), ))
 
     dist = pd.PythonEggInfoDistribution(temp_path)
-    output = dist.get_paths()
-    expected_output = [('foo/bar', 'sha256=1', 45), ('foo/spam', None, None)]
+    output = dist.get_paths("2.7")
+    expected_output = [('lib/python2.7/site-packages/foo/bar', '1', 45),
+                       ('lib/python2.7/site-packages/foo/spam', None, None)]
     _print_output(output, expected_output)
     assert output == expected_output
 
@@ -510,7 +543,7 @@ def test_dist_get_paths():
 def test_dist_get_paths_no_paths():
     temp_path = tempfile.mkdtemp()
     dist = pd.PythonEggInfoDistribution(temp_path)
-    output = dist.get_paths()
+    output = dist.get_paths("2.7")
     expected_output = []
     _print_output(output, expected_output)
     assert output == expected_output
@@ -592,9 +625,9 @@ def test_python_dist_info():
     path = os.path.dirname(fpaths[0])
 
     dist = pd.PythonInstalledDistribution(path)
-    output = dist.get_paths_data()
-    _print_output(output)
-    assert len(output.paths) == 2
+    paths_data, files = dist.get_paths_data("2.7")
+    _print_output(paths_data)
+    assert len(paths_data.paths) == 2
     assert dist.get_python_requirements() == frozenset(['==2.7'])
     assert dist.get_external_requirements() == frozenset(['C'])
 
@@ -614,13 +647,24 @@ def test_python_dist_info_conda_dependencies():
     path = os.path.dirname(fpaths[0])
 
     dist = pd.PythonEggInfoDistribution(path)
-    context = {'python_version': '4.9'}
-    output = dist.get_conda_dependencies(context)
 
-    assert 'python >2.7,<5.0' in output
-    assert 'bar' not in output
-    assert 'spam' in output
-    assert 'cheese >=1.0' in output
+    depends, constrains = dist.get_conda_dependencies("4.9")
+    assert 'python 4.9.*' in depends
+    assert 'bar' not in depends
+    assert 'spam' in depends
+    assert 'cheese >=1.0' in constrains
+
+    depends, constrains = dist.get_conda_dependencies("2.7")
+    assert 'python 2.7.*' in depends
+    assert 'bar' in depends
+    assert 'spam' not in depends
+    assert 'cheese >=1.0' in constrains
+
+    depends, constrains = dist.get_conda_dependencies("3.4")
+    assert 'python 3.4.*' in depends
+    assert 'bar' not in depends
+    assert 'spam' not in depends
+    assert 'cheese >=1.0' in constrains
 
 
 def test_python_dist_info_conda_dependencies_2():
@@ -631,9 +675,8 @@ def test_python_dist_info_conda_dependencies_2():
     path = os.path.dirname(fpaths[0])
 
     dist = pd.PythonEggInfoDistribution(path)
-    context = {'python_version': '4.9'}
-    output = dist.get_conda_dependencies(context)
-    assert 'python ==4.9' in output
+    depends, constrains = dist.get_conda_dependencies("4.9")
+    assert 'python 4.9.*' in depends
 
 
 def test_python_dist_info_conda_dependencies_3():
@@ -644,9 +687,8 @@ def test_python_dist_info_conda_dependencies_3():
     path = os.path.dirname(fpaths[0])
 
     dist = pd.PythonEggInfoDistribution(path)
-    context = {}
-    output = dist.get_conda_dependencies(context)
-    assert 'python' in output
+    depends, constrains = dist.get_conda_dependencies("3.6")
+    assert "python 3.6.*" in depends
 
 
 def test_python_dist_egg_path():
@@ -657,9 +699,9 @@ def test_python_dist_egg_path():
     path = os.path.dirname(fpaths[0])
 
     dist = pd.PythonEggInfoDistribution(path)
-    output = dist.get_paths_data()
-    _print_output(output)
-    assert len(output.paths) == 2
+    paths_data, files = dist.get_paths_data("2.7")
+    _print_output(paths_data)
+    assert len(paths_data.paths) == 2
 
 
 def test_python_dist_egg_fpath():
@@ -676,7 +718,6 @@ def test_python_dist_egg_fpath():
 
 # Prefix Data
 # -----------------------------------------------------------------------------
-@pytest.mark.skipif(os.name != 'nt', reason="Windows tests")
 def test_pip_interop_windows():
     test_cases = (
         (PATH_TEST_ENV_3,
@@ -703,23 +744,23 @@ def test_pip_interop_windows():
     )
 
     for path, expected_output in test_cases:
-        if os.path.isdir(path):
-            prefixdata = PrefixData(path, pip_interop_enabled=True)
-            prefixdata.load()
-            records = prefixdata._load_site_packages()
-            record_names = tuple(sorted(records.keys()))
-            print('RECORDS', record_names)
-            assert len(record_names), len(expected_output)
-            _print_output(expected_output, record_names)
-            for record_name in record_names:
-                _print_output(record_name)
-                assert record_name in expected_output
-            for record_name in expected_output:
-                _print_output(record_name)
-                assert record_name in record_names
+        with set_on_win(True):
+            if os.path.isdir(path):
+                prefixdata = PrefixData(path, pip_interop_enabled=True)
+                prefixdata.load()
+                records = prefixdata._load_site_packages()
+                record_names = tuple(sorted(records.keys()))
+                print('RECORDS', record_names)
+                assert len(record_names), len(expected_output)
+                _print_output(expected_output, record_names)
+                for record_name in record_names:
+                    _print_output(record_name)
+                    assert record_name in expected_output
+                for record_name in expected_output:
+                    _print_output(record_name)
+                    assert record_name in record_names
 
 
-@pytest.mark.skipif(os.name == 'nt', reason="Windows tests")
 def test_pip_interop_osx():
     test_cases = (
         (PATH_TEST_ENV_1,
@@ -747,16 +788,434 @@ def test_pip_interop_osx():
 
     for path, expected_output in test_cases:
         if os.path.isdir(path):
-            prefixdata = PrefixData(path, pip_interop_enabled=True)
-            prefixdata.load()
-            records = prefixdata._load_site_packages()
-            record_names = tuple(sorted(records.keys()))
-            print('RECORDS', record_names)
-            assert len(record_names), len(expected_output)
-            _print_output(expected_output, record_names)
-            for record_name in record_names:
-                _print_output(record_name)
-                assert record_name in expected_output
-            for record_name in expected_output:
-                _print_output(record_name)
-                assert record_name in record_names
+            with set_on_win(False):
+                prefixdata = PrefixData(path, pip_interop_enabled=True)
+                prefixdata.load()
+                records = prefixdata._load_site_packages()
+                record_names = tuple(sorted(records.keys()))
+                print('RECORDS', record_names)
+                assert len(record_names), len(expected_output)
+                _print_output(expected_output, record_names)
+                for record_name in record_names:
+                    _print_output(record_name)
+                    assert record_name in expected_output
+                for record_name in expected_output:
+                    _print_output(record_name)
+                    assert record_name in record_names
+
+
+def test_scrapy_py36_osx_whl():
+    anchor_files = (
+        "lib/python3.6/site-packages/Scrapy-1.5.1.dist-info/RECORD",
+    )
+    prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
+    prefix_recs = get_python_records(anchor_files, prefix_path, "3.6")
+    assert len(prefix_recs) == 1
+    prefix_rec = prefix_recs[0]
+
+    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    files = dumped_rec.pop("files")
+    paths_data = dumped_rec.pop("paths_data")
+    print(json_dump(dumped_rec))
+    assert dumped_rec == {
+        "build": "pypi_0",
+        "build_number": 0,
+        "channel": "https://conda.anaconda.org/pypi",
+        "constrains": [],
+        "depends": [
+            "cssselect >=0.9",
+            "lxml",
+            "parsel >=1.1",
+            "pydispatcher >=2.0.5",
+            "pyopenssl",
+            "python 3.6.*",
+            "queuelib",
+            "service-identity",
+            "six >=1.5.2",
+            "twisted >=13.1.0",
+            "w3lib >=1.17.0"
+        ],
+        "fn": "Scrapy-1.5.1.dist-info",
+        "name": "scrapy",
+        "package_type": "shadow_python_dist_info",
+        "subdir": "pypi",
+        "version": "1.5.1"
+    }
+    print(json_dump(files))
+    print(json_dump(paths_data["paths"]))
+    assert "lib/python3.6/site-packages/scrapy/core/scraper.py" in files
+    assert "lib/python3.6/site-packages/scrapy/core/__pycache__/scraper.cpython-36.pyc" in files
+    pd1 = {
+        "_path": "lib/python3.6/site-packages/scrapy/core/scraper.py",
+        "path_type": "hardlink",
+        "sha256": "2559X9n2z1YKdFV9ElMRD6_88LIdqH1a2UwQimStt2k",
+        "size_in_bytes": 9960
+    }
+    assert pd1 in paths_data["paths"]
+    pd2 = {
+        "_path": "lib/python3.6/site-packages/scrapy/core/__pycache__/scraper.cpython-36.pyc",
+        "path_type": "hardlink",
+        "sha256": None,
+        "size_in_bytes": None
+    }
+    assert pd2 in paths_data["paths"]
+    pd3 = {
+        "_path": "bin/scrapy",
+        "path_type": "hardlink",
+        "sha256": "RncAAoxSEnSi_0VIopaRxsq6kryQGL61YbEweN2TW3g",
+        "size_in_bytes": 268
+    }
+    assert pd3 in paths_data["paths"]
+
+
+def test_twilio_py36_osx_whl():
+    anchor_files = (
+        "lib/python3.6/site-packages/twilio-6.16.1.dist-info/RECORD",
+    )
+    prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
+    prefix_recs = get_python_records(anchor_files, prefix_path, "3.6")
+    assert len(prefix_recs) == 1
+    prefix_rec = prefix_recs[0]
+    pprint(prefix_rec.depends)
+    pprint(prefix_rec.constrains)
+
+    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    files = dumped_rec.pop("files")
+    paths_data = dumped_rec.pop("paths_data")
+    print(json_dump(dumped_rec))
+    assert dumped_rec == {
+        "build": "pypi_0",
+        "build_number": 0,
+        "channel": "https://conda.anaconda.org/pypi",
+        "constrains": [],
+        "depends": [
+            "pyjwt >=1.4.2",
+            "pysocks",
+            "python 3.6.*",
+            "pytz",
+            "requests >=2.0.0",
+            "six"
+        ],
+        "fn": "twilio-6.16.1.dist-info",
+        "name": "twilio",
+        "package_type": "shadow_python_dist_info",
+        "subdir": "pypi",
+        "version": "6.16.1"
+    }
+    print(json_dump(files))
+    print(json_dump(paths_data["paths"]))
+    assert "lib/python3.6/site-packages/twilio/compat.py" in files
+    assert "lib/python3.6/site-packages/twilio/__pycache__/compat.cpython-36.pyc" in files
+    pd1 = {
+        "_path": "lib/python3.6/site-packages/twilio/compat.py",
+        "path_type": "hardlink",
+        "sha256": "sJ1t7CKvxpipiX5cyH1YwXTf3n_FsLf_taUhuCVsCwE",
+        "size_in_bytes": 517
+    }
+    assert pd1 in paths_data["paths"]
+    pd2 = {
+        "_path": "lib/python3.6/site-packages/twilio/jwt/__pycache__/compat.cpython-36.pyc",
+        "path_type": "hardlink",
+        "sha256": None,
+        "size_in_bytes": None
+    }
+    assert pd2 in paths_data["paths"]
+
+
+def test_pyjwt_py36_osx_whl():
+    anchor_files = (
+        "lib/python3.6/site-packages/PyJWT-1.6.4.dist-info/RECORD",
+    )
+    prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
+    prefix_recs = get_python_records(anchor_files, prefix_path, "3.6")
+    assert len(prefix_recs) == 1
+    prefix_rec = prefix_recs[0]
+
+    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    files = dumped_rec.pop("files")
+    paths_data = dumped_rec.pop("paths_data")
+    print(json_dump(dumped_rec))
+    assert dumped_rec == {
+        "build": "pypi_0",
+        "build_number": 0,
+        "channel": "https://conda.anaconda.org/pypi",
+        "constrains": [
+            "cryptography >=1.4",
+            "pytest <4,>3"
+        ],
+        "depends": [
+            "python 3.6.*"
+        ],
+        "fn": "PyJWT-1.6.4.dist-info",
+        "name": "pyjwt",
+        "package_type": "shadow_python_dist_info",
+        "subdir": "pypi",
+        "version": "1.6.4"
+    }
+    print(json_dump(files))
+    print(json_dump(paths_data["paths"]))
+    assert 'bin/pyjwt' in files
+    assert 'lib/python3.6/site-packages/jwt/__pycache__/__init__.cpython-36.pyc' in files
+    pd1 = {
+        "_path": "bin/pyjwt",
+        "path_type": "hardlink",
+        "sha256": "wZET_24uZDEpsMdhAQ78Ass2k-76aQ59yPSE4DTE2To",
+        "size_in_bytes": 260
+    }
+    assert pd1 in paths_data["paths"]
+    pd2 = {
+        "_path": "lib/python3.6/site-packages/jwt/contrib/__pycache__/__init__.cpython-36.pyc",
+        "path_type": "hardlink",
+        "sha256": None,
+        "size_in_bytes": None
+    }
+    assert pd2 in paths_data["paths"]
+
+
+def test_cherrypy_py36_osx_whl():
+    anchor_files = (
+        "lib/python3.6/site-packages/CherryPy-17.2.0.dist-info/RECORD",
+    )
+    prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
+    prefix_recs = get_python_records(anchor_files, prefix_path, "3.6")
+    assert len(prefix_recs) == 1
+    prefix_rec = prefix_recs[0]
+
+    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    files = dumped_rec.pop("files")
+    paths_data = dumped_rec.pop("paths_data")
+    print(json_dump(dumped_rec))
+    assert dumped_rec == {
+        "build": "pypi_0",
+        "build_number": 0,
+        "channel": "https://conda.anaconda.org/pypi",
+        "constrains": [
+            "jaraco-packaging >=3.2",
+            # "pypiwin32 ==219",
+            "pytest >=2.8",
+            "python-memcached >=1.58",
+            "routes >=2.3.1",
+            "rst-linker >=1.9"
+        ],
+        "depends": [
+            "cheroot >=6.2.4",
+            "more-itertools",
+            "portend >=2.1.1",
+            "python 3.6.*",
+            "six >=1.11.0"
+        ],
+        "fn": "CherryPy-17.2.0.dist-info",
+        "name": "cherrypy",
+        "package_type": "shadow_python_dist_info",
+        "subdir": "pypi",
+        "version": "17.2.0"
+    }
+
+
+def test_scrapy_py27_osx_no_binary():
+    anchor_files = (
+        "lib/python2.7/site-packages/Scrapy-1.5.1-py2.7.egg-info/PKG-INFO",
+    )
+    prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
+    prefix_recs = get_python_records(anchor_files, prefix_path, "2.7")
+    assert len(prefix_recs) == 1
+    prefix_rec = prefix_recs[0]
+
+    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    files = dumped_rec.pop("files")
+    paths_data = dumped_rec.pop("paths_data")
+    print(json_dump(dumped_rec))
+    assert dumped_rec == {
+        "build": "pypi_0",
+        "build_number": 0,
+        "channel": "https://conda.anaconda.org/pypi",
+        "constrains": [],
+        "depends": [
+            "cssselect >=0.9",
+            "lxml",
+            "parsel >=1.1",
+            "pydispatcher >=2.0.5",
+            "pyopenssl",
+            "python 2.7.*",
+            "queuelib",
+            "service-identity",
+            "six >=1.5.2",
+            "twisted >=13.1.0",
+            "w3lib >=1.17.0"
+        ],
+        "fn": "Scrapy-1.5.1-py2.7.egg-info",
+        "name": "scrapy",
+        "package_type": "shadow_python_egg_info_dir",
+        "subdir": "pypi",
+        "version": "1.5.1"
+    }
+    print(json_dump(files))
+    print(json_dump(paths_data["paths"]))
+    assert "lib/python2.7/site-packages/scrapy/contrib/downloadermiddleware/decompression.py" in files
+    assert "lib/python2.7/site-packages/scrapy/downloadermiddlewares/decompression.pyc" in files
+    assert "bin/scrapy" in files
+    pd1 = {
+        "_path": "lib/python2.7/site-packages/scrapy/contrib/downloadermiddleware/decompression.py",
+        "path_type": "hardlink"
+    }
+    assert pd1 in paths_data["paths"]
+    pd2 = {
+        "_path": "lib/python2.7/site-packages/scrapy/contrib/downloadermiddleware/decompression.pyc",
+        "path_type": "hardlink"
+    }
+    assert pd2 in paths_data["paths"]
+    pd3 = {
+        "_path": "bin/scrapy",
+        "path_type": "hardlink"
+    }
+    assert pd3 in paths_data["paths"]
+
+
+def test_twilio_py27_osx_no_binary():
+    anchor_files = (
+        "lib/python2.7/site-packages/twilio-6.16.1-py2.7.egg-info/PKG-INFO",
+    )
+    prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
+    prefix_recs = get_python_records(anchor_files, prefix_path, "2.7")
+    assert len(prefix_recs) == 1
+    prefix_rec = prefix_recs[0]
+    pprint(prefix_rec.depends)
+    pprint(prefix_rec.constrains)
+
+    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    files = dumped_rec.pop("files")
+    paths_data = dumped_rec.pop("paths_data")
+    print(json_dump(dumped_rec))
+    assert dumped_rec == {
+        "build": "pypi_0",
+        "build_number": 0,
+        "channel": "https://conda.anaconda.org/pypi",
+        "constrains": [],
+        "depends": [
+            "pyjwt >=1.4.2",
+            "python 2.7.*",
+            "pytz",
+            "requests >=2.0.0",
+            "six"
+        ],
+        "fn": "twilio-6.16.1-py2.7.egg-info",
+        "name": "twilio",
+        "package_type": "shadow_python_egg_info_dir",
+        "subdir": "pypi",
+        "version": "6.16.1"
+    }
+    print(json_dump(files))
+    print(json_dump(paths_data["paths"]))
+    assert "lib/python2.7/site-packages/twilio/compat.py" in files
+    assert "lib/python2.7/site-packages/twilio/compat.pyc" in files
+    pd1 = {
+        "_path": "lib/python2.7/site-packages/twilio/compat.py",
+        "path_type": "hardlink"
+    }
+    assert pd1 in paths_data["paths"]
+    pd2 = {
+        "_path": "lib/python2.7/site-packages/twilio/jwt/compat.pyc",
+        "path_type": "hardlink"
+    }
+    assert pd2 in paths_data["paths"]
+
+
+def test_pyjwt_py27_osx_no_binary():
+    anchor_files = (
+        "lib/python2.7/site-packages/PyJWT-1.6.4-py2.7.egg-info/PKG-INFO",
+    )
+    prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
+    prefix_recs = get_python_records(anchor_files, prefix_path, "2.7")
+    assert len(prefix_recs) == 1
+    prefix_rec = prefix_recs[0]
+
+    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    files = dumped_rec.pop("files")
+    paths_data = dumped_rec.pop("paths_data")
+    print(json_dump(dumped_rec))
+    assert dumped_rec == {
+        "build": "pypi_0",
+        "build_number": 0,
+        "channel": "https://conda.anaconda.org/pypi",
+        "constrains": [
+            "cryptography >=1.4",
+            "pytest <4,>3"
+        ],
+        "depends": [
+            "python 2.7.*"
+        ],
+        "fn": "PyJWT-1.6.4-py2.7.egg-info",
+        "name": "pyjwt",
+        "package_type": "shadow_python_egg_info_dir",
+        "subdir": "pypi",
+        "version": "1.6.4"
+    }
+    print(json_dump(files))
+    print(json_dump(paths_data["paths"]))
+    assert 'bin/pyjwt' in files
+    assert 'lib/python2.7/site-packages/jwt/__init__.pyc' in files
+    pd1 = {
+        "_path": "bin/pyjwt",
+        "path_type": "hardlink"
+    }
+    assert pd1 in paths_data["paths"]
+    pd2 = {
+        "_path": "lib/python2.7/site-packages/jwt/contrib/__init__.pyc",
+        "path_type": "hardlink"
+    }
+    assert pd2 in paths_data["paths"]
+
+
+def test_cherrypy_py27_osx_no_binary():
+    anchor_files = (
+        "lib/python2.7/site-packages/CherryPy-17.2.0-py2.7.egg-info/PKG-INFO",
+    )
+    prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
+    prefix_recs = get_python_records(anchor_files, prefix_path, "2.7")
+    assert len(prefix_recs) == 1
+    prefix_rec = prefix_recs[0]
+
+    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    files = dumped_rec.pop("files")
+    paths_data = dumped_rec.pop("paths_data")
+    print(json_dump(dumped_rec))
+    assert dumped_rec == {
+        "build": "pypi_0",
+        "build_number": 0,
+        "channel": "https://conda.anaconda.org/pypi",
+        "constrains": [
+            "jaraco-packaging >=3.2",
+            "pytest >=2.8",
+            "python-memcached >=1.58",
+            "routes >=2.3.1",
+            "rst-linker >=1.9"
+        ],
+        "depends": [
+            "cheroot >=6.2.4",
+            "more-itertools",
+            "portend >=2.1.1",
+            "python 2.7.*",
+            "six >=1.11.0"
+        ],
+        "fn": "CherryPy-17.2.0-py2.7.egg-info",
+        "name": "cherrypy",
+        "package_type": "shadow_python_egg_info_dir",
+        "subdir": "pypi",
+        "version": "17.2.0"
+    }
