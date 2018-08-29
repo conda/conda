@@ -56,15 +56,6 @@ def test_evaluate_marker():
             output = pm.interpret(marker_expr, context)
 
 
-def test_update_marker_context():
-    pyver = '2.8.1'
-    context = pd.update_marker_context(pyver)
-    _print_output(pyver, context)
-    assert context['extra'] == ''
-    assert context['python_version'] == '.'.join(pyver.split('.')[:2])
-    assert context['python_full_version'] == pyver
-
-
 def test_get_default_marker_context():
     context = pm.get_default_marker_context()
     for key, val in context.items():

@@ -146,6 +146,13 @@ class Solver(object):
         unlink_precs, link_precs = diff_for_unlink_link_precs(
             self.prefix, final_precs, self.specs_to_add, force_reinstall
         )
+
+        # assert that all unlink_precs are manageable
+        unmanageable = groupby(lambda prec: prec.is_unmanageable, unlink_precs).get(True)
+        if unmanageable:
+            raise RuntimeError("Cannot unlink unmanageable packages:%s"
+                               % dashlist(prec.record_id() for prec in unmanageable))
+
         return unlink_precs, link_precs
 
     def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,

@@ -813,7 +813,7 @@ def test_scrapy_py36_osx_whl():
     prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
     if not isdir(prefix_path):
         pytest.skip("test files not found: %s" % prefix_path)
-    prefix_recs = get_python_records(anchor_files, prefix_path, "3.6")
+    prefix_recs = get_python_records(prefix_path, anchor_files, "3.6")
     assert len(prefix_recs) == 1
     prefix_rec = prefix_recs[0]
 
@@ -879,7 +879,7 @@ def test_twilio_py36_osx_whl():
     prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
     if not isdir(prefix_path):
         pytest.skip("test files not found: %s" % prefix_path)
-    prefix_recs = get_python_records(anchor_files, prefix_path, "3.6")
+    prefix_recs = get_python_records(prefix_path, anchor_files, "3.6")
     assert len(prefix_recs) == 1
     prefix_rec = prefix_recs[0]
     pprint(prefix_rec.depends)
@@ -935,7 +935,7 @@ def test_pyjwt_py36_osx_whl():
     prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
     if not isdir(prefix_path):
         pytest.skip("test files not found: %s" % prefix_path)
-    prefix_recs = get_python_records(anchor_files, prefix_path, "3.6")
+    prefix_recs = get_python_records(prefix_path, anchor_files, "3.6")
     assert len(prefix_recs) == 1
     prefix_rec = prefix_recs[0]
 
@@ -987,7 +987,7 @@ def test_cherrypy_py36_osx_whl():
     prefix_path = join(ENV_METADATA_DIR, "py36-osx-whl")
     if not isdir(prefix_path):
         pytest.skip("test files not found: %s" % prefix_path)
-    prefix_recs = get_python_records(anchor_files, prefix_path, "3.6")
+    prefix_recs = get_python_records(prefix_path, anchor_files, "3.6")
     assert len(prefix_recs) == 1
     prefix_rec = prefix_recs[0]
 
@@ -1029,7 +1029,7 @@ def test_scrapy_py27_osx_no_binary():
     prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
     if not isdir(prefix_path):
         pytest.skip("test files not found: %s" % prefix_path)
-    prefix_recs = get_python_records(anchor_files, prefix_path, "2.7")
+    prefix_recs = get_python_records(prefix_path, anchor_files, "2.7")
     assert len(prefix_recs) == 1
     prefix_rec = prefix_recs[0]
 
@@ -1090,7 +1090,7 @@ def test_twilio_py27_osx_no_binary():
     prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
     if not isdir(prefix_path):
         pytest.skip("test files not found: %s" % prefix_path)
-    prefix_recs = get_python_records(anchor_files, prefix_path, "2.7")
+    prefix_recs = get_python_records(prefix_path, anchor_files, "2.7")
     assert len(prefix_recs) == 1
     prefix_rec = prefix_recs[0]
     pprint(prefix_rec.depends)
@@ -1141,7 +1141,7 @@ def test_pyjwt_py27_osx_no_binary():
     prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
     if not isdir(prefix_path):
         pytest.skip("test files not found: %s" % prefix_path)
-    prefix_recs = get_python_records(anchor_files, prefix_path, "2.7")
+    prefix_recs = get_python_records(prefix_path, anchor_files, "2.7")
     assert len(prefix_recs) == 1
     prefix_rec = prefix_recs[0]
 
@@ -1189,7 +1189,7 @@ def test_cherrypy_py27_osx_no_binary():
     prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
     if not isdir(prefix_path):
         pytest.skip("test files not found: %s" % prefix_path)
-    prefix_recs = get_python_records(anchor_files, prefix_path, "2.7")
+    prefix_recs = get_python_records(prefix_path, anchor_files, "2.7")
     assert len(prefix_recs) == 1
     prefix_rec = prefix_recs[0]
 
@@ -1230,7 +1230,7 @@ def test_six_py27_osx_no_binary_unmanageable():
     prefix_path = join(ENV_METADATA_DIR, "py27-osx-no-binary")
     if not isdir(prefix_path):
         pytest.skip("test files not found: %s" % prefix_path)
-    prefix_recs = get_python_records(anchor_files, prefix_path, "2.7")
+    prefix_recs = get_python_records(prefix_path, anchor_files, "2.7")
     assert len(prefix_recs) == 1
     prefix_rec = prefix_recs[0]
 

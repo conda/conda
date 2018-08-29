@@ -167,7 +167,7 @@ def test_get_reduced_index_unmanageable():
     channels = r.channels
     prefix_path = join(TEST_DATA_DIR, "env_metadata", "envpy27osx")
     anchor_file = "lib/python2.7/site-packages/requests-2.19.1-py2.7.egg/EGG-INFO/PKG-INFO"
-    py_rec = get_python_record(anchor_file, prefix_path, "2.7")
+    py_rec = get_python_record(prefix_path, anchor_file, "2.7")
     assert py_rec.package_type == PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
 
     index[py_rec] = py_rec

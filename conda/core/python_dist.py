@@ -57,7 +57,7 @@ PySpec = namedtuple('PySpec', ['name', 'extras', 'constraints', 'marker', 'url']
 
 # Main functions
 # -----------------------------------------------------------------------------
-def get_python_records(anchor_files, prefix_path, python_version):
+def get_python_records(prefix_path, anchor_files, python_version):
     """
     Process all anchor files and return a python record.
 
@@ -66,13 +66,13 @@ def get_python_records(anchor_files, prefix_path, python_version):
     python_version = get_major_minor_version(python_version)
     return tuple(
         pyrec for pyrec in (
-            get_python_record(anchor_file, prefix_path, python_version)
+            get_python_record(prefix_path, anchor_file, python_version)
             for anchor_file in sorted(anchor_files)
         ) if pyrec
     )
 
 
-def get_python_record(anchor_file, prefix_path, python_version):
+def get_python_record(prefix_path, anchor_file, python_version):
     """
     Convert a python package defined by an anchor file (Metadata information)
     into a conda prefix record object.

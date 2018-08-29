@@ -246,7 +246,7 @@ class PrefixData(object):
 
         # Create prefix records for python packages not handled by conda
         new_packages = {}
-        python_records = get_python_records(non_conda_anchor_files, self.prefix_path,
+        python_records = get_python_records(self.prefix_path, non_conda_anchor_files,
                                             python_pkg_record.version)
         for python_record in python_records:
             self.__prefix_records[python_record.name] = python_record

@@ -177,16 +177,16 @@ class Evaluator(object):
         return result
 
 
-def update_marker_context(python_version):
-    """Update default marker context to include environment python version."""
-    updated_context = DEFAULT_MARKER_CONTEXT.copy()
-    context = {
-        'python_full_version': python_version,
-        'python_version': '.'.join(python_version.split('.')[:2]),
-        'extra': '',
-    }
-    updated_context.update(context)
-    return updated_context
+# def update_marker_context(python_version):
+#     """Update default marker context to include environment python version."""
+#     updated_context = DEFAULT_MARKER_CONTEXT.copy()
+#     context = {
+#         'python_full_version': python_version,
+#         'python_version': '.'.join(python_version.split('.')[:2]),
+#         'extra': '',
+#     }
+#     updated_context.update(context)
+#     return updated_context
 
 
 def get_default_marker_context():
