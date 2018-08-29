@@ -262,15 +262,11 @@ def _apply_strict_channel_priority(index, channels):
 
     filtered_index = {}
     pkg_names = set()
-    for channel in channels:
-        if isinstance(channel, MultiChannel):
-            c_index = {}
-            for sub_channel in channel._channels:
-                name = Channel(sub_channel).name
-                c_index.update(by_channel[name])
-        else:
-            name = channel.name
-            c_index = by_channel[name]
+
+    channel_names = concat((Channel(cc).name for cc in c._channels)
+        if isinstance(c, MultiChannel) else (c.name, ) for c in channels)
+    for name in channel_names:
+        c_index = by_channel[name]
         # retain packages whose name is not in an higher priority channel
         to_add = {k: v for k, v in c_index.items() if k.name not in pkg_names}
         filtered_index.update(to_add)
