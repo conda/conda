@@ -4,30 +4,31 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import namedtuple
+from csv import reader as csv_reader
+from email.parser import HeaderParser
+from fnmatch import filter as fnmatch_filter
 from os import listdir
-from os.path import basename, dirname, isdir, isfile, join, lexists
-
-import csv
-import email.parser
-import fnmatch
-import io
-import os
+from os.path import basename, dirname, isdir, isfile, join, lexists, normpath
 import re
 import warnings
 
+from .python_markers import update_marker_context, interpret
 from .._vendor.frozendict import frozendict
-from ..core.python_markers import interpret, update_marker_context
-from ..common.compat import odict, PY2, StringIO
-from ..common.path import win_path_ok
+from ..common.compat import PY2, StringIO, itervalues, odict, open
+from ..common.path import get_python_site_packages_short_path, win_path_ok, pyc_path
 from ..models.channel import Channel
 from ..models.enums import PackageType, PathType
 from ..models.records import PathData, PathDataV1, PathsData, PrefixRecord
-
 
 try:
     from ConfigParser import ConfigParser
 except ImportError:
     from configparser import ConfigParser
+
+try:
+    from cytoolz.itertoolz import concat, concatv, groupby
+except ImportError:  # pragma: no cover
+    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 
 # TODO: complete this list
@@ -61,15 +62,15 @@ def get_python_records(anchor_files, prefix_path, python_version):
     This method evaluates the context needed for marker evaluation.
     """
     python_records = []
-    context = update_marker_context(python_version)
+    ctx = update_marker_context(python_version)
     for anchor_file in sorted(anchor_files):
-        python_record = get_python_record(anchor_file, prefix_path, context)
+        python_record = get_python_record(anchor_file, prefix_path, ctx)
         if python_record:
             python_records.append(python_record)
     return python_records
 
 
-def get_python_record(anchor_file, prefix_path, context):
+def get_python_record(anchor_file, prefix_path, ctx):
     """
     Convert a python package defined by an anchor file (Metadata information)
     into a conda prefix record object.
@@ -82,6 +83,7 @@ def get_python_record(anchor_file, prefix_path, context):
     if pydist is None:
         return None
 
+    python_version = ctx["python_version"]
     pypi_name = pydist.norm_name
     conda_name = pypi_name_to_conda_name(pypi_name)
 
@@ -92,11 +94,12 @@ def get_python_record(anchor_file, prefix_path, context):
 
     if package_type == PackageType.SHADOW_PYTHON_EGG_INFO_FILE:
         paths_data = None
+        files = None
     elif package_type in (PackageType.SHADOW_PYTHON_DIST_INFO,
                           PackageType.SHADOW_PYTHON_EGG_INFO_DIR):
-        paths_data = pydist.get_paths_data()
+        paths_data, files = pydist.get_paths_data(python_version)
     elif package_type == PackageType.SHADOW_PYTHON_EGG_LINK:
-        paths_data = pydist.get_paths_data()
+        paths_data, files = pydist.get_paths_data(python_version)
         channel = Channel('<develop>')
         build = 'dev_0'
     else:
@@ -105,9 +108,10 @@ def get_python_record(anchor_file, prefix_path, context):
     # TODO: This is currently adding additional conda dependencies for graphviz
     # only, but other packages need something similar. This info should (could)
     # be on the 'external_requirements', but that field is free form.
-    dependencies = pydist.get_conda_dependencies(context)
-    extra_dependencies = PYPI_CONDA_DEPS.get(pypi_name, [])
-    all_dependencies = list(dependencies) + extra_dependencies
+    depends, constrains = pydist.get_conda_dependencies(python_version)
+    # extra_dependencies = PYPI_CONDA_DEPS.get(pypi_name, [])
+    # all_dependencies = sorted(list(dependencies) + extra_dependencies)
+
     # print('conda:{0} (pypi:{1})'.format(conda_name, pypi_name))
     # for dependency in sorted(all_dependencies):
     #     print('\t{}'.format(dependency))
@@ -123,7 +127,9 @@ def get_python_record(anchor_file, prefix_path, context):
         build=build,
         build_number=0,
         paths_data=paths_data,
-        depends=all_dependencies,
+        files=files,
+        depends=depends,
+        constrains=constrains,
     )
 
     return python_rec
@@ -276,11 +282,11 @@ class PythonDistributionMetadata(object):
         """
         data = odict()
         if fpath and isfile(fpath):
-            parser = email.parser.HeaderParser()
+            parser = HeaderParser()
 
             # FIXME: Is this a correct assumption for the encoding?
             # This was needed due to some errors on windows
-            with io.open(fpath, 'r', encoding='utf-8') as fp:
+            with open(fpath) as fp:
                 data = parser.parse(fp)
 
         return cls._message_to_dict(data)
@@ -502,15 +508,16 @@ class BasePythonDistribution(object):
     ENTRY_POINTS_FILES = ('entry_points.txt', )
 
     def __init__(self, path_or_fpath):
-        if os.path.isfile(path_or_fpath):
+        if isfile(path_or_fpath):
             self._fpath = path_or_fpath
-            self._path = os.path.dirname(path_or_fpath)
+            self._path = dirname(path_or_fpath)
         elif isdir(path_or_fpath):
             self._fpath = None
             self._path = path_or_fpath
         else:
             self._fpath = None
             self._path = None
+            # raise RuntimeError("Path not found: %s", path_or_fpath)
 
         self._check_files()
         self._source_file = None
@@ -529,6 +536,7 @@ class BasePythonDistribution(object):
         """Normalizes record data content and format."""
         if checksum:
             assert checksum.startswith('sha256='), (self._path, path, checksum)
+            checksum = checksum[7:]
         else:
             checksum = None
         size = int(size) if size else None
@@ -613,7 +621,7 @@ class BasePythonDistribution(object):
 
         return requires, extras
 
-    def get_paths(self):
+    def get_paths(self, python_version):
         """
         Read the list of installed paths from record or source file.
 
@@ -624,7 +632,6 @@ class BasePythonDistribution(object):
          ...
         ]
         """
-        records = []
         if self._path:
             for fname in self.SOURCES_FILES:
                 fpath = join(self._path, fname)
@@ -637,26 +644,30 @@ class BasePythonDistribution(object):
             self._source_file = fpath
 
             if fpath:
-                try:
-                    kwargs = {}
-                    if PY2:
-                        delimiter = str(u',').encode('utf-8')
-                    else:
-                        kwargs['newline'] = ''
-                        delimiter = ','
+                sp_dir = get_python_site_packages_short_path(python_version) + "/"
+                is_installed_files_txt = fpath.endswith("installed-files.txt")
+                prepend_path = (basename(dirname(fpath)) + "/") if is_installed_files_txt else ""
+                norm_row = lambda row: len(row) == 3 and row or [row[0], None, None]
+                norm_path = lambda row: (normpath("%s%s%s" % (sp_dir, prepend_path, row[0])), row[1], row[2])
+                py_file_re = re.compile(r'^[^\t\n\r\f\v]+/site-packages/[^\t\n\r\f\v]+\.py$')
 
-                    with open(fpath, **kwargs) as csvfile:
-                        record_reader = csv.reader(csvfile, delimiter=delimiter)
+                csv_delimiter = ','
+                if PY2:
+                    csv_delimiter = csv_delimiter.encode('utf-8')
+                with open(fpath) as csvfile:
+                    record_reader = csv_reader(csvfile, delimiter=csv_delimiter)
+                    # format of each record is (path, checksum, size)
+                    records = [self._check_path_data(*norm_path(norm_row(row)))
+                               for row in record_reader if row[0]]
+                files = set(record[0] for record in records)
+                pyc_files = (ff for ff in (
+                    pyc_path(f, python_version) for f in files if py_file_re.match(f)
+                ) if ff not in files)
+                records = sorted(records + [(pf, None, None) for pf in pyc_files])
+                return records
 
-                        for row in record_reader:
-                            missing = [None for i in range(len(row), 3)]
-                            path, checksum, size = row + missing
-                            path, checksum, size = self._check_path_data(path, checksum, size)
-                            records.append((path, checksum, size))
-                except Exception as e:
-                    print(e)
+        return []
 
-        return records
 
     def get_dist_requirements(self):
         # FIXME: On some packages, requirements are not added to metadata,
@@ -690,63 +701,34 @@ class BasePythonDistribution(object):
 
         return data
 
-    def get_conda_dependencies(self, context):
+    def get_conda_dependencies(self, python_version):
         """
         Process metadata fields providing dependency information.
 
         This includes normalizing fields, and evaluating environment markers.
         """
-        # Process dependencies
+        python_spec = "python %s.*" % ".".join(python_version.split('.')[:2])
+
+        def pyspec_to_norm_req(pyspec):
+            conda_name = pypi_name_to_conda_name(norm_package_name(pyspec.name))
+            return "%s %s" % (conda_name, pyspec.constraints) if pyspec.constraints else conda_name
+
         reqs = self.get_dist_requirements()
-        extras = self.get_extra_provides()
-        norm_reqs = set([])
-        for req in reqs:
-            spec = parse_specification(req)
-            extra_results = []
+        pyspecs = tuple(parse_specification(req) for req in reqs)
+        marker_groups = groupby(lambda ps: ps.marker.split("==", 1)[0].strip(), pyspecs)
+        depends = set(pyspec_to_norm_req(pyspec) for pyspec in marker_groups.pop("", ()))
+        extras = marker_groups.pop("extra", ())
+        execution_context = {
+            "python_version": python_version,
+        }
+        depends.update(
+            pyspec_to_norm_req(pyspec) for pyspec in concat(itervalues(marker_groups))
+            if interpret(pyspec.marker, execution_context)
+        )
+        constrains = set(pyspec_to_norm_req(pyspec) for pyspec in extras if pyspec.constraints)
+        depends.add(python_spec)
 
-            # TODO: For now all extras are included
-            for extra in extras:
-                temp_context = context.copy()
-                temp_context.update({'extra': extra})
-                if spec.marker:
-                    extra_results.append(interpret(spec.marker, temp_context))
-
-            if any(extra_results):
-                norm_name = norm_package_name(spec.name)
-                conda_name = pypi_name_to_conda_name(norm_name)
-                if spec.constraints:
-                    norm_req = conda_name + ' ' + spec.constraints
-                else:
-                    norm_req = conda_name
-                norm_reqs.add(norm_req)
-
-        # Add python dependency
-        context_py_ver = context.get('python_version')
-        python_versions = self.get_python_requirements()
-        if python_versions:
-            pyvers = []
-
-            # print('python_versions', python_versions)
-            for pyver_req in python_versions:
-                pyspec = parse_specification(pyver_req)
-                if pyspec.marker:
-                    if interpret(pyspec.marker, context):
-                        pyvers.append(pyspec.constraints)
-                else:
-                    pyvers.append(pyspec.constraints)
-
-            if pyvers:
-                pyver = 'python ' + ','.join(pyvers)
-            else:
-                pyver = 'python'
-        elif context_py_ver:
-            pyver = 'python ==' + '.'.join(context_py_ver.split('.')[:2])
-        else:
-            pyver = 'python'
-
-        norm_reqs.add(pyver)
-
-        return frozenset(norm_reqs)
+        return sorted(depends), sorted(constrains)
 
     def get_optional_dependencies(self):
         raise NotImplementedError
@@ -761,7 +743,7 @@ class BasePythonDistribution(object):
                     data = fh.read()
         return self._parse_entries_file_data(data)
 
-    def get_paths_data(self):
+    def get_paths_data(self, python_version):
         raise NotImplementedError
 
     @property
@@ -792,17 +774,12 @@ class PythonInstalledDistribution(BasePythonDistribution):
     # MANDATORY_FILES = ('METADATA', 'RECORD', 'INSTALLER')
     ENTRY_POINTS_FILES = ()
 
-    def get_paths_data(self):
-        paths_data = []
-        for (path, checksum, size) in self.get_paths():
-            sha256 = checksum[7:] if checksum else None
-            paths_data.append(PathDataV1(
-                _path=path,
-                path_type=PathType.hardlink,
-                sha256=sha256,
-                size_in_bytes=size
-            ))
-        return PathsData(paths_version=1, paths=paths_data)
+    def get_paths_data(self, python_version):
+        paths_data = [PathDataV1(
+            _path=path, path_type=PathType.hardlink, sha256=checksum, size_in_bytes=size
+        ) for (path, checksum, size) in self.get_paths(python_version)]
+        files = [pd._path for pd in paths_data]
+        return PathsData(paths_version=1, paths=paths_data), files
 
 
 class PythonEggInfoDistribution(BasePythonDistribution):
@@ -813,19 +790,15 @@ class PythonEggInfoDistribution(BasePythonDistribution):
     -----
       - http://peak.telecommunity.com/DevCenter/EggFormats
     """
-    SOURCES_FILES = ('SOURCES', 'SOURCES.txt')
+    SOURCES_FILES = ('installed-files.txt', 'SOURCES', 'SOURCES.txt')
     REQUIRES_FILES = ('requires.txt', 'depends.txt')
     MANDATORY_FILES = ()
     ENTRY_POINTS_FILES = ('entry_points.txt', )
 
-    def get_paths_data(self):
-        paths_data = []
-        for path, _, _ in self.get_paths():
-            paths_data.append(PathData(
-                _path=path,
-                path_type=PathType.hardlink,
-            ))
-        return PathsData(paths_version=1, paths=paths_data)
+    def get_paths_data(self, python_version):
+        files = [path for path, _, _ in self.get_paths(python_version)]
+        paths_data = [PathData(_path=path, path_type=PathType.hardlink) for path in files]
+        return PathsData(paths_version=1, paths=paths_data), files
 
 
 # Helper functions
@@ -968,7 +941,7 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
         egg_link_contents = fh.readlines()[0].strip()
 
     if lexists(egg_link_contents):
-        egg_info_fnames = fnmatch.filter(listdir(egg_link_contents), '*.egg-info')
+        egg_info_fnames = fnmatch_filter(listdir(egg_link_contents), '*.egg-info')
     else:
         egg_info_fnames = ()
 

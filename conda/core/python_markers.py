@@ -225,6 +225,7 @@ def get_default_marker_context():
         'platform.version': platform.version(),
         'platform.machine': platform.machine(),
         'sys.platform': sys.platform,
+        'extra': '',
     }
     return result
 
@@ -251,7 +252,7 @@ def interpret(marker, execution_context=None):
     if rest and rest[0] != '#':
         raise SyntaxError('unexpected trailing data in marker: %s: %s' % (marker, rest))
 
-    context = dict(DEFAULT_MARKER_CONTEXT)
+    context = DEFAULT_MARKER_CONTEXT.copy()
     if execution_context:
         context.update(execution_context)
 

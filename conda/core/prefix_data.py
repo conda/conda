@@ -232,7 +232,17 @@ class PrefixData(object):
         # the in-memory record for the conda package.  In the future, we should consider
         # also deleting the record on disk in the conda-meta/ directory.
         for conda_anchor_file in clobbered_conda_anchor_files:
-            del self._prefix_records[conda_python_packages[conda_anchor_file].name]
+            prefix_rec = self._prefix_records.pop(conda_python_packages[conda_anchor_file].name)
+            prefix_rec_json_path = join(
+                self.prefix_path, "conda-meta",
+                '%s.json' % basename(prefix_rec.extracted_package_dir)
+            )
+            try:
+                rm_rf(prefix_rec_json_path)
+            except EnvironmentError:
+                log.debug("stale information, but couldn't remove: %s", prefix_rec_json_path)
+            else:
+                log.debug("removed due to stale information: %s", prefix_rec_json_path)
 
         # Create prefix records for python packages not handled by conda
         new_packages = {}
