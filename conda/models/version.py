@@ -541,17 +541,6 @@ class VersionSpec(BaseSpec):
         elif vspec_str[-1] == '*':
             if vspec_str[-2:] != '.*':
                 vspec_str = vspec_str[:-1] + '.*'
-
-            # if vspec_str[-1] in OPERATOR_START:
-            #     m = version_relation_re.match(vspec_str)
-            #     if m is None:
-            #         raise InvalidVersionSpecError(vspec_str)
-            #     operator_str, vo_str = m.groups()
-            #
-            #
-            # else:
-            #     pass
-
             vo_str = vspec_str.rstrip('*').rstrip('.')
             self.operator_func = VersionOrder.startswith
             self.matcher_vo = VersionOrder(vo_str)

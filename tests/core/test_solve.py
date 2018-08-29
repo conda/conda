@@ -1941,7 +1941,7 @@ def test_priority_1():
             
             The following packages will be REMOVED:
             
-              pandas-0.20.2-np113py27_0
+              pandas-0.20.3-py27_0
               pytz-2017.2-py27_0
             
             The following packages will be DOWNGRADED:
