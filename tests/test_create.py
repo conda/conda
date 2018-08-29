@@ -844,6 +844,8 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix,
                             "conda-forge::tensorflow>=1.4 --dry-run --freeze-installed")
 
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15),
+                        reason="The nomkl patches have apparently broken this test.")
     @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
     def test_install_features(self):
         with make_temp_env("python=2 numpy=1.13 nomkl") as prefix:
