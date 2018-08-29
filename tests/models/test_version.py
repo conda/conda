@@ -240,3 +240,33 @@ class TestVersionSpec(unittest.TestCase):
         for version in versions:
             m = VersionSpec(version)
             self.assertTrue(m.match(version))
+
+    def test_not_eq_star(self):
+        assert VersionSpec("=3.3").match("3.3.1")
+        assert VersionSpec("=3.3").match("3.3")
+        assert not VersionSpec("=3.3").match("3.4")
+
+        assert VersionSpec("3.3.*").match("3.3.1")
+        assert VersionSpec("3.3.*").match("3.3")
+        assert not VersionSpec("3.3.*").match("3.4")
+
+        assert VersionSpec("=3.3.*").match("3.3.1")
+        assert VersionSpec("=3.3.*").match("3.3")
+        assert not VersionSpec("=3.3.*").match("3.4")
+
+        assert not VersionSpec("!=3.3.*").match("3.3.1")
+        assert VersionSpec("!=3.3.*").match("3.4")
+        assert VersionSpec("!=3.3.*").match("3.4.1")
+
+        assert VersionSpec("!=3.3").match("3.3.1")
+        assert not VersionSpec("!=3.3").match("3.3.0.0")
+        assert not VersionSpec("!=3.3.*").match("3.3.0.0")
+
+    def test_compound_versions(self):
+        vs = VersionSpec('>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*')
+        assert not vs.match('2.6.8')
+        assert vs.match('2.7.2')
+        assert not vs.match('3.3')
+        assert not vs.match('3.3.4')
+        assert vs.match('3.4')
+        assert vs.match('3.4a')

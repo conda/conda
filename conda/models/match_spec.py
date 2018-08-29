@@ -668,12 +668,12 @@ def _parse_spec_str(spec_str):
 
         # translate version '=1.2.3' to '1.2.3*'
         # is it a simple version starting with '='? i.e. '=1.2.3'
-        if version.startswith('='):
+        if version[0] == '=':
             test_str = version[1:]
-            if version.startswith('==') and build is None:
+            if version[:2] == '==' and build is None:
                 version = version[2:]
             elif not any(c in test_str for c in "=,|"):
-                if build is None and not test_str.endswith('*'):
+                if build is None and test_str[-1] != '*':
                     version = test_str + '*'
                 else:
                     version = test_str

@@ -1941,8 +1941,8 @@ def test_priority_1():
             
             The following packages will be REMOVED:
             
-              global:pandas-0.20.3-py27_0
-              global:pytz-2017.2-py27_0
+              pandas-0.20.3-py27_0
+              pytz-2017.2-py27_0
             
             The following packages will be DOWNGRADED:
             
