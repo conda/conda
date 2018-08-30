@@ -15,7 +15,7 @@ from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_
 from .common.io import time_recorder
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
-from .exceptions import ResolvePackageNotFound, UnsatisfiableError
+from .exceptions import InvalidVersionSpecError, ResolvePackageNotFound, UnsatisfiableError
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType
 from .models.match_spec import MatchSpec
@@ -106,7 +106,12 @@ class Resolve(object):
             val = filter.get(prec)
             if val is None:
                 filter[prec] = True
-                val = filter[prec] = all(v_ms_(ms) for ms in self.ms_depends(prec))
+                try:
+                    depends = self.ms_depends(prec)
+                except InvalidVersionSpecError as e:
+                    val = filter[prec] = False
+                else:
+                    val = filter[prec] = all(v_ms_(ms) for ms in depends)
             return val
 
         result = v_(spec_or_prec)
@@ -128,8 +133,12 @@ class Resolve(object):
             val = filter_out.get(prec)
             if val is None:
                 filter_out[prec] = False
-                has_valid_dep_specs = all(is_valid_spec(ms) for ms in self.ms_depends(prec))
-                val = filter_out[prec] = False if has_valid_dep_specs else "invalid dependency specs"
+                try:
+                    has_valid_dep_specs = all(is_valid_spec(ms) for ms in self.ms_depends(prec))
+                except InvalidVersionSpecError as e:
+                    val = filter_out[prec] = "invalid dep specs"
+                else:
+                    val = filter_out[prec] = False if has_valid_dep_specs else "invalid dependency specs"
             return not val
 
         return is_valid(spec_or_prec)
