@@ -929,6 +929,8 @@ def print_conda_exception(exc_val, exc_tb=None):
             or (not isinstance(exc_val, DryRunExit) and context.verbosity > 0)):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
+        if isinstance(exc_val, DryRunExit):
+            return
         logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
         exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
         logger.info("%s\n" % exc_json)

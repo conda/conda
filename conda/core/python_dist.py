@@ -469,7 +469,7 @@ class BasePythonDistribution(object):
             self._metadata_dir_full_path = anchor_full_path
         else:
             self._metadata_dir_full_path = None
-            # raise RuntimeError("Path not found: %s", anchor_full_path)
+            raise RuntimeError("Path not found: %s", anchor_full_path)
 
         self._check_files()
         self._metadata = PythonDistributionMetadata(anchor_full_path)

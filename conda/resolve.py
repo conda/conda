@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from itertools import chain
 from logging import DEBUG, getLogger
+from operator import attrgetter
 
 from ._vendor.toolz import concat, groupby
 from .base.constants import MAX_CHANNEL_PRIORITY
@@ -41,13 +42,18 @@ class Resolve(object):
         self.channels = channels
         self._channel_priorities_map = self._make_channel_priorities(channels) if channels else {}
 
-        groups = {}
+        groups = groupby("name", itervalues(index))
         trackers = defaultdict(list)
 
-        for _, info in iteritems(index):
-            groups.setdefault(info['name'], []).append(info)
-            for feature_name in info.get('track_features') or ():
-                trackers[feature_name].append(info)
+        for name in groups:
+            unmanageable_precs = [prec for prec in groups[name] if prec.is_unmanageable]
+            if unmanageable_precs:
+                log.debug("restricting to unmanageable packages: %s", name)
+                groups[name] = unmanageable_precs
+            tf_precs = (prec for prec in groups[name] if prec.track_features)
+            for prec in tf_precs:
+                for feature_name in prec.track_features:
+                    trackers[feature_name].append(prec)
 
         self.groups = groups  # Dict[package_name, List[PackageRecord]]
         self.trackers = trackers  # Dict[track_feature, List[PackageRecord]]
@@ -152,6 +158,24 @@ class Resolve(object):
                 return
             names.add(spec.name)
             if self.valid(spec, filter, optional):
+                return
+            precs = self.find_matches(spec)
+            found = False
+            for prec in precs:
+                for m2 in self.ms_depends(prec):
+                    for x in chains_(m2, names):
+                        found = True
+                        yield (spec,) + x
+            if not found:
+                yield (spec,)
+        return chains_(spec, set())
+
+    def invalid_chains2(self, spec, filter_out, optional=True):
+        def chains_(spec, names):
+            if spec.name in names:
+                return
+            names.add(spec.name)
+            if self.valid2(spec, filter_out, optional):
                 return
             precs = self.find_matches(spec)
             found = False
@@ -278,39 +302,28 @@ class Resolve(object):
         filter_out = {prec: False if val else "feature not enabled"
                       for prec, val in iteritems(self.default_filter(features))}
         snames = set()
+        top_level_spec = None
 
         def filter_group(_specs):
             # all _specs should be for the same package name
             name = next(iter(_specs)).name
             group = self.groups.get(name, ())
 
-            # Construct filter Stage 1
-            # If any packages in the group are unmanageable, then all manageable packages have
-            # to be removed, so that the solver can *only* select the unmanageable packages.
-            # This assumes that only *installed* unmanageable packages are actually added
-            # to this index.
-            grouped_unmanageable = groupby(lambda rec: rec.is_unmanageable, group)
-            if grouped_unmanageable.get(True):
-                for prec in grouped_unmanageable.get(False, ()):
-                    filter_out[prec] = "unavailable due to unmanageable installed package"
-
-            # Construct filter Stage 2
             # Prune packages that don't match any of the patterns
             # or which have unsatisfiable dependencies
             nold = nnew = 0
             for prec in group:
                 if not filter_out.setdefault(prec, False):
                     nold += 1
-
                     if not self.match_any(_specs, prec):
-                        filter_out[prec] = "does not match any _specs"
+                        filter_out[prec] = "incompatible with required spec %s" % top_level_spec
                         continue
                     unsatisfiable_dep_specs = tuple(
                         ms for ms in self.ms_depends(prec)
                         if not any(not filter_out.get(rec, False) for rec in self.find_matches(ms))
                     )
                     if unsatisfiable_dep_specs:
-                        filter_out[prec] = unsatisfiable_dep_specs
+                        filter_out[prec] = "unsatisfiable dependencies %s" % " ".join(str(s) for s in unsatisfiable_dep_specs)
                         continue
                     filter_out[prec] = False
                     nnew += 1
@@ -361,6 +374,7 @@ class Resolve(object):
             reduced = False
             while slist:
                 s = slist.pop()
+                top_level_spec = s
                 reduced = filter_group([s])
                 if reduced:
                     slist.append(s)
@@ -370,13 +384,20 @@ class Resolve(object):
                 # This filter reset means that unsatisfiable indexes leak through.
                 filter_out = {prec: False if val else "feature not enabled"
                               for prec, val in iteritems(self.default_filter(features))}
+                # TODO: raise unsatisfiable exception here
+                # Messaging to users should be more descriptive.
+                # 1. Are there no direct matches?
+                # 2. Are there no matches for first-level dependencies?
+                # 3. Have the first level depedendencies been invalidated?
                 break
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
+        processed_specs = set()
         specs_queue = set(specs)
         while specs_queue:
             this_spec = specs_queue.pop()
+            processed_specs.add(this_spec)
             add_these_precs2 = tuple(prec for prec in self.find_matches(this_spec)
                                     if prec not in reduced_index2 and self.valid2(prec, filter_out))
             reduced_index2.update((prec, prec) for prec in add_these_precs2)
@@ -390,7 +411,7 @@ class Resolve(object):
             # package pulls it in by dependency, that's fine.
             specs_queue.update(
                 ms for prec in add_these_precs2 for ms in self.ms_depends(prec)
-                if "track_features" not in ms
+                if "track_features" not in ms and ms not in processed_specs
             )
         self._reduced_index_cache[cache_key] = reduced_index2
         return reduced_index2

@@ -52,6 +52,7 @@ from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
+from conda.models.version import VersionOrder
 from conda.utils import on_win
 
 try:
@@ -1312,7 +1313,7 @@ class IntegrationTests(TestCase):
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
-    def test_conda_pip_interop_pip_clobbers_conda_1(self):
+    def test_conda_pip_interop_pip_clobbers_conda(self):
         # 1. conda install old six
         # 2. pip install -U six
         # 3. conda list shows new six and deletes old conda record
@@ -1465,16 +1466,15 @@ class IntegrationTests(TestCase):
 
             assert not glob(join(prefix, sp_dir, "six*"))
 
-    def test_conda_pip_interop_pip_clobbers_conda_2(self):
-        # 1. conda install old six
-        # 2. pip install -U six
-        # 3. conda list shows new six and deletes old conda record
-        # 4. probably need to purge something with the history file too?
-        with make_temp_env("python") as prefix:
+    def test_conda_pip_interop_conda_editable_package(self):
+        with make_temp_env("python=2.7") as prefix:
             assert package_is_installed(prefix, "python")
-            output = check_output(PYTHON_BINARY + " -m pip install -e git://github.com/urllib3/urllib3.git@1.23#egg=urllib3",
+
+            # install an "editable" urllib3 that cannot be managed
+            output = check_output(PYTHON_BINARY + " -m pip install -e git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3",
                                   cwd=prefix, shell=True)
             print(output)
+            assert isfile(join(prefix, "src", "urllib3", "urllib3", "__init__.py"))
             PrefixData._cache_.clear()
             assert package_is_installed(prefix, "urllib3")
             urllib3_record = next(PrefixData(prefix).query("urllib3"))
@@ -1494,27 +1494,76 @@ class IntegrationTests(TestCase):
                     "pysocks !=1.5.7,<2.0,>=1.5.6"
                 ],
                 "depends": [
-                    "python 3.7.*"
+                    "python 2.7.*"
                 ],
-                "fn": "urllib3-1.23-dev_0",
+                "fn": "urllib3-1.19.1-dev_0",
                 "name": "urllib3",
                 "package_type": "virtual_python_egg_link",
                 "subdir": "pypi",
-                "version": "1.23"
+                "version": "1.19.1"
             }
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
-    def test_conda_pip_interop_conda_updates_pip_package(self):
-        assert False
+            # the unmanageable urllib3 should prevent a new requests from being installed
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "requests --dry-run --json",
+                                         use_exception_handler=True)
+            assert not stderr
+            json_obj = json_loads(stdout)
+            assert "UNLINK" not in json_obj["actions"]
+            link_dists = json_obj["actions"]["LINK"]
+            assert len(link_dists) == 1
+            assert link_dists[0]["name"] == "requests"
+            assert VersionOrder(link_dists[0]["version"]) < VersionOrder("2.16")
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
-    def gittest_conda_pip_interop_conda_doesnt_update_ancient_distutils_package(self):
-        # probably easiest just to use a conda package and remove the conda-meta record
-        assert False
+            # should already be satisfied
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "urllib3 -S")
+            assert "All requested packages already installed." in stdout
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
-    def test_conda_pip_interop_conda_doesnt_update_editable_package(self):
-        assert False
+            # should raise an error
+            with pytest.raises(PackagesNotFoundError):
+                # TODO: This raises PackagesNotFoundError, but the error should really explain
+                #       that we can't install urllib3 because it's already installed and
+                #       unmanageable. The error should suggest trying to use pip to uninstall it.
+                stdout, stderr = run_command(Commands.INSTALL, prefix, "urllib3=1.20 --dry-run")
+
+            # Now install a manageable urllib3.
+            output = check_output(PYTHON_BINARY + " -m pip install -U urllib3==1.20",
+                                  cwd=prefix, shell=True)
+            print(output)
+            PrefixData._cache_.clear()
+            assert package_is_installed(prefix, "urllib3")
+            urllib3_record = next(PrefixData(prefix).query("urllib3"))
+            urllib3_record_dump = urllib3_record.dump()
+            files = urllib3_record_dump.pop("files")
+            paths_data = urllib3_record_dump.pop("paths_data")
+            print(json_dump(urllib3_record_dump))
+
+            assert json_loads(json_dump(urllib3_record_dump)) == {
+                "build": "pypi_0",
+                "build_number": 0,
+                "channel": "https://conda.anaconda.org/pypi",
+                "constrains": [
+                    "pysocks >=1.5.6,<2.0,!=1.5.7"
+                ],
+                "depends": [
+                    "python 2.7.*"
+                ],
+                "fn": "urllib3-1.20.dist-info",
+                "name": "urllib3",
+                "package_type": "virtual_python_wheel",
+                "subdir": "pypi",
+                "version": "1.20"
+            }
+
+            # we should be able to install an unbundled requests that upgrades urllib3 in the process
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "requests=2.18 --json")
+            assert package_is_installed(prefix, "requests")
+            assert package_is_installed(prefix, "urllib3>=1.21")
+            assert not stderr
+            json_obj = json_loads(stdout)
+            unlink_dists = json_obj["actions"]["UNLINK"]
+            assert len(unlink_dists) == 1
+            assert unlink_dists[0]["name"] == "urllib3"
+            assert unlink_dists[0]["channel"] == "pypi"
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_filter(self):
