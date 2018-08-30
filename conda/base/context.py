@@ -10,10 +10,11 @@ from os.path import abspath, basename, expanduser, isdir, isfile, join, split as
 import platform
 import sys
 
-from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
-                        DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS,
-                        DepsModifier, ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE,
-                        PathConflict, ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, UpdateModifier)
+from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME,
+                        DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
+                        DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
+                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
@@ -169,7 +170,7 @@ class Context(Configuration):
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
-    channel_priority = PrimitiveParameter(True)
+    channel_priority = PrimitiveParameter(ChannelPriority.FLEXIBLE)
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',))  # channel for args.channel
     _custom_channels = MapParameter(string_types, DEFAULT_CUSTOM_CHANNELS,

@@ -12,7 +12,7 @@ import pytest
 from conda._vendor.auxlib.collection import AttrDict
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concat
-from conda.base.constants import PathConflict
+from conda.base.constants import PathConflict, ChannelPriority
 from conda.base.context import context, reset_context
 from conda.common.compat import odict, iteritems
 from conda.common.configuration import ValidationError, YamlRawParameter
@@ -61,6 +61,7 @@ class ContextCustomRcTests(TestCase):
           ftps: false
           rsync: 'false'
         aggressive_update_packages: []
+        channel_priority: false
         """)
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
@@ -254,6 +255,9 @@ class ContextCustomRcTests(TestCase):
         specs = ['certifi', 'openssl>=1.1']
         with env_var('CONDA_AGGRESSIVE_UPDATE_PACKAGES', ','.join(specs), reset_context):
             assert context.aggressive_update_packages == tuple(MatchSpec(s) for s in specs)
+
+    def test_channel_priority(self):
+        assert context.channel_priority == ChannelPriority.DISABLED
 
 
 class ContextDefaultRcTests(TestCase):

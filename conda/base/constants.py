@@ -10,10 +10,10 @@ Another important source of "static" configuration is conda/models/enums.py.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from enum import Enum
+from enum import Enum, EnumMeta
 from os.path import join
 
-from ..common.compat import itervalues, on_win
+from ..common.compat import itervalues, on_win, six_with_metaclass, string_types
 
 PREFIX_PLACEHOLDER = ('/opt/anaconda1anaconda2'
                       # this is intentionally split into parts, such that running
@@ -164,6 +164,34 @@ class UpdateModifier(Enum):
     UPDATE_SPECS = 'update_specs'  # default
     UPDATE_ALL = 'update_all'
     # TODO: add REINSTALL_ALL, see https://github.com/conda/conda/issues/6247 and https://github.com/conda/conda/issues/3149  # NOQA
+
+    def __str__(self):
+        return self.value
+
+
+class ChannelPriorityMeta(EnumMeta):
+
+    def __call__(cls, value, *args, **kwargs):
+        try:
+            return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
+        except ValueError:
+            if isinstance(value, string_types):
+                from .._vendor.auxlib.type_coercion import typify
+                value = typify(value)
+            if value is True:
+                value = 'flexible'
+            elif value is False:
+                value = cls.DISABLED
+            return super(ChannelPriorityMeta, cls).__call__(value, *args, **kwargs)
+
+
+class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, Enum)):
+    __name__ = "ChannelPriority"
+
+    STRICT = 'strict'
+    STRICT_OR_FLEXIBLE = 'strict_or_flexible'
+    FLEXIBLE = 'flexible'
+    DISABLED = 'disabled'
 
     def __str__(self):
         return self.value
