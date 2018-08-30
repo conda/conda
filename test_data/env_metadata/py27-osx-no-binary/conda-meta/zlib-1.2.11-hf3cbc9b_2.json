@@ -73,7 +73,7 @@
         "path_type": "hardlink",
         "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
         "sha256": "5613df6f1a56c1c3e0c2aa3da9284b51de9682882a6a9ba7af68a07745cb3aac",
-        "sha256_in_prefix": "e1c2ba666ae29647efc34fbf111a76fa170a18fbc9e9947fe31154bc405dac28",
+        "sha256_in_prefix": "d720c0bafc5a8cdf9c3253e371dede7234f2e5f4ba42cbec52ed57322c6e8be1",
         "size_in_bytes": 281
       }
     ],

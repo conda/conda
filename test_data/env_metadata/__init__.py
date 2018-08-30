@@ -27,7 +27,7 @@ conda deactivate
 
 
 
-conda create -y -p ./tenv python=2 numpy h5py nomkl lxml
+conda create -y -p ./tenv python=2 numpy h5py nomkl lxml pip=8
 ./tenv/bin/pip install --no-binary :all: twilio==6.16.1
 ./tenv/bin/pip install --no-binary :all: hdf5storage==0.1.15
 ./tenv/bin/pip install --no-binary :all: cherrypy==17.2.0

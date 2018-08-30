@@ -1,12 +1,12 @@
 {
-  "build": "hc1231fa_4",
-  "build_number": 4,
+  "build": "h1de35cc_5",
+  "build_number": 5,
   "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
   "constrains": [],
   "depends": [
-    "ncurses >=6.0,<7.0a0"
+    "ncurses >=6.1,<7.0a0"
   ],
-  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/readline-7.0-hc1231fa_4",
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/readline-7.0-h1de35cc_5",
   "features": "",
   "files": [
     "include/readline/chardefs.h",
@@ -28,7 +28,6 @@
     "share/doc/readline/CHANGES",
     "share/doc/readline/INSTALL",
     "share/doc/readline/README",
-    "share/info/dir",
     "share/info/history.info",
     "share/info/readline.info",
     "share/info/rluserman.info",
@@ -50,15 +49,15 @@
     "share/readline/rltest.c",
     "share/readline/rlversion.c"
   ],
-  "fn": "readline-7.0-hc1231fa_4.tar.bz2",
-  "license": "GPL3",
+  "fn": "readline-7.0-h1de35cc_5.tar.bz2",
+  "license": "GPL-3.0",
   "link": {
-    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/readline-7.0-hc1231fa_4",
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/readline-7.0-h1de35cc_5",
     "type": 1
   },
-  "md5": "5be4ae617bdb587ab9f87a2e95473277",
+  "md5": "e7e32610dc0b61aa5947789844175bbf",
   "name": "readline",
-  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/readline-7.0-hc1231fa_4.tar.bz2",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/readline-7.0-h1de35cc_5.tar.bz2",
   "paths_data": {
     "paths": [
       {
@@ -119,54 +118,66 @@
       },
       {
         "_path": "lib/libhistory.7.0.dylib",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "7d5959e8fcd352f5fc841131685109a08863a14e6aa52539af2b8c3eff65c97e",
-        "sha256_in_prefix": "7d5959e8fcd352f5fc841131685109a08863a14e6aa52539af2b8c3eff65c97e",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/e9c56b68-5033-475a-61cf-213463fabcde/volume/readline_1535475931028/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeh",
+        "sha256": "8a276b6b1165275f7c058d4f4bc4ae1def301ad13681c8c3cc1760bcee88af07",
+        "sha256_in_prefix": "dcd893afb65640927ea8a5326419fe64e20e8b7314d00ea1df7a646bf15f7296",
         "size_in_bytes": 44144
       },
       {
         "_path": "lib/libhistory.7.dylib",
+        "file_mode": "binary",
         "path_type": "softlink",
-        "sha256": "7d5959e8fcd352f5fc841131685109a08863a14e6aa52539af2b8c3eff65c97e",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/e9c56b68-5033-475a-61cf-213463fabcde/volume/readline_1535475931028/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeh",
+        "sha256": "8a276b6b1165275f7c058d4f4bc4ae1def301ad13681c8c3cc1760bcee88af07",
         "size_in_bytes": 44144
       },
       {
         "_path": "lib/libhistory.a",
         "path_type": "hardlink",
-        "sha256": "fab5ab4c9e484322425846bcdef3224f86a1db85f7212a8283d042ace4248c40",
-        "sha256_in_prefix": "fab5ab4c9e484322425846bcdef3224f86a1db85f7212a8283d042ace4248c40",
+        "sha256": "056743f4200b5b2b64195787094e856cabd9e23f7647e076006c5a870b10b04c",
+        "sha256_in_prefix": "056743f4200b5b2b64195787094e856cabd9e23f7647e076006c5a870b10b04c",
         "size_in_bytes": 48304
       },
       {
         "_path": "lib/libhistory.dylib",
+        "file_mode": "binary",
         "path_type": "softlink",
-        "sha256": "7d5959e8fcd352f5fc841131685109a08863a14e6aa52539af2b8c3eff65c97e",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/e9c56b68-5033-475a-61cf-213463fabcde/volume/readline_1535475931028/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeh",
+        "sha256": "8a276b6b1165275f7c058d4f4bc4ae1def301ad13681c8c3cc1760bcee88af07",
         "size_in_bytes": 44144
       },
       {
         "_path": "lib/libreadline.7.0.dylib",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "d931781d98416cf81d3a38487582f9f32ea9016205b6bfb94834122791c0ea1f",
-        "sha256_in_prefix": "d931781d98416cf81d3a38487582f9f32ea9016205b6bfb94834122791c0ea1f",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/e9c56b68-5033-475a-61cf-213463fabcde/volume/readline_1535475931028/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeh",
+        "sha256": "90328e47cf7906e720e2051c220e6d86a6a033ffa35d708f094c072cc4243658",
+        "sha256_in_prefix": "4f13b41c059ffae8422b921778f0749571698554f6194eff7e2c5172ba7d9b91",
         "size_in_bytes": 265576
       },
       {
         "_path": "lib/libreadline.7.dylib",
+        "file_mode": "binary",
         "path_type": "softlink",
-        "sha256": "d931781d98416cf81d3a38487582f9f32ea9016205b6bfb94834122791c0ea1f",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/e9c56b68-5033-475a-61cf-213463fabcde/volume/readline_1535475931028/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeh",
+        "sha256": "90328e47cf7906e720e2051c220e6d86a6a033ffa35d708f094c072cc4243658",
         "size_in_bytes": 265576
       },
       {
         "_path": "lib/libreadline.a",
         "path_type": "hardlink",
-        "sha256": "a60df2d102bd41e617fb55f1e462d8cfb302605d860481ccb1b3f55161f6271c",
-        "sha256_in_prefix": "a60df2d102bd41e617fb55f1e462d8cfb302605d860481ccb1b3f55161f6271c",
-        "size_in_bytes": 433856
+        "sha256": "df4d3a5ea4b540599f250582634d2317ac3e2cd8cb29c5e5039c8c3388daaf6c",
+        "sha256_in_prefix": "df4d3a5ea4b540599f250582634d2317ac3e2cd8cb29c5e5039c8c3388daaf6c",
+        "size_in_bytes": 433744
       },
       {
         "_path": "lib/libreadline.dylib",
+        "file_mode": "binary",
         "path_type": "softlink",
-        "sha256": "d931781d98416cf81d3a38487582f9f32ea9016205b6bfb94834122791c0ea1f",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/e9c56b68-5033-475a-61cf-213463fabcde/volume/readline_1535475931028/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeh",
+        "sha256": "90328e47cf7906e720e2051c220e6d86a6a033ffa35d708f094c072cc4243658",
         "size_in_bytes": 265576
       },
       {
@@ -189,13 +200,6 @@
         "sha256": "5b2b97cbd05cc9ff3d1847710ceb71a22f6ec4c3234c191c3ead33c0e574d1c3",
         "sha256_in_prefix": "5b2b97cbd05cc9ff3d1847710ceb71a22f6ec4c3234c191c3ead33c0e574d1c3",
         "size_in_bytes": 8028
-      },
-      {
-        "_path": "share/info/dir",
-        "path_type": "hardlink",
-        "sha256": "43483471950a666542c0b54f9d49cd4fd709a464050d9505fcfc9957e2ca6192",
-        "sha256_in_prefix": "43483471950a666542c0b54f9d49cd4fd709a464050d9505fcfc9957e2ca6192",
-        "size_in_bytes": 741
       },
       {
         "_path": "share/info/history.info",
@@ -341,10 +345,10 @@
     "paths_version": 1
   },
   "requested_spec": "None",
-  "size": 402161,
+  "size": 402747,
   "subdir": "osx-64",
-  "timestamp": 1510352015886,
+  "timestamp": 1535476075762,
   "track_features": "",
-  "url": "https://repo.anaconda.com/pkgs/main/osx-64/readline-7.0-hc1231fa_4.tar.bz2",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/readline-7.0-h1de35cc_5.tar.bz2",
   "version": "7.0"
 }

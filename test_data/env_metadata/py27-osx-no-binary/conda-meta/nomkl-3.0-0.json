@@ -4,7 +4,7 @@
   "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
   "constrains": [],
   "depends": [
-    "blas 1.0 openblas"
+    "blas * openblas"
   ],
   "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/nomkl-3.0-0",
   "features": "",
@@ -26,7 +26,7 @@
   "size": 49116,
   "subdir": "osx-64",
   "timestamp": 1527877622890,
-  "track_features": "nomkl",
+  "track_features": "",
   "url": "https://repo.anaconda.com/pkgs/main/osx-64/nomkl-3.0-0.tar.bz2",
   "version": "3.0"
 }

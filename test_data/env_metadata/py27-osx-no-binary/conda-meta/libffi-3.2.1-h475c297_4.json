@@ -73,7 +73,7 @@
         "path_type": "hardlink",
         "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
         "sha256": "ddd2989d3d661fdf003c0e484ba173eaa440a35f02e6895b4ec53cac447d554a",
-        "sha256_in_prefix": "c8d563c675a1d72869e00c21a132f600925dbd5889b088c4a35d7ce5ed744640",
+        "sha256_in_prefix": "f754998e407a8c15132cd69bc17269c67aa19a7e45e54433dc2f98e2e090fc58",
         "size_in_bytes": 926
       },
       {
@@ -82,7 +82,7 @@
         "path_type": "hardlink",
         "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
         "sha256": "54eef4fdfc30f5012226b4250443412aa26c94a4b73180090127aecbb242a9f2",
-        "sha256_in_prefix": "0e673b6d94cd9556f6c87d5b7f1d3fa84ea7aae79c33132ab7d064404b88d6e1",
+        "sha256_in_prefix": "7d69439cf4ab36b8404b763ea22d24f94c8952bea893132e09e608261d07a996",
         "size_in_bytes": 296
       },
       {

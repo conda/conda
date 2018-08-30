@@ -1,10 +1,12 @@
 {
-  "build": "h35a86e2_3",
-  "build_number": 3,
+  "build": "ha441bb4_0",
+  "build_number": 0,
   "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
   "constrains": [],
-  "depends": [],
-  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/tk-8.6.7-h35a86e2_3",
+  "depends": [
+    "zlib >=1.2.11,<1.3.0a0"
+  ],
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/tk-8.6.8-ha441bb4_0",
   "features": "",
   "files": [
     "bin/sqlite3_analyzer",
@@ -77,21 +79,21 @@
     "include/tkUnixPort.h",
     "lib/Tk.icns",
     "lib/Tk.tiff",
-    "lib/itcl4.1.0/itcl.tcl",
-    "lib/itcl4.1.0/itclConfig.sh",
-    "lib/itcl4.1.0/itclHullCmds.tcl",
-    "lib/itcl4.1.0/itclWidget.tcl",
-    "lib/itcl4.1.0/libitcl4.1.0.dylib",
-    "lib/itcl4.1.0/libitclstub4.1.0.a",
-    "lib/itcl4.1.0/pkgIndex.tcl",
+    "lib/itcl4.1.1/itcl.tcl",
+    "lib/itcl4.1.1/itclConfig.sh",
+    "lib/itcl4.1.1/itclHullCmds.tcl",
+    "lib/itcl4.1.1/itclWidget.tcl",
+    "lib/itcl4.1.1/libitcl4.1.1.dylib",
+    "lib/itcl4.1.1/libitclstub4.1.1.a",
+    "lib/itcl4.1.1/pkgIndex.tcl",
     "lib/libtcl8.6.dylib",
     "lib/libtclstub8.6.a",
     "lib/libtk8.6.dylib",
     "lib/libtkstub8.6.a",
     "lib/pkgconfig/tcl.pc",
     "lib/pkgconfig/tk.pc",
-    "lib/sqlite3.20.0/libsqlite3.20.0.dylib",
-    "lib/sqlite3.20.0/pkgIndex.tcl",
+    "lib/sqlite3.21.0/libsqlite3.21.0.dylib",
+    "lib/sqlite3.21.0/pkgIndex.tcl",
     "lib/tcl8.6/auto.tcl",
     "lib/tcl8.6/clock.tcl",
     "lib/tcl8.6/encoding/ascii.enc",
@@ -316,27 +318,27 @@
     "lib/tcl8/8.4/platform/shell-1.1.4.tm",
     "lib/tcl8/8.5/msgcat-1.6.1.tm",
     "lib/tcl8/8.5/tcltest-2.4.1.tm",
-    "lib/tcl8/8.6/http-2.8.11.tm",
-    "lib/tcl8/8.6/tdbc/sqlite3-1.0.5.tm",
+    "lib/tcl8/8.6/http-2.8.12.tm",
+    "lib/tcl8/8.6/tdbc/sqlite3-1.0.6.tm",
     "lib/tclConfig.sh",
     "lib/tclooConfig.sh",
-    "lib/tdbc1.0.5/libtdbc1.0.5.dylib",
-    "lib/tdbc1.0.5/libtdbcstub1.0.5.a",
-    "lib/tdbc1.0.5/pkgIndex.tcl",
-    "lib/tdbc1.0.5/tdbc.tcl",
-    "lib/tdbc1.0.5/tdbcConfig.sh",
-    "lib/tdbcmysql1.0.5/libtdbcmysql1.0.5.dylib",
-    "lib/tdbcmysql1.0.5/pkgIndex.tcl",
-    "lib/tdbcmysql1.0.5/tdbcmysql.tcl",
-    "lib/tdbcodbc1.0.5/libtdbcodbc1.0.5.dylib",
-    "lib/tdbcodbc1.0.5/pkgIndex.tcl",
-    "lib/tdbcodbc1.0.5/tdbcodbc.tcl",
-    "lib/tdbcpostgres1.0.5/libtdbcpostgres1.0.5.dylib",
-    "lib/tdbcpostgres1.0.5/pkgIndex.tcl",
-    "lib/tdbcpostgres1.0.5/tdbcpostgres.tcl",
-    "lib/thread2.8.1/libthread2.8.1.dylib",
-    "lib/thread2.8.1/pkgIndex.tcl",
-    "lib/thread2.8.1/ttrace.tcl",
+    "lib/tdbc1.0.6/libtdbc1.0.6.dylib",
+    "lib/tdbc1.0.6/libtdbcstub1.0.6.a",
+    "lib/tdbc1.0.6/pkgIndex.tcl",
+    "lib/tdbc1.0.6/tdbc.tcl",
+    "lib/tdbc1.0.6/tdbcConfig.sh",
+    "lib/tdbcmysql1.0.6/libtdbcmysql1.0.6.dylib",
+    "lib/tdbcmysql1.0.6/pkgIndex.tcl",
+    "lib/tdbcmysql1.0.6/tdbcmysql.tcl",
+    "lib/tdbcodbc1.0.6/libtdbcodbc1.0.6.dylib",
+    "lib/tdbcodbc1.0.6/pkgIndex.tcl",
+    "lib/tdbcodbc1.0.6/tdbcodbc.tcl",
+    "lib/tdbcpostgres1.0.6/libtdbcpostgres1.0.6.dylib",
+    "lib/tdbcpostgres1.0.6/pkgIndex.tcl",
+    "lib/tdbcpostgres1.0.6/tdbcpostgres.tcl",
+    "lib/thread2.8.2/libthread2.8.2.dylib",
+    "lib/thread2.8.2/pkgIndex.tcl",
+    "lib/thread2.8.2/ttrace.tcl",
     "lib/tk8.6/bgerror.tcl",
     "lib/tk8.6/button.tcl",
     "lib/tk8.6/choosedir.tcl",
@@ -374,6 +376,7 @@
     "lib/tk8.6/demos/image1.tcl",
     "lib/tk8.6/demos/image2.tcl",
     "lib/tk8.6/demos/images/earth.gif",
+    "lib/tk8.6/demos/images/earthmenu.png",
     "lib/tk8.6/demos/images/earthris.gif",
     "lib/tk8.6/demos/images/flagdown.xbm",
     "lib/tk8.6/demos/images/flagup.xbm",
@@ -509,16 +512,16 @@
     "lib/tk8.6/xmfbox.tcl",
     "lib/tkConfig.sh"
   ],
-  "fn": "tk-8.6.7-h35a86e2_3.tar.bz2",
+  "fn": "tk-8.6.8-ha441bb4_0.tar.bz2",
   "license": "Tcl/Tk",
   "license_family": "BSD",
   "link": {
-    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/tk-8.6.7-h35a86e2_3",
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/tk-8.6.8-ha441bb4_0",
     "type": 1
   },
-  "md5": "5694507135f7eb1c7b59f6c08f01fc0c",
+  "md5": "0873cb53427d63926617c1d3f477cdd9",
   "name": "tk",
-  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/tk-8.6.7-h35a86e2_3.tar.bz2",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/tk-8.6.8-ha441bb4_0.tar.bz2",
   "paths_data": {
     "paths": [
       {
@@ -530,29 +533,37 @@
       },
       {
         "_path": "bin/tclsh",
+        "file_mode": "binary",
         "path_type": "softlink",
-        "sha256": "55daecd5fce553a43eb2af6e51641eb449771d89b5f960f4f7e0dfa683e2446a",
-        "size_in_bytes": 12824
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "3de101fba0fe2046ab5cecf70611103d192d4f4795c4ace15f543b2c1e495ed2",
+        "size_in_bytes": 12792
       },
       {
         "_path": "bin/tclsh8.6",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "55daecd5fce553a43eb2af6e51641eb449771d89b5f960f4f7e0dfa683e2446a",
-        "sha256_in_prefix": "55daecd5fce553a43eb2af6e51641eb449771d89b5f960f4f7e0dfa683e2446a",
-        "size_in_bytes": 12824
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "3de101fba0fe2046ab5cecf70611103d192d4f4795c4ace15f543b2c1e495ed2",
+        "sha256_in_prefix": "eb2c6cc88687d46a4b62fa0629fbb77ee4b1d0d0cd3bbcea802407af6bd3d973",
+        "size_in_bytes": 12792
       },
       {
         "_path": "bin/wish",
+        "file_mode": "binary",
         "path_type": "softlink",
-        "sha256": "e8bc9b98abfebd0ca0930617e274d44e4ceebf776e2eff4a49796e7cea22750a",
-        "size_in_bytes": 21280
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "b4d43f9903d4af0c5c0226fe50bdce03813f94c49db470f908ba01db3b100580",
+        "size_in_bytes": 17152
       },
       {
         "_path": "bin/wish8.6",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "e8bc9b98abfebd0ca0930617e274d44e4ceebf776e2eff4a49796e7cea22750a",
-        "sha256_in_prefix": "e8bc9b98abfebd0ca0930617e274d44e4ceebf776e2eff4a49796e7cea22750a",
-        "size_in_bytes": 21280
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "b4d43f9903d4af0c5c0226fe50bdce03813f94c49db470f908ba01db3b100580",
+        "sha256_in_prefix": "769d31512994f7834f05002cdeff78d757a1cb4b0f3d95b5ff889523fe0c74c6",
+        "size_in_bytes": 17152
       },
       {
         "_path": "include/X11/X.h",
@@ -578,9 +589,9 @@
       {
         "_path": "include/X11/Xlib.h",
         "path_type": "hardlink",
-        "sha256": "bb624f1681618770750dd2c125b7bd7be66dedc35836c625433837dd96beb045",
-        "sha256_in_prefix": "bb624f1681618770750dd2c125b7bd7be66dedc35836c625433837dd96beb045",
-        "size_in_bytes": 40849
+        "sha256": "d48e5c9d3f5f3dbb1abf338f92062ea1e05a3d3c6eb426048240bef769882982",
+        "sha256_in_prefix": "d48e5c9d3f5f3dbb1abf338f92062ea1e05a3d3c6eb426048240bef769882982",
+        "size_in_bytes": 40944
       },
       {
         "_path": "include/X11/Xutil.h",
@@ -648,8 +659,8 @@
       {
         "_path": "include/itcl.h",
         "path_type": "hardlink",
-        "sha256": "1b4b1fc25fbadb44aa8cbc188e73f5c59d5d02832c62672da9256796e9cfd167",
-        "sha256_in_prefix": "1b4b1fc25fbadb44aa8cbc188e73f5c59d5d02832c62672da9256796e9cfd167",
+        "sha256": "f3c9d39049569341bce19dd3164f9ab8523a438a627396df7f6d9c54e33aaea5",
+        "sha256_in_prefix": "f3c9d39049569341bce19dd3164f9ab8523a438a627396df7f6d9c54e33aaea5",
         "size_in_bytes": 5896
       },
       {
@@ -669,9 +680,9 @@
       {
         "_path": "include/itclInt.h",
         "path_type": "hardlink",
-        "sha256": "866b36d80bb1e4904153b105a8aa602ed1be3d95d3fcf473e7ea97cc3e8eb82a",
-        "sha256_in_prefix": "866b36d80bb1e4904153b105a8aa602ed1be3d95d3fcf473e7ea97cc3e8eb82a",
-        "size_in_bytes": 37285
+        "sha256": "00c07940312fd10653c911fb2998dfabb38859b6dc883d6b989e5c85f0835848",
+        "sha256_in_prefix": "00c07940312fd10653c911fb2998dfabb38859b6dc883d6b989e5c85f0835848",
+        "size_in_bytes": 37492
       },
       {
         "_path": "include/itclIntDecls.h",
@@ -725,8 +736,8 @@
       {
         "_path": "include/tcl.h",
         "path_type": "hardlink",
-        "sha256": "d542624f12b39f59db3d0291cfaf79ac3e07fe844c7ebf9f046bef2a284d51ac",
-        "sha256_in_prefix": "d542624f12b39f59db3d0291cfaf79ac3e07fe844c7ebf9f046bef2a284d51ac",
+        "sha256": "99fbc1902711feb91dd201a2dee3de8ce4b624fa5071aa705b7147f882f4a661",
+        "sha256_in_prefix": "99fbc1902711feb91dd201a2dee3de8ce4b624fa5071aa705b7147f882f4a661",
         "size_in_bytes": 94833
       },
       {
@@ -781,8 +792,8 @@
       {
         "_path": "include/tdbc.h",
         "path_type": "hardlink",
-        "sha256": "75cfacac9c9e8d10b47ff1b3d50f285212c357a219236d48886da09927758a6f",
-        "sha256_in_prefix": "75cfacac9c9e8d10b47ff1b3d50f285212c357a219236d48886da09927758a6f",
+        "sha256": "54820f7b73647ea0faf16ec6b7c2479ae6bea4a3b395bc3c34804aed5891be59",
+        "sha256_in_prefix": "54820f7b73647ea0faf16ec6b7c2479ae6bea4a3b395bc3c34804aed5891be59",
         "size_in_bytes": 1682
       },
       {
@@ -802,8 +813,8 @@
       {
         "_path": "include/tk.h",
         "path_type": "hardlink",
-        "sha256": "6a7d29f76fa945d1012f2f10ef3e28b2d9e73f70f92929606de074b33ef2cfe0",
-        "sha256_in_prefix": "6a7d29f76fa945d1012f2f10ef3e28b2d9e73f70f92929606de074b33ef2cfe0",
+        "sha256": "421ba97b743ef6f98839fd9bf1806a9f4091b9aa0f40b0c5933f8fc318f7a0c0",
+        "sha256_in_prefix": "421ba97b743ef6f98839fd9bf1806a9f4091b9aa0f40b0c5933f8fc318f7a0c0",
         "size_in_bytes": 57790
       },
       {
@@ -879,9 +890,9 @@
       {
         "_path": "include/tkInt.h",
         "path_type": "hardlink",
-        "sha256": "368991563dde7414ae385a7bd3d415e35a987bba3ae9fac38b3c9c5c008deaa4",
-        "sha256_in_prefix": "368991563dde7414ae385a7bd3d415e35a987bba3ae9fac38b3c9c5c008deaa4",
-        "size_in_bytes": 44406
+        "sha256": "5f4555a9fe1c034ea9a42f6a0b4a57df7509ae6114932d72076d1710abaab356",
+        "sha256_in_prefix": "5f4555a9fe1c034ea9a42f6a0b4a57df7509ae6114932d72076d1710abaab356",
+        "size_in_bytes": 44464
       },
       {
         "_path": "include/tkIntDecls.h",
@@ -1010,84 +1021,88 @@
         "size_in_bytes": 53684
       },
       {
-        "_path": "lib/itcl4.1.0/itcl.tcl",
+        "_path": "lib/itcl4.1.1/itcl.tcl",
         "path_type": "hardlink",
         "sha256": "91f8cefd4fd95f1e9c4a224a7aa3378f382eb64416106e6075ef498df685e1b1",
         "sha256_in_prefix": "91f8cefd4fd95f1e9c4a224a7aa3378f382eb64416106e6075ef498df685e1b1",
         "size_in_bytes": 5153
       },
       {
-        "_path": "lib/itcl4.1.0/itclConfig.sh",
+        "_path": "lib/itcl4.1.1/itclConfig.sh",
         "file_mode": "text",
         "path_type": "hardlink",
         "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
-        "sha256": "0bed61cec43600443cf540b2181dd9f59dfbfb9fe539f74987f74a5396e5993e",
-        "sha256_in_prefix": "a91feff14a35cdaa8a4c2161466e99367f3b40371ba0bc5fc8676e1e6cb2284f",
+        "sha256": "0b23fd81569006a2cb4bafcf62385b48be84dd22df958f9fa4eb5adad0f2a47b",
+        "sha256_in_prefix": "ee4d02fc3d680b0f2339c15ec70d40db40a31aa873850da8ff53fe90029de4a5",
         "size_in_bytes": 3993
       },
       {
-        "_path": "lib/itcl4.1.0/itclHullCmds.tcl",
+        "_path": "lib/itcl4.1.1/itclHullCmds.tcl",
         "path_type": "hardlink",
         "sha256": "df0ba063a5831ce966cccfc0deb7026796102d9facfd90b2062519b5086c4709",
         "sha256_in_prefix": "df0ba063a5831ce966cccfc0deb7026796102d9facfd90b2062519b5086c4709",
         "size_in_bytes": 21059
       },
       {
-        "_path": "lib/itcl4.1.0/itclWidget.tcl",
+        "_path": "lib/itcl4.1.1/itclWidget.tcl",
         "path_type": "hardlink",
         "sha256": "125b9ff3f0201c4c33822c207b9c6562442dd6c19c8acf922b093a6784fdc2b7",
         "sha256_in_prefix": "125b9ff3f0201c4c33822c207b9c6562442dd6c19c8acf922b093a6784fdc2b7",
         "size_in_bytes": 12657
       },
       {
-        "_path": "lib/itcl4.1.0/libitcl4.1.0.dylib",
+        "_path": "lib/itcl4.1.1/libitcl4.1.1.dylib",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "09eb5554184a8a79e40c58d2d2deb2da0b35432447b5e3a68c579426bd159c8e",
-        "sha256_in_prefix": "09eb5554184a8a79e40c58d2d2deb2da0b35432447b5e3a68c579426bd159c8e",
-        "size_in_bytes": 274724
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "aa651aaca11aa8a4ad9c8c65738012f60ab4efe9c7907485d80a617b90ccb7ad",
+        "sha256_in_prefix": "53edc01d57e3a8ce701e5b2bbbe1a94e40309ff3496fa2223721e476e448118a",
+        "size_in_bytes": 268972
       },
       {
-        "_path": "lib/itcl4.1.0/libitclstub4.1.0.a",
+        "_path": "lib/itcl4.1.1/libitclstub4.1.1.a",
         "path_type": "hardlink",
-        "sha256": "62f37aff0926a979043489c104032ba0a8ce5123ead07c9fe57b26ddf69f0249",
-        "sha256_in_prefix": "62f37aff0926a979043489c104032ba0a8ce5123ead07c9fe57b26ddf69f0249",
+        "sha256": "374de70198dc70528d5d7e82102118737602d3ac8498259f21d06ece321a0483",
+        "sha256_in_prefix": "374de70198dc70528d5d7e82102118737602d3ac8498259f21d06ece321a0483",
         "size_in_bytes": 1688
       },
       {
-        "_path": "lib/itcl4.1.0/pkgIndex.tcl",
+        "_path": "lib/itcl4.1.1/pkgIndex.tcl",
         "path_type": "hardlink",
-        "sha256": "b7f614a9bd840e07d0f44066543289137cf269b7271aac9f2850e373ca8f7650",
-        "sha256_in_prefix": "b7f614a9bd840e07d0f44066543289137cf269b7271aac9f2850e373ca8f7650",
-        "size_in_bytes": 268
+        "sha256": "4561b13011945f26642be03cd39a4877efd12a589b483c54b307e3e395e6dc91",
+        "sha256_in_prefix": "4561b13011945f26642be03cd39a4877efd12a589b483c54b307e3e395e6dc91",
+        "size_in_bytes": 269
       },
       {
         "_path": "lib/libtcl8.6.dylib",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/concourse/worker/volumes/live/5bd5216a-515f-4534-5933-2abb95ae6a64/volume/tk_1510171594607/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
-        "sha256": "e2abd8258f6b9f3ffbedd54421f68b25e00bb8d4d418395c7516468e877b3226",
-        "sha256_in_prefix": "bb58430273fc0b19a51008ff13a4e80d195e2c05dce2d077fe78b1bda3660e26",
-        "size_in_bytes": 1646808
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "c7d792eecf829ebae8e3840a51aacc8b71bf7e1b8ebad8b114466bbc55fbf448",
+        "sha256_in_prefix": "aefb8f4fa53b7e4c9ca78052c7dbefcaac60aedcb431871c546ebb67e25bf40e",
+        "size_in_bytes": 1631044
       },
       {
         "_path": "lib/libtclstub8.6.a",
         "path_type": "hardlink",
-        "sha256": "2aac5cafabf8eaee2ac86f07847ad7aff21d93799f4bad1fc0944923b5b8dde7",
-        "sha256_in_prefix": "2aac5cafabf8eaee2ac86f07847ad7aff21d93799f4bad1fc0944923b5b8dde7",
+        "sha256": "6b3860b5256b403171275ba5de09dd9febd3a27485161d308af5d2efc45bb86f",
+        "sha256_in_prefix": "6b3860b5256b403171275ba5de09dd9febd3a27485161d308af5d2efc45bb86f",
         "size_in_bytes": 5056
       },
       {
         "_path": "lib/libtk8.6.dylib",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "1f2016de4bf7eb62b5a8de1c83d20612414388a06b9ff0291daac442d05fdbef",
-        "sha256_in_prefix": "1f2016de4bf7eb62b5a8de1c83d20612414388a06b9ff0291daac442d05fdbef",
-        "size_in_bytes": 1513284
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "ff81ab46173abdd7372085035ee1c04581e41758cf99c1430792197241ed7c8d",
+        "sha256_in_prefix": "b7231460a5ae38523f094e599647ce9cd8076c8c0a41b027243a3adc90955442",
+        "size_in_bytes": 1499840
       },
       {
         "_path": "lib/libtkstub8.6.a",
         "path_type": "hardlink",
-        "sha256": "c1bbde09f7d3971f5085f6e74edea6f93850103e33f6c65feda61b52e3e1976c",
-        "sha256_in_prefix": "c1bbde09f7d3971f5085f6e74edea6f93850103e33f6c65feda61b52e3e1976c",
+        "sha256": "76bc556d263031c4b75cd5fac53fa9304edcf43d21bd1f28f268135c64207d0d",
+        "sha256_in_prefix": "76bc556d263031c4b75cd5fac53fa9304edcf43d21bd1f28f268135c64207d0d",
         "size_in_bytes": 3960
       },
       {
@@ -1095,8 +1110,8 @@
         "file_mode": "text",
         "path_type": "hardlink",
         "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
-        "sha256": "47a67e3b1d83770b170f48af24868be3f20dff9ec2513d40fb30abd2048498d4",
-        "sha256_in_prefix": "a4e36d67e306e9c057d0df0952f17d5c2a2e38e6b8c7e542974ac9fc366b3d10",
+        "sha256": "7b3df11b8d5f002b998ddd8ebaeb8bb4c87da27f24e856738d70b5bf520f5c25",
+        "sha256_in_prefix": "07468a376869c8aa24fcf78357c848671b9c4d79795790e2d62cf90b8d222e16",
         "size_in_bytes": 520
       },
       {
@@ -1104,22 +1119,24 @@
         "file_mode": "text",
         "path_type": "hardlink",
         "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
-        "sha256": "c839c5918c6cebef2e3019832e639a1dbb70e7ae46563178c0da0a4f2ac84fac",
-        "sha256_in_prefix": "b315c596c299f4e03b1ac1f8271f92c520a8f6d127953a02ebd3bf8c4c15a4ad",
+        "sha256": "42b919932c44842b3437894e53b14c54d69871f358a07d80d6ed50134fa59244",
+        "sha256_in_prefix": "cf186fbfe8da643a0b648718b851eb7e0e10e7dfb9f59ef9d77ee10540c5ee90",
         "size_in_bytes": 498
       },
       {
-        "_path": "lib/sqlite3.20.0/libsqlite3.20.0.dylib",
+        "_path": "lib/sqlite3.21.0/libsqlite3.21.0.dylib",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "a20bfc4407945c7fdbe624d683992767e993d56d024516e618d59d8b2faef865",
-        "sha256_in_prefix": "a20bfc4407945c7fdbe624d683992767e993d56d024516e618d59d8b2faef865",
-        "size_in_bytes": 921752
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "5c01241942f1d90f514f1bc7b4752dff3ceb4dcdeea9dd629c225e996aca7a1d",
+        "sha256_in_prefix": "20f8455443b6e920244bd5977e12bac2e9d9310f435b74cb81b6948cb9094209",
+        "size_in_bytes": 926312
       },
       {
-        "_path": "lib/sqlite3.20.0/pkgIndex.tcl",
+        "_path": "lib/sqlite3.21.0/pkgIndex.tcl",
         "path_type": "hardlink",
-        "sha256": "27af0eba955ea7aca5ef62c97b3130a2c4e7e9d94499e0773014269a613af7a9",
-        "sha256_in_prefix": "27af0eba955ea7aca5ef62c97b3130a2c4e7e9d94499e0773014269a613af7a9",
+        "sha256": "6ca8ad57f506b67ebd1424c429a504a4e46d8c17ebb05760855ece7d742cd752",
+        "sha256_in_prefix": "6ca8ad57f506b67ebd1424c429a504a4e46d8c17ebb05760855ece7d742cd752",
         "size_in_bytes": 163
       },
       {
@@ -1706,9 +1723,9 @@
       {
         "_path": "lib/tcl8.6/init.tcl",
         "path_type": "hardlink",
-        "sha256": "4c3da585af00c58f18a0cec7449ee41fbf4503cd434dc55de2b9c61e3b67c795",
-        "sha256_in_prefix": "4c3da585af00c58f18a0cec7449ee41fbf4503cd434dc55de2b9c61e3b67c795",
-        "size_in_bytes": 24415
+        "sha256": "09d60a9ec3c51badcec93b2adf7bd679e50094ab945968f650fad899483e29d1",
+        "sha256_in_prefix": "09d60a9ec3c51badcec93b2adf7bd679e50094ab945968f650fad899483e29d1",
+        "size_in_bytes": 24432
       },
       {
         "_path": "lib/tcl8.6/msgs/af.msg",
@@ -2691,17 +2708,17 @@
         "size_in_bytes": 100383
       },
       {
-        "_path": "lib/tcl8/8.6/http-2.8.11.tm",
+        "_path": "lib/tcl8/8.6/http-2.8.12.tm",
         "path_type": "hardlink",
-        "sha256": "b451226ec4ada715a0444e557a39d49a99f89958a1b69d22c0870cb54c76632d",
-        "sha256_in_prefix": "b451226ec4ada715a0444e557a39d49a99f89958a1b69d22c0870cb54c76632d",
-        "size_in_bytes": 43994
+        "sha256": "1b0023485c12f97ac303b7188e8cff388c1dcceda15044f4e483a81f255aef09",
+        "sha256_in_prefix": "1b0023485c12f97ac303b7188e8cff388c1dcceda15044f4e483a81f255aef09",
+        "size_in_bytes": 44026
       },
       {
-        "_path": "lib/tcl8/8.6/tdbc/sqlite3-1.0.5.tm",
+        "_path": "lib/tcl8/8.6/tdbc/sqlite3-1.0.6.tm",
         "path_type": "hardlink",
-        "sha256": "9d39f5b81b649e46d78b55c4751056acf13a37dfd85585be0f8384b8b3f4fe4a",
-        "sha256_in_prefix": "9d39f5b81b649e46d78b55c4751056acf13a37dfd85585be0f8384b8b3f4fe4a",
+        "sha256": "d047f31d8d7efcf5dc908c90f58b2a5808ab1474480332cdd772eab2fec6b9ab",
+        "sha256_in_prefix": "d047f31d8d7efcf5dc908c90f58b2a5808ab1474480332cdd772eab2fec6b9ab",
         "size_in_bytes": 19299
       },
       {
@@ -2709,9 +2726,9 @@
         "file_mode": "text",
         "path_type": "hardlink",
         "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
-        "sha256": "ef20250992e9b17dd3597b6b34eab326a76b8b5b1f44524327d3ddd180b426a6",
-        "sha256_in_prefix": "31d5a07bcebcdda5ac9e641e426a41a2d76c20aaa26bc86bf177291ff4235eeb",
-        "size_in_bytes": 8723
+        "sha256": "3db92836447d18ef500f4b4e0cc44122f4438a74a2be6785aede87c6c6e13c70",
+        "sha256_in_prefix": "782320eeffd9cb8c2ce3fb5ffa5a62dc8d979b2550ec40c836b083260a3ccc2d",
+        "size_in_bytes": 9168
       },
       {
         "_path": "lib/tclooConfig.sh",
@@ -2721,124 +2738,134 @@
         "size_in_bytes": 773
       },
       {
-        "_path": "lib/tdbc1.0.5/libtdbc1.0.5.dylib",
+        "_path": "lib/tdbc1.0.6/libtdbc1.0.6.dylib",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "aab8b4134a57e9f99c879510ef0a3b78ac9ac295f3beda836fb9ae770a1c17bd",
-        "sha256_in_prefix": "aab8b4134a57e9f99c879510ef0a3b78ac9ac295f3beda836fb9ae770a1c17bd",
-        "size_in_bytes": 13248
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "e912d121082a7d5b921236fa266b2ed4b6801420390727979259a13e97aa3106",
+        "sha256_in_prefix": "2583a9a58c0bd6f0d40f5e065f7786568ccedf49245e342c0454e953b449ce49",
+        "size_in_bytes": 13144
       },
       {
-        "_path": "lib/tdbc1.0.5/libtdbcstub1.0.5.a",
+        "_path": "lib/tdbc1.0.6/libtdbcstub1.0.6.a",
         "path_type": "hardlink",
-        "sha256": "4cdacc4649843a244c13a1dd32729c0f6b0301f0a66b25376d876412324bbdbb",
-        "sha256_in_prefix": "4cdacc4649843a244c13a1dd32729c0f6b0301f0a66b25376d876412324bbdbb",
+        "sha256": "237e0cfafddf745b937aa592b1f9ae60f3ef97a1d6486df9b0ee293f76e8406d",
+        "sha256_in_prefix": "237e0cfafddf745b937aa592b1f9ae60f3ef97a1d6486df9b0ee293f76e8406d",
         "size_in_bytes": 1792
       },
       {
-        "_path": "lib/tdbc1.0.5/pkgIndex.tcl",
+        "_path": "lib/tdbc1.0.6/pkgIndex.tcl",
         "path_type": "hardlink",
-        "sha256": "ae33d69e35783d6b800465b27658264b4d8ffa2ad28b56b1532d7357ffbf333d",
-        "sha256_in_prefix": "ae33d69e35783d6b800465b27658264b4d8ffa2ad28b56b1532d7357ffbf333d",
+        "sha256": "4a560748c92511042af8bd6769dada7a685ddf36c1a4e557c5e47a9ea337d127",
+        "sha256_in_prefix": "4a560748c92511042af8bd6769dada7a685ddf36c1a4e557c5e47a9ea337d127",
         "size_in_bytes": 360
       },
       {
-        "_path": "lib/tdbc1.0.5/tdbc.tcl",
+        "_path": "lib/tdbc1.0.6/tdbc.tcl",
         "path_type": "hardlink",
-        "sha256": "a2380cc42fe4aef047069bb210b35df12e1af0dcdbc314c7353b6b12c7f1e478",
-        "sha256_in_prefix": "a2380cc42fe4aef047069bb210b35df12e1af0dcdbc314c7353b6b12c7f1e478",
-        "size_in_bytes": 26633
+        "sha256": "2df6bdf75140412609b75cbc031826981133a6ed888e948f0d444a2e5f6ccf77",
+        "sha256_in_prefix": "2df6bdf75140412609b75cbc031826981133a6ed888e948f0d444a2e5f6ccf77",
+        "size_in_bytes": 26761
       },
       {
-        "_path": "lib/tdbc1.0.5/tdbcConfig.sh",
+        "_path": "lib/tdbc1.0.6/tdbcConfig.sh",
         "file_mode": "text",
         "path_type": "hardlink",
         "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
-        "sha256": "7584fcef6f7b1faba2707bdae475a53b3aa3b5a79812ec59552a2c24f6fb693b",
-        "sha256_in_prefix": "2b6b14098755955dc96419030a53e53474848c7a644ccde6922728b50dcd3624",
+        "sha256": "069aaa170f7b6e686137e0767661a006b62d4b72bbb753699f4c5464e2a62906",
+        "sha256_in_prefix": "c5a8cb8c90f35c16e6045cd4b40f2d81041b3a915032bfae216dce206bf8dc7e",
         "size_in_bytes": 4695
       },
       {
-        "_path": "lib/tdbcmysql1.0.5/libtdbcmysql1.0.5.dylib",
+        "_path": "lib/tdbcmysql1.0.6/libtdbcmysql1.0.6.dylib",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "c1b18a0b05c6c2bb08c4641f7f1fab7f3b4659798c9e6a06fc97e9a1e88b4070",
-        "sha256_in_prefix": "c1b18a0b05c6c2bb08c4641f7f1fab7f3b4659798c9e6a06fc97e9a1e88b4070",
-        "size_in_bytes": 36948
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "657ebd0de2ec88b9c6927580cf292ff0a571739a7350b6489e744350d011002f",
+        "sha256_in_prefix": "8ebfca19a3057e405ac418611c23d59bc5841b8100c69f251c008dfef8263dbb",
+        "size_in_bytes": 36732
       },
       {
-        "_path": "lib/tdbcmysql1.0.5/pkgIndex.tcl",
+        "_path": "lib/tdbcmysql1.0.6/pkgIndex.tcl",
         "path_type": "hardlink",
-        "sha256": "3b4f55d447b6a337ee3e2c9f143ccd6d2c32cee8ff54aa22748d32292e5b2651",
-        "sha256_in_prefix": "3b4f55d447b6a337ee3e2c9f143ccd6d2c32cee8ff54aa22748d32292e5b2651",
+        "sha256": "d52e5feab21a10996bcf877ec709400bb35169e1b2e2b629dce3f7a022d453c5",
+        "sha256_in_prefix": "d52e5feab21a10996bcf877ec709400bb35169e1b2e2b629dce3f7a022d453c5",
         "size_in_bytes": 250
       },
       {
-        "_path": "lib/tdbcmysql1.0.5/tdbcmysql.tcl",
+        "_path": "lib/tdbcmysql1.0.6/tdbcmysql.tcl",
         "path_type": "hardlink",
         "sha256": "7cc5cb4a13cd99c4e34eb89eba0454a1dbb1fb84c125928a70aa8b3dbc6feaea",
         "sha256_in_prefix": "7cc5cb4a13cd99c4e34eb89eba0454a1dbb1fb84c125928a70aa8b3dbc6feaea",
         "size_in_bytes": 6623
       },
       {
-        "_path": "lib/tdbcodbc1.0.5/libtdbcodbc1.0.5.dylib",
+        "_path": "lib/tdbcodbc1.0.6/libtdbcodbc1.0.6.dylib",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "7f3fe3da84205c991afbb855d03074e26cfe27d22f7a18c8a936cf0de734a273",
-        "sha256_in_prefix": "7f3fe3da84205c991afbb855d03074e26cfe27d22f7a18c8a936cf0de734a273",
-        "size_in_bytes": 50084
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "4e6476f2c37c6b48032805c209b71b86be05d3efe7d4c8b80a6cac267c387733",
+        "sha256_in_prefix": "8d899bb9b0282574f36001b3f2567812a2317a0cce72b9f33b94e2506fc71a07",
+        "size_in_bytes": 49860
       },
       {
-        "_path": "lib/tdbcodbc1.0.5/pkgIndex.tcl",
+        "_path": "lib/tdbcodbc1.0.6/pkgIndex.tcl",
         "path_type": "hardlink",
-        "sha256": "82f038198e8dbfb86caa99effae938b9fe968f933c443a2d344fda59b82e2af2",
-        "sha256_in_prefix": "82f038198e8dbfb86caa99effae938b9fe968f933c443a2d344fda59b82e2af2",
+        "sha256": "4128f0be10b457f527363f33e12244c4cf291731a389176f4dd0742d9a8daac6",
+        "sha256_in_prefix": "4128f0be10b457f527363f33e12244c4cf291731a389176f4dd0742d9a8daac6",
         "size_in_bytes": 245
       },
       {
-        "_path": "lib/tdbcodbc1.0.5/tdbcodbc.tcl",
+        "_path": "lib/tdbcodbc1.0.6/tdbcodbc.tcl",
         "path_type": "hardlink",
         "sha256": "88af09b5429d09c42f3f57304e0f08e261ae539ea3c154899507d90ca82693d5",
         "sha256_in_prefix": "88af09b5429d09c42f3f57304e0f08e261ae539ea3c154899507d90ca82693d5",
         "size_in_bytes": 15620
       },
       {
-        "_path": "lib/tdbcpostgres1.0.5/libtdbcpostgres1.0.5.dylib",
+        "_path": "lib/tdbcpostgres1.0.6/libtdbcpostgres1.0.6.dylib",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "ac0f4453c0cf5e2f5e5ed9a78a1352b2105e64cbebc12557a07b7d834f88b748",
-        "sha256_in_prefix": "ac0f4453c0cf5e2f5e5ed9a78a1352b2105e64cbebc12557a07b7d834f88b748",
-        "size_in_bytes": 36988
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "6c37545a2d94a2b244a61d1b759e5c60a9653f0700cc02d7a723714f2bff88e2",
+        "sha256_in_prefix": "345ca29ea8cc935237bafcf28ca11eaa5363b126222c184d57d89b1a0c626f32",
+        "size_in_bytes": 36772
       },
       {
-        "_path": "lib/tdbcpostgres1.0.5/pkgIndex.tcl",
+        "_path": "lib/tdbcpostgres1.0.6/pkgIndex.tcl",
         "path_type": "hardlink",
-        "sha256": "65341f35765beb266bbcd993cd641349d3bfa2ec88d1e0443c7bc5e417489bde",
-        "sha256_in_prefix": "65341f35765beb266bbcd993cd641349d3bfa2ec88d1e0443c7bc5e417489bde",
+        "sha256": "330ec4e35ac088290d9d58a4c925c814569d3db68fb7e69bf068c4da1d48b63c",
+        "sha256_in_prefix": "330ec4e35ac088290d9d58a4c925c814569d3db68fb7e69bf068c4da1d48b63c",
         "size_in_bytes": 265
       },
       {
-        "_path": "lib/tdbcpostgres1.0.5/tdbcpostgres.tcl",
+        "_path": "lib/tdbcpostgres1.0.6/tdbcpostgres.tcl",
         "path_type": "hardlink",
         "sha256": "7670aa29a108b650599f9094437e7f160926235c5ba8edf337917f6e1b9ac622",
         "sha256_in_prefix": "7670aa29a108b650599f9094437e7f160926235c5ba8edf337917f6e1b9ac622",
         "size_in_bytes": 4369
       },
       {
-        "_path": "lib/thread2.8.1/libthread2.8.1.dylib",
+        "_path": "lib/thread2.8.2/libthread2.8.2.dylib",
+        "file_mode": "binary",
         "path_type": "hardlink",
-        "sha256": "c1026178ecab255dfbd6d232da9c6023e44b42431989aa05e4ef3120b6977b98",
-        "sha256_in_prefix": "c1026178ecab255dfbd6d232da9c6023e44b42431989aa05e4ef3120b6977b98",
-        "size_in_bytes": 78472
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/0c6bdb40-20c4-4372-5062-20cfdec29623/volume/tk_1535485074307/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+        "sha256": "474ebecd94e640efba8e04fc484840ce166fc8420c53398f2ac902db3c68ff75",
+        "sha256_in_prefix": "0471709601da379fa83fdcd7a78fa82f31538f1e1d956da40d129d8d8bb37441",
+        "size_in_bytes": 81864
       },
       {
-        "_path": "lib/thread2.8.1/pkgIndex.tcl",
+        "_path": "lib/thread2.8.2/pkgIndex.tcl",
         "path_type": "hardlink",
-        "sha256": "be9664a089151e69f4aacd74f27d3241498c830919d55bcc0cf412024be9bdcf",
-        "sha256_in_prefix": "be9664a089151e69f4aacd74f27d3241498c830919d55bcc0cf412024be9bdcf",
+        "sha256": "2af3c9102ba22eca53151c1884dd89f9a348262afa2118bce681749dcf1d6000",
+        "sha256_in_prefix": "2af3c9102ba22eca53151c1884dd89f9a348262afa2118bce681749dcf1d6000",
         "size_in_bytes": 2373
       },
       {
-        "_path": "lib/thread2.8.1/ttrace.tcl",
+        "_path": "lib/thread2.8.2/ttrace.tcl",
         "path_type": "hardlink",
-        "sha256": "7450197964171f8fc0acbc76b0a2b9bd7bfacba99b490a3556f2d4b0b669d970",
-        "sha256_in_prefix": "7450197964171f8fc0acbc76b0a2b9bd7bfacba99b490a3556f2d4b0b669d970",
+        "sha256": "b6de08b334b5d88c948412ffaa58e27f834a61b879d1b334517924e5d5cacdb6",
+        "sha256_in_prefix": "b6de08b334b5d88c948412ffaa58e27f834a61b879d1b334517924e5d5cacdb6",
         "size_in_bytes": 29530
       },
       {
@@ -2879,9 +2906,9 @@
       {
         "_path": "lib/tk8.6/console.tcl",
         "path_type": "hardlink",
-        "sha256": "de44d9c8aa860b0308248125b77734356a46fde8b6903ea2bac293755f0327d0",
-        "sha256_in_prefix": "de44d9c8aa860b0308248125b77734356a46fde8b6903ea2bac293755f0327d0",
-        "size_in_bytes": 32740
+        "sha256": "7e1eaa998b1d661e9b4b72a4598a534b8311ab75d444525dd613ec73f8126750",
+        "sha256_in_prefix": "7e1eaa998b1d661e9b4b72a4598a534b8311ab75d444525dd613ec73f8126750",
+        "size_in_bytes": 32784
       },
       {
         "_path": "lib/tk8.6/demos/README",
@@ -3101,6 +3128,13 @@
         "size_in_bytes": 51712
       },
       {
+        "_path": "lib/tk8.6/demos/images/earthmenu.png",
+        "path_type": "hardlink",
+        "sha256": "9bf8d96016039d7fdb2ffc506743724636a70ed5925199aab64ca20820963bde",
+        "sha256_in_prefix": "9bf8d96016039d7fdb2ffc506743724636a70ed5925199aab64ca20820963bde",
+        "size_in_bytes": 8157
+      },
+      {
         "_path": "lib/tk8.6/demos/images/earthris.gif",
         "path_type": "hardlink",
         "sha256": "c2da473e55d8317bd1f983638adb729bff1461de590d76f99d8b3430c71e0f6e",
@@ -3222,9 +3256,9 @@
       {
         "_path": "lib/tk8.6/demos/menu.tcl",
         "path_type": "hardlink",
-        "sha256": "38d498b1ca379e0f4bc9b938958047f7eb3384a1fd3c1457a02b1f6b87486fc0",
-        "sha256_in_prefix": "38d498b1ca379e0f4bc9b938958047f7eb3384a1fd3c1457a02b1f6b87486fc0",
-        "size_in_bytes": 6729
+        "sha256": "7ab00911046f3cc5803e6c284eff3a6fcf3e6acb81ab811457aa222e831fc881",
+        "sha256_in_prefix": "7ab00911046f3cc5803e6c284eff3a6fcf3e6acb81ab811457aa222e831fc881",
+        "size_in_bytes": 6778
       },
       {
         "_path": "lib/tk8.6/demos/menubu.tcl",
@@ -3439,9 +3473,9 @@
       {
         "_path": "lib/tk8.6/demos/twind.tcl",
         "path_type": "hardlink",
-        "sha256": "0e04a8da1e34f9290aecbf8ad84eab9101647d7da23d5671e3466850e25569dc",
-        "sha256_in_prefix": "0e04a8da1e34f9290aecbf8ad84eab9101647d7da23d5671e3466850e25569dc",
-        "size_in_bytes": 10836
+        "sha256": "8f2d28a8825796a5458c40c9a72f297d538c7a2a3d9af0563f81ba663ff7869b",
+        "sha256_in_prefix": "8f2d28a8825796a5458c40c9a72f297d538c7a2a3d9af0563f81ba663ff7869b",
+        "size_in_bytes": 11045
       },
       {
         "_path": "lib/tk8.6/demos/unicodeout.tcl",
@@ -3488,9 +3522,9 @@
       {
         "_path": "lib/tk8.6/fontchooser.tcl",
         "path_type": "hardlink",
-        "sha256": "27a4ca46334ef52689cba9f57945024d5e2ef00a5907e9ae66bcb42f9f29be2d",
-        "sha256_in_prefix": "27a4ca46334ef52689cba9f57945024d5e2ef00a5907e9ae66bcb42f9f29be2d",
-        "size_in_bytes": 15685
+        "sha256": "ceb558fb76a2c85924cd5f7d3a64e77582e1d461dd9a3c10fedb4608ad440f5b",
+        "sha256_in_prefix": "ceb558fb76a2c85924cd5f7d3a64e77582e1d461dd9a3c10fedb4608ad440f5b",
+        "size_in_bytes": 15840
       },
       {
         "_path": "lib/tk8.6/iconlist.tcl",
@@ -3600,9 +3634,9 @@
       {
         "_path": "lib/tk8.6/listbox.tcl",
         "path_type": "hardlink",
-        "sha256": "ed87543eb3c68ebbf7a825a09f122712658a2ad8edbbac52808d12d37bf43bae",
-        "sha256_in_prefix": "ed87543eb3c68ebbf7a825a09f122712658a2ad8edbbac52808d12d37bf43bae",
-        "size_in_bytes": 14603
+        "sha256": "6aae8a7501fc6df8199b39b5d2f808697af5bd2df4076fd31e2ca060e05ee7a8",
+        "sha256_in_prefix": "6aae8a7501fc6df8199b39b5d2f808697af5bd2df4076fd31e2ca060e05ee7a8",
+        "size_in_bytes": 14595
       },
       {
         "_path": "lib/tk8.6/megawidget.tcl",
@@ -3775,8 +3809,8 @@
       {
         "_path": "lib/tk8.6/pkgIndex.tcl",
         "path_type": "hardlink",
-        "sha256": "100ccd5346b1d19283a0dbd7b16ddab07f4ecee3c1ec53be0ea11e8655350b43",
-        "sha256_in_prefix": "100ccd5346b1d19283a0dbd7b16ddab07f4ecee3c1ec53be0ea11e8655350b43",
+        "sha256": "082c458e3e1a0b35281a7fb8428417b026c5fe5142ca58739fd2f7997632fee0",
+        "sha256_in_prefix": "082c458e3e1a0b35281a7fb8428417b026c5fe5142ca58739fd2f7997632fee0",
         "size_in_bytes": 141
       },
       {
@@ -3824,16 +3858,16 @@
       {
         "_path": "lib/tk8.6/text.tcl",
         "path_type": "hardlink",
-        "sha256": "034ba3ebc3abccf977e8639544be6f4bb9feded66aedec8bdf09a0ce60726cc5",
-        "sha256_in_prefix": "034ba3ebc3abccf977e8639544be6f4bb9feded66aedec8bdf09a0ce60726cc5",
-        "size_in_bytes": 32996
+        "sha256": "e21d49ed17e0664d45ecb5d9eba916f115586df674afdf85c73a47349e177a9d",
+        "sha256_in_prefix": "e21d49ed17e0664d45ecb5d9eba916f115586df674afdf85c73a47349e177a9d",
+        "size_in_bytes": 33087
       },
       {
         "_path": "lib/tk8.6/tk.tcl",
         "path_type": "hardlink",
-        "sha256": "8b54b2c1d877ce90da4c3eb6029aff4eaa84030d97de7ba3079b4e3db4427613",
-        "sha256_in_prefix": "8b54b2c1d877ce90da4c3eb6029aff4eaa84030d97de7ba3079b4e3db4427613",
-        "size_in_bytes": 23066
+        "sha256": "2a38276bb140f3ae1a7cc7ec6993e672a6071f435683c8eb8881db5e88aa67ea",
+        "sha256_in_prefix": "2a38276bb140f3ae1a7cc7ec6993e672a6071f435683c8eb8881db5e88aa67ea",
+        "size_in_bytes": 23142
       },
       {
         "_path": "lib/tk8.6/tkAppInit.c",
@@ -4036,18 +4070,18 @@
         "file_mode": "text",
         "path_type": "hardlink",
         "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
-        "sha256": "37ec72d711c70289eb4f7e7d5abc4941eb30211721c34d8f7c38127f2e7f23c4",
-        "sha256_in_prefix": "1a84ec35475c7787ca576a54216408f156a37be25cdb0818edf32ceecc60fdb4",
-        "size_in_bytes": 4627
+        "sha256": "7697828dcc9fb232f451aad3c2a12735adc9882b2ae1438474a11336caa6c3c4",
+        "sha256_in_prefix": "3e032edd612f697354bd35a645441ce994733a0e373d9ed440d6770d1b43d0b3",
+        "size_in_bytes": 4702
       }
     ],
     "paths_version": 1
   },
   "requested_spec": "None",
-  "size": 3319394,
+  "size": 3309805,
   "subdir": "osx-64",
-  "timestamp": 1510171949600,
+  "timestamp": 1535485310705,
   "track_features": "",
-  "url": "https://repo.anaconda.com/pkgs/main/osx-64/tk-8.6.7-h35a86e2_3.tar.bz2",
-  "version": "8.6.7"
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/tk-8.6.8-ha441bb4_0.tar.bz2",
+  "version": "8.6.8"
 }

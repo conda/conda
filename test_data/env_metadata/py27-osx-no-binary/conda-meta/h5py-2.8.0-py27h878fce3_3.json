@@ -1,16 +1,16 @@
 {
-  "build": "py27h3c9e6ae_0",
-  "build_number": 0,
+  "build": "py27h878fce3_3",
+  "build_number": 3,
   "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
   "constrains": [],
   "depends": [
     "hdf5 >=1.10.2,<1.10.3.0a0",
-    "numpy",
+    "numpy >=1.11.3,<2.0a0",
     "python >=2.7,<2.8.0a0",
     "six",
     "unittest2"
   ],
-  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/h5py-2.8.0-py27h3c9e6ae_0",
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/h5py-2.8.0-py27h878fce3_3",
   "features": "",
   "files": [
     "lib/python2.7/site-packages/h5py-2.8.0-py2.7.egg-info/PKG-INFO",
@@ -133,15 +133,15 @@
     "lib/python2.7/site-packages/h5py/version.py",
     "lib/python2.7/site-packages/h5py/version.pyc"
   ],
-  "fn": "h5py-2.8.0-py27h3c9e6ae_0.tar.bz2",
+  "fn": "h5py-2.8.0-py27h878fce3_3.tar.bz2",
   "license": "BSD 3-Clause",
   "link": {
-    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/h5py-2.8.0-py27h3c9e6ae_0",
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/h5py-2.8.0-py27h878fce3_3",
     "type": 1
   },
-  "md5": "ae3e1c0530c33547e451bdf82b3cc1b0",
+  "md5": "ad440376d24d623b83110922cecfb18c",
   "name": "h5py",
-  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/h5py-2.8.0-py27h3c9e6ae_0.tar.bz2",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/h5py-2.8.0-py27h878fce3_3.tar.bz2",
   "paths_data": {
     "paths": [
       {
@@ -154,8 +154,8 @@
       {
         "_path": "lib/python2.7/site-packages/h5py-2.8.0-py2.7.egg-info/SOURCES.txt",
         "path_type": "hardlink",
-        "sha256": "991f40015e9b6a4d504a19babc26d78033e2c826cd1987a37dd42e19c397d5d3",
-        "sha256_in_prefix": "991f40015e9b6a4d504a19babc26d78033e2c826cd1987a37dd42e19c397d5d3",
+        "sha256": "bca4af4dbd7e91333f5cc28e2d085685a7ecab9d192b6c153bf5d4fcaff415e1",
+        "sha256_in_prefix": "bca4af4dbd7e91333f5cc28e2d085685a7ecab9d192b6c153bf5d4fcaff415e1",
         "size_in_bytes": 4990
       },
       {
@@ -197,18 +197,18 @@
         "_path": "lib/python2.7/site-packages/h5py/_conv.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "81637c5a08279c27fb0af3650cb910f57f6ef0f6b7918e4f865c2cb77214ac7e",
-        "sha256_in_prefix": "cd871e36f1e88625c7b84a924ef2b39cbb59290809b29f2e08c3f9815fc4e731",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "e8f3d0b863bf1dc10c32fe8600b1ec38ef6927b7b51195e58b38d81e6772d4f2",
+        "sha256_in_prefix": "33af7df2925049a69a15a0afea3c1ea22695763ca41f9d06523af856ffd3a201",
         "size_in_bytes": 58248
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/_errors.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "38f1143a91a3ecf898edc6f354b5eabcebbe7916eb40350ac94c11c3afd992b9",
-        "sha256_in_prefix": "5bd4d6c74778b0b49b503270d4ba49dc95e8465158e4029cf5c5dc5b51048611",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "f92fb5425802ea30abf31c40bef1163f4f2cf52b9f2723f493b3ce5eaadf70e0",
+        "sha256_in_prefix": "5a5195baaeb3555ac5b89240d490da4db5aa030cbf58ebff063a35502abeb64a",
         "size_in_bytes": 48780
       },
       {
@@ -383,135 +383,135 @@
         "_path": "lib/python2.7/site-packages/h5py/_objects.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "38bae9ffc808e2a27bad72232ea7536bf183546aed50233c9854803687c936cf",
-        "sha256_in_prefix": "3602790702c995f162810831076d8c38ad63e7978cb05f4f1fa0d953a186f49f",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "cd711ea1aecae39e9644ef28bfd5feeba1b3ee84fe7b13bea4f12051a2998012",
+        "sha256_in_prefix": "bf2e332dae26b371403d9ba24bd83a1dc0fa565cb14a328e386e9139dd5c9376",
         "size_in_bytes": 131288
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/_proxy.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "166a3e3709ca5b70b75642217ec9f7c6112199fc8e220be864be9edb348cccfc",
-        "sha256_in_prefix": "b484564faf25765fcf79bc26ce1a22456d0313557006dbdc57d68a4a63062ef4",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "2aac11cd738c81c6b65f9fdb1dd8df42443a825cd540718dd22fb3fe0760af0d",
+        "sha256_in_prefix": "6782074e2d34c4cc00abdeeed5816202918c28d20b9e7a22c721a11368da180f",
         "size_in_bytes": 37352
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/defs.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "50b62e77f36c2e5f220a0764cd074ba0aeba9b114e3d9a5b18dbbe196db61e5e",
-        "sha256_in_prefix": "a19f614a128f255d3c7c296f6ee5723354c90c37881be27b75faa072d8d0be5f",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "90d23e02889476b776954d77e280f07a67241c8f6e79379cab47421e466b62ae",
+        "sha256_in_prefix": "9ade9dabf6f3c21b5b9f0cf23e3a6ba63856e9979fd4877b33e98aa1553ae6e3",
         "size_in_bytes": 175024
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "28b6c5cfa50ee7f66bf699b09f55a3c3eb17ae7dfe616c737b43d4f86475ceff",
-        "sha256_in_prefix": "9f94e3797a6de3c07b23105d89c6d66ff7550198c18261d2d45b33bbac76ba9e",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "f2c6bdce68d17ac8904d43dc1f0e8889a9606b00c78dacb455e3d55cfc36efdd",
+        "sha256_in_prefix": "b3199e8497fa56b0cec276bacab5ac8255b58659179a569707fe6a8a49faedcf",
         "size_in_bytes": 94916
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5a.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "dbb215e838b675bdf05062a6bb67096a908e0e9d214ac04219c5cd9035785db5",
-        "sha256_in_prefix": "9efe44475eed9007f060870eed16a5421069a627f8427757a7dc1612915ba720",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "f9d906a8df187f20bf8166dc6b36f0d0c864e95658cac441049f6c42b9fa4842",
+        "sha256_in_prefix": "85617766b6f70213ae2a78182e1b72c6b146c9c9a57f13417a6a17be372e45bc",
         "size_in_bytes": 130780
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5ac.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "d24bda0b5a63084433587ff6391e4657c53e7616d94544c92ab1194062442288",
-        "sha256_in_prefix": "9118856e3897e6feb56fc7a4492e0b8423b5d6487e8ca7bb3efe91db42aa234a",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "6af6b7e4a625f1c902d20b86eb335d6aedddce93bdf40ef1b1877620cdc2c6b1",
+        "sha256_in_prefix": "7d1628553d3151d61701523e234b57d39bc1868a4aa35e79c2afd1967a134e68",
         "size_in_bytes": 44736
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5d.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "711b977169fc04b2fe201ea4beef39f8c5e1d0fe351ae663eb1c1b568d04d2fd",
-        "sha256_in_prefix": "380e3f6788d478aec2be40105870f53196d7b11e82ce6fa596868040e630e217",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "7b06a1a09172022b30983ec4f1b0356a83c0d2268ac204153fcfb4c9e0567462",
+        "sha256_in_prefix": "fdbf28cefe39961a95fe5d15619d3d07b0d84a0235d9a6158f6f08277776a303",
         "size_in_bytes": 120708
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5ds.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "ef4681ab800d3cfbe9339511d4a61eee49b9825bf57041c6f4ebb928c3c57d13",
-        "sha256_in_prefix": "31a45fdb14ce72845d2b22600b357659b790e51d1eb68bc95a611482eb1388dd",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "b9c91a67a4d99ef3f4990e92a208c735adb904006b9f2cba1e1479e24646d257",
+        "sha256_in_prefix": "6420531ecdbdb893a3fcf6ac21f0fe5684bd05cac7861f2cd1ec535383b2e3d0",
         "size_in_bytes": 73492
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5f.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "c95986f048dbe36199d7da1ec6931127a51ce30a0b7df78c54220e8adc33e394",
-        "sha256_in_prefix": "d581910a3d967a5efdfdd4df4972b912d81192f44ec3245b1b07997360e0edcb",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "8cb405db58d29f23e09ef80bdb8e0d2979c807c6e0f2caabb8f55557e1254358",
+        "sha256_in_prefix": "907bcd99119cdfee18c5447e8edfdea7206304293309fdf173ba41eae48c9e7d",
         "size_in_bytes": 127684
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5fd.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "d74f7a99b26adf0abd242aa67529e12f1f09534f324b4d16ac90677c65246de5",
-        "sha256_in_prefix": "91165663bb5b138a2812723370735c310e51ca7096eb047af463bf9cfc8ae522",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "61a8461bbba2710ab82008afef46c092d61b7ab991b45c9b2f411b98502ef33a",
+        "sha256_in_prefix": "b8a90374c7c0ae97c5cc277083f18379a71c9a64dba0d246ae77122b0cc93a6e",
         "size_in_bytes": 22580
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5g.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "b7b3f6c090c75e5494941a7d7e1bb92c630ec007a317c93e9f89955a0fc1f673",
-        "sha256_in_prefix": "c52a8a57c645d42813b8f886ec317049afda43a7689ccf3b65fa9075db735d9f",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "4799a98192baca6ef6b744a7a0c296d96726a1d6c6ba86f978bb5b409b1e5529",
+        "sha256_in_prefix": "3976c9e4577d4ded556616931a663af1cfd2e9adc2bd3ca28a9e0ed8a4d0afd0",
         "size_in_bytes": 163744
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5i.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "cd02c28fa26feb3cf5ba3178e86fea58fa6e0e6074396e59f154f5df53166f90",
-        "sha256_in_prefix": "fc7dd34a7d21f208f428c0bbd3584c7c40b6b9a389b0255c4a34505b2aabf6ea",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "ef4288868d6da7de7e81d22f5d2103dbfa699a1b4482a98f1a6ab898a8f782e8",
+        "sha256_in_prefix": "44728e5e3f90f6b89ed99c5875f983c36745b8392b75f1dd28aafc316bc037d4",
         "size_in_bytes": 52100
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5l.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "138aa19896365f745d49cecdc78b49a093cc61a64e735bae4671764be5ebe6f1",
-        "sha256_in_prefix": "f5931e0729b316f2932e6e1ac5e5d6abcd91ff0045ee10e6411485dcd5cb77a9",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "de92f3e46d418a60aeed1f6c33aebb650ed30a79e9623ffa2eeaf08275f84d5e",
+        "sha256_in_prefix": "e3f4ec8a70d11b22680fb34b257d7fa19625cf94ccfb50724f5b4708814dbf3f",
         "size_in_bytes": 101284
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5o.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "e466a70f278df4c937e133d0f722a22d18bf5301ea1c49bbd3fecdbcc87a046b",
-        "sha256_in_prefix": "1fb7bb81ef20cdecb9229d2e21293802ccb62b31e8b410f4cdb698fba778861a",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "c127ab6502eba48e38d6ae7b0a7f9af620ab91be280fe627d808907b2bed08c0",
+        "sha256_in_prefix": "43efc0fc82a29eeeb72764806bebac175adb100d6b67fef36d88ea17b6286054",
         "size_in_bytes": 105180
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5p.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "b6c1f8fdffaa2037249a5fdafbb5f721fc5530212a8e5d4893c0f5270551901d",
-        "sha256_in_prefix": "d253dcdebf5214c81d9262c62799285c6e5711679d1e6b4874eef36ecef04f8e",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "2e66ee01ef4134dc5e93f0de89566a2c685ea88197f0c7cb5baea3f5453e2e2d",
+        "sha256_in_prefix": "3ee3662fc7e09383b3c01854bff86b653fad0b4d77636b8cea44d54da8a78cac",
         "size_in_bytes": 359488
       },
       {
@@ -532,36 +532,36 @@
         "_path": "lib/python2.7/site-packages/h5py/h5r.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "7899a2cef90b78373824f1af5178a89ac666e085eefb09fc0b8339ea96581025",
-        "sha256_in_prefix": "3c14267ee7fcd7f162af8fc4af03c924b2b139f11ecf35c075889919bbcde1b2",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "8432cea945b240e5f7679aaec881dc592210159de7d2a3a49bba8e99e096b1b4",
+        "sha256_in_prefix": "15b77d6983d3b06372b0219f23f7281b403f213cb1d0ee80d6abdc11ad2e4af4",
         "size_in_bytes": 58588
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5s.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "bf31cca8c8c37a3065825eef276e59576d394a051c849b14a499ffb21ff6845b",
-        "sha256_in_prefix": "296579a0d6417415a0a9639ea730db5b0df9a7986c65842fcaf9ee69e1017c3a",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "a0ddeef02cff9f81ec9a423b6215207e72abfe8b2ba14472b5db2a7d0803ea33",
+        "sha256_in_prefix": "cf16c24695237372f37983084c81b1e8f373f09e21f0c493860751201ac3f75a",
         "size_in_bytes": 115024
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5t.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "4c7ca6adc013cb7ec5b58c804c242e28c437f8bb0bf83429096a588f20ad3fcf",
-        "sha256_in_prefix": "fdf725dbb75245c0e947c8f6c930f8a176b1973acd79652fc3c54ec904522abf",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "505c85b62dc4b005a3a8e6abb190d25062fd8157d405cf1dfb97c855c3713769",
+        "sha256_in_prefix": "82956908c65915d6418a16e39769473a00452c4c18ad0da3d15306bd48cf1c3a",
         "size_in_bytes": 490348
       },
       {
         "_path": "lib/python2.7/site-packages/h5py/h5z.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "cb6db56f428a3af1b2a1535468c6510d64ff7c8090e97f3b1895f40ad118ecc4",
-        "sha256_in_prefix": "223551ab52670d3b7ce15b574c38e296266ee04a1c6851bc3b8c7aec66ec4214",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "e4fe8474556888bcdcdea1112a6d934c0430d0a5f6a7fc871912c3e2099484b0",
+        "sha256_in_prefix": "ec6408bee2183e124a717135b741e5229a0eedad2afa558aa88a43a37577d87a",
         "size_in_bytes": 39372
       },
       {
@@ -1002,9 +1002,9 @@
         "_path": "lib/python2.7/site-packages/h5py/utils.so",
         "file_mode": "binary",
         "path_type": "hardlink",
-        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1530735419711/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
-        "sha256": "f6fe846bc832ba0fabe58d364cee6135438410845eb30161a78c71d42ff5f40e",
-        "sha256_in_prefix": "3253b09f1bf4f6d748448fbd0a305a37a7b11c76b4af2b4ee6ed462c410ef85c",
+        "prefix_placeholder": "/opt/conda/conda-bld/h5py_1534945210130/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehol",
+        "sha256": "f0a19fa4ba41d25366284d7026343a5350b18d8becedf72182dd50d984fede9d",
+        "sha256_in_prefix": "d6a9131aef09d5b1369cbf406dd1816c442126caea6b4149c99858d95f096c2a",
         "size_in_bytes": 39416
       },
       {
@@ -1025,10 +1025,10 @@
     "paths_version": 1
   },
   "requested_spec": "h5py",
-  "size": 915150,
+  "size": 916989,
   "subdir": "osx-64",
-  "timestamp": 1530735947869,
+  "timestamp": 1534945406974,
   "track_features": "",
-  "url": "https://repo.anaconda.com/pkgs/main/osx-64/h5py-2.8.0-py27h3c9e6ae_0.tar.bz2",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/h5py-2.8.0-py27h878fce3_3.tar.bz2",
   "version": "2.8.0"
 }
