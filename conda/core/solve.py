@@ -18,7 +18,7 @@ from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, groupby
-from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier
+from ..base.constants import ChannelPriority, DepsModifier, UNKNOWN_CHANNEL, UpdateModifier
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
@@ -440,6 +440,8 @@ class Solver(object):
             ssc.pinned_specs,
         ))
 
+        strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
+
         # We've previously checked `solution` for consistency (which at that point was the
         # pre-solve state of the environment). Now we check our compiled set of
         # `final_environment_specs` for the possibility of a solution.  If there are conflicts,
@@ -451,7 +453,8 @@ class Solver(object):
         # get_conflicting_specs() returns a "minimal unsatisfiable subset" which
         # may not be the only unsatisfiable subset. We may have to call get_conflicting_specs()
         # several times, each time making modifications to loosen constraints.
-        conflicting_specs = ssc.r.get_conflicting_specs(tuple(final_environment_specs))
+        conflicting_specs = ssc.r.get_conflicting_specs(tuple(final_environment_specs),
+                                                        strict_channel_priority)
         while conflicting_specs:
             specs_modified = False
             if log.isEnabledFor(DEBUG):
@@ -486,7 +489,8 @@ class Solver(object):
         if log.isEnabledFor(DEBUG):
             log.debug("final specs to add: %s",
                       dashlist(sorted(text_type(s) for s in final_environment_specs)))
-        ssc.solution_precs = ssc.r.solve(tuple(final_environment_specs))
+        ssc.solution_precs = ssc.r.solve(tuple(final_environment_specs),
+                                         strict_channel_priority=strict_channel_priority)
 
         # add back inconsistent packages to solution
         if ssc.add_back_map:

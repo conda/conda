@@ -5,6 +5,10 @@ import bz2
 from contextlib import contextmanager
 from datetime import datetime
 from glob import glob
+
+from conda._vendor.toolz.itertoolz import groupby
+from conda.models.channel import Channel
+from conda.resolve import Resolve
 from itertools import chain
 import json
 from json import loads as json_loads
@@ -38,6 +42,7 @@ from conda.common.path import get_bin_directory_short_path, get_python_site_pack
     pyc_path
 from conda.common.serialize import yaml_load, json_dump
 from conda.common.url import path_to_url
+from conda.core.index import get_reduced_index
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.subdir_data import create_cache_dir
@@ -559,6 +564,34 @@ class IntegrationTests(TestCase):
             stderr = revision_output[1]
             assert stderr == ''
             self.assertIsInstance(stdout, str)
+
+    def test_strict_channel_priority(self):
+        with env_var("CONDA_CHANNEL_PRIORITY", "strict", reset_context):
+            stdout, stderr = run_command(
+                Commands.CREATE, "/",
+                "-c conda-forge -c defaults python=3.6 geopandas --dry-run --json",
+                use_exception_handler=True
+            )
+            assert not stderr
+            json_obj = json_loads(stdout)
+            channels = set(dist["channel"] for dist in json_obj["actions"]["LINK"])
+            assert channels == {"conda-forge"}
+
+    def test_strict_resolve_get_reduced_index(self):
+        channels = (Channel("defaults"),)
+        specs = (MatchSpec("anaconda"),)
+        index = get_reduced_index(None, channels, context.subdirs, specs)
+        r = Resolve(index, channels=channels)
+        reduced_index = r.get_reduced_index(specs, strict_channel_priority=True)
+        channel_name_groups = {
+            name: {prec.channel.name for prec in group}
+            for name, group in iteritems(groupby("name", reduced_index))
+        }
+        channel_name_groups = {
+            name: channel_names for name, channel_names in iteritems(channel_name_groups)
+            if len(channel_names) > 1
+        }
+        assert {} == channel_name_groups
 
     def test_list_with_pip_no_binary(self):
         from conda.exports import rm_rf as _rm_rf
