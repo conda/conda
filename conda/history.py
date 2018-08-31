@@ -27,7 +27,7 @@ from .exceptions import CondaHistoryError, CondaUpgradeError, NotWritableError
 from .gateways.disk.update import touch
 from .models.dist import dist_str_to_quad
 from .models.version import VersionOrder, version_relation_re
-from .resolve import MatchSpec
+from .models.match_spec import MatchSpec
 
 log = logging.getLogger(__name__)
 

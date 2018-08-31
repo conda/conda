@@ -22,7 +22,7 @@ from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
-from ..common.io import Spinner, time_recorder
+from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError
 from ..gateways.logging import TRACE
@@ -32,7 +32,7 @@ from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
-from ..resolve import Resolve, dashlist
+from ..resolve import Resolve
 
 log = getLogger(__name__)
 

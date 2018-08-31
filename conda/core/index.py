@@ -13,12 +13,11 @@ from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.toolz import concat, concatv, groupby
 from ..base.context import context
 from ..common.compat import itervalues
-from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, time_recorder
+from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, dashlist, time_recorder
 from ..exceptions import ChannelNotAllowed
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord
-from ..resolve import dashlist
 
 log = getLogger(__name__)
 

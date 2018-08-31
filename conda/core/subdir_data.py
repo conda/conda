@@ -144,7 +144,7 @@ class SubdirData(object):
 
     def load(self):
         _internal_state = self._load()
-        if _internal_state["repodata_version"] > MAX_REPODATA_VERSION:
+        if _internal_state.get("repodata_version", 0) > MAX_REPODATA_VERSION:
             raise CondaUpgradeError(dals("""
                 The current version of conda is too old to read repodata from
 

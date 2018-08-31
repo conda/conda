@@ -607,7 +607,6 @@ class UnsatisfiableError(CondaError):
 
     def __init__(self, bad_deps, chains=True):
         from .models.match_spec import MatchSpec
-        from .resolve import dashlist
 
         # Remove any target values from the MatchSpecs, convert to strings
         bad_deps = [list(map(lambda x: str(MatchSpec(x, target=None)), dep)) for dep in bad_deps]
@@ -712,7 +711,6 @@ class CondaTypeError(CondaError, TypeError):
 
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles, **kwargs):
-        from .resolve import dashlist
         from .models.records import PackageRecord
         packages_with_cycles = tuple(PackageRecord.from_objects(p) for p in packages_with_cycles)
         message = "Cyclic dependencies exist among these items: %s" % dashlist(

@@ -17,7 +17,6 @@ from ..base.context import conda_in_private_env, context, sys_rc_path, user_rc_p
 from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.url import mask_anaconda_token
 from ..core.envs_manager import env_name
-from ..core.subdir_data import SubdirData
 from ..models.channel import all_channel_urls, offline_keep
 from ..models.match_spec import MatchSpec
 from ..utils import human_bytes
@@ -83,7 +82,7 @@ def pretty_package(prec):
 
 
 def print_package_info(packages):
-
+    from ..core.subdir_data import SubdirData
     results = {}
     for package in packages:
         spec = MatchSpec(package)

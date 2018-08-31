@@ -11,15 +11,15 @@ from operator import attrgetter
 from os.path import basename
 import re
 
-from conda._vendor.auxlib.decorators import memoizedproperty
-from conda.common.io import dashlist
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
+from .._vendor.auxlib.decorators import memoizedproperty
 from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
+from ..common.io import dashlist
 from ..common.path import expand
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError
