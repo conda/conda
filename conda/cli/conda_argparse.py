@@ -229,7 +229,9 @@ def configure_parser_clean(sub_parsers):
     removal_target_options.add_argument(
         '-p', '--packages',
         action='store_true',
-        help="Remove unused cached packages. Warning: This does not check for symlinked packages.",
+        help="Remove unused packages from writable package caches. "
+             "WARNING: This does not check for packages installed using "
+             "symlinks back to the package cache.",
     )
     removal_target_options.add_argument(
         '-s', '--source-cache',
@@ -241,6 +243,13 @@ def configure_parser_clean(sub_parsers):
         "-t", "--tarballs",
         action="store_true",
         help="Remove cached package tarballs.",
+    )
+    removal_target_options.add_argument(
+        '-f', '--force-pkgs-dirs',
+        action='store_true',
+        help="Remove *all* writable package caches. This option is not included with the --all "
+             "flag. WARNING: This will break environments with packages installed using symlinks "
+             "back to the package cache.",
     )
 
     add_output_and_prompt_options(p)
