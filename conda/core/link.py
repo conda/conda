@@ -157,15 +157,15 @@ class UnlinkLinkTransaction(object):
         self.prefix_action_groups = odict()
 
         for stp in itervalues(self.prefix_setups):
-            log.debug("instantiating UnlinkLinkTransaction with\n"
-                      "  target_prefix: %s\n"
-                      "  unlink_precs:\n"
-                      "    %s\n"
-                      "  link_precs:\n"
-                      "    %s\n",
-                      stp.target_prefix,
-                      '\n    '.join(prec.dist_str() for prec in stp.unlink_precs),
-                      '\n    '.join(prec.dist_str() for prec in stp.link_precs))
+            log.info("initializing UnlinkLinkTransaction with\n"
+                     "  target_prefix: %s\n"
+                     "  unlink_precs:\n"
+                     "    %s\n"
+                     "  link_precs:\n"
+                     "    %s\n",
+                     stp.target_prefix,
+                     '\n    '.join(prec.dist_str() for prec in stp.unlink_precs),
+                     '\n    '.join(prec.dist_str() for prec in stp.link_precs))
 
         self._pfe = None
         self._prepared = False

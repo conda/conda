@@ -4,6 +4,7 @@
 """Test for python distribution information and metadata handling."""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from conda.exceptions import PathNotFoundError
 from contextlib import contextmanager
 from datetime import datetime
 import os
@@ -314,18 +315,16 @@ def test_get_dist_file_from_egg_link():
 
     # Test not existing path
     temp_path3, fpaths3 = _create_test_files((('', 'egg2.egg-link', '/not-a-path/'),))
-    output = pd.get_dist_file_from_egg_link(fpaths3[0], '')
-    expected_output = None
-    _print_output(output, expected_output)
-    assert output == expected_output
+    with pytest.raises(PathNotFoundError) as exc:
+        pd.get_dist_file_from_egg_link(fpaths3[0], '')
+    print(exc.value)
 
     # Test existing path but no valig egg-info files
     temp_path4 = tempfile.mkdtemp()
     temp_path4, fpaths4 = _create_test_files((('', 'egg2.egg-link', temp_path4),))
-    output = pd.get_dist_file_from_egg_link(fpaths4[0], '')
-    expected_output = None
-    _print_output(output, expected_output)
-    assert output == expected_output
+    with pytest.raises(PathNotFoundError) as exc:
+        pd.get_dist_file_from_egg_link(fpaths4[0], '')
+    print(exc.value)
 
 
 @pytest.mark.skipif(True, reason="Ask @goanpeca about what this test is looking for.")

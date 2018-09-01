@@ -7,6 +7,7 @@ from collections import namedtuple
 from csv import reader as csv_reader
 from email.parser import HeaderParser
 from fnmatch import filter as fnmatch_filter
+from logging import getLogger
 from os import listdir
 from os.path import basename, dirname, isdir, isfile, join, lexists, normpath
 import re
@@ -18,6 +19,7 @@ from .._vendor.frozendict import frozendict
 from ..common.compat import PY2, StringIO, itervalues, odict, open
 from ..common.path import (get_major_minor_version, get_python_site_packages_short_path, pyc_path,
                            win_path_ok)
+from ..exceptions import PathNotFoundError
 from ..models.channel import Channel
 from ..models.enums import PackageType, PathType
 from ..models.records import PathData, PathDataV1, PathsData, PrefixRecord
@@ -32,6 +34,7 @@ try:
 except ImportError:  # pragma: no cover
     from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
+log = getLogger(__name__)
 
 # TODO: complete this list
 PYPI_TO_CONDA = {
@@ -80,8 +83,12 @@ def get_python_record(prefix_path, anchor_file, python_version):
     Return `None` if the python record cannot be created.
     """
     # TODO: ensure that this dist is actually the dist that matches conda-meta
-    pydist = get_python_distribution_info(prefix_path, anchor_file, python_version)
-    return None if pydist is None else pydist.prefix_record
+    try:
+        pydist = get_python_distribution_info(prefix_path, anchor_file, python_version)
+        return pydist.prefix_record
+    except PathNotFoundError as e:
+        log.debug("%r", e)
+        return None
 
 
 # Python distribution/eggs metadata
@@ -468,8 +475,7 @@ class BasePythonDistribution(object):
         elif anchor_full_path and isdir(anchor_full_path):
             self._metadata_dir_full_path = anchor_full_path
         else:
-            self._metadata_dir_full_path = None
-            raise RuntimeError("Path not found: %s", anchor_full_path)
+            raise RuntimeError("Path not found: %s" % anchor_full_path)
 
         self._check_files()
         self._metadata = PythonDistributionMetadata(anchor_full_path)
@@ -954,8 +960,6 @@ def get_site_packages_anchor_files(site_packages_path, site_packages_dir):
 def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     """
     Return the egg info file path following an egg link.
-
-    Return `None` if no egg-info is found or the path is no longer there.
     """
     egg_info_full_path = None
 
@@ -976,6 +980,9 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
 
         if isdir(egg_info_full_path):
             egg_info_full_path = join(egg_info_full_path, "PKG-INFO")
+
+    if egg_info_full_path is None:
+        raise PathNotFoundError(egg_link_contents)
 
     return egg_info_full_path
 
