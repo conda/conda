@@ -643,7 +643,7 @@ def configure_parser_init(sub_parsers):
 
     add_parser_json(p)
     p.add_argument(
-        "--dry-run",
+        "-d", "--dry-run",
         action="store_true",
         help="Only display what would have been done.",
     )
@@ -1300,7 +1300,7 @@ def add_output_and_prompt_options(p):
         help=SUPPRESS,
     )
     output_and_prompt_options.add_argument(
-        "--dry-run",
+        "-d", "--dry-run",
         action="store_true",
         help="Only display what would have been done.",
     )
