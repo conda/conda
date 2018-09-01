@@ -1024,7 +1024,7 @@ def test_no_features():
     ]
 
 
-@pytest.mark.skipif(datetime.now() < datetime(2018, 9, 1), reason="bogus test; talk with @mcg1969")
+@pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="bogus test; talk with @mcg1969")
 def test_multiple_solution():
     assert False
 #    index2 = index.copy()

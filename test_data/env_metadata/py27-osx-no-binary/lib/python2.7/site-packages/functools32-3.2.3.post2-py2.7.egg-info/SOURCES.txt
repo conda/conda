@@ -1,0 +1,16 @@
+ChangeLog
+LICENSE
+MANIFEST.in
+pip-delete-this-directory.txt
+setup.cfg
+setup.py
+test_functools32.py
+test_support27.py
+functools32/__init__.py
+functools32/_dummy_thread32.py
+functools32/functools32.py
+functools32/reprlib32.py
+functools32.egg-info/PKG-INFO
+functools32.egg-info/SOURCES.txt
+functools32.egg-info/dependency_links.txt
+functools32.egg-info/top_level.txt

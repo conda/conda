@@ -837,6 +837,7 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'openssl')
             assert package_is_installed(prefix, 'itsdangerous')
 
+<<<<<<< HEAD
     def test_install_update_deps_flag(self):
         with make_temp_env("flask==0.12 jinja2==2.8") as prefix:
             assert package_is_installed(prefix, "python=3.6")
@@ -862,6 +863,9 @@ class IntegrationTests(TestCase):
         with make_temp_env("flask==0.12 --only-deps") as prefix:
             assert not package_is_installed(prefix, "flask")
 
+=======
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
+>>>>>>> force-add files that were gitignored
     def test_install_update_deps_only_deps_flags(self):
         with make_temp_env("flask==0.12 jinja2==2.8") as prefix:
             assert package_is_installed(prefix, "python=3.6")
