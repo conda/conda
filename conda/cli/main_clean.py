@@ -97,9 +97,7 @@ def find_pkgs():
             if not context.json:
                 print("WARNING: {0} does not exist".format(pkgs_dir))
             continue
-        pkgs = [i for i in listdir(pkgs_dir)
-                if (isdir(join(pkgs_dir, i)) and  # only include actual packages
-                    isdir(join(pkgs_dir, i, 'info')))]
+        pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i, 'info'))]
         for pkg in pkgs:
             breakit = False
             for root, dir, files in walk(join(pkgs_dir, pkg)):

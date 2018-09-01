@@ -346,8 +346,9 @@ def _symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
         except (IOError, OSError) as e:
-            if (os.path.lexists(prefix_file) and
-                    (e.errno in (errno.EPERM, errno.EACCES, errno.EROFS, errno.EEXIST))):
+            if (os.path.lexists(prefix_file) and (e.errno in (
+                    errno.EPERM, errno.EACCES, errno.EROFS, errno.EEXIST
+            ))):
                 # Cannot symlink root_file to prefix_file. Ignoring since link already exists
                 pass
             else:

@@ -249,8 +249,7 @@ class VersionOrder(object):
         return True
 
     def __eq__(self, other):
-        return (self._eq(self.version, other.version) and
-                self._eq(self.local, other.local))
+        return self._eq(self.version, other.version) and self._eq(self.local, other.local)
 
     def startswith(self, other):
         # Tests if the version lists match up to the last element in "other".
