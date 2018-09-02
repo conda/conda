@@ -68,6 +68,12 @@ def execute(args, parser):
 
         matches = sorted(SubdirData.query_all(spec, channel_urls, subdirs),
                          key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
+    if not matches and spec.get_exact_value("name"):
+        flex_spec = MatchSpec(spec, name="*%s*" % spec.name)
+        if not context.json:
+            print("No match found for: %s. Search: %s" % (spec, flex_spec))
+        matches = sorted(SubdirData.query_all(flex_spec, channel_urls, subdirs),
+                         key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build))
 
     if not matches:
         channels_urls = tuple(calculate_channel_urls(
