@@ -684,8 +684,8 @@ class SpecsConfigurationConflictError(CondaError):
         Requested specs conflict with configured specs.
           requested specs: {requested_specs_formatted}
           pinned specs: {pinned_specs_formatted}
-        Use 'conda config --show-sources' to look for 'pinned_specs' and 'track_features' 
-        configuration parameters.  Pinned specs may also be defined in the file 
+        Use 'conda config --show-sources' to look for 'pinned_specs' and 'track_features'
+        configuration parameters.  Pinned specs may also be defined in the file
         {pinned_specs_path}.
         """).format(
             requested_specs_formatted=dashlist(requested_specs, 4),

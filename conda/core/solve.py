@@ -544,7 +544,9 @@ class Solver(object):
             specs_to_remove_names = set(spec.name for spec in self.specs_to_remove)
             add_back = tuple(ssc.prefix_data.get(node.name, None) for node in removed_nodes
                              if node.name not in specs_to_remove_names)
-            ssc.solution_precs = tuple(PrefixGraph(concatv(graph.graph, filter(None, add_back))).graph)
+            ssc.solution_precs = tuple(
+                PrefixGraph(concatv(graph.graph, filter(None, add_back))).graph
+            )
 
             # TODO: check if solution is satisfiable, and emit warning if it's not
 

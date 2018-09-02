@@ -264,24 +264,26 @@ def _execute(args, parser):
     json_result = {
         'success': True
     }
+    one_target_ran = False
+
+    if args.source_cache or args.all:
+        json_result['source_cache'] = find_source_cache()
+        rm_source_cache(args, **json_result['source_cache'])
+        one_target_ran = True
 
     if args.force_pkgs_dirs:
         writable_pkgs_dirs = rm_rf_pkgs_dirs()
         json_result['pkgs_dirs'] = writable_pkgs_dirs
 
-    if args.source_cache or args.all:
-        json_result['source_cache'] = find_source_cache()
-        rm_source_cache(args, **json_result['source_cache'])
-
-    if args.force_pkgs_dirs:
+        # we return here because all other clean operations target individual parts of
+        # package caches
         return json_result
 
-    one_target_ran = False
     if args.tarballs or args.all:
         pkgs_dirs, totalsize = find_tarballs()
         first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['tarballs'] = {
-            'pkgs_dir': first,  # Backwards compabitility
+            'pkgs_dir': first,  # Backwards compatibility
             'pkgs_dirs': dict(pkgs_dirs),
             'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize
