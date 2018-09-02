@@ -98,6 +98,20 @@ def get_solver_aggregate_1(specs_to_add=(), specs_to_remove=(), prefix_records=(
         yield solver
 
 
+@contextmanager
+def get_solver_aggregate_2(specs_to_add=(), specs_to_remove=(), prefix_records=(), history_specs=()):
+    PrefixData._cache_.clear()
+    pd = PrefixData(TEST_PREFIX)
+    pd._PrefixData__prefix_records = {rec.name: PrefixRecord.from_objects(rec) for rec in prefix_records}
+    spec_map = {spec.name: spec for spec in history_specs}
+    get_index_r_2(context.subdir)
+    get_index_r_4(context.subdir)
+    with patch.object(History, 'get_requested_specs_map', return_value=spec_map):
+        solver = Solver(TEST_PREFIX, (Channel('channel-4'), Channel('channel-2')),
+                        (context.subdir,), specs_to_add=specs_to_add, specs_to_remove=specs_to_remove)
+        yield solver
+
+
 def convert_to_dist_str(solution):
     return tuple(prec.dist_str() for prec in solution)
 
@@ -1252,10 +1266,9 @@ def test_update_deps_1():
         )
         assert convert_to_dist_str(final_state_1) == order
 
-    specs_to_add = MatchSpec("numpy=1.7.0"), MatchSpec("python=2.7.3")
-    with get_solver(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+    specs2 = MatchSpec("numpy=1.7.0"), MatchSpec("python=2.7.3")
+    with get_solver(specs2, prefix_records=final_state_1, history_specs=specs) as solver:
         final_state_2 = solver.solve_final_state()
-        # PrefixDag(final_state_2, specs).open_url()
         print(convert_to_dist_str(final_state_2))
         order = (
             'channel-1::openssl-1.0.1c-0',
@@ -1271,10 +1284,9 @@ def test_update_deps_1():
         assert convert_to_dist_str(final_state_2) == order
 
     specs_to_add = MatchSpec("iopro"),
-    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
-        final_state_3 = solver.solve_final_state()
-        # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_3))
+    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
+        final_state_3a = solver.solve_final_state()
+        print(convert_to_dist_str(final_state_3a))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1288,12 +1300,11 @@ def test_update_deps_1():
             'channel-1::numpy-1.7.0-py27_0',
             'channel-1::iopro-1.5.0-np17py27_p0',
         )
-        assert convert_to_dist_str(final_state_3) == order
+        assert convert_to_dist_str(final_state_3a) == order
 
     specs_to_add = MatchSpec("iopro"),
-    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
+    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
         final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
-        # PrefixDag(final_state_2, specs).open_url()
         pprint(convert_to_dist_str(final_state_3))
         order = (
             'channel-1::openssl-1.0.1c-0',
@@ -1311,10 +1322,9 @@ def test_update_deps_1():
         assert convert_to_dist_str(final_state_3) == order
 
     specs_to_add = MatchSpec("iopro"),
-    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
+    with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs2) as solver:
         final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS,
                                                  deps_modifier=DepsModifier.ONLY_DEPS)
-        # PrefixDag(final_state_2, specs).open_url()
         pprint(convert_to_dist_str(final_state_3))
         order = (
             'channel-1::unixodbc-2.3.1-0',
@@ -1330,6 +1340,69 @@ def test_update_deps_1():
             # 'channel-1::iopro-1.5.0-np17py27_p0',
         )
         assert convert_to_dist_str(final_state_3) == order
+
+
+def test_update_deps_2():
+    specs = MatchSpec("flask==0.12"), MatchSpec("jinja2==2.8")
+    with get_solver_aggregate_2(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order1 = (
+            'channel-4::ca-certificates-2018.03.07-0',
+            'channel-4::libgcc-ng-8.2.0-hdf63c60_0',
+            'channel-4::libstdcxx-ng-8.2.0-hdf63c60_0',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.1-hf484d3e_0',
+            'channel-4::openssl-1.0.2p-h14c3975_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::xz-5.2.4-h14c3975_4',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.24.0-h84994c4_0',
+            'channel-4::python-3.6.6-hc3d631a_0',
+            'channel-4::certifi-2018.8.13-py36_0',
+            'channel-4::click-6.7-py36_0',
+            'channel-4::itsdangerous-0.24-py36_1',
+            'channel-4::markupsafe-1.0-py36h14c3975_1',
+            'channel-4::werkzeug-0.14.1-py36_0',
+            'channel-4::setuptools-40.0.0-py36_0',
+            'channel-2::jinja2-2.8-py36_1',
+            'channel-2::flask-0.12-py36_0',
+        )
+        assert convert_to_dist_str(final_state_1) == order1
+
+    # The "conda update flask" case is held back by the jinja2==2.8 user-requested spec.
+    specs_to_add = MatchSpec("flask"),
+    with get_solver_aggregate_2(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        unlink_precs, link_precs = solver.solve_for_diff()
+        pprint(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(link_precs))
+        unlink_order = (
+            'channel-2::flask-0.12-py36_0',
+        )
+        link_order = (
+            'channel-4::flask-0.12.2-py36hb24657c_0',
+        )
+        assert convert_to_dist_str(unlink_precs) == unlink_order
+        assert convert_to_dist_str(link_precs) == link_order
+
+    # Now solve with UPDATE_DEPS
+    specs_to_add = MatchSpec("flask"),
+    with get_solver_aggregate_2(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        unlink_precs, link_precs = solver.solve_for_diff(update_modifier=UpdateModifier.UPDATE_DEPS)
+        pprint(convert_to_dist_str(unlink_precs))
+        pprint(convert_to_dist_str(link_precs))
+        unlink_order = (
+            'channel-2::flask-0.12-py36_0',
+            'channel-2::jinja2-2.8-py36_1',
+        )
+        link_order = (
+            'channel-4::jinja2-2.10-py36_0',
+            'channel-4::flask-1.0.2-py36_1',
+        )
+        assert convert_to_dist_str(unlink_precs) == unlink_order
+        assert convert_to_dist_str(link_precs) == link_order
 
 
 def test_fast_update_with_update_modifier_not_set():
