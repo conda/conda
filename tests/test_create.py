@@ -745,10 +745,14 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'nomkl')
             assert not package_is_installed(prefix, 'mkl')
 
+            # A consequence of discontinuing use of the 'features' key and instead
+            # using direct dependencies is that removing the feature means that
+            # packages associated with the track_features base package are completely removed
+            # and not replaced with equivalent non-variant packages as before.
             run_command(Commands.REMOVE, prefix, '--features', 'nomkl')
-            assert package_is_installed(prefix, 'numpy')
+            # assert package_is_installed(prefix, 'numpy')   # removed per above comment
             assert not package_is_installed(prefix, 'nomkl')
-            assert package_is_installed(prefix, 'mkl')
+            # assert package_is_installed(prefix, 'mkl')  # removed per above comment
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
     @pytest.mark.skipif(on_win and datetime.now() <= datetime(2018, 10, 1), reason="conda-forge repodata needs vc patching")
