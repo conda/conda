@@ -125,7 +125,7 @@ def pretty_record(record):
     push_line("file name", "fn")
     push_line("name", "name")
     push_line("version", "version")
-    push_line("build string", "build")
+    push_line("build", "build")
     push_line("build number", "build_number")
     builder.append("%-12s: %s" % ("size", human_bytes(record.size)))
     push_line("license", "license")
@@ -135,8 +135,12 @@ def pretty_record(record):
     if record.timestamp:
         date_str = datetime.fromtimestamp(record.timestamp, UTC).strftime('%Y-%m-%d %H:%M:%S %Z')
         builder.append("%-12s: %s" % ("timestamp", date_str))
+    if record.track_features:
+        builder.append("%-12s: %s" % ("track_features", dashlist(record.track_features)))
     if record.constrains:
         builder.append("%-12s: %s" % ("constraints", dashlist(record.constrains)))
-    builder.append("%-12s: %s" % ("dependencies", dashlist(record.depends)))
+    builder.append(
+        "%-12s: %s" % ("dependencies", dashlist(record.depends) if record.depends else "[]")
+    )
     builder.append('\n')
     print('\n'.join(builder))

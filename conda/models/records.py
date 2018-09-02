@@ -48,9 +48,9 @@ class TimestampField(NumberField):
     @staticmethod
     def _make_seconds(val):
         if val:
-            val = int(val)
+            val = val
             if val > 253402300799:  # 9999-12-31
-                val //= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
+                val /= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
         return val
 
     @staticmethod
@@ -58,7 +58,7 @@ class TimestampField(NumberField):
         if val:
             if val < 253402300799:  # 9999-12-31
                 val *= 1000  # convert seconds to milliseconds
-            val = int(val)
+            val = val
         return val
 
     def box(self, instance, instance_type, val):
@@ -67,9 +67,9 @@ class TimestampField(NumberField):
         )
 
     def dump(self, instance, instance_type, val):
-        return self._make_milliseconds(
+        return int(self._make_milliseconds(
             super(TimestampField, self).dump(instance, instance_type, val)
-        )
+        ))  # whether in seconds or milliseconds, type must be int (not float) for backward compat
 
     def __get__(self, instance, instance_type):
         try:
