@@ -7,7 +7,7 @@ from errno import ENOENT
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
-from platform import machine
+import platform
 import sys
 
 from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
@@ -20,6 +20,7 @@ from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
 from .._vendor.frozendict import frozendict
+from .._vendor.toolz import concat, concatv, unique
 from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     PrimitiveParameter, SequenceParameter, ValidationError)
@@ -27,11 +28,6 @@ from ..common.disk import conda_bld_ensure_dir
 from ..common.path import expand
 from ..common.os.linux import linux_get_libc_version
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
-
-try:
-    from cytoolz.itertoolz import concat, concatv, unique
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, unique
 
 try:
     os.getcwd()
@@ -338,7 +334,7 @@ class Context(Configuration):
 
     @property
     def arch_name(self):
-        m = machine()
+        m = platform.machine()
         if self.platform == 'linux' and m in non_x86_linux_machines:
             return m
         else:
@@ -356,7 +352,7 @@ class Context(Configuration):
     def subdir(self):
         if self._subdir:
             return self._subdir
-        m = machine()
+        m = platform.machine()
         if m in non_x86_linux_machines:
             return 'linux-%s' % m
         elif self.platform == 'zos':
@@ -626,7 +622,6 @@ class Context(Configuration):
     def python_implementation_name_version(self):
         # CPython, Jython
         # '2.7.14'
-        import platform
         return platform.python_implementation(), platform.python_version()
 
     @memoizedproperty
@@ -638,7 +633,6 @@ class Context(Configuration):
         # `uname -r`
         # '17.4.0' for macOS
         # '10' or 'NT' for Windows
-        import platform
         return platform.system(), platform.release()
 
     @memoizedproperty
@@ -658,11 +652,9 @@ class Context(Configuration):
                 distinfo = ('Linux', 'unknown')
             distribution_name, distribution_version = distinfo[0], distinfo[1]
         elif platform_name == 'Darwin':
-            import platform
             distribution_name = 'OSX'
             distribution_version = platform.mac_ver()[0]
         else:
-            import platform
             distribution_name = platform.system()
             distribution_version = platform.version()
         return distribution_name, distribution_version

@@ -16,17 +16,13 @@ from conda.common.io import dashlist
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
+from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
 from ..common.path import expand
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError
-
-try:
-    from cytoolz.itertoolz import concat, concatv, groupby
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -769,10 +765,17 @@ class ExactStrMatch(_StrMatchMixin, MatchInterface):
 class ExactLowerStrMatch(ExactStrMatch):
 
     def __init__(self, value):
-        super(ExactStrMatch, self).__init__(value.lower())
+        super(ExactLowerStrMatch, self).__init__(value.lower())
+
+    def match(self, other):
+        try:
+            _other_val = other._raw_value
+        except AttributeError:
+            _other_val = text_type(other)
+        return self._raw_value == _other_val.lower()
 
 
-class GlobStrMatch(_StrMatchMixin, MatchInterface):
+class GlobStrMatch(_StrMatchMixin, MatchInterface):  # lgtm [py/missing-equals]
     __slots__ = '_raw_value', '_re_match'
 
     def __init__(self, value):

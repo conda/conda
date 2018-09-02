@@ -22,6 +22,7 @@ from .prefix_data import PrefixData, get_python_version_for_prefix
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
+from .._vendor.toolz import concat, concatv, interleave, take
 from ..base.constants import DEFAULTS_CHANNEL_NAME, SafetyChecks
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
@@ -40,11 +41,6 @@ from ..models.enums import LinkType
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
 from ..utils import human_bytes
-
-try:
-    from cytoolz.itertoolz import concat, concatv, groupby, interleave, take
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby, interleave, take  # NOQA
 
 log = getLogger(__name__)
 

@@ -7,6 +7,7 @@ from collections import defaultdict
 from itertools import chain
 from logging import DEBUG, getLogger
 
+from ._vendor.toolz import concat
 from .base.constants import MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
@@ -19,11 +20,6 @@ from .models.enums import NoarchType
 from .models.match_spec import MatchSpec
 from .models.records import PackageRecord
 from .models.version import VersionOrder
-
-try:
-    from cytoolz.itertoolz import concat
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concat  # NOQA
 
 log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')

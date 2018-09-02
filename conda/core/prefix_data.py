@@ -25,12 +25,6 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.records import (PackageRecord, PathData, PathDataV1, PathsData, PrefixRecord)
 
-try:
-    from cytoolz.itertoolz import concat, concatv
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv  # NOQA
-
-
 log = getLogger(__name__)
 
 

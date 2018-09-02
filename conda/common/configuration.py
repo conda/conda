@@ -40,28 +40,8 @@ from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
 from .._vendor.frozendict import frozendict
 from .._vendor.boltons.setutils import IndexedSet
+from .._vendor.toolz import concat, concatv, excepts, merge, unique
 
-try:  # pragma: no cover
-    from cytoolz.dicttoolz import merge
-    from cytoolz.functoolz import excepts
-    from cytoolz.itertoolz import concat, concatv, unique
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.dicttoolz import merge
-    from .._vendor.toolz.itertoolz import concat, concatv, unique
-
-    # Importing from toolz.functoolz is slow since it imports inspect.
-    # Copy the relevant part of excepts' implementation instead:
-    class excepts(object):
-        def __init__(self, exc, func, handler=lambda exc: None):
-            self.exc = exc
-            self.func = func
-            self.handler = handler
-
-        def __call__(self, *args, **kwargs):
-            try:
-                return self.func(*args, **kwargs)
-            except self.exc as e:
-                return self.handler(e)
 try:  # pragma: no cover
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
     from ruamel_yaml.reader import ReaderError
