@@ -23,7 +23,7 @@ from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
 from ..common.io import Spinner, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
-from ..exceptions import PackagesNotFoundError
+from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError
 from ..gateways.logging import TRACE
 from ..history import History
 from ..models.channel import Channel
@@ -376,8 +376,7 @@ class Solver(object):
                 if ssc.update_modifier == UpdateModifier.FREEZE_INSTALLED:
                     new_spec = MatchSpec(target_prec)
                 else:
-                    target = target_prec.dist_str()
-                    new_spec = MatchSpec(spec, target=target)
+                    new_spec = MatchSpec(spec, target=target_prec.dist_str())
                 ssc.specs_map[pkg_name] = new_spec
         if log.isEnabledFor(TRACE):
             log.trace("specs_map with targets: %s", ssc.specs_map)
@@ -445,14 +444,40 @@ class Solver(object):
         # constraint) and also making them optional. The result here will be less cases of
         # `UnsatisfiableError` handed to users, at the cost of more packages being modified
         # or removed from the environment.
+        #
+        # get_conflicting_specs() returns a "minimal unsatisfiable subset" which
+        # may not be the only unsatisfiable subset. We may have to call get_conflicting_specs()
+        # several times, each time making modifications to loosen constraints.
         conflicting_specs = ssc.r.get_conflicting_specs(tuple(final_environment_specs))
-        if log.isEnabledFor(DEBUG):
-            log.debug("conflicting specs: %s", dashlist(conflicting_specs))
-        for spec in conflicting_specs:
-            if spec.target:
-                final_environment_specs.remove(spec)
-                neutered_spec = MatchSpec(spec.name, target=spec.target, optional=True)
-                final_environment_specs.add(neutered_spec)
+        while conflicting_specs:
+            specs_modified = False
+            if log.isEnabledFor(DEBUG):
+                log.debug("conflicting specs: %s", dashlist(conflicting_specs))
+
+            # Are all conflicting specs in specs_map? If not, that means they're in
+            # track_features_specs or pinned_specs, which we should raise an error on.
+            specs_map_set = set(itervalues(ssc.specs_map))
+            grouped_specs = groupby(lambda s: s in specs_map_set, conflicting_specs)
+            not_in_specs_map = grouped_specs.get(False, ())
+            if not_in_specs_map:
+                in_specs_map = grouped_specs.get(True, ())
+                in_specs_map_and_specs_to_add = set(in_specs_map) & set(self.specs_to_add)
+                raise SpecsConfigurationConflictError(
+                    sorted(s.__str__() for s in in_specs_map_and_specs_to_add),
+                    sorted(s.__str__() for s in not_in_specs_map),
+                    self.prefix
+                )
+            for spec in conflicting_specs:
+                if spec.target and not spec.optional:
+                    specs_modified = True
+                    final_environment_specs.remove(spec)
+                    neutered_spec = MatchSpec(spec.name, target=spec.target, optional=True)
+                    final_environment_specs.add(neutered_spec)
+            if specs_modified:
+                conflicting_specs = ssc.r.get_conflicting_specs(tuple(final_environment_specs))
+            else:
+                # Let r.solve() use r.find_conflicts() to report conflict chains.
+                break
 
         # Finally! We get to call SAT.
         if log.isEnabledFor(DEBUG):

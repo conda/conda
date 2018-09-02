@@ -16,7 +16,7 @@ from conda.base.context import context, reset_context, Context
 from conda.common.io import env_var, env_vars, stderr_log_level, captured
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, Solver, UpdateModifier
-from conda.exceptions import UnsatisfiableError
+from conda.exceptions import UnsatisfiableError, SpecsConfigurationConflictError
 from conda.history import History
 from conda.models.channel import Channel
 from conda.models.records import PrefixRecord
@@ -1151,6 +1151,90 @@ def test_aggressive_update_packages():
             ))
 
 
+def test_python2_update():
+    # Here we're actually testing that a user-request will uninstall incompatible packages
+    # as necessary.
+    specs = MatchSpec("conda"), MatchSpec("python=2")
+    with get_solver_4(specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order1 = (
+            'channel-4::ca-certificates-2018.03.07-0',
+            'channel-4::conda-env-2.6.0-1',
+            'channel-4::libgcc-ng-8.2.0-hdf63c60_0',
+            'channel-4::libstdcxx-ng-8.2.0-hdf63c60_0',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.1-hf484d3e_0',
+            'channel-4::openssl-1.0.2p-h14c3975_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::yaml-0.1.7-had09818_2',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.24.0-h84994c4_0',
+            'channel-4::python-2.7.15-h1571d57_0',
+            'channel-4::asn1crypto-0.24.0-py27_0',
+            'channel-4::certifi-2018.8.13-py27_0',
+            'channel-4::chardet-3.0.4-py27_1',
+            'channel-4::cryptography-vectors-2.3-py27_0',
+            'channel-4::enum34-1.1.6-py27_1',
+            'channel-4::futures-3.2.0-py27_0',
+            'channel-4::idna-2.7-py27_0',
+            'channel-4::ipaddress-1.0.22-py27_0',
+            'channel-4::pycosat-0.6.3-py27h14c3975_0',
+            'channel-4::pycparser-2.18-py27_1',
+            'channel-4::pysocks-1.6.8-py27_0',
+            'channel-4::ruamel_yaml-0.15.46-py27h14c3975_0',
+            'channel-4::six-1.11.0-py27_1',
+            'channel-4::cffi-1.11.5-py27h9745a5d_0',
+            'channel-4::cryptography-2.3-py27hb7f436b_0',
+            'channel-4::pyopenssl-18.0.0-py27_0',
+            'channel-4::urllib3-1.23-py27_0',
+            'channel-4::requests-2.19.1-py27_0',
+            'channel-4::conda-4.5.10-py27_0',
+        )
+        assert convert_to_dist_str(final_state_1) == order1
+
+    specs_to_add = MatchSpec("python=3"),
+    with get_solver_4(specs_to_add, prefix_records=final_state_1, history_specs=specs) as solver:
+        final_state_2 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_2))
+        order = (
+            'channel-4::ca-certificates-2018.03.07-0',
+            'channel-4::conda-env-2.6.0-1',
+            'channel-4::libgcc-ng-8.2.0-hdf63c60_0',
+            'channel-4::libstdcxx-ng-8.2.0-hdf63c60_0',
+            'channel-4::libffi-3.2.1-hd88cf55_4',
+            'channel-4::ncurses-6.1-hf484d3e_0',
+            'channel-4::openssl-1.0.2p-h14c3975_0',
+            'channel-4::tk-8.6.7-hc745277_3',
+            'channel-4::xz-5.2.4-h14c3975_4',
+            'channel-4::yaml-0.1.7-had09818_2',
+            'channel-4::zlib-1.2.11-ha838bed_2',
+            'channel-4::libedit-3.1.20170329-h6b74fdf_2',
+            'channel-4::readline-7.0-ha6073c6_4',
+            'channel-4::sqlite-3.24.0-h84994c4_0',
+            'channel-4::python-3.7.0-hc3d631a_0',
+            'channel-4::asn1crypto-0.24.0-py37_0',
+            'channel-4::certifi-2018.8.13-py37_0',
+            'channel-4::chardet-3.0.4-py37_1',
+            'channel-4::cryptography-vectors-2.3-py37_0',
+            'channel-4::idna-2.7-py37_0',
+            'channel-4::pycosat-0.6.3-py37h14c3975_0',
+            'channel-4::pycparser-2.18-py37_1',
+            'channel-4::pysocks-1.6.8-py37_0',
+            'channel-4::ruamel_yaml-0.15.46-py37h14c3975_0',
+            'channel-4::six-1.11.0-py37_1',
+            'channel-4::cffi-1.11.5-py37h9745a5d_0',
+            'channel-4::cryptography-2.3-py37hb7f436b_0',
+            'channel-4::pyopenssl-18.0.0-py37_0',
+            'channel-4::urllib3-1.23-py37_0',
+            'channel-4::requests-2.19.1-py37_0',
+            'channel-4::conda-4.5.10-py37_0',
+        )
+        assert convert_to_dist_str(final_state_2) == order
+
+
 def test_update_deps_1():
     specs = MatchSpec("python=2"),
     with get_solver(specs) as solver:
@@ -1210,7 +1294,7 @@ def test_update_deps_1():
     with get_solver(specs_to_add, prefix_records=final_state_2, history_specs=specs) as solver:
         final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_3))
+        pprint(convert_to_dist_str(final_state_3))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1231,7 +1315,7 @@ def test_update_deps_1():
         final_state_3 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS,
                                                  deps_modifier=DepsModifier.ONLY_DEPS)
         # PrefixDag(final_state_2, specs).open_url()
-        print(convert_to_dist_str(final_state_3))
+        pprint(convert_to_dist_str(final_state_3))
         order = (
             'channel-1::unixodbc-2.3.1-0',
             'channel-1::openssl-1.0.1c-0',
@@ -1320,7 +1404,7 @@ def test_pinned_1():
     with get_solver(specs) as solver:
         final_state_1 = solver.solve_final_state()
         # PrefixDag(final_state_1, specs).open_url()
-        print(convert_to_dist_str(final_state_1))
+        pprint(convert_to_dist_str(final_state_1))
         order = (
             'channel-1::openssl-1.0.1c-0',
             'channel-1::readline-6.2-0',
@@ -1338,18 +1422,19 @@ def test_pinned_1():
         with get_solver(specs) as solver:
             final_state_1 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_1))
+            pprint(convert_to_dist_str(final_state_1))
             order = (
                 'channel-1::system-5.8-0',
             )
             assert convert_to_dist_str(final_state_1) == order
 
+        # ignore_pinned=True
         specs_to_add = MatchSpec("python"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
             final_state_2 = solver.solve_final_state(ignore_pinned=True)
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_2))
+            pprint(convert_to_dist_str(final_state_2))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1361,12 +1446,13 @@ def test_pinned_1():
             )
             assert convert_to_dist_str(final_state_2) == order
 
+        # ignore_pinned=False
         specs_to_add = MatchSpec("python"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
                         history_specs=specs) as solver:
-            final_state_2 = solver.solve_final_state()
+            final_state_2 = solver.solve_final_state(ignore_pinned=False)
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_2))
+            pprint(convert_to_dist_str(final_state_2))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1378,13 +1464,23 @@ def test_pinned_1():
             )
             assert convert_to_dist_str(final_state_2) == order
 
+        # incompatible CLI and configured specs
+        specs_to_add = MatchSpec("python=2.7"),
+        with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_1,
+                        history_specs=specs) as solver:
+            with pytest.raises(SpecsConfigurationConflictError) as exc:
+                solver.solve_final_state(ignore_pinned=False)
+            kwargs = exc.value._kwargs
+            assert kwargs["requested_specs"] == ["python=2.7",]
+            assert kwargs["pinned_specs"] == ["python=2.6",]
+
         specs_to_add = MatchSpec("numba"),
         history_specs = MatchSpec("python"), MatchSpec("system=5.8=0"),
         with get_solver(specs_to_add=specs_to_add, prefix_records=final_state_2,
                         history_specs=history_specs) as solver:
             final_state_3 = solver.solve_final_state()
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_3))
+            pprint(convert_to_dist_str(final_state_3))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1407,7 +1503,7 @@ def test_pinned_1():
                         history_specs=history_specs) as solver:
             final_state_4 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_DEPS)
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_4))
+            pprint(convert_to_dist_str(final_state_4))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',
@@ -1430,7 +1526,7 @@ def test_pinned_1():
                         history_specs=history_specs) as solver:
             final_state_5 = solver.solve_final_state(update_modifier=UpdateModifier.UPDATE_ALL)
             # PrefixDag(final_state_1, specs).open_url()
-            print(convert_to_dist_str(final_state_5))
+            pprint(convert_to_dist_str(final_state_5))
             order = (
                 'channel-1::openssl-1.0.1c-0',
                 'channel-1::readline-6.2-0',

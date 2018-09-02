@@ -680,8 +680,25 @@ class Resolve(object):
         if solution:
             return ()
         else:
-            specs = minimal_unsatisfiable_subset(specs, sat=mysat)
-            return specs
+            # This first result is just a single unsatisfiable core. There may be several.
+            unsat_specs = list(minimal_unsatisfiable_subset(specs, sat=mysat))
+            satisfiable_specs = set(specs) - set(unsat_specs)
+
+            # In this loop, we test each unsatisfiable spec individually against the satisfiable
+            # specs to ensure there are no other unsatisfiable specs in the set.
+            final_unsat_specs = set()
+            while unsat_specs:
+                this_spec = unsat_specs.pop(0)
+                final_unsat_specs.add(this_spec)
+                test_specs = satisfiable_specs | {this_spec}
+                C = r2.gen_clauses()  # TODO: wasteful call, but Clauses() needs refactored
+                solution = mysat(test_specs, True)
+                if not solution:
+                    these_unsat = minimal_unsatisfiable_subset(test_specs, sat=mysat)
+                    if len(these_unsat) > 1:
+                        unsat_specs.extend(these_unsat)
+                        satisfiable_specs -= set(unsat_specs)
+            return tuple(final_unsat_specs)
 
     def bad_installed(self, installed, new_specs):
         log.debug('Checking if the current environment is consistent')
