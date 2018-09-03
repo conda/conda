@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 from glob import glob
 import os
-from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, normcase
+from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
 import re
 import sys
 from tempfile import NamedTemporaryFile
