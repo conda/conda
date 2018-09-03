@@ -6,8 +6,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from logging import DEBUG, getLogger
 
-from itertools import chain
-
 from ._vendor.toolz import concat, groupby
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY
 from .base.context import context
@@ -100,8 +98,8 @@ class Resolve(object):
             return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fkey_(spec)
 
         def v_ms_(ms):
-            return ((optional and ms.optional) or
-                    any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
+            return (optional and ms.optional
+                    or any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
 
         def v_fkey_(prec):
             val = filter.get(prec)
@@ -324,7 +322,6 @@ class Resolve(object):
         snames = set()
         top_level_spec = None
 
-        cp_map = self._channel_priorities_map
         cp_filter_applied = set()  # values are package names
 
         def filter_group(_specs):
@@ -471,7 +468,7 @@ class Resolve(object):
             candidate_precs = self.groups.get(spec_name, ())
         elif spec.get_exact_value('track_features'):
             feature_names = spec.get_exact_value('track_features')
-            candidate_precs = chain.from_iterable(
+            candidate_precs = concat(
                 self.trackers.get(feature_name, ()) for feature_name in feature_names
             )
         else:
