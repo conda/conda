@@ -1,23 +1,22 @@
 from __future__ import absolute_import, print_function
 
-from os.path import join, isdir
+from datetime import datetime
+from os.path import isdir, join
 from pprint import pprint
 import unittest
-
-from datetime import datetime
-import pytest
 
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import env_var
-from conda.core.python_dist import get_python_record
 from conda.exceptions import UnsatisfiableError
+from conda.gateways.disk.read import read_python_record
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
+import pytest
 
-from .helpers import get_index_r_1, raises, get_index_r_4, TEST_DATA_DIR
+from .helpers import TEST_DATA_DIR, get_index_r_1, get_index_r_4, raises
 
 index, r, = get_index_r_1()
 f_mkl = set(['mkl'])
@@ -169,7 +168,7 @@ def test_get_reduced_index_unmanageable():
     if not isdir(prefix_path):
         pytest.skip("test files not found: %s" % prefix_path)
     anchor_file = "lib/python2.7/site-packages/requests-2.19.1-py2.7.egg/EGG-INFO/PKG-INFO"
-    py_rec = get_python_record(prefix_path, anchor_file, "2.7")
+    py_rec = read_python_record(prefix_path, anchor_file, "2.7")
     assert py_rec.package_type == PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
 
     index[py_rec] = py_rec

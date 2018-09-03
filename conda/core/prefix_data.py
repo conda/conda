@@ -10,16 +10,17 @@ from os.path import basename, isdir, isfile, join, lexists
 
 from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
 from ..base.context import context
-from ..common.compat import JSONDecodeError, itervalues, string_types, with_metaclass
+from ..common.compat import JSONDecodeError, itervalues, odict, string_types, with_metaclass
 from ..common.constants import NULL
 from ..common.path import get_python_site_packages_short_path, win_path_ok
+from ..common.pkg_formats.python import get_site_packages_anchor_files
 from ..common.serialize import json_load
-from ..core.python_dist import (get_conda_anchor_files_and_records, get_python_records,
-                                get_site_packages_anchor_files)
-from ..exceptions import (BasicClobberError, CondaDependencyError, CorruptedEnvironmentError,
-                          maybe_raise)
+from ..exceptions import (
+    BasicClobberError, CondaDependencyError, CorruptedEnvironmentError, maybe_raise,
+)
 from ..gateways.disk.create import write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.read import read_python_record
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
@@ -246,13 +247,31 @@ class PrefixData(object):
 
         # Create prefix records for python packages not handled by conda
         new_packages = {}
-        python_records = get_python_records(self.prefix_path, non_conda_anchor_files,
-                                            python_pkg_record.version)
-        for python_record in python_records:
+        for af in non_conda_anchor_files:
+            try:
+                python_record = read_python_record(self.prefix_path, af, python_pkg_record.version)
+            except EnvironmentError:
+                continue
+            if not python_record:
+                continue
             self.__prefix_records[python_record.name] = python_record
             new_packages[python_record.name] = python_record
 
         return new_packages
+
+
+def get_conda_anchor_files_and_records(python_records):
+    """Return the anchor files for the conda records of python packages."""
+    anchor_file_endings = ('.egg-info/PKG-INFO', '.dist-info/RECORD', '.egg-info')
+    conda_python_packages = odict()
+
+    for prefix_record in python_records:
+        for fpath in prefix_record.files:
+            if fpath.endswith(anchor_file_endings) and 'site-packages' in fpath:
+                # Then 'fpath' is an anchor file
+                conda_python_packages[fpath] = prefix_record
+
+    return conda_python_packages
 
 
 def get_python_version_for_prefix(prefix):
