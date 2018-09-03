@@ -295,6 +295,10 @@ class PackageRecord(DictSafeMixin, Entity):
                                  default_in_dump=False)
     package_type = PackageTypeField()
 
+    @property
+    def is_unmanageable(self):
+        return self.package_type in PackageType.unmanageable_package_types()
+
     timestamp = TimestampField(required=False)
 
     @property

@@ -607,7 +607,6 @@ class UnsatisfiableError(CondaError):
 
     def __init__(self, bad_deps, chains=True):
         from .models.match_spec import MatchSpec
-        from .resolve import dashlist
 
         # Remove any target values from the MatchSpecs, convert to strings
         bad_deps = [list(map(lambda x: str(MatchSpec(x, target=None)), dep)) for dep in bad_deps]
@@ -712,7 +711,6 @@ class CondaTypeError(CondaError, TypeError):
 
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles, **kwargs):
-        from .resolve import dashlist
         from .models.records import PackageRecord
         packages_with_cycles = tuple(PackageRecord.from_objects(p) for p in packages_with_cycles)
         message = "Cyclic dependencies exist among these items: %s" % dashlist(
@@ -929,6 +927,8 @@ def print_conda_exception(exc_val, exc_tb=None):
             or (not isinstance(exc_val, DryRunExit) and context.verbosity > 0)):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
+        if isinstance(exc_val, DryRunExit):
+            return
         logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
         exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
         logger.info("%s\n" % exc_json)

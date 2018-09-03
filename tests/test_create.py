@@ -15,7 +15,7 @@ from random import sample
 import re
 from shlex import split
 from shutil import copyfile, rmtree
-from subprocess import check_call, CalledProcessError
+from subprocess import check_call, CalledProcessError, check_output
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
@@ -32,11 +32,11 @@ from conda.base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FI
 from conda.base.context import Context, context, reset_context
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
-from conda.common.compat import PY2, iteritems, itervalues, text_type
+from conda.common.compat import PY2, iteritems, itervalues, text_type, ensure_text_type
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
-from conda.common.serialize import yaml_load
+from conda.common.serialize import yaml_load, json_dump
 from conda.common.url import path_to_url
 from conda.core.prefix_data import PrefixData, get_python_version_for_prefix
 from conda.core.package_cache_data import PackageCacheData
@@ -52,6 +52,7 @@ from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
+from conda.models.version import VersionOrder
 from conda.utils import on_win
 
 try:
@@ -1312,26 +1313,258 @@ class IntegrationTests(TestCase):
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
+    @pytest.mark.skipif(context.subdir == "win-32", reason="metadata is wrong; give python2.7")
     def test_conda_pip_interop_pip_clobbers_conda(self):
         # 1. conda install old six
         # 2. pip install -U six
         # 3. conda list shows new six and deletes old conda record
         # 4. probably need to purge something with the history file too?
-        assert False
+        with make_temp_env("six=1.9 pip=9.0.3") as prefix:
+            assert package_is_installed(prefix, "six=1.9.0")
+            assert package_is_installed(prefix, "python=3.5")
+            output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)
+            pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
+            assert "six==1.9.0" in pkgs
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
-    def test_conda_pip_interop_conda_updates_pip_package(self):
-        assert False
+            py_ver = get_python_version_for_prefix(prefix)
+            sp_dir = get_python_site_packages_short_path(py_ver)
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
-    def gittest_conda_pip_interop_conda_doesnt_update_ancient_distutils_package(self):
-        # probably easiest just to use a conda package and remove the conda-meta record
-        assert False
+            output = check_output(PYTHON_BINARY + " -m pip install -U six==1.10",
+                                  cwd=prefix, shell=True)
+            assert "Successfully installed six-1.10.0" in ensure_text_type(output)
+            PrefixData._cache_.clear()
+            stdout, stderr = run_command(Commands.LIST, prefix, "--json")
+            assert not stderr
+            json_obj = json.loads(stdout)
+            six_info = next(info for info in json_obj if info["name"] == "six")
+            assert six_info == {
+                "base_url": "https://conda.anaconda.org/pypi",
+                "build_number": 0,
+                "build_string": "pypi_0",
+                "channel": "pypi",
+                "dist_name": "six-1.10.0-pypi_0",
+                "name": "six",
+                "platform": "pypi",
+                "version": "1.10.0",
+            }
+            assert package_is_installed(prefix, "six=1.10.0")
+            output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)
+            pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
+            assert "six==1.10.0" in pkgs
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
-    def test_conda_pip_interop_conda_doesnt_update_editable_package(self):
-        assert False
+            six_record = next(PrefixData(prefix).query("six"))
+            print(json_dump(six_record))
+            assert json_loads(json_dump(six_record)) == {
+                "build": "pypi_0",
+                "build_number": 0,
+                "channel": "https://conda.anaconda.org/pypi",
+                "constrains": [],
+                "depends": [
+                    "python 3.5.*"
+                ],
+                "files": [
+                    sp_dir + "/" + "__pycache__/six.cpython-35.pyc",
+                    sp_dir + "/" + "six-1.10.0.dist-info/DESCRIPTION.rst",
+                    sp_dir + "/" + "six-1.10.0.dist-info/INSTALLER",
+                    sp_dir + "/" + "six-1.10.0.dist-info/METADATA",
+                    sp_dir + "/" + "six-1.10.0.dist-info/RECORD",
+                    sp_dir + "/" + "six-1.10.0.dist-info/WHEEL",
+                    sp_dir + "/" + "six-1.10.0.dist-info/metadata.json",
+                    sp_dir + "/" + "six-1.10.0.dist-info/top_level.txt",
+                    sp_dir + "/" + "six.py",
+                ],
+                "fn": "six-1.10.0.dist-info",
+                "name": "six",
+                "package_type": "virtual_python_wheel",
+                "paths_data": {
+                    "paths": [
+                        {
+                            "_path": sp_dir + "/" + "__pycache__/six.cpython-35.pyc",
+                            "path_type": "hardlink",
+                            "sha256": None,
+                            "size_in_bytes": None
+                        },
+                        {
+                            "_path": sp_dir + "/" + "six-1.10.0.dist-info/DESCRIPTION.rst",
+                            "path_type": "hardlink",
+                            "sha256": "QWBtSTT2zzabwJv1NQbTfClSX13m-Qc6tqU4TRL1RLs",
+                            "size_in_bytes": 774
+                        },
+                        {
+                            "_path": sp_dir + "/" + "six-1.10.0.dist-info/INSTALLER",
+                            "path_type": "hardlink",
+                            "sha256": "zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg",
+                            "size_in_bytes": 4
+                        },
+                        {
+                            "_path": sp_dir + "/" + "six-1.10.0.dist-info/METADATA",
+                            "path_type": "hardlink",
+                            "sha256": "5HceJsUnHof2IRamlCKO2MwNjve1eSP4rLzVQDfwpCQ",
+                            "size_in_bytes": 1283
+                        },
+                        {
+                            "_path": sp_dir + "/" + "six-1.10.0.dist-info/RECORD",
+                            "path_type": "hardlink",
+                            "sha256": None,
+                            "size_in_bytes": None
+                        },
+                        {
+                            "_path": sp_dir + "/" + "six-1.10.0.dist-info/WHEEL",
+                            "path_type": "hardlink",
+                            "sha256": "GrqQvamwgBV4nLoJe0vhYRSWzWsx7xjlt74FT0SWYfE",
+                            "size_in_bytes": 110
+                        },
+                        {
+                            "_path": sp_dir + "/" + "six-1.10.0.dist-info/metadata.json",
+                            "path_type": "hardlink",
+                            "sha256": "jtOeeTBubYDChl_5Ql5ZPlKoHgg6rdqRIjOz1e5Ek2U",
+                            "size_in_bytes": 658
+                        },
+                        {
+                            "_path": sp_dir + "/" + "six-1.10.0.dist-info/top_level.txt",
+                            "path_type": "hardlink",
+                            "sha256": "_iVH_iYEtEXnD8nYGQYpYFUvkUW9sEO1GYbkeKSAais",
+                            "size_in_bytes": 4
+                        },
+                        {
+                            "_path": sp_dir + "/" + "six.py",
+                            "path_type": "hardlink",
+                            "sha256": "A6hdJZVjI3t_geebZ9BzUvwRrIXo0lfwzQlM2LcKyas",
+                            "size_in_bytes": 30098
+                        }
+                    ],
+                    "paths_version": 1
+                },
+                "subdir": "pypi",
+                "version": "1.10.0"
+            }
+
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "six --satisfied-skip-solve")
+            assert not stderr
+            assert "All requested packages already installed." in stdout
+
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "six")
+            assert not stderr
+            assert package_is_installed(prefix, "six>=1.11")
+            output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)
+            pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
+            six_record = next(PrefixData(prefix).query("six"))
+            assert "six==%s" % six_record.version in pkgs
+
+            assert len(glob(join(prefix, "conda-meta", "six-*.json"))) == 1
+
+            output = check_output(PYTHON_BINARY + " -m pip install -U six==1.10",
+                                  cwd=prefix, shell=True)
+            print(output)
+            assert "Successfully installed six-1.10.0" in ensure_text_type(output)
+            PrefixData._cache_.clear()
+            assert package_is_installed(prefix, "six=1.10.0")
+
+            stdout, stderr = run_command(Commands.REMOVE, prefix, "six")
+            assert not stderr
+            assert "six-1.10.0-pypi_0" in stdout
+            assert not package_is_installed(prefix, "six")
+
+            assert not glob(join(prefix, sp_dir, "six*"))
+
+    def test_conda_pip_interop_conda_editable_package(self):
+        with make_temp_env("python=2.7") as prefix:
+            assert package_is_installed(prefix, "python")
+
+            # install an "editable" urllib3 that cannot be managed
+            output = check_output(PYTHON_BINARY + " -m pip install -e git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3",
+                                  cwd=prefix, shell=True)
+            print(output)
+            assert isfile(join(prefix, "src", "urllib3", "urllib3", "__init__.py"))
+            PrefixData._cache_.clear()
+            assert package_is_installed(prefix, "urllib3")
+            urllib3_record = next(PrefixData(prefix).query("urllib3"))
+            urllib3_record_dump = urllib3_record.dump()
+            files = urllib3_record_dump.pop("files")
+            paths_data = urllib3_record_dump.pop("paths_data")
+            print(json_dump(urllib3_record_dump))
+
+            assert json_loads(json_dump(urllib3_record_dump)) == {
+                "build": "dev_0",
+                "build_number": 0,
+                "channel": "https://conda.anaconda.org/<develop>",
+                "constrains": [
+                    "cryptography >=1.3.4",
+                    "idna >=2.0.0",
+                    "pyopenssl >=0.14",
+                    "pysocks !=1.5.7,<2.0,>=1.5.6"
+                ],
+                "depends": [
+                    "python 2.7.*"
+                ],
+                "fn": "urllib3-1.19.1-dev_0",
+                "name": "urllib3",
+                "package_type": "virtual_python_egg_link",
+                "subdir": "pypi",
+                "version": "1.19.1"
+            }
+
+            # the unmanageable urllib3 should prevent a new requests from being installed
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "requests --dry-run --json",
+                                         use_exception_handler=True)
+            assert not stderr
+            json_obj = json_loads(stdout)
+            assert "UNLINK" not in json_obj["actions"]
+            link_dists = json_obj["actions"]["LINK"]
+            assert len(link_dists) == 1
+            assert link_dists[0]["name"] == "requests"
+            assert VersionOrder(link_dists[0]["version"]) < VersionOrder("2.16")
+
+            # should already be satisfied
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "urllib3 -S")
+            assert "All requested packages already installed." in stdout
+
+            # should raise an error
+            with pytest.raises(PackagesNotFoundError):
+                # TODO: This raises PackagesNotFoundError, but the error should really explain
+                #       that we can't install urllib3 because it's already installed and
+                #       unmanageable. The error should suggest trying to use pip to uninstall it.
+                stdout, stderr = run_command(Commands.INSTALL, prefix, "urllib3=1.20 --dry-run")
+
+            # Now install a manageable urllib3.
+            output = check_output(PYTHON_BINARY + " -m pip install -U urllib3==1.20",
+                                  cwd=prefix, shell=True)
+            print(output)
+            PrefixData._cache_.clear()
+            assert package_is_installed(prefix, "urllib3")
+            urllib3_record = next(PrefixData(prefix).query("urllib3"))
+            urllib3_record_dump = urllib3_record.dump()
+            files = urllib3_record_dump.pop("files")
+            paths_data = urllib3_record_dump.pop("paths_data")
+            print(json_dump(urllib3_record_dump))
+
+            assert json_loads(json_dump(urllib3_record_dump)) == {
+                "build": "pypi_0",
+                "build_number": 0,
+                "channel": "https://conda.anaconda.org/pypi",
+                "constrains": [
+                    "pysocks >=1.5.6,<2.0,!=1.5.7"
+                ],
+                "depends": [
+                    "python 2.7.*"
+                ],
+                "fn": "urllib3-1.20.dist-info",
+                "name": "urllib3",
+                "package_type": "virtual_python_wheel",
+                "subdir": "pypi",
+                "version": "1.20"
+            }
+
+            # we should be able to install an unbundled requests that upgrades urllib3 in the process
+            stdout, stderr = run_command(Commands.INSTALL, prefix, "requests=2.18 --json")
+            assert package_is_installed(prefix, "requests")
+            assert package_is_installed(prefix, "urllib3>=1.21")
+            assert not stderr
+            json_obj = json_loads(stdout)
+            unlink_dists = json_obj["actions"]["UNLINK"]
+            assert len(unlink_dists) == 1
+            assert unlink_dists[0]["name"] == "urllib3"
+            assert unlink_dists[0]["channel"] == "pypi"
 
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_filter(self):

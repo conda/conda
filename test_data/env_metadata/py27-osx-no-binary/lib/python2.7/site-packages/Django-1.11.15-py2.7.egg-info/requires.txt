@@ -1,0 +1,7 @@
+pytz
+
+[argon2]
+argon2-cffi>=16.1.0
+
+[bcrypt]
+bcrypt

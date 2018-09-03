@@ -6,13 +6,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import EACCES
 from logging import getLogger
 from os import listdir
-from os.path import dirname, isdir, isfile, join, normpath, split as path_split
+from os.path import dirname, isdir, isfile, join, normpath
 
 from .prefix_data import PrefixData
-from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
 from ..common.compat import ensure_text_type, on_win, open
-from ..common.path import expand, paths_equal
+from ..common.path import expand
 from ..gateways.disk.read import yield_lines
 from ..gateways.disk.test import is_conda_environment
 
@@ -95,18 +94,6 @@ def query_all_prefixes(spec):
         prefix_recs = tuple(PrefixData(prefix).query(spec))
         if prefix_recs:
             yield prefix, prefix_recs
-
-
-def env_name(prefix):
-    if not prefix:
-        return None
-    if paths_equal(prefix, context.root_prefix):
-        return ROOT_ENV_NAME
-    maybe_envs_dir, maybe_name = path_split(prefix)
-    for envs_dir in context.envs_dirs:
-        if paths_equal(envs_dir, maybe_envs_dir):
-            return maybe_name
-    return prefix
 
 
 def _clean_environments_txt(environments_txt_file, remove_location=None):

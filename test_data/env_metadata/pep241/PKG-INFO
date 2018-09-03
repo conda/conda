@@ -1,0 +1,17 @@
+Metadata-Version: 1.0
+Name: BeagleVote
+Version: 1.0a2
+Platform: ObscureUnix
+Platform: RareDOS
+Summary: A module for collecting votes from beagles.
+Description: This module collects votes from beagles
+             in order to determine their electoral wishes.
+             Do NOT try to use this module with basset hounds;
+             it makes them grumpy.
+Keywords: dog puppy voting election
+Home-page: http://www.example.com/~cschultz/bvote/
+Author: C. Schultz
+        Universal Features Syndicate
+        Los Angeles, CA
+Author-email: "C. Schultz" <cschultz@example.com>
+License: MIT

@@ -53,6 +53,8 @@ def list_packages(prefix, regex=None, format='human',
             result.append('='.join((prec.name, prec.version, prec.build)))
             continue
 
+        stdout_json(prec)
+
         features = set(prec.get('features') or ())
         disp = '%(name)-25s %(version)-15s %(build)15s' % prec  # NOQA lgtm [py/percent-format/wrong-arguments]
         disp += '  %s' % disp_features(features)

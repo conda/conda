@@ -17,7 +17,7 @@ from ..core.subdir_data import SubdirData
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
 from ..models.version import VersionOrder
-from ..resolve import dashlist
+from ..common.io import dashlist
 from ..utils import human_bytes
 
 

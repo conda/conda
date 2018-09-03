@@ -1,20 +1,22 @@
 from __future__ import absolute_import, print_function
 
+from datetime import datetime
+from os.path import isdir, join
 from pprint import pprint
 import unittest
-
-from datetime import datetime
-import pytest
 
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import env_var
 from conda.exceptions import UnsatisfiableError
+from conda.gateways.disk.read import read_python_record
 from conda.models.channel import Channel
+from conda.models.enums import PackageType
 from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
+import pytest
 
-from .helpers import get_index_r_1, raises, get_index_r_4
+from .helpers import TEST_DATA_DIR, get_index_r_1, get_index_r_4, raises
 
 index, r, = get_index_r_1()
 f_mkl = set(['mkl'])
@@ -152,14 +154,32 @@ def test_pseudo_boolean():
 
 
 def test_get_dists():
-    reduced_index = r.get_reduced_index(["anaconda 1.5.0"])
+    reduced_index = r.get_reduced_index([MatchSpec("anaconda 1.5.0")])
     dist_strs = [prec.dist_str() for prec in reduced_index]
     assert 'channel-1::anaconda-1.5.0-np17py27_0' in dist_strs
     assert 'channel-1::dynd-python-0.3.0-np17py33_0' in dist_strs
 
 
+def test_get_reduced_index_unmanageable():
+    index, r = get_index_r_4()
+    index = index.copy()
+    channels = r.channels
+    prefix_path = join(TEST_DATA_DIR, "env_metadata", "envpy27osx")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
+    anchor_file = "lib/python2.7/site-packages/requests-2.19.1-py2.7.egg/EGG-INFO/PKG-INFO"
+    py_rec = read_python_record(prefix_path, anchor_file, "2.7")
+    assert py_rec.package_type == PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
+
+    index[py_rec] = py_rec
+    new_r = Resolve(index, channels=channels)
+    reduced_index = new_r.get_reduced_index((MatchSpec("requests"),))
+    new_r2 = Resolve(reduced_index, True, True, channels=channels)
+    assert len(new_r2.groups["requests"]) == 1, new_r2.groups["requests"]
+
+
 def test_generate_eq_1():
-    reduced_index = r.get_reduced_index(['anaconda'])
+    reduced_index = r.get_reduced_index([MatchSpec('anaconda')])
     r2 = Resolve(reduced_index, True, True)
     C = r2.gen_clauses()
     eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
@@ -508,7 +528,7 @@ def test_nonexistent_deps():
         'defaults::mypackage-1.0-py33_0',
         'defaults::mypackage-1.1-py33_0',
     }
-    assert set(prec.dist_str() for prec in r.get_reduced_index(['mypackage'])) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('mypackage')])) == {
         'defaults::mypackage-1.1-py33_0',
         'channel-1::nose-1.1.2-py33_0',
         'channel-1::nose-1.2.1-py33_0',
@@ -634,7 +654,7 @@ def test_nonexistent_deps():
         'defaults::mypackage-1.0-py33_0',
         'defaults::mypackage-1.1-py33_0',
         }
-    assert set(prec.dist_str() for prec in r.get_reduced_index(['mypackage']).keys()) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('mypackage')]).keys()) == {
         'defaults::mypackage-1.0-py33_0',
         'channel-1::nose-1.1.2-py33_0',
         'channel-1::nose-1.2.1-py33_0',
@@ -793,7 +813,7 @@ def test_circular_dependencies():
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
         'defaults::package1-1.0-0',
     }
-    assert set(prec.dist_str() for prec in r.get_reduced_index(['package1']).keys()) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('package1')]).keys()) == {
         'defaults::package1-1.0-0',
         'defaults::package2-1.0-0',
     }
@@ -851,7 +871,7 @@ def test_optional_dependencies():
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
         'defaults::package1-1.0-0',
     }
-    assert set(prec.dist_str() for prec in r.get_reduced_index(['package1']).keys()) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('package1')]).keys()) == {
         'defaults::package1-1.0-0',
         'defaults::package2-2.0-0',
     }
@@ -1007,18 +1027,19 @@ def test_no_features():
 
 @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="bogus test; talk with @mcg1969")
 def test_multiple_solution():
-    index2 = index.copy()
-    fn = 'pandas-0.11.0-np16py27_1.tar.bz2'
-    res1 = set([fn])
-    for k in range(1,15):
-        fn2 = Dist('%s_%d.tar.bz2'%(fn[:-8],k))
-        index2[fn2] = index[Dist(add_defaults_if_no_channel(fn))]
-        res1.add(fn2)
-    index2 = {Dist(key): value for key, value in iteritems(index2)}
-    r = Resolve(index2)
-    res = r.solve(['pandas', 'python 2.7*', 'numpy 1.6*'], returnall=True)
-    res = set([y for y in res if y.name.startswith('pandas')])
-    assert len(res) <= len(res1)
+    assert False
+#    index2 = index.copy()
+#    fn = 'pandas-0.11.0-np16py27_1.tar.bz2'
+#    res1 = set([fn])
+#    for k in range(1,15):
+#        fn2 = Dist('%s_%d.tar.bz2'%(fn[:-8],k))
+#        index2[fn2] = index[Dist(add_defaults_if_no_channel(fn))]
+#        res1.add(fn2)
+#    index2 = {Dist(key): value for key, value in iteritems(index2)}
+#    r = Resolve(index2)
+#    res = r.solve(['pandas', 'python 2.7*', 'numpy 1.6*'], returnall=True)
+#    res = set([y for y in res if y.name.startswith('pandas')])
+#    assert len(res) <= len(res1)
 
 
 def test_broken_install():
@@ -1179,7 +1200,7 @@ def test_channel_priority_2():
     this_index = index.copy()
     index4, r4 = get_index_r_4()
     this_index.update(index4)
-    spec = ['pandas', 'python 2.7*']
+    spec = [MatchSpec('pandas'), MatchSpec('python 2.7*')]
     channels = (Channel('channel-1'), Channel('channel-3'))
     this_r = Resolve(this_index, channels=channels)
     with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):

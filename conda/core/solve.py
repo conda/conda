@@ -22,7 +22,7 @@ from ..base.constants import DepsModifier, UNKNOWN_CHANNEL, UpdateModifier
 from ..base.context import context
 from ..common.compat import iteritems, itervalues, odict, text_type
 from ..common.constants import NULL
-from ..common.io import Spinner, time_recorder
+from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import PackagesNotFoundError, SpecsConfigurationConflictError
 from ..gateways.logging import TRACE
@@ -32,7 +32,7 @@ from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
-from ..resolve import Resolve, dashlist
+from ..resolve import Resolve
 
 log = getLogger(__name__)
 
@@ -146,6 +146,13 @@ class Solver(object):
         unlink_precs, link_precs = diff_for_unlink_link_precs(
             self.prefix, final_precs, self.specs_to_add, force_reinstall
         )
+
+        # assert that all unlink_precs are manageable
+        unmanageable = groupby(lambda prec: prec.is_unmanageable, unlink_precs).get(True)
+        if unmanageable:
+            raise RuntimeError("Cannot unlink unmanageable packages:%s"
+                               % dashlist(prec.record_id() for prec in unmanageable))
+
         return unlink_precs, link_precs
 
     def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,

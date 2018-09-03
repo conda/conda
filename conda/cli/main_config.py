@@ -121,7 +121,7 @@ def execute_config(args, parser):
             not_params = set(paramater_names) - set(all_names)
             if not_params:
                 from ..exceptions import ArgumentError
-                from ..resolve import dashlist
+                from ..common.io import dashlist
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
         else:
             paramater_names = context.list_parameters()
@@ -138,7 +138,7 @@ def execute_config(args, parser):
                     for channel in itervalues(d['custom_channels'])
                 }
             if 'custom_multichannels' in d:
-                from ..resolve import dashlist
+                from ..common.io import dashlist
                 d['custom_multichannels'] = {
                     multichannel_name: dashlist(channels, indent=4)
                     for multichannel_name, channels in iteritems(d['custom_multichannels'])
@@ -155,7 +155,7 @@ def execute_config(args, parser):
             not_params = set(paramater_names) - set(all_names)
             if not_params:
                 from ..exceptions import ArgumentError
-                from ..resolve import dashlist
+                from ..common.io import dashlist
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
             if context.json:
                 print(json.dumps([context.describe_parameter(name) for name in paramater_names],

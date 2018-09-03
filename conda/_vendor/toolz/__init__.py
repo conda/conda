@@ -28,16 +28,12 @@ try:
     from cytoolz import __version__ as cytoolz_version
     if tuple(int(x) for x in cytoolz_version.split(".")) < (0, 8, 2):
         raise ImportError()
-    from cytoolz.itertoolz import (
-        accumulate, concat, concatv, drop, interleave, groupby, take, unique
-    )
-    from cytoolz.dicttoolz import merge
+    from cytoolz.itertoolz import *
+    from cytoolz.dicttoolz import *
     from cytoolz.functoolz import excepts
 except (ImportError, ValueError):
-    from .itertoolz import (
-        accumulate, concat, concatv, drop, interleave, groupby, take, unique
-    )
-    from .dicttoolz import merge
+    from .itertoolz import *
+    from .dicttoolz import *
 
     # Importing from toolz.functoolz is slow since it imports inspect.
     # Copy the relevant part of excepts' implementation instead:

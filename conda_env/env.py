@@ -87,9 +87,9 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
     ), key=lambda x: x.name)
 
     pip_precs = sorted(concatv(
-        grouped_precs.get(PackageType.SHADOW_PYTHON_DIST_INFO, ()),
-        grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_INFO_DIR, ()),
-        grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_INFO_FILE, ()),
+        grouped_precs.get(PackageType.VIRTUAL_PYTHON_WHEEL, ()),
+        grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE, ()),
+        grouped_precs.get(PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE, ()),
         # grouped_precs.get(PackageType.SHADOW_PYTHON_EGG_LINK, ()),
     ), key=lambda x: x.name)
 
