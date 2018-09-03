@@ -229,7 +229,9 @@ def configure_parser_clean(sub_parsers):
     removal_target_options.add_argument(
         '-p', '--packages',
         action='store_true',
-        help="Remove unused cached packages. Warning: This does not check for symlinked packages.",
+        help="Remove unused packages from writable package caches. "
+             "WARNING: This does not check for packages installed using "
+             "symlinks back to the package cache.",
     )
     removal_target_options.add_argument(
         '-s', '--source-cache',
@@ -241,6 +243,13 @@ def configure_parser_clean(sub_parsers):
         "-t", "--tarballs",
         action="store_true",
         help="Remove cached package tarballs.",
+    )
+    removal_target_options.add_argument(
+        '-f', '--force-pkgs-dirs',
+        action='store_true',
+        help="Remove *all* writable package caches. This option is not included with the --all "
+             "flag. WARNING: This will break environments with packages installed using symlinks "
+             "back to the package cache.",
     )
 
     add_output_and_prompt_options(p)
@@ -495,8 +504,7 @@ def configure_parser_config(sub_parsers):
 
 def configure_parser_create(sub_parsers):
     help = "Create a new conda environment from a list of specified packages. "
-    descr = (help +
-             "To use the created environment, use 'source activate "
+    descr = (help + "To use the created environment, use 'source activate "
              "envname' look in that directory first.  This command requires either "
              "the -n NAME or -p PREFIX option.")
 
@@ -643,7 +651,7 @@ def configure_parser_init(sub_parsers):
 
     add_parser_json(p)
     p.add_argument(
-        "--dry-run",
+        "-d", "--dry-run",
         action="store_true",
         help="Only display what would have been done.",
     )
@@ -1300,7 +1308,7 @@ def add_output_and_prompt_options(p):
         help=SUPPRESS,
     )
     output_and_prompt_options.add_argument(
-        "--dry-run",
+        "-d", "--dry-run",
         action="store_true",
         help="Only display what would have been done.",
     )

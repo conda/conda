@@ -17,6 +17,7 @@ from logging import getLogger
 import sys
 
 from ._vendor.boltons.setutils import IndexedSet
+from ._vendor.toolz import concatv
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context
 from .common.compat import itervalues, text_type
@@ -36,11 +37,6 @@ from .models.records import PackageRecord
 from .models.version import normalized_version
 from .resolve import MatchSpec, dashlist
 from .utils import human_bytes
-
-try:
-    from cytoolz.itertoolz import concatv
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concatv  # NOQA
 
 log = getLogger(__name__)
 
@@ -532,8 +528,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):  # pr
         if callable(cmd):
             cmd(state, arg)
 
-        if (state['i'] is not None and instruction in PROGRESS_COMMANDS and
-                state['maxval'] == state['i']):
+        if (state['i'] is not None and instruction in PROGRESS_COMMANDS
+                and state['maxval'] == state['i']):
 
             state['i'] = None
             getLogger('progress.stop').info(None)

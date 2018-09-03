@@ -141,8 +141,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     t = tarfile.open(tar_path, 'w:bz2')
     h = hashlib.new('sha1')
     for f in files:
-        assert not (f.startswith('/') or f.endswith('/') or
-                    '\\' in f or f == ''), f
+        assert not (f.startswith('/') or f.endswith('/') or '\\' in f or f == ''), f
         path = join(prefix, f)
         if f.startswith('bin/') and fix_shebang(tmp_dir, path):
             path = join(tmp_dir, basename(path))

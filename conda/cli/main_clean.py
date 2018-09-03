@@ -97,9 +97,7 @@ def find_pkgs():
             if not context.json:
                 print("WARNING: {0} does not exist".format(pkgs_dir))
             continue
-        pkgs = [i for i in listdir(pkgs_dir)
-                if (isdir(join(pkgs_dir, i)) and  # only include actual packages
-                    isdir(join(pkgs_dir, i, 'info')))]
+        pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i, 'info'))]
         for pkg in pkgs:
             breakit = False
             for root, dir, files in walk(join(pkgs_dir, pkg)):
@@ -184,6 +182,26 @@ def rm_index_cache():
         rm_rf(join(package_cache.pkgs_dir, 'cache'))
 
 
+def rm_rf_pkgs_dirs():
+    from .common import confirm_yn
+    from ..common.io import dashlist
+    from ..gateways.disk.delete import rm_rf
+    from ..core.package_cache_data import PackageCacheData
+
+    writable_pkgs_dirs = tuple(
+        pc.pkgs_dir for pc in PackageCacheData.writable_caches() if isdir(pc.pkgs_dir)
+    )
+    if not context.json or not context.always_yes:
+        print("Remove all contents from the following package caches?%s"
+              % dashlist(writable_pkgs_dirs))
+        confirm_yn()
+
+    for pkgs_dir in writable_pkgs_dirs:
+        rm_rf(pkgs_dir)
+
+    return writable_pkgs_dirs
+
+
 def find_source_cache():
     cache_dirs = {
         'source cache': context.src_cache,
@@ -242,28 +260,43 @@ def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
         rm_rf(dir)
 
 
-def execute(args, parser):
-    from .common import stdout_json
+def _execute(args, parser):
     json_result = {
         'success': True
     }
+    one_target_ran = False
+
+    if args.source_cache or args.all:
+        json_result['source_cache'] = find_source_cache()
+        rm_source_cache(args, **json_result['source_cache'])
+        one_target_ran = True
+
+    if args.force_pkgs_dirs:
+        writable_pkgs_dirs = rm_rf_pkgs_dirs()
+        json_result['pkgs_dirs'] = writable_pkgs_dirs
+
+        # we return here because all other clean operations target individual parts of
+        # package caches
+        return json_result
 
     if args.tarballs or args.all:
         pkgs_dirs, totalsize = find_tarballs()
         first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['tarballs'] = {
-            'pkgs_dir': first,  # Backwards compabitility
+            'pkgs_dir': first,  # Backwards compatibility
             'pkgs_dirs': dict(pkgs_dirs),
             'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize
         }
         rm_tarballs(args, pkgs_dirs, totalsize, verbose=not (context.json or context.quiet))
+        one_target_ran = True
 
     if args.index_cache or args.all:
         json_result['index_cache'] = {
             'files': [join(context.pkgs_dirs[0], 'cache')]
         }
         rm_index_cache()
+        one_target_ran = True
 
     if args.packages or args.all:
         pkgs_dirs, warnings, totalsize, pkgsizes = find_pkgs()
@@ -278,16 +311,17 @@ def execute(args, parser):
         }
         rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes,
                 verbose=not (context.json or context.quiet))
+        one_target_ran = True
 
-    if args.source_cache or args.all:
-        json_result['source_cache'] = find_source_cache()
-        rm_source_cache(args, **json_result['source_cache'])
-
-    if not any((args.lock, args.tarballs, args.index_cache, args.packages,
-                args.source_cache, args.all)):
+    if not one_target_ran:
         from ..exceptions import ArgumentError
-        raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
-                            "--source-cache, --all} required")
+        raise ArgumentError("At least one removal target must be given. See 'conda clean --help'.")
 
+    return json_result
+
+
+def execute(args, parser):
+    from .common import stdout_json
+    json_result = _execute(args, parser)
     if context.json:
         stdout_json(json_result)

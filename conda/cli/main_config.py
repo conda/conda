@@ -12,17 +12,13 @@ from textwrap import wrap
 
 from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
+from .._vendor.toolz import concat, groupby
 from ..base.constants import DepsModifier, PathConflict, SafetyChecks, UpdateModifier
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import Mapping, Sequence, isiterable, iteritems, itervalues, string_types
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_dump, yaml_load
-
-try:
-    from cytoolz.itertoolz import concat, groupby
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, groupby  # NOQA
 
 
 def execute(args, parser):

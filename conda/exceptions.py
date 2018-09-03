@@ -8,6 +8,7 @@ from errno import ENOSPC
 import json
 from logging import getLogger
 import os
+from os.path import join
 import sys
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
@@ -16,15 +17,11 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
+from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
-
-try:
-    from cytoolz.itertoolz import groupby
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -676,6 +673,24 @@ class DisallowedPackageError(CondaError):
         super(DisallowedPackageError, self).__init__(message, package_ref=package_ref,
                                                      dist_str=package_ref.dist_str(), **kwargs)
 
+class SpecsConfigurationConflictError(CondaError):
+
+    def __init__(self, requested_specs, pinned_specs, prefix):
+        message = dals("""
+        Requested specs conflict with configured specs.
+          requested specs: {requested_specs_formatted}
+          pinned specs: {pinned_specs_formatted}
+        Use 'conda config --show-sources' to look for 'pinned_specs' and 'track_features'
+        configuration parameters.  Pinned specs may also be defined in the file
+        {pinned_specs_path}.
+        """).format(
+            requested_specs_formatted=dashlist(requested_specs, 4),
+            pinned_specs_formatted=dashlist(pinned_specs, 4),
+            pinned_specs_path=join(prefix, "conda-meta", "pinned"),
+        )
+        super(SpecsConfigurationConflictError, self).__init__(
+            message, requested_specs=requested_specs, pinned_specs=pinned_specs, prefix=prefix,
+        )
 
 class CondaIndexError(CondaError, IndexError):
     def __init__(self, message):
@@ -909,10 +924,9 @@ def maybe_raise(error, context):
 def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
     rc = getattr(exc_val, 'return_code', None)
-    if (
-        context.debug or context.verbosity > 2 or
-        (not isinstance(exc_val, DryRunExit) and context.verbosity > 0)
-    ):
+    if (context.debug
+            or context.verbosity > 2
+            or (not isinstance(exc_val, DryRunExit) and context.verbosity > 0)):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
         logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')

@@ -745,13 +745,17 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, 'nomkl')
             assert not package_is_installed(prefix, 'mkl')
 
+            # A consequence of discontinuing use of the 'features' key and instead
+            # using direct dependencies is that removing the feature means that
+            # packages associated with the track_features base package are completely removed
+            # and not replaced with equivalent non-variant packages as before.
             run_command(Commands.REMOVE, prefix, '--features', 'nomkl')
-            assert package_is_installed(prefix, 'numpy')
+            # assert package_is_installed(prefix, 'numpy')   # removed per above comment
             assert not package_is_installed(prefix, 'nomkl')
-            assert package_is_installed(prefix, 'mkl')
+            # assert package_is_installed(prefix, 'mkl')  # removed per above comment
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
-    @pytest.mark.skipif(on_win and datetime.now() <= datetime(2018, 9, 1), reason="conda-forge repodata needs vc patching")
+    @pytest.mark.skipif(on_win and datetime.now() <= datetime(2018, 10, 1), reason="conda-forge repodata needs vc patching")
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
@@ -832,9 +836,41 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'openssl')
             assert package_is_installed(prefix, 'itsdangerous')
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 1), reason="TODO")
+    def test_install_update_deps_flag(self):
+        with make_temp_env("flask==0.12 jinja2==2.8") as prefix:
+            assert package_is_installed(prefix, "python=3.6")
+            assert package_is_installed(prefix, "flask==0.12")
+            assert package_is_installed(prefix, "jinja2=2.8")
+
+            run_command(Commands.INSTALL, prefix, "flask --update-deps")
+            assert package_is_installed(prefix, "python=3.6")
+            assert package_is_installed(prefix, "flask>0.12")
+            assert package_is_installed(prefix, "jinja2>2.8")
+
+    def test_install_only_deps_flag(self):
+        with make_temp_env("flask==0.12 jinja2==2.8") as prefix:
+            assert package_is_installed(prefix, "python=3.6")
+            assert package_is_installed(prefix, "flask==0.12")
+            assert package_is_installed(prefix, "jinja2=2.8")
+
+            run_command(Commands.INSTALL, prefix, "flask --only-deps")
+            assert package_is_installed(prefix, "python=3.6")
+            assert package_is_installed(prefix, "flask==0.12")
+            assert package_is_installed(prefix, "jinja2=2.8")
+
+        with make_temp_env("flask==0.12 --only-deps") as prefix:
+            assert not package_is_installed(prefix, "flask")
+
     def test_install_update_deps_only_deps_flags(self):
-        raise NotImplementedError()
+        with make_temp_env("flask==0.12 jinja2==2.8") as prefix:
+            assert package_is_installed(prefix, "python=3.6")
+            assert package_is_installed(prefix, "flask==0.12")
+            assert package_is_installed(prefix, "jinja2=2.8")
+
+            run_command(Commands.INSTALL, prefix, "flask python=3.6 --update-deps --only-deps")
+            assert package_is_installed(prefix, "python=3.6")
+            assert package_is_installed(prefix, "flask==0.12")
+            assert package_is_installed(prefix, "jinja2>2.8")
 
     @pytest.mark.skipif(on_win, reason="tensorflow package used in test not available on Windows")
     def test_install_freeze_installed_flag(self):
@@ -844,21 +880,35 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix,
                             "conda-forge::tensorflow>=1.4 --dry-run --freeze-installed")
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15),
-                        reason="The nomkl patches have apparently broken this test.")
-    @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
+    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 9, 15),
+                       reason="need to talk with @msarahan about blas patches on Windows",
+                       strict=True)
     def test_install_features(self):
         with make_temp_env("python=2 numpy=1.13 nomkl") as prefix:
-            numpy_details = get_conda_list_tuple(prefix, "numpy")
-            assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
+            assert package_is_installed(prefix, "numpy")
+            assert package_is_installed(prefix, "nomkl")
+            assert not package_is_installed(prefix, "mkl")
+            numpy_prec = PrefixData(prefix).get("numpy")
+            assert "nomkl" in numpy_prec.build
 
         with make_temp_env("python=2 numpy=1.13") as prefix:
-            numpy_details = get_conda_list_tuple(prefix, "numpy")
-            assert len(numpy_details) == 3 or 'nomkl' not in numpy_details[3]
+            assert package_is_installed(prefix, "numpy")
+            assert not package_is_installed(prefix, "nomkl")
+            assert package_is_installed(prefix, "mkl")
+            numpy_prec = PrefixData(prefix).get("numpy")
+            assert "nomkl" not in numpy_prec.build
 
             run_command(Commands.INSTALL, prefix, "nomkl")
-            numpy_details = get_conda_list_tuple(prefix, "numpy")
-            assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
+            assert package_is_installed(prefix, "numpy")
+            assert package_is_installed(prefix, "nomkl")
+            assert package_is_installed(prefix, "mkl")  # it's fine for mkl to still be here I guess
+            numpy_prec = PrefixData(prefix).get("numpy")
+            assert "nomkl" in numpy_prec.build
+
+            run_command(Commands.INSTALL, prefix, "nomkl --prune")
+            assert not package_is_installed(prefix, "mkl")
+            assert not package_is_installed(prefix, "mkl_fft")
+            assert not package_is_installed(prefix, "mkl_random")
 
     def test_clone_offline_simple(self):
         with make_temp_env("python flask=0.10.1") as prefix:
@@ -1262,7 +1312,7 @@ class IntegrationTests(TestCase):
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 1), reason="TODO")
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
     def test_conda_pip_interop_pip_clobbers_conda(self):
         # 1. conda install old six
         # 2. pip install -U six
@@ -1270,16 +1320,16 @@ class IntegrationTests(TestCase):
         # 4. probably need to purge something with the history file too?
         assert False
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 1), reason="TODO")
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
     def test_conda_pip_interop_conda_updates_pip_package(self):
         assert False
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 1), reason="TODO")
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
     def gittest_conda_pip_interop_conda_doesnt_update_ancient_distutils_package(self):
         # probably easiest just to use a conda package and remove the conda-meta record
         assert False
 
-    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 1), reason="TODO")
+    @pytest.mark.skipif(datetime.now() < datetime(2018, 9, 15), reason="TODO")
     def test_conda_pip_interop_conda_doesnt_update_editable_package(self):
         assert False
 

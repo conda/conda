@@ -12,12 +12,8 @@ import sys
 from tempfile import NamedTemporaryFile
 
 from . import CONDA_PACKAGE_ROOT, CondaError
+from ._vendor.toolz import concatv, drop
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
-
-try:
-    from cytoolz.itertoolz import concatv, drop
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concatv, drop  # NOQA
 
 
 class _Activator(object):

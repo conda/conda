@@ -897,8 +897,8 @@ def minimal_unsatisfiable_subset(clauses, sat):
         Split S into two equal parts
         """
         S = tuple(S)
-        L = len(S)
-        return S[:L//2], S[L//2:]
+        L = len(S)//2
+        return S[:L], S[L:]
 
     def minimal_unsat(clauses, include=()):
         """
@@ -907,8 +907,6 @@ def minimal_unsatisfiable_subset(clauses, sat):
 
         Implicitly assumes that clauses + include is unsatisfiable.
         """
-        global L, d
-
         # assert not sat(clauses + include), (len(clauses), len(include))
 
         # Base case: Since clauses + include is implicitly assumed to be
@@ -921,22 +919,14 @@ def minimal_unsatisfiable_subset(clauses, sat):
 
         # If one half is unsatisfiable (with include), we can discard the
         # other half.
-
-        # To display progress, every time we discard clauses, we update the
-        # progress by that much.
         if not sat(A + include):
-            d += len(B)
             return minimal_unsat(A, include)
         if not sat(B + include):
-            d += len(A)
             return minimal_unsat(B, include)
 
         Astar = minimal_unsat(A, B + include)
         Bstar = minimal_unsat(B, Astar + include)
         return Astar + Bstar
 
-    global L, d
-    L = len(clauses)
-    d = 0
     ret = minimal_unsat(clauses)
     return ret

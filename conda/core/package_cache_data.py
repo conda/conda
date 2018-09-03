@@ -14,6 +14,7 @@ from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.decorators import memoizemethod
+from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, string_types,
@@ -33,11 +34,6 @@ from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
 from ..utils import human_bytes
-
-try:
-    from cytoolz.itertoolz import concat, concatv, groupby
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 log = getLogger(__name__)
 

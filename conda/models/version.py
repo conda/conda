@@ -6,13 +6,9 @@ from logging import getLogger
 import operator as op
 import re
 
+from .._vendor.toolz import excepts
 from ..common.compat import string_types, zip, zip_longest, text_type, with_metaclass
 from ..exceptions import CondaValueError, InvalidVersionSpecError
-
-try:
-    from cytoolz.functoolz import excepts
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.functoolz import excepts
 
 log = getLogger(__name__)
 
@@ -249,8 +245,7 @@ class VersionOrder(object):
         return True
 
     def __eq__(self, other):
-        return (self._eq(self.version, other.version) and
-                self._eq(self.local, other.local))
+        return self._eq(self.version, other.version) and self._eq(self.local, other.local)
 
     def startswith(self, other):
         # Tests if the version lists match up to the last element in "other".
@@ -484,7 +479,7 @@ class BaseSpec(object):
 
 
 @with_metaclass(SingleStrArgCachingType)
-class VersionSpec(BaseSpec):
+class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
     _cache_ = {}
 
     def __init__(self, vspec):
@@ -566,7 +561,7 @@ VersionMatch = VersionSpec
 
 
 @with_metaclass(SingleStrArgCachingType)
-class BuildNumberMatch(BaseSpec):
+class BuildNumberMatch(BaseSpec):  # lgtm [py/missing-equals]
     _cache_ = {}
 
     def __init__(self, vspec):
