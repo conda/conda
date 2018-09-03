@@ -18,7 +18,8 @@ import sys
 import warnings
 
 from ..compat import PY2, StringIO, itervalues, odict, open, string_types
-from ..path import get_python_site_packages_short_path, pyc_path, win_path_ok
+from ..path import get_python_site_packages_short_path, pyc_path, win_path_ok, \
+    get_major_minor_version
 from ..._vendor.auxlib.decorators import memoizedproperty
 from ..._vendor.frozendict import frozendict
 from ..._vendor.toolz import concat, concatv, groupby
@@ -258,8 +259,9 @@ class PythonDistribution(object):
             files_set = set(record[0] for record in records)
 
             _pyc_path, _py_file_re = pyc_path, PY_FILE_RE
+            py_ver_mm = get_major_minor_version(python_version, with_dot=False)
             missing_pyc_files = (ff for ff in (
-                _pyc_path(f, python_version) for f in files_set if _py_file_re.match(f)
+                _pyc_path(f, py_ver_mm) for f in files_set if _py_file_re.match(f)
             ) if ff not in files_set)
             records = sorted(concatv(records, ((pf, None, None) for pf in missing_pyc_files)))
             return records

@@ -258,6 +258,13 @@ def read_python_record(prefix_path, anchor_file, python_version):
         ))
         files = tuple(p[0] for p in paths_tups)
 
+    elif isinstance(pydist, PythonEggLinkDistribution):
+        channel = Channel("<develop>")
+        build = "dev_0"
+        package_type = PackageType.VIRTUAL_PYTHON_EGG_LINK
+
+        paths_data, files = PathsData(paths_version=1, paths=()), ()
+
     elif isinstance(pydist, PythonEggInfoDistribution):
         channel = Channel("pypi")
         build = "pypi_0"
@@ -273,12 +280,6 @@ def read_python_record(prefix_path, anchor_file, python_version):
             package_type = PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
             paths_data, files = PathsData(paths_version=1, paths=()), ()
 
-    elif isinstance(pydist, PythonEggLinkDistribution):
-        channel = Channel("<develop>")
-        build = "dev_0"
-        package_type = PackageType.VIRTUAL_PYTHON_EGG_LINK
-
-        paths_data, files = PathsData(paths_version=1, paths=()), ()
     else:
         raise NotImplementedError()
 
