@@ -4,27 +4,27 @@
 """Test for python distribution information and metadata handling."""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.exceptions import PathNotFoundError
 from contextlib import contextmanager
 from datetime import datetime
 import os
-from os.path import dirname, isdir, basename
+from os.path import basename, dirname, isdir, join
 from pprint import pprint
 import tempfile
 
-from conda.common.compat import odict, on_win
-from conda.common.serialize import json_dump, json_load
-from conda.common.url import join
-from conda.core.prefix_data import PrefixData
-from conda.core import python_dist as pd
-from conda.core.python_dist import get_python_records
-
 import pytest
-
 from test_data.env_metadata import (
     METADATA_VERSION_PATHS, PATH_TEST_ENV_1, PATH_TEST_ENV_2, PATH_TEST_ENV_3, PATH_TEST_ENV_4,
     __file__ as env_metadata_file,
 )
+
+from conda.common.compat import odict, on_win
+from conda.common.path import get_python_site_packages_short_path, win_path_ok
+from conda.common.serialize import json_dump, json_load
+from conda.common.url import join_url
+from conda.core import python_dist as pd
+from conda.core.prefix_data import PrefixData
+from conda.core.python_dist import get_python_records
+from conda.exceptions import PathNotFoundError
 
 ENV_METADATA_DIR = dirname(env_metadata_file)
 
@@ -538,10 +538,12 @@ def test_dist_get_paths():
     content = 'foo/bar,sha256=1,"45"\nfoo/spam,,\n'
     temp_path, fpaths = _create_test_files((('', 'SOURCES.txt', content), ))
 
+    sp_dir = get_python_site_packages_short_path("2.7")
+
     dist = pd.PythonEggInfoDistribution(temp_path, "2.7", None)
     output = dist._get_paths()
-    expected_output = [('lib/python2.7/site-packages/foo/bar', '1', 45),
-                       ('lib/python2.7/site-packages/foo/spam', None, None)]
+    expected_output = [(join_url(sp_dir, "foo", "bar"), '1', 45),
+                       (join_url(sp_dir, "foo", "spam"), None, None)]
     _print_output(output, expected_output)
     assert output == expected_output
 
@@ -851,24 +853,25 @@ def test_scrapy_py36_osx_whl():
     }
     print(json_dump(files))
     print(json_dump(paths_data["paths"]))
-    assert "lib/python3.6/site-packages/scrapy/core/scraper.py" in files
-    assert "lib/python3.6/site-packages/scrapy/core/__pycache__/scraper.cpython-36.pyc" in files
+    sp_dir = get_python_site_packages_short_path("3.6")
+    assert sp_dir + "/scrapy/core/scraper.py" in files
+    assert sp_dir + "/scrapy/core/__pycache__/scraper.cpython-36.pyc" in files
     pd1 = {
-        "_path": "lib/python3.6/site-packages/scrapy/core/scraper.py",
+        "_path": sp_dir + "/scrapy/core/scraper.py",
         "path_type": "hardlink",
         "sha256": "2559X9n2z1YKdFV9ElMRD6_88LIdqH1a2UwQimStt2k",
         "size_in_bytes": 9960
     }
     assert pd1 in paths_data["paths"]
     pd2 = {
-        "_path": "lib/python3.6/site-packages/scrapy/core/__pycache__/scraper.cpython-36.pyc",
+        "_path": sp_dir + "/scrapy/core/__pycache__/scraper.cpython-36.pyc",
         "path_type": "hardlink",
         "sha256": None,
         "size_in_bytes": None
     }
     assert pd2 in paths_data["paths"]
     pd3 = {
-        "_path": "bin/scrapy",
+        "_path": "../bin/scrapy" if on_win else "bin/scrapy",
         "path_type": "hardlink",
         "sha256": "RncAAoxSEnSi_0VIopaRxsq6kryQGL61YbEweN2TW3g",
         "size_in_bytes": 268
@@ -914,17 +917,18 @@ def test_twilio_py36_osx_whl():
     }
     print(json_dump(files))
     print(json_dump(paths_data["paths"]))
-    assert "lib/python3.6/site-packages/twilio/compat.py" in files
-    assert "lib/python3.6/site-packages/twilio/__pycache__/compat.cpython-36.pyc" in files
+    sp_dir = get_python_site_packages_short_path("3.6")
+    assert sp_dir + "/twilio/compat.py" in files
+    assert sp_dir + "/twilio/__pycache__/compat.cpython-36.pyc" in files
     pd1 = {
-        "_path": "lib/python3.6/site-packages/twilio/compat.py",
+        "_path": sp_dir + "/twilio/compat.py",
         "path_type": "hardlink",
         "sha256": "sJ1t7CKvxpipiX5cyH1YwXTf3n_FsLf_taUhuCVsCwE",
         "size_in_bytes": 517
     }
     assert pd1 in paths_data["paths"]
     pd2 = {
-        "_path": "lib/python3.6/site-packages/twilio/jwt/__pycache__/compat.cpython-36.pyc",
+        "_path": sp_dir + "/twilio/jwt/__pycache__/compat.cpython-36.pyc",
         "path_type": "hardlink",
         "sha256": None,
         "size_in_bytes": None
@@ -966,17 +970,18 @@ def test_pyjwt_py36_osx_whl():
     }
     print(json_dump(files))
     print(json_dump(paths_data["paths"]))
-    assert 'bin/pyjwt' in files
-    assert 'lib/python3.6/site-packages/jwt/__pycache__/__init__.cpython-36.pyc' in files
+    sp_dir = get_python_site_packages_short_path("3.6")
+    assert ("../bin/pyjwt" if on_win else "bin/pyjwt") in files
+    assert sp_dir + '/jwt/__pycache__/__init__.cpython-36.pyc' in files
     pd1 = {
-        "_path": "bin/pyjwt",
+        "_path": "../bin/pyjwt" if on_win else "bin/pyjwt",
         "path_type": "hardlink",
         "sha256": "wZET_24uZDEpsMdhAQ78Ass2k-76aQ59yPSE4DTE2To",
         "size_in_bytes": 260
     }
     assert pd1 in paths_data["paths"]
     pd2 = {
-        "_path": "lib/python3.6/site-packages/jwt/contrib/__pycache__/__init__.cpython-36.pyc",
+        "_path": sp_dir + "/jwt/contrib/__pycache__/__init__.cpython-36.pyc",
         "path_type": "hardlink",
         "sha256": None,
         "size_in_bytes": None
@@ -999,31 +1004,44 @@ def test_cherrypy_py36_osx_whl():
     files = dumped_rec.pop("files")
     paths_data = dumped_rec.pop("paths_data")
     print(json_dump(dumped_rec))
+    constrains = dumped_rec.pop("constrains")
+    depends = dumped_rec.pop("depends")
     assert dumped_rec == {
         "build": "pypi_0",
         "build_number": 0,
         "channel": "https://conda.anaconda.org/pypi",
-        "constrains": [
-            "jaraco-packaging >=3.2",
-            # "pypiwin32 ==219",
-            "pytest >=2.8",
-            "python-memcached >=1.58",
-            "routes >=2.3.1",
-            "rst-linker >=1.9"
-        ],
-        "depends": [
-            "cheroot >=6.2.4",
-            "more-itertools",
-            "portend >=2.1.1",
-            "python 3.6.*",
-            "six >=1.11.0"
-        ],
         "fn": "CherryPy-17.2.0.dist-info",
         "name": "cherrypy",
         "package_type": "virtual_python_wheel",
         "subdir": "pypi",
         "version": "17.2.0"
     }
+
+    assert constrains == [
+        "jaraco-packaging >=3.2",
+        # "pypiwin32 ==219",
+        "pytest >=2.8",
+        "python-memcached >=1.58",
+        "routes >=2.3.1",
+        "rst-linker >=1.9"
+    ]
+    if on_win:
+        assert depends == [
+            "cheroot >=6.2.4",
+            "more-itertools",
+            "portend >=2.1.1",
+            "python 3.6.*",
+            "pywin32",
+            "six >=1.11.0"
+        ]
+    else:
+        assert depends == [
+            "cheroot >=6.2.4",
+            "more-itertools",
+            "portend >=2.1.1",
+            "python 3.6.*",
+            "six >=1.11.0"
+        ]
 
 
 def test_scrapy_py27_osx_no_binary():
@@ -1067,21 +1085,22 @@ def test_scrapy_py27_osx_no_binary():
     }
     print(json_dump(files))
     print(json_dump(paths_data["paths"]))
-    assert "lib/python2.7/site-packages/scrapy/contrib/downloadermiddleware/decompression.py" in files
-    assert "lib/python2.7/site-packages/scrapy/downloadermiddlewares/decompression.pyc" in files
-    assert "bin/scrapy" in files
+    sp_dir = get_python_site_packages_short_path("3.6")
+    assert sp_dir + "/scrapy/contrib/downloadermiddleware/decompression.py" in files
+    assert sp_dir + "/scrapy/downloadermiddlewares/decompression.pyc" in files
+    assert ("../bin/scrapy" if on_win else "bin/scrapy") in files
     pd1 = {
-        "_path": "lib/python2.7/site-packages/scrapy/contrib/downloadermiddleware/decompression.py",
+        "_path": sp_dir + "/scrapy/contrib/downloadermiddleware/decompression.py",
         "path_type": "hardlink"
     }
     assert pd1 in paths_data["paths"]
     pd2 = {
-        "_path": "lib/python2.7/site-packages/scrapy/contrib/downloadermiddleware/decompression.pyc",
+        "_path": sp_dir + "/scrapy/contrib/downloadermiddleware/decompression.pyc",
         "path_type": "hardlink"
     }
     assert pd2 in paths_data["paths"]
     pd3 = {
-        "_path": "bin/scrapy",
+        "_path": "../bin/scrapy" if on_win else "bin/scrapy",
         "path_type": "hardlink"
     }
     assert pd3 in paths_data["paths"]
@@ -1124,15 +1143,16 @@ def test_twilio_py27_osx_no_binary():
     }
     print(json_dump(files))
     print(json_dump(paths_data["paths"]))
-    assert "lib/python2.7/site-packages/twilio/compat.py" in files
-    assert "lib/python2.7/site-packages/twilio/compat.pyc" in files
+    sp_dir = get_python_site_packages_short_path("2.7")
+    assert sp_dir + "/twilio/compat.py" in files
+    assert sp_dir + "/twilio/compat.pyc" in files
     pd1 = {
-        "_path": "lib/python2.7/site-packages/twilio/compat.py",
+        "_path": sp_dir + "/twilio/compat.py",
         "path_type": "hardlink"
     }
     assert pd1 in paths_data["paths"]
     pd2 = {
-        "_path": "lib/python2.7/site-packages/twilio/jwt/compat.pyc",
+        "_path": sp_dir + "/twilio/jwt/compat.pyc",
         "path_type": "hardlink"
     }
     assert pd2 in paths_data["paths"]
@@ -1172,15 +1192,16 @@ def test_pyjwt_py27_osx_no_binary():
     }
     print(json_dump(files))
     print(json_dump(paths_data["paths"]))
-    assert 'bin/pyjwt' in files
-    assert 'lib/python2.7/site-packages/jwt/__init__.pyc' in files
+    sp_dir = get_python_site_packages_short_path("2.7")
+    assert ('../bin/pyjwt' if on_win else 'bin/pyjwt') in files
+    assert sp_dir + '/jwt/__init__.pyc' in files
     pd1 = {
-        "_path": "bin/pyjwt",
+        "_path": "../bin/pyjwt" if on_win else "bin/pyjwt",
         "path_type": "hardlink"
     }
     assert pd1 in paths_data["paths"]
     pd2 = {
-        "_path": "lib/python2.7/site-packages/jwt/contrib/__init__.pyc",
+        "_path": sp_dir + "/jwt/contrib/__init__.pyc",
         "path_type": "hardlink"
     }
     assert pd2 in paths_data["paths"]
@@ -1201,30 +1222,42 @@ def test_cherrypy_py27_osx_no_binary():
     files = dumped_rec.pop("files")
     paths_data = dumped_rec.pop("paths_data")
     print(json_dump(dumped_rec))
+    constrains = dumped_rec.pop("constrains")
+    depends = dumped_rec.pop("depends")
     assert dumped_rec == {
         "build": "pypi_0",
         "build_number": 0,
         "channel": "https://conda.anaconda.org/pypi",
-        "constrains": [
-            "jaraco-packaging >=3.2",
-            "pytest >=2.8",
-            "python-memcached >=1.58",
-            "routes >=2.3.1",
-            "rst-linker >=1.9"
-        ],
-        "depends": [
-            "cheroot >=6.2.4",
-            "more-itertools",
-            "portend >=2.1.1",
-            "python 2.7.*",
-            "six >=1.11.0"
-        ],
         "fn": "CherryPy-17.2.0-py2.7.egg-info",
         "name": "cherrypy",
         "package_type": "virtual_python_egg_manageable",
         "subdir": "pypi",
         "version": "17.2.0"
     }
+    assert constrains == [
+        "jaraco-packaging >=3.2",
+        "pytest >=2.8",
+        "python-memcached >=1.58",
+        "routes >=2.3.1",
+        "rst-linker >=1.9"
+    ]
+    if on_win:
+        assert depends == [
+            "cheroot >=6.2.4",
+            "more-itertools",
+            "portend >=2.1.1",
+            "python 2.7.*",
+            "pywin32",
+            "six >=1.11.0"
+        ]
+    else:
+        assert depends == [
+            "cheroot >=6.2.4",
+            "more-itertools",
+            "portend >=2.1.1",
+            "python 2.7.*",
+            "six >=1.11.0"
+        ]
 
 
 def test_six_py27_osx_no_binary_unmanageable():

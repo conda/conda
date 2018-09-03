@@ -9,7 +9,8 @@ from email.parser import HeaderParser
 from fnmatch import filter as fnmatch_filter
 from logging import getLogger
 from os import listdir
-from os.path import basename, dirname, isdir, isfile, join, lexists, normpath
+from os.path import basename, dirname, isdir, isfile, join, lexists
+from posixpath import normpath as posix_normpath
 import re
 import warnings
 
@@ -610,7 +611,7 @@ class BasePythonDistribution(object):
                 path_prepender = ""
 
             def process_csv_row(row):
-                cleaned_path = normpath("%s%s%s" % (sp_dir, path_prepender, row[0]))
+                cleaned_path = posix_normpath("%s%s%s" % (sp_dir, path_prepender, row[0]))
                 if len(row) == 3:
                     checksum, size = row[1:]
                     if checksum:
