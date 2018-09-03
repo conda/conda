@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from os.path import join
+from os.path import join, isdir
 from pprint import pprint
 import unittest
 
@@ -166,6 +166,8 @@ def test_get_reduced_index_unmanageable():
     index = index.copy()
     channels = r.channels
     prefix_path = join(TEST_DATA_DIR, "env_metadata", "envpy27osx")
+    if not isdir(prefix_path):
+        pytest.skip("test files not found: %s" % prefix_path)
     anchor_file = "lib/python2.7/site-packages/requests-2.19.1-py2.7.egg/EGG-INFO/PKG-INFO"
     py_rec = get_python_record(prefix_path, anchor_file, "2.7")
     assert py_rec.package_type == PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE

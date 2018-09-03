@@ -7,7 +7,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from contextlib import contextmanager
 from datetime import datetime
 import os
-from os.path import basename, dirname, isdir, join
+from os.path import basename, dirname, isdir, join, lexists
 from pprint import pprint
 import tempfile
 
@@ -446,6 +446,8 @@ def test_metadata():
 
     # Check versions
     for fpath in METADATA_VERSION_PATHS:
+        if not lexists(fpath):
+            pytest.skip("test files not found: %s" % fpath)
         meta = PythonDistributionMetadata(fpath)
         a = meta.get_dist_requirements()
         b = meta.get_python_requirements()
