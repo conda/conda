@@ -1313,6 +1313,7 @@ class IntegrationTests(TestCase):
             assert json_obj['exception_name'] == 'PackagesNotFoundError'
             assert not len(json_obj.keys()) == 0
 
+    @pytest.mark.skipif(context.subdir == "win-32", reason="metadata is wrong; give python2.7")
     def test_conda_pip_interop_pip_clobbers_conda(self):
         # 1. conda install old six
         # 2. pip install -U six

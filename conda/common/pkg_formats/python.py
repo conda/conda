@@ -18,8 +18,9 @@ import sys
 import warnings
 
 from ..compat import PY2, StringIO, itervalues, odict, open, string_types
-from ..path import get_python_site_packages_short_path, pyc_path, win_path_ok, \
-    get_major_minor_version
+from ..path import (
+    get_python_site_packages_short_path, pyc_path, win_path_ok, get_major_minor_version,
+)
 from ..._vendor.auxlib.decorators import memoizedproperty
 from ..._vendor.frozendict import frozendict
 from ..._vendor.toolz import concat, concatv, groupby
@@ -892,11 +893,17 @@ def get_dist_file_from_egg_link(egg_link_file, prefix_path):
     """
     egg_info_full_path = None
 
-    with open(join(prefix_path, win_path_ok(egg_link_file))) as fh:
-        # See: https://setuptools.readthedocs.io/en/latest/formats.html#egg-links
-        # "...Each egg-link file should contain a single file or directory name
-        # with no newlines..."
-        egg_link_contents = fh.readlines()[0].strip()
+    egg_link_path = join(prefix_path, win_path_ok(egg_link_file))
+    try:
+        with open(egg_link_path) as fh:
+            # See: https://setuptools.readthedocs.io/en/latest/formats.html#egg-links
+            # "...Each egg-link file should contain a single file or directory name
+            # with no newlines..."
+            egg_link_contents = fh.readlines()[0].strip()
+    except UnicodeDecodeError:
+        from locale import getpreferredencoding
+        with open(egg_link_path, encoding=getpreferredencoding()) as fh:
+            egg_link_contents = fh.readlines()[0].strip()
 
     if lexists(egg_link_contents):
         egg_info_fnames = fnmatch_filter(listdir(egg_link_contents), '*.egg-info')
