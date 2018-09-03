@@ -39,6 +39,13 @@
 * resolve #7591 updates and improvements from namespace PR for 4.6 (#7599)
 * resolve #7592 compatibility shims (#7606)
 * user-agent context refactor (#7630)
+* solver performance improvements with benchmarks in common.logic (#7676)
+* enable fuzzy-not-equal version constraint for pip interop (#7711)
+* add -d short option for --dry-run (#7719)
+* add --force-pkgs-dirs option to conda clean (#7719)
+* address #7709 ensure --update-deps unlocks specs from previous user requests (#7719)
+* add package timestamp information to output of 'conda search --info' (#7722)
+* resolve #7336 'conda search' tries "fuzzy match" before showing PackagesNotFound (#7722)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
@@ -57,6 +64,7 @@
 * fix #3982 following 4.4 activation refactor (#7607)
 * fix #7242 configuration load error message (#7243)
 * fix conda env compatibility with pip 18 (#7612)
+* fix #7184 remove conflicting specs to find solution to user's active request (#7719)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
@@ -68,6 +76,7 @@
 * fix windows test failures when symlink not available (#7369)
 * test building conda using conda-build (#7251)
 * solver test metadata updates (#7664)
+* explicitly add Mapping, Sequence to common.compat (#7677)
 
 ### Preview Releases
 
