@@ -735,13 +735,17 @@ class IntegrationTests(TestCase):
             assert_package_is_installed(prefix, 'nomkl')
             assert not package_is_installed(prefix, 'mkl')
 
+            # A consequence of discontinuing use of the 'features' key and instead
+            # using direct dependencies is that removing the feature means that
+            # packages associated with the track_features base package are completely removed
+            # and not replaced with equivalent non-variant packages as before.
             run_command(Commands.REMOVE, prefix, '--features', 'nomkl')
-            assert_package_is_installed(prefix, 'numpy')
+            # assert assert_package_is_installed(prefix, 'numpy')  # removed per above comment
             assert not package_is_installed(prefix, 'nomkl')
-            assert_package_is_installed(prefix, 'mkl')
+            # assert_package_is_installed(prefix, 'mkl')  # removed per above comment
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
-    @pytest.mark.skipif(on_win and datetime.now() <= datetime(2018, 9, 1), reason="conda-forge repodata needs vc patching")
+    @pytest.mark.skipif(on_win and datetime.now() <= datetime(2018, 10, 1), reason="conda-forge repodata needs vc patching")
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
@@ -801,19 +805,30 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'openssl')
             assert package_is_installed(prefix, 'itsdangerous')
 
-    @pytest.mark.skipif(on_win, reason="mkl package not available on Windows")
+    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 9, 15),
+                       reason="need to talk with @msarahan about blas patches on Windows",
+                       strict=True)
     def test_install_features(self):
         with make_temp_env("python=2 numpy=1.13 nomkl") as prefix:
-            numpy_details = get_conda_list_tuple(prefix, "numpy")
-            assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
+            assert package_is_installed(prefix, "numpy")
+            assert package_is_installed(prefix, "nomkl")
+            assert not package_is_installed(prefix, "mkl")
+            numpy_prec = PrefixData(prefix).get("numpy")
+            assert "nomkl" in numpy_prec.build
 
         with make_temp_env("python=2 numpy=1.13") as prefix:
-            numpy_details = get_conda_list_tuple(prefix, "numpy")
-            assert len(numpy_details) == 3 or 'nomkl' not in numpy_details[3]
+            assert package_is_installed(prefix, "numpy")
+            assert not package_is_installed(prefix, "nomkl")
+            assert package_is_installed(prefix, "mkl")
+            numpy_prec = PrefixData(prefix).get("numpy")
+            assert "nomkl" not in numpy_prec.build
 
             run_command(Commands.INSTALL, prefix, "nomkl")
-            numpy_details = get_conda_list_tuple(prefix, "numpy")
-            assert len(numpy_details) == 4 and 'nomkl' in numpy_details[3]
+            assert package_is_installed(prefix, "numpy")
+            assert package_is_installed(prefix, "nomkl")
+            assert package_is_installed(prefix, "mkl")  # it's fine for mkl to still be here I guess
+            numpy_prec = PrefixData(prefix).get("numpy")
+            assert "nomkl" in numpy_prec.build
 
     def test_clone_offline_simple(self):
         with make_temp_env("python flask=0.10.1") as prefix:
