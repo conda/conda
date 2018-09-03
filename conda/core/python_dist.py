@@ -85,7 +85,7 @@ def get_python_record(prefix_path, anchor_file, python_version):
     """
     # TODO: ensure that this dist is actually the dist that matches conda-meta
     try:
-        pydist = get_python_distribution_info(prefix_path, anchor_file, python_version)
+        pydist = PythonDistribution.init(prefix_path, anchor_file, python_version)
         return pydist.prefix_record
     except PathNotFoundError as e:
         log.debug("%r", e)
@@ -455,7 +455,7 @@ class PythonDistributionMetadata(object):
 
 # Dist classes
 # -----------------------------------------------------------------------------
-class BasePythonDistribution(object):
+class PythonDistribution(object):
     """
     Base object describing a python distribution based on path to anchor file.
     """
@@ -467,7 +467,29 @@ class BasePythonDistribution(object):
     channel = Channel("pypi")
     build = "pypi_0"
 
+    @staticmethod
+    def init(prefix_path, anchor_file, python_version):
+        if anchor_file.endswith('.egg-link'):
+            return PythonEggLinkDistribution(prefix_path, anchor_file, python_version)
+        elif ".dist-info" in anchor_file:
+            return PythonInstalledDistribution(prefix_path, anchor_file, python_version)
+        elif anchor_file.endswith(".egg-info"):
+            anchor_full_path = join(prefix_path, win_path_ok(anchor_file))
+            sp_reference = basename(anchor_file)
+            return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+        elif ".egg-info" in anchor_file:
+            anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
+            sp_reference = basename(dirname(anchor_file))
+            return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+        elif ".egg" in anchor_file:
+            anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
+            sp_reference = basename(dirname(anchor_file))
+            return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+        else:
+            raise NotImplementedError()
+
     def __init__(self, anchor_full_path, python_version):
+        # Don't call PythonDistribution directly. Use the init() static method.
         self.anchor_full_path = anchor_full_path
         self.python_version = python_version
 
@@ -758,7 +780,7 @@ class BasePythonDistribution(object):
         )
 
 
-class PythonInstalledDistribution(BasePythonDistribution):
+class PythonInstalledDistribution(PythonDistribution):
     """
     Python distribution installed via distutils.
 
@@ -788,7 +810,7 @@ class PythonInstalledDistribution(BasePythonDistribution):
         return PathsData(paths_version=1, paths=paths_data), files
 
 
-class PythonEggInfoDistribution(BasePythonDistribution):
+class PythonEggInfoDistribution(PythonDistribution):
     """
     Python distribution installed via setuptools.
 
@@ -995,53 +1017,22 @@ def get_python_distribution_info(prefix_path, anchor_file, python_version):
 
     Return `None` if the information was not found (can happen with egg-links).
     """
-    if anchor_file.endswith('.egg-link'):
-        return PythonEggLinkDistribution(prefix_path, anchor_file, python_version)
-        # sp_reference = None
-        # # This can be None in case the egg-info is no longer there
-        # dist_file = get_dist_file_from_egg_link(anchor_file, prefix_path)
-        # dist_cls = PythonEggInfoDistribution
-        # package_type = PackageType.VIRTUAL_PYTHON_EGG_LINK
-    elif ".dist-info" in anchor_file:
-        return PythonInstalledDistribution(prefix_path, anchor_file, python_version)
-        # sp_reference = basename(dirname(anchor_file))
-        # dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
-        # dist_cls = PythonInstalledDistribution
-        # package_type = PackageType.VIRTUAL_PYTHON_WHEEL
-    elif anchor_file.endswith(".egg-info"):
-        anchor_full_path = join(prefix_path, win_path_ok(anchor_file))
-        sp_reference = basename(anchor_file)
-        return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
-        # sp_reference = basename(anchor_file)
-        # dist_cls = PythonEggInfoDistribution
-        # package_type = PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
-    elif ".egg-info" in anchor_file:
-        anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
-        sp_reference = basename(dirname(anchor_file))
-        return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
-        # sp_reference = basename(dirname(anchor_file))
-        # dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
-        # dist_cls = PythonEggInfoDistribution
-        # package_type = PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
-    elif ".egg" in anchor_file:
-        anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
-        sp_reference = basename(dirname(anchor_file))
-        return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
-        # sp_reference = basename(dirname(anchor_file))
-        # dist_file = join(prefix_path, win_path_ok(dirname(anchor_file)))
-        # dist_cls = PythonEggInfoDistribution
-        # package_type = PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
-    else:
-        raise NotImplementedError()
-
-    # pydist = None
-    #
-    # # An egg-link might reference a folder where egg-info is not available
-    # if dist_file is not None:
-    #     pydist = dist_cls(dist_file)
-    #     try:
-    #         pydist = dist_cls(dist_file)
-    #     except Exception as error:
-    #         print('ERROR!: get_python_distribution_info', error)
-    #
-    # return pydist, sp_reference, package_type
+    return PythonDistribution(prefix_path, anchor_file, python_version)
+    # if anchor_file.endswith('.egg-link'):
+    #     return PythonEggLinkDistribution(prefix_path, anchor_file, python_version)
+    # elif ".dist-info" in anchor_file:
+    #     return PythonInstalledDistribution(prefix_path, anchor_file, python_version)
+    # elif anchor_file.endswith(".egg-info"):
+    #     anchor_full_path = join(prefix_path, win_path_ok(anchor_file))
+    #     sp_reference = basename(anchor_file)
+    #     return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+    # elif ".egg-info" in anchor_file:
+    #     anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
+    #     sp_reference = basename(dirname(anchor_file))
+    #     return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+    # elif ".egg" in anchor_file:
+    #     anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
+    #     sp_reference = basename(dirname(anchor_file))
+    #     return PythonEggInfoDistribution(anchor_full_path, python_version, sp_reference)
+    # else:
+    #     raise NotImplementedError()

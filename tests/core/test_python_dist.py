@@ -18,12 +18,17 @@ from test_data.env_metadata import (
 )
 
 from conda.common.compat import odict, on_win
-from conda.common.path import get_python_site_packages_short_path, win_path_ok
+from conda.common.path import get_python_site_packages_short_path
 from conda.common.serialize import json_dump, json_load
 from conda.common.url import join_url
-from conda.core import python_dist as pd
 from conda.core.prefix_data import PrefixData
-from conda.core.python_dist import get_python_records
+from conda.core.python_dist import (
+    MetadataWarning, PySpec, PythonDistribution, PythonDistributionMetadata,
+    PythonEggInfoDistribution, PythonInstalledDistribution, get_conda_anchor_files_and_records,
+    get_dist_file_from_egg_link, get_python_records, get_site_packages_anchor_files,
+    norm_package_name, norm_package_version, parse_specification, pypi_name_to_conda_name,
+    split_spec
+)
 from conda.exceptions import PathNotFoundError
 
 ENV_METADATA_DIR = dirname(env_metadata_file)
@@ -102,7 +107,7 @@ def test_norm_package_name():
         ('zope.interface', 'zope-interface'),
     )
     for (name, expected_name) in test_names:
-        parsed_name = pd.norm_package_name(name)
+        parsed_name = norm_package_name(name)
         _print_output(name, parsed_name, expected_name)
         assert parsed_name == expected_name
 
@@ -114,7 +119,7 @@ def test_pypi_name_to_conda_name():
         ('graphviz', 'python-graphviz'),
     )
     for (name, expected_name) in test_cases:
-        parsed_name = pd.pypi_name_to_conda_name(name)
+        parsed_name = pypi_name_to_conda_name(name)
         _print_output(name, parsed_name, expected_name)
         assert parsed_name == expected_name
 
@@ -131,7 +136,7 @@ def test_norm_package_version():
         (' (>=2, <3) ', '>=2,<3'),
     )
     for (version, expected_version) in test_cases:
-        parsed_version = pd.norm_package_version(version)
+        parsed_version = norm_package_version(version)
         _print_output(version, parsed_version, expected_version)
         assert parsed_version == expected_version
 
@@ -148,7 +153,7 @@ def test_split_spec():
         (' start @ end ', '@', ('start', 'end')),
     )
     for spec, sep, expected_output in test_cases:
-        output = pd.split_spec(spec, sep)
+        output = split_spec(spec, sep)
         _print_output(spec, output, expected_output)
         assert output == expected_output
 
@@ -156,84 +161,84 @@ def test_split_spec():
 def test_parse_specification():
     test_reqs = {
         '':
-            pd.PySpec('', [], '', '', ''),
+            PySpec('', [], '', '', ''),
         'requests':
-            pd.PySpec('requests', [], '', '', ''),
+            PySpec('requests', [], '', '', ''),
         'requests >1.1':
-            pd.PySpec('requests', [], '>1.1', '', ''),
+            PySpec('requests', [], '>1.1', '', ''),
         'requests[security]':
-            pd.PySpec('requests', ['security'], '', '', ''),
+            PySpec('requests', ['security'], '', '', ''),
         'requests[security] (>=1.1.0)':
-            pd.PySpec('requests', ['security'], '>=1.1.0', '', ''),
+            PySpec('requests', ['security'], '>=1.1.0', '', ''),
         'requests[security]>=1.5.0':
-            pd.PySpec('requests', ['security'], '>=1.5.0', '', ''),
+            PySpec('requests', ['security'], '>=1.5.0', '', ''),
         'requests[security] (>=4.5.0) ; something >= 27':
-            pd.PySpec('requests', ['security'], '>=4.5.0', 'something >= 27', ''),
+            PySpec('requests', ['security'], '>=4.5.0', 'something >= 27', ''),
         'requests[security]>=3.3.0;something >= 2.7 ':
-            pd.PySpec('requests', ['security'], '>=3.3.0', 'something >= 2.7', ''),
+            PySpec('requests', ['security'], '>=3.3.0', 'something >= 2.7', ''),
         'requests[security]>=3.3.0;something >= 2.7 or something_else == 1':
-            pd.PySpec('requests', ['security'], '>=3.3.0', 'something >= 2.7 or something_else == 1', ''),
+            PySpec('requests', ['security'], '>=3.3.0', 'something >= 2.7 or something_else == 1', ''),
         'requests[security] >=3.3.0 ; something >= 2.7 or something_else == 1':
-            pd.PySpec('requests', ['security'], '>=3.3.0', 'something >= 2.7 or something_else == 1', ''),
+            PySpec('requests', ['security'], '>=3.3.0', 'something >= 2.7 or something_else == 1', ''),
         'requests[security] (>=3.3.0) ; something >= 2.7 or something_else == 1':
-            pd.PySpec('requests', ['security'], '>=3.3.0', 'something >= 2.7 or something_else == 1', ''),
+            PySpec('requests', ['security'], '>=3.3.0', 'something >= 2.7 or something_else == 1', ''),
         'requests[security] (>=3.3.0<4.4) ; something >= 2.7 or something_else == 1':
-            pd.PySpec('requests', ['security'], '>=3.3.0<4.4', 'something >= 2.7 or something_else == 1', ''),
+            PySpec('requests', ['security'], '>=3.3.0<4.4', 'something >= 2.7 or something_else == 1', ''),
         'pyOpenSSL>=0.14':
-            pd.PySpec('pyopenssl', [], '>=0.14', '', ''),
+            PySpec('pyopenssl', [], '>=0.14', '', ''),
         'py.OpenSSL>=0.14':
-            pd.PySpec('py-openssl', [], '>=0.14', '', ''),
+            PySpec('py-openssl', [], '>=0.14', '', ''),
         'py-OpenSSL>=0.14':
-            pd.PySpec('py-openssl', [], '>=0.14', '', ''),
+            PySpec('py-openssl', [], '>=0.14', '', ''),
         'py_OpenSSL>=0.14':
-            pd.PySpec('py-openssl', [], '>=0.14', '', ''),
+            PySpec('py-openssl', [], '>=0.14', '', ''),
         'zope.interface (>3.5.0)':
-            pd.PySpec('zope-interface', [], '>3.5.0', '', ''),
+            PySpec('zope-interface', [], '>3.5.0', '', ''),
         "A":
-            pd.PySpec('a', [], '', '', ''),
+            PySpec('a', [], '', '', ''),
         "A.B-C_D":
-            pd.PySpec('a-b-c-d', [], '', '', ''),
+            PySpec('a-b-c-d', [], '', '', ''),
         "aa":
-            pd.PySpec('aa', [], '', '', ''),
+            PySpec('aa', [], '', '', ''),
         "name":
-            pd.PySpec('name', [], '', '', ''),
+            PySpec('name', [], '', '', ''),
         "name<=1":
-            pd.PySpec('name', [], '<=1', '', ''),
+            PySpec('name', [], '<=1', '', ''),
         "name>=3":
-            pd.PySpec('name', [], '>=3', '', ''),
+            PySpec('name', [], '>=3', '', ''),
         "name>=3,<2":
-            pd.PySpec('name', [], '>=3,<2', '', ''),
+            PySpec('name', [], '>=3,<2', '', ''),
         " name ( >= 3,  < 2 ) ":
-            pd.PySpec('name', [], '>=3,<2', '', ''),
+            PySpec('name', [], '>=3,<2', '', ''),
         "name@http://foo.com":
-            pd.PySpec('name', [], '', '', 'http://foo.com'),
+            PySpec('name', [], '', '', 'http://foo.com'),
         " name [ fred , bar ] ( >= 3 , < 2 ) ":
-            pd.PySpec('name', ['fred', 'bar'], '>=3,<2', '', ''),
+            PySpec('name', ['fred', 'bar'], '>=3,<2', '', ''),
         " name [fred,bar] ( >= 3 , < 2 )  @  http://foo.com ; python_version=='2.7' ":
-            pd.PySpec('name', ['fred', 'bar'], '>=3,<2', "python_version=='2.7'", 'http://foo.com'),
+            PySpec('name', ['fred', 'bar'], '>=3,<2', "python_version=='2.7'", 'http://foo.com'),
         " name [fred,bar] @ http://foo.com ; python_version=='2.7' ":
-            pd.PySpec('name', ['fred', 'bar'], '', "python_version=='2.7'", 'http://foo.com'),
+            PySpec('name', ['fred', 'bar'], '', "python_version=='2.7'", 'http://foo.com'),
         "name[quux, strange];python_version<'2.7' and platform_version=='2'":
-            pd.PySpec('name', ['quux', 'strange'], '', "python_version<'2.7' and platform_version=='2'", ''),
+            PySpec('name', ['quux', 'strange'], '', "python_version<'2.7' and platform_version=='2'", ''),
         "name; os_name=='a' or os_name=='b'":
-            pd.PySpec('name', [], '', "os_name=='a' or os_name=='b'", ''),
+            PySpec('name', [], '', "os_name=='a' or os_name=='b'", ''),
         "name; os_name=='a' and os_name=='b' or os_name=='c'":
-            pd.PySpec('name', [], '', "os_name=='a' and os_name=='b' or os_name=='c'", ''),
+            PySpec('name', [], '', "os_name=='a' and os_name=='b' or os_name=='c'", ''),
         "name; os_name=='a' and (os_name=='b' or os_name=='c')":
-            pd.PySpec('name', [], '', "os_name=='a' and (os_name=='b' or os_name=='c')", ''),
+            PySpec('name', [], '', "os_name=='a' and (os_name=='b' or os_name=='c')", ''),
         " name; os_name=='a' or os_name=='b' and os_name=='c' ":
-            pd.PySpec('name', [], '', "os_name=='a' or os_name=='b' and os_name=='c'", ''),
+            PySpec('name', [], '', "os_name=='a' or os_name=='b' and os_name=='c'", ''),
         " name ; (os_name=='a' or os_name=='b') and os_name=='c' ":
-            pd.PySpec('name', [], '', "(os_name=='a' or os_name=='b') and os_name=='c'", ''),
+            PySpec('name', [], '', "(os_name=='a' or os_name=='b') and os_name=='c'", ''),
         '>=3,<2':
-            pd.PySpec('', [], '>=3,<2', '', ''),
+            PySpec('', [], '>=3,<2', '', ''),
         ' ( >=3 , <2 ) ':
-            pd.PySpec('', [], '>=3,<2', '', ''),
+            PySpec('', [], '>=3,<2', '', ''),
         '>=2.7,!=3.0.*,!=3.1.*,!=3.2.*':
-            pd.PySpec('', [], '>=2.7,!=3.0.*,!=3.1.*,!=3.2.*', '', ''),
+            PySpec('', [], '>=2.7,!=3.0.*,!=3.1.*,!=3.2.*', '', ''),
     }
     for req, expected_req in test_reqs.items():
-        parsed_req = pd.parse_specification(req)
+        parsed_req = parse_specification(req)
         _print_output(req, parsed_req, expected_req)
         assert parsed_req == expected_req
 
@@ -260,7 +265,7 @@ def test_get_conda_anchor_files_and_records():
         record.files = [path]
         records.append(record)
 
-    output = pd.get_conda_anchor_files_and_records(records)
+    output = get_conda_anchor_files_and_records(records)
     expected_output = odict()
     for i in range(len(valid_tests)):
         expected_output[valid_tests[i]] = records[i]
@@ -289,7 +294,7 @@ def test_get_site_packages_anchor_files():
     temp_path, fpaths = _create_test_files(test_cases_valid + test_cases_invalid)
     ref_dir = os.path.basename(temp_path)
 
-    outputs = pd.get_site_packages_anchor_files(temp_path, ref_dir)
+    outputs = get_site_packages_anchor_files(temp_path, ref_dir)
 
     # Generate valid output
     expected_outputs = set()
@@ -308,7 +313,7 @@ def test_get_dist_file_from_egg_link():
     temp_path, fpaths = _create_test_files(test_files)
     temp_path2, fpaths2 = _create_test_files((('', 'egg1.egg-link', temp_path),))
 
-    output = pd.get_dist_file_from_egg_link(fpaths2[0], '')
+    output = get_dist_file_from_egg_link(fpaths2[0], '')
     expected_output = fpaths[0]
     _print_output(output, expected_output)
     assert output == expected_output
@@ -316,14 +321,14 @@ def test_get_dist_file_from_egg_link():
     # Test not existing path
     temp_path3, fpaths3 = _create_test_files((('', 'egg2.egg-link', '/not-a-path/'),))
     with pytest.raises(PathNotFoundError) as exc:
-        pd.get_dist_file_from_egg_link(fpaths3[0], '')
+        get_dist_file_from_egg_link(fpaths3[0], '')
     print(exc.value)
 
     # Test existing path but no valig egg-info files
     temp_path4 = tempfile.mkdtemp()
     temp_path4, fpaths4 = _create_test_files((('', 'egg2.egg-link', temp_path4),))
     with pytest.raises(PathNotFoundError) as exc:
-        pd.get_dist_file_from_egg_link(fpaths4[0], '')
+        get_dist_file_from_egg_link(fpaths4[0], '')
     print(exc.value)
 
 
@@ -352,7 +357,7 @@ def test_get_python_distribution_info():
     temp_path2, fpaths = _create_test_files(test_files)
     output_names = ['boom', 'bar', 'lee', 'spam', 'spam', 'spam', 'foo', 'cheese']
     for i, fpath in enumerate(fpaths):
-        output = pd.get_python_distribution_info(temp_path2, basename(fpath), "1.1")
+        output = PythonDistribution.init(temp_path2, basename(fpath), "1.1")
         output = output.prefix_record
         pprint(output.dump())
         if output:
@@ -365,7 +370,7 @@ def test_get_python_distribution_info():
 # Metadata
 # -----------------------------------------------------------------------------
 def test_metadata_keys():
-    cls = pd.PythonDistributionMetadata
+    cls = PythonDistributionMetadata
     for keymap in cls.SINGLE_USE_KEYS, cls.MULTIPLE_USE_KEYS:
         for key, value in keymap.items():
             assert key.lower().replace('-', '_') == value
@@ -377,7 +382,7 @@ def test_metadata_process_path():
         ('', name, 'Name: eggs\n'),
     )
     temp_path, fpaths = _create_test_files(test_files)
-    func = pd.PythonDistributionMetadata._process_path
+    func = PythonDistributionMetadata._process_path
 
     # Test valid directory
     output = func(temp_path, [name])
@@ -405,7 +410,7 @@ def test_metadata_process_path():
 
 
 def test_metadata_read_metadata():
-    func = pd.PythonDistributionMetadata._read_metadata
+    func = PythonDistributionMetadata._read_metadata
 
     # Test existing file unknown key
     temp_path, fpaths = _create_test_files((
@@ -435,13 +440,13 @@ def test_metadata_read_metadata():
 
 def test_metadata():
     # Check warnings are raised for None path
-    with pytest.warns(pd.MetadataWarning):
-        path = pd.PythonDistributionMetadata._process_path(None, [])
+    with pytest.warns(MetadataWarning):
+        path = PythonDistributionMetadata._process_path(None, [])
     assert path is None
 
     # Check versions
     for fpath in METADATA_VERSION_PATHS:
-        meta = pd.PythonDistributionMetadata(fpath)
+        meta = PythonDistributionMetadata(fpath)
         a = meta.get_dist_requirements()
         b = meta.get_python_requirements()
         z = meta.get_external_requirements()
@@ -472,8 +477,8 @@ def test_basepydist_check_path_data():
         (('path', 'md5=', 45), (), AssertionError),
     )
 
-    with pytest.warns(pd.MetadataWarning):
-        dist = pd.BasePythonDistribution('/path-not-found/', "1.8")
+    with pytest.warns(MetadataWarning):
+        dist = PythonDistribution('/path-not-found/', "1.8")
 
     for args, expected_output, raises_ in test_cases:
         if raises_:
@@ -494,7 +499,7 @@ def test_basepydist_parse_requires_file_data():
         ('foo\n\n[:a == "a"]\nbar\n', (['foo', 'bar; a == "a"'], ['a'])),
         ('foo\n\n[a]\nbar\n', (['foo', 'bar; extra == "a"'], ['a'])),
     )
-    func = pd.BasePythonDistribution._parse_requires_file_data
+    func = PythonDistribution._parse_requires_file_data
 
     for data, (expected_reqs, expected_extras) in test_cases:
         output_reqs, output_extras = func(data, key)
@@ -503,7 +508,7 @@ def test_basepydist_parse_requires_file_data():
 
 
 def test_basepydist_parse_entries_file_data():
-    func = pd.BasePythonDistribution._parse_entries_file_data
+    func = PythonDistribution._parse_entries_file_data
     data = '''
 [a]
 a = cli:main_1
@@ -527,7 +532,7 @@ C = cli:MAIN_3
 def test_basepydist_load_requires_provides_file():
     temp_path, fpaths = _create_test_files((('', 'depends.txt', 'foo\n\n[a]\nbar\n'), ))
 
-    dist = pd.PythonEggInfoDistribution(temp_path, "1.8", None)
+    dist = PythonEggInfoDistribution(temp_path, "1.8", None)
     exp_req, exp_extra = (['foo', 'bar; extra == "a"'], ['a'])
     req, extra = dist._load_requires_provides_file()
     _print_output((list(sorted(req)), extra), (list(sorted(exp_req)), exp_extra))
@@ -540,7 +545,7 @@ def test_dist_get_paths():
 
     sp_dir = get_python_site_packages_short_path("2.7")
 
-    dist = pd.PythonEggInfoDistribution(temp_path, "2.7", None)
+    dist = PythonEggInfoDistribution(temp_path, "2.7", None)
     output = dist._get_paths()
     expected_output = [(join_url(sp_dir, "foo", "bar"), '1', 45),
                        (join_url(sp_dir, "foo", "spam"), None, None)]
@@ -550,7 +555,7 @@ def test_dist_get_paths():
 
 def test_dist_get_paths_no_paths():
     temp_path = tempfile.mkdtemp()
-    dist = pd.PythonEggInfoDistribution(temp_path, "2.7", None)
+    dist = PythonEggInfoDistribution(temp_path, "2.7", None)
     paths_data, files = dist.get_paths_data()
     expected_output = ()
     _print_output(files, expected_output)
@@ -564,7 +569,7 @@ def test_get_dist_requirements():
     )
     temp_path, fpaths = _create_test_files(test_files)
 
-    dist = pd.PythonEggInfoDistribution(temp_path, "2.7", None)
+    dist = PythonEggInfoDistribution(temp_path, "2.7", None)
     output = dist.get_dist_requirements()
     output = dist.get_dist_requirements()
     expected_output = frozenset({'foo >1.0'})
@@ -579,7 +584,7 @@ def test_get_extra_provides():
     )
     temp_path, fpaths = _create_test_files(test_files)
 
-    dist = pd.PythonEggInfoDistribution(temp_path, "2.7", None)
+    dist = PythonEggInfoDistribution(temp_path, "2.7", None)
     output = dist.get_extra_provides()
     output = dist.get_extra_provides()
     expected_output = ['a']
@@ -594,7 +599,7 @@ def test_get_entry_points():
     )
     temp_path, fpaths = _create_test_files(test_files)
 
-    dist = pd.PythonEggInfoDistribution(temp_path, "2.7", None)
+    dist = PythonEggInfoDistribution(temp_path, "2.7", None)
     output = dist.get_entry_points()
     expected_output = odict(console_scripts=odict(cheese='cli:main'))
     _print_output(output, expected_output)
@@ -610,12 +615,12 @@ def test_pydist_check_files():
 
     # Test mandatory files found
     temp_path, fpaths = _create_test_files(test_files)
-    pd.PythonInstalledDistribution(temp_path, "2.7", None)
+    PythonInstalledDistribution(temp_path, "2.7", None)
 
     # Test mandatory file not found
     os.remove(fpaths[0])
     with pytest.raises(AssertionError):
-        pd.PythonInstalledDistribution(temp_path, "2.7", None)
+        PythonInstalledDistribution(temp_path, "2.7", None)
 
 
 def test_python_dist_info():
@@ -631,7 +636,7 @@ def test_python_dist_info():
     # Test mandatory files found
     temp_path, fpaths = _create_test_files(test_files)
 
-    dist = pd.PythonInstalledDistribution(temp_path, "RECORD", "2.7")
+    dist = PythonInstalledDistribution(temp_path, "RECORD", "2.7")
     paths_data, files = dist.get_paths_data()
     _print_output(paths_data)
     assert len(paths_data.paths) == 2
@@ -653,21 +658,21 @@ def test_python_dist_info_conda_dependencies():
     temp_path, fpaths = _create_test_files(test_files)
     path = os.path.dirname(fpaths[0])
 
-    dist = pd.PythonEggInfoDistribution(path, "4.9", None)
+    dist = PythonEggInfoDistribution(path, "4.9", None)
     depends, constrains = dist.get_conda_dependencies()
     assert 'python 4.9.*' in depends
     assert 'bar' not in depends
     assert 'spam' in depends
     assert 'cheese >=1.0' in constrains
 
-    dist = pd.PythonEggInfoDistribution(path, "2.7", None)
+    dist = PythonEggInfoDistribution(path, "2.7", None)
     depends, constrains = dist.get_conda_dependencies()
     assert 'python 2.7.*' in depends
     assert 'bar' in depends
     assert 'spam' not in depends
     assert 'cheese >=1.0' in constrains
 
-    dist = pd.PythonEggInfoDistribution(path, "3.4", None)
+    dist = PythonEggInfoDistribution(path, "3.4", None)
     depends, constrains = dist.get_conda_dependencies()
     assert 'python 3.4.*' in depends
     assert 'bar' not in depends
@@ -682,7 +687,7 @@ def test_python_dist_info_conda_dependencies_2():
     temp_path, fpaths = _create_test_files(test_files)
     path = os.path.dirname(fpaths[0])
 
-    dist = pd.PythonEggInfoDistribution(path, "4.9", None)
+    dist = PythonEggInfoDistribution(path, "4.9", None)
     depends, constrains = dist.get_conda_dependencies()
     assert 'python 4.9.*' in depends
 
@@ -694,7 +699,7 @@ def test_python_dist_info_conda_dependencies_3():
     temp_path, fpaths = _create_test_files(test_files)
     path = os.path.dirname(fpaths[0])
 
-    dist = pd.PythonEggInfoDistribution(path, "3.6", None)
+    dist = PythonEggInfoDistribution(path, "3.6", None)
     depends, constrains = dist.get_conda_dependencies()
     assert "python 3.6.*" in depends
 
@@ -706,7 +711,7 @@ def test_python_dist_egg_path():
     temp_path, fpaths = _create_test_files(test_files)
     path = os.path.dirname(fpaths[0])
 
-    dist = pd.PythonEggInfoDistribution(path, "2.7", None)
+    dist = PythonEggInfoDistribution(path, "2.7", None)
     paths_data, files = dist.get_paths_data()
     _print_output(paths_data)
     assert len(paths_data.paths) == 2
@@ -718,7 +723,7 @@ def test_python_dist_egg_fpath():
     )
     temp_path, fpaths = _create_test_files(test_files)
 
-    dist = pd.PythonEggInfoDistribution(fpaths[0], "2.2", None)
+    dist = PythonEggInfoDistribution(fpaths[0], "2.2", None)
     assert dist.name == 'Zoom'
     assert dist.norm_name == 'zoom'
     assert dist.version == '1.0'
@@ -1085,7 +1090,7 @@ def test_scrapy_py27_osx_no_binary():
     }
     print(json_dump(files))
     print(json_dump(paths_data["paths"]))
-    sp_dir = get_python_site_packages_short_path("3.6")
+    sp_dir = get_python_site_packages_short_path("2.7")
     assert sp_dir + "/scrapy/contrib/downloadermiddleware/decompression.py" in files
     assert sp_dir + "/scrapy/downloadermiddlewares/decompression.pyc" in files
     assert ("../bin/scrapy" if on_win else "bin/scrapy") in files
