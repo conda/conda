@@ -92,7 +92,7 @@
 * @ohadravid
 
 
-# 4.5.11 (unreleased)
+# 4.5.11 (2018-08-21)
 
 ### Improvements
 * resolve #7672 compatibility with ruamel.yaml 0.15.54 (#7675)
