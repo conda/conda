@@ -13,10 +13,9 @@ import sys
 
 from .common import print_envs_list, stdout_json
 from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
-from ..base.context import conda_in_private_env, context, sys_rc_path, user_rc_path
+from ..base.context import conda_in_private_env, context, env_name, sys_rc_path, user_rc_path
 from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.url import mask_anaconda_token
-from ..core.envs_manager import env_name
 from ..models.channel import all_channel_urls, offline_keep
 from ..models.match_spec import MatchSpec
 from ..utils import human_bytes

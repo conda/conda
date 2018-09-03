@@ -25,7 +25,7 @@ from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, stri
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     PrimitiveParameter, SequenceParameter, ValidationError)
 from ..common.disk import conda_bld_ensure_dir
-from ..common.path import expand
+from ..common.path import expand, paths_equal
 from ..common.os.linux import linux_get_libc_version
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
@@ -1086,6 +1086,19 @@ def _get_cpu_info():
     # DANGER: This is rather slow
     from .._vendor.cpuinfo import get_cpu_info
     return frozendict(get_cpu_info())
+
+
+def env_name(prefix):
+    # counter part to `locate_prefix_by_name()` below
+    if not prefix:
+        return None
+    if paths_equal(prefix, context.root_prefix):
+        return ROOT_ENV_NAME
+    maybe_envs_dir, maybe_name = path_split(prefix)
+    for envs_dir in context.envs_dirs:
+        if paths_equal(envs_dir, maybe_envs_dir):
+            return maybe_name
+    return prefix
 
 
 def locate_prefix_by_name(name, envs_dirs=None):

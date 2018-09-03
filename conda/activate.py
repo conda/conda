@@ -11,9 +11,13 @@ import re
 import sys
 from tempfile import NamedTemporaryFile
 
+# Since we have to have configuration context here, anything imported by
+#   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CondaError
 from ._vendor.toolz import concatv, drop
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
+from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
+from .common.path import paths_equal
 
 
 class _Activator(object):
@@ -562,30 +566,6 @@ def path_identity(paths):
         return None
     else:
         return tuple(paths)
-
-
-def paths_equal(path1, path2):
-    if on_win:
-        return normcase(abspath(path1)) == normcase(abspath(path2))
-    else:
-        return abspath(path1) == abspath(path2)
-
-
-on_win = bool(sys.platform == "win32")
-PY2 = sys.version_info[0] == 2
-FILESYSTEM_ENCODING = sys.getfilesystemencoding()
-if PY2:  # pragma: py3 no cover
-    string_types = basestring,  # NOQA
-    text_type = unicode  # NOQA
-
-    def iteritems(d, **kw):
-        return d.iteritems(**kw)
-else:  # pragma: py2 no cover
-    string_types = str,
-    text_type = str
-
-    def iteritems(d, **kw):
-        return iter(d.items(**kw))
 
 
 class PosixActivator(_Activator):
