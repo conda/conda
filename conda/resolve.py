@@ -6,7 +6,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from itertools import chain
 from logging import DEBUG, getLogger
-from operator import attrgetter
 
 from ._vendor.toolz import concat, groupby
 from .base.constants import MAX_CHANNEL_PRIORITY
@@ -134,11 +133,11 @@ class Resolve(object):
             if val is None:
                 filter_out[prec] = False
                 try:
-                    has_valid_dep_specs = all(is_valid_spec(ms) for ms in self.ms_depends(prec))
+                    has_valid_deps = all(is_valid_spec(ms) for ms in self.ms_depends(prec))
                 except InvalidVersionSpecError as e:
                     val = filter_out[prec] = "invalid dep specs"
                 else:
-                    val = filter_out[prec] = False if has_valid_dep_specs else "invalid dependency specs"
+                    val = filter_out[prec] = False if has_valid_deps else "invalid depends specs"
             return not val
 
         return is_valid(spec_or_prec)
@@ -332,7 +331,9 @@ class Resolve(object):
                         if not any(not filter_out.get(rec, False) for rec in self.find_matches(ms))
                     )
                     if unsatisfiable_dep_specs:
-                        filter_out[prec] = "unsatisfiable dependencies %s" % " ".join(str(s) for s in unsatisfiable_dep_specs)
+                        filter_out[prec] = "unsatisfiable dependencies %s" % " ".join(
+                            str(s) for s in unsatisfiable_dep_specs
+                        )
                         continue
                     filter_out[prec] = False
                     nnew += 1
@@ -407,8 +408,10 @@ class Resolve(object):
         while specs_queue:
             this_spec = specs_queue.pop()
             processed_specs.add(this_spec)
-            add_these_precs2 = tuple(prec for prec in self.find_matches(this_spec)
-                                    if prec not in reduced_index2 and self.valid2(prec, filter_out))
+            add_these_precs2 = tuple(
+                prec for prec in self.find_matches(this_spec)
+                if prec not in reduced_index2 and self.valid2(prec, filter_out)
+            )
             reduced_index2.update((prec, prec) for prec in add_these_precs2)
             # We do not pull packages into the reduced index due
             # to a track_features dependency. Remember, a feature

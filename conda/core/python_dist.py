@@ -827,7 +827,8 @@ class PythonEggLinkDistribution(PythonEggInfoDistribution):
     def __init__(self, prefix_path, anchor_file, python_version):
         anchor_full_path = get_dist_file_from_egg_link(anchor_file, prefix_path)
         sp_reference = None  # This can be None in case the egg-info is no longer there
-        super(PythonEggLinkDistribution, self).__init__(anchor_full_path, python_version, sp_reference)
+        super(PythonEggLinkDistribution, self).__init__(anchor_full_path, python_version,
+                                                        sp_reference)
         self.channel = Channel("<develop>")
         self.build = "dev_0"
 
