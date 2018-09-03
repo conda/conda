@@ -170,6 +170,7 @@ class Context(Configuration):
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
     channel_priority = PrimitiveParameter(True)
+    strict_channel_priority = PrimitiveParameter(False)
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',))  # channel for args.channel
     _custom_channels = MapParameter(string_types, DEFAULT_CUSTOM_CHANNELS,
@@ -708,6 +709,7 @@ class Context(Configuration):
             'aggressive_update_packages',
             'auto_update_conda',
             'channel_priority',
+            'strict_channel_priority',
             'create_default_packages',
             'disallowed_packages',
             'pinned_packages',
@@ -1037,6 +1039,13 @@ class Context(Configuration):
                 """),
             'show_channel_urls': dals("""
                 Show channel URLs when displaying what is going to be downloaded.
+                """),
+            'strict_channel_priority': dals("""
+                When True, packages in lower priority channels are not
+                considered if a package with the same name appears in a higher
+                priority channel. When False, packages from all channels are
+                considered by the solver.  The 'channel_priority' configuration
+                parameter is still applied in either case.
                 """),
             'ssl_verify': dals("""
                 Conda verifies SSL certificates for HTTPS requests, just like a web
