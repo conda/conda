@@ -21,6 +21,7 @@ from .match_spec import MatchSpec
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
                                      StringField)
+from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
 from ..exceptions import PathNotFoundError
@@ -44,36 +45,40 @@ class NoarchField(EnumField):
 
 class TimestampField(NumberField):
 
-    # @staticmethod
-    # def _make_seconds(val):
-    #     if val:
-    #         val = int(val)
-    #         if val > 253402300799:  # 9999-12-31
-    #             val //= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
-    #     return val
+    @staticmethod
+    def _make_seconds(val):
+        if val:
+            val = val
+            if val > 253402300799:  # 9999-12-31
+                val /= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
+        return val
 
     @staticmethod
     def _make_milliseconds(val):
         if val:
             if val < 253402300799:  # 9999-12-31
                 val *= 1000  # convert seconds to milliseconds
-            val = int(val)
+            val = val
         return val
 
     def box(self, instance, instance_type, val):
-        return self._make_milliseconds(
+        return self._make_seconds(
             super(TimestampField, self).box(instance, instance_type, val)
         )
 
-    def unbox(self, instance, instance_type, val):
-        return self._make_milliseconds(
-            super(TimestampField, self).unbox(instance, instance_type, val)
-        )
-
     def dump(self, instance, instance_type, val):
-        return self._make_milliseconds(
+        return int(self._make_milliseconds(
             super(TimestampField, self).dump(instance, instance_type, val)
-        )
+        ))  # whether in seconds or milliseconds, type must be int (not float) for backward compat
+
+    def __get__(self, instance, instance_type):
+        try:
+            return super(TimestampField, self).__get__(instance, instance_type)
+        except AttributeError:
+            try:
+                return int(dt_to_timestamp(isoparse(instance.date)))
+            except ValueError:
+                raise AttributeError()
 
 
 class Link(DictSafeMixin, Entity):
