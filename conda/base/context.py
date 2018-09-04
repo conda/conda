@@ -378,15 +378,15 @@ class Context(Configuration):
         if self.root_writable:
             fixed_dirs = (
                 join(self.root_prefix, 'envs'),
-                join(self._user_data_dir, 'envs'),
                 join('~', '.conda', 'envs'),
             )
         else:
             fixed_dirs = (
-                join(self._user_data_dir, 'envs'),
-                join(self.root_prefix, 'envs'),
                 join('~', '.conda', 'envs'),
+                join(self.root_prefix, 'envs'),
             )
+        if on_win:
+            fixed_dirs += join(user_data_dir(APP_NAME, APP_NAME), 'envs'),
         return tuple(IndexedSet(expand(p) for p in concatv(self._envs_dirs, fixed_dirs)))
 
     @property
@@ -395,10 +395,13 @@ class Context(Configuration):
             return tuple(IndexedSet(expand(p) for p in self._pkgs_dirs))
         else:
             cache_dir_name = 'pkgs32' if context.force_32bit else 'pkgs'
-            return tuple(IndexedSet(expand(join(p, cache_dir_name)) for p in (
+            fixed_dirs = (
                 self.root_prefix,
-                self._user_data_dir,
-            )))
+                join('~', '.conda'),
+            )
+            if on_win:
+                fixed_dirs += user_data_dir(APP_NAME, APP_NAME),
+            return tuple(IndexedSet(expand(join(p, cache_dir_name)) for p in (fixed_dirs)))
 
     @memoizedproperty
     def trash_dir(self):
@@ -409,13 +412,6 @@ class Context(Configuration):
         from ..gateways.disk.create import mkdir_p
         mkdir_p(trash_dir)
         return trash_dir
-
-    @property
-    def _user_data_dir(self):
-        if on_win:
-            return user_data_dir(APP_NAME, APP_NAME)
-        else:
-            return expand(join('~', '.conda'))
 
     @property
     def default_prefix(self):
