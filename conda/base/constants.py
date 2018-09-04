@@ -189,7 +189,7 @@ class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, Enum)):
     __name__ = "ChannelPriority"
 
     STRICT = 'strict'
-    STRICT_OR_FLEXIBLE = 'strict_or_flexible'
+    # STRICT_OR_FLEXIBLE = 'strict_or_flexible'  # TODO: consider implementing if needed
     FLEXIBLE = 'flexible'
     DISABLED = 'disabled'
 
