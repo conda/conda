@@ -210,7 +210,8 @@ def _execute(args, parser):
 
     if args.source_cache:
         print("WARNING: 'conda clean --source-cache' is deprecated.\n"
-              "    Use conda-build to remove source cache files.", file=sys.stderr)
+              "    Use 'conda build purge-all' to remove source cache files.",
+              file=sys.stderr)
 
     if args.force_pkgs_dirs:
         writable_pkgs_dirs = rm_rf_pkgs_dirs()
