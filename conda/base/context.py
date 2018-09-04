@@ -848,13 +848,13 @@ class Context(Configuration):
                 """),
             'channel_priority': dals("""
                 Accepts values of 'strict', 'flexible', and 'disabled'. The default value
-                is 'flexible'. With strict channel priority packages in lower priority channels
+                is 'flexible'. With strict channel priority, packages in lower priority channels
                 are not considered if a package with the same name appears in a higher
                 priority channel. With flexible channel priority, the solver may reach into
                 lower priority channels to fulfill dependencies, rather than raising an
                 unsatisfiable error. With channel priority disabled, package version takes
                 precedence, and the configured priority of channels is used only to break ties.
-                In previous versions of conda, this parameter was configured as either True or 
+                In previous versions of conda, this parameter was configured as either True or
                 False. True is now an alias to 'flexible'.
                 """),
             'channels': dals("""
