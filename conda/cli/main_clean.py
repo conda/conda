@@ -202,37 +202,6 @@ def rm_rf_pkgs_dirs():
     return writable_pkgs_dirs
 
 
-def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
-    from .common import confirm_yn
-    from ..gateways.disk.delete import rm_rf
-    from ..utils import human_bytes
-
-    verbose = not (context.json or context.quiet)
-    if warnings:
-        if verbose:  # lgtm [py/uninitialized-local-variable]
-            for warning in warnings:
-                print(warning, file=sys.stderr)
-        return
-
-    if verbose:  # lgtm [py/uninitialized-local-variable]
-        for cache_type in cache_dirs:
-            print("%s (%s)" % (cache_type, cache_dirs[cache_type]))
-            print("%-40s %10s" % ("Size:", human_bytes(cache_sizes[cache_type])))
-            print()
-
-        print("%-40s %10s" % ("Total:", human_bytes(total_size)))
-
-    if not context.json or not context.always_yes:
-        confirm_yn()
-    if context.json and args.dry_run:
-        return
-
-    for dir in cache_dirs.values():
-        if verbose:
-            print("Removing %s" % dir)
-        rm_rf(dir)
-
-
 def _execute(args, parser):
     json_result = {
         'success': True
