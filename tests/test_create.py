@@ -565,13 +565,6 @@ class IntegrationTests(TestCase):
             assert stderr == ''
             self.assertIsInstance(stdout, str)
 
-    def test_anaconda_solve_time(self):
-        stdout, stderr = run_command(Commands.CREATE, "/", "-qd anaconda",
-                                     use_exception_handler=True)
-        assert not stderr
-        assert "The following NEW packages will be INSTALLED:" in stdout
-        assert "Dry run. Exiting." in stdout
-
     @pytest.mark.skipif(on_win and context.subdir == "win-32", reason="conda-forge doesn't do win-32")
     def test_strict_channel_priority(self):
         stdout, stderr = run_command(
