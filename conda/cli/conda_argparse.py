@@ -238,6 +238,7 @@ def configure_parser_clean(sub_parsers):
         action='store_true',
         # help="Remove files from the source cache of conda build.",
         help=SUPPRESS,
+        # TODO: Deprecation warning issued. Remove in future release.
     )
     removal_target_options.add_argument(
         "-t", "--tarballs",

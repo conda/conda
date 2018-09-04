@@ -25,7 +25,6 @@ from .._vendor.toolz import concat, concatv, unique
 from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     PrimitiveParameter, SequenceParameter, ValidationError)
-from ..common.disk import conda_bld_ensure_dir
 from ..common.path import expand, paths_equal
 from ..common.os.linux import linux_get_libc_version
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
@@ -299,30 +298,6 @@ class Context(Configuration):
     @property
     def local_build_root(self):
         return self.croot
-
-    @property
-    def src_cache(self):
-        path = join(self.croot, 'src_cache')
-        conda_bld_ensure_dir(path)
-        return path
-
-    @property
-    def git_cache(self):
-        path = join(self.croot, 'git_cache')
-        conda_bld_ensure_dir(path)
-        return path
-
-    @property
-    def hg_cache(self):
-        path = join(self.croot, 'hg_cache')
-        conda_bld_ensure_dir(path)
-        return path
-
-    @property
-    def svn_cache(self):
-        path = join(self.croot, 'svn_cache')
-        conda_bld_ensure_dir(path)
-        return path
 
     @property
     def conda_build(self):
