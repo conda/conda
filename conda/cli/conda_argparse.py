@@ -1372,6 +1372,15 @@ def add_parser_solver_mode(p):
     solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
     deps_modifiers = solver_mode_options.add_mutually_exclusive_group()
     solver_mode_options.add_argument(
+        "--strict-channel-priority",
+        action="store_const",
+        dest="channel_priority",
+        default=NULL,
+        const="strict",
+        help="Packages in lower priority channels are not considered if a package "
+             "with the same name appears in a higher priority channel.",
+    )
+    solver_mode_options.add_argument(
         "--channel-priority",
         action="store_true",
         dest="channel_priority",
@@ -1380,9 +1389,10 @@ def add_parser_solver_mode(p):
     )
     solver_mode_options.add_argument(
         "--no-channel-priority",
-        action="store_false",
+        action="store_const",
         dest="channel_priority",
         default=NULL,
+        const="disabled",
         help="Package version takes precedence over channel priority. "
              "Overrides the value given by `conda config --show channel_priority`."
     )

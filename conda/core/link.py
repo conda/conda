@@ -915,6 +915,10 @@ class UnlinkLinkTransaction(object):
                 updated_precs[namekey] = (unlink_prec, link_prec)
             elif (link_prec.channel.name == unlink_prec.channel.name
                     and link_prec.subdir == unlink_prec.subdir):
+                if link_prec == unlink_prec:
+                    # noarch: python packages are re-linked on a python version change
+                    # just leave them out of the package report
+                    continue
                 downgraded_precs[namekey] = (unlink_prec, link_prec)
             else:
                 superseded_precs[namekey] = (unlink_prec, link_prec)

@@ -10,10 +10,11 @@ from os.path import abspath, basename, expanduser, isdir, isfile, join, split as
 import platform
 import sys
 
-from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
-                        DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS,
-                        DepsModifier, ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE,
-                        PathConflict, ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, UpdateModifier)
+from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME,
+                        DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
+                        DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
+                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
@@ -169,7 +170,7 @@ class Context(Configuration):
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
-    channel_priority = PrimitiveParameter(True)
+    channel_priority = PrimitiveParameter(ChannelPriority.FLEXIBLE)
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',))  # channel for args.channel
     _custom_channels = MapParameter(string_types, DEFAULT_CUSTOM_CHANNELS,
@@ -846,9 +847,15 @@ class Context(Configuration):
                 The prepended url location to associate with channel names.
                 """),
             'channel_priority': dals("""
-                When True, the solver is instructed to prefer channel order over package
-                version. When False, the solver is instructed to give package version
-                preference over channel priority.
+                Accepts values of 'strict', 'flexible', and 'disabled'. The default value
+                is 'flexible'. With strict channel priority, packages in lower priority channels
+                are not considered if a package with the same name appears in a higher
+                priority channel. With flexible channel priority, the solver may reach into
+                lower priority channels to fulfill dependencies, rather than raising an
+                unsatisfiable error. With channel priority disabled, package version takes
+                precedence, and the configured priority of channels is used only to break ties.
+                In previous versions of conda, this parameter was configured as either True or
+                False. True is now an alias to 'flexible'.
                 """),
             'channels': dals("""
                 The list of conda channels to include for relevant operations.

@@ -5,6 +5,8 @@ from os.path import isdir, join
 from pprint import pprint
 import unittest
 
+import pytest
+
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import env_var
@@ -14,8 +16,6 @@ from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.records import PackageRecord
 from conda.resolve import MatchSpec, Resolve, ResolvePackageNotFound
-import pytest
-
 from .helpers import TEST_DATA_DIR, get_index_r_1, get_index_r_4, raises
 
 index, r, = get_index_r_1()
@@ -1338,6 +1338,33 @@ def test_channel_priority_2():
         installed_w_priority = [prec.dist_str() for prec in this_r.install(spec)]
         pprint(installed_w_priority)
         assert installed_w_priority == [
+            'channel-1::dateutil-2.1-py27_1',
+            'channel-1::numpy-1.7.1-py27_0',
+            'channel-1::openssl-1.0.1c-0',
+            'channel-1::pandas-0.11.0-np17py27_1',
+            'channel-1::python-2.7.5-0',
+            'channel-1::pytz-2013b-py27_0',
+            'channel-1::readline-6.2-0',
+            'channel-1::scipy-0.12.0-np17py27_0',
+            'channel-1::six-1.3.0-py27_0',
+            'channel-1::sqlite-3.7.13-0',
+            'channel-1::system-5.8-1',
+            'channel-1::tk-8.5.13-0',
+            'channel-1::zlib-1.2.7-0',
+        ]
+
+    # setting strict actually doesn't do anything here; just ensures it's not 'disabled'
+    with env_var("CONDA_CHANNEL_PRIORITY", "strict", reset_context):
+        dists = this_r.get_reduced_index(spec)
+        r2 = Resolve(dists, True, True, channels=channels)
+        C = r2.gen_clauses()
+        eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
+        eqc = {key: value for key, value in iteritems(eqc)}
+        pprint(eqc)
+        assert eqc == {}
+        installed_w_strict = [prec.dist_str() for prec in this_r.install(spec)]
+        pprint(installed_w_strict)
+        assert installed_w_strict == [
             'channel-1::dateutil-2.1-py27_1',
             'channel-1::numpy-1.7.1-py27_0',
             'channel-1::openssl-1.0.1c-0',

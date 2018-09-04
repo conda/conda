@@ -45,6 +45,9 @@ class NoarchField(EnumField):
 
 class TimestampField(NumberField):
 
+    def __init__(self):
+        super(TimestampField, self).__init__(default=0, required=False, default_in_dump=False)
+
     @staticmethod
     def _make_seconds(val):
         if val:
@@ -77,8 +80,8 @@ class TimestampField(NumberField):
         except AttributeError:
             try:
                 return int(dt_to_timestamp(isoparse(instance.date)))
-            except ValueError:
-                raise AttributeError()
+            except (AttributeError, ValueError):
+                return 0
 
 
 class Link(DictSafeMixin, Entity):
@@ -299,7 +302,7 @@ class PackageRecord(DictSafeMixin, Entity):
     def is_unmanageable(self):
         return self.package_type in PackageType.unmanageable_package_types()
 
-    timestamp = TimestampField(required=False)
+    timestamp = TimestampField()
 
     @property
     def combined_depends(self):

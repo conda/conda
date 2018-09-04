@@ -4,11 +4,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
-from itertools import chain
 from logging import DEBUG, getLogger
 
 from ._vendor.toolz import concat, groupby
-from .base.constants import MAX_CHANNEL_PRIORITY
+from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
@@ -59,10 +58,11 @@ class Resolve(object):
         self._cached_find_matches = {}  # Dict[MatchSpec, Set[PackageRecord]]
         self.ms_depends_ = {}  # Dict[PackageRecord, List[MatchSpec]]
         self._reduced_index_cache = {}
+        self._strict_channel_cache = {}
 
         if sort:
-            for name, group in iteritems(groups):
-                groups[name] = sorted(group, key=self.version_key, reverse=True)
+            for group in itervalues(groups):
+                group.sort(key=self.version_key, reverse=True)
 
     def default_filter(self, features=None, filter=None):
         # TODO: fix this import; this is bad
@@ -98,8 +98,8 @@ class Resolve(object):
             return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fkey_(spec)
 
         def v_ms_(ms):
-            return ((optional and ms.optional) or
-                    any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
+            return (optional and ms.optional
+                    or any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
 
         def v_fkey_(prec):
             val = filter.get(prec)
@@ -294,12 +294,24 @@ class Resolve(object):
 
         raise UnsatisfiableError(bad_deps)
 
+    def _get_strict_channel(self, package_name):
+        try:
+            channel_name = self._strict_channel_cache[package_name]
+        except KeyError:
+            all_channel_names = set(prec.channel.name for prec in self.groups[package_name])
+            by_cp = {self._channel_priorities_map.get(cn, 1): cn for cn in all_channel_names}
+            highest_priority = sorted(by_cp)[0]  # highest priority is the lowest number
+            channel_name = self._strict_channel_cache[package_name] = by_cp[highest_priority]
+        return channel_name
+
     @time_recorder(module_name=__name__)
     def get_reduced_index(self, specs):
         # TODO: fix this import; this is bad
         from .core.subdir_data import make_feature_record
 
-        cache_key = frozenset(specs)
+        strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
+
+        cache_key = strict_channel_priority, frozenset(specs)
         if cache_key in self._reduced_index_cache:
             return self._reduced_index_cache[cache_key]
 
@@ -312,10 +324,20 @@ class Resolve(object):
         snames = set()
         top_level_spec = None
 
+        cp_filter_applied = set()  # values are package names
+
         def filter_group(_specs):
             # all _specs should be for the same package name
             name = next(iter(_specs)).name
             group = self.groups.get(name, ())
+
+            # implement strict channel priority
+            if strict_channel_priority and name not in cp_filter_applied:
+                sole_source_channel_name = self._get_strict_channel(name)
+                for prec in group:
+                    if prec.channel.name != sole_source_channel_name:
+                        filter_out[prec] = "removed due to strict channel priority"
+                cp_filter_applied.add(name)
 
             # Prune packages that don't match any of the patterns
             # or which have unsatisfiable dependencies
@@ -398,7 +420,7 @@ class Resolve(object):
                 # Messaging to users should be more descriptive.
                 # 1. Are there no direct matches?
                 # 2. Are there no matches for first-level dependencies?
-                # 3. Have the first level depedendencies been invalidated?
+                # 3. Have the first level dependencies been invalidated?
                 break
 
         # Determine all valid packages in the dependency graph
@@ -412,6 +434,12 @@ class Resolve(object):
                 prec for prec in self.find_matches(this_spec)
                 if prec not in reduced_index2 and self.valid2(prec, filter_out)
             )
+            if strict_channel_priority and add_these_precs2:
+                strict_chanel_name = self._get_strict_channel(add_these_precs2[0].name)
+                add_these_precs2 = tuple(
+                    prec for prec in add_these_precs2 if prec.channel.name == strict_chanel_name
+                )
+
             reduced_index2.update((prec, prec) for prec in add_these_precs2)
             # We do not pull packages into the reduced index due
             # to a track_features dependency. Remember, a feature
@@ -442,7 +470,7 @@ class Resolve(object):
             candidate_precs = self.groups.get(spec_name, ())
         elif spec.get_exact_value('track_features'):
             feature_names = spec.get_exact_value('track_features')
-            candidate_precs = chain.from_iterable(
+            candidate_precs = concat(
                 self.trackers.get(feature_name, ()) for feature_name in feature_names
             )
         else:
@@ -469,7 +497,7 @@ class Resolve(object):
         build_number = prec.get('build_number', 0)
         build_string = prec.get('build')
         ts = prec.get('timestamp', 0)
-        if context.channel_priority:
+        if context.channel_priority != ChannelPriority.DISABLED:
             return valid, -channel_priority, version_comparator, build_number, ts, build_string
         else:
             return valid, version_comparator, -channel_priority, build_number, ts, build_string
