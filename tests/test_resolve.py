@@ -1355,7 +1355,7 @@ def test_channel_priority_2():
 
     # setting strict actually doesn't do anything here; just ensures it's not 'disabled'
     with env_var("CONDA_CHANNEL_PRIORITY", "strict", reset_context):
-        dists = this_r.get_reduced_index(spec, strict_channel_priority=True)
+        dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, True, channels=channels)
         C = r2.gen_clauses()
         eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))

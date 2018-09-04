@@ -305,9 +305,11 @@ class Resolve(object):
         return channel_name
 
     @time_recorder(module_name=__name__)
-    def get_reduced_index(self, specs, strict_channel_priority=False):
+    def get_reduced_index(self, specs):
         # TODO: fix this import; this is bad
         from .core.subdir_data import make_feature_record
+
+        strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
 
         cache_key = strict_channel_priority, frozenset(specs)
         if cache_key in self._reduced_index_cache:
@@ -418,7 +420,7 @@ class Resolve(object):
                 # Messaging to users should be more descriptive.
                 # 1. Are there no direct matches?
                 # 2. Are there no matches for first-level dependencies?
-                # 3. Have the first level depedendencies been invalidated?
+                # 3. Have the first level dependencies been invalidated?
                 break
 
         # Determine all valid packages in the dependency graph
@@ -758,10 +760,10 @@ class Resolve(object):
         solution = C.sat(constraints)
         return bool(solution)
 
-    def get_conflicting_specs(self, specs, strict_channel_priority=False):
+    def get_conflicting_specs(self, specs):
         if not specs:
             return ()
-        reduced_index = self.get_reduced_index(specs, strict_channel_priority)
+        reduced_index = self.get_reduced_index(specs)
 
         # Check if satisfiable
         def mysat(specs, add_if=False):
@@ -911,7 +913,7 @@ class Resolve(object):
         return pkgs
 
     @time_recorder(module_name=__name__)
-    def solve(self, specs, returnall=False, _remove=False, strict_channel_priority=False):
+    def solve(self, specs, returnall=False, _remove=False):
         # type: (List[str], bool) -> List[PackageRecord]
         if log.isEnabledFor(DEBUG):
             log.debug('Solving for: %s', dashlist(sorted(text_type(s) for s in specs)))
@@ -919,7 +921,7 @@ class Resolve(object):
         # Find the compliant packages
         len0 = len(specs)
         specs = tuple(map(MatchSpec, specs))
-        reduced_index = self.get_reduced_index(specs, strict_channel_priority)
+        reduced_index = self.get_reduced_index(specs)
         if not reduced_index:
             return False if reduced_index is None else ([[]] if returnall else [])
 

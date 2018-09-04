@@ -569,13 +569,14 @@ class IntegrationTests(TestCase):
         with env_var("CONDA_CHANNEL_PRIORITY", "strict", reset_context):
             stdout, stderr = run_command(
                 Commands.CREATE, "/",
-                "-c conda-forge -c defaults python=3.6 geopandas --dry-run --json",
+                "-c conda-forge -c defaults python=3.6 fiona --strict-channel-priority --dry-run --json",
                 use_exception_handler=True
             )
             assert not stderr
             json_obj = json_loads(stdout)
-            channels = set(dist["channel"] for dist in json_obj["actions"]["LINK"])
-            assert channels == {"conda-forge"}
+            channel_groups = groupby("channel",json_obj["actions"]["LINK"])
+            # conda-forge should be the only channel in the solution on unix
+            assert list(channel_groups) == ["conda-forge"]
 
     def test_strict_resolve_get_reduced_index(self):
         channels = (Channel("defaults"),)

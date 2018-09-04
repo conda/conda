@@ -31,8 +31,11 @@ log = getLogger(__name__)
 class ResolvePackageNotFound(CondaError):
     def __init__(self, bad_deps):
         # bad_deps is a list of lists
+        # bad_deps should really be named 'invalid_chains'
         self.bad_deps = tuple(dep for deps in bad_deps for dep in deps if dep)
-        message = '\n' + '\n'.join(('  - %s' % dep) for dep in self.bad_deps)
+        formatted_chains = tuple(" -> ".join(map(str, bad_chain)) for bad_chain in bad_deps)
+        self._formatted_chains = formatted_chains
+        message = '\n' + '\n'.join(('  - %s' % bad_chain) for bad_chain in formatted_chains)
         super(ResolvePackageNotFound, self).__init__(message)
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
