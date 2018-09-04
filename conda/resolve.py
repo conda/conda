@@ -98,8 +98,8 @@ class Resolve(object):
             return v_ms_(spec) if isinstance(spec, MatchSpec) else v_fkey_(spec)
 
         def v_ms_(ms):
-            return ((optional and ms.optional) or
-                    any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
+            return (optional and ms.optional
+                    or any(v_fkey_(fkey) for fkey in self.find_matches(ms)))
 
         def v_fkey_(prec):
             val = filter.get(prec)
