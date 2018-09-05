@@ -19,7 +19,7 @@
 * fix #7362 remove --license from conda info and related code paths (#7386)
 * resolve #7309 deprecate 'conda info package_name' (#7310)
 * remove 'conda clean --source-cache' and defer to conda-build (#7731)
-* resolve #7724 move windows package cache and envs dirs back to '~/.conda' directory (#7725)
+* resolve #7724 move windows package cache and envs dirs back to .conda directory (#7725)
 
 ### Improvements
 * import speedups (#7122)
@@ -70,6 +70,7 @@
 * fix #7242 configuration load error message (#7243)
 * fix conda env compatibility with pip 18 (#7612)
 * fix #7184 remove conflicting specs to find solution to user's active request (#7719)
+* fix #7706 add condacmd dir to cmd.exe path on first activation (#7735)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
