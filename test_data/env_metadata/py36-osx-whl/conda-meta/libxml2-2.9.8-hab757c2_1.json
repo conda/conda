@@ -1,0 +1,2215 @@
+{
+  "build": "hab757c2_1",
+  "build_number": 1,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [
+    "icu >=58.2,<59.0a0",
+    "libiconv >=1.15,<2.0a0",
+    "xz >=5.2.4,<6.0a0",
+    "zlib >=1.2.11,<1.3.0a0"
+  ],
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/libxml2-2.9.8-hab757c2_1",
+  "features": "",
+  "files": [
+    "bin/xml2-config",
+    "bin/xmlcatalog",
+    "bin/xmllint",
+    "include/libxml2/libxml/DOCBparser.h",
+    "include/libxml2/libxml/HTMLparser.h",
+    "include/libxml2/libxml/HTMLtree.h",
+    "include/libxml2/libxml/SAX.h",
+    "include/libxml2/libxml/SAX2.h",
+    "include/libxml2/libxml/c14n.h",
+    "include/libxml2/libxml/catalog.h",
+    "include/libxml2/libxml/chvalid.h",
+    "include/libxml2/libxml/debugXML.h",
+    "include/libxml2/libxml/dict.h",
+    "include/libxml2/libxml/encoding.h",
+    "include/libxml2/libxml/entities.h",
+    "include/libxml2/libxml/globals.h",
+    "include/libxml2/libxml/hash.h",
+    "include/libxml2/libxml/list.h",
+    "include/libxml2/libxml/nanoftp.h",
+    "include/libxml2/libxml/nanohttp.h",
+    "include/libxml2/libxml/parser.h",
+    "include/libxml2/libxml/parserInternals.h",
+    "include/libxml2/libxml/pattern.h",
+    "include/libxml2/libxml/relaxng.h",
+    "include/libxml2/libxml/schemasInternals.h",
+    "include/libxml2/libxml/schematron.h",
+    "include/libxml2/libxml/threads.h",
+    "include/libxml2/libxml/tree.h",
+    "include/libxml2/libxml/uri.h",
+    "include/libxml2/libxml/valid.h",
+    "include/libxml2/libxml/xinclude.h",
+    "include/libxml2/libxml/xlink.h",
+    "include/libxml2/libxml/xmlIO.h",
+    "include/libxml2/libxml/xmlautomata.h",
+    "include/libxml2/libxml/xmlerror.h",
+    "include/libxml2/libxml/xmlexports.h",
+    "include/libxml2/libxml/xmlmemory.h",
+    "include/libxml2/libxml/xmlmodule.h",
+    "include/libxml2/libxml/xmlreader.h",
+    "include/libxml2/libxml/xmlregexp.h",
+    "include/libxml2/libxml/xmlsave.h",
+    "include/libxml2/libxml/xmlschemas.h",
+    "include/libxml2/libxml/xmlschemastypes.h",
+    "include/libxml2/libxml/xmlstring.h",
+    "include/libxml2/libxml/xmlunicode.h",
+    "include/libxml2/libxml/xmlversion.h",
+    "include/libxml2/libxml/xmlwriter.h",
+    "include/libxml2/libxml/xpath.h",
+    "include/libxml2/libxml/xpathInternals.h",
+    "include/libxml2/libxml/xpointer.h",
+    "lib/cmake/libxml2/libxml2-config.cmake",
+    "lib/libxml2.2.dylib",
+    "lib/libxml2.a",
+    "lib/libxml2.dylib",
+    "lib/libxml2.la",
+    "lib/pkgconfig/libxml-2.0.pc",
+    "lib/xml2Conf.sh",
+    "share/aclocal/libxml.m4",
+    "share/doc/libxml2-2.9.8/Copyright",
+    "share/doc/libxml2-2.9.8/examples/testHTML.c",
+    "share/doc/libxml2-2.9.8/examples/testSAX.c",
+    "share/doc/libxml2-2.9.8/examples/testXPath.c",
+    "share/doc/libxml2-2.9.8/examples/xmllint.c",
+    "share/doc/libxml2-2.9.8/html/DOM.gif",
+    "share/doc/libxml2-2.9.8/html/FAQ.html",
+    "share/doc/libxml2-2.9.8/html/Libxml2-Logo-180x168.gif",
+    "share/doc/libxml2-2.9.8/html/Libxml2-Logo-90x34.gif",
+    "share/doc/libxml2-2.9.8/html/encoding.html",
+    "share/doc/libxml2-2.9.8/html/examples.xml",
+    "share/doc/libxml2-2.9.8/html/examples.xsl",
+    "share/doc/libxml2-2.9.8/html/html/book1.html",
+    "share/doc/libxml2-2.9.8/html/html/home.png",
+    "share/doc/libxml2-2.9.8/html/html/index.html",
+    "share/doc/libxml2-2.9.8/html/html/left.png",
+    "share/doc/libxml2-2.9.8/html/html/libxml-DOCBparser.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-HTMLparser.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-HTMLtree.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-SAX.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-SAX2.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-c14n.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-catalog.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-chvalid.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-debugXML.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-dict.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-encoding.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-entities.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-globals.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-hash.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-lib.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-list.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-nanoftp.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-nanohttp.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-parser.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-parserInternals.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-pattern.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-relaxng.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-schemasInternals.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-schematron.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-threads.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-tree.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-uri.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-valid.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xinclude.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xlink.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlIO.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlautomata.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlerror.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlexports.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlmemory.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlmodule.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlreader.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlregexp.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlsave.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlschemas.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlschemastypes.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlstring.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlunicode.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlversion.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xmlwriter.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xpath.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xpathInternals.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xpointer.html",
+    "share/doc/libxml2-2.9.8/html/html/libxml-xzlib.html",
+    "share/doc/libxml2-2.9.8/html/html/right.png",
+    "share/doc/libxml2-2.9.8/html/html/up.png",
+    "share/doc/libxml2-2.9.8/html/index.html",
+    "share/doc/libxml2-2.9.8/html/io1.c",
+    "share/doc/libxml2-2.9.8/html/io1.res",
+    "share/doc/libxml2-2.9.8/html/io2.c",
+    "share/doc/libxml2-2.9.8/html/io2.res",
+    "share/doc/libxml2-2.9.8/html/libxml.gif",
+    "share/doc/libxml2-2.9.8/html/parse1.c",
+    "share/doc/libxml2-2.9.8/html/parse2.c",
+    "share/doc/libxml2-2.9.8/html/parse3.c",
+    "share/doc/libxml2-2.9.8/html/parse4.c",
+    "share/doc/libxml2-2.9.8/html/reader1.c",
+    "share/doc/libxml2-2.9.8/html/reader1.res",
+    "share/doc/libxml2-2.9.8/html/reader2.c",
+    "share/doc/libxml2-2.9.8/html/reader3.c",
+    "share/doc/libxml2-2.9.8/html/reader3.res",
+    "share/doc/libxml2-2.9.8/html/reader4.c",
+    "share/doc/libxml2-2.9.8/html/reader4.res",
+    "share/doc/libxml2-2.9.8/html/redhat.gif",
+    "share/doc/libxml2-2.9.8/html/smallfootonly.gif",
+    "share/doc/libxml2-2.9.8/html/structure.gif",
+    "share/doc/libxml2-2.9.8/html/test1.xml",
+    "share/doc/libxml2-2.9.8/html/test2.xml",
+    "share/doc/libxml2-2.9.8/html/test3.xml",
+    "share/doc/libxml2-2.9.8/html/testWriter.c",
+    "share/doc/libxml2-2.9.8/html/tree1.c",
+    "share/doc/libxml2-2.9.8/html/tree1.res",
+    "share/doc/libxml2-2.9.8/html/tree2.c",
+    "share/doc/libxml2-2.9.8/html/tree2.res",
+    "share/doc/libxml2-2.9.8/html/tst.xml",
+    "share/doc/libxml2-2.9.8/html/tutorial/apa.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/apb.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/apc.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/apd.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/ape.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/apf.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/apg.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/aph.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/api.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/ar01s02.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/ar01s03.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/ar01s04.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/ar01s05.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/ar01s06.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/ar01s07.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/ar01s08.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/ar01s09.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/blank.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/1.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/10.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/2.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/3.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/4.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/5.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/6.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/7.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/8.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/9.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/caution.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/draft.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/home.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/important.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/next.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/note.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/prev.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/tip.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/toc-blank.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/toc-minus.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/toc-plus.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/up.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/images/warning.png",
+    "share/doc/libxml2-2.9.8/html/tutorial/includeaddattribute.c",
+    "share/doc/libxml2-2.9.8/html/tutorial/includeaddkeyword.c",
+    "share/doc/libxml2-2.9.8/html/tutorial/includeconvert.c",
+    "share/doc/libxml2-2.9.8/html/tutorial/includegetattribute.c",
+    "share/doc/libxml2-2.9.8/html/tutorial/includekeyword.c",
+    "share/doc/libxml2-2.9.8/html/tutorial/includexpath.c",
+    "share/doc/libxml2-2.9.8/html/tutorial/index.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/ix01.html",
+    "share/doc/libxml2-2.9.8/html/tutorial/xmltutorial.pdf",
+    "share/doc/libxml2-2.9.8/html/w3c.png",
+    "share/doc/libxml2-2.9.8/html/writer.xml",
+    "share/doc/libxml2-2.9.8/html/xml.html",
+    "share/doc/libxml2-2.9.8/html/xpath1.c",
+    "share/doc/libxml2-2.9.8/html/xpath1.res",
+    "share/doc/libxml2-2.9.8/html/xpath2.c",
+    "share/doc/libxml2-2.9.8/html/xpath2.res",
+    "share/gtk-doc/html/libxml2/general.html",
+    "share/gtk-doc/html/libxml2/home.png",
+    "share/gtk-doc/html/libxml2/index.html",
+    "share/gtk-doc/html/libxml2/left.png",
+    "share/gtk-doc/html/libxml2/libxml2-DOCBparser.html",
+    "share/gtk-doc/html/libxml2/libxml2-HTMLparser.html",
+    "share/gtk-doc/html/libxml2/libxml2-HTMLtree.html",
+    "share/gtk-doc/html/libxml2/libxml2-SAX.html",
+    "share/gtk-doc/html/libxml2/libxml2-SAX2.html",
+    "share/gtk-doc/html/libxml2/libxml2-c14n.html",
+    "share/gtk-doc/html/libxml2/libxml2-catalog.html",
+    "share/gtk-doc/html/libxml2/libxml2-chvalid.html",
+    "share/gtk-doc/html/libxml2/libxml2-debugXML.html",
+    "share/gtk-doc/html/libxml2/libxml2-dict.html",
+    "share/gtk-doc/html/libxml2/libxml2-encoding.html",
+    "share/gtk-doc/html/libxml2/libxml2-entities.html",
+    "share/gtk-doc/html/libxml2/libxml2-globals.html",
+    "share/gtk-doc/html/libxml2/libxml2-hash.html",
+    "share/gtk-doc/html/libxml2/libxml2-list.html",
+    "share/gtk-doc/html/libxml2/libxml2-nanoftp.html",
+    "share/gtk-doc/html/libxml2/libxml2-nanohttp.html",
+    "share/gtk-doc/html/libxml2/libxml2-parser.html",
+    "share/gtk-doc/html/libxml2/libxml2-parserInternals.html",
+    "share/gtk-doc/html/libxml2/libxml2-pattern.html",
+    "share/gtk-doc/html/libxml2/libxml2-relaxng.html",
+    "share/gtk-doc/html/libxml2/libxml2-schemasInternals.html",
+    "share/gtk-doc/html/libxml2/libxml2-schematron.html",
+    "share/gtk-doc/html/libxml2/libxml2-threads.html",
+    "share/gtk-doc/html/libxml2/libxml2-tree.html",
+    "share/gtk-doc/html/libxml2/libxml2-uri.html",
+    "share/gtk-doc/html/libxml2/libxml2-valid.html",
+    "share/gtk-doc/html/libxml2/libxml2-xinclude.html",
+    "share/gtk-doc/html/libxml2/libxml2-xlink.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlIO.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlautomata.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlerror.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlexports.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlmemory.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlmodule.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlreader.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlregexp.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlsave.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlschemas.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlschemastypes.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlstring.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlunicode.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlversion.html",
+    "share/gtk-doc/html/libxml2/libxml2-xmlwriter.html",
+    "share/gtk-doc/html/libxml2/libxml2-xpath.html",
+    "share/gtk-doc/html/libxml2/libxml2-xpathInternals.html",
+    "share/gtk-doc/html/libxml2/libxml2-xpointer.html",
+    "share/gtk-doc/html/libxml2/libxml2.devhelp",
+    "share/gtk-doc/html/libxml2/right.png",
+    "share/gtk-doc/html/libxml2/style.css",
+    "share/gtk-doc/html/libxml2/up.png",
+    "share/man/man1/xml2-config.1",
+    "share/man/man1/xmlcatalog.1",
+    "share/man/man1/xmllint.1",
+    "share/man/man3/libxml.3"
+  ],
+  "fn": "libxml2-2.9.8-hab757c2_1.tar.bz2",
+  "license": "MIT",
+  "license_family": "MIT",
+  "link": {
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/libxml2-2.9.8-hab757c2_1",
+    "type": 1
+  },
+  "md5": "cb5bcc83786c9745f8589a9e3773239d",
+  "name": "libxml2",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/libxml2-2.9.8-hab757c2_1.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "bin/xml2-config",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
+        "sha256": "7d7d053a1eb7b532257a96ca539f11c8541ed0ad2b3faa3f7552816c32b2a22f",
+        "sha256_in_prefix": "213cfe7cd0cc2dcdf41e44e8ad3fc75e6fcbd38433bb8717a2a36b23424bb763",
+        "size_in_bytes": 2316
+      },
+      {
+        "_path": "bin/xmlcatalog",
+        "file_mode": "binary",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/de985aaa-ee1b-4790-4875-30dfb9dad0c7/volume/libxml2_1527065191416/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeho",
+        "sha256": "dea6447b18784418034eed98806ba0436ee14044f6edd0c764577131c8b82400",
+        "sha256_in_prefix": "07b9ceb53c3419c254aa76865e49b20e5b9b95d913469ae81a091e2feb1d025c",
+        "size_in_bytes": 19332
+      },
+      {
+        "_path": "bin/xmllint",
+        "file_mode": "binary",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/de985aaa-ee1b-4790-4875-30dfb9dad0c7/volume/libxml2_1527065191416/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeho",
+        "sha256": "0d2cdd75c486067de31580b444249eabc3e298bf3eef5d4d6d875d66e5a7aea2",
+        "sha256_in_prefix": "6f2d494aa7b2a744270b4043cd55a15f11848f91f9cc4d6cc86bab935567d909",
+        "size_in_bytes": 65900
+      },
+      {
+        "_path": "include/libxml2/libxml/DOCBparser.h",
+        "path_type": "hardlink",
+        "sha256": "402cdfa43f9ae70fb74fd7db08b849235d87fe23792d5b4e896bb72f6d5ec89a",
+        "sha256_in_prefix": "402cdfa43f9ae70fb74fd7db08b849235d87fe23792d5b4e896bb72f6d5ec89a",
+        "size_in_bytes": 3157
+      },
+      {
+        "_path": "include/libxml2/libxml/HTMLparser.h",
+        "path_type": "hardlink",
+        "sha256": "dcb63d3115ece5908c6c5f75813428977ddc791a5a99b59563472210fbbaa2d2",
+        "sha256_in_prefix": "dcb63d3115ece5908c6c5f75813428977ddc791a5a99b59563472210fbbaa2d2",
+        "size_in_bytes": 9410
+      },
+      {
+        "_path": "include/libxml2/libxml/HTMLtree.h",
+        "path_type": "hardlink",
+        "sha256": "fa2dfbf88a92fcb53d8de8bff72522e85b3cd1912b96b086656c1a4c7220f69f",
+        "sha256_in_prefix": "fa2dfbf88a92fcb53d8de8bff72522e85b3cd1912b96b086656c1a4c7220f69f",
+        "size_in_bytes": 3646
+      },
+      {
+        "_path": "include/libxml2/libxml/SAX.h",
+        "path_type": "hardlink",
+        "sha256": "1201236d73ffd0eb5f49811be851c79d698f1209d0619e48697f04861ed8bd58",
+        "sha256_in_prefix": "1201236d73ffd0eb5f49811be851c79d698f1209d0619e48697f04861ed8bd58",
+        "size_in_bytes": 4341
+      },
+      {
+        "_path": "include/libxml2/libxml/SAX2.h",
+        "path_type": "hardlink",
+        "sha256": "f59eaf4ca872b2ab272ccbfadda25373244b87a426f016ac7b8f2a45958c4343",
+        "sha256_in_prefix": "f59eaf4ca872b2ab272ccbfadda25373244b87a426f016ac7b8f2a45958c4343",
+        "size_in_bytes": 4949
+      },
+      {
+        "_path": "include/libxml2/libxml/c14n.h",
+        "path_type": "hardlink",
+        "sha256": "c893befe6d073a04df6c18affe3f8fd362dfb59f3fa1fcc8a491289c13f250b6",
+        "sha256_in_prefix": "c893befe6d073a04df6c18affe3f8fd362dfb59f3fa1fcc8a491289c13f250b6",
+        "size_in_bytes": 3109
+      },
+      {
+        "_path": "include/libxml2/libxml/catalog.h",
+        "path_type": "hardlink",
+        "sha256": "ba006672c06365e7c0b0013cbececec0c6689d8541cc38f6acdc96545e182b72",
+        "sha256_in_prefix": "ba006672c06365e7c0b0013cbececec0c6689d8541cc38f6acdc96545e182b72",
+        "size_in_bytes": 4905
+      },
+      {
+        "_path": "include/libxml2/libxml/chvalid.h",
+        "path_type": "hardlink",
+        "sha256": "1fdfcd21e2f20e174a0d983d7ae2bfe5be5099e5d658dab829310d16471452d0",
+        "sha256_in_prefix": "1fdfcd21e2f20e174a0d983d7ae2bfe5be5099e5d658dab829310d16471452d0",
+        "size_in_bytes": 5159
+      },
+      {
+        "_path": "include/libxml2/libxml/debugXML.h",
+        "path_type": "hardlink",
+        "sha256": "79ab5f96bc907dc9ae0209b2cff7f72684a94e6bc3036ea6adc52377bbf048b6",
+        "sha256_in_prefix": "79ab5f96bc907dc9ae0209b2cff7f72684a94e6bc3036ea6adc52377bbf048b6",
+        "size_in_bytes": 5152
+      },
+      {
+        "_path": "include/libxml2/libxml/dict.h",
+        "path_type": "hardlink",
+        "sha256": "a37e8fe77807bda8454d4e0af913247aacb9a09cd7cdafda909d3af4299da2b1",
+        "sha256_in_prefix": "a37e8fe77807bda8454d4e0af913247aacb9a09cd7cdafda909d3af4299da2b1",
+        "size_in_bytes": 1955
+      },
+      {
+        "_path": "include/libxml2/libxml/encoding.h",
+        "path_type": "hardlink",
+        "sha256": "6f398752753ea548d022a30eaab12697929aa4c3a667c31ea0d3b9548ae8d1c9",
+        "sha256_in_prefix": "6f398752753ea548d022a30eaab12697929aa4c3a667c31ea0d3b9548ae8d1c9",
+        "size_in_bytes": 8507
+      },
+      {
+        "_path": "include/libxml2/libxml/entities.h",
+        "path_type": "hardlink",
+        "sha256": "b89f08defa2a7f0304c3c31026f78bb52d2639a9e3cf3444ade2ab4acf3fd35f",
+        "sha256_in_prefix": "b89f08defa2a7f0304c3c31026f78bb52d2639a9e3cf3444ade2ab4acf3fd35f",
+        "size_in_bytes": 4712
+      },
+      {
+        "_path": "include/libxml2/libxml/globals.h",
+        "path_type": "hardlink",
+        "sha256": "087a7bbb8ea727ea84e0de2d1554bac515e7420ae7a84bca034bb6ef8e05df83",
+        "sha256_in_prefix": "087a7bbb8ea727ea84e0de2d1554bac515e7420ae7a84bca034bb6ef8e05df83",
+        "size_in_bytes": 14694
+      },
+      {
+        "_path": "include/libxml2/libxml/hash.h",
+        "path_type": "hardlink",
+        "sha256": "f3519c878c9a138a1794a84cfa3c0fa5591fef38a0da41f96fec1dac29083696",
+        "sha256_in_prefix": "f3519c878c9a138a1794a84cfa3c0fa5591fef38a0da41f96fec1dac29083696",
+        "size_in_bytes": 6603
+      },
+      {
+        "_path": "include/libxml2/libxml/list.h",
+        "path_type": "hardlink",
+        "sha256": "6fb878db01ac0d04d5597b11bad8cd7b59f4d3fcd77c3217afe881387bd24e18",
+        "sha256_in_prefix": "6fb878db01ac0d04d5597b11bad8cd7b59f4d3fcd77c3217afe881387bd24e18",
+        "size_in_bytes": 3348
+      },
+      {
+        "_path": "include/libxml2/libxml/nanoftp.h",
+        "path_type": "hardlink",
+        "sha256": "1ce5b5e4570b603ec0ee1bdd72acf7271198541adaaa3893a1db71fa906a4398",
+        "sha256_in_prefix": "1ce5b5e4570b603ec0ee1bdd72acf7271198541adaaa3893a1db71fa906a4398",
+        "size_in_bytes": 3758
+      },
+      {
+        "_path": "include/libxml2/libxml/nanohttp.h",
+        "path_type": "hardlink",
+        "sha256": "2cb80dfc972ea553b6e3f3a48bcf79c952ac27315ee66705daf1fc124ca6abf2",
+        "sha256_in_prefix": "2cb80dfc972ea553b6e3f3a48bcf79c952ac27315ee66705daf1fc124ca6abf2",
+        "size_in_bytes": 2005
+      },
+      {
+        "_path": "include/libxml2/libxml/parser.h",
+        "path_type": "hardlink",
+        "sha256": "7c0bdf4697a5cb4ef249d292f0c2510b07323a866933e879cbab4f85709968db",
+        "sha256_in_prefix": "7c0bdf4697a5cb4ef249d292f0c2510b07323a866933e879cbab4f85709968db",
+        "size_in_bytes": 39717
+      },
+      {
+        "_path": "include/libxml2/libxml/parserInternals.h",
+        "path_type": "hardlink",
+        "sha256": "d9ce5fe9a9e638969896a261024cbe9ad9fa08d045172d423af3d71ed0e46f62",
+        "sha256_in_prefix": "d9ce5fe9a9e638969896a261024cbe9ad9fa08d045172d423af3d71ed0e46f62",
+        "size_in_bytes": 17418
+      },
+      {
+        "_path": "include/libxml2/libxml/pattern.h",
+        "path_type": "hardlink",
+        "sha256": "14af39bf18e46b69334cf65e09ea79ec731aeea73e238e961f77ce91460eb167",
+        "sha256_in_prefix": "14af39bf18e46b69334cf65e09ea79ec731aeea73e238e961f77ce91460eb167",
+        "size_in_bytes": 2586
+      },
+      {
+        "_path": "include/libxml2/libxml/relaxng.h",
+        "path_type": "hardlink",
+        "sha256": "0f5b9f76a8b30d23f1f3038bfd9b23b8897efa72b9d9c58c899c0874421b8527",
+        "sha256_in_prefix": "0f5b9f76a8b30d23f1f3038bfd9b23b8897efa72b9d9c58c899c0874421b8527",
+        "size_in_bytes": 5996
+      },
+      {
+        "_path": "include/libxml2/libxml/schemasInternals.h",
+        "path_type": "hardlink",
+        "sha256": "235552bf97ceef00c77604a8476c6b7144862f550478e81a6e99d94f9c176b2a",
+        "sha256_in_prefix": "235552bf97ceef00c77604a8476c6b7144862f550478e81a6e99d94f9c176b2a",
+        "size_in_bytes": 26243
+      },
+      {
+        "_path": "include/libxml2/libxml/schematron.h",
+        "path_type": "hardlink",
+        "sha256": "94d39ef6815b841aa4d4656fe27278799477b6278956ec3e82a6eb98fb46dcae",
+        "sha256_in_prefix": "94d39ef6815b841aa4d4656fe27278799477b6278956ec3e82a6eb98fb46dcae",
+        "size_in_bytes": 4371
+      },
+      {
+        "_path": "include/libxml2/libxml/threads.h",
+        "path_type": "hardlink",
+        "sha256": "e0ea29c851260c889c9ac8fb718cf396912cc1b5d28871cce4b25a919f55c396",
+        "sha256_in_prefix": "e0ea29c851260c889c9ac8fb718cf396912cc1b5d28871cce4b25a919f55c396",
+        "size_in_bytes": 1958
+      },
+      {
+        "_path": "include/libxml2/libxml/tree.h",
+        "path_type": "hardlink",
+        "sha256": "f341f0fd6bcbae4e0fdf2aee6a49a1a08ccc5e7d112edb22903206524da7f137",
+        "sha256_in_prefix": "f341f0fd6bcbae4e0fdf2aee6a49a1a08ccc5e7d112edb22903206524da7f137",
+        "size_in_bytes": 38105
+      },
+      {
+        "_path": "include/libxml2/libxml/uri.h",
+        "path_type": "hardlink",
+        "sha256": "9c65353157b6cebedede345e0d828230f4244e441137e88d94b7b09293fd70ba",
+        "sha256_in_prefix": "9c65353157b6cebedede345e0d828230f4244e441137e88d94b7b09293fd70ba",
+        "size_in_bytes": 2664
+      },
+      {
+        "_path": "include/libxml2/libxml/valid.h",
+        "path_type": "hardlink",
+        "sha256": "fffa02a7d88ad6725ceecda2459aadcfc887bbafbef7e5c8fcc58b5c806afc2d",
+        "sha256_in_prefix": "fffa02a7d88ad6725ceecda2459aadcfc887bbafbef7e5c8fcc58b5c806afc2d",
+        "size_in_bytes": 13622
+      },
+      {
+        "_path": "include/libxml2/libxml/xinclude.h",
+        "path_type": "hardlink",
+        "sha256": "88bfeca9f6962214e185e1d605b11442de7dfec77e8e7131871698797c489ea9",
+        "sha256_in_prefix": "88bfeca9f6962214e185e1d605b11442de7dfec77e8e7131871698797c489ea9",
+        "size_in_bytes": 2967
+      },
+      {
+        "_path": "include/libxml2/libxml/xlink.h",
+        "path_type": "hardlink",
+        "sha256": "855f9cbc2c4827f17555d59c318677c368e41b05b22dcf5267c3dd9d467160db",
+        "sha256_in_prefix": "855f9cbc2c4827f17555d59c318677c368e41b05b22dcf5267c3dd9d467160db",
+        "size_in_bytes": 5040
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlIO.h",
+        "path_type": "hardlink",
+        "sha256": "fb9318462082b8ef35636de5759254ed487f9b2dd4ef2ca0f6b31f6a17156a7b",
+        "sha256_in_prefix": "fb9318462082b8ef35636de5759254ed487f9b2dd4ef2ca0f6b31f6a17156a7b",
+        "size_in_bytes": 10611
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlautomata.h",
+        "path_type": "hardlink",
+        "sha256": "ac82712d604666b7e41580d7749641a00872829f77bc504efd623a9d40b104de",
+        "sha256_in_prefix": "ac82712d604666b7e41580d7749641a00872829f77bc504efd623a9d40b104de",
+        "size_in_bytes": 3956
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlerror.h",
+        "path_type": "hardlink",
+        "sha256": "23bc6c90eaab4e472d9a52fbea3dbefd5326301fd13dc5d38251358c74576b98",
+        "sha256_in_prefix": "23bc6c90eaab4e472d9a52fbea3dbefd5326301fd13dc5d38251358c74576b98",
+        "size_in_bytes": 36808
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlexports.h",
+        "path_type": "hardlink",
+        "sha256": "c4a345a520d3f9de77c5359ec829735edb05bac362ca8f65e08c28e0935cecc3",
+        "sha256_in_prefix": "c4a345a520d3f9de77c5359ec829735edb05bac362ca8f65e08c28e0935cecc3",
+        "size_in_bytes": 3920
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlmemory.h",
+        "path_type": "hardlink",
+        "sha256": "67acb42100882977d59d838f886a05c1ce47ab8ad4759e4027028979abf44cdc",
+        "sha256_in_prefix": "67acb42100882977d59d838f886a05c1ce47ab8ad4759e4027028979abf44cdc",
+        "size_in_bytes": 5945
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlmodule.h",
+        "path_type": "hardlink",
+        "sha256": "739bd7bac663e3a16c33d50f1c6b7c83d81d3e14d5387d6b24415fda927c2b87",
+        "sha256_in_prefix": "739bd7bac663e3a16c33d50f1c6b7c83d81d3e14d5387d6b24415fda927c2b87",
+        "size_in_bytes": 1170
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlreader.h",
+        "path_type": "hardlink",
+        "sha256": "980015cfe658aceb79e9fccb76cfb2b6eb16ed4a84192e4bf411a2e64ce94efe",
+        "sha256_in_prefix": "980015cfe658aceb79e9fccb76cfb2b6eb16ed4a84192e4bf411a2e64ce94efe",
+        "size_in_bytes": 12607
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlregexp.h",
+        "path_type": "hardlink",
+        "sha256": "5076d90c3dc26559f834389a1c1eb801afbdd29c734ac7289ccaa7782a756437",
+        "sha256_in_prefix": "5076d90c3dc26559f834389a1c1eb801afbdd29c734ac7289ccaa7782a756437",
+        "size_in_bytes": 5458
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlsave.h",
+        "path_type": "hardlink",
+        "sha256": "f10941282eadb99ee5150aff2890d3031a788265ed65683e28698b3240fb4c2c",
+        "sha256_in_prefix": "f10941282eadb99ee5150aff2890d3031a788265ed65683e28698b3240fb4c2c",
+        "size_in_bytes": 2337
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlschemas.h",
+        "path_type": "hardlink",
+        "sha256": "9af2bdf8e98cf85c5f00f4a97e4b5ee11f8459d930bd8e96157e89994785dff5",
+        "sha256_in_prefix": "9af2bdf8e98cf85c5f00f4a97e4b5ee11f8459d930bd8e96157e89994785dff5",
+        "size_in_bytes": 7069
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlschemastypes.h",
+        "path_type": "hardlink",
+        "sha256": "6a530bcd939db34d8ab1bbfb2bcea8c2bd3f2178c53d0d8a93df6b1a19e264f1",
+        "sha256_in_prefix": "6a530bcd939db34d8ab1bbfb2bcea8c2bd3f2178c53d0d8a93df6b1a19e264f1",
+        "size_in_bytes": 4841
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlstring.h",
+        "path_type": "hardlink",
+        "sha256": "3ffe34172104e347bff21f13964f5348dcded73ac9ca0160b31905c9d3e79cfb",
+        "sha256_in_prefix": "3ffe34172104e347bff21f13964f5348dcded73ac9ca0160b31905c9d3e79cfb",
+        "size_in_bytes": 5511
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlunicode.h",
+        "path_type": "hardlink",
+        "sha256": "4e94d9f017f7d7746cf66fb0c35701087c2f5beb878fdb50d76e6241f683a2b5",
+        "sha256_in_prefix": "4e94d9f017f7d7746cf66fb0c35701087c2f5beb878fdb50d76e6241f683a2b5",
+        "size_in_bytes": 9993
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlversion.h",
+        "path_type": "hardlink",
+        "sha256": "cfee5729763b777b87f14cc656f47716ba8e52d48224b0006774443fd7696832",
+        "sha256_in_prefix": "cfee5729763b777b87f14cc656f47716ba8e52d48224b0006774443fd7696832",
+        "size_in_bytes": 8092
+      },
+      {
+        "_path": "include/libxml2/libxml/xmlwriter.h",
+        "path_type": "hardlink",
+        "sha256": "75d8dd461f4f047f85ca798d823911835245051ce56413f2ca1ec55f7257d656",
+        "sha256_in_prefix": "75d8dd461f4f047f85ca798d823911835245051ce56413f2ca1ec55f7257d656",
+        "size_in_bytes": 21265
+      },
+      {
+        "_path": "include/libxml2/libxml/xpath.h",
+        "path_type": "hardlink",
+        "sha256": "ce8e3929921e6ddace80af99bbb91640c9bdc80b38a6dff96f94069c302931cd",
+        "sha256_in_prefix": "ce8e3929921e6ddace80af99bbb91640c9bdc80b38a6dff96f94069c302931cd",
+        "size_in_bytes": 16398
+      },
+      {
+        "_path": "include/libxml2/libxml/xpathInternals.h",
+        "path_type": "hardlink",
+        "sha256": "1167845f5c82547b1451e0f1c4e7bee233b6e4b0440e8339eb80a83dcd583465",
+        "sha256_in_prefix": "1167845f5c82547b1451e0f1c4e7bee233b6e4b0440e8339eb80a83dcd583465",
+        "size_in_bytes": 19353
+      },
+      {
+        "_path": "include/libxml2/libxml/xpointer.h",
+        "path_type": "hardlink",
+        "sha256": "e8c430846c88cb73caa7dc96697460d0b01d2fe6d1da38c535853151291cea59",
+        "sha256_in_prefix": "e8c430846c88cb73caa7dc96697460d0b01d2fe6d1da38c535853151291cea59",
+        "size_in_bytes": 3359
+      },
+      {
+        "_path": "lib/cmake/libxml2/libxml2-config.cmake",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
+        "sha256": "ecb4dbabaf17cc9d7d5a79d0095cca01664ed587ce5205a6b75c37bf15a46418",
+        "sha256_in_prefix": "5a987c7f238992d107a1b118a4a11022d151a45fcc5f37126c095b36cb6cea77",
+        "size_in_bytes": 1752
+      },
+      {
+        "_path": "lib/libxml2.2.dylib",
+        "file_mode": "binary",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/de985aaa-ee1b-4790-4875-30dfb9dad0c7/volume/libxml2_1527065191416/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeho",
+        "sha256": "4356a4be89f662ae4f822457c16a86baebe9e797fbb95e1e377b4591a2924af6",
+        "sha256_in_prefix": "fbb1d5b0ac60b7ca02473ccdcfa1da52eb168d5709e3b5d4c52885685aef8628",
+        "size_in_bytes": 1503272
+      },
+      {
+        "_path": "lib/libxml2.a",
+        "path_type": "hardlink",
+        "sha256": "8e618579cb04f44126022dd04efda4995a43853f2555b82982c26a9f14fc1fcc",
+        "sha256_in_prefix": "8e618579cb04f44126022dd04efda4995a43853f2555b82982c26a9f14fc1fcc",
+        "size_in_bytes": 2042336
+      },
+      {
+        "_path": "lib/libxml2.dylib",
+        "file_mode": "binary",
+        "path_type": "softlink",
+        "prefix_placeholder": "/opt/concourse/worker/volumes/live/de985aaa-ee1b-4790-4875-30dfb9dad0c7/volume/libxml2_1527065191416/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeho",
+        "sha256": "4356a4be89f662ae4f822457c16a86baebe9e797fbb95e1e377b4591a2924af6",
+        "size_in_bytes": 1503272
+      },
+      {
+        "_path": "lib/libxml2.la",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
+        "sha256": "f5b9337377803d504cda6ffb52166a705bf6692f8bf2d5f49b95cb7bce63c8de",
+        "sha256_in_prefix": "14fee4c3420f8605ffabd43a89169e076dc886172c436d19744ea150b3e9de32",
+        "size_in_bytes": 1123
+      },
+      {
+        "_path": "lib/pkgconfig/libxml-2.0.pc",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
+        "sha256": "9c384e083ada5265656a7781c48fc41b5f6c65073578c2f4371c741c6b6bf5a2",
+        "sha256_in_prefix": "3dc81f0b5ae78d02b9da340876246c56c1795e26b7b408b04646749a042ef713",
+        "size_in_bytes": 538
+      },
+      {
+        "_path": "lib/xml2Conf.sh",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "/opt/anaconda1anaconda2anaconda3",
+        "sha256": "ff1aeb8a45a366070bc2622b98c8becf8e3f38861f896f703fe39c18ac5885f0",
+        "sha256_in_prefix": "7858bbf67cf00128b354569dd85f677dc1b3f5fb8c7fe96cc09440da62d4175d",
+        "size_in_bytes": 504
+      },
+      {
+        "_path": "share/aclocal/libxml.m4",
+        "path_type": "hardlink",
+        "sha256": "72e91f8a9c8cd64c915ba94630092f7ff27820f0bb1bb9eb21481b61cbc95780",
+        "sha256_in_prefix": "72e91f8a9c8cd64c915ba94630092f7ff27820f0bb1bb9eb21481b61cbc95780",
+        "size_in_bytes": 7881
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/Copyright",
+        "path_type": "hardlink",
+        "sha256": "c5c63674f8a83c4d2e385d96d1c670a03cb871ba2927755467017317878574bd",
+        "sha256_in_prefix": "c5c63674f8a83c4d2e385d96d1c670a03cb871ba2927755467017317878574bd",
+        "size_in_bytes": 1289
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/examples/testHTML.c",
+        "path_type": "hardlink",
+        "sha256": "69aebacd98b23be68163fcb91979d8934cedb0e39bc1c17655745a96bb04d9ad",
+        "sha256_in_prefix": "69aebacd98b23be68163fcb91979d8934cedb0e39bc1c17655745a96bb04d9ad",
+        "size_in_bytes": 21153
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/examples/testSAX.c",
+        "path_type": "hardlink",
+        "sha256": "b6be80695dac8321ad08f01d41c837cd7692c405ccaf834dba60383b90bf60bc",
+        "sha256_in_prefix": "b6be80695dac8321ad08f01d41c837cd7692c405ccaf834dba60383b90bf60bc",
+        "size_in_bytes": 27598
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/examples/testXPath.c",
+        "path_type": "hardlink",
+        "sha256": "2d6bae4b6f6749f3a330c8f60444e31cc607a06348c0c45de26efd8bbb69191f",
+        "sha256_in_prefix": "2d6bae4b6f6749f3a330c8f60444e31cc607a06348c0c45de26efd8bbb69191f",
+        "size_in_bytes": 5919
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/examples/xmllint.c",
+        "path_type": "hardlink",
+        "sha256": "bd968ffceb85a74615d5eeb70acfbb6aedf419e3a9d16f9f34769de2f3129360",
+        "sha256_in_prefix": "bd968ffceb85a74615d5eeb70acfbb6aedf419e3a9d16f9f34769de2f3129360",
+        "size_in_bytes": 100205
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/DOM.gif",
+        "path_type": "hardlink",
+        "sha256": "bd8c21ad636ffe541a401f319ddc8e173336e3390cf9eea643ed5f1452c516d3",
+        "sha256_in_prefix": "bd8c21ad636ffe541a401f319ddc8e173336e3390cf9eea643ed5f1452c516d3",
+        "size_in_bytes": 3166
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/FAQ.html",
+        "path_type": "hardlink",
+        "sha256": "6b1f063251035f71dc60b1f2054010790bb9b198bfe517e628d1f5be30e771e9",
+        "sha256_in_prefix": "6b1f063251035f71dc60b1f2054010790bb9b198bfe517e628d1f5be30e771e9",
+        "size_in_bytes": 21140
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/Libxml2-Logo-180x168.gif",
+        "path_type": "hardlink",
+        "sha256": "7ebc047db40e9f4c47b3258cf011f935f8b0cafee0861a8a8573a8788fde415b",
+        "sha256_in_prefix": "7ebc047db40e9f4c47b3258cf011f935f8b0cafee0861a8a8573a8788fde415b",
+        "size_in_bytes": 8195
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/Libxml2-Logo-90x34.gif",
+        "path_type": "hardlink",
+        "sha256": "aa4f637c62f66e321680f0d63a431aa61534aa8508169f4e4d3abe64c61b1044",
+        "sha256_in_prefix": "aa4f637c62f66e321680f0d63a431aa61534aa8508169f4e4d3abe64c61b1044",
+        "size_in_bytes": 3070
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/encoding.html",
+        "path_type": "hardlink",
+        "sha256": "08e079a570806ee4f6b89f76bd6a0add3e824521fdd36034377103b99a74cf4f",
+        "sha256_in_prefix": "08e079a570806ee4f6b89f76bd6a0add3e824521fdd36034377103b99a74cf4f",
+        "size_in_bytes": 19414
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/examples.xml",
+        "path_type": "hardlink",
+        "sha256": "a650ae9c5a6150a8cafecdc69c320166d765cfded071dbb9b14324679dccdfcd",
+        "sha256_in_prefix": "a650ae9c5a6150a8cafecdc69c320166d765cfded071dbb9b14324679dccdfcd",
+        "size_in_bytes": 32157
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/examples.xsl",
+        "path_type": "hardlink",
+        "sha256": "fdea1b17d39bccd16daf2a404ddb842a22e55175b7a237cb682f0f04157d0515",
+        "sha256_in_prefix": "fdea1b17d39bccd16daf2a404ddb842a22e55175b7a237cb682f0f04157d0515",
+        "size_in_bytes": 7232
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/book1.html",
+        "path_type": "hardlink",
+        "sha256": "66f136c6ec4ec9ce776cbf60b4067e71c498f7d0b960edba514d454c68985ac3",
+        "sha256_in_prefix": "66f136c6ec4ec9ce776cbf60b4067e71c498f7d0b960edba514d454c68985ac3",
+        "size_in_bytes": 9634
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/home.png",
+        "path_type": "hardlink",
+        "sha256": "034c231513fea72bbc788109596f9b35db7b87e270c19c8b3dd22940fb35e6be",
+        "sha256_in_prefix": "034c231513fea72bbc788109596f9b35db7b87e270c19c8b3dd22940fb35e6be",
+        "size_in_bytes": 654
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/index.html",
+        "path_type": "hardlink",
+        "sha256": "66f136c6ec4ec9ce776cbf60b4067e71c498f7d0b960edba514d454c68985ac3",
+        "sha256_in_prefix": "66f136c6ec4ec9ce776cbf60b4067e71c498f7d0b960edba514d454c68985ac3",
+        "size_in_bytes": 9634
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/left.png",
+        "path_type": "hardlink",
+        "sha256": "9ae091e52c667a72d77eb6c41cd9afc7af60bc89bfc3023248b1dc3bb7dbf461",
+        "sha256_in_prefix": "9ae091e52c667a72d77eb6c41cd9afc7af60bc89bfc3023248b1dc3bb7dbf461",
+        "size_in_bytes": 459
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-DOCBparser.html",
+        "path_type": "hardlink",
+        "sha256": "146bf3b2aa409805e2905374b96704d4347b356025d001531462f1936783e5cf",
+        "sha256_in_prefix": "146bf3b2aa409805e2905374b96704d4347b356025d001531462f1936783e5cf",
+        "size_in_bytes": 20623
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-HTMLparser.html",
+        "path_type": "hardlink",
+        "sha256": "ad612ef49c1223ca2d6cd9f837b5dbffd6ccc59136316547203bc59af4899668",
+        "sha256_in_prefix": "ad612ef49c1223ca2d6cd9f837b5dbffd6ccc59136316547203bc59af4899668",
+        "size_in_bytes": 59984
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-HTMLtree.html",
+        "path_type": "hardlink",
+        "sha256": "de4f6c0a7b663f6f8e1a5616a2cc78a92be707fb6732e496a74223a63c15c00f",
+        "sha256_in_prefix": "de4f6c0a7b663f6f8e1a5616a2cc78a92be707fb6732e496a74223a63c15c00f",
+        "size_in_bytes": 28599
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-SAX.html",
+        "path_type": "hardlink",
+        "sha256": "b5bd776864aac3a81ff143c13ab4e2c42969624210d6019cbfd1fdc8746a0065",
+        "sha256_in_prefix": "b5bd776864aac3a81ff143c13ab4e2c42969624210d6019cbfd1fdc8746a0065",
+        "size_in_bytes": 43480
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-SAX2.html",
+        "path_type": "hardlink",
+        "sha256": "2d4ef23833e1186b14a2a5a4a258adfc9d61dcbd254752d05f877a37d29cd715",
+        "sha256_in_prefix": "2d4ef23833e1186b14a2a5a4a258adfc9d61dcbd254752d05f877a37d29cd715",
+        "size_in_bytes": 44449
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-c14n.html",
+        "path_type": "hardlink",
+        "sha256": "f404c0111ecef3c47b67c8acb0fa09c2dd47c70c97925d24ec5352fa203f73a4",
+        "sha256_in_prefix": "f404c0111ecef3c47b67c8acb0fa09c2dd47c70c97925d24ec5352fa203f73a4",
+        "size_in_bytes": 18053
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-catalog.html",
+        "path_type": "hardlink",
+        "sha256": "90826746503ed09b05f490215697c5defde16e98064521aa833fa0c0b40f68d7",
+        "sha256_in_prefix": "90826746503ed09b05f490215697c5defde16e98064521aa833fa0c0b40f68d7",
+        "size_in_bytes": 41018
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-chvalid.html",
+        "path_type": "hardlink",
+        "sha256": "d498cb4693bef622778ab3bc4f188c86095f554968fe49e6505943845853d822",
+        "sha256_in_prefix": "d498cb4693bef622778ab3bc4f188c86095f554968fe49e6505943845853d822",
+        "size_in_bytes": 18421
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-debugXML.html",
+        "path_type": "hardlink",
+        "sha256": "988a128675558c5a12cde19700463290ff25985ab89d7a358ccbcb7cc73ffefa",
+        "sha256_in_prefix": "988a128675558c5a12cde19700463290ff25985ab89d7a358ccbcb7cc73ffefa",
+        "size_in_bytes": 37910
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-dict.html",
+        "path_type": "hardlink",
+        "sha256": "c520fa7e36faea13559803d6142fe82f36d3dd74bbb9cb37686e275f8a24ea95",
+        "sha256_in_prefix": "c520fa7e36faea13559803d6142fe82f36d3dd74bbb9cb37686e275f8a24ea95",
+        "size_in_bytes": 17944
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-encoding.html",
+        "path_type": "hardlink",
+        "sha256": "34c1a328df2057e13a86be75eef052156dd26947d6956992ff42c64abd94e278",
+        "sha256_in_prefix": "34c1a328df2057e13a86be75eef052156dd26947d6956992ff42c64abd94e278",
+        "size_in_bytes": 35033
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-entities.html",
+        "path_type": "hardlink",
+        "sha256": "99a8bce635582339623a9a48626f72fe92069347d082e0f15352418cc5888481",
+        "sha256_in_prefix": "99a8bce635582339623a9a48626f72fe92069347d082e0f15352418cc5888481",
+        "size_in_bytes": 27687
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-globals.html",
+        "path_type": "hardlink",
+        "sha256": "157634a93e0725e8a3af56be783d42a961b26365854a971fed93d5414ead3495",
+        "sha256_in_prefix": "157634a93e0725e8a3af56be783d42a961b26365854a971fed93d5414ead3495",
+        "size_in_bytes": 33086
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-hash.html",
+        "path_type": "hardlink",
+        "sha256": "e8047fd00e4a628c2f715749e3c007f4e23cd143a3544724d252c9d571d047e5",
+        "sha256_in_prefix": "e8047fd00e4a628c2f715749e3c007f4e23cd143a3544724d252c9d571d047e5",
+        "size_in_bytes": 47376
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-lib.html",
+        "path_type": "hardlink",
+        "sha256": "66f136c6ec4ec9ce776cbf60b4067e71c498f7d0b960edba514d454c68985ac3",
+        "sha256_in_prefix": "66f136c6ec4ec9ce776cbf60b4067e71c498f7d0b960edba514d454c68985ac3",
+        "size_in_bytes": 9634
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-list.html",
+        "path_type": "hardlink",
+        "sha256": "110f7dde7bad7e0a050a44cc5fef7cb27cfb6c1d17651417d30d3d56de094958",
+        "sha256_in_prefix": "110f7dde7bad7e0a050a44cc5fef7cb27cfb6c1d17651417d30d3d56de094958",
+        "size_in_bytes": 30071
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-nanoftp.html",
+        "path_type": "hardlink",
+        "sha256": "e598db690a18b90c1ce4644dc00369baebf76b7fa10fd50bb2e4318a49b709e3",
+        "sha256_in_prefix": "e598db690a18b90c1ce4644dc00369baebf76b7fa10fd50bb2e4318a49b709e3",
+        "size_in_bytes": 27085
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-nanohttp.html",
+        "path_type": "hardlink",
+        "sha256": "3416ce7d5544c303d94498c91b39c6f68e8f85caf971560759bb802f622e3798",
+        "sha256_in_prefix": "3416ce7d5544c303d94498c91b39c6f68e8f85caf971560759bb802f622e3798",
+        "size_in_bytes": 21222
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-parser.html",
+        "path_type": "hardlink",
+        "sha256": "63672c22a2345735e284ab357be1182907277a3c5111653a12e8413b8f6fdd00",
+        "sha256_in_prefix": "63672c22a2345735e284ab357be1182907277a3c5111653a12e8413b8f6fdd00",
+        "size_in_bytes": 146339
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-parserInternals.html",
+        "path_type": "hardlink",
+        "sha256": "b9e0934806f31ecfdf48963637b644bffef46f9c1c1d3b8455152f50c111a98f",
+        "sha256_in_prefix": "b9e0934806f31ecfdf48963637b644bffef46f9c1c1d3b8455152f50c111a98f",
+        "size_in_bytes": 122664
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-pattern.html",
+        "path_type": "hardlink",
+        "sha256": "b9e07a159a868daab0408619524c5fd3fc772119fb617816622d84f59aba808d",
+        "sha256_in_prefix": "b9e07a159a868daab0408619524c5fd3fc772119fb617816622d84f59aba808d",
+        "size_in_bytes": 23671
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-relaxng.html",
+        "path_type": "hardlink",
+        "sha256": "59640ee8cc020e8241a54bdeb6416ac3e69616a677d1ae0821f005561d9478f8",
+        "sha256_in_prefix": "59640ee8cc020e8241a54bdeb6416ac3e69616a677d1ae0821f005561d9478f8",
+        "size_in_bytes": 41000
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-schemasInternals.html",
+        "path_type": "hardlink",
+        "sha256": "541a62f9eff0c3bf512a2f72c10dab089c560a967b6f8f5a7af970b8aa0c5494",
+        "sha256_in_prefix": "541a62f9eff0c3bf512a2f72c10dab089c560a967b6f8f5a7af970b8aa0c5494",
+        "size_in_bytes": 64057
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-schematron.html",
+        "path_type": "hardlink",
+        "sha256": "f6f897fcd03a081cfd0bccc47a61c57d4a82d9c55df12f123809b7acc9cfe81b",
+        "sha256_in_prefix": "f6f897fcd03a081cfd0bccc47a61c57d4a82d9c55df12f123809b7acc9cfe81b",
+        "size_in_bytes": 21727
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-threads.html",
+        "path_type": "hardlink",
+        "sha256": "9014d37ac567392e9b93bcb2c0de3ad7e8aea0815b01fe1fb9501d53d09a2946",
+        "sha256_in_prefix": "9014d37ac567392e9b93bcb2c0de3ad7e8aea0815b01fe1fb9501d53d09a2946",
+        "size_in_bytes": 17159
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-tree.html",
+        "path_type": "hardlink",
+        "sha256": "45da5e3622c9f29ef33fba074c426bd9d42da521aeadf885f1f8489803a6892f",
+        "sha256_in_prefix": "45da5e3622c9f29ef33fba074c426bd9d42da521aeadf885f1f8489803a6892f",
+        "size_in_bytes": 235442
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-uri.html",
+        "path_type": "hardlink",
+        "sha256": "5b708574b853b61c95c533e7db2c0572d92e6abf610eb2c27a38078a52b906d2",
+        "sha256_in_prefix": "5b708574b853b61c95c533e7db2c0572d92e6abf610eb2c27a38078a52b906d2",
+        "size_in_bytes": 22676
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-valid.html",
+        "path_type": "hardlink",
+        "sha256": "261f592ce50113f4e54a09bfff35cb148b1b6e015dad7226a0a7ce22843679c2",
+        "sha256_in_prefix": "261f592ce50113f4e54a09bfff35cb148b1b6e015dad7226a0a7ce22843679c2",
+        "size_in_bytes": 102457
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xinclude.html",
+        "path_type": "hardlink",
+        "sha256": "a8e71c85969e65eb3419cc3df6a9524d896d3d2fa252383ffa76fc50a8d91621",
+        "sha256_in_prefix": "a8e71c85969e65eb3419cc3df6a9524d896d3d2fa252383ffa76fc50a8d91621",
+        "size_in_bytes": 19704
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xlink.html",
+        "path_type": "hardlink",
+        "sha256": "dbf5625e78d0f368bf6de3030d55daaf1b8a07d8ea314b64722ee16520aa0f61",
+        "sha256_in_prefix": "dbf5625e78d0f368bf6de3030d55daaf1b8a07d8ea314b64722ee16520aa0f61",
+        "size_in_bytes": 21644
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlIO.html",
+        "path_type": "hardlink",
+        "sha256": "0b1b3586cc57a825db093a142f2ce2e1d0463f10821c38da10d7d45bc2c5ae36",
+        "sha256_in_prefix": "0b1b3586cc57a825db093a142f2ce2e1d0463f10821c38da10d7d45bc2c5ae36",
+        "size_in_bytes": 63312
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlautomata.html",
+        "path_type": "hardlink",
+        "sha256": "4e87025c518a73fad311dc34cba157a6f578328178b736e5f4ed6274a1a1ac80",
+        "sha256_in_prefix": "4e87025c518a73fad311dc34cba157a6f578328178b736e5f4ed6274a1a1ac80",
+        "size_in_bytes": 39564
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlerror.html",
+        "path_type": "hardlink",
+        "sha256": "dc08e6f4cb42ac084aea48c8722df02291207482a975d9dfecd79d868c4d56ff",
+        "sha256_in_prefix": "dc08e6f4cb42ac084aea48c8722df02291207482a975d9dfecd79d868c4d56ff",
+        "size_in_bytes": 109700
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlexports.html",
+        "path_type": "hardlink",
+        "sha256": "547c362e0d2ffa9b65aabb50dd6d4918a1fd67a2d107e0165e467641eb067127",
+        "sha256_in_prefix": "547c362e0d2ffa9b65aabb50dd6d4918a1fd67a2d107e0165e467641eb067127",
+        "size_in_bytes": 7589
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlmemory.html",
+        "path_type": "hardlink",
+        "sha256": "eadd66815e3d2e5686d71ca546d146b8e9345bc789b3cc0bd8cc17d01e2a5668",
+        "sha256_in_prefix": "eadd66815e3d2e5686d71ca546d146b8e9345bc789b3cc0bd8cc17d01e2a5668",
+        "size_in_bytes": 29225
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlmodule.html",
+        "path_type": "hardlink",
+        "sha256": "bc70bfc7b78a03eedb05eff756d2e181018278177a7e5d720ddccb04bd5c84ee",
+        "sha256_in_prefix": "bc70bfc7b78a03eedb05eff756d2e181018278177a7e5d720ddccb04bd5c84ee",
+        "size_in_bytes": 11709
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlreader.html",
+        "path_type": "hardlink",
+        "sha256": "461e90c955867be78c2fb44efbdd57817607266312a7a7071e2bede5099c94d4",
+        "sha256_in_prefix": "461e90c955867be78c2fb44efbdd57817607266312a7a7071e2bede5099c94d4",
+        "size_in_bytes": 114136
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlregexp.html",
+        "path_type": "hardlink",
+        "sha256": "f55106386bf8222d1393914fb0457f7d01a8478daa9c7f499dbf1139e0b42b64",
+        "sha256_in_prefix": "f55106386bf8222d1393914fb0457f7d01a8478daa9c7f499dbf1139e0b42b64",
+        "size_in_bytes": 45783
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlsave.html",
+        "path_type": "hardlink",
+        "sha256": "cca7e443f397f1991109d89cbbc7032898b3c4c4f5293df72f10ddad6c657fe0",
+        "sha256_in_prefix": "cca7e443f397f1991109d89cbbc7032898b3c4c4f5293df72f10ddad6c657fe0",
+        "size_in_bytes": 19285
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlschemas.html",
+        "path_type": "hardlink",
+        "sha256": "034f8bf9f228cea6edc5e9359bd9a2a1a7674932051dfc4184ba615920f1edfd",
+        "sha256_in_prefix": "034f8bf9f228cea6edc5e9359bd9a2a1a7674932051dfc4184ba615920f1edfd",
+        "size_in_bytes": 47770
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlschemastypes.html",
+        "path_type": "hardlink",
+        "sha256": "3cab13337f33bbddd789c7ba0f477d6c7998bcd59fd2ae914eece6d37115a65e",
+        "sha256_in_prefix": "3cab13337f33bbddd789c7ba0f477d6c7998bcd59fd2ae914eece6d37115a65e",
+        "size_in_bytes": 49374
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlstring.html",
+        "path_type": "hardlink",
+        "sha256": "ab836d83526e354dfa10d7984648fd18810fb66a02a3fda2a219425c0180d4bb",
+        "sha256_in_prefix": "ab836d83526e354dfa10d7984648fd18810fb66a02a3fda2a219425c0180d4bb",
+        "size_in_bytes": 39156
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlunicode.html",
+        "path_type": "hardlink",
+        "sha256": "0c673c0ce97aea5f067743989b597f9fdac5f7a78b16eb0a40ec5912dd3e8f93",
+        "sha256_in_prefix": "0c673c0ce97aea5f067743989b597f9fdac5f7a78b16eb0a40ec5912dd3e8f93",
+        "size_in_bytes": 112850
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlversion.html",
+        "path_type": "hardlink",
+        "sha256": "b7def66586f63201e0583f03c5252ce648d13292a2d4be45bb1c35a5315ebcd1",
+        "sha256_in_prefix": "b7def66586f63201e0583f03c5252ce648d13292a2d4be45bb1c35a5315ebcd1",
+        "size_in_bytes": 20563
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xmlwriter.html",
+        "path_type": "hardlink",
+        "sha256": "3e6533014aa929f3e5aa3e3cfe6d60f03ea69e3c808e5514481ed40f532db66d",
+        "sha256_in_prefix": "3e6533014aa929f3e5aa3e3cfe6d60f03ea69e3c808e5514481ed40f532db66d",
+        "size_in_bytes": 117477
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xpath.html",
+        "path_type": "hardlink",
+        "sha256": "3254a35a4bd1bb7642ca5cc7bd24b6ff22c8bed3b0e44219569a61dcf224e949",
+        "sha256_in_prefix": "3254a35a4bd1bb7642ca5cc7bd24b6ff22c8bed3b0e44219569a61dcf224e949",
+        "size_in_bytes": 64785
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xpathInternals.html",
+        "path_type": "hardlink",
+        "sha256": "1a13442b016b7f82a969d2aaa01be7ab64f89e633541c76ec4ea64c1e10569c2",
+        "sha256_in_prefix": "1a13442b016b7f82a969d2aaa01be7ab64f89e633541c76ec4ea64c1e10569c2",
+        "size_in_bytes": 143126
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xpointer.html",
+        "path_type": "hardlink",
+        "sha256": "52643a7037e4aef642a45208ae86b599deff7b82af39dbc05677f661553f5cbc",
+        "sha256_in_prefix": "52643a7037e4aef642a45208ae86b599deff7b82af39dbc05677f661553f5cbc",
+        "size_in_bytes": 29973
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/libxml-xzlib.html",
+        "path_type": "hardlink",
+        "sha256": "74d9b16357d4089d5b0fa74f97bff54b10bcbad72bd84bbac0d52ab3b4cdc0f4",
+        "sha256_in_prefix": "74d9b16357d4089d5b0fa74f97bff54b10bcbad72bd84bbac0d52ab3b4cdc0f4",
+        "size_in_bytes": 6533
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/right.png",
+        "path_type": "hardlink",
+        "sha256": "17dcc0b175babc51d07f71382cf2083bcd4e9abfed091a45963f5ee982aa7b48",
+        "sha256_in_prefix": "17dcc0b175babc51d07f71382cf2083bcd4e9abfed091a45963f5ee982aa7b48",
+        "size_in_bytes": 472
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/html/up.png",
+        "path_type": "hardlink",
+        "sha256": "2af945c4c6ce288adfad716ae1747f37056f7bf67b8536d2e5e6b8e0ce84c872",
+        "sha256_in_prefix": "2af945c4c6ce288adfad716ae1747f37056f7bf67b8536d2e5e6b8e0ce84c872",
+        "size_in_bytes": 406
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/index.html",
+        "path_type": "hardlink",
+        "sha256": "d7eed76b50e0287d53288e63506c5ff7409eb75ef8fa5644f602de35c57bedb0",
+        "sha256_in_prefix": "d7eed76b50e0287d53288e63506c5ff7409eb75ef8fa5644f602de35c57bedb0",
+        "size_in_bytes": 32920
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/io1.c",
+        "path_type": "hardlink",
+        "sha256": "34d2b3548293ad86a1afb15705a0e656d804db5c5d4865c8cd2a3b0de963e74b",
+        "sha256_in_prefix": "34d2b3548293ad86a1afb15705a0e656d804db5c5d4865c8cd2a3b0de963e74b",
+        "size_in_bytes": 3753
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/io1.res",
+        "path_type": "hardlink",
+        "sha256": "4a41109cc41f57aef4e270ca505ddb30aa43f48038a19ff737dd9eb13db9019d",
+        "sha256_in_prefix": "4a41109cc41f57aef4e270ca505ddb30aa43f48038a19ff737dd9eb13db9019d",
+        "size_in_bytes": 165
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/io2.c",
+        "path_type": "hardlink",
+        "sha256": "07962de2e1c06578a48e396538c0997510103b594f962230fd85f26907997513",
+        "sha256_in_prefix": "07962de2e1c06578a48e396538c0997510103b594f962230fd85f26907997513",
+        "size_in_bytes": 1182
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/io2.res",
+        "path_type": "hardlink",
+        "sha256": "9af7208c01f8882b41630f358554b5122bb71ec8ccb0a5ea6a34373cb0f2bdd4",
+        "sha256_in_prefix": "9af7208c01f8882b41630f358554b5122bb71ec8ccb0a5ea6a34373cb0f2bdd4",
+        "size_in_bytes": 43
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/libxml.gif",
+        "path_type": "hardlink",
+        "sha256": "c2ec2405dbf54ecfe81bce94b1d7fe766b340e6c624256a40d52caf847736e3c",
+        "sha256_in_prefix": "c2ec2405dbf54ecfe81bce94b1d7fe766b340e6c624256a40d52caf847736e3c",
+        "size_in_bytes": 7692
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/parse1.c",
+        "path_type": "hardlink",
+        "sha256": "2542aae496a43dc0c9f361cf342c6d87092bbce5f785cfade58a81adf72ba07c",
+        "sha256_in_prefix": "2542aae496a43dc0c9f361cf342c6d87092bbce5f785cfade58a81adf72ba07c",
+        "size_in_bytes": 1300
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/parse2.c",
+        "path_type": "hardlink",
+        "sha256": "c7e977ebfbc1bc2e1f478ddfbf679678be14be6a352cdc8234606aa13521c619",
+        "sha256_in_prefix": "c7e977ebfbc1bc2e1f478ddfbf679678be14be6a352cdc8234606aa13521c619",
+        "size_in_bytes": 1967
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/parse3.c",
+        "path_type": "hardlink",
+        "sha256": "3f735b33ca17125b604ff607d6ca196c6b577466b79410bb8f3ea308a34d8817",
+        "sha256_in_prefix": "3f735b33ca17125b604ff607d6ca196c6b577466b79410bb8f3ea308a34d8817",
+        "size_in_bytes": 1506
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/parse4.c",
+        "path_type": "hardlink",
+        "sha256": "7f46ace7704ddf72a814a5d41a36529ac108cf419c00af7416cfa2951278e3bf",
+        "sha256_in_prefix": "7f46ace7704ddf72a814a5d41a36529ac108cf419c00af7416cfa2951278e3bf",
+        "size_in_bytes": 3545
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/reader1.c",
+        "path_type": "hardlink",
+        "sha256": "a5a185d12a55f519f72049a50fcf838a5fac1bb032232bbf0d60a66ce8f41677",
+        "sha256_in_prefix": "a5a185d12a55f519f72049a50fcf838a5fac1bb032232bbf0d60a66ce8f41677",
+        "size_in_bytes": 2530
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/reader1.res",
+        "path_type": "hardlink",
+        "sha256": "1bc27e0d69b9a792b9886b8cb9425df6a42b53b14a8e244c064e9d4d40a68a2e",
+        "sha256_in_prefix": "1bc27e0d69b9a792b9886b8cb9425df6a42b53b14a8e244c064e9d4d40a68a2e",
+        "size_in_bytes": 149
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/reader2.c",
+        "path_type": "hardlink",
+        "sha256": "6aad4315ff71ad2fb029e190bddbc034fa838fd6b7a80df2d380484c9dd59506",
+        "sha256_in_prefix": "6aad4315ff71ad2fb029e190bddbc034fa838fd6b7a80df2d380484c9dd59506",
+        "size_in_bytes": 3133
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/reader3.c",
+        "path_type": "hardlink",
+        "sha256": "35daf62555860b93142b9d9eac9036f0484bb0178d821e85af2ac6bd5c44eede",
+        "sha256_in_prefix": "35daf62555860b93142b9d9eac9036f0484bb0178d821e85af2ac6bd5c44eede",
+        "size_in_bytes": 2947
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/reader3.res",
+        "path_type": "hardlink",
+        "sha256": "7ffb00a7691a484a56976c857a0a30d78cb797fcad827af57bb0e3d9eb9ade85",
+        "sha256_in_prefix": "7ffb00a7691a484a56976c857a0a30d78cb797fcad827af57bb0e3d9eb9ade85",
+        "size_in_bytes": 360
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/reader4.c",
+        "path_type": "hardlink",
+        "sha256": "772edaefccfd66e715549d9d155b20123e09890f9387cb6eeb44b5b36a7f0e1b",
+        "sha256_in_prefix": "772edaefccfd66e715549d9d155b20123e09890f9387cb6eeb44b5b36a7f0e1b",
+        "size_in_bytes": 3128
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/reader4.res",
+        "path_type": "hardlink",
+        "sha256": "c707d5276b75ec092bec5fca3472f538552ef5d59bc9b270906db979276c60fb",
+        "sha256_in_prefix": "c707d5276b75ec092bec5fca3472f538552ef5d59bc9b270906db979276c60fb",
+        "size_in_bytes": 72
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/redhat.gif",
+        "path_type": "hardlink",
+        "sha256": "56f1647cba75ba35fff3adfd606861d5436cad72a4eb333dfcbaa6df315ce3bc",
+        "sha256_in_prefix": "56f1647cba75ba35fff3adfd606861d5436cad72a4eb333dfcbaa6df315ce3bc",
+        "size_in_bytes": 697
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/smallfootonly.gif",
+        "path_type": "hardlink",
+        "sha256": "9c8066bd8efba14d902f75b89a06c3d4166cd0c06bf08a277aab14dbd4ad8f17",
+        "sha256_in_prefix": "9c8066bd8efba14d902f75b89a06c3d4166cd0c06bf08a277aab14dbd4ad8f17",
+        "size_in_bytes": 2772
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/structure.gif",
+        "path_type": "hardlink",
+        "sha256": "4ef9429ba9471dc3edda9702b6932ba4df6bfed84d4b8b3d88dbcfd91e1426ae",
+        "sha256_in_prefix": "4ef9429ba9471dc3edda9702b6932ba4df6bfed84d4b8b3d88dbcfd91e1426ae",
+        "size_in_bytes": 5559
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/test1.xml",
+        "path_type": "hardlink",
+        "sha256": "4a9246c65226a7f023c27ce039a07152b877df3e4055ea0dd1bcf6363fbfcbbb",
+        "sha256_in_prefix": "4a9246c65226a7f023c27ce039a07152b877df3e4055ea0dd1bcf6363fbfcbbb",
+        "size_in_bytes": 7
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/test2.xml",
+        "path_type": "hardlink",
+        "sha256": "f9ef63cd8d22af0e598a1037cdbcebc8c3538fa268fff7de131be63174cc6de7",
+        "sha256_in_prefix": "f9ef63cd8d22af0e598a1037cdbcebc8c3538fa268fff7de131be63174cc6de7",
+        "size_in_bytes": 227
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/test3.xml",
+        "path_type": "hardlink",
+        "sha256": "face69128b287a96cc808907d8a27c74a4975886e06ec6279da9942985bd0e4f",
+        "sha256_in_prefix": "face69128b287a96cc808907d8a27c74a4975886e06ec6279da9942985bd0e4f",
+        "size_in_bytes": 833
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/testWriter.c",
+        "path_type": "hardlink",
+        "sha256": "73462e05e863e14703b43beb75f7097d2f82309d340a14d732704bca7e51ea17",
+        "sha256_in_prefix": "73462e05e863e14703b43beb75f7097d2f82309d340a14d732704bca7e51ea17",
+        "size_in_bytes": 38503
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tree1.c",
+        "path_type": "hardlink",
+        "sha256": "df73ecde059670c69c5e6566b2756aa13ca98b9b7c1490756276afe197765a3b",
+        "sha256_in_prefix": "df73ecde059670c69c5e6566b2756aa13ca98b9b7c1490756276afe197765a3b",
+        "size_in_bytes": 2245
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tree1.res",
+        "path_type": "hardlink",
+        "sha256": "8d5689ebf3a72010582357db99230ca75b4c47608560b5d19f863f0a4a3f33f4",
+        "sha256_in_prefix": "8d5689ebf3a72010582357db99230ca75b4c47608560b5d19f863f0a4a3f33f4",
+        "size_in_bytes": 121
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tree2.c",
+        "path_type": "hardlink",
+        "sha256": "c00990d1e7d3dd40fb4cba040f221d8391eb30be943d5823b615cf553b2d82e1",
+        "sha256_in_prefix": "c00990d1e7d3dd40fb4cba040f221d8391eb30be943d5823b615cf553b2d82e1",
+        "size_in_bytes": 3415
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tree2.res",
+        "path_type": "hardlink",
+        "sha256": "2f985f4d119c16e2908ef216a88e82d51ad1a0bd3ad59078d893c40ebe5c4b97",
+        "sha256_in_prefix": "2f985f4d119c16e2908ef216a88e82d51ad1a0bd3ad59078d893c40ebe5c4b97",
+        "size_in_bytes": 453
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tst.xml",
+        "path_type": "hardlink",
+        "sha256": "4e3d2681f8bf1db46dd195f621412dbf696e12bdd6d44f2c2f8c9fa70a4b5955",
+        "sha256_in_prefix": "4e3d2681f8bf1db46dd195f621412dbf696e12bdd6d44f2c2f8c9fa70a4b5955",
+        "size_in_bytes": 91
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/apa.html",
+        "path_type": "hardlink",
+        "sha256": "16aaee3e09ad3379f8f8aab6bb8da0ce50df133ddb8330d1dd458adfd72e3d3d",
+        "sha256_in_prefix": "16aaee3e09ad3379f8f8aab6bb8da0ce50df133ddb8330d1dd458adfd72e3d3d",
+        "size_in_bytes": 2114
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/apb.html",
+        "path_type": "hardlink",
+        "sha256": "2a8a4961ae7eb53c3d04a86e434ad3476db1bc916486bf43b2f93251da414c40",
+        "sha256_in_prefix": "2a8a4961ae7eb53c3d04a86e434ad3476db1bc916486bf43b2f93251da414c40",
+        "size_in_bytes": 2026
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/apc.html",
+        "path_type": "hardlink",
+        "sha256": "ec8db2d44b6c507327df0d46831735a87d0af750f5db314ffc97940c07098744",
+        "sha256_in_prefix": "ec8db2d44b6c507327df0d46831735a87d0af750f5db314ffc97940c07098744",
+        "size_in_bytes": 3094
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/apd.html",
+        "path_type": "hardlink",
+        "sha256": "f9e9cb973a36c50c3e2c3cb35211c0b2226f602d2ac4798e2da9d547bef3623a",
+        "sha256_in_prefix": "f9e9cb973a36c50c3e2c3cb35211c0b2226f602d2ac4798e2da9d547bef3623a",
+        "size_in_bytes": 3232
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/ape.html",
+        "path_type": "hardlink",
+        "sha256": "d46f8b192d663d39fc81e44622d89188a969fee6e50b78e54671f436e5c805a7",
+        "sha256_in_prefix": "d46f8b192d663d39fc81e44622d89188a969fee6e50b78e54671f436e5c805a7",
+        "size_in_bytes": 3096
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/apf.html",
+        "path_type": "hardlink",
+        "sha256": "b947dd9a19c186a1c263837081a8f9776aad9878f31edd89f67a4bd62e20fbe3",
+        "sha256_in_prefix": "b947dd9a19c186a1c263837081a8f9776aad9878f31edd89f67a4bd62e20fbe3",
+        "size_in_bytes": 2949
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/apg.html",
+        "path_type": "hardlink",
+        "sha256": "5946e3b16600eb643ed2f3a70bd09363e943d7d4654ef2dfe0e06ce2367d18bd",
+        "sha256_in_prefix": "5946e3b16600eb643ed2f3a70bd09363e943d7d4654ef2dfe0e06ce2367d18bd",
+        "size_in_bytes": 3022
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/aph.html",
+        "path_type": "hardlink",
+        "sha256": "2f0613eb5a8cffb96fa90d7ee796d66bf2eb08df6560ab39497fbc255f54fb0a",
+        "sha256_in_prefix": "2f0613eb5a8cffb96fa90d7ee796d66bf2eb08df6560ab39497fbc255f54fb0a",
+        "size_in_bytes": 3600
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/api.html",
+        "path_type": "hardlink",
+        "sha256": "916e83d35940b8746475a198a8bebdd7cfe66270513ef834f8fe8530a3f7b2c9",
+        "sha256_in_prefix": "916e83d35940b8746475a198a8bebdd7cfe66270513ef834f8fe8530a3f7b2c9",
+        "size_in_bytes": 1899
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/ar01s02.html",
+        "path_type": "hardlink",
+        "sha256": "cc6529a090cef5fa52d837f456535752091264cd8804f848da9b6f6310762b6c",
+        "sha256_in_prefix": "cc6529a090cef5fa52d837f456535752091264cd8804f848da9b6f6310762b6c",
+        "size_in_bytes": 3298
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/ar01s03.html",
+        "path_type": "hardlink",
+        "sha256": "64529fc7c4772895bbb85b3bfb5e2b35e24227065cd598b38e2e547696e00caa",
+        "sha256_in_prefix": "64529fc7c4772895bbb85b3bfb5e2b35e24227065cd598b38e2e547696e00caa",
+        "size_in_bytes": 5718
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/ar01s04.html",
+        "path_type": "hardlink",
+        "sha256": "fe87c86b427a180990f6b8d18d891ac9427f6898612f02f00b193b9f4d5ef6f4",
+        "sha256_in_prefix": "fe87c86b427a180990f6b8d18d891ac9427f6898612f02f00b193b9f4d5ef6f4",
+        "size_in_bytes": 6223
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/ar01s05.html",
+        "path_type": "hardlink",
+        "sha256": "1b1dede3f8623ccd2058322eecc3ce6218bbe9a50d664e8970f60d887cbb3e46",
+        "sha256_in_prefix": "1b1dede3f8623ccd2058322eecc3ce6218bbe9a50d664e8970f60d887cbb3e46",
+        "size_in_bytes": 7422
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/ar01s06.html",
+        "path_type": "hardlink",
+        "sha256": "1371aaf90d7df463c45979e787c68a0c467a3448ccc1b0a28c6b8d3b99e5a850",
+        "sha256_in_prefix": "1371aaf90d7df463c45979e787c68a0c467a3448ccc1b0a28c6b8d3b99e5a850",
+        "size_in_bytes": 3849
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/ar01s07.html",
+        "path_type": "hardlink",
+        "sha256": "67b63a1d57b5d59b4c4f8c5b072d9b7ea84cd3964594a183768ec5427d713205",
+        "sha256_in_prefix": "67b63a1d57b5d59b4c4f8c5b072d9b7ea84cd3964594a183768ec5427d713205",
+        "size_in_bytes": 3866
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/ar01s08.html",
+        "path_type": "hardlink",
+        "sha256": "57948b4d3c9eec0d35f14068deb6f59cb635ed7a36702b81203a0b930a94f779",
+        "sha256_in_prefix": "57948b4d3c9eec0d35f14068deb6f59cb635ed7a36702b81203a0b930a94f779",
+        "size_in_bytes": 3894
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/ar01s09.html",
+        "path_type": "hardlink",
+        "sha256": "483cbf9d88ec0909176b4c22c163014d3887be51152e4c9c2874cb7759b8f422",
+        "sha256_in_prefix": "483cbf9d88ec0909176b4c22c163014d3887be51152e4c9c2874cb7759b8f422",
+        "size_in_bytes": 7603
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/blank.png",
+        "path_type": "hardlink",
+        "sha256": "405a1291d17d2dbe9e9466e954bd6eb4003ea548e1e54bb5e08618c4634a0712",
+        "sha256_in_prefix": "405a1291d17d2dbe9e9466e954bd6eb4003ea548e1e54bb5e08618c4634a0712",
+        "size_in_bytes": 374
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/1.png",
+        "path_type": "hardlink",
+        "sha256": "d71cdb85fc4653c8f227c5abc863d553aedde2bbf93305e9eeb3b104b3d8d14a",
+        "sha256_in_prefix": "d71cdb85fc4653c8f227c5abc863d553aedde2bbf93305e9eeb3b104b3d8d14a",
+        "size_in_bytes": 329
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/10.png",
+        "path_type": "hardlink",
+        "sha256": "fd5a21280c250817e23e66d1546608408fb2f57410b73041327f78568afdb357",
+        "sha256_in_prefix": "fd5a21280c250817e23e66d1546608408fb2f57410b73041327f78568afdb357",
+        "size_in_bytes": 361
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/2.png",
+        "path_type": "hardlink",
+        "sha256": "009bf47671e175131cc41407621cd19a0063679039a1de87e4c6f041f3132bae",
+        "sha256_in_prefix": "009bf47671e175131cc41407621cd19a0063679039a1de87e4c6f041f3132bae",
+        "size_in_bytes": 353
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/3.png",
+        "path_type": "hardlink",
+        "sha256": "cdc9b53a380b848974f052e888879672a1e4d9b4fcc8eebb4dbea309c4b5e05f",
+        "sha256_in_prefix": "cdc9b53a380b848974f052e888879672a1e4d9b4fcc8eebb4dbea309c4b5e05f",
+        "size_in_bytes": 350
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/4.png",
+        "path_type": "hardlink",
+        "sha256": "4fb8be6aa2669f8a9e51dd5d39d19b1af260b950246d6ea9d9ed65d75dc5056e",
+        "sha256_in_prefix": "4fb8be6aa2669f8a9e51dd5d39d19b1af260b950246d6ea9d9ed65d75dc5056e",
+        "size_in_bytes": 345
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/5.png",
+        "path_type": "hardlink",
+        "sha256": "3896cbacbe50eebb9046bad16ca91783e8a8744077972b3969c0b66cd2d80bbd",
+        "sha256_in_prefix": "3896cbacbe50eebb9046bad16ca91783e8a8744077972b3969c0b66cd2d80bbd",
+        "size_in_bytes": 348
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/6.png",
+        "path_type": "hardlink",
+        "sha256": "50ee85e5bf9f7dd02ae5435ef0a024e9a8e3da48c645adb6b3fefa1e08f7d57e",
+        "sha256_in_prefix": "50ee85e5bf9f7dd02ae5435ef0a024e9a8e3da48c645adb6b3fefa1e08f7d57e",
+        "size_in_bytes": 355
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/7.png",
+        "path_type": "hardlink",
+        "sha256": "959986b33f56465e2acfe85004c168e0c0988b69ec726bf7f18f0936dacefa1f",
+        "sha256_in_prefix": "959986b33f56465e2acfe85004c168e0c0988b69ec726bf7f18f0936dacefa1f",
+        "size_in_bytes": 344
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/8.png",
+        "path_type": "hardlink",
+        "sha256": "d83c5780cc81d57722df16f34460fe9cca5a0a3671e46537ce2d1e4e8fb1c03d",
+        "sha256_in_prefix": "d83c5780cc81d57722df16f34460fe9cca5a0a3671e46537ce2d1e4e8fb1c03d",
+        "size_in_bytes": 357
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/callouts/9.png",
+        "path_type": "hardlink",
+        "sha256": "906a831c2403ae43b66e8241b1b1babb2db03e3c9fbebd9ec642466995f5eaf5",
+        "sha256_in_prefix": "906a831c2403ae43b66e8241b1b1babb2db03e3c9fbebd9ec642466995f5eaf5",
+        "size_in_bytes": 357
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/caution.png",
+        "path_type": "hardlink",
+        "sha256": "46751d5258726b4a656aa124a9503f5a5dfbfaafb30a751b4dd28e0a81bd8584",
+        "sha256_in_prefix": "46751d5258726b4a656aa124a9503f5a5dfbfaafb30a751b4dd28e0a81bd8584",
+        "size_in_bytes": 1250
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/draft.png",
+        "path_type": "hardlink",
+        "sha256": "26bc0751ae926095ca0bebd8cabcfd37c60403eee82ec5bcf377bccd087fa17d",
+        "sha256_in_prefix": "26bc0751ae926095ca0bebd8cabcfd37c60403eee82ec5bcf377bccd087fa17d",
+        "size_in_bytes": 17454
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/home.png",
+        "path_type": "hardlink",
+        "sha256": "4e153e9cfda19dd45a84cca62cda98c84825059378e05312e2c04c253d1c3da4",
+        "sha256_in_prefix": "4e153e9cfda19dd45a84cca62cda98c84825059378e05312e2c04c253d1c3da4",
+        "size_in_bytes": 1156
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/important.png",
+        "path_type": "hardlink",
+        "sha256": "0e9c96a5bffb8cf85e60f04013cee92c2c6fe035c433c6cf3b34675b68317325",
+        "sha256_in_prefix": "0e9c96a5bffb8cf85e60f04013cee92c2c6fe035c433c6cf3b34675b68317325",
+        "size_in_bytes": 722
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/next.png",
+        "path_type": "hardlink",
+        "sha256": "b434e58853769b7ec4c7f8659114f088b7721727a9e3442bb3a8f14fc2c87979",
+        "sha256_in_prefix": "b434e58853769b7ec4c7f8659114f088b7721727a9e3442bb3a8f14fc2c87979",
+        "size_in_bytes": 1150
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/note.png",
+        "path_type": "hardlink",
+        "sha256": "50b70e6738703b77c37e69c92453c272ac4d4f5fb0af660096c705fe3b3bb7ea",
+        "sha256_in_prefix": "50b70e6738703b77c37e69c92453c272ac4d4f5fb0af660096c705fe3b3bb7ea",
+        "size_in_bytes": 490
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/prev.png",
+        "path_type": "hardlink",
+        "sha256": "1bdcd1385d2518dac1218d843c1615a52a57e6e72c9d6af6b2cac013a2f2380c",
+        "sha256_in_prefix": "1bdcd1385d2518dac1218d843c1615a52a57e6e72c9d6af6b2cac013a2f2380c",
+        "size_in_bytes": 1132
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/tip.png",
+        "path_type": "hardlink",
+        "sha256": "2b15a81dcbbe904f31cb02de791c7c3ddc4ea641ad47a1a76ee17a4a78298d53",
+        "sha256_in_prefix": "2b15a81dcbbe904f31cb02de791c7c3ddc4ea641ad47a1a76ee17a4a78298d53",
+        "size_in_bytes": 449
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/toc-blank.png",
+        "path_type": "hardlink",
+        "sha256": "3d2532562e3857fcd4b6dab8a2d26899dd176c3e5e02acc923e93376c409419a",
+        "sha256_in_prefix": "3d2532562e3857fcd4b6dab8a2d26899dd176c3e5e02acc923e93376c409419a",
+        "size_in_bytes": 318
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/toc-minus.png",
+        "path_type": "hardlink",
+        "sha256": "4e8db41e0362fd6e2d4a245669e1e690551efb410730188424a523d978d0a984",
+        "sha256_in_prefix": "4e8db41e0362fd6e2d4a245669e1e690551efb410730188424a523d978d0a984",
+        "size_in_bytes": 259
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/toc-plus.png",
+        "path_type": "hardlink",
+        "sha256": "c3d13f969c5fc93db1bbdf1a0a20049f37745d9cf75c3a1a6b2ae1913d70c52f",
+        "sha256_in_prefix": "c3d13f969c5fc93db1bbdf1a0a20049f37745d9cf75c3a1a6b2ae1913d70c52f",
+        "size_in_bytes": 264
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/up.png",
+        "path_type": "hardlink",
+        "sha256": "b94ebd8431f86d2afed95a117a7df541d8b1e01cc6fc45eec57215f75af330d4",
+        "sha256_in_prefix": "b94ebd8431f86d2afed95a117a7df541d8b1e01cc6fc45eec57215f75af330d4",
+        "size_in_bytes": 1111
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/images/warning.png",
+        "path_type": "hardlink",
+        "sha256": "5de66420a0c84b49d14caff2d305b28b035a1603a114db4b52f0d83f5e7f9580",
+        "sha256_in_prefix": "5de66420a0c84b49d14caff2d305b28b035a1603a114db4b52f0d83f5e7f9580",
+        "size_in_bytes": 1241
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/includeaddattribute.c",
+        "path_type": "hardlink",
+        "sha256": "5fa754c067d92c7cce814a1ff9a96d0f14754b51ccd8a608dded4e63eef352df",
+        "sha256_in_prefix": "5fa754c067d92c7cce814a1ff9a96d0f14754b51ccd8a608dded4e63eef352df",
+        "size_in_bytes": 1136
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/includeaddkeyword.c",
+        "path_type": "hardlink",
+        "sha256": "cc2cc977950590d16318f495ef6d2424442ded56d62c7f308a499a82865a88e9",
+        "sha256_in_prefix": "cc2cc977950590d16318f495ef6d2424442ded56d62c7f308a499a82865a88e9",
+        "size_in_bytes": 1320
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/includeconvert.c",
+        "path_type": "hardlink",
+        "sha256": "520a523b840b7ddf7d6d024f87fdf72361ffa3c61f95584d4d18b9c0b20e6d6b",
+        "sha256_in_prefix": "520a523b840b7ddf7d6d024f87fdf72361ffa3c61f95584d4d18b9c0b20e6d6b",
+        "size_in_bytes": 1808
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/includegetattribute.c",
+        "path_type": "hardlink",
+        "sha256": "389c0ad94bd9ee6a082765cf504e95d6a76277c2c46df638ff2494b4f5f96654",
+        "sha256_in_prefix": "389c0ad94bd9ee6a082765cf504e95d6a76277c2c46df638ff2494b4f5f96654",
+        "size_in_bytes": 1171
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/includekeyword.c",
+        "path_type": "hardlink",
+        "sha256": "e3fd26a53b929370324997a155f569e9d6bd0a5ecf830ad39a2eda0ad918b8d5",
+        "sha256_in_prefix": "e3fd26a53b929370324997a155f569e9d6bd0a5ecf830ad39a2eda0ad918b8d5",
+        "size_in_bytes": 1351
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/includexpath.c",
+        "path_type": "hardlink",
+        "sha256": "03b566f10d2b0f69663a107b15ac0217e6dbc0fda7ce0cb638ccc189e1dd65bd",
+        "sha256_in_prefix": "03b566f10d2b0f69663a107b15ac0217e6dbc0fda7ce0cb638ccc189e1dd65bd",
+        "size_in_bytes": 1491
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/index.html",
+        "path_type": "hardlink",
+        "sha256": "1adfd9a26e7bc2760772df2cbe1abafd57eb299b2be01c31d8e169dacd4bd8d8",
+        "sha256_in_prefix": "1adfd9a26e7bc2760772df2cbe1abafd57eb299b2be01c31d8e169dacd4bd8d8",
+        "size_in_bytes": 5930
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/ix01.html",
+        "path_type": "hardlink",
+        "sha256": "1454fbaed7b3721d7268fa7169584c8061ccef8ed8dd7da493f09c3f2b32d55f",
+        "sha256_in_prefix": "1454fbaed7b3721d7268fa7169584c8061ccef8ed8dd7da493f09c3f2b32d55f",
+        "size_in_bytes": 2545
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/tutorial/xmltutorial.pdf",
+        "path_type": "hardlink",
+        "sha256": "46dc02474082aa913b63a5eec01f442a478c53745efcd3db45629b049d165ac6",
+        "sha256_in_prefix": "46dc02474082aa913b63a5eec01f442a478c53745efcd3db45629b049d165ac6",
+        "size_in_bytes": 51709
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/w3c.png",
+        "path_type": "hardlink",
+        "sha256": "3bd43feee0643fb7d007d2c7882a08fff2013a8ef217e6cbdcca343a6f09550a",
+        "sha256_in_prefix": "3bd43feee0643fb7d007d2c7882a08fff2013a8ef217e6cbdcca343a6f09550a",
+        "size_in_bytes": 2028
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/writer.xml",
+        "path_type": "hardlink",
+        "sha256": "029b6a65e4ed8c559dd48d2494ca2429e50155631cb855109d1a21d934745c4d",
+        "sha256_in_prefix": "029b6a65e4ed8c559dd48d2494ca2429e50155631cb855109d1a21d934745c4d",
+        "size_in_bytes": 544
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/xml.html",
+        "path_type": "hardlink",
+        "sha256": "821571a808ba173a6729ee5575b678b1510a448ac730743b1cd97428d754d1e8",
+        "sha256_in_prefix": "821571a808ba173a6729ee5575b678b1510a448ac730743b1cd97428d754d1e8",
+        "size_in_bytes": 311547
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/xpath1.c",
+        "path_type": "hardlink",
+        "sha256": "3e4a96aafb63dde543d09eee820a42eb1ccfe290261cbf2dacc17b8fed26fd4b",
+        "sha256_in_prefix": "3e4a96aafb63dde543d09eee820a42eb1ccfe290261cbf2dacc17b8fed26fd4b",
+        "size_in_bytes": 6624
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/xpath1.res",
+        "path_type": "hardlink",
+        "sha256": "2f0d943003e26b907a20229e87676990cf93a4dbd3404e6c24542e13c9e40aec",
+        "sha256_in_prefix": "2f0d943003e26b907a20229e87676990cf93a4dbd3404e6c24542e13c9e40aec",
+        "size_in_bytes": 114
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/xpath2.c",
+        "path_type": "hardlink",
+        "sha256": "798ffd07a710a40462a38e225387254619f400fb79ffc27c88c81877c468d2fa",
+        "sha256_in_prefix": "798ffd07a710a40462a38e225387254619f400fb79ffc27c88c81877c468d2fa",
+        "size_in_bytes": 5330
+      },
+      {
+        "_path": "share/doc/libxml2-2.9.8/html/xpath2.res",
+        "path_type": "hardlink",
+        "sha256": "9fd99acd426cf3fca91eb8fd83de345e31b58101ec7c67667adb3f799bc7eba3",
+        "sha256_in_prefix": "9fd99acd426cf3fca91eb8fd83de345e31b58101ec7c67667adb3f799bc7eba3",
+        "size_in_bytes": 757
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/general.html",
+        "path_type": "hardlink",
+        "sha256": "3fc748327737db53ad7eda057cda00bbd85bd95d88026fff666447748cc6424b",
+        "sha256_in_prefix": "3fc748327737db53ad7eda057cda00bbd85bd95d88026fff666447748cc6424b",
+        "size_in_bytes": 5469
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/home.png",
+        "path_type": "hardlink",
+        "sha256": "034c231513fea72bbc788109596f9b35db7b87e270c19c8b3dd22940fb35e6be",
+        "sha256_in_prefix": "034c231513fea72bbc788109596f9b35db7b87e270c19c8b3dd22940fb35e6be",
+        "size_in_bytes": 654
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/index.html",
+        "path_type": "hardlink",
+        "sha256": "43baf0c922dbf8aba70f4bb793470a1f3991c315767f580caa35f0afb2d0687f",
+        "sha256_in_prefix": "43baf0c922dbf8aba70f4bb793470a1f3991c315767f580caa35f0afb2d0687f",
+        "size_in_bytes": 4321
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/left.png",
+        "path_type": "hardlink",
+        "sha256": "9ae091e52c667a72d77eb6c41cd9afc7af60bc89bfc3023248b1dc3bb7dbf461",
+        "sha256_in_prefix": "9ae091e52c667a72d77eb6c41cd9afc7af60bc89bfc3023248b1dc3bb7dbf461",
+        "size_in_bytes": 459
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-DOCBparser.html",
+        "path_type": "hardlink",
+        "sha256": "2c34959be04b3e3a05417e65a8b1fee26829bbc6cf2d11afb77b4d0a1deea749",
+        "sha256_in_prefix": "2c34959be04b3e3a05417e65a8b1fee26829bbc6cf2d11afb77b4d0a1deea749",
+        "size_in_bytes": 17361
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-HTMLparser.html",
+        "path_type": "hardlink",
+        "sha256": "26534654ae3261228a50a4b2febbd5bf794f7a170af374ca3fae2427e192b90b",
+        "sha256_in_prefix": "26534654ae3261228a50a4b2febbd5bf794f7a170af374ca3fae2427e192b90b",
+        "size_in_bytes": 58119
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-HTMLtree.html",
+        "path_type": "hardlink",
+        "sha256": "836c40a800ec60076313ccf5875ce4ca332ebe35f12fe1f5cd5a75f38f506242",
+        "sha256_in_prefix": "836c40a800ec60076313ccf5875ce4ca332ebe35f12fe1f5cd5a75f38f506242",
+        "size_in_bytes": 24416
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-SAX.html",
+        "path_type": "hardlink",
+        "sha256": "8cbf58017e00c9f121cfd2a4e6c96a75e26723de910e91330152ebf0dbe9c4af",
+        "sha256_in_prefix": "8cbf58017e00c9f121cfd2a4e6c96a75e26723de910e91330152ebf0dbe9c4af",
+        "size_in_bytes": 38875
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-SAX2.html",
+        "path_type": "hardlink",
+        "sha256": "00ac32300a489cf92878c67d313e8a797e55a368766373b7b295ddb26082ccc0",
+        "sha256_in_prefix": "00ac32300a489cf92878c67d313e8a797e55a368766373b7b295ddb26082ccc0",
+        "size_in_bytes": 39659
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-c14n.html",
+        "path_type": "hardlink",
+        "sha256": "6d8cdf5182308ebf3cdaeeb0a4402f1103db66e4aa0117a5b629fea52ba4f692",
+        "sha256_in_prefix": "6d8cdf5182308ebf3cdaeeb0a4402f1103db66e4aa0117a5b629fea52ba4f692",
+        "size_in_bytes": 13546
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-catalog.html",
+        "path_type": "hardlink",
+        "sha256": "f42654b4f4332fe3de583fe7cdce73357a3a496bbfb1e04369ff8d40e66c576b",
+        "sha256_in_prefix": "f42654b4f4332fe3de583fe7cdce73357a3a496bbfb1e04369ff8d40e66c576b",
+        "size_in_bytes": 36549
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-chvalid.html",
+        "path_type": "hardlink",
+        "sha256": "a54650b1252faa112e4d3254e1f5ec2a20f3c0d061b2a2b334f8329a59fe56f5",
+        "sha256_in_prefix": "a54650b1252faa112e4d3254e1f5ec2a20f3c0d061b2a2b334f8329a59fe56f5",
+        "size_in_bytes": 19835
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-debugXML.html",
+        "path_type": "hardlink",
+        "sha256": "7b7ebe121aa5cd7041544b3ea8163f9dc65ff2df967957e89954cd7d9f0f637d",
+        "sha256_in_prefix": "7b7ebe121aa5cd7041544b3ea8163f9dc65ff2df967957e89954cd7d9f0f637d",
+        "size_in_bytes": 33317
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-dict.html",
+        "path_type": "hardlink",
+        "sha256": "986a0511deeee3f07de5a221dd2d38bc80b3d557718a15a939e9cab5e1d8b551",
+        "sha256_in_prefix": "986a0511deeee3f07de5a221dd2d38bc80b3d557718a15a939e9cab5e1d8b551",
+        "size_in_bytes": 13564
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-encoding.html",
+        "path_type": "hardlink",
+        "sha256": "70f3c914b14cf738136972ba2854f8c4c81bb1755187da707c47982d142214a5",
+        "sha256_in_prefix": "70f3c914b14cf738136972ba2854f8c4c81bb1755187da707c47982d142214a5",
+        "size_in_bytes": 29904
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-entities.html",
+        "path_type": "hardlink",
+        "sha256": "1f45ee992fcee975bec18c784d806734974b1b5fca9762b6ba88a5e747772dc2",
+        "sha256_in_prefix": "1f45ee992fcee975bec18c784d806734974b1b5fca9762b6ba88a5e747772dc2",
+        "size_in_bytes": 23126
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-globals.html",
+        "path_type": "hardlink",
+        "sha256": "797ced5ced3e260d98d4f6211eed1382755106bee8baa107eadee5f3489b6ceb",
+        "sha256_in_prefix": "797ced5ced3e260d98d4f6211eed1382755106bee8baa107eadee5f3489b6ceb",
+        "size_in_bytes": 35642
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-hash.html",
+        "path_type": "hardlink",
+        "sha256": "5725c48353458c6d20d0630ae059ea70f7157ddc98d910b3dca4fc75472753c4",
+        "sha256_in_prefix": "5725c48353458c6d20d0630ae059ea70f7157ddc98d910b3dca4fc75472753c4",
+        "size_in_bytes": 42879
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-list.html",
+        "path_type": "hardlink",
+        "sha256": "b9e6020ecdf454d5111bb455627f4d91cfb3bb0830722c7b7cb5135ee1b396ee",
+        "sha256_in_prefix": "b9e6020ecdf454d5111bb455627f4d91cfb3bb0830722c7b7cb5135ee1b396ee",
+        "size_in_bytes": 25534
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-nanoftp.html",
+        "path_type": "hardlink",
+        "sha256": "b1235a08832fa7b5393c4b5e022e36debcbb90cfe898f099611bfb28dc527d4c",
+        "sha256_in_prefix": "b1235a08832fa7b5393c4b5e022e36debcbb90cfe898f099611bfb28dc527d4c",
+        "size_in_bytes": 22403
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-nanohttp.html",
+        "path_type": "hardlink",
+        "sha256": "cda44e47e397b5bb14ebf6bb24595f8739b78cf9b36e88779b8f523e068a2711",
+        "sha256_in_prefix": "cda44e47e397b5bb14ebf6bb24595f8739b78cf9b36e88779b8f523e068a2711",
+        "size_in_bytes": 16614
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-parser.html",
+        "path_type": "hardlink",
+        "sha256": "4dbebff695e5311e12e2cfb3e34e03458ebf4659e9731e3009b77c537c8d3a21",
+        "sha256_in_prefix": "4dbebff695e5311e12e2cfb3e34e03458ebf4659e9731e3009b77c537c8d3a21",
+        "size_in_bytes": 137494
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-parserInternals.html",
+        "path_type": "hardlink",
+        "sha256": "0aecdc3032d4368144235d233458a386b454de3adb001266b616f547163037c1",
+        "sha256_in_prefix": "0aecdc3032d4368144235d233458a386b454de3adb001266b616f547163037c1",
+        "size_in_bytes": 125357
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-pattern.html",
+        "path_type": "hardlink",
+        "sha256": "52d5a43b2e4115ccef9f2b02c55d39ada441c953d1fdf31edfbeb6c794154783",
+        "sha256_in_prefix": "52d5a43b2e4115ccef9f2b02c55d39ada441c953d1fdf31edfbeb6c794154783",
+        "size_in_bytes": 19362
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-relaxng.html",
+        "path_type": "hardlink",
+        "sha256": "23744b11cfabfe7032014565223b95c140945d67e667fa98c1b06c6b14807a02",
+        "sha256_in_prefix": "23744b11cfabfe7032014565223b95c140945d67e667fa98c1b06c6b14807a02",
+        "size_in_bytes": 35230
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-schemasInternals.html",
+        "path_type": "hardlink",
+        "sha256": "c127283416992f8cf4a961421d9e25e59c7385787987bf9358ae242f59526ca8",
+        "sha256_in_prefix": "c127283416992f8cf4a961421d9e25e59c7385787987bf9358ae242f59526ca8",
+        "size_in_bytes": 65120
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-schematron.html",
+        "path_type": "hardlink",
+        "sha256": "a7fd20ef5ae983371a4631baa1cc7639ee69c05b0b97592183c80e91ad7cd3be",
+        "sha256_in_prefix": "a7fd20ef5ae983371a4631baa1cc7639ee69c05b0b97592183c80e91ad7cd3be",
+        "size_in_bytes": 17105
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-threads.html",
+        "path_type": "hardlink",
+        "sha256": "d92a1c152333cfd02313ceca31e9d91eeba942908c50503f3ebc2f80d5cccffc",
+        "sha256_in_prefix": "d92a1c152333cfd02313ceca31e9d91eeba942908c50503f3ebc2f80d5cccffc",
+        "size_in_bytes": 12896
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-tree.html",
+        "path_type": "hardlink",
+        "sha256": "39f0541d9b9d3bd544bcd2b452e460b752f3e3b955ff2b213774e7eee11bf72a",
+        "sha256_in_prefix": "39f0541d9b9d3bd544bcd2b452e460b752f3e3b955ff2b213774e7eee11bf72a",
+        "size_in_bytes": 234601
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-uri.html",
+        "path_type": "hardlink",
+        "sha256": "d2e85c967d01f16cddeaaf5f1b1533804b974ef5e11076fe367cb02ff6cf08a3",
+        "sha256_in_prefix": "d2e85c967d01f16cddeaaf5f1b1533804b974ef5e11076fe367cb02ff6cf08a3",
+        "size_in_bytes": 18434
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-valid.html",
+        "path_type": "hardlink",
+        "sha256": "a5a8978f2285589f0ed0387fc72fdac6b30e1b262d169bc74c48f72348970fda",
+        "sha256_in_prefix": "a5a8978f2285589f0ed0387fc72fdac6b30e1b262d169bc74c48f72348970fda",
+        "size_in_bytes": 98504
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xinclude.html",
+        "path_type": "hardlink",
+        "sha256": "24c48c31fb313cfb8efc91eb3bba525fadd936a5564a02d35ab840700e7cd94e",
+        "sha256_in_prefix": "24c48c31fb313cfb8efc91eb3bba525fadd936a5564a02d35ab840700e7cd94e",
+        "size_in_bytes": 15920
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xlink.html",
+        "path_type": "hardlink",
+        "sha256": "66cc9fafcd06c2d4079eff2c73c4286bbc1128ca99456e244c3eec95db26c417",
+        "sha256_in_prefix": "66cc9fafcd06c2d4079eff2c73c4286bbc1128ca99456e244c3eec95db26c417",
+        "size_in_bytes": 17329
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlIO.html",
+        "path_type": "hardlink",
+        "sha256": "b38c5cea81c45b66cf631bbc1829af9618b18ed46fd1d96b4aaa714cdc29af49",
+        "sha256_in_prefix": "b38c5cea81c45b66cf631bbc1829af9618b18ed46fd1d96b4aaa714cdc29af49",
+        "size_in_bytes": 57496
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlautomata.html",
+        "path_type": "hardlink",
+        "sha256": "f237e00f3a2670da0a470235642a8610e4d9ae32b36fbd5a509b9365563d5692",
+        "sha256_in_prefix": "f237e00f3a2670da0a470235642a8610e4d9ae32b36fbd5a509b9365563d5692",
+        "size_in_bytes": 35179
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlerror.html",
+        "path_type": "hardlink",
+        "sha256": "b69670585b480b2e34a076cb6d5ee86150232bfab5a27ff01f72999332ed677f",
+        "sha256_in_prefix": "b69670585b480b2e34a076cb6d5ee86150232bfab5a27ff01f72999332ed677f",
+        "size_in_bytes": 84715
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlexports.html",
+        "path_type": "hardlink",
+        "sha256": "cd691a2db88e44c92d1e63fb35cbf68977c24deb1cabf4c86b6e9d1029569f48",
+        "sha256_in_prefix": "cd691a2db88e44c92d1e63fb35cbf68977c24deb1cabf4c86b6e9d1029569f48",
+        "size_in_bytes": 3585
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlmemory.html",
+        "path_type": "hardlink",
+        "sha256": "24e5a27124e28e43a87f14954b383dec31f6dbf1b1e7d7a0e943ce3015c9a0eb",
+        "sha256_in_prefix": "24e5a27124e28e43a87f14954b383dec31f6dbf1b1e7d7a0e943ce3015c9a0eb",
+        "size_in_bytes": 24021
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlmodule.html",
+        "path_type": "hardlink",
+        "sha256": "b16469a4923fdda20859f010baee90f3896b2a2c290fe2ef671e1e9faae69092",
+        "sha256_in_prefix": "b16469a4923fdda20859f010baee90f3896b2a2c290fe2ef671e1e9faae69092",
+        "size_in_bytes": 7370
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlreader.html",
+        "path_type": "hardlink",
+        "sha256": "8a2602426c53e2eb891aafdd14aafcbaa74dfbb91dbf0588b201951621c9340a",
+        "sha256_in_prefix": "8a2602426c53e2eb891aafdd14aafcbaa74dfbb91dbf0588b201951621c9340a",
+        "size_in_bytes": 108098
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlregexp.html",
+        "path_type": "hardlink",
+        "sha256": "ed7e8ab346d2819dafc1f260fe33beaade9ea7df88086614ddf6bd43aa0aa821",
+        "sha256_in_prefix": "ed7e8ab346d2819dafc1f260fe33beaade9ea7df88086614ddf6bd43aa0aa821",
+        "size_in_bytes": 42012
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlsave.html",
+        "path_type": "hardlink",
+        "sha256": "8e60a094d7d2c673c4901dc23bd656fd1d107e81260ec40faa532d5dfc05ec01",
+        "sha256_in_prefix": "8e60a094d7d2c673c4901dc23bd656fd1d107e81260ec40faa532d5dfc05ec01",
+        "size_in_bytes": 14842
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlschemas.html",
+        "path_type": "hardlink",
+        "sha256": "e3d8befbaf0b2fa008f77ee5e2b4808763124eaefe7f47c1d7ec922cdb3d8d13",
+        "sha256_in_prefix": "e3d8befbaf0b2fa008f77ee5e2b4808763124eaefe7f47c1d7ec922cdb3d8d13",
+        "size_in_bytes": 42521
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlschemastypes.html",
+        "path_type": "hardlink",
+        "sha256": "fd7c4b670d9c59ceff6c8662bd4ac5e53a57ae248b5db696abd3c8f89da5c40e",
+        "sha256_in_prefix": "fd7c4b670d9c59ceff6c8662bd4ac5e53a57ae248b5db696abd3c8f89da5c40e",
+        "size_in_bytes": 44451
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlstring.html",
+        "path_type": "hardlink",
+        "sha256": "3198641e7e7be9463d0ea40619301dcd26c3495281f4e03da3c30f7737f0ea92",
+        "sha256_in_prefix": "3198641e7e7be9463d0ea40619301dcd26c3495281f4e03da3c30f7737f0ea92",
+        "size_in_bytes": 34971
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlunicode.html",
+        "path_type": "hardlink",
+        "sha256": "30b4f2af06cc21b15c42c1a4255184c49a059a67eb566c47eba8dfaeca17f7c8",
+        "sha256_in_prefix": "30b4f2af06cc21b15c42c1a4255184c49a059a67eb566c47eba8dfaeca17f7c8",
+        "size_in_bytes": 106596
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlversion.html",
+        "path_type": "hardlink",
+        "sha256": "3a72f65da6743c801ed5aa8a199fab5804cceba62a0c55e16879a53f261e5f37",
+        "sha256_in_prefix": "3a72f65da6743c801ed5aa8a199fab5804cceba62a0c55e16879a53f261e5f37",
+        "size_in_bytes": 19026
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xmlwriter.html",
+        "path_type": "hardlink",
+        "sha256": "130147029ac7349b1cee75334ac8db000c06b7160cc7b55dd2e2a62b4668dfc2",
+        "sha256_in_prefix": "130147029ac7349b1cee75334ac8db000c06b7160cc7b55dd2e2a62b4668dfc2",
+        "size_in_bytes": 112077
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xpath.html",
+        "path_type": "hardlink",
+        "sha256": "2c71116ddaf908e4adc130147224d18c4606c3fcba47978ba1d58d59d82270e0",
+        "sha256_in_prefix": "2c71116ddaf908e4adc130147224d18c4606c3fcba47978ba1d58d59d82270e0",
+        "size_in_bytes": 62015
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xpathInternals.html",
+        "path_type": "hardlink",
+        "sha256": "a1627a4fb2f650cbacae0341a3368482e84902db3abcdf3eafb00d6c2ad28103",
+        "sha256_in_prefix": "a1627a4fb2f650cbacae0341a3368482e84902db3abcdf3eafb00d6c2ad28103",
+        "size_in_bytes": 144937
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2-xpointer.html",
+        "path_type": "hardlink",
+        "sha256": "2ae30ca95415e28b74074e4ee91575f24872e56d8aacd6946b301ba3b0ddd602",
+        "sha256_in_prefix": "2ae30ca95415e28b74074e4ee91575f24872e56d8aacd6946b301ba3b0ddd602",
+        "size_in_bytes": 25560
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/libxml2.devhelp",
+        "path_type": "hardlink",
+        "sha256": "e0d54ea2c0a85f511046ac6b96ca7dc9c899c825de1aa421d47027136ef14418",
+        "sha256_in_prefix": "e0d54ea2c0a85f511046ac6b96ca7dc9c899c825de1aa421d47027136ef14418",
+        "size_in_bytes": 343476
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/right.png",
+        "path_type": "hardlink",
+        "sha256": "17dcc0b175babc51d07f71382cf2083bcd4e9abfed091a45963f5ee982aa7b48",
+        "sha256_in_prefix": "17dcc0b175babc51d07f71382cf2083bcd4e9abfed091a45963f5ee982aa7b48",
+        "size_in_bytes": 472
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/style.css",
+        "path_type": "hardlink",
+        "sha256": "5f76bdb9ec782097f5cec4ebbda28bdf93aadf5d9c521d574bbb267350722481",
+        "sha256_in_prefix": "5f76bdb9ec782097f5cec4ebbda28bdf93aadf5d9c521d574bbb267350722481",
+        "size_in_bytes": 820
+      },
+      {
+        "_path": "share/gtk-doc/html/libxml2/up.png",
+        "path_type": "hardlink",
+        "sha256": "2af945c4c6ce288adfad716ae1747f37056f7bf67b8536d2e5e6b8e0ce84c872",
+        "sha256_in_prefix": "2af945c4c6ce288adfad716ae1747f37056f7bf67b8536d2e5e6b8e0ce84c872",
+        "size_in_bytes": 406
+      },
+      {
+        "_path": "share/man/man1/xml2-config.1",
+        "path_type": "hardlink",
+        "sha256": "22d0f809711987d4fdf67d126c45b12ff48ee146b0fbf76bbf9c4beb72be56c6",
+        "sha256_in_prefix": "22d0f809711987d4fdf67d126c45b12ff48ee146b0fbf76bbf9c4beb72be56c6",
+        "size_in_bytes": 1181
+      },
+      {
+        "_path": "share/man/man1/xmlcatalog.1",
+        "path_type": "hardlink",
+        "sha256": "74721e4e735aea89403a69864ef467ca5458477001206f7fb7b1a984946f7df5",
+        "sha256_in_prefix": "74721e4e735aea89403a69864ef467ca5458477001206f7fb7b1a984946f7df5",
+        "size_in_bytes": 8397
+      },
+      {
+        "_path": "share/man/man1/xmllint.1",
+        "path_type": "hardlink",
+        "sha256": "f74120528742243355821db83b457196dfccb02edcb0ec79eaa52da8484f09e4",
+        "sha256_in_prefix": "f74120528742243355821db83b457196dfccb02edcb0ec79eaa52da8484f09e4",
+        "size_in_bytes": 13466
+      },
+      {
+        "_path": "share/man/man3/libxml.3",
+        "path_type": "hardlink",
+        "sha256": "20dbe693ddac67856868dd4780b1e6a6c770e36085adafe05589ccee4333bf15",
+        "sha256_in_prefix": "20dbe693ddac67856868dd4780b1e6a6c770e36085adafe05589ccee4333bf15",
+        "size_in_bytes": 1631
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 1994336,
+  "subdir": "osx-64",
+  "timestamp": 1527065417055,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/libxml2-2.9.8-hab757c2_1.tar.bz2",
+  "version": "2.9.8"
+}

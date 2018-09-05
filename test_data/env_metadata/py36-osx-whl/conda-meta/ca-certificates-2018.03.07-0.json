@@ -1,0 +1,47 @@
+{
+  "build": "0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [],
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/ca-certificates-2018.03.07-0",
+  "features": "",
+  "files": [
+    "ssl/cacert.pem",
+    "ssl/cert.pem"
+  ],
+  "fn": "ca-certificates-2018.03.07-0.tar.bz2",
+  "license": "ISC",
+  "link": {
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/ca-certificates-2018.03.07-0",
+    "type": 1
+  },
+  "md5": "8a61ffe6635a912082978bb8127b5f4b",
+  "name": "ca-certificates",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/ca-certificates-2018.03.07-0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "ssl/cacert.pem",
+        "path_type": "hardlink",
+        "sha256": "79ea479e9f329de7075c40154c591b51eb056d458bc4dff76d9a4b9c6c4f6d0b",
+        "sha256_in_prefix": "79ea479e9f329de7075c40154c591b51eb056d458bc4dff76d9a4b9c6c4f6d0b",
+        "size_in_bytes": 215556
+      },
+      {
+        "_path": "ssl/cert.pem",
+        "path_type": "softlink",
+        "sha256": "79ea479e9f329de7075c40154c591b51eb056d458bc4dff76d9a4b9c6c4f6d0b",
+        "size_in_bytes": 215556
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 127057,
+  "subdir": "osx-64",
+  "timestamp": 1522697594755,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/ca-certificates-2018.03.07-0.tar.bz2",
+  "version": "2018.03.07"
+}

@@ -1,25 +1,23 @@
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
 import logging
 from os.path import isdir
 import sys
 
-from .common import check_non_admin, confirm_yn, specs_from_args, stdout_json
+from .common import check_non_admin, specs_from_args
 from .install import handle_txn
 from ..base.context import context
-from ..common.compat import iteritems, iterkeys
 from ..core.envs_manager import unregister_env
-from ..core.prefix_data import linked_data
+from ..core.link import PrefixSetup, UnlinkLinkTransaction
+from ..core.prefix_data import PrefixData
 from ..core.solve import Solver
 from ..exceptions import CondaEnvironmentError, CondaValueError
 from ..gateways.disk.delete import delete_trash, rm_rf_queued
 from ..gateways.disk.test import is_conda_environment
-from ..instructions import PREFIX
 from ..models.match_spec import MatchSpec
-from ..plan import (add_unlink, display_actions)
 
 log = logging.getLogger(__name__)
 
@@ -51,28 +49,31 @@ def execute(args, parser):
                                         '       add -n NAME or -p PREFIX option')
         print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
 
-        index = linked_data(prefix)
-        index = {dist: info for dist, info in iteritems(index)}
+        if 'package_names' in args:
+            stp = PrefixSetup(
+                target_prefix=prefix,
+                unlink_precs=tuple(PrefixData(prefix).iter_records()),
+                link_precs=(),
+                remove_specs=(),
+                update_specs=(),
+            )
+            txn = UnlinkLinkTransaction(stp)
+            handle_txn(txn, prefix, args, False, True)
 
-        actions = defaultdict(list)
-        actions[PREFIX] = prefix
-        for dist in sorted(iterkeys(index)):
-            add_unlink(actions, dist)
-        actions['ACTION'] = 'REMOVE_ALL'
-        action_groups = (actions, index),
-
-        if not context.json:
-            display_actions(actions, index)
-            confirm_yn()
+        # actions = defaultdict(list)
+        # actions[PREFIX] = prefix
+        # for dist in sorted(iterkeys(index)):
+        #     add_unlink(actions, dist)
+        # actions['ACTION'] = 'REMOVE_ALL'
+        # action_groups = (actions, index),
+        #
+        # if not context.json:
+        #     display_actions(actions, index)
+        #     confirm_yn()
         rm_rf_queued(prefix)
         rm_rf_queued.flush()
         unregister_env(prefix)
 
-        if context.json:
-            stdout_json({
-                'success': True,
-                'actions': tuple(x[0] for x in action_groups)
-            })
         return
 
     else:
@@ -83,7 +84,7 @@ def execute(args, parser):
         channel_urls = ()
         subdirs = ()
         solver = Solver(prefix, channel_urls, subdirs, specs_to_remove=specs)
-        txn = solver.solve_for_transaction(force_remove=args.force)
+        txn = solver.solve_for_transaction()
         handle_txn(txn, prefix, args, False, True)
         rm_rf_queued.flush()
 

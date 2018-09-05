@@ -1,3 +1,9 @@
+echo >&2
+echo >&2 "WARNING: The utils/functions.sh is deprecated and scheduled for removal."
+echo >&2 "         Consider transitioning tooling to make use of 'conda init'."
+echo >&2
+
+
 set_vars() {
     # Set global variables
     local arch
@@ -81,7 +87,7 @@ install_conda_full() {
 
     if ! [ -f "$prefix/conda-meta/history" ]; then
         install_miniconda $prefix
-        $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat
+        $prefix/$BIN_DIR/conda install -y -q -c conda-canary -c defaults python=$python_version setuptools pip pycosat 'ruamel_yaml<=0.15.37' requests
     fi
 
     local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
@@ -147,7 +153,7 @@ install_python() {
     local python_version=${2:-$PYTHON_VERSION}
 
     install_miniconda $prefix
-    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip pycosat
+    $prefix/$BIN_DIR/conda install -y -q -c conda-canary -c defaults python=$python_version setuptools pip pycosat 'ruamel_yaml<=0.15.37' requests
     remove_conda $prefix
 
     $PYTHON_EXE --version
@@ -318,7 +324,7 @@ install_conda_build() {
     $prefix/$BIN_DIR/conda install -y \
         perl pytest-xdist pytest-catchlog pytest-mock \
         anaconda-client numpy \
-        filelock jinja2 conda-verify contextlib2 pkginfo \
+        filelock jinja2 conda-verify<3 contextlib2 pkginfo \
         glob2 beautifulsoup4 chardet pycrypto
     conda config --remove channels conda-forge
     if ! [ -n "$ON_WIN" ]; then

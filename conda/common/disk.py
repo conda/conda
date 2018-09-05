@@ -1,20 +1,11 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from contextlib import contextmanager
-from os import makedirs, unlink
-from os.path import isdir
+from os import unlink
 from tempfile import NamedTemporaryFile
-
-
-def conda_bld_ensure_dir(path):
-    # this can fail in parallel operation, depending on timing.  Just try to make the dir,
-    #    but don't bail if fail.
-    if not isdir(path):
-        try:
-            makedirs(path)
-        except OSError:  # pragma: no cover
-            pass
 
 
 @contextmanager

@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 try:
     import nbformat
 except ImportError:
@@ -31,7 +34,7 @@ class NotebookSpec(object):
             self.msg = "{} does not exist or can't be accessed".format(self.name)
         except (nbformat.reader.NotJSONError, KeyError):
             self.msg = "{} does not looks like a notebook file".format(self.name)
-        except:
+        except Exception:
             return False
         return False
 

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import ENOENT
@@ -38,15 +40,15 @@ class RM_RF_Queue(object):
         self.submit(path)
 
     def submit(self, path):
-        rm_rf_wait(path)
-        # future = self.executor.submit(rm_rf_wait, path)
-        # self.queue.append(future)
+        # rm_rf_wait(path)
+        future = self.executor.submit(rm_rf_wait, path)
+        self.queue.append(future)
 
     def flush(self):
-        pass
-        # while self.queue:
-        #     future = self.queue.pop(0)
-        #     future.result()
+        # pass
+        while self.queue:
+            future = self.queue.pop(0)
+            future.result()
 
 
 rm_rf_queued = RM_RF_Queue()
@@ -232,10 +234,10 @@ def _delete_trash_dirs(trash_dirs):
 
 
 def _move_path_to_trash(path):
+    trash_dir = context.trash_dir
+    trash_file = join(trash_dir, text_type(uuid4()))
     try:
-        trash_dir = context.trash_dir
         mkdir_p(trash_dir)
-        trash_file = join(trash_dir, text_type(uuid4()))
         if on_win:
             trash_file = _make_win_path(trash_file)
             path = _make_win_path(path)
@@ -244,7 +246,11 @@ def _move_path_to_trash(path):
         return trash_file
     except EnvironmentError as e:
         if on_win:
-            pass
+            log.debug("EnvironmentError in _move_path_to_trash:\n"
+                      "  path: %s\n"
+                      "  trash_file: %s\n"
+                      "  error: %r",
+                      path, trash_file, e)
         else:
             raise
 

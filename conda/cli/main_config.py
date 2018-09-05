@@ -1,8 +1,9 @@
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import collections
+from collections import OrderedDict
 import json
 import os
 from os.path import isfile, join
@@ -11,17 +12,14 @@ from textwrap import wrap
 
 from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
-from ..base.constants import PathConflict, SafetyChecks
+from .._vendor.toolz import concat, groupby
+from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
+                              UpdateModifier)
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import isiterable, iteritems, itervalues, string_types, text_type
+from ..common.compat import Mapping, Sequence, isiterable, iteritems, itervalues, string_types
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_dump, yaml_load
-
-try:
-    from cytoolz.itertoolz import concat, groupby
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, groupby  # NOQA
 
 
 def execute(args, parser):
@@ -35,7 +33,7 @@ def execute(args, parser):
 def format_dict(d):
     lines = []
     for k, v in iteritems(d):
-        if isinstance(v, collections.Mapping):
+        if isinstance(v, Mapping):
             if v:
                 lines.append("%s:" % k)
                 lines.append(pretty_map(v))
@@ -69,18 +67,34 @@ def parameter_description_builder(name):
     if aliases:
         builder.append("  aliases: %s" % ', '.join(aliases))
     if string_delimiter:
-        builder.append("  string delimiter: '%s'" % string_delimiter)
+        builder.append("  env var string delimiter: '%s'" % string_delimiter)
 
     builder.extend('  ' + line for line in wrap(details['description'], 70))
 
     builder.append('')
+    builder = ['# ' + line for line in builder]
 
     builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
 
     builder = ['# ' + line for line in builder]
     builder.append('')
-    builder.append('')
     return builder
+
+
+def describe_all_parameters():
+    builder = []
+    skip_categories = ('CLI-only', 'Hidden and Undocumented')
+    for category, parameter_names in iteritems(context.category_map):
+        if category in skip_categories:
+            continue
+        builder.append('# ######################################################')
+        builder.append('# ## {:^48} ##'.format(category))
+        builder.append('# ######################################################')
+        builder.append('')
+        builder.extend(concat(parameter_description_builder(name)
+                              for name in parameter_names))
+        builder.append('')
+    return '\n'.join(builder)
 
 
 def execute_config(args, parser):
@@ -108,29 +122,28 @@ def execute_config(args, parser):
             not_params = set(paramater_names) - set(all_names)
             if not_params:
                 from ..exceptions import ArgumentError
-                from ..resolve import dashlist
+                from ..common.io import dashlist
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
         else:
             paramater_names = context.list_parameters()
-
-        from collections import OrderedDict
 
         d = OrderedDict((key, getattr(context, key)) for key in paramater_names)
         if context.json:
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
                   cls=EntityEncoder))
         else:
-            # coerce channels
+            # Add in custom formatting
             if 'custom_channels' in d:
                 d['custom_channels'] = {
                     channel.name: "%s://%s" % (channel.scheme, channel.location)
                     for channel in itervalues(d['custom_channels'])
                 }
-            # TODO: custom_multichannels needs better formatting
             if 'custom_multichannels' in d:
-                d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls],
-                                                           ensure_ascii=False)
-                                             for k, chnls in iteritems(d['custom_multichannels'])}
+                from ..common.io import dashlist
+                d['custom_multichannels'] = {
+                    multichannel_name: dashlist(channels, indent=4)
+                    for multichannel_name, channels in iteritems(d['custom_multichannels'])
+                }
 
             print('\n'.join(format_dict(d)))
         context.validate_configuration()
@@ -143,17 +156,29 @@ def execute_config(args, parser):
             not_params = set(paramater_names) - set(all_names)
             if not_params:
                 from ..exceptions import ArgumentError
-                from ..resolve import dashlist
+                from ..common.io import dashlist
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
+            if context.json:
+                print(json.dumps([context.describe_parameter(name) for name in paramater_names],
+                                 sort_keys=True, indent=2, separators=(',', ': '),
+                                 cls=EntityEncoder))
+            else:
+                builder = []
+                builder.extend(concat(parameter_description_builder(name)
+                                      for name in paramater_names))
+                print('\n'.join(builder))
         else:
-            paramater_names = context.list_parameters()
-        if context.json:
-            print(json.dumps([context.describe_parameter(name) for name in paramater_names],
-                             sort_keys=True, indent=2, separators=(',', ': '),
-                             cls=EntityEncoder))
-        else:
-            print('\n'.join(concat(parameter_description_builder(name)
-                                   for name in paramater_names)))
+            if context.json:
+                skip_categories = ('CLI-only', 'Hidden and Undocumented')
+                paramater_names = sorted(concat(
+                    parameter_names for category, parameter_names in context.category_map.items()
+                    if category not in skip_categories
+                ))
+                print(json.dumps([context.describe_parameter(name) for name in paramater_names],
+                                 sort_keys=True, indent=2, separators=(',', ': '),
+                                 cls=EntityEncoder))
+            else:
+                print(describe_all_parameters())
         return
 
     if args.validate:
@@ -184,9 +209,7 @@ def execute_config(args, parser):
                                  % rc_path)
 
         with open(rc_path, 'w') as fh:
-            paramater_names = context.list_parameters()
-            fh.write('\n'.join(concat(parameter_description_builder(name)
-                                      for name in paramater_names)))
+            fh.write(describe_all_parameters())
         return
 
     # read existing condarc
@@ -257,7 +280,8 @@ def execute_config(args, parser):
             if key not in sequence_parameters:
                 from ..exceptions import CondaValueError
                 raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
-            if not isinstance(rc_config.get(key, []), list):
+            if not (isinstance(rc_config.get(key, []), Sequence) and not
+                    isinstance(rc_config.get(key, []), string_types)):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
@@ -321,6 +345,9 @@ def execute_config(args, parser):
 
         yaml.representer.RoundTripRepresenter.add_representer(SafetyChecks, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(PathConflict, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(DepsModifier, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
 
         try:
             with open(rc_path, 'w') as rc:

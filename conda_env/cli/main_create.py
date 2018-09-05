@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import print_function
 
 from argparse import RawDescriptionHelpFormatter
@@ -47,11 +50,6 @@ def configure_parser(sub_parsers):
     # Add name and prefix args
     add_parser_prefix(p)
 
-    p.add_argument(
-        '-q', '--quiet',
-        action='store_true',
-        default=False,
-    )
     p.add_argument(
         'remote_definition',
         help='remote environment definition / IPython notebook',

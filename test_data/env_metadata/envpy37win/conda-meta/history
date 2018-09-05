@@ -1,0 +1,12 @@
+==> 2018-08-14 20:10:51 <==
+# cmd: C:\Users\user\develop\conda\devenv\Scripts\conda-script.py create -n envpy37win python=3.7 -y
+# conda version: 4.5.10
++defaults::certifi-2018.8.13-py37_0
++defaults::pip-10.0.1-py37_0
++defaults::python-3.7.0-hea74fb7_0
++defaults::setuptools-40.0.0-py37_0
++defaults::vc-14.1-h0510ff6_3
++defaults::vs2015_runtime-15.5.2-3
++defaults::wheel-0.31.1-py37_0
++defaults::wincertstore-0.2-py37_0
+# update specs: ['python=3.7']

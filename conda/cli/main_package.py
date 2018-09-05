@@ -1,9 +1,6 @@
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
-# NOTE:
-#     This module is deprecated.  Don't import from this here when writing
-#     new code.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import hashlib
@@ -16,9 +13,9 @@ import tempfile
 
 from .._vendor.auxlib.entity import EntityEncoder
 from ..base.context import context
-from ..common.compat import PY3, itervalues
+from ..common.compat import PY3
 from ..common.path import paths_equal
-from ..core.prefix_data import is_linked, linked, linked_data
+from ..core.prefix_data import PrefixData
 from ..gateways.disk.delete import rm_rf_wait
 from ..install import PREFIX_PLACEHOLDER
 from ..misc import untracked
@@ -47,8 +44,8 @@ def execute(args, parser):
 
     if args.which:
         for path in args.which:
-            for dist in which_package(path):
-                print('%-50s  %s' % (path, dist))
+            for prec in which_package(path):
+                print('%-50s  %s' % (path, prec.dist_str()))
         return
 
     print('# prefix:', prefix)
@@ -71,7 +68,7 @@ def execute(args, parser):
 
 
 def get_installed_version(prefix, name):
-    for info in itervalues(linked_data(prefix)):
+    for info in PrefixData(prefix).iter_records():
         if info['name'] == name:
             return str(info['version'])
     return None
@@ -144,8 +141,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     t = tarfile.open(tar_path, 'w:bz2')
     h = hashlib.new('sha1')
     for f in files:
-        assert not (f.startswith('/') or f.endswith('/') or
-                    '\\' in f or f == ''), f
+        assert not (f.startswith('/') or f.endswith('/') or '\\' in f or f == ''), f
         path = join(prefix, f)
         if f.startswith('bin/') and fix_shebang(tmp_dir, path):
             path = join(tmp_dir, basename(path))
@@ -212,10 +208,9 @@ def which_package(path):
         from ..exceptions import CondaVerificationError
         raise CondaVerificationError("could not determine conda prefix from: %s" % path)
 
-    for dist in linked(prefix):
-        meta = is_linked(prefix, dist)
-        if any(paths_equal(join(prefix, f), path) for f in meta['files']):
-            yield dist
+    for prec in PrefixData(prefix).iter_records():
+        if any(paths_equal(join(prefix, f), path) for f in prec['files'] or ()):
+            yield prec
 
 
 def which_prefix(path):

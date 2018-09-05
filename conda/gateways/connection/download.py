@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import hashlib
@@ -42,7 +44,7 @@ def download(url, target_full_path, md5sum, progress_update_callback=None):
         session = CondaSession()
         resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
         if log.isEnabledFor(DEBUG):
-            log.debug(stringify(resp))
+            log.debug(stringify(resp, content_max_len=256))
         resp.raise_for_status()
 
         content_length = int(resp.headers.get('Content-Length', 0))

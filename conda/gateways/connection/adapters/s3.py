@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
@@ -45,25 +47,18 @@ class S3Adapter(BaseAdapter):
         from botocore.exceptions import BotoCoreError, ClientError
         bucket_name, key_string = url_to_s3_info(request.url)
 
-        # Get the key without validation that it exists and that we have
-        # permissions to list its contents.
         key = boto3.resource('s3').Object(bucket_name, key_string[1:])
 
         try:
             response = key.get()
-        except (BotoCoreError, ClientError) as exc:
-            # This exception will occur if the bucket does not exist or if the
-            # user does not have permission to list its contents.
+        except (BotoCoreError, ClientError) as e:
             resp.status_code = 404
             message = {
                 "error": "error downloading file from s3",
                 "path": request.url,
-                "exception": repr(exc),
+                "exception": repr(e),
             }
-            fh = SpooledTemporaryFile()
-            fh.write(ensure_binary(json.dumps(message)))
-            fh.seek(0)
-            resp.raw = fh
+            resp.raw = self._write_tempfile(lambda x: x.write(ensure_binary(json.dumps(message))))
             resp.close = resp.raw.close
             return resp
 
@@ -74,10 +69,7 @@ class S3Adapter(BaseAdapter):
             "Last-Modified": key_headers['last-modified'],
         })
 
-        f = SpooledTemporaryFile()
-        key.download_fileobj(f)
-        f.seek(0)
-        resp.raw = f
+        resp.raw = self._write_tempfile(key.download_fileobj)
         resp.close = resp.raw.close
 
         return resp
@@ -86,16 +78,10 @@ class S3Adapter(BaseAdapter):
         conn = boto.connect_s3()
 
         bucket_name, key_string = url_to_s3_info(request.url)
-
-        # Get the bucket without validation that it exists and that we have
-        # permissions to list its contents.
         bucket = conn.get_bucket(bucket_name, validate=False)
-
         try:
             key = bucket.get_key(key_string)
         except boto.exception.S3ResponseError as exc:
-            # This exception will occur if the bucket does not exist or if the
-            # user does not have permission to list its contents.
             resp.status_code = 404
             resp.raw = exc
             return resp
@@ -109,12 +95,15 @@ class S3Adapter(BaseAdapter):
                 "Last-Modified": modified,
             })
 
-            fh = SpooledTemporaryFile()
-            key.get_contents_to_file(fh)
-            fh.seek(0)
-            resp.raw = fh
+            resp.raw = self._write_tempfile(key.get_contents_to_file)
             resp.close = resp.raw.close
         else:
             resp.status_code = 404
 
         return resp
+
+    def _write_tempfile(self, writer_callable):
+        fh = SpooledTemporaryFile()
+        writer_callable(fh)
+        fh.seek(0)
+        return fh

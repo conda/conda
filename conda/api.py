@@ -1,20 +1,26 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from .common.constants import NULL
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
 from .core.prefix_data import PrefixData as _PrefixData
-from .core.solve import DepsModifier as _DepsModifier, Solver as _Solver
+from .core.solve import (DepsModifier as _DepsModifier, Solver as _Solver,
+                         UpdateModifier as _UpdateModifier)
 from .core.subdir_data import SubdirData as _SubdirData
 from .models.channel import Channel
 
 DepsModifier = _DepsModifier
 """Flags to enable alternate handling of dependencies."""
 
+UpdateModifier = _UpdateModifier
+"""Flags to enable alternate handling for updates of existing packages in the environment."""
+
 
 class Solver(object):
     """
-    **Beta**
+    **Beta** While in beta, expect both major and minor changes across minor releases.
 
     A high-level API to conda's solving logic. Three public methods are provided to access a
     solution in various forms.
@@ -45,10 +51,10 @@ class Solver(object):
         """
         self._internal = _Solver(prefix, channels, subdirs, specs_to_add, specs_to_remove)
 
-    def solve_final_state(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
-                          force_remove=NULL):
+    def solve_final_state(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                          ignore_pinned=NULL, force_remove=NULL):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Gives the final, solved state of the environment.
 
@@ -79,13 +85,13 @@ class Solver(object):
                 the solved state of the environment.
 
         """
-        return self._internal.solve_final_state(deps_modifier, prune, ignore_pinned,
-                                                force_remove)
+        return self._internal.solve_final_state(update_modifier, deps_modifier, prune,
+                                                ignore_pinned, force_remove)
 
-    def solve_for_diff(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
-                       force_remove=NULL, force_reinstall=False):
+    def solve_for_diff(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                       ignore_pinned=NULL, force_remove=NULL, force_reinstall=False):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Gives the package references to remove from an environment, followed by
         the package references to add to an environment.
@@ -113,13 +119,13 @@ class Solver(object):
                 dependency order from roots to leaves.
 
         """
-        return self._internal.solve_for_diff(deps_modifier, prune, ignore_pinned,
+        return self._internal.solve_for_diff(update_modifier, deps_modifier, prune, ignore_pinned,
                                              force_remove, force_reinstall)
 
-    def solve_for_transaction(self, deps_modifier=NULL, prune=NULL, ignore_pinned=NULL,
-                              force_remove=NULL, force_reinstall=False):
+    def solve_for_transaction(self, update_modifier=NULL, deps_modifier=NULL, prune=NULL,
+                              ignore_pinned=NULL, force_remove=NULL, force_reinstall=False):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Gives an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
@@ -140,20 +146,20 @@ class Solver(object):
             UnlinkLinkTransaction:
 
         """
-        return self._internal.solve_for_transaction(deps_modifier, prune, ignore_pinned,
-                                                    force_remove, force_reinstall)
+        return self._internal.solve_for_transaction(update_modifier, deps_modifier, prune,
+                                                    ignore_pinned, force_remove, force_reinstall)
 
 
 class SubdirData(object):
     """
-    **Beta**
+    **Beta** While in beta, expect both major and minor changes across minor releases.
 
     High-level management and usage of repodata.json for subdirs.
     """
 
     def __init__(self, channel):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Args:
             channel (str or Channel):
@@ -169,7 +175,7 @@ class SubdirData(object):
 
     def query(self, package_ref_or_match_spec):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Run a query against this specific instance of repodata.
 
@@ -187,7 +193,7 @@ class SubdirData(object):
     @staticmethod
     def query_all(package_ref_or_match_spec, channels=None, subdirs=None):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Run a query against all repodata instances in channel/subdir matrix.
 
@@ -209,7 +215,7 @@ class SubdirData(object):
 
     def iter_records(self):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Returns:
             Iterable[PackageRecord]: A generator over all records contained in the repodata.json
@@ -220,7 +226,7 @@ class SubdirData(object):
 
     def reload(self):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Update the instance with new information. Backing information (i.e. repodata.json)
         is lazily downloaded/loaded on first use by the other methods of this class. You
@@ -236,14 +242,14 @@ class SubdirData(object):
 
 class PackageCacheData(object):
     """
-    **Beta**
+    **Beta** While in beta, expect both major and minor changes across minor releases.
 
     High-level management and usage of package caches.
     """
 
     def __init__(self, pkgs_dir):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Args:
             pkgs_dir (str):
@@ -252,7 +258,7 @@ class PackageCacheData(object):
 
     def get(self, package_ref, default=NULL):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Args:
             package_ref (PackageRef):
@@ -269,7 +275,7 @@ class PackageCacheData(object):
 
     def query(self, package_ref_or_match_spec):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Run a query against this specific package cache instance.
 
@@ -287,7 +293,7 @@ class PackageCacheData(object):
     @staticmethod
     def query_all(package_ref_or_match_spec, pkgs_dirs=None):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Run a query against all package caches.
 
@@ -306,7 +312,7 @@ class PackageCacheData(object):
 
     def iter_records(self):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Returns:
             Iterable[PackageCacheRecord]: A generator over all records contained in the package
@@ -318,7 +324,7 @@ class PackageCacheData(object):
     @property
     def is_writable(self):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Indicates if the package cache location is writable or read-only.
 
@@ -331,7 +337,7 @@ class PackageCacheData(object):
     @staticmethod
     def first_writable(pkgs_dirs=None):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Get an instance object for the first writable package cache.
 
@@ -348,7 +354,7 @@ class PackageCacheData(object):
 
     def reload(self):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Update the instance with new information. Backing information (i.e. contents of
         the pkgs_dir) is lazily loaded on first use by the other methods of this class. You
@@ -364,14 +370,14 @@ class PackageCacheData(object):
 
 class PrefixData(object):
     """
-    **Beta**
+    **Beta** While in beta, expect both major and minor changes across minor releases.
 
     High-level management and usage of conda environment prefixes.
     """
 
     def __init__(self, prefix_path):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Args:
             prefix_path (str):
@@ -380,7 +386,7 @@ class PrefixData(object):
 
     def get(self, package_ref, default=NULL):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Args:
             package_ref (PackageRef):
@@ -397,7 +403,7 @@ class PrefixData(object):
 
     def query(self, package_ref_or_match_spec):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Run a query against this specific prefix instance.
 
@@ -414,7 +420,7 @@ class PrefixData(object):
 
     def iter_records(self):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Returns:
             Iterable[PrefixRecord]: A generator over all records contained in the prefix.
@@ -426,7 +432,7 @@ class PrefixData(object):
     @property
     def is_writable(self):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Indicates if the prefix is writable or read-only.
 
@@ -440,7 +446,7 @@ class PrefixData(object):
 
     def reload(self):
         """
-        **Beta**
+        **Beta** While in beta, expect both major and minor changes across minor releases.
 
         Update the instance with new information. Backing information (i.e. contents of
         the conda-meta directory) is lazily loaded on first use by the other methods of this

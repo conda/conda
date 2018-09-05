@@ -1,5 +1,6 @@
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """ This module contains:
   * all low-level code for extracting, linking and unlinking packages
   * a very simple CLI
@@ -22,17 +23,17 @@ from errno import EACCES, EEXIST, ENOENT, EPERM, EROFS
 import functools
 import logging
 import os
-from os import chmod, makedirs, stat
 from os.path import dirname, isdir, isfile, join, normcase, normpath
+import sys
 
 from .base.constants import PREFIX_PLACEHOLDER
-from .common.compat import on_win, open
-from .gateways.disk.delete import delete_trash, _move_path_to_trash, rm_rf_wait
+from .common.compat import iteritems, itervalues, on_win, open
+from .core.package_cache_data import PackageCacheData, rm_fetched
+from .gateways.disk.delete import _move_path_to_trash, delete_trash, rm_rf_wait
 
 delete_trash, move_path_to_trash = delete_trash, _move_path_to_trash
-from .core.prefix_data import is_linked, linked, linked_data  # NOQA
-is_linked, linked, linked_data = is_linked, linked, linked_data
-from .core.package_cache_data import rm_fetched  # NOQA
+
+
 rm_fetched = rm_fetched
 
 log = logging.getLogger(__name__)
@@ -43,7 +44,19 @@ prefix_placeholder = PREFIX_PLACEHOLDER
 
 # backwards compatibility for conda-build
 def package_cache():
-    from .core.package_cache_data import package_cache
+    from .models.dist import Dist
+
+    class package_cache(object):
+
+        def __contains__(self, dist):
+            return bool(PackageCacheData.first_writable().get(Dist(dist).to_package_ref(), None))
+
+        def keys(self):
+            return (Dist(v) for v in itervalues(PackageCacheData.first_writable()))
+
+        def __delitem__(self, dist):
+            PackageCacheData.first_writable().remove(Dist(dist).to_package_ref())
+
     return package_cache()
 
 
@@ -59,7 +72,7 @@ if on_win:  # pragma: no cover
         """
         from .utils import shells
         try:
-            makedirs(dirname(dst))
+            os.makedirs(dirname(dst))
         except OSError as exc:  # Python >2.5
             if exc.errno == EEXIST and isdir(dirname(dst)):
                 pass
@@ -88,9 +101,9 @@ if on_win:  # pragma: no cover
                     f.write('source %s "$@"' % shells[shell]['path_to'](src))
             # Make the new file executable
             # http://stackoverflow.com/a/30463972/1170370
-            mode = stat(dst).st_mode
+            mode = os.stat(dst).st_mode
             mode |= (mode & 292) >> 2    # copy R bits to X
-            chmod(dst, mode)
+            os.chmod(dst, mode)
 
 
 # Should this be an API function?
@@ -126,8 +139,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
         except (IOError, OSError) as e:
-            if (os.path.lexists(prefix_file) and
-                    (e.errno in (EPERM, EACCES, EROFS, EEXIST))):
+            if os.path.lexists(prefix_file) and (e.errno in (EPERM, EACCES, EROFS, EEXIST)):
                 log.debug("Cannot symlink {0} to {1}. Ignoring since link already exists."
                           .format(root_file, prefix_file))
             elif e.errno == ENOENT:
@@ -138,3 +150,46 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
                           "another concurrent process." .format(root_file, prefix_file))
             else:
                 raise
+
+
+def linked_data(prefix, ignore_channels=False):
+    """
+    Return a dictionary of the linked packages in prefix.
+    """
+    from .core.prefix_data import PrefixData
+    from .models.dist import Dist
+    pd = PrefixData(prefix)
+    return {Dist(prefix_record): prefix_record for prefix_record in itervalues(pd._prefix_records)}
+
+
+def linked(prefix, ignore_channels=False):
+    """
+    Return the Dists of linked packages in prefix.
+    """
+    from .models.enums import PackageType
+    conda_package_types = PackageType.conda_package_types()
+    ld = iteritems(linked_data(prefix, ignore_channels=ignore_channels))
+    return set(dist for dist, prefix_rec in ld if prefix_rec.package_type in conda_package_types)
+
+
+# exports
+def is_linked(prefix, dist):
+    """
+    Return the install metadata for a linked package in a prefix, or None
+    if the package is not linked in the prefix.
+    """
+    # FIXME Functions that begin with `is_` should return True/False
+    from .models.match_spec import MatchSpec
+    from .core.prefix_data import PrefixData
+    pd = PrefixData(prefix)
+    prefix_record = pd.get(dist.name, None)
+    if prefix_record is None:
+        return None
+    elif MatchSpec(dist).match(prefix_record):
+        return prefix_record
+    else:
+        return None
+
+
+print("WARNING: The conda.install module is deprecated and will be removed in a future release.",
+      file=sys.stderr)

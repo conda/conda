@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from itertools import chain
 import os
 from os.path import join
 from tempfile import gettempdir
@@ -11,9 +12,9 @@ import pytest
 from conda._vendor.auxlib.collection import AttrDict
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concat
-from conda.base.constants import PathConflict
+from conda.base.constants import PathConflict, ChannelPriority
 from conda.base.context import context, reset_context
-from conda.common.compat import odict
+from conda.common.compat import odict, iteritems
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.io import env_var
 from conda.common.path import expand, win_path_backout
@@ -60,6 +61,7 @@ class ContextCustomRcTests(TestCase):
           ftps: false
           rsync: 'false'
         aggressive_update_packages: []
+        channel_priority: false
         """)
         reset_context()
         rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(string)))
@@ -187,10 +189,25 @@ class ContextCustomRcTests(TestCase):
         with env_var("CONDA_PATH_CONFLICT", 'prevent', reset_context):
             assert context.path_conflict == PathConflict.prevent
 
-    def test_describe_all(self):
-        paramter_names = context.list_parameters()
+    def test_context_parameter_map(self):
+        all_parameter_names = context.list_parameters()
+        all_mapped_parameter_names = tuple(chain.from_iterable(context.category_map.values()))
+
+        unmapped_parameter_names = set(all_parameter_names) - set(all_mapped_parameter_names)
+        assert not unmapped_parameter_names, unmapped_parameter_names
+
+        assert len(all_parameter_names) == len(all_mapped_parameter_names)
+
+    def test_context_parameters_have_descriptions(self):
+        skip_categories = ('CLI-only', 'Hidden and Undocumented')
+        documented_parameter_names = chain.from_iterable((
+            parameter_names for category, parameter_names in iteritems(context.category_map)
+            if category not in skip_categories
+        ))
+
         from pprint import pprint
-        for name in paramter_names:
+        for name in documented_parameter_names:
+            description = context.get_descriptions()[name]
             pprint(context.describe_parameter(name))
 
     def test_local_build_root_custom_rc(self):
@@ -222,7 +239,7 @@ class ContextCustomRcTests(TestCase):
 
                 # with first dir read-only, choose second
                 PackageCacheData._cache_.clear()
-                make_read_only(join(prefix, 'first', 'pkgs', 'urls.txt'))
+                make_read_only(join(envs_dirs[0], '.conda_envs_dir_test'))
                 reset_context((), argparse_args=AttrDict(name='blarg', func='create'))
                 assert context.target_prefix == join(envs_dirs[1], 'blarg')
 
@@ -238,8 +255,10 @@ class ContextCustomRcTests(TestCase):
         assert context.aggressive_update_packages == tuple()
         specs = ['certifi', 'openssl>=1.1']
         with env_var('CONDA_AGGRESSIVE_UPDATE_PACKAGES', ','.join(specs), reset_context):
-            assert context.aggressive_update_packages == tuple(
-                MatchSpec(s, optional=True) for s in specs)
+            assert context.aggressive_update_packages == tuple(MatchSpec(s) for s in specs)
+
+    def test_channel_priority(self):
+        assert context.channel_priority == ChannelPriority.DISABLED
 
 
 class ContextDefaultRcTests(TestCase):

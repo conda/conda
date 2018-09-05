@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from getpass import getpass
 from logging import getLogger
+import os
 from os.path import abspath, expanduser
 import re
 import socket
@@ -17,7 +20,13 @@ try:  # pragma: py2 no cover
     # Python 3
     from urllib.parse import (quote, quote_plus, unquote, unquote_plus,  # NOQA
                               urlunparse as stdlib_urlparse, urljoin)  # NOQA
-    from urllib.request import pathname2url  # NOQA
+    # Importing urllib.request is exceptionally slow in Python 3.
+    # Copy pathname2url's implementation directly instead:
+    if os.name == 'nt':
+        from nturl2path import pathname2url  # NOQA
+    else:
+        def pathname2url(pathname):
+            return quote(pathname)
 except ImportError:  # pragma: py3 no cover
     # Python 2
     from urllib import quote, quote_plus, unquote, unquote_plus, pathname2url  # NOQA

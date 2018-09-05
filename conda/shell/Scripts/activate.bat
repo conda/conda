@@ -1,3 +1,5 @@
+@REM Copyright (C) 2012 Anaconda, Inc
+@REM SPDX-License-Identifier: BSD-3-Clause
 @REM Test first character and last character of %1 to see if first character is a "
 @REM   but the last character isn't.
 @REM This was a bug as described in https://github.com/ContinuumIO/menuinst/issues/60
@@ -13,12 +15,14 @@
 @set _args1_last=%_args1_last:"=+%
 @set _args1=
 
+@CALL "%~dp0..\condacmd\conda_hook.bat"
+
 @if "%_args1_first%"=="+" if NOT "%_args1_last%"=="+" (
-    @CALL "%~dp0..\Library\bin\conda.bat" activate
+    @CALL conda.bat activate
     @GOTO :End
 )
 
-@CALL "%~dp0..\Library\bin\conda.bat" activate %*
+@CALL conda.bat activate %*
 
 :End
 @set _args1_first=

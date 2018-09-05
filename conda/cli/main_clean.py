@@ -1,15 +1,12 @@
-# (c) 2012-2016 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
 from logging import getLogger
-import os
 from os import listdir, lstat, walk
-from os.path import getsize, isdir, join
+from os.path import getsize, isdir, join, exists
 import sys
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -33,7 +30,7 @@ def find_tarballs():
         pkgs_dir = package_cache.pkgs_dir
         if not isdir(pkgs_dir):
             continue
-        root, _, filenames = next(os.walk(pkgs_dir))
+        root, _, filenames = next(walk(pkgs_dir))
         for fn in filenames:
             if fn.endswith(CONDA_TARBALL_EXTENSION) or fn.endswith(part_ext):
                 pkgs_dirs[pkgs_dir].append(fn)
@@ -86,7 +83,7 @@ def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     for pkgs_dir in pkgs_dirs:
         for fn in pkgs_dirs[pkgs_dir]:
             try:
-                if rm_rf_queued(os.path.join(pkgs_dir, fn)):
+                if rm_rf_queued(join(pkgs_dir, fn)):
                     if verbose:
                         print("Removed %s" % fn)
                 else:
@@ -108,13 +105,11 @@ def find_pkgs():
     cross_platform_st_nlink = CrossPlatformStLink()
     pkgs_dirs = defaultdict(list)
     for pkgs_dir in context.pkgs_dirs:
-        if not os.path.exists(pkgs_dir):
+        if not exists(pkgs_dir):
             if not context.json:
                 print("WARNING: {0} does not exist".format(pkgs_dir))
             continue
-        pkgs = [i for i in listdir(pkgs_dir)
-                if (isdir(join(pkgs_dir, i)) and  # only include actual packages
-                    isdir(join(pkgs_dir, i, 'info')))]
+        pkgs = [i for i in listdir(pkgs_dir) if isdir(join(pkgs_dir, i, 'info'))]
         for pkg in pkgs:
             breakit = False
             for root, dir, files in walk(join(pkgs_dir, pkg)):
@@ -197,91 +192,69 @@ def rm_index_cache():
         rm_rf_queued(join(package_cache.pkgs_dir, 'cache'))
 
 
-def find_source_cache():
-    cache_dirs = {
-        'source cache': context.src_cache,
-        'git cache': context.git_cache,
-        'hg cache': context.hg_cache,
-        'svn cache': context.svn_cache,
-    }
-
-    sizes = {}
-    totalsize = 0
-    for cache_type, cache_dir in cache_dirs.items():
-        dirsize = 0
-        for root, d, files in walk(cache_dir):
-            for fn in files:
-                size = lstat(join(root, fn)).st_size
-                totalsize += size
-                dirsize += size
-        sizes[cache_type] = dirsize
-
-    return {
-        'warnings': [],
-        'cache_dirs': cache_dirs,
-        'cache_sizes': sizes,
-        'total_size': totalsize,
-    }
-
-
-def rm_source_cache(args, cache_dirs, warnings, cache_sizes, total_size):
+def rm_rf_pkgs_dirs(verbose=True):
     from .common import confirm_yn
-    from ..utils import human_bytes
+    from ..common.io import dashlist
+    from ..gateways.disk.delete import rm_rf_queued
+    from ..core.package_cache_data import PackageCacheData
 
-    verbose = not (context.json or context.quiet)
-    if warnings:
-        if verbose:  # lgtm [py/uninitialized-local-variable]
-            for warning in warnings:
-                print(warning, file=sys.stderr)
-        return
-
-    if verbose:  # lgtm [py/uninitialized-local-variable]
-        for cache_type in cache_dirs:
-            print("%s (%s)" % (cache_type, cache_dirs[cache_type]))
-            print("%-40s %10s" % ("Size:", human_bytes(cache_sizes[cache_type])))
-            print()
-
-        print("%-40s %10s" % ("Total:", human_bytes(total_size)))
-
+    writable_pkgs_dirs = tuple(
+        pc.pkgs_dir for pc in PackageCacheData.writable_caches() if isdir(pc.pkgs_dir)
+    )
     if not context.json or not context.always_yes:
+        print("Remove all contents from the following package caches?%s"
+              % dashlist(writable_pkgs_dirs))
         confirm_yn()
-    if context.json and args.dry_run:
-        return
 
-    for dir in cache_dirs.values():
+    for pkgs_dir in writable_pkgs_dirs:
         if verbose:
-            print("Removing %s" % dir)
-        rm_rf_queued(dir)
+            print("Removing %s" % pkgs_dir)
+        rm_rf_queued(pkgs_dir)
+
+    return writable_pkgs_dirs
 
 
-def execute(args, parser):
-    if not any((args.lock, args.tarballs, args.index_cache, args.packages,
-                args.source_cache, args.trash, args.all)):
-        from ..exceptions import ArgumentError
-        raise ArgumentError("One of {--lock, --tarballs, --index-cache, --packages, "
-                            "--source-cache, --trash, --all} required")
-
-    from .common import stdout_json
+def _execute(args, parser):
     json_result = {
         'success': True
     }
+    one_target_ran = False
+    verbose = not (context.json or context.quiet)
+
+    if args.source_cache:
+        print("WARNING: 'conda clean --source-cache' is deprecated.\n"
+              "    Use 'conda build purge-all' to remove source cache files.",
+              file=sys.stderr)
+
+    if args.force_pkgs_dirs:
+        writable_pkgs_dirs = rm_rf_pkgs_dirs(verbose=verbose)
+        json_result['pkgs_dirs'] = writable_pkgs_dirs
+
+        # we return here because all other clean operations target individual parts of
+        # package caches
+        if args.all or args.trash:
+            clean_all_trash()
+        rm_rf_queued.flush()
+        return json_result
 
     if args.tarballs or args.all:
         pkgs_dirs, totalsize = find_tarballs()
         first = sorted(pkgs_dirs)[0] if pkgs_dirs else ''
         json_result['tarballs'] = {
-            'pkgs_dir': first,  # Backwards compabitility
+            'pkgs_dir': first,  # Backwards compatibility
             'pkgs_dirs': dict(pkgs_dirs),
             'files': pkgs_dirs[first],  # Backwards compatibility
             'total_size': totalsize
         }
-        rm_tarballs(args, pkgs_dirs, totalsize, verbose=not (context.json or context.quiet))
+        rm_tarballs(args, pkgs_dirs, totalsize, verbose=verbose)
+        one_target_ran = True
 
     if args.index_cache or args.all:
         json_result['index_cache'] = {
             'files': [join(context.pkgs_dirs[0], 'cache')]
         }
         rm_index_cache()
+        one_target_ran = True
 
     if args.packages or args.all:
         pkgs_dirs, warnings, totalsize, pkgsizes = find_pkgs()
@@ -294,17 +267,22 @@ def execute(args, parser):
             'warnings': warnings,
             'pkg_sizes': {i: dict(zip(pkgs_dirs[i], pkgsizes[i])) for i in pkgs_dirs},
         }
-        rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes,
-                verbose=not (context.json or context.quiet))
-
-    if args.source_cache or args.all:
-        json_result['source_cache'] = find_source_cache()
-        rm_source_cache(args, **json_result['source_cache'])
+        rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes, verbose=verbose)
+        one_target_ran = True
 
     if args.all or args.trash:
         clean_all_trash()
-
     rm_rf_queued.flush()
 
+    if not one_target_ran:
+        from ..exceptions import ArgumentError
+        raise ArgumentError("At least one removal target must be given. See 'conda clean --help'.")
+
+    return json_result
+
+
+def execute(args, parser):
+    from .common import stdout_json
+    json_result = _execute(args, parser)
     if context.json:
         stdout_json(json_result)

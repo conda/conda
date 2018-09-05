@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
@@ -10,7 +12,7 @@ from errno import EPIPE, ESHUTDOWN
 from functools import wraps
 from itertools import cycle
 import json
-import logging
+import logging  # lgtm [py/import-and-import-from]
 from logging import CRITICAL, Formatter, NOTSET, StreamHandler, WARN, getLogger
 import os
 from os.path import dirname, isdir, isfile, join
@@ -29,7 +31,44 @@ from .._vendor.tqdm import tqdm
 
 log = getLogger(__name__)
 
-_FORMATTER = Formatter("%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s")
+
+class DeltaSecondsFormatter(Formatter):
+    """
+    Logging formatter with additional attributes for run time logging.
+
+    Attributes:
+      `delta_secs`:
+        Elapsed seconds since last log/format call (or creation of logger).
+      `relative_created_secs`:
+        Like `relativeCreated`, time relative to the initialization of the
+        `logging` module but conveniently scaled to seconds as a `float` value.
+    """
+    def __init__(self, fmt=None, datefmt=None):
+        self.prev_time = time()
+        super(DeltaSecondsFormatter, self).__init__(fmt=fmt, datefmt=datefmt)
+
+    def format(self, record):
+        now = time()
+        prev_time = self.prev_time
+        self.prev_time = max(self.prev_time, now)
+        record.delta_secs = now - prev_time
+        record.relative_created_secs = record.relativeCreated / 1000
+        return super(DeltaSecondsFormatter, self).format(record)
+
+
+if boolify(os.environ.get('CONDA_TIMED_LOGGING')):
+    _FORMATTER = DeltaSecondsFormatter(
+        "%(relative_created_secs) 7.2f %(delta_secs) 7.2f "
+        "%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s"
+    )
+else:
+    _FORMATTER = Formatter(
+        "%(levelname)s %(name)s:%(funcName)s(%(lineno)d): %(message)s"
+    )
+
+
+def dashlist(iterable, indent=2):
+    return ''.join('\n' + ' ' * indent + '- ' + str(x) for x in iterable)
 
 
 class ContextDecorator(object):
@@ -387,7 +426,8 @@ class ProgressBar(object):
         elif enabled:
             bar_format = "{desc}{bar} | {percentage:3.0f}% "
             try:
-                self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, total=1)
+                self.pbar = tqdm(desc=description, bar_format=bar_format, ascii=True, total=1,
+                                 file=sys.stdout)
             except EnvironmentError as e:
                 if e.errno in (EPIPE, ESHUTDOWN):
                     self.enabled = False
@@ -467,9 +507,26 @@ as_completed = as_completed
 class time_recorder(ContextDecorator):  # pragma: no cover
     start_time = None
     record_file = expand(join('~', '.conda', 'instrumentation-record.csv'))
+    total_call_num = defaultdict(int)
+    total_run_time = defaultdict(float)
 
-    def __init__(self, entry_name):
+    def __init__(self, entry_name=None, module_name=None):
         self.entry_name = entry_name
+        self.module_name = module_name
+
+    def _set_entry_name(self, f):
+        if self.entry_name is None:
+            if hasattr(f, '__qualname__'):
+                entry_name = f.__qualname__
+            else:
+                entry_name = ':' + f.__name__
+            if self.module_name:
+                entry_name = '.'.join((self.module_name, entry_name))
+            self.entry_name = entry_name
+
+    def __call__(self, f):
+        self._set_entry_name(f)
+        return super(time_recorder, self).__call__(f)
 
     def __enter__(self):
         enabled = os.environ.get('CONDA_INSTRUMENTATION_ENABLED')
@@ -479,11 +536,32 @@ class time_recorder(ContextDecorator):  # pragma: no cover
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.start_time:
+            entry_name = self.entry_name
             end_time = time()
             run_time = end_time - self.start_time
+            self.total_call_num[entry_name] += 1
+            self.total_run_time[entry_name] += run_time
             self._ensure_dir()
             with open(self.record_file, 'a') as fh:
-                fh.write("%s,%s\n" % (self.entry_name, run_time))
+                fh.write("%s,%f\n" % (entry_name, run_time))
+            # total_call_num = self.total_call_num[entry_name]
+            # total_run_time = self.total_run_time[entry_name]
+            # log.debug(
+            #     '%s %9.3f %9.3f %d', entry_name, run_time, total_run_time, total_call_num)
+
+    @classmethod
+    def log_totals(cls):
+        enabled = os.environ.get('CONDA_INSTRUMENTATION_ENABLED')
+        if not (enabled and boolify(enabled)):
+            return
+        log.info('=== time_recorder total time and calls ===')
+        for entry_name in sorted(cls.total_run_time.keys()):
+            log.info(
+                'TOTAL %9.3f % 9d %s',
+                cls.total_run_time[entry_name],
+                cls.total_call_num[entry_name],
+                entry_name,
+            )
 
     @memoizemethod
     def _ensure_dir(self):

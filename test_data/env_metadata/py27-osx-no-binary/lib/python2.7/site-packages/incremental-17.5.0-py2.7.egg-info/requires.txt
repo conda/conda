@@ -1,0 +1,4 @@
+
+[scripts]
+click>=6.0
+twisted>=16.4.0

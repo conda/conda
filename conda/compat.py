@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 # This module is only being maintained for conda-build compatibility
 from __future__ import absolute_import, division, print_function, unicode_literals
 import warnings as _warnings
@@ -5,7 +8,7 @@ from tempfile import mkdtemp
 
 
 # shim for conda-build
-from .common.compat import *
+from .common.compat import *  # lgtm [py/polluting-import]
 PY3 = PY3
 
 
@@ -65,3 +68,7 @@ class TemporaryDirectory(object):
     def __del__(self):
         # Issue a ResourceWarning if implicit cleanup needed
         self.cleanup(_warn=True)
+
+
+print("WARNING: The conda.compat module is deprecated and will be removed in a future release.",
+      file=sys.stderr)

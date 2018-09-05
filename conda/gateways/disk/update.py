@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EINVAL, EXDEV
 from logging import getLogger
 import os
-from os import rename as os_rename, utime
 from os.path import dirname, isdir
 import re
 from shutil import move
@@ -51,7 +52,7 @@ def rename(source_path, destination_path, force=False):
     if lexists(source_path):
         log.trace("renaming %s => %s", source_path, destination_path)
         try:
-            os_rename(source_path, destination_path)
+            os.rename(source_path, destination_path)
         except EnvironmentError as e:
             if e.errno in (EINVAL, EXDEV):
                 # https://github.com/conda/conda/issues/6811
@@ -76,12 +77,12 @@ def touch(path, mkdir=False, sudo_safe=False):
     # returns:
     #   True if the file did not exist but was created
     #   False if the file already existed
-    # raises: permissions errors such as EPERM and EACCES
+    # raises: NotWritableError, which is also an OSError having attached errno
     try:
         path = expand(path)
         log.trace("touching path %s", path)
         if lexists(path):
-            utime(path, None)
+            os.utime(path, None)
             return True
         else:
             dirpath = dirname(path)

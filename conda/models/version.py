@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 from logging import getLogger
 import operator as op
 import re
 
-from ..common.compat import string_types, zip, zip_longest, text_type
+from .._vendor.toolz import excepts
+from ..common.compat import string_types, zip, zip_longest, text_type, with_metaclass
 from ..exceptions import CondaValueError, InvalidVersionSpecError
-
-try:
-    from cytoolz.functoolz import excepts
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.functoolz import excepts
 
 log = getLogger(__name__)
 
@@ -30,6 +28,30 @@ version_split_re = re.compile('([0-9]+|[*]+|[^0-9*]+)')
 version_cache = {}
 
 
+class SingleStrArgCachingType(type):
+
+    def __call__(cls, arg):
+        if isinstance(arg, cls):
+            return arg
+        elif isinstance(arg, string_types):
+            try:
+                return cls._cache_[arg]
+            except KeyError:
+                val = cls._cache_[arg] = super(SingleStrArgCachingType, cls).__call__(arg)
+                return val
+        else:
+            return super(SingleStrArgCachingType, cls).__call__(arg)
+
+
+class MalformedVersionError(CondaValueError):
+
+    def __init__(self, version_string, details):
+        message = "Malformed version string '%(version_string)s': %(details)s"
+        super(MalformedVersionError, self).__init__(message, version_string=version_string,
+                                                    details=details)
+
+
+@with_metaclass(SingleStrArgCachingType)
 class VersionOrder(object):
     """
     This class implements an order relation between version strings.
@@ -139,20 +161,14 @@ class VersionOrder(object):
 
       1.0.1a  =>  1.0.1post.a      # ensure correct ordering for openssl
     """
+    _cache_ = {}
 
-    def __new__(cls, vstr):
-        if isinstance(vstr, cls):
-            return vstr
-        self = version_cache.get(vstr)
-        if self is not None:
-            return self
-
-        message = "Malformed version string '%s': " % vstr
+    def __init__(self, vstr):
         # version comparison is case-insensitive
         version = vstr.strip().rstrip().lower()
         # basic validity checks
         if version == '':
-            raise CondaValueError("Empty version string.")
+            raise MalformedVersionError(vstr, "empty version string")
         invalid = not version_check_re.match(version)
         if invalid and '-' in version and '_' not in version:
             # Allow for dashes as long as there are no underscores
@@ -160,15 +176,10 @@ class VersionOrder(object):
             version = version.replace('-', '_')
             invalid = not version_check_re.match(version)
         if invalid:
-            raise CondaValueError(message + "invalid character(s).")
-        self = version_cache.get(version)
-        if self is not None:
-            version_cache[vstr] = self
-            return self
+            raise MalformedVersionError(vstr, "invalid character(s)")
 
         # when fillvalue ==  0  =>  1.1 == 1.1.0
         # when fillvalue == -1  =>  1.1  < 1.1.0
-        self = version_cache[vstr] = version_cache[version] = object.__new__(cls)
         self.norm_version = version
         self.fillvalue = 0
 
@@ -180,10 +191,10 @@ class VersionOrder(object):
         elif len(version) == 2:
             # epoch given, must be an integer
             if not version[0].isdigit():
-                raise CondaValueError(message + "epoch must be an integer.")
+                raise MalformedVersionError(vstr, "epoch must be an integer")
             epoch = [version[0]]
         else:
-            raise CondaValueError(message + "duplicated epoch separator '!'.")
+            raise MalformedVersionError(vstr, "duplicated epoch separator '!'")
 
         # find local version string
         version = version[-1].split('+')
@@ -194,7 +205,7 @@ class VersionOrder(object):
             # local version given
             self.local = version[1].replace('_', '.').split('.')
         else:
-            raise CondaValueError(message + "duplicated local version separator '+'.")
+            raise MalformedVersionError(vstr, "duplicated local version separator '+'")
 
         # split version
         self.version = epoch + version[0].replace('_', '.').split('.')
@@ -205,7 +216,7 @@ class VersionOrder(object):
             for k in range(len(v)):
                 c = version_split_re.findall(v[k])
                 if not c:
-                    raise CondaValueError(message + "empty version component.")
+                    raise MalformedVersionError(vstr, "empty version component")
                 for j in range(len(c)):
                     if c[j].isdigit():
                         c[j] = int(c[j])
@@ -223,8 +234,6 @@ class VersionOrder(object):
                     # strings in phase => prepend fillvalue
                     v[k] = [self.fillvalue] + c
 
-        return self
-
     def __str__(self):
         return self.norm_version
 
@@ -236,8 +245,7 @@ class VersionOrder(object):
         return True
 
     def __eq__(self, other):
-        return (self._eq(self.version, other.version) and
-                self._eq(self.local, other.local))
+        return self._eq(self.version, other.version) and self._eq(self.local, other.local)
 
     def startswith(self, other):
         # Tests if the version lists match up to the last element in "other".
@@ -393,95 +401,40 @@ def untreeify(spec, _inand=False):
 # followed by a version string. It rejects expressions like
 # '<= 1.2' (space after operator), '<>1.2' (unknown operator),
 # and '<=!1.2' (nonsensical operator).
-version_relation_re = re.compile(r'(==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
+version_relation_re = re.compile(r'(=|==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
 regex_split_re = re.compile(r'.*[()|,^$]')
-opdict = {'==': op.__eq__, '!=': op.__ne__, '<=': op.__le__,
-          '>=': op.__ge__, '<': op.__lt__, '>': op.__gt__}
+OPERATOR_MAP = {
+    '==': op.__eq__,
+    '!=': op.__ne__,
+    '<=': op.__le__,
+    '>=': op.__ge__,
+    '<': op.__lt__,
+    '>': op.__gt__,
+    '=': lambda x, y: text_type(x).startswith(text_type(y)),
+    "!=startswith": lambda x, y: not text_type(x).startswith(text_type(y)),
+}
+OPERATOR_START = frozenset(('=', '<', '>', '!'))
 
+class BaseSpec(object):
 
-class VersionSpec(object):
-    def exact_match_(self, vspec):
-        return self.spec == vspec
+    def __init__(self, spec_str, matcher, is_exact):
+        self.spec_str = spec_str
+        self._is_exact = is_exact
+        self.match = matcher
 
-    def regex_match_(self, vspec):
-        return bool(self.regex.match(vspec))
-
-    def veval_match_(self, vspec):
-        return self.op(VersionOrder(vspec), self.cmp)
-
-    def all_match_(self, vspec):
-        return all(s.match(vspec) for s in self.tup)
-
-    def any_match_(self, vspec):
-        return any(s.match(vspec) for s in self.tup)
-
-    def triv_match_(self, vspec):
-        return True
-
-    def __new__(cls, spec):
-        if isinstance(spec, cls):
-            return spec
-        if isinstance(spec, string_types) and regex_split_re.match(spec):
-            spec = treeify(spec)
-
-        self = object.__new__(cls)
-        if isinstance(spec, tuple):
-            self.tup = tup = tuple(VersionSpec(s) for s in spec[1:])
-            self.match = self.any_match_ if spec[0] == '|' else self.all_match_
-            self.spec = untreeify((spec[0],) + tuple(t.spec for t in tup))
-            self.depth = 2
-            return self
-
-        self.depth = 0
-        self.spec = spec = text_type(spec).strip()
-        if spec.startswith('^') or spec.endswith('$'):
-            if not spec.startswith('^') or not spec.endswith('$'):
-                raise InvalidVersionSpecError(spec)
-            self.regex = re.compile(spec)
-            self.match = self.regex_match_
-        elif spec.startswith(('=', '<', '>', '!')):
-            m = version_relation_re.match(spec)
-            if m is None:
-                raise InvalidVersionSpecError(spec)
-            op, b = m.groups()
-            self.op = opdict[op]
-            self.cmp = VersionOrder(b)
-            self.match = self.veval_match_
-        elif spec == '*':
-            self.match = self.triv_match_
-        elif '*' in spec.rstrip('*'):
-            self.spec = spec
-            rx = spec.replace('.', r'\.')
-            rx = rx.replace('+', r'\+')
-            rx = rx.replace('*', r'.*')
-            rx = r'^(?:%s)$' % rx
-            self.regex = re.compile(rx)
-            self.match = self.regex_match_
-        elif spec.endswith('*'):
-            if not spec.endswith('.*'):
-                self.spec = spec = spec[:-1] + '.*'
-            self.op = VersionOrder.startswith
-            self.cmp = VersionOrder(spec.rstrip('*').rstrip('.'))
-            self.match = self.veval_match_
-        elif '@' not in spec:
-            self.op = opdict["=="]
-            self.cmp = VersionOrder(spec)
-            self.match = self.veval_match_
-        else:
-            self.match = self.exact_match_
-        return self
+    @property
+    def spec(self):
+        return self.spec_str
 
     def is_exact(self):
-        return (self.match == self.exact_match_
-                or self.match == self.veval_match_ and self.op == op.__eq__)
+        return self._is_exact
 
     def __eq__(self, other):
         try:
-            other = VersionSpec(other)
-            return self.spec == other.spec
-        except Exception as e:
-            log.debug('%r', e)
-            return False
+            other_spec = other.spec
+        except AttributeError:
+            other_spec = self.__class__(other).spec
+        return self.spec == other_spec
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -493,7 +446,7 @@ class VersionSpec(object):
         return self.spec
 
     def __repr__(self):
-        return "VersionSpec('%s')" % self.spec
+        return "%s('%s')" % (self.__class__.__name__, self.spec)
 
     @property
     def raw_value(self):
@@ -504,98 +457,178 @@ class VersionSpec(object):
         return self.is_exact() and self.spec or None
 
     def merge(self, other):
+        raise NotImplementedError()
+
+    def regex_match(self, spec_str):
+        return bool(self.regex.match(spec_str))
+
+    def operator_match(self, spec_str):
+        return self.operator_func(VersionOrder(text_type(spec_str)), self.matcher_vo)
+
+    def any_match(self, spec_str):
+        return any(s.match(spec_str) for s in self.tup)
+
+    def all_match(self, spec_str):
+        return all(s.match(spec_str) for s in self.tup)
+
+    def exact_match(self, spec_str):
+        return self.spec == spec_str
+
+    def always_true_match(self, spec_str):
+        return True
+
+
+@with_metaclass(SingleStrArgCachingType)
+class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
+    _cache_ = {}
+
+    def __init__(self, vspec):
+        vspec_str, matcher, is_exact = self.get_matcher(vspec)
+        super(VersionSpec, self).__init__(vspec_str, matcher, is_exact)
+
+    def get_matcher(self, vspec):
+        if isinstance(vspec, string_types) and regex_split_re.match(vspec):
+            vspec = treeify(vspec)
+
+        if isinstance(vspec, tuple):
+            vspec_tree = vspec
+            _matcher = self.any_match if vspec_tree[0] == '|' else self.all_match
+            tup = tuple(VersionSpec(s) for s in vspec_tree[1:])
+            vspec_str = untreeify((vspec_tree[0],) + tuple(t.spec for t in tup))
+            self.tup = tup
+            matcher = _matcher
+            is_exact = False
+            return vspec_str, matcher, is_exact
+
+        vspec_str = text_type(vspec).strip()
+        if vspec_str[0] == '^' or vspec_str[-1] == '$':
+            if vspec_str[0] != '^' or vspec_str[-1] != '$':
+                raise InvalidVersionSpecError(vspec_str)
+            self.regex = re.compile(vspec_str)
+            matcher = self.regex_match
+            is_exact = False
+        elif vspec_str[0] in OPERATOR_START:
+            m = version_relation_re.match(vspec_str)
+            if m is None:
+                raise InvalidVersionSpecError(vspec_str)
+            operator_str, vo_str = m.groups()
+            if vo_str[-2:] == '.*':
+                if operator_str in ("=", ">="):
+                    vo_str = vo_str[:-2]
+                elif operator_str == "!=":
+                    vo_str = vo_str[:-2]
+                    operator_str = "!=startswith"
+                else:
+                    raise InvalidVersionSpecError(vspec_str)
+            self.operator_func = OPERATOR_MAP[operator_str]
+            self.matcher_vo = VersionOrder(vo_str)
+            matcher = self.operator_match
+            is_exact = operator_str == "=="
+        elif vspec_str == '*':
+            matcher = self.always_true_match
+            is_exact = False
+        elif '*' in vspec_str.rstrip('*'):
+            rx = vspec_str.replace('.', r'\.').replace('+', r'\+').replace('*', r'.*')
+            rx = r'^(?:%s)$' % rx
+            self.regex = re.compile(rx)
+            matcher = self.regex_match
+            is_exact = False
+        elif vspec_str[-1] == '*':
+            if vspec_str[-2:] != '.*':
+                vspec_str = vspec_str[:-1] + '.*'
+
+            # if vspec_str[-1] in OPERATOR_START:
+            #     m = version_relation_re.match(vspec_str)
+            #     if m is None:
+            #         raise InvalidVersionSpecError(vspec_str)
+            #     operator_str, vo_str = m.groups()
+            #
+            #
+            # else:
+            #     pass
+
+            vo_str = vspec_str.rstrip('*').rstrip('.')
+            self.operator_func = VersionOrder.startswith
+            self.matcher_vo = VersionOrder(vo_str)
+            matcher = self.operator_match
+            is_exact = False
+        elif '@' not in vspec_str:
+            self.operator_func = OPERATOR_MAP["=="]
+            self.matcher_vo = VersionOrder(vspec_str)
+            matcher = self.operator_match
+            is_exact = True
+        else:
+            matcher = self.exact_match
+            is_exact = True
+        return vspec_str, matcher, is_exact
+
+    def merge(self, other):
         assert isinstance(other, self.__class__)
         return self.__class__('%s,%s' % (self.raw_value, other.raw_value))
 
 
-class BuildNumberMatch(object):
+# TODO: someday switch out these class names for consistency
+VersionMatch = VersionSpec
 
-    def __new__(cls, spec):
-        if isinstance(spec, cls):
-            return spec
 
-        self = object.__new__(cls)
+@with_metaclass(SingleStrArgCachingType)
+class BuildNumberMatch(BaseSpec):  # lgtm [py/missing-equals]
+    _cache_ = {}
+
+    def __init__(self, vspec):
+        vspec_str, matcher, is_exact = self.get_matcher(vspec)
+        super(BuildNumberMatch, self).__init__(vspec_str, matcher, is_exact)
+
+    def get_matcher(self, vspec):
         try:
-            spec = int(spec)
+            vspec = int(vspec)
         except ValueError:
             pass
         else:
-            self.spec = spec
-            self.match = self.exact_match_
-            return self
+            matcher = self.exact_match
+            is_exact = True
+            return vspec, matcher, is_exact
 
-        _spec = spec
-        self.spec = spec = text_type(spec).strip()
-        if spec == '*':
-            self.match = self.triv_match_
-        elif spec.startswith(('=', '<', '>', '!')):
-            m = version_relation_re.match(spec)
+        vspec_str = text_type(vspec).strip()
+        if vspec_str == '*':
+            matcher = self.always_true_match
+            is_exact = False
+        elif vspec_str.startswith(('=', '<', '>', '!')):
+            m = version_relation_re.match(vspec_str)
             if m is None:
-                raise InvalidVersionSpecError(spec)
-            op, b = m.groups()
-            self.op = opdict[op]
-            self.cmp = VersionOrder(b)
-            self.match = self.veval_match_
-        elif spec.startswith('^') or spec.endswith('$'):
-            if not spec.startswith('^') or not spec.endswith('$'):
-                raise InvalidVersionSpecError(spec)
-            self.regex = re.compile(spec)
-            self.match = self.regex_match_
-        elif hasattr(spec, 'match'):
-            self.spec = _spec
-            self.match = spec.match
+                raise InvalidVersionSpecError(vspec_str)
+            operator_str, vo_str = m.groups()
+            self.operator_func = OPERATOR_MAP[operator_str]
+            self.matcher_vo = VersionOrder(vo_str)
+            matcher = self.operator_match
+
+            is_exact = operator_str == "=="
+        elif vspec_str[0] == '^' or vspec_str[-1] == '$':
+            if vspec_str[0] != '^' or vspec_str[-1] != '$':
+                raise InvalidVersionSpecError(vspec_str)
+            self.regex = re.compile(vspec_str)
+            matcher = self.regex_match
+            is_exact = False
+        # if hasattr(spec, 'match'):
+        #     self.spec = _spec
+        #     self.match = spec.match
         else:
-            self.match = self.exact_match_
-        return self
-
-    def exact_match_(self, vspec):
-        try:
-            return int(self.spec) == int(vspec)
-        except ValueError:
-            return False
-
-    def veval_match_(self, vspec):
-        return self.op(VersionOrder(text_type(vspec)), self.cmp)
-
-    def triv_match_(self, vspec):
-        return True
-
-    def regex_match_(self, vspec):
-        return bool(self.regex.match(vspec))
-
-    def is_exact(self):
-        return self.match == self.exact_match_
-
-    def __eq__(self, other):
-        if isinstance(other, BuildNumberMatch):
-            return self.spec == other.spec
-        return False
-
-    def __ne__(self, other):
-        if isinstance(other, BuildNumberMatch):
-            return self.spec != other.spec
-        return True
-
-    def __hash__(self):
-        return hash(self.spec)
-
-    def __str__(self):
-        return text_type(self.spec)
-
-    def __repr__(self):
-        # return "BuildNumberSpec('%s')" % self.spec
-        return text_type(self.spec)
-
-    @property
-    def raw_value(self):
-        return self.spec
-
-    @property
-    def exact_value(self):
-        return excepts(ValueError, int(self.raw_value))
+            matcher = self.exact_match
+            is_exact = True
+        return vspec_str, matcher, is_exact
 
     def merge(self, other):
         if self.raw_value != other.raw_value:
             raise ValueError("Incompatible component merge:\n  - %r\n  - %r"
                              % (self.raw_value, other.raw_value))
         return self.raw_value
+
+    @property
+    def exact_value(self):
+        return excepts(ValueError, int(self.raw_value))
+
+    def __str__(self):
+        return text_type(self.spec)
+
+    def __repr__(self):
+        return text_type(self.spec)

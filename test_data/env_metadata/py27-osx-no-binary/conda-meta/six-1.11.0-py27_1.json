@@ -1,0 +1,83 @@
+{
+  "build": "py27_1",
+  "build_number": 1,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [
+    "python >=2.7,<2.8.0a0"
+  ],
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/six-1.11.0-py27_1",
+  "features": "",
+  "files": [
+    "lib/python2.7/site-packages/six-1.11.0-py2.7.egg-info/PKG-INFO",
+    "lib/python2.7/site-packages/six-1.11.0-py2.7.egg-info/SOURCES.txt",
+    "lib/python2.7/site-packages/six-1.11.0-py2.7.egg-info/dependency_links.txt",
+    "lib/python2.7/site-packages/six-1.11.0-py2.7.egg-info/top_level.txt",
+    "lib/python2.7/site-packages/six.py",
+    "lib/python2.7/site-packages/six.pyc"
+  ],
+  "fn": "six-1.11.0-py27_1.tar.bz2",
+  "license": "MIT",
+  "license_family": "MIT",
+  "link": {
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/six-1.11.0-py27_1",
+    "type": 1
+  },
+  "md5": "18fa294254a79611b2339d898707282a",
+  "name": "six",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/six-1.11.0-py27_1.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/python2.7/site-packages/six-1.11.0-py2.7.egg-info/PKG-INFO",
+        "path_type": "hardlink",
+        "sha256": "f444b02aa897120f6cadfeade712c2171ed4ae06e9d42fc3f4ca8d5822d0552b",
+        "sha256_in_prefix": "f444b02aa897120f6cadfeade712c2171ed4ae06e9d42fc3f4ca8d5822d0552b",
+        "size_in_bytes": 1818
+      },
+      {
+        "_path": "lib/python2.7/site-packages/six-1.11.0-py2.7.egg-info/SOURCES.txt",
+        "path_type": "hardlink",
+        "sha256": "0e5cf78d9cf118b109b87e8640636cebaedaa7bdc22a3be9fd6fcbe8ea43dc8e",
+        "sha256_in_prefix": "0e5cf78d9cf118b109b87e8640636cebaedaa7bdc22a3be9fd6fcbe8ea43dc8e",
+        "size_in_bytes": 253
+      },
+      {
+        "_path": "lib/python2.7/site-packages/six-1.11.0-py2.7.egg-info/dependency_links.txt",
+        "path_type": "hardlink",
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "sha256_in_prefix": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "size_in_bytes": 1
+      },
+      {
+        "_path": "lib/python2.7/site-packages/six-1.11.0-py2.7.egg-info/top_level.txt",
+        "path_type": "hardlink",
+        "sha256": "fe2547fe2604b445e70fc9d819062960552f9145bdb043b51986e478a4806a2b",
+        "sha256_in_prefix": "fe2547fe2604b445e70fc9d819062960552f9145bdb043b51986e478a4806a2b",
+        "size_in_bytes": 4
+      },
+      {
+        "_path": "lib/python2.7/site-packages/six.py",
+        "path_type": "hardlink",
+        "sha256": "034f0c3dbf868bd15f227237216ec78a65c59841f64f620fcc7803bdd8593d10",
+        "sha256_in_prefix": "034f0c3dbf868bd15f227237216ec78a65c59841f64f620fcc7803bdd8593d10",
+        "size_in_bytes": 30888
+      },
+      {
+        "_path": "lib/python2.7/site-packages/six.pyc",
+        "path_type": "hardlink",
+        "sha256": "a0f05ca8e73f03f2a9e0e1a0fda475e9057a9ccaff82fd700979adbcd049e79b",
+        "sha256_in_prefix": "a0f05ca8e73f03f2a9e0e1a0fda475e9057a9ccaff82fd700979adbcd049e79b",
+        "size_in_bytes": 30370
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 21367,
+  "subdir": "osx-64",
+  "timestamp": 1530694754194,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/six-1.11.0-py27_1.tar.bz2",
+  "version": "1.11.0"
+}

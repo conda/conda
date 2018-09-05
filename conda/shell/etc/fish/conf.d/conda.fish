@@ -1,35 +1,13 @@
-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 #
 # INSTALL
 #
-#     Source this file from the fish shell to enable activate / deactivate functions.
-#     In order to automatically load these functions on fish startup, append
+#     Run 'conda init fish' and restart your shell.
 #
-#         source [CONDA_INSTALL_LOCATION]/etc/fish/conf.d/conda.fish
-#
-#     to the end of your ~/.config/config.fish file, or
-#
-#         sudo ln -s [CONDA_INSTALL_LOCATION]/etc/fish/conf.d/conda.fish /etc/fish/conf.d/conda.fish
-#
-#     If you are using fish as your default shell and want any environment activated by default also add
-#
-#         conda activate <env-name>
-#
-#     For example add 
-#    
-#         conda acitvate base
-#   
-#     to have the default environment running as in bash.
-#
-
-
-
-# source shell/etc/fish/conf.d/conda.fish
-
-# For testing only. $_CONDA_EXE is added as top line in this file under normal installs.
-test -n "$_CONDA_EXE"; or set _CONDA_EXE "$PWD/shell/bin/conda"
 
 test -n "$CONDA_SHLVL"; or set -gx CONDA_SHLVL "0"
+set -g _CONDA_ROOT (dirname (dirname $CONDA_EXE))
 
 function __conda_add_prompt
   if set -q CONDA_DEFAULT_ENV
@@ -78,22 +56,20 @@ function fish_right_prompt
 end
 
 
-function conda --inherit-variable _CONDA_EXE
+function conda --inherit-variable CONDA_EXE
     if [ (count $argv) -lt 1 ]
-        eval $_CONDA_EXE
+        eval $CONDA_EXE
     else
         set -l cmd $argv[1]
         set -e argv[1]
         switch $cmd
-            case activate
-                eval (eval $_CONDA_EXE shell.fish activate $argv)
-            case deactivate
-                eval (eval $_CONDA_EXE shell.fish deactivate $argv)
-            case install update remove uninstall
-                eval $_CONDA_EXE $cmd $argv
-                and eval (eval $_CONDA_EXE shell.fish reactivate)
+            case activate deactivate
+                eval (eval $CONDA_EXE shell.fish $cmd $argv)
+            case install update upgrade remove uninstall
+                eval $CONDA_EXE $cmd $argv
+                and eval (eval $CONDA_EXE shell.fish reactivate)
             case '*'
-                eval $_CONDA_EXE $cmd $argv
+                eval $CONDA_EXE $cmd $argv
         end
     end
 end
@@ -107,12 +83,21 @@ end
 # Faster but less tested (?)
 function __fish_conda_commands
   string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_*.py
+  for f in $_CONDA_ROOT/bin/conda-*
+    if test -x "$f" -a ! -d "$f"
+      string replace -r '^.*/conda-' '' "$f"
+    end
+  end
   echo activate
   echo deactivate
 end
 
+function __fish_conda_env_commands
+  string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda_env/cli/main_*.py
+end
+
 function __fish_conda_envs
-  conda config --show envs_dirs | awk 'NR > 1 {print $2}' | xargs -IX find X -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort
+  conda config --json --show envs_dirs | python -c "import json, os, sys; from os.path import isdir, join; print('\n'.join(d for ed in json.load(sys.stdin)['envs_dirs'] if isdir(ed) for d in os.listdir(ed) if isdir(join(ed, d))))"
 end
 
 function __fish_conda_packages
@@ -139,11 +124,13 @@ end
 
 # Conda commands
 complete -f -c conda -n '__fish_conda_needs_command' -a '(__fish_conda_commands)'
+complete -f -c conda -n '__fish_conda_using_command env' -a '(__fish_conda_env_commands)'
 
 # Commands that need environment as parameter
 complete -f -c conda -n '__fish_conda_using_command activate' -a '(__fish_conda_envs)'
 
 # Commands that need package as parameter
 complete -f -c conda -n '__fish_conda_using_command remove' -a '(__fish_conda_packages)'
+complete -f -c conda -n '__fish_conda_using_command uninstall' -a '(__fish_conda_packages)'
 complete -f -c conda -n '__fish_conda_using_command upgrade' -a '(__fish_conda_packages)'
 complete -f -c conda -n '__fish_conda_using_command update' -a '(__fish_conda_packages)'

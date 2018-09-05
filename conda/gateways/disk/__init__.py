@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EACCES, EEXIST, ENOENT, ENOTEMPTY, EPERM
 from logging import getLogger
 import os
-from os import makedirs, mkdir
 from os.path import basename, dirname, isdir
 import sys
+
 from time import sleep
 
 from ...common.compat import on_win
@@ -58,9 +60,9 @@ def mkdir_p(path):
     try:
         log.trace('making directory %s', path)
         if path:
-            makedirs(path)
+            os.makedirs(path)
             return isdir(path) and path
-    except OSError as e:
+    except EnvironmentError as e:
         if e.errno == EEXIST and isdir(path):
             return path
         else:
@@ -74,9 +76,17 @@ def mkdir_p_sudo_safe(path):
     if not isdir(base_dir):
         mkdir_p_sudo_safe(base_dir)
     log.trace('making directory %s', path)
-    mkdir(path)
-    if not on_win and os.environ.get('SUDO_UID') is not None:
-        uid = int(os.environ['SUDO_UID'])
-        gid = int(os.environ.get('SUDO_GID', -1))
-        log.trace("chowning %s:%s %s", uid, gid, path)
-        os.chown(path, uid, gid)
+    os.mkdir(path)
+    # # per the following issues, removing this code as of 4.6.0:
+    # #   - https://github.com/conda/conda/issues/6569
+    # #   - https://github.com/conda/conda/issues/6576
+    # #   - https://github.com/conda/conda/issues/7109
+    # if not on_win and os.environ.get('SUDO_UID') is not None:
+    #     uid = int(os.environ['SUDO_UID'])
+    #     gid = int(os.environ.get('SUDO_GID', -1))
+    #     log.trace("chowning %s:%s %s", uid, gid, path)
+    #     os.chown(path, uid, gid)
+    if not on_win:
+        # set newly-created directory permissions to 02775
+        # https://github.com/conda/conda/issues/6610#issuecomment-354478489
+        os.chmod(path, 0o2775)

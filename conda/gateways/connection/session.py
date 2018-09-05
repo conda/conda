@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
@@ -61,9 +63,7 @@ class CondaSession(Session):
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?
 
-        proxies = context.proxy_servers
-        if proxies:
-            self.proxies = proxies
+        self.proxies.update(context.proxy_servers)
 
         if context.offline:
             unused_adapter = EnforceUnusedAdapter()

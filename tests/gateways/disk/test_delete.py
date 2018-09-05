@@ -10,11 +10,12 @@ import pytest
 
 from conda.base.context import reset_context
 from conda.common.io import env_var
-from conda.compat import TemporaryDirectory
+from conda.compat import TemporaryDirectory, on_win
 from conda.exports import move_to_trash
-from conda.gateways.disk.create import create_link
+from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf_wait, _move_path_to_trash, delete_trash
 from conda.gateways.disk.link import islink, symlink
+from conda.gateways.disk.test import softlink_supported
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
 from .test_permissions import _make_read_only, _try_open, tempdir
@@ -70,6 +71,9 @@ def test_remove_link_to_file():
         dst_link = join(td, "test_link")
         src_file = join(td, "test_file")
         _write_file(src_file, "welcome to the ministry of silly walks")
+        if not softlink_supported(src_file, td) and on_win:
+            pytest.skip("softlink not supported")
+
         symlink(src_file, dst_link)
         assert isfile(src_file)
         assert not islink(src_file)
@@ -86,17 +90,25 @@ def test_remove_link_to_dir():
     with tempdir() as td:
         dst_link = join(td, "test_link")
         src_dir = join(td, "test_dir")
-        _write_file(src_dir, "welcome to the ministry of silly walks")
-        symlink(src_dir, dst_link)
+        test_file = join(td, "test_file")
+        mkdir_p(src_dir)
+        touch(test_file)
+        assert isdir(src_dir)
         assert not islink(src_dir)
+        assert not islink(dst_link)
+        if not softlink_supported(test_file, td) and on_win:
+            pytest.skip("softlink not supported")
+
+        symlink(src_dir, dst_link)
         assert islink(dst_link)
         rm_rf_wait(dst_link)
         assert not isdir(dst_link)
         assert not islink(dst_link)
+        assert not lexists(dst_link)
+        assert isdir(src_dir)
         rm_rf_wait(src_dir)
         assert not isdir(src_dir)
         assert not islink(src_dir)
-        assert not lexists(dst_link)
 
 
 def test_rm_rf_does_not_follow_symlinks():
@@ -110,6 +122,9 @@ def test_rm_rf_does_not_follow_symlinks():
         os.makedirs(subdir)
         # link to the file in the subfolder
         link_path = join(subdir, 'file_link')
+        if not softlink_supported(real_file, tmp) and on_win:
+            pytest.skip("softlink not supported")
+
         create_link(real_file, link_path, link_type=LinkType.softlink)
         assert islink(link_path)
         # rm_rf the subfolder

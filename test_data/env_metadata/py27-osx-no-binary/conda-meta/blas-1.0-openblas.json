@@ -1,0 +1,29 @@
+{
+  "build": "openblas",
+  "build_number": 7,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [],
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/blas-1.0-openblas",
+  "features": "",
+  "files": [],
+  "fn": "blas-1.0-openblas.tar.bz2",
+  "link": {
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/blas-1.0-openblas",
+    "type": 1
+  },
+  "md5": "38fd73cba341639c45d8c747b08c9cc1",
+  "name": "blas",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/blas-1.0-openblas.tar.bz2",
+  "paths_data": {
+    "paths": [],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 49130,
+  "subdir": "osx-64",
+  "timestamp": 1528225884020,
+  "track_features": "nomkl",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/blas-1.0-openblas.tar.bz2",
+  "version": "1.0"
+}
