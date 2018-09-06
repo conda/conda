@@ -13,12 +13,12 @@ from uuid import uuid4
 from . import MAX_TRIES, exp_backoff_fn, mkdir_p
 from .link import islink, lexists
 from .permissions import make_writable
+from ..._vendor.toolz import concatv
 from ...base.context import context
 from ...common.compat import PY3, ensure_fs_path_encoding, on_win, text_type
 from ...common.io import Spinner, ThreadLimitedThreadPoolExecutor
+from ...common.path import paths_equal
 from ...exceptions import NotWritableError
-from ..._vendor.toolz import concatv
-
 
 log = getLogger(__name__)
 
@@ -291,8 +291,7 @@ def _rmtree_win_no_move_to_trash(path):
                     _do_unlink(file_path)
             _do_rmdir(path)
     else:
-        trash_path = _backoff_move_path_to_trash(path)
-        _do_unlink(trash_path)
+        _do_unlink(path)
 
 
 def _delete_trash_dirs(trash_dirs, ignore_errors=True):
@@ -315,6 +314,8 @@ def _delete_trash_dirs(trash_dirs, ignore_errors=True):
 
 def _move_path_to_trash(path):
     trash_dir = context.trash_dir
+    if paths_equal(trash_dir, path):
+        return
     trash_file = join(trash_dir, text_type(uuid4()))
     try:
         mkdir_p(trash_dir)
