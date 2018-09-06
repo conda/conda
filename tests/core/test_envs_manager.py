@@ -62,12 +62,13 @@ class EnvsManagerUnitTests(TestCase):
         assert gascon_location not in list_all_known_prefixes()
 
     def test_prefix_cli_flag(self):
+        target_prefix = join(os.getcwd(), 'blarg')
+        assert not isdir(target_prefix)
         envs_dirs = (join(self.prefix, 'first-envs-dir'), join(self.prefix, 'seconds-envs-dir'))
         with env_var('CONDA_ENVS_DIRS', os.pathsep.join(envs_dirs), reset_context):
 
             # even if prefix doesn't exist, it can be a target prefix
             reset_context((), argparse_args=AttrDict(prefix='./blarg', func='create'))
-            target_prefix = join(os.getcwd(), 'blarg')
             assert context.target_prefix == target_prefix
             rm_rf_queued.flush()
             assert not isdir(target_prefix)

@@ -9,14 +9,9 @@ from os import listdir, lstat, walk
 from os.path import getsize, isdir, join, exists
 import sys
 
+from .._vendor.toolz import concatv
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
-from ..gateways.disk.delete import _delete_trash_dirs, rm_rf_queued
-
-try:
-    from cytoolz.itertoolz import concatv
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concatv  # NOQA
 
 log = getLogger(__name__)
 
@@ -39,15 +34,26 @@ def find_tarballs():
     return pkgs_dirs, totalsize
 
 
-def clean_all_trash():
+def clean_all_trash(verbose=True):
     from ..core.envs_manager import list_all_known_prefixes
+    from ..gateways.disk.delete import _delete_trash_dirs
+    from ..gateways.disk.link import lexists
+
     trash_dirs = (join(prefix, '.trash') for prefix in
                   concatv(list_all_known_prefixes(), context.pkgs_dirs))
-    _delete_trash_dirs(trash_dirs)
+    trash_dirs = (td for td in trash_dirs if lexists(td))
+
+    for trash_dir in trash_dirs:
+        if verbose:
+            print("Removing rash directory:", trash_dir)
+        _delete_trash_dirs(trash_dirs, ignore_errors=False)
+
+    return trash_dirs
 
 
 def rm_tarballs(args, pkgs_dirs, totalsize, verbose=True):
     from .common import confirm_yn
+    from ..gateways.disk.delete import rm_rf_queued
     from ..utils import human_bytes
 
     if verbose:
@@ -148,6 +154,7 @@ def find_pkgs():
 
 def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
     from .common import confirm_yn
+    from ..gateways.disk.delete import rm_rf_queued
     from ..utils import human_bytes
     if verbose:
         for pkgs_dir in pkgs_dirs:
@@ -188,6 +195,7 @@ def rm_pkgs(args, pkgs_dirs, warnings, totalsize, pkgsizes, verbose=True):
 
 def rm_index_cache():
     from ..core.package_cache_data import PackageCacheData
+    from ..gateways.disk.delete import rm_rf_queued
     for package_cache in PackageCacheData.writable_caches():
         rm_rf_queued(join(package_cache.pkgs_dir, 'cache'))
 
@@ -215,6 +223,8 @@ def rm_rf_pkgs_dirs(verbose=True):
 
 
 def _execute(args, parser):
+    from ..gateways.disk.delete import rm_rf_queued
+
     json_result = {
         'success': True
     }
@@ -233,7 +243,7 @@ def _execute(args, parser):
         # we return here because all other clean operations target individual parts of
         # package caches
         if args.all or args.trash:
-            clean_all_trash()
+            json_result['trash_dirs'] = clean_all_trash(verbose=verbose)
         rm_rf_queued.flush()
         return json_result
 

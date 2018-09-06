@@ -36,7 +36,7 @@ def set_on_win(val):
     rm_rf_wait_saved = conda.core.prefix_data.rm_rf_wait
     try:
         conda.common.path.on_win = val
-        conda.core.prefix_data.rm_rf = lambda x: None
+        conda.core.prefix_data.rm_rf_wait = lambda x: None
         if val and not on_win:
             conda.core.prefix_data.win_path_ok = lambda x: x
             conda.common.pkg_formats.python.win_path_ok = lambda x: x

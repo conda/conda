@@ -33,7 +33,7 @@ def exp_backoff_fn(fn, *args, **kwargs):
         except EnvironmentError as e:
             log.trace(repr(e))
             if e.errno in (EPERM, EACCES):
-                if n == max_tries-1:
+                if n >= max_tries-1:
                     raise
                 sleep_time = ((2 ** n) + random.random()) * 0.1
                 caller_frame = sys._getframe(1)

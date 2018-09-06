@@ -17,11 +17,8 @@ from ...base.context import context
 from ...common.compat import PY3, ensure_fs_path_encoding, on_win, text_type
 from ...common.io import Spinner, ThreadLimitedThreadPoolExecutor
 from ...exceptions import NotWritableError
+from ..._vendor.toolz import concatv
 
-try:
-    from cytoolz.itertoolz import concatv
-except ImportError:  # pragma: no cover
-    from ..._vendor.toolz.itertoolz import concatv  # NOQA
 
 log = getLogger(__name__)
 
@@ -57,31 +54,10 @@ rm_rf_queued = RM_RF_Queue()
 def rm_rf_wait(path):
     """Block until path is deleted."""
     path = abspath(path)
-
-    if isdir(path) and not islink(path):
-        log.trace("rm_rf directory %s", path)
-        try:
-            _rmdir_recursive(path)
-        except EnvironmentError:
-            if on_win:
-                _move_path_to_trash(path)
-            else:
-                raise
-    elif lexists(path):
-        log.trace("rm_rf path %s", path)
-        try:
-            _backoff_unlink(path)
-        except EnvironmentError:
-            if on_win:
-                _move_path_to_trash(path)
-            else:
-                raise
-    else:
-        log.trace("rm_rf no-op. Not a link, file, or directory: %s", path)
-
-    if not on_win and lexists(path):
+    try:
+        return _rmtree(path)
+    finally:
         assert not lexists(path), "rm_rf failed for %s" % path
-    return True
 
 
 def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
@@ -92,7 +68,7 @@ def try_rmdir_all_empty(dirpath, max_tries=MAX_TRIES):
     try:
         log.trace("Attempting to remove directory %s", dirpath)
         exp_backoff_fn(removedirs, dirpath, max_tries=max_tries)
-    except (IOError, OSError) as e:
+    except EnvironmentError as e:
         # this function only guarantees trying, so we just swallow errors
         log.trace('%r', e)
 
@@ -108,20 +84,20 @@ def delete_trash():
         _delete_trash_dirs(trash_dirs)
 
 
-def _rm_rf_no_move_to_trash(path):
-    path = abspath(path)
-
-    if isdir(path) and not islink(path):
-        log.trace("rm_rf_no_trash directory %s", path)
-        _rmdir_recursive(path)
-    elif lexists(path):
-        log.trace("rm_rf_no_trash path %s", path)
-        _backoff_unlink(path)
-    else:
-        log.trace("rm_rf_no_trash no-op. Not a link, file, or directory: %s", path)
-
-    assert not lexists(path), "rm_rf_no_trash failed for %s" % path
-    return True
+# def _rm_rf_no_move_to_trash(path):
+#     path = abspath(path)
+#
+#     if isdir(path) and not islink(path):
+#         log.trace("rm_rf_no_trash directory %s", path)
+#         _rmdir_recursive(path)
+#     elif lexists(path):
+#         log.trace("rm_rf_no_trash path %s", path)
+#         _backoff_unlink(path)
+#     else:
+#         log.trace("rm_rf_no_trash no-op. Not a link, file, or directory: %s", path)
+#
+#     assert not lexists(path), "rm_rf_no_trash failed for %s" % path
+#     return True
 
 
 def _backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
@@ -130,7 +106,7 @@ def _backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
 
 def _make_win_path(path):
     path = abspath(path).rstrip('\\')
-    return ensure_fs_path_encoding(path if path.startswith('\\\\?\\') else '\\\\?\\%s' % path)
+    return ensure_fs_path_encoding(path if path.startswith('\\\\?\\') else ('\\\\?\\' + path))
 
 
 def _do_unlink(path):
@@ -171,66 +147,170 @@ def _do_rmdir(path):
             raise NotWritableError(path, e.errno, caused_by=e)
 
 
-def _backoff_rmdir_empty(dirpath, max_tries=MAX_TRIES):
-    exp_backoff_fn(_do_rmdir, dirpath, max_tries=max_tries)
+# def _backoff_rmdir_empty(dirpath, max_tries=MAX_TRIES):
+#     exp_backoff_fn(_do_rmdir, dirpath, max_tries=max_tries)
 
 
-def _rmdir_recursive(path, max_tries=MAX_TRIES):
-    if on_win:
-        win_path = _make_win_path(path)
-        file_attr = GetFileAttributesW(win_path)
-
-        dots = {'.', '..'}
-        if file_attr & FILE_ATTRIBUTE_DIRECTORY:
-            if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
-                _backoff_rmdir_empty(win_path, max_tries=max_tries)
-            else:
-                for ffrec in FindFiles(ensure_fs_path_encoding(win_path + '\\*.*')):
-                    file_name = ensure_fs_path_encoding(ffrec[8])
-                    if file_name in dots:
-                        continue
-                    file_attr = ffrec[0]
-                    # reparse_tag = ffrec[6]
-                    file_path = join(path, file_name)
-                    # log.debug("attributes for [%s] [%s] are %s" %
-                    #           (file_path, reparse_tag, hex(file_attr)))
-                    if file_attr & FILE_ATTRIBUTE_DIRECTORY:
-                        if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
-                            _backoff_rmdir_empty(win_path, max_tries=max_tries)
-                        else:
-                            _rmdir_recursive(file_path, max_tries=max_tries)
-                    else:
-                        _backoff_unlink(file_path, max_tries=max_tries)
-                _backoff_rmdir_empty(win_path, max_tries=max_tries)
-        else:
-            _backoff_unlink(path, max_tries=max_tries)
-    else:
-        path = abspath(path)
-        if not lexists(path):
-            return
-        elif isdir(path) and not islink(path):
+def _rmtree_unix(path):
+    path = abspath(path)
+    try:
+        if isdir(path) and not islink(path):
             dots = {'.', '..'}
             for file_name in listdir(path):
                 if file_name in dots:
                     continue
                 file_path = join(path, file_name)
                 if isdir(file_path) and not islink(file_path):
-                    _rmdir_recursive(file_path, max_tries=max_tries)
+                    _rmtree_unix(file_path)
                 else:
-                    _backoff_unlink(file_path, max_tries=max_tries)
-            _backoff_rmdir_empty(path, max_tries=max_tries)
+                    _do_unlink(file_path)
+            _do_rmdir(path)
         else:
-            _backoff_unlink(path, max_tries=max_tries)
+            _do_unlink(path)
+        return True
+    except EnvironmentError as e:
+        if e.errno == ENOENT:
+            return False
+        raise NotWritableError(path, e.errno, caused_by=e)
 
 
-def _delete_trash_dirs(trash_dirs):
+def _rmtree_win(path):
+    win_path = _make_win_path(path)
+    file_attr = GetFileAttributesW(win_path)
+
+    dots = {'.', '..'}
+    if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+        if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
+            trash_path = _backoff_move_path_to_trash(path)
+            _do_rmdir(trash_path)
+        else:
+            for ffrec in FindFiles(ensure_fs_path_encoding(win_path + '\\*.*')):
+                file_name = ensure_fs_path_encoding(ffrec[8])
+                if file_name in dots:
+                    continue
+                file_attr = ffrec[0]
+                # reparse_tag = ffrec[6]
+                file_path = join(path, file_name)
+                # log.debug("attributes for [%s] [%s] are %s" %
+                #           (file_path, reparse_tag, hex(file_attr)))
+                if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+                    if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
+                        log.trace("remove reparse point %s", file_path)
+                        trash_path = _backoff_move_path_to_trash(file_path)
+                        _do_rmdir(trash_path)
+                    else:
+                        _rmtree_win(file_path)
+                else:
+                    trash_path = _backoff_move_path_to_trash(file_path)
+                    _do_unlink(trash_path)
+            trash_path = _backoff_move_path_to_trash(path)
+            _do_rmdir(trash_path)
+    else:
+        trash_path = _backoff_move_path_to_trash(path)
+        _do_unlink(trash_path)
+
+
+if on_win:
+    _rmtree = _rmtree_win
+else:
+    _rmtree = _rmtree_unix
+
+# def _rmdir_recursive(path, max_tries=MAX_TRIES):
+#     if on_win:
+#         win_path = _make_win_path(path)
+#         file_attr = GetFileAttributesW(win_path)
+#
+#         dots = {'.', '..'}
+#         if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+#             if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
+#                 _backoff_rmdir_empty(win_path, max_tries=max_tries)
+#             else:
+#                 for ffrec in FindFiles(ensure_fs_path_encoding(win_path + '\\*.*')):
+#                     file_name = ensure_fs_path_encoding(ffrec[8])
+#                     if file_name in dots:
+#                         continue
+#                     file_attr = ffrec[0]
+#                     # reparse_tag = ffrec[6]
+#                     file_path = join(path, file_name)
+#                     # log.debug("attributes for [%s] [%s] are %s" %
+#                     #           (file_path, reparse_tag, hex(file_attr)))
+#                     if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+#                         if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
+#                             _backoff_rmdir_empty(win_path, max_tries=max_tries)
+#                         else:
+#                             _rmdir_recursive(file_path, max_tries=max_tries)
+#                     else:
+#                         _backoff_unlink(file_path, max_tries=max_tries)
+#                 _backoff_rmdir_empty(win_path, max_tries=max_tries)
+#         else:
+#             _backoff_unlink(path, max_tries=max_tries)
+#     else:
+#         path = abspath(path)
+#         if not lexists(path):
+#             return
+#         elif isdir(path) and not islink(path):
+#             dots = {'.', '..'}
+#             for file_name in listdir(path):
+#                 if file_name in dots:
+#                     continue
+#                 file_path = join(path, file_name)
+#                 if isdir(file_path) and not islink(file_path):
+#                     _rmdir_recursive(file_path, max_tries=max_tries)
+#                 else:
+#                     _backoff_unlink(file_path, max_tries=max_tries)
+#             _backoff_rmdir_empty(path, max_tries=max_tries)
+#         else:
+#             _backoff_unlink(path, max_tries=max_tries)
+
+
+def _rmtree_win_no_move_to_trash(path):
+    win_path = _make_win_path(path)
+    file_attr = GetFileAttributesW(win_path)
+
+    dots = {'.', '..'}
+    if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+        if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
+            _do_rmdir(path)
+        else:
+            for ffrec in FindFiles(ensure_fs_path_encoding(win_path + '\\*.*')):
+                file_name = ensure_fs_path_encoding(ffrec[8])
+                if file_name in dots:
+                    continue
+                file_attr = ffrec[0]
+                # reparse_tag = ffrec[6]
+                file_path = join(path, file_name)
+                # log.debug("attributes for [%s] [%s] are %s" %
+                #           (file_path, reparse_tag, hex(file_attr)))
+                if file_attr & FILE_ATTRIBUTE_DIRECTORY:
+                    if file_attr & FILE_ATTRIBUTE_REPARSE_POINT:
+                        log.trace("remove reparse point %s", file_path)
+                        _do_rmdir(file_path)
+                    else:
+                        _rmtree_win(file_path)
+                else:
+                    _do_unlink(file_path)
+            _do_rmdir(path)
+    else:
+        trash_path = _backoff_move_path_to_trash(path)
+        _do_unlink(trash_path)
+
+
+def _delete_trash_dirs(trash_dirs, ignore_errors=True):
+    rm_rf_queued.flush()
     for trash_dir in trash_dirs:
+        if not lexists(trash_dir):
+            continue
         log.trace("removing trash for %s", trash_dir)
         try:
-            _rm_rf_no_move_to_trash(trash_dir)
+            if on_win:
+                _rmtree_win_no_move_to_trash(trash_dir)
+            else:
+                _rmtree_unix(trash_dir)
         except EnvironmentError as e:
             log.info("Unable to delete trash path: %s\n  %r", trash_dir, e)
-    rm_rf_queued.flush()
+            if ignore_errors:
+                return
+            raise NotWritableError(trash_dir, e.errno, caused_by=e)
 
 
 def _move_path_to_trash(path):
@@ -238,21 +318,30 @@ def _move_path_to_trash(path):
     trash_file = join(trash_dir, text_type(uuid4()))
     try:
         mkdir_p(trash_dir)
+    except EnvironmentError as e:
+        raise NotWritableError(path, e.errno, caused_by=e)
+    try:
         if on_win:
             trash_file = _make_win_path(trash_file)
             path = _make_win_path(path)
+            make_writable(path)
+            handle_nonzero_success(SetFileAttributes(path, FILE_ATTRIBUTE_NORMAL))
         # This rename assumes the trash_file is on the same file system as the file being trashed.
         rename(path, trash_file)
         return trash_file
     except EnvironmentError as e:
-        if on_win:
-            log.debug("EnvironmentError in _move_path_to_trash:\n"
-                      "  path: %s\n"
-                      "  trash_file: %s\n"
-                      "  error: %r",
-                      path, trash_file, e)
-        else:
-            raise
+        if e.errno == ENOENT:
+            return trash_file
+        log.debug("EnvironmentError in _move_path_to_trash:\n"
+                  "  path: %s\n"
+                  "  trash_file: %s\n"
+                  "  error: %r",
+                  path, trash_file, e)
+        raise
+
+
+def _backoff_move_path_to_trash(file_or_symlink_path, max_tries=MAX_TRIES):
+    return exp_backoff_fn(_move_path_to_trash, file_or_symlink_path, max_tries=max_tries)
 
 
 if on_win:
