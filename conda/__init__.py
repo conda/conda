@@ -78,7 +78,10 @@ class CondaMultiError(CondaError):
         super(CondaMultiError, self).__init__(None)
 
     def __repr__(self):
-        return '\n'.join(repr(e) for e in self.errors) + '\n'
+        return '\n'.join(text_type(e)
+                         if isinstance(e, EnvironmentError) and not isinstance(e, CondaError)
+                         else repr(e)
+                         for e in self.errors) + '\n'
 
     def __str__(self):
         return '\n'.join(text_type(e) for e in self.errors) + '\n'
