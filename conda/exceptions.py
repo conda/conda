@@ -831,6 +831,31 @@ class NoWritablePkgsDirError(CondaError):
         super(NoWritablePkgsDirError, self).__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
 
 
+class EnvironmentNotWritableError(CondaError):
+
+    def __init__(self, environment_location, **kwargs):
+        kwargs.update({
+            'environment_location': environment_location,
+        })
+        if on_win:
+            message = dals("""
+            The current user does not have write permissions to the target environment.
+              environment location: %(environment_location)s
+            """)
+        else:
+            message = dals("""
+            The current user does not have write permissions to the target environment.
+              environment location: %(environment_location)s
+              uid: %(uid)s
+              gid: %(gid)s
+            """)
+            kwargs.update({
+                'uid': os.geteuid(),
+                'gid': os.getegid(),
+            })
+        super(EnvironmentNotWritableError, self).__init__(message, **kwargs)
+    
+
 class CondaDependencyError(CondaError):
     def __init__(self, message):
         super(CondaDependencyError, self).__init__(message)

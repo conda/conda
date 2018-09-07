@@ -234,9 +234,14 @@ class PrefixData(object):
         # also deleting the record on disk in the conda-meta/ directory.
         for conda_anchor_file in clobbered_conda_anchor_files:
             prefix_rec = self._prefix_records.pop(conda_python_packages[conda_anchor_file].name)
+            try:
+                extracted_package_dir = basename(prefix_rec.extracted_package_dir)
+            except AttributeError:
+                extracted_package_dir = "-".join((
+                    prefix_rec.name, prefix_rec.version, prefix_rec.build
+                ))
             prefix_rec_json_path = join(
-                self.prefix_path, "conda-meta",
-                '%s.json' % basename(prefix_rec.extracted_package_dir)
+                self.prefix_path, "conda-meta", '%s.json' % extracted_package_dir
             )
             try:
                 rm_rf(prefix_rec_json_path)
