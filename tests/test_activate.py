@@ -130,7 +130,7 @@ class ActivatorUnitTests(TestCase):
         assert new_path[:len(added_paths)] == added_paths
         assert new_path[-len(path_dirs):] == path_dirs
         assert len(new_path) == len(added_paths) + len(path_dirs) + 1
-        assert new_path[len(added_paths)].endswith("condacmd")
+        assert new_path[len(added_paths)].endswith("condabin")
 
     def test_remove_prefix_from_path_1(self):
         activator = PosixActivator()
@@ -1144,7 +1144,7 @@ class InteractiveShell(object):
         'cmd.exe': {
             'activator': 'cmd.exe',
             'init_command': 'set "CONDA_SHLVL=" '
-                            '&& @CALL conda\\shell\\condacmd\\conda_hook.bat '
+                            '&& @CALL conda\\shell\\condabin\\conda_hook.bat '
                             '&& set "CONDA_EXE=python -m conda"',
             'print_env_var': '@echo %%%s%%',
         },

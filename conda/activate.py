@@ -607,7 +607,7 @@ class PosixActivator(_Activator):
         if on_win:
             return ('export CONDA_EXE="$(cygpath \'%s\')"\n'
                     'export CONDA_BAT="%s"'
-                    % (context.conda_exe, join(context.conda_prefix, 'condacmd', 'conda.bat'))
+                    % (context.conda_exe, join(context.conda_prefix, 'condabin', 'conda.bat'))
                     )
         else:
             return 'export CONDA_EXE="%s"' % context.conda_exe
@@ -710,14 +710,14 @@ class CmdExeActivator(_Activator):
 
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
         # If this is the first time we're activating an environment, we need to ensure that
-        # the condacmd directory is included in the path list.
+        # the condabin directory is included in the path list.
         old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
         if starting_path_dirs is None:
             starting_path_dirs = self._get_starting_path_list()
         starting_path_dirs = list(starting_path_dirs)
-        if not old_conda_shlvl and not any(p.endswith("condacmd") for p in starting_path_dirs):
-            condacmd_dir = self.path_conversion(join(context.conda_prefix, "condacmd"))
-            starting_path_dirs.insert(0, condacmd_dir)
+        if not old_conda_shlvl and not any(p.endswith("condabin") for p in starting_path_dirs):
+            condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
+            starting_path_dirs.insert(0, condabin_dir)
         return super(CmdExeActivator, self)._add_prefix_to_path(prefix, starting_path_dirs)
 
 
