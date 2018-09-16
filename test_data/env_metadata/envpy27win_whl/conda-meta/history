@@ -1,0 +1,12 @@
+==> 2018-08-14 19:57:54 <==
+# cmd: C:\Users\user\develop\conda\devenv\Scripts\conda-script.py create -n envpy27win_whl python=2.7 -y
+# conda version: 4.5.10
++defaults::certifi-2018.8.13-py27_0
++defaults::pip-10.0.1-py27_0
++defaults::python-2.7.15-he216670_0
++defaults::setuptools-40.0.0-py27_0
++defaults::vc-9-h7299396_1
++defaults::vs2008_runtime-9.00.30729.1-hfaea7d5_1
++defaults::wheel-0.31.1-py27_0
++defaults::wincertstore-0.2-py27hf04cefb_0
+# update specs: ['python=2.7']

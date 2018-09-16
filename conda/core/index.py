@@ -3,26 +3,22 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from itertools import chain
 from logging import getLogger
+
+from itertools import chain
 
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
+from .._vendor.toolz import concat, concatv, groupby
 from ..base.context import context
 from ..common.compat import itervalues
-from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, time_recorder
-from ..exceptions import ChannelNotAllowed
+from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, dashlist, time_recorder
+from ..exceptions import ChannelNotAllowed, InvalidVersionSpecError
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord
-from ..resolve import dashlist
-
-try:
-    from cytoolz.itertoolz import concat, concatv, groupby
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -190,8 +186,14 @@ def get_reduced_index(prefix, channels, subdirs, specs):
                         pending_track_features.add(ftr_name)
 
         def push_record(record):
+            try:
+                combined_depends = record.combined_depends
+            except InvalidVersionSpecError as e:
+                log.warning("Skipping %s due to InvalidVersionSpecError: %s",
+                            record.record_id(), e._kwargs["invalid_spec"])
+                return
             push_spec(MatchSpec(record.name))
-            for _spec in record.combined_depends:
+            for _spec in combined_depends:
                 push_spec(_spec)
             if record.track_features:
                 for ftr_name in record.track_features:

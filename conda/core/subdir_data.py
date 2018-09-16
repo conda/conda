@@ -20,6 +20,7 @@ import warnings
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
 from .._vendor.auxlib.logz import stringify
+from .._vendor.toolz import concat, take
 from ..base.constants import CONDA_HOMEPAGE_URL
 from ..base.context import context
 from ..common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems,
@@ -40,11 +41,6 @@ from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
 
 try:
-    from cytoolz.itertoolz import concat, take
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, take  # NOQA
-
-try:
     import cPickle as pickle
 except ImportError:  # pragma: no cover
     import pickle  # NOQA
@@ -52,7 +48,7 @@ except ImportError:  # pragma: no cover
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderrlog')
 
-REPODATA_PICKLE_VERSION = 25
+REPODATA_PICKLE_VERSION = 28
 MAX_REPODATA_VERSION = 1
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
@@ -148,7 +144,7 @@ class SubdirData(object):
 
     def load(self):
         _internal_state = self._load()
-        if _internal_state["repodata_version"] > MAX_REPODATA_VERSION:
+        if _internal_state.get("repodata_version", 0) > MAX_REPODATA_VERSION:
             raise CondaUpgradeError(dals("""
                 The current version of conda is too old to read repodata from
 

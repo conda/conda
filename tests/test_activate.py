@@ -99,7 +99,10 @@ class ActivatorUnitTests(TestCase):
             instructions = activator.build_activate("base")
             assert instructions['export_vars']['CONDA_PROMPT_MODIFIER'] == ''
 
-    def test_add_prefix_to_path(self):
+    def test_add_prefix_to_path_posix(self):
+        if on_win and "PWD" not in os.environ:
+            pytest.skip("This test cannot be run from the cmd.exe shell.")
+
         activator = PosixActivator()
 
         path_dirs = activator.path_conversion(['/path1/bin', '/path2/bin', '/usr/local/bin', '/usr/bin', '/bin'])
@@ -111,6 +114,23 @@ class ActivatorUnitTests(TestCase):
 
         new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
         assert new_path == added_paths + path_dirs
+
+    @pytest.mark.skipif(not on_win, reason="windows-specific test")
+    def test_add_prefix_to_path_cmdexe(self):
+        activator = CmdExeActivator()
+
+        path_dirs = activator.path_conversion(["C:\\path1", "C:\\Program Files\\Git\\cmd", "C:\\WINDOWS\\system32"])
+        assert len(path_dirs) == 3
+        test_prefix = '/usr/mytest/prefix'
+        added_paths = activator.path_conversion(activator._get_path_dirs(test_prefix))
+        if isinstance(added_paths, string_types):
+            added_paths = added_paths,
+
+        new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
+        assert new_path[:len(added_paths)] == added_paths
+        assert new_path[-len(path_dirs):] == path_dirs
+        assert len(new_path) == len(added_paths) + len(path_dirs) + 1
+        assert new_path[len(added_paths)].endswith("condacmd")
 
     def test_remove_prefix_from_path_1(self):
         activator = PosixActivator()

@@ -22,7 +22,8 @@ from .prefix_data import PrefixData, get_python_version_for_prefix
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
-from ..base.constants import DEFAULTS_CHANNEL_NAME, SafetyChecks
+from .._vendor.toolz import concat, concatv, interleave, take
+from ..base.constants import DEFAULTS_CHANNEL_NAME, SafetyChecks, PREFIX_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
 from ..common.io import Spinner, dashlist, time_recorder
@@ -30,7 +31,8 @@ from ..common.path import (explode_directories, get_all_directories, get_major_m
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
 from ..exceptions import (DisallowedPackageError, KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
+                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise,
+                          EnvironmentNotWritableError)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
@@ -40,11 +42,6 @@ from ..models.enums import LinkType
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
 from ..utils import human_bytes
-
-try:
-    from cytoolz.itertoolz import concat, concatv, groupby, interleave, take
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby, interleave, take  # NOQA
 
 log = getLogger(__name__)
 
@@ -161,15 +158,15 @@ class UnlinkLinkTransaction(object):
         self.prefix_action_groups = odict()
 
         for stp in itervalues(self.prefix_setups):
-            log.debug("instantiating UnlinkLinkTransaction with\n"
-                      "  target_prefix: %s\n"
-                      "  unlink_precs:\n"
-                      "    %s\n"
-                      "  link_precs:\n"
-                      "    %s\n",
-                      stp.target_prefix,
-                      '\n    '.join(prec.dist_str() for prec in stp.unlink_precs),
-                      '\n    '.join(prec.dist_str() for prec in stp.link_precs))
+            log.info("initializing UnlinkLinkTransaction with\n"
+                     "  target_prefix: %s\n"
+                     "  unlink_precs:\n"
+                     "    %s\n"
+                     "  link_precs:\n"
+                     "    %s\n",
+                     stp.target_prefix,
+                     '\n    '.join(prec.dist_str() for prec in stp.unlink_precs),
+                     '\n    '.join(prec.dist_str() for prec in stp.link_precs))
 
         self._pfe = None
         self._prepared = False
@@ -295,7 +292,6 @@ class UnlinkLinkTransaction(object):
         transaction_context['target_site_packages_short_path'] = sp
 
         transaction_context['temp_dir'] = join(target_prefix, '.condatmp')
-        mkdir_p(transaction_context['temp_dir'])
 
         unlink_action_groups = tuple(ActionGroup(
             'unlink',
@@ -428,6 +424,7 @@ class UnlinkLinkTransaction(object):
         # 2. make sure we're not removing a conda dependency from conda's env
         # 3. enforce context.disallowed_packages
         # 4. make sure we're not removing pinned packages without no-pin flag
+        # 5. make sure conda-meta/history for each prefix is writable
         # TODO: Verification 4
 
         conda_prefixes = (join(context.root_prefix, 'envs', '_conda_'), context.root_prefix)
@@ -488,14 +485,36 @@ class UnlinkLinkTransaction(object):
                 if any(d.match(prec) for d in disallowed):
                     yield DisallowedPackageError(prec)
 
+        # Verification 5. make sure conda-meta/history for each prefix is writable
+        for prefix_setup in itervalues(prefix_setups):
+            test_path = join(prefix_setup.target_prefix, PREFIX_MAGIC_FILE)
+            test_path_existed = lexists(test_path)
+            dir_existed = None
+            try:
+                dir_existed = mkdir_p(dirname(test_path))
+                open(test_path, "a").close()
+            except EnvironmentError:
+                if dir_existed is False:
+                    rm_rf(dirname(test_path))
+                yield EnvironmentNotWritableError(prefix_setup.target_prefix)
+            else:
+                if not dir_existed:
+                    rm_rf(dirname(test_path))
+                elif not test_path_existed:
+                    rm_rf(test_path)
+
     @classmethod
     def _verify(cls, prefix_setups, prefix_action_groups):
+        transaction_exceptions = tuple(
+            exc for exc in cls._verify_transaction_level(prefix_setups) if exc
+        )
+        if transaction_exceptions:
+            return transaction_exceptions
         exceptions = tuple(exc for exc in concatv(
             concat(cls._verify_individual_level(prefix_group)
                    for prefix_group in itervalues(prefix_action_groups)),
             concat(cls._verify_prefix_level(target_prefix, prefix_group)
                    for target_prefix, prefix_group in iteritems(prefix_action_groups)),
-            cls._verify_transaction_level(prefix_setups),
         ) if exc)
         return exceptions
 
@@ -858,7 +877,7 @@ class UnlinkLinkTransaction(object):
             for namekey in sorted(change_report.removed_precs, key=convert_namekey):
                 unlink_prec = change_report.removed_precs[namekey]
                 builder.append("  " + "-".join(
-                    (unlink_prec.namekey, unlink_prec.version, unlink_prec.build)
+                    (unlink_prec.name, unlink_prec.version, unlink_prec.build)
                 ))
 
         if change_report.updated_precs:
@@ -919,6 +938,10 @@ class UnlinkLinkTransaction(object):
                 updated_precs[namekey] = (unlink_prec, link_prec)
             elif (link_prec.channel.name == unlink_prec.channel.name
                     and link_prec.subdir == unlink_prec.subdir):
+                if link_prec == unlink_prec:
+                    # noarch: python packages are re-linked on a python version change
+                    # just leave them out of the package report
+                    continue
                 downgraded_precs[namekey] = (unlink_prec, link_prec)
             else:
                 superseded_precs[namekey] = (unlink_prec, link_prec)

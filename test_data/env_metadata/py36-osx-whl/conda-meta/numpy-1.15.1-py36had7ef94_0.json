@@ -1,0 +1,36 @@
+{
+  "build": "py36had7ef94_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [
+    "blas 1.0 openblas",
+    "libgfortran >=3.0.1",
+    "libopenblas >=0.3.2,<0.3.3.0a0",
+    "numpy-base 1.15.1 py36h42e5f7b_0",
+    "python >=3.6,<3.7.0a0"
+  ],
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/numpy-1.15.1-py36had7ef94_0",
+  "features": "",
+  "files": [],
+  "fn": "numpy-1.15.1-py36had7ef94_0.tar.bz2",
+  "license": "BSD 3-Clause",
+  "link": {
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/numpy-1.15.1-py36had7ef94_0",
+    "type": 1
+  },
+  "md5": "53f0204756123cbe9acef5710dce7096",
+  "name": "numpy",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/numpy-1.15.1-py36had7ef94_0.tar.bz2",
+  "paths_data": {
+    "paths": [],
+    "paths_version": 1
+  },
+  "requested_spec": "numpy",
+  "size": 37907,
+  "subdir": "osx-64",
+  "timestamp": 1535406914705,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/numpy-1.15.1-py36had7ef94_0.tar.bz2",
+  "version": "1.15.1"
+}

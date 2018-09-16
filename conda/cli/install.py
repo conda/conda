@@ -257,7 +257,7 @@ def install(args, parser, command='install'):
             platform=None,
             use_local=index_args['use_local'],
         ))
-        raise PackagesNotFoundError(e.bad_deps, channels_urls)
+        raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error

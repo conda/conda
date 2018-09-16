@@ -3,7 +3,7 @@
 flake8
 mock
 pexpect
-pytest
+pytest!=3.7.3
 pytest-cov
 pytest-timeout
 conda-forge::radon

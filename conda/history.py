@@ -17,6 +17,7 @@ import warnings
 
 from . import __version__ as CONDA_VERSION
 from ._vendor.auxlib.ish import dals
+from ._vendor.toolz import groupby, take
 from .base.constants import DEFAULTS_CHANNEL_NAME
 from .base.context import context
 from .common.compat import ensure_text_type, iteritems, open, text_type
@@ -26,13 +27,7 @@ from .exceptions import CondaHistoryError, CondaUpgradeError, NotWritableError
 from .gateways.disk.update import touch
 from .models.dist import dist_str_to_quad
 from .models.version import VersionOrder, version_relation_re
-from .resolve import MatchSpec
-
-try:
-    from cytoolz.itertoolz import groupby, take
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import groupby, take  # NOQA
-
+from .models.match_spec import MatchSpec
 
 log = logging.getLogger(__name__)
 

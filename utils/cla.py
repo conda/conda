@@ -50,9 +50,18 @@ for git_id in missing_signatures:
         continue
     missing_signatures_stats[git_id] = (len(hashes), insertions, deletions, hashes)
 
+
+missing_gid_ids = []
 for git_id in sorted(missing_signatures_stats, key=lambda x: (missing_signatures_stats[x][0], missing_signatures_stats[x][1]), reverse=True):
     stats = missing_signatures_stats[git_id]
-    print("%-18s%-63s%4s%4s%4s" % (github_map[git_id], git_id, stats[0], stats[1], stats[2]))
+    try:
+        print("%-18s%-63s%4s%4s%4s" % (github_map[git_id], git_id, stats[0], stats[1], stats[2]))
+    except KeyError as e:
+        missing_gid_ids.append(git_id)
+
+for git_id in missing_gid_ids:
+    print("ERROR: git id missing:", git_id)
+
 
 print()
 print("missing signatures", len(missing_signatures_stats))

@@ -1,11 +1,12 @@
 ## 4.6.0 (unreleased)
 
 ### New Feature Highlights
+* resolve #7053 preview support for conda operability with pip (#7067, #7370, #7710)
+* conda initialize (#6518, #7388, #7629)
 * resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
   config (#7195, #7226, #7233)
 * resolve #7087 add non-conda-installed python packages into PrefixData (#7067, #7370)
-* conda initialize (#6518, #7388, #7629)
-* resolve #2682 add conda run experimental support (#7320, #7625)
+* resolve #2682 add 'conda run' preview support (#7320, #7625)
 
 ### Deprecations/Breaking Changes
 * resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
@@ -17,6 +18,8 @@
 * resolve #6979, #7086 remove Dist from majority of project (#7216, #7252)
 * fix #7362 remove --license from conda info and related code paths (#7386)
 * resolve #7309 deprecate 'conda info package_name' (#7310)
+* remove 'conda clean --source-cache' and defer to conda-build (#7731)
+* resolve #7724 move windows package cache and envs dirs back to .conda directory (#7725)
 
 ### Improvements
 * import speedups (#7122)
@@ -39,6 +42,15 @@
 * resolve #7591 updates and improvements from namespace PR for 4.6 (#7599)
 * resolve #7592 compatibility shims (#7606)
 * user-agent context refactor (#7630)
+* solver performance improvements with benchmarks in common.logic (#7676)
+* enable fuzzy-not-equal version constraint for pip interop (#7711)
+* add -d short option for --dry-run (#7719)
+* add --force-pkgs-dirs option to conda clean (#7719)
+* address #7709 ensure --update-deps unlocks specs from previous user requests (#7719)
+* add package timestamp information to output of 'conda search --info' (#7722)
+* resolve #7336 'conda search' tries "fuzzy match" before showing PackagesNotFound (#7722)
+* resolve #7656 strict channel priority via 'channel_priority' config option or --strict-channel-priority CLI flag (#7729)
+* performance improvement to cache __hash__ value on PackageRecord (#7715)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
@@ -57,6 +69,8 @@
 * fix #3982 following 4.4 activation refactor (#7607)
 * fix #7242 configuration load error message (#7243)
 * fix conda env compatibility with pip 18 (#7612)
+* fix #7184 remove conflicting specs to find solution to user's active request (#7719)
+* fix #7706 add condacmd dir to cmd.exe path on first activation (#7735)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
@@ -67,6 +81,8 @@
 * rename common.platform to common.os and split among windows, linux, and unix utils (#7396)
 * fix windows test failures when symlink not available (#7369)
 * test building conda using conda-build (#7251)
+* solver test metadata updates (#7664)
+* explicitly add Mapping, Sequence to common.compat (#7677)
 
 ### Preview Releases
 
@@ -74,12 +90,24 @@
 * 4.6.0a2 at c467517ca652371ebc4224f0d49315b7ec225108 on 2018-05-01
 
 ### Contributors
+* @fabioz
 * @goanpeca
 * @jesse-
 * @kalefranz
+* @mandeep
 * @mbargull
 * @msarahan
 * @ohadravid
+
+
+# 4.5.11 (2018-08-21)
+
+### Improvements
+* resolve #7672 compatibility with ruamel.yaml 0.15.54 (#7675)
+
+### Contributors
+* @CJ-Wright
+* @mbargull
 
 
 # 4.5.10 (2018-08-13)

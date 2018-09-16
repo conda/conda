@@ -22,16 +22,15 @@ build:
 requirements:
   build:
     - python
-    - setuptools
+    - setuptools >=31.0.1
     - enum34                [py<34]
     - futures               [py<34]
     - menuinst >=1.4.11,<2  [win]
     - pycosat >=0.6.3
     - pyopenssl >=16.2.0
     - requests >=2.18.4,<3
-    - ruamel_yaml >=0.11.14
+    - ruamel_yaml >=0.11.14,<0.16
   run:
-    - conda-env >=2.6
     - python
     - enum34                [py<34]
     - futures >=3.0.0       [py<34]
@@ -39,11 +38,12 @@ requirements:
     - pycosat >=0.6.3
     - pyopenssl >=16.2.0
     - requests >=2.18.4,<3
-    - ruamel_yaml >=0.11.14
+    - ruamel_yaml >=0.11.14,<0.16
   run_constrained:
     - conda-build >=3
+    - conda-env >=2.6
     - cytoolz >=0.8.1
-    - setuptools >=36.4
+    - setuptools >=31.0.1
 
 test:
   source_files:

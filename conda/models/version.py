@@ -6,13 +6,9 @@ from logging import getLogger
 import operator as op
 import re
 
+from .._vendor.toolz import excepts
 from ..common.compat import string_types, zip, zip_longest, text_type, with_metaclass
 from ..exceptions import CondaValueError, InvalidVersionSpecError
-
-try:
-    from cytoolz.functoolz import excepts
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.functoolz import excepts
 
 log = getLogger(__name__)
 
@@ -249,8 +245,7 @@ class VersionOrder(object):
         return True
 
     def __eq__(self, other):
-        return (self._eq(self.version, other.version) and
-                self._eq(self.local, other.local))
+        return self._eq(self.version, other.version) and self._eq(self.local, other.local)
 
     def startswith(self, other):
         # Tests if the version lists match up to the last element in "other".
@@ -406,7 +401,7 @@ def untreeify(spec, _inand=False):
 # followed by a version string. It rejects expressions like
 # '<= 1.2' (space after operator), '<>1.2' (unknown operator),
 # and '<=!1.2' (nonsensical operator).
-version_relation_re = re.compile(r'(==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
+version_relation_re = re.compile(r'(=|==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
 regex_split_re = re.compile(r'.*[()|,^$]')
 OPERATOR_MAP = {
     '==': op.__eq__,
@@ -415,8 +410,10 @@ OPERATOR_MAP = {
     '>=': op.__ge__,
     '<': op.__lt__,
     '>': op.__gt__,
+    '=': lambda x, y: text_type(x).startswith(text_type(y)),
+    "!=startswith": lambda x, y: not text_type(x).startswith(text_type(y)),
 }
-
+OPERATOR_START = frozenset(('=', '<', '>', '!'))
 
 class BaseSpec(object):
 
@@ -482,7 +479,7 @@ class BaseSpec(object):
 
 
 @with_metaclass(SingleStrArgCachingType)
-class VersionSpec(BaseSpec):
+class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
     _cache_ = {}
 
     def __init__(self, vspec):
@@ -504,17 +501,25 @@ class VersionSpec(BaseSpec):
             return vspec_str, matcher, is_exact
 
         vspec_str = text_type(vspec).strip()
-        if vspec_str.startswith('^') or vspec_str.endswith('$'):
-            if not vspec_str.startswith('^') or not vspec_str.endswith('$'):
+        if vspec_str[0] == '^' or vspec_str[-1] == '$':
+            if vspec_str[0] != '^' or vspec_str[-1] != '$':
                 raise InvalidVersionSpecError(vspec_str)
             self.regex = re.compile(vspec_str)
             matcher = self.regex_match
             is_exact = False
-        elif vspec_str.startswith(('=', '<', '>', '!')):
+        elif vspec_str[0] in OPERATOR_START:
             m = version_relation_re.match(vspec_str)
             if m is None:
                 raise InvalidVersionSpecError(vspec_str)
             operator_str, vo_str = m.groups()
+            if vo_str[-2:] == '.*':
+                if operator_str in ("=", ">="):
+                    vo_str = vo_str[:-2]
+                elif operator_str == "!=":
+                    vo_str = vo_str[:-2]
+                    operator_str = "!=startswith"
+                else:
+                    raise InvalidVersionSpecError(vspec_str)
             self.operator_func = OPERATOR_MAP[operator_str]
             self.matcher_vo = VersionOrder(vo_str)
             matcher = self.operator_match
@@ -528,9 +533,20 @@ class VersionSpec(BaseSpec):
             self.regex = re.compile(rx)
             matcher = self.regex_match
             is_exact = False
-        elif vspec_str.endswith('*'):
-            if not vspec_str.endswith('.*'):
+        elif vspec_str[-1] == '*':
+            if vspec_str[-2:] != '.*':
                 vspec_str = vspec_str[:-1] + '.*'
+
+            # if vspec_str[-1] in OPERATOR_START:
+            #     m = version_relation_re.match(vspec_str)
+            #     if m is None:
+            #         raise InvalidVersionSpecError(vspec_str)
+            #     operator_str, vo_str = m.groups()
+            #
+            #
+            # else:
+            #     pass
+
             vo_str = vspec_str.rstrip('*').rstrip('.')
             self.operator_func = VersionOrder.startswith
             self.matcher_vo = VersionOrder(vo_str)
@@ -556,7 +572,7 @@ VersionMatch = VersionSpec
 
 
 @with_metaclass(SingleStrArgCachingType)
-class BuildNumberMatch(BaseSpec):
+class BuildNumberMatch(BaseSpec):  # lgtm [py/missing-equals]
     _cache_ = {}
 
     def __init__(self, vspec):
@@ -587,8 +603,8 @@ class BuildNumberMatch(BaseSpec):
             matcher = self.operator_match
 
             is_exact = operator_str == "=="
-        elif vspec_str.startswith('^') or vspec_str.endswith('$'):
-            if not vspec_str.startswith('^') or not vspec_str.endswith('$'):
+        elif vspec_str[0] == '^' or vspec_str[-1] == '$':
+            if vspec_str[0] != '^' or vspec_str[-1] != '$':
                 raise InvalidVersionSpecError(vspec_str)
             self.regex = re.compile(vspec_str)
             matcher = self.regex_match

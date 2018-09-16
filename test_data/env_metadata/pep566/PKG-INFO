@@ -1,0 +1,52 @@
+Metadata-Version: 2.1
+Name: BeagleVote
+Version: 1.0a2
+Platform: ObscureUnix
+Platform: RareDOS
+Supported-Platform: RedHat 7.2
+Supported-Platform: i386-win32-2791
+Summary: A module for collecting votes from beagles.
+Description: This project provides powerful math functions
+        |For example, you can use `sum()` to sum numbers:
+        |
+        |Example::
+        |
+        |    >>> sum(1, 2)
+        |    3
+        |
+Description-Content-Type: text/plain; charset=UTF-8
+Keywords: dog puppy voting election
+Home-page: http://www.example.com/~cschultz/bvote/
+Author: http://www.example.com/~cschultz/bvote/download
+Author: C. Schultz, Universal Features Syndicate,
+        Los Angeles, CA <cschultz@peanuts.example.com>
+Author-email: cschultz@example.com, snoopy@peanuts.com
+Maintainer: C. Schultz, Universal Features Syndicate,
+        Los Angeles, CA <cschultz@peanuts.example.com>
+Maintainer-email: "C. Schultz" <cschultz@example.com>
+Maintainer-email: cschultz@example.com, snoopy@peanuts.com
+License: GPL version 3, excluding DRM provisions
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Console (Text Based)
+Requires-Dist: pkginfo
+Requires-Dist: PasteDeploy
+Requires-Dist: zope.interface (>3.5.0)
+Requires-Dist: pywin32 >1.0; sys_platform == 'win32'
+Requires-Python: >=3
+Requires-Python: >2.6,!=3.0.*,!=3.1.*
+Requires-Python: ~=2.6
+Requires-Python: >=3; sys_platform == 'win32'
+Requires-External: C
+Requires-External: libpng (>=1.5)
+Requires-External: make; sys_platform != "win32"
+Project-URL: Bug Tracker, http://bitbucket.org/tarek/distribute/issues/
+Provides-Extra: pdf
+Requires-Dist: reportlab; extra == 'pdf'
+Requires-Dist: beaglevote[pdf]
+Requires-Dist: libexample[test, doc]
+Provides-Dist: OtherProject
+Provides-Dist: AnotherProject (3.4)
+Provides-Dist: virtual_package; python_version >= "3.4"
+Obsoletes-Dist: Gorgon
+Obsoletes-Dist: OtherProject (<3.0)
+Obsoletes-Dist: Foo; os_name == "posix"

@@ -8,6 +8,7 @@ from errno import ENOSPC
 import json
 from logging import getLogger
 import os
+from os.path import join
 import sys
 from textwrap import dedent
 from traceback import format_exception, format_exception_only
@@ -16,15 +17,11 @@ from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
+from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
-
-try:
-    from cytoolz.itertoolz import groupby
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -34,8 +31,11 @@ log = getLogger(__name__)
 class ResolvePackageNotFound(CondaError):
     def __init__(self, bad_deps):
         # bad_deps is a list of lists
+        # bad_deps should really be named 'invalid_chains'
         self.bad_deps = tuple(dep for deps in bad_deps for dep in deps if dep)
-        message = '\n' + '\n'.join(('  - %s' % dep) for dep in self.bad_deps)
+        formatted_chains = tuple(" -> ".join(map(str, bad_chain)) for bad_chain in bad_deps)
+        self._formatted_chains = formatted_chains
+        message = '\n' + '\n'.join(('  - %s' % bad_chain) for bad_chain in formatted_chains)
         super(ResolvePackageNotFound, self).__init__(message)
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
@@ -610,7 +610,6 @@ class UnsatisfiableError(CondaError):
 
     def __init__(self, bad_deps, chains=True):
         from .models.match_spec import MatchSpec
-        from .resolve import dashlist
 
         # Remove any target values from the MatchSpecs, convert to strings
         bad_deps = [list(map(lambda x: str(MatchSpec(x, target=None)), dep)) for dep in bad_deps]
@@ -676,6 +675,24 @@ class DisallowedPackageError(CondaError):
         super(DisallowedPackageError, self).__init__(message, package_ref=package_ref,
                                                      dist_str=package_ref.dist_str(), **kwargs)
 
+class SpecsConfigurationConflictError(CondaError):
+
+    def __init__(self, requested_specs, pinned_specs, prefix):
+        message = dals("""
+        Requested specs conflict with configured specs.
+          requested specs: {requested_specs_formatted}
+          pinned specs: {pinned_specs_formatted}
+        Use 'conda config --show-sources' to look for 'pinned_specs' and 'track_features'
+        configuration parameters.  Pinned specs may also be defined in the file
+        {pinned_specs_path}.
+        """).format(
+            requested_specs_formatted=dashlist(requested_specs, 4),
+            pinned_specs_formatted=dashlist(pinned_specs, 4),
+            pinned_specs_path=join(prefix, "conda-meta", "pinned"),
+        )
+        super(SpecsConfigurationConflictError, self).__init__(
+            message, requested_specs=requested_specs, pinned_specs=pinned_specs, prefix=prefix,
+        )
 
 class CondaIndexError(CondaError, IndexError):
     def __init__(self, message):
@@ -697,7 +714,6 @@ class CondaTypeError(CondaError, TypeError):
 
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles, **kwargs):
-        from .resolve import dashlist
         from .models.records import PackageRecord
         packages_with_cycles = tuple(PackageRecord.from_objects(p) for p in packages_with_cycles)
         message = "Cyclic dependencies exist among these items: %s" % dashlist(
@@ -815,6 +831,31 @@ class NoWritablePkgsDirError(CondaError):
         super(NoWritablePkgsDirError, self).__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
 
 
+class EnvironmentNotWritableError(CondaError):
+
+    def __init__(self, environment_location, **kwargs):
+        kwargs.update({
+            'environment_location': environment_location,
+        })
+        if on_win:
+            message = dals("""
+            The current user does not have write permissions to the target environment.
+              environment location: %(environment_location)s
+            """)
+        else:
+            message = dals("""
+            The current user does not have write permissions to the target environment.
+              environment location: %(environment_location)s
+              uid: %(uid)s
+              gid: %(gid)s
+            """)
+            kwargs.update({
+                'uid': os.geteuid(),
+                'gid': os.getegid(),
+            })
+        super(EnvironmentNotWritableError, self).__init__(message, **kwargs)
+
+
 class CondaDependencyError(CondaError):
     def __init__(self, message):
         super(CondaDependencyError, self).__init__(message)
@@ -909,9 +950,13 @@ def maybe_raise(error, context):
 def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
     rc = getattr(exc_val, 'return_code', None)
-    if context.debug or context.verbosity > 0:
+    if (context.debug
+            or context.verbosity > 2
+            or (not isinstance(exc_val, DryRunExit) and context.verbosity > 0)):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
+        if isinstance(exc_val, DryRunExit):
+            return
         logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
         exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
         logger.info("%s\n" % exc_json)

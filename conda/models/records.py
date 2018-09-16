@@ -21,6 +21,7 @@ from .match_spec import MatchSpec
 from .._vendor.auxlib.entity import (BooleanField, ComposableField, DictSafeMixin, Entity,
                                      EnumField, IntegerField, ListField, NumberField,
                                      StringField)
+from .._vendor.boltons.timeutils import dt_to_timestamp, isoparse
 from ..base.context import context
 from ..common.compat import isiterable, itervalues, string_types, text_type
 from ..exceptions import PathNotFoundError
@@ -44,36 +45,43 @@ class NoarchField(EnumField):
 
 class TimestampField(NumberField):
 
-    # @staticmethod
-    # def _make_seconds(val):
-    #     if val:
-    #         val = int(val)
-    #         if val > 253402300799:  # 9999-12-31
-    #             val //= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
-    #     return val
+    def __init__(self):
+        super(TimestampField, self).__init__(default=0, required=False, default_in_dump=False)
+
+    @staticmethod
+    def _make_seconds(val):
+        if val:
+            val = val
+            if val > 253402300799:  # 9999-12-31
+                val /= 1000  # convert milliseconds to seconds; see conda/conda-build#1988
+        return val
 
     @staticmethod
     def _make_milliseconds(val):
         if val:
             if val < 253402300799:  # 9999-12-31
                 val *= 1000  # convert seconds to milliseconds
-            val = int(val)
+            val = val
         return val
 
     def box(self, instance, instance_type, val):
-        return self._make_milliseconds(
+        return self._make_seconds(
             super(TimestampField, self).box(instance, instance_type, val)
         )
 
-    def unbox(self, instance, instance_type, val):
-        return self._make_milliseconds(
-            super(TimestampField, self).unbox(instance, instance_type, val)
-        )
-
     def dump(self, instance, instance_type, val):
-        return self._make_milliseconds(
+        return int(self._make_milliseconds(
             super(TimestampField, self).dump(instance, instance_type, val)
-        )
+        ))  # whether in seconds or milliseconds, type must be int (not float) for backward compat
+
+    def __get__(self, instance, instance_type):
+        try:
+            return super(TimestampField, self).__get__(instance, instance_type)
+        except AttributeError:
+            try:
+                return int(dt_to_timestamp(isoparse(instance.date)))
+            except (AttributeError, ValueError):
+                return 0
 
 
 class Link(DictSafeMixin, Entity):
@@ -252,7 +260,11 @@ class PackageRecord(DictSafeMixin, Entity):
             return __pkey
 
     def __hash__(self):
-        return hash(self._pkey)
+        try:
+            return self._hash
+        except AttributeError:
+            self._hash = hash(self._pkey)
+        return self._hash
 
     def __eq__(self, other):
         return self._pkey == other._pkey
@@ -290,7 +302,11 @@ class PackageRecord(DictSafeMixin, Entity):
                                  default_in_dump=False)
     package_type = PackageTypeField()
 
-    timestamp = TimestampField(required=False)
+    @property
+    def is_unmanageable(self):
+        return self.package_type in PackageType.unmanageable_package_types()
+
+    timestamp = TimestampField()
 
     @property
     def combined_depends(self):
@@ -335,7 +351,7 @@ class PackageRecord(DictSafeMixin, Entity):
         #          the official record_id / uid until it gets namespace.  Even then, we might
         #          make the format different.  Probably something like
         #              channel_name/subdir:namespace:name-version-build_number-build_string
-        return "%s/%s::%s-%s-%s" % (self.channel.canonical_name, self.subdir,
+        return "%s/%s::%s-%s-%s" % (self.channel.name, self.subdir,
                                     self.name, self.version, self.build)
 
 

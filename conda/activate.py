@@ -6,19 +6,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 from glob import glob
 import os
-from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, normcase
+from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
 import re
 import sys
 from tempfile import NamedTemporaryFile
 
+# Since we have to have configuration context here, anything imported by
+#   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CondaError
+from ._vendor.toolz import concatv, drop
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
+from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
 from .common.path import paths_equal
-
-try:
-    from cytoolz.itertoolz import concatv, drop
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concatv, drop  # NOQA
 
 
 class _Activator(object):
@@ -423,7 +422,7 @@ class _Activator(object):
             path_list = list(self.path_conversion(self._get_starting_path_list()))
         else:
             path_list = list(self.path_conversion(starting_path_dirs))
-        path_list[0:0] = list(self._get_path_dirs2(prefix))
+        path_list[0:0] = list(self.path_conversion(self._get_path_dirs2(prefix)))
         return tuple(path_list)
 
     def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
@@ -575,30 +574,6 @@ def path_identity(paths):
         return tuple(paths)
 
 
-def paths_equal(path1, path2):
-    if on_win:
-        return normcase(abspath(path1)) == normcase(abspath(path2))
-    else:
-        return abspath(path1) == abspath(path2)
-
-
-on_win = bool(sys.platform == "win32")
-PY2 = sys.version_info[0] == 2
-FILESYSTEM_ENCODING = sys.getfilesystemencoding()
-if PY2:  # pragma: py3 no cover
-    string_types = basestring,  # NOQA
-    text_type = unicode  # NOQA
-
-    def iteritems(d, **kw):
-        return d.iteritems(**kw)
-else:  # pragma: py2 no cover
-    string_types = str,
-    text_type = str
-
-    def iteritems(d, **kw):
-        return iter(d.items(**kw))
-
-
 class PosixActivator(_Activator):
 
     def __init__(self, arguments=None):
@@ -738,6 +713,18 @@ class CmdExeActivator(_Activator):
 
     def _hook_preamble(self):
         raise NotImplementedError()
+
+    def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
+        # If this is the first time we're activating an environment, we need to ensure that
+        # the condacmd directory is included in the path list.
+        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
+        if starting_path_dirs is None:
+            starting_path_dirs = self._get_starting_path_list()
+        starting_path_dirs = list(starting_path_dirs)
+        if not old_conda_shlvl and not any(p.endswith("condacmd") for p in starting_path_dirs):
+            condacmd_dir = self.path_conversion(join(context.conda_prefix, "condacmd"))
+            starting_path_dirs.insert(0, condacmd_dir)
+        return super(CmdExeActivator, self)._add_prefix_to_path(prefix, starting_path_dirs)
 
 
 class FishActivator(_Activator):

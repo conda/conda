@@ -1,0 +1,3 @@
+[console_scripts]
+calc-prorate = tempora:calculate_prorated_values
+

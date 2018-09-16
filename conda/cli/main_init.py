@@ -21,7 +21,7 @@ def execute(args, parser):
     invalid_shells = tuple(s for s in args.shells if s not in COMPATIBLE_SHELLS)
     if invalid_shells:
         from ..exceptions import ArgumentError
-        from ..resolve import dashlist  # TODO: this import is ridiculous; move it to common!
+        from ..common.io import dashlist
         raise ArgumentError("Invalid shells: %s\n\n"
                             "Currently available shells are:%s"
                             % (dashlist(invalid_shells), dashlist(sorted(COMPATIBLE_SHELLS))))

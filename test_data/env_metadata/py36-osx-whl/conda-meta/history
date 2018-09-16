@@ -1,0 +1,35 @@
+==> 2018-08-28 14:25:18 <==
+# cmd: /Users/kfranz/continuum/conda/devenv/bin/conda create -y -p ./tenv python=3.6 numpy h5py nomkl lxml
+# conda version: 4.5.10
++defaults::blas-1.0-openblas
++defaults::ca-certificates-2018.03.07-0
++defaults::certifi-2018.8.24-py36_1
++defaults::h5py-2.8.0-py36h878fce3_3
++defaults::hdf5-1.10.2-hfa1e0ec_1
++defaults::icu-58.2-h4b95b61_1
++defaults::libcxx-4.0.1-h579ed51_0
++defaults::libcxxabi-4.0.1-hebd6815_0
++defaults::libedit-3.1.20170329-hb402a30_2
++defaults::libffi-3.2.1-h475c297_4
++defaults::libgfortran-3.0.1-h93005f0_2
++defaults::libiconv-1.15-hdd342a3_7
++defaults::libopenblas-0.3.2-hdc02c5d_1
++defaults::libxml2-2.9.8-hab757c2_1
++defaults::libxslt-1.1.32-hb819dd2_0
++defaults::lxml-4.2.4-py36hef8c89e_0
++defaults::ncurses-6.1-h0a44026_0
++defaults::nomkl-3.0-0
++defaults::numpy-1.15.1-py36had7ef94_0
++defaults::numpy-base-1.15.1-py36h42e5f7b_0
++defaults::openssl-1.0.2p-h1de35cc_0
++defaults::pip-10.0.1-py36_0
++defaults::python-3.6.6-hc167b69_0
++defaults::readline-7.0-h1de35cc_5
++defaults::setuptools-40.2.0-py36_0
++defaults::six-1.11.0-py36_1
++defaults::sqlite-3.24.0-ha441bb4_0
++defaults::tk-8.6.7-h35a86e2_3
++defaults::wheel-0.31.1-py36_0
++defaults::xz-5.2.4-h1de35cc_4
++defaults::zlib-1.2.11-hf3cbc9b_2
+# update specs: ['nomkl', 'lxml', 'python=3.6', 'numpy', 'h5py']

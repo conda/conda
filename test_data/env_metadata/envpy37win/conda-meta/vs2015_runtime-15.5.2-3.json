@@ -1,0 +1,799 @@
+{
+  "build": "3",
+  "build_number": 3,
+  "channel": "https://repo.anaconda.com/pkgs/main/win-64",
+  "constrains": [],
+  "depends": [],
+  "extracted_package_dir": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\vs2015_runtime-15.5.2-3",
+  "features": "",
+  "files": [
+    "Library/bin/api-ms-win-core-console-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-datetime-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-debug-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-errorhandling-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-file-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-file-l1-2-0.dll",
+    "Library/bin/api-ms-win-core-file-l2-1-0.dll",
+    "Library/bin/api-ms-win-core-handle-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-heap-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-interlocked-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-libraryloader-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-localization-l1-2-0.dll",
+    "Library/bin/api-ms-win-core-memory-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-namedpipe-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-processenvironment-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-processthreads-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-processthreads-l1-1-1.dll",
+    "Library/bin/api-ms-win-core-profile-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-rtlsupport-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-string-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-synch-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-synch-l1-2-0.dll",
+    "Library/bin/api-ms-win-core-sysinfo-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-timezone-l1-1-0.dll",
+    "Library/bin/api-ms-win-core-util-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-conio-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-convert-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-environment-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-filesystem-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-heap-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-locale-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-math-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-multibyte-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-private-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-process-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-runtime-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-stdio-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-string-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-time-l1-1-0.dll",
+    "Library/bin/api-ms-win-crt-utility-l1-1-0.dll",
+    "Library/bin/concrt140.dll",
+    "Library/bin/msvcp140.dll",
+    "Library/bin/msvcp140_1.dll",
+    "Library/bin/msvcp140_2.dll",
+    "Library/bin/ucrtbase.dll",
+    "Library/bin/vccorlib140.dll",
+    "Library/bin/vcomp140.dll",
+    "Library/bin/vcruntime140.dll",
+    "api-ms-win-core-console-l1-1-0.dll",
+    "api-ms-win-core-datetime-l1-1-0.dll",
+    "api-ms-win-core-debug-l1-1-0.dll",
+    "api-ms-win-core-errorhandling-l1-1-0.dll",
+    "api-ms-win-core-file-l1-1-0.dll",
+    "api-ms-win-core-file-l1-2-0.dll",
+    "api-ms-win-core-file-l2-1-0.dll",
+    "api-ms-win-core-handle-l1-1-0.dll",
+    "api-ms-win-core-heap-l1-1-0.dll",
+    "api-ms-win-core-interlocked-l1-1-0.dll",
+    "api-ms-win-core-libraryloader-l1-1-0.dll",
+    "api-ms-win-core-localization-l1-2-0.dll",
+    "api-ms-win-core-memory-l1-1-0.dll",
+    "api-ms-win-core-namedpipe-l1-1-0.dll",
+    "api-ms-win-core-processenvironment-l1-1-0.dll",
+    "api-ms-win-core-processthreads-l1-1-0.dll",
+    "api-ms-win-core-processthreads-l1-1-1.dll",
+    "api-ms-win-core-profile-l1-1-0.dll",
+    "api-ms-win-core-rtlsupport-l1-1-0.dll",
+    "api-ms-win-core-string-l1-1-0.dll",
+    "api-ms-win-core-synch-l1-1-0.dll",
+    "api-ms-win-core-synch-l1-2-0.dll",
+    "api-ms-win-core-sysinfo-l1-1-0.dll",
+    "api-ms-win-core-timezone-l1-1-0.dll",
+    "api-ms-win-core-util-l1-1-0.dll",
+    "api-ms-win-crt-conio-l1-1-0.dll",
+    "api-ms-win-crt-convert-l1-1-0.dll",
+    "api-ms-win-crt-environment-l1-1-0.dll",
+    "api-ms-win-crt-filesystem-l1-1-0.dll",
+    "api-ms-win-crt-heap-l1-1-0.dll",
+    "api-ms-win-crt-locale-l1-1-0.dll",
+    "api-ms-win-crt-math-l1-1-0.dll",
+    "api-ms-win-crt-multibyte-l1-1-0.dll",
+    "api-ms-win-crt-private-l1-1-0.dll",
+    "api-ms-win-crt-process-l1-1-0.dll",
+    "api-ms-win-crt-runtime-l1-1-0.dll",
+    "api-ms-win-crt-stdio-l1-1-0.dll",
+    "api-ms-win-crt-string-l1-1-0.dll",
+    "api-ms-win-crt-time-l1-1-0.dll",
+    "api-ms-win-crt-utility-l1-1-0.dll",
+    "concrt140.dll",
+    "msvcp140.dll",
+    "msvcp140_1.dll",
+    "msvcp140_2.dll",
+    "ucrtbase.dll",
+    "vccorlib140.dll",
+    "vcomp140.dll",
+    "vcruntime140.dll"
+  ],
+  "fn": "vs2015_runtime-15.5.2-3.tar.bz2",
+  "link": {
+    "source": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\vs2015_runtime-15.5.2-3",
+    "type": 1
+  },
+  "md5": "ad4c6bd0c885080c792c89c86bf6c8c9",
+  "name": "vs2015_runtime",
+  "package_tarball_full_path": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\vs2015_runtime-15.5.2-3.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "Library/bin/api-ms-win-core-console-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "212512042cec75cb3a51010bfd09961a8c1fb469565827319fb53b8ec5460e9b",
+        "sha256_in_prefix": "212512042cec75cb3a51010bfd09961a8c1fb469565827319fb53b8ec5460e9b",
+        "size_in_bytes": 19248
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-datetime-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "d6105df036fb1c5a8c997cabb36946ae627c4e6d25a037ce06e146ceb767658d",
+        "sha256_in_prefix": "d6105df036fb1c5a8c997cabb36946ae627c4e6d25a037ce06e146ceb767658d",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-debug-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "a329a9ac5fa7d60557b78d52492a30217dcd00191d677798d20e778f9a898862",
+        "sha256_in_prefix": "a329a9ac5fa7d60557b78d52492a30217dcd00191d677798d20e778f9a898862",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-errorhandling-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "74177d8f580daf5401a3e0d14c8992df9c78bfb9fbda899c811435d389cf650c",
+        "sha256_in_prefix": "74177d8f580daf5401a3e0d14c8992df9c78bfb9fbda899c811435d389cf650c",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-file-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "eaa1434d1bf07238581addd8ce7ef7ee525b2d2e994245a3d0daf5c3a0b3f5a4",
+        "sha256_in_prefix": "eaa1434d1bf07238581addd8ce7ef7ee525b2d2e994245a3d0daf5c3a0b3f5a4",
+        "size_in_bytes": 22328
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-file-l1-2-0.dll",
+        "path_type": "hardlink",
+        "sha256": "703a45d1ebf11a5ad45f1268fbecbd829129ba3f3d86b77860fb4aa66e8f4fbe",
+        "sha256_in_prefix": "703a45d1ebf11a5ad45f1268fbecbd829129ba3f3d86b77860fb4aa66e8f4fbe",
+        "size_in_bytes": 18736
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-file-l2-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "28f65c3eafda7b9ca2a72775b3d1135c19400d20d1bfc35eaf211775d9192a07",
+        "sha256_in_prefix": "28f65c3eafda7b9ca2a72775b3d1135c19400d20d1bfc35eaf211775d9192a07",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-handle-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "8ce61384b3619c53e0b1f24428020cddebbd8436b7a8fac36fee7fd0ab9e38f7",
+        "sha256_in_prefix": "8ce61384b3619c53e0b1f24428020cddebbd8436b7a8fac36fee7fd0ab9e38f7",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-heap-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "01bcc57d1cb16d7d58455a8ed286eca52797ec254ebb40403c7a896cf282a741",
+        "sha256_in_prefix": "01bcc57d1cb16d7d58455a8ed286eca52797ec254ebb40403c7a896cf282a741",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-interlocked-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "c73e77ae2a44000762defc160e4b9269ec8c0ec89f6471d834b8f55040e95191",
+        "sha256_in_prefix": "c73e77ae2a44000762defc160e4b9269ec8c0ec89f6471d834b8f55040e95191",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-libraryloader-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "cfff40d5b5e64d9bd36d7bde2bcaa3a85d7a71b51b96bc9e054bc1e93cc1bc2c",
+        "sha256_in_prefix": "cfff40d5b5e64d9bd36d7bde2bcaa3a85d7a71b51b96bc9e054bc1e93cc1bc2c",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-localization-l1-2-0.dll",
+        "path_type": "hardlink",
+        "sha256": "9d383e804f6ca3f3b34c79f65c236cc21e9c7520ef374b96bea23ed37d8f76f0",
+        "sha256_in_prefix": "9d383e804f6ca3f3b34c79f65c236cc21e9c7520ef374b96bea23ed37d8f76f0",
+        "size_in_bytes": 21296
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-memory-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "a9cc5739843698587786acff0419b581e0919e3a756e81c8e116827823368a5e",
+        "sha256_in_prefix": "a9cc5739843698587786acff0419b581e0919e3a756e81c8e116827823368a5e",
+        "size_in_bytes": 19248
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-namedpipe-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "71ddb70d6a0f13e13a816a71a93cc25d92ff08176bf5e9e235eea8dbb6fe5ca1",
+        "sha256_in_prefix": "71ddb70d6a0f13e13a816a71a93cc25d92ff08176bf5e9e235eea8dbb6fe5ca1",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-processenvironment-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "727507db0b479cb1ffead6b42e9d0a8989f30af30350822cf0dabcbfcb34a897",
+        "sha256_in_prefix": "727507db0b479cb1ffead6b42e9d0a8989f30af30350822cf0dabcbfcb34a897",
+        "size_in_bytes": 19768
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-processthreads-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "7d4b310474c30e7c02b5a33ecf7e12c3ad0d25df038b8e90ff73277e7626310f",
+        "sha256_in_prefix": "7d4b310474c30e7c02b5a33ecf7e12c3ad0d25df038b8e90ff73277e7626310f",
+        "size_in_bytes": 20792
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-processthreads-l1-1-1.dll",
+        "path_type": "hardlink",
+        "sha256": "958f6be0850ff1fb91b8988db3278939c27ddb816520dfee1714b56ec50f3c68",
+        "sha256_in_prefix": "958f6be0850ff1fb91b8988db3278939c27ddb816520dfee1714b56ec50f3c68",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-profile-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "5dd162a382475cf181c2b04e127a3027ce1f600bcd9120bcfec4757412ef8192",
+        "sha256_in_prefix": "5dd162a382475cf181c2b04e127a3027ce1f600bcd9120bcfec4757412ef8192",
+        "size_in_bytes": 18224
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-rtlsupport-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "35bf1dfa05fbc41e752ea048f530581c41fd0a4f64e7e8b03642dfa1404cdfd8",
+        "sha256_in_prefix": "35bf1dfa05fbc41e752ea048f530581c41fd0a4f64e7e8b03642dfa1404cdfd8",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-string-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "15661e4acc1a83ea3f882fc17daa7d8fbb77639376d83dc9fe5eef3abf485c34",
+        "sha256_in_prefix": "15661e4acc1a83ea3f882fc17daa7d8fbb77639376d83dc9fe5eef3abf485c34",
+        "size_in_bytes": 18736
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-synch-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "7643535b1affabcc6dc3dbe1f5fb52fde827ab66f8b4ec1c1dbecfb5a4a378ef",
+        "sha256_in_prefix": "7643535b1affabcc6dc3dbe1f5fb52fde827ab66f8b4ec1c1dbecfb5a4a378ef",
+        "size_in_bytes": 20792
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-synch-l1-2-0.dll",
+        "path_type": "hardlink",
+        "sha256": "bf21d6d5bb598222dd027919e7617167cb9acd512270c20117d084afa1d51af0",
+        "sha256_in_prefix": "bf21d6d5bb598222dd027919e7617167cb9acd512270c20117d084afa1d51af0",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-sysinfo-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "0ba5d04f57536cf7ac162ba75bb785c04ded12e45e3aa2f1856f0a3f143fb488",
+        "sha256_in_prefix": "0ba5d04f57536cf7ac162ba75bb785c04ded12e45e3aa2f1856f0a3f143fb488",
+        "size_in_bytes": 19768
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-timezone-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "32dd4bf9072925ae5f172b98979ba6ab1a8550bcec433c7019abc2a6f9515d4e",
+        "sha256_in_prefix": "32dd4bf9072925ae5f172b98979ba6ab1a8550bcec433c7019abc2a6f9515d4e",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "Library/bin/api-ms-win-core-util-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "032b089749b203cc0874800232bac401ed96d4d9ea6191419dc3606fa925bf54",
+        "sha256_in_prefix": "032b089749b203cc0874800232bac401ed96d4d9ea6191419dc3606fa925bf54",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-conio-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "33c8750839b646817040e0e0566bad96f42b3f07546e8576fbf9db2d8e53bb28",
+        "sha256_in_prefix": "33c8750839b646817040e0e0566bad96f42b3f07546e8576fbf9db2d8e53bb28",
+        "size_in_bytes": 19768
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-convert-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "e3c78e54a9dfa907111e87f9d8e1f70e3d1090c244a0d6c25863deb1a2a9dad1",
+        "sha256_in_prefix": "e3c78e54a9dfa907111e87f9d8e1f70e3d1090c244a0d6c25863deb1a2a9dad1",
+        "size_in_bytes": 22840
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-environment-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "ef06bd45ab72732cee3db15d604910e29988abfcbca3077137c6398896d55573",
+        "sha256_in_prefix": "ef06bd45ab72732cee3db15d604910e29988abfcbca3077137c6398896d55573",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-filesystem-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "89b66cf9fd4cec85983382856c00df02bc3b370afe516f98f13bb9adf4e1fd56",
+        "sha256_in_prefix": "89b66cf9fd4cec85983382856c00df02bc3b370afe516f98f13bb9adf4e1fd56",
+        "size_in_bytes": 20792
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-heap-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "9397b0349e45a1135b1ce20f4ce973f41dc2d7152b334f98bac2f984bae79e30",
+        "sha256_in_prefix": "9397b0349e45a1135b1ce20f4ce973f41dc2d7152b334f98bac2f984bae79e30",
+        "size_in_bytes": 19760
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-locale-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "402e7a75d4fb3e7eca2e313c3ee7c756f8bdf3df3cb894352a7774f8c10c4039",
+        "sha256_in_prefix": "402e7a75d4fb3e7eca2e313c3ee7c756f8bdf3df3cb894352a7774f8c10c4039",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-math-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "46221b3a2342a5c2da1e8098fcad56e94134de983add7180485833609832a785",
+        "sha256_in_prefix": "46221b3a2342a5c2da1e8098fcad56e94134de983add7180485833609832a785",
+        "size_in_bytes": 27952
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-multibyte-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "4f35ff5f74cd7f2f1c45d2c10506948341361f983c3cfa5a156a1ca2de012b02",
+        "sha256_in_prefix": "4f35ff5f74cd7f2f1c45d2c10506948341361f983c3cfa5a156a1ca2de012b02",
+        "size_in_bytes": 26936
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-private-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "72e7faea903ca798d14502a18948236d9e6d27a9d572f182afa08f588aa120c3",
+        "sha256_in_prefix": "72e7faea903ca798d14502a18948236d9e6d27a9d572f182afa08f588aa120c3",
+        "size_in_bytes": 71472
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-process-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "f5afd40abc0ade5a3cf227ad00f87096ed61bf8d935e53550ac3f708601255e7",
+        "sha256_in_prefix": "f5afd40abc0ade5a3cf227ad00f87096ed61bf8d935e53550ac3f708601255e7",
+        "size_in_bytes": 19768
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-runtime-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "5762861cec3d221a10ffdbd521d3175e53adea2f84d4dee6c47b5ee7c590249b",
+        "sha256_in_prefix": "5762861cec3d221a10ffdbd521d3175e53adea2f84d4dee6c47b5ee7c590249b",
+        "size_in_bytes": 23352
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-stdio-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "c9741d8e4edad06f20110e889aa9ae9674048cab2a59301011263763a49f19d2",
+        "sha256_in_prefix": "c9741d8e4edad06f20110e889aa9ae9674048cab2a59301011263763a49f19d2",
+        "size_in_bytes": 24888
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-string-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "22b34d0a05550e33cab502a52c0243b109b0b2ece757572f3a5eae932607f9b7",
+        "sha256_in_prefix": "22b34d0a05550e33cab502a52c0243b109b0b2ece757572f3a5eae932607f9b7",
+        "size_in_bytes": 24888
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-time-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "82f249148fe462e954db53a89f1cf91b715ab092a1ec3a43155e73bbc7d0e073",
+        "sha256_in_prefix": "82f249148fe462e954db53a89f1cf91b715ab092a1ec3a43155e73bbc7d0e073",
+        "size_in_bytes": 21304
+      },
+      {
+        "_path": "Library/bin/api-ms-win-crt-utility-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "bc07f947f7cdcda12460f35ee9d37bc1cfb773ec2703b93695b5b5c1c9254685",
+        "sha256_in_prefix": "bc07f947f7cdcda12460f35ee9d37bc1cfb773ec2703b93695b5b5c1c9254685",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "Library/bin/concrt140.dll",
+        "path_type": "hardlink",
+        "sha256": "10d165d877646275d674d3ca83299e3687ca090c6e05713cbeb85b195ecec6b2",
+        "sha256_in_prefix": "10d165d877646275d674d3ca83299e3687ca090c6e05713cbeb85b195ecec6b2",
+        "size_in_bytes": 334640
+      },
+      {
+        "_path": "Library/bin/msvcp140.dll",
+        "path_type": "hardlink",
+        "sha256": "85a415f7aa8a1e7d10e05e713c91a3aec9bf3f4c821eba10df2d20b1a02e3882",
+        "sha256_in_prefix": "85a415f7aa8a1e7d10e05e713c91a3aec9bf3f4c821eba10df2d20b1a02e3882",
+        "size_in_bytes": 675112
+      },
+      {
+        "_path": "Library/bin/msvcp140_1.dll",
+        "path_type": "hardlink",
+        "sha256": "299c5bb4be1712f9e0f98a1e3f5492c606251522f5dd0b23acd0ec685e249849",
+        "sha256_in_prefix": "299c5bb4be1712f9e0f98a1e3f5492c606251522f5dd0b23acd0ec685e249849",
+        "size_in_bytes": 32048
+      },
+      {
+        "_path": "Library/bin/msvcp140_2.dll",
+        "path_type": "hardlink",
+        "sha256": "7c629aa475626a26d4f38832a513cef3bcb539fb5195ffd06682f31ec3a125a5",
+        "sha256_in_prefix": "7c629aa475626a26d4f38832a513cef3bcb539fb5195ffd06682f31ec3a125a5",
+        "size_in_bytes": 195888
+      },
+      {
+        "_path": "Library/bin/ucrtbase.dll",
+        "path_type": "hardlink",
+        "sha256": "ef7a69e4c871ebaa4ea4144e42385672cebe02f8fc5451931d43e6bb87b5ceaf",
+        "sha256_in_prefix": "ef7a69e4c871ebaa4ea4144e42385672cebe02f8fc5451931d43e6bb87b5ceaf",
+        "size_in_bytes": 1001272
+      },
+      {
+        "_path": "Library/bin/vccorlib140.dll",
+        "path_type": "hardlink",
+        "sha256": "fd883d1026c28be581dff0a4aae8caddd3e41cc4476f536abe27cd6f8975da51",
+        "sha256_in_prefix": "fd883d1026c28be581dff0a4aae8caddd3e41cc4476f536abe27cd6f8975da51",
+        "size_in_bytes": 367416
+      },
+      {
+        "_path": "Library/bin/vcomp140.dll",
+        "path_type": "hardlink",
+        "sha256": "398c09c056a79b338365616f94fd9937d04628d0b5213798a62b8560169687e2",
+        "sha256_in_prefix": "398c09c056a79b338365616f94fd9937d04628d0b5213798a62b8560169687e2",
+        "size_in_bytes": 153232
+      },
+      {
+        "_path": "Library/bin/vcruntime140.dll",
+        "path_type": "hardlink",
+        "sha256": "fbbab0c52138bb54f691e9764b43b3153047b989fa969b51bb695fca3639f3ba",
+        "sha256_in_prefix": "fbbab0c52138bb54f691e9764b43b3153047b989fa969b51bb695fca3639f3ba",
+        "size_in_bytes": 87864
+      },
+      {
+        "_path": "api-ms-win-core-console-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "212512042cec75cb3a51010bfd09961a8c1fb469565827319fb53b8ec5460e9b",
+        "sha256_in_prefix": "212512042cec75cb3a51010bfd09961a8c1fb469565827319fb53b8ec5460e9b",
+        "size_in_bytes": 19248
+      },
+      {
+        "_path": "api-ms-win-core-datetime-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "d6105df036fb1c5a8c997cabb36946ae627c4e6d25a037ce06e146ceb767658d",
+        "sha256_in_prefix": "d6105df036fb1c5a8c997cabb36946ae627c4e6d25a037ce06e146ceb767658d",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "api-ms-win-core-debug-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "a329a9ac5fa7d60557b78d52492a30217dcd00191d677798d20e778f9a898862",
+        "sha256_in_prefix": "a329a9ac5fa7d60557b78d52492a30217dcd00191d677798d20e778f9a898862",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "api-ms-win-core-errorhandling-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "74177d8f580daf5401a3e0d14c8992df9c78bfb9fbda899c811435d389cf650c",
+        "sha256_in_prefix": "74177d8f580daf5401a3e0d14c8992df9c78bfb9fbda899c811435d389cf650c",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "api-ms-win-core-file-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "eaa1434d1bf07238581addd8ce7ef7ee525b2d2e994245a3d0daf5c3a0b3f5a4",
+        "sha256_in_prefix": "eaa1434d1bf07238581addd8ce7ef7ee525b2d2e994245a3d0daf5c3a0b3f5a4",
+        "size_in_bytes": 22328
+      },
+      {
+        "_path": "api-ms-win-core-file-l1-2-0.dll",
+        "path_type": "hardlink",
+        "sha256": "703a45d1ebf11a5ad45f1268fbecbd829129ba3f3d86b77860fb4aa66e8f4fbe",
+        "sha256_in_prefix": "703a45d1ebf11a5ad45f1268fbecbd829129ba3f3d86b77860fb4aa66e8f4fbe",
+        "size_in_bytes": 18736
+      },
+      {
+        "_path": "api-ms-win-core-file-l2-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "28f65c3eafda7b9ca2a72775b3d1135c19400d20d1bfc35eaf211775d9192a07",
+        "sha256_in_prefix": "28f65c3eafda7b9ca2a72775b3d1135c19400d20d1bfc35eaf211775d9192a07",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "api-ms-win-core-handle-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "8ce61384b3619c53e0b1f24428020cddebbd8436b7a8fac36fee7fd0ab9e38f7",
+        "sha256_in_prefix": "8ce61384b3619c53e0b1f24428020cddebbd8436b7a8fac36fee7fd0ab9e38f7",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "api-ms-win-core-heap-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "01bcc57d1cb16d7d58455a8ed286eca52797ec254ebb40403c7a896cf282a741",
+        "sha256_in_prefix": "01bcc57d1cb16d7d58455a8ed286eca52797ec254ebb40403c7a896cf282a741",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "api-ms-win-core-interlocked-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "c73e77ae2a44000762defc160e4b9269ec8c0ec89f6471d834b8f55040e95191",
+        "sha256_in_prefix": "c73e77ae2a44000762defc160e4b9269ec8c0ec89f6471d834b8f55040e95191",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "api-ms-win-core-libraryloader-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "cfff40d5b5e64d9bd36d7bde2bcaa3a85d7a71b51b96bc9e054bc1e93cc1bc2c",
+        "sha256_in_prefix": "cfff40d5b5e64d9bd36d7bde2bcaa3a85d7a71b51b96bc9e054bc1e93cc1bc2c",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "api-ms-win-core-localization-l1-2-0.dll",
+        "path_type": "hardlink",
+        "sha256": "9d383e804f6ca3f3b34c79f65c236cc21e9c7520ef374b96bea23ed37d8f76f0",
+        "sha256_in_prefix": "9d383e804f6ca3f3b34c79f65c236cc21e9c7520ef374b96bea23ed37d8f76f0",
+        "size_in_bytes": 21296
+      },
+      {
+        "_path": "api-ms-win-core-memory-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "a9cc5739843698587786acff0419b581e0919e3a756e81c8e116827823368a5e",
+        "sha256_in_prefix": "a9cc5739843698587786acff0419b581e0919e3a756e81c8e116827823368a5e",
+        "size_in_bytes": 19248
+      },
+      {
+        "_path": "api-ms-win-core-namedpipe-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "71ddb70d6a0f13e13a816a71a93cc25d92ff08176bf5e9e235eea8dbb6fe5ca1",
+        "sha256_in_prefix": "71ddb70d6a0f13e13a816a71a93cc25d92ff08176bf5e9e235eea8dbb6fe5ca1",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "api-ms-win-core-processenvironment-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "727507db0b479cb1ffead6b42e9d0a8989f30af30350822cf0dabcbfcb34a897",
+        "sha256_in_prefix": "727507db0b479cb1ffead6b42e9d0a8989f30af30350822cf0dabcbfcb34a897",
+        "size_in_bytes": 19768
+      },
+      {
+        "_path": "api-ms-win-core-processthreads-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "7d4b310474c30e7c02b5a33ecf7e12c3ad0d25df038b8e90ff73277e7626310f",
+        "sha256_in_prefix": "7d4b310474c30e7c02b5a33ecf7e12c3ad0d25df038b8e90ff73277e7626310f",
+        "size_in_bytes": 20792
+      },
+      {
+        "_path": "api-ms-win-core-processthreads-l1-1-1.dll",
+        "path_type": "hardlink",
+        "sha256": "958f6be0850ff1fb91b8988db3278939c27ddb816520dfee1714b56ec50f3c68",
+        "sha256_in_prefix": "958f6be0850ff1fb91b8988db3278939c27ddb816520dfee1714b56ec50f3c68",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "api-ms-win-core-profile-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "5dd162a382475cf181c2b04e127a3027ce1f600bcd9120bcfec4757412ef8192",
+        "sha256_in_prefix": "5dd162a382475cf181c2b04e127a3027ce1f600bcd9120bcfec4757412ef8192",
+        "size_in_bytes": 18224
+      },
+      {
+        "_path": "api-ms-win-core-rtlsupport-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "35bf1dfa05fbc41e752ea048f530581c41fd0a4f64e7e8b03642dfa1404cdfd8",
+        "sha256_in_prefix": "35bf1dfa05fbc41e752ea048f530581c41fd0a4f64e7e8b03642dfa1404cdfd8",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "api-ms-win-core-string-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "15661e4acc1a83ea3f882fc17daa7d8fbb77639376d83dc9fe5eef3abf485c34",
+        "sha256_in_prefix": "15661e4acc1a83ea3f882fc17daa7d8fbb77639376d83dc9fe5eef3abf485c34",
+        "size_in_bytes": 18736
+      },
+      {
+        "_path": "api-ms-win-core-synch-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "7643535b1affabcc6dc3dbe1f5fb52fde827ab66f8b4ec1c1dbecfb5a4a378ef",
+        "sha256_in_prefix": "7643535b1affabcc6dc3dbe1f5fb52fde827ab66f8b4ec1c1dbecfb5a4a378ef",
+        "size_in_bytes": 20792
+      },
+      {
+        "_path": "api-ms-win-core-synch-l1-2-0.dll",
+        "path_type": "hardlink",
+        "sha256": "bf21d6d5bb598222dd027919e7617167cb9acd512270c20117d084afa1d51af0",
+        "sha256_in_prefix": "bf21d6d5bb598222dd027919e7617167cb9acd512270c20117d084afa1d51af0",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "api-ms-win-core-sysinfo-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "0ba5d04f57536cf7ac162ba75bb785c04ded12e45e3aa2f1856f0a3f143fb488",
+        "sha256_in_prefix": "0ba5d04f57536cf7ac162ba75bb785c04ded12e45e3aa2f1856f0a3f143fb488",
+        "size_in_bytes": 19768
+      },
+      {
+        "_path": "api-ms-win-core-timezone-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "32dd4bf9072925ae5f172b98979ba6ab1a8550bcec433c7019abc2a6f9515d4e",
+        "sha256_in_prefix": "32dd4bf9072925ae5f172b98979ba6ab1a8550bcec433c7019abc2a6f9515d4e",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "api-ms-win-core-util-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "032b089749b203cc0874800232bac401ed96d4d9ea6191419dc3606fa925bf54",
+        "sha256_in_prefix": "032b089749b203cc0874800232bac401ed96d4d9ea6191419dc3606fa925bf54",
+        "size_in_bytes": 18744
+      },
+      {
+        "_path": "api-ms-win-crt-conio-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "33c8750839b646817040e0e0566bad96f42b3f07546e8576fbf9db2d8e53bb28",
+        "sha256_in_prefix": "33c8750839b646817040e0e0566bad96f42b3f07546e8576fbf9db2d8e53bb28",
+        "size_in_bytes": 19768
+      },
+      {
+        "_path": "api-ms-win-crt-convert-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "e3c78e54a9dfa907111e87f9d8e1f70e3d1090c244a0d6c25863deb1a2a9dad1",
+        "sha256_in_prefix": "e3c78e54a9dfa907111e87f9d8e1f70e3d1090c244a0d6c25863deb1a2a9dad1",
+        "size_in_bytes": 22840
+      },
+      {
+        "_path": "api-ms-win-crt-environment-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "ef06bd45ab72732cee3db15d604910e29988abfcbca3077137c6398896d55573",
+        "sha256_in_prefix": "ef06bd45ab72732cee3db15d604910e29988abfcbca3077137c6398896d55573",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "api-ms-win-crt-filesystem-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "89b66cf9fd4cec85983382856c00df02bc3b370afe516f98f13bb9adf4e1fd56",
+        "sha256_in_prefix": "89b66cf9fd4cec85983382856c00df02bc3b370afe516f98f13bb9adf4e1fd56",
+        "size_in_bytes": 20792
+      },
+      {
+        "_path": "api-ms-win-crt-heap-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "9397b0349e45a1135b1ce20f4ce973f41dc2d7152b334f98bac2f984bae79e30",
+        "sha256_in_prefix": "9397b0349e45a1135b1ce20f4ce973f41dc2d7152b334f98bac2f984bae79e30",
+        "size_in_bytes": 19760
+      },
+      {
+        "_path": "api-ms-win-crt-locale-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "402e7a75d4fb3e7eca2e313c3ee7c756f8bdf3df3cb894352a7774f8c10c4039",
+        "sha256_in_prefix": "402e7a75d4fb3e7eca2e313c3ee7c756f8bdf3df3cb894352a7774f8c10c4039",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "api-ms-win-crt-math-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "46221b3a2342a5c2da1e8098fcad56e94134de983add7180485833609832a785",
+        "sha256_in_prefix": "46221b3a2342a5c2da1e8098fcad56e94134de983add7180485833609832a785",
+        "size_in_bytes": 27952
+      },
+      {
+        "_path": "api-ms-win-crt-multibyte-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "4f35ff5f74cd7f2f1c45d2c10506948341361f983c3cfa5a156a1ca2de012b02",
+        "sha256_in_prefix": "4f35ff5f74cd7f2f1c45d2c10506948341361f983c3cfa5a156a1ca2de012b02",
+        "size_in_bytes": 26936
+      },
+      {
+        "_path": "api-ms-win-crt-private-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "72e7faea903ca798d14502a18948236d9e6d27a9d572f182afa08f588aa120c3",
+        "sha256_in_prefix": "72e7faea903ca798d14502a18948236d9e6d27a9d572f182afa08f588aa120c3",
+        "size_in_bytes": 71472
+      },
+      {
+        "_path": "api-ms-win-crt-process-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "f5afd40abc0ade5a3cf227ad00f87096ed61bf8d935e53550ac3f708601255e7",
+        "sha256_in_prefix": "f5afd40abc0ade5a3cf227ad00f87096ed61bf8d935e53550ac3f708601255e7",
+        "size_in_bytes": 19768
+      },
+      {
+        "_path": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "5762861cec3d221a10ffdbd521d3175e53adea2f84d4dee6c47b5ee7c590249b",
+        "sha256_in_prefix": "5762861cec3d221a10ffdbd521d3175e53adea2f84d4dee6c47b5ee7c590249b",
+        "size_in_bytes": 23352
+      },
+      {
+        "_path": "api-ms-win-crt-stdio-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "c9741d8e4edad06f20110e889aa9ae9674048cab2a59301011263763a49f19d2",
+        "sha256_in_prefix": "c9741d8e4edad06f20110e889aa9ae9674048cab2a59301011263763a49f19d2",
+        "size_in_bytes": 24888
+      },
+      {
+        "_path": "api-ms-win-crt-string-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "22b34d0a05550e33cab502a52c0243b109b0b2ece757572f3a5eae932607f9b7",
+        "sha256_in_prefix": "22b34d0a05550e33cab502a52c0243b109b0b2ece757572f3a5eae932607f9b7",
+        "size_in_bytes": 24888
+      },
+      {
+        "_path": "api-ms-win-crt-time-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "82f249148fe462e954db53a89f1cf91b715ab092a1ec3a43155e73bbc7d0e073",
+        "sha256_in_prefix": "82f249148fe462e954db53a89f1cf91b715ab092a1ec3a43155e73bbc7d0e073",
+        "size_in_bytes": 21304
+      },
+      {
+        "_path": "api-ms-win-crt-utility-l1-1-0.dll",
+        "path_type": "hardlink",
+        "sha256": "bc07f947f7cdcda12460f35ee9d37bc1cfb773ec2703b93695b5b5c1c9254685",
+        "sha256_in_prefix": "bc07f947f7cdcda12460f35ee9d37bc1cfb773ec2703b93695b5b5c1c9254685",
+        "size_in_bytes": 19256
+      },
+      {
+        "_path": "concrt140.dll",
+        "path_type": "hardlink",
+        "sha256": "10d165d877646275d674d3ca83299e3687ca090c6e05713cbeb85b195ecec6b2",
+        "sha256_in_prefix": "10d165d877646275d674d3ca83299e3687ca090c6e05713cbeb85b195ecec6b2",
+        "size_in_bytes": 334640
+      },
+      {
+        "_path": "msvcp140.dll",
+        "path_type": "hardlink",
+        "sha256": "85a415f7aa8a1e7d10e05e713c91a3aec9bf3f4c821eba10df2d20b1a02e3882",
+        "sha256_in_prefix": "85a415f7aa8a1e7d10e05e713c91a3aec9bf3f4c821eba10df2d20b1a02e3882",
+        "size_in_bytes": 675112
+      },
+      {
+        "_path": "msvcp140_1.dll",
+        "path_type": "hardlink",
+        "sha256": "299c5bb4be1712f9e0f98a1e3f5492c606251522f5dd0b23acd0ec685e249849",
+        "sha256_in_prefix": "299c5bb4be1712f9e0f98a1e3f5492c606251522f5dd0b23acd0ec685e249849",
+        "size_in_bytes": 32048
+      },
+      {
+        "_path": "msvcp140_2.dll",
+        "path_type": "hardlink",
+        "sha256": "7c629aa475626a26d4f38832a513cef3bcb539fb5195ffd06682f31ec3a125a5",
+        "sha256_in_prefix": "7c629aa475626a26d4f38832a513cef3bcb539fb5195ffd06682f31ec3a125a5",
+        "size_in_bytes": 195888
+      },
+      {
+        "_path": "ucrtbase.dll",
+        "path_type": "hardlink",
+        "sha256": "ef7a69e4c871ebaa4ea4144e42385672cebe02f8fc5451931d43e6bb87b5ceaf",
+        "sha256_in_prefix": "ef7a69e4c871ebaa4ea4144e42385672cebe02f8fc5451931d43e6bb87b5ceaf",
+        "size_in_bytes": 1001272
+      },
+      {
+        "_path": "vccorlib140.dll",
+        "path_type": "hardlink",
+        "sha256": "fd883d1026c28be581dff0a4aae8caddd3e41cc4476f536abe27cd6f8975da51",
+        "sha256_in_prefix": "fd883d1026c28be581dff0a4aae8caddd3e41cc4476f536abe27cd6f8975da51",
+        "size_in_bytes": 367416
+      },
+      {
+        "_path": "vcomp140.dll",
+        "path_type": "hardlink",
+        "sha256": "398c09c056a79b338365616f94fd9937d04628d0b5213798a62b8560169687e2",
+        "sha256_in_prefix": "398c09c056a79b338365616f94fd9937d04628d0b5213798a62b8560169687e2",
+        "size_in_bytes": 153232
+      },
+      {
+        "_path": "vcruntime140.dll",
+        "path_type": "hardlink",
+        "sha256": "fbbab0c52138bb54f691e9764b43b3153047b989fa969b51bb695fca3639f3ba",
+        "sha256_in_prefix": "fbbab0c52138bb54f691e9764b43b3153047b989fa969b51bb695fca3639f3ba",
+        "size_in_bytes": 87864
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 2341682,
+  "subdir": "win-64",
+  "timestamp": 1531747786588,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/win-64/vs2015_runtime-15.5.2-3.tar.bz2",
+  "version": "15.5.2"
+}

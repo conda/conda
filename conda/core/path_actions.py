@@ -27,7 +27,7 @@ from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError
 from ..gateways.connection.download import download
 from ..gateways.disk.create import (compile_pyc, copy, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
-                                    make_menu, write_as_json_to_file)
+                                    make_menu, mkdir_p, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.permissions import make_writable
 from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
@@ -39,11 +39,6 @@ from ..models.enums import LinkType, NoarchType, PathType
 from ..models.match_spec import MatchSpec
 from ..models.records import (Link, PackageCacheRecord, PackageRecord, PathDataV1, PathsData,
                               PrefixRecord)
-
-try:
-    from cytoolz.itertoolz import concat, concatv
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv  # NOQA
 
 log = getLogger(__name__)
 
@@ -355,6 +350,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
             # return
             assert False, "I don't think this is the right place to ignore this"
 
+        mkdir_p(self.transaction_context['temp_dir'])
         self.intermediate_path = join(self.transaction_context['temp_dir'], text_type(uuid4()))
 
         log.trace("copying %s => %s", self.source_full_path, self.intermediate_path)
@@ -742,6 +738,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         self.requested_link_type = requested_link_type
         self.requested_spec = requested_spec
         self.all_link_path_actions = all_link_path_actions
+        self._execute_successful = False
 
     def execute(self):
         link = Link(
@@ -775,11 +772,12 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
 
         log.trace("creating linked package record %s", self.target_full_path)
         PrefixData(self.target_prefix).insert(self.prefix_record)
+        self._execute_successful = True
 
     def reverse(self):
         log.trace("reversing linked package record creation %s", self.target_full_path)
-        # TODO: be careful about failure here, and being too strict
-        PrefixData(self.target_prefix).remove(self.package_info.repodata_record.name)
+        if self._execute_successful:
+            PrefixData(self.target_prefix).remove(self.package_info.repodata_record.name)
 
 
 class UpdateHistoryAction(CreateInPrefixPathAction):

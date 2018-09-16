@@ -11,22 +11,18 @@ from operator import attrgetter
 from os.path import basename
 import re
 
-from conda._vendor.auxlib.decorators import memoizedproperty
-from conda.common.io import dashlist
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
+from .._vendor.auxlib.decorators import memoizedproperty
+from .._vendor.toolz import concat, concatv, groupby
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
+from ..common.io import dashlist
 from ..common.path import expand
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import CondaValueError
-
-try:
-    from cytoolz.itertoolz import concat, concatv, groupby
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -264,14 +260,13 @@ class MatchSpec(object):
             return None
 
     def __repr__(self):
-        builder = []
-        builder += ["%s=%r" % (c, self._match_components[c])
-                    for c in self.FIELD_NAMES if c in self._match_components]
-        if self.optional:
-            builder.append("optional=True")
+        builder = ["%s(\"%s\"" % (self.__class__.__name__, self)]
         if self.target:
-            builder.append("target=%r" % self.target)
-        return '%s("%s")' % (self.__class__.__name__, self)
+            builder.append(", target=\"%s\"" % self.target)
+        if self.optional:
+            builder.append(", optional=True")
+        builder.append(")")
+        return "".join(builder)
 
     def __str__(self):
         builder = []
@@ -668,12 +663,12 @@ def _parse_spec_str(spec_str):
 
         # translate version '=1.2.3' to '1.2.3*'
         # is it a simple version starting with '='? i.e. '=1.2.3'
-        if version.startswith('='):
+        if version[0] == '=':
             test_str = version[1:]
-            if version.startswith('==') and build is None:
+            if version[:2] == '==' and build is None:
                 version = version[2:]
             elif not any(c in test_str for c in "=,|"):
-                if build is None and not test_str.endswith('*'):
+                if build is None and test_str[-1] != '*':
                     version = test_str + '*'
                 else:
                     version = test_str
@@ -769,10 +764,17 @@ class ExactStrMatch(_StrMatchMixin, MatchInterface):
 class ExactLowerStrMatch(ExactStrMatch):
 
     def __init__(self, value):
-        super(ExactStrMatch, self).__init__(value.lower())
+        super(ExactLowerStrMatch, self).__init__(value.lower())
+
+    def match(self, other):
+        try:
+            _other_val = other._raw_value
+        except AttributeError:
+            _other_val = text_type(other)
+        return self._raw_value == _other_val.lower()
 
 
-class GlobStrMatch(_StrMatchMixin, MatchInterface):
+class GlobStrMatch(_StrMatchMixin, MatchInterface):  # lgtm [py/missing-equals]
     __slots__ = '_raw_value', '_re_match'
 
     def __init__(self, value):
