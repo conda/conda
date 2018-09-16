@@ -473,7 +473,7 @@ class _Activator(object):
         elif any(paths_equal(dirname(prefix), env_dir) for env_dir in context.envs_dirs):
             return basename(prefix)
         else:
-          return prefix
+            return prefix
 
     def _prompt_modifier(self, prefix, conda_default_env):
         if context.changeps1:
