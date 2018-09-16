@@ -438,8 +438,7 @@ class _Activator(object):
 
         def index_of_path(paths, test_path):
             for q, path in enumerate(paths):
-                # TODO: check why lower is used in yhis call ?
-                if paths_equal(path.lower(), test_path.lower()):
+                if paths_equal(path, test_path):
                     return q
             return None
 
@@ -538,13 +537,11 @@ def native_path_to_unix(paths):  # pragma: unix no cover
     except EnvironmentError as e:
         if e.errno != ENOENT:
             raise
-
         # This code path should (hopefully) never be hit be real conda installs. It's here
         # as a backup for tests run under cmd.exe with cygpath not available.
         def _translation(found_path):  # NOQA
             found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
             return "/" + found.rstrip("/")
-
         joined = ensure_fs_path_encoding(joined)
         stdout = re.sub(
             r'([a-zA-Z]:[\/\\\\]+(?:[^:*?\"<>|;]+[\/\\\\]*)*)',
