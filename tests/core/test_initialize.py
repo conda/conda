@@ -201,6 +201,15 @@ class InitializeTests(TestCase):
                             "conda_prefix": "/darwin",
                             "func": "main",
                             "module": "conda.cli",
+                            "target_path": "/darwin/condabin/conda"
+                        }
+                    },
+                    {
+                        "function": "make_entry_point",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "func": "main",
+                            "module": "conda.cli",
                             "target_path": "/darwin/bin/conda"
                         }
                     },
@@ -480,7 +489,8 @@ class InitializeTests(TestCase):
             )
         else:
             modified_files = (
-                'conda',
+                'conda',  # condabin/conda
+                'conda',  # bin/conda
                 'conda-env',
                 'activate',
                 'deactivate',
@@ -538,7 +548,8 @@ class InitializeTests(TestCase):
             )
         else:
             modified_files = (
-                'conda',
+                'conda',  # condabin/conda
+                'conda',  # bin/conda
                 'conda-env',
                 'activate',
                 'deactivate',
@@ -600,7 +611,8 @@ class InitializeTests(TestCase):
             )
         else:
             modified_files = (
-                'conda',
+                'conda',  # condabin/conda
+                'conda',  # bin/conda
                 'conda-env',
                 'activate',
                 'deactivate',

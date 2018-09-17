@@ -925,7 +925,7 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix,
                             "conda-forge::tensorflow>=1.4 --dry-run --freeze-installed")
 
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 9, 15),
+    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 10, 1),
                        reason="need to talk with @msarahan about blas patches on Windows",
                        strict=True)
     def test_install_features(self):

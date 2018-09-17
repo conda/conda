@@ -248,6 +248,16 @@ def make_install_plan(conda_prefix):
             },
         })
     else:
+        # We can't put a conda.exe in condabin on Windows. It'll conflict with conda.bat.
+        plan.append({
+            'function': make_entry_point.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'condabin', 'conda'),
+                'conda_prefix': conda_prefix,
+                'module': 'conda.cli',
+                'func': 'main',
+            },
+        })
         conda_exe_path = join(conda_prefix, 'bin', 'conda')
         conda_env_exe_path = join(conda_prefix, 'bin', 'conda-env')
 
