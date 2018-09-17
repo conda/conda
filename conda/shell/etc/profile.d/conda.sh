@@ -54,6 +54,8 @@ conda() {
 
 if [ -z "${CONDA_SHLVL+x}" ]; then
     \export CONDA_SHLVL=0
+    PATH="$(dirname "$(dirname "$CONDA_EXE")")/condabin:${PATH:-}"
+    \export PATH
 
     # We're not allowing PS1 to be unbound. It must at least be set.
     # However, we're not exporting it, which can cause problems when starting a second shell

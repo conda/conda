@@ -97,6 +97,11 @@ class _Activator(object):
     def hook(self, auto_activate_base=None):
         builder = []
         builder.append(self._hook_preamble())
+
+        # here
+        condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
+        self.export_var_tmpl % ("PATH", self.pathsep_join((condabin_dir, )))
+
         with open(self.hook_source_path) as fsrc:
             builder.append(fsrc.read())
         if auto_activate_base is None and context.auto_activate_base or auto_activate_base:
@@ -422,6 +427,16 @@ class _Activator(object):
             path_list = list(self.path_conversion(self._get_starting_path_list()))
         else:
             path_list = list(self.path_conversion(starting_path_dirs))
+
+        # If this is the first time we're activating an environment, we need to ensure that
+        # the condabin directory is included in the path list.
+        # Under normal conditions, if the shell hook is working correctly, this should
+        # never trigger.
+        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
+        if not old_conda_shlvl and not any(p.endswith("condabin") for p in path_list):
+            condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
+            path_list.insert(0, condabin_dir)
+
         path_list[0:0] = list(self.path_conversion(self._get_path_dirs2(prefix)))
         return tuple(path_list)
 
@@ -707,18 +722,6 @@ class CmdExeActivator(_Activator):
 
     def _hook_preamble(self):
         raise NotImplementedError()
-
-    def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
-        # If this is the first time we're activating an environment, we need to ensure that
-        # the condabin directory is included in the path list.
-        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
-        if starting_path_dirs is None:
-            starting_path_dirs = self._get_starting_path_list()
-        starting_path_dirs = list(starting_path_dirs)
-        if not old_conda_shlvl and not any(p.endswith("condabin") for p in starting_path_dirs):
-            condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
-            starting_path_dirs.insert(0, condabin_dir)
-        return super(CmdExeActivator, self)._add_prefix_to_path(prefix, starting_path_dirs)
 
 
 class FishActivator(_Activator):

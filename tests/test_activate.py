@@ -113,7 +113,8 @@ class ActivatorUnitTests(TestCase):
             added_paths = added_paths,
 
         new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
-        assert new_path == added_paths + path_dirs
+        condabin_dir = context.conda_prefix + "/condabin"
+        assert new_path == added_paths + (condabin_dir,) + path_dirs
 
     @pytest.mark.skipif(not on_win, reason="windows-specific test")
     def test_add_prefix_to_path_cmdexe(self):
@@ -1286,6 +1287,7 @@ class ShellWrapperIntegrationTests(TestCase):
         num_paths_added = len(tuple(PosixActivator()._get_path_dirs(self.prefix)))
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH0 = shell.get_env_var('PATH').strip(':')
+        assert any(p.endswith("condabin") for p in PATH0.split(":"))
 
         shell.sendline('conda activate base')
         # shell.sendline('env | sort')
