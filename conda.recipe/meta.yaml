@@ -60,7 +60,7 @@ test:
   commands:
 {% if on_win %}
     - SET CONDA_SHLVL=
-    - CALL %PREFIX%\condacmd\conda_hook.bat
+    - CALL %PREFIX%\condabin\conda_hook.bat
     - CALL conda.bat activate base
     - FOR /F "delims=" %%i IN ('python -c "import sys; print(sys.version_info[0])"') DO set "PYTHON_MAJOR_VERSION=%%i"
     - set TEST_PLATFORM=win
