@@ -105,6 +105,7 @@ def ssl_verify_validation(value):
 class Context(Configuration):
 
     add_pip_as_python_dependency = PrimitiveParameter(True)
+    allow_conda_downgrades = PrimitiveParameter(False)
     allow_cycles = PrimitiveParameter(True)  # allow cyclical dependencies, or raise
     allow_softlinks = PrimitiveParameter(False)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
@@ -590,6 +591,7 @@ class Context(Configuration):
             'bld_path',
             'conda_build',
             'croot',
+            'allow_conda_downgrades',
             'debug',
             'default_python',
             'dry_run',
