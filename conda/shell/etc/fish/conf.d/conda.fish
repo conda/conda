@@ -6,8 +6,11 @@
 #     Run 'conda init fish' and restart your shell.
 #
 
-test -n "$CONDA_SHLVL"; or set -gx CONDA_SHLVL "0"
-set -g _CONDA_ROOT (dirname (dirname $CONDA_EXE))
+if not set -q CONDA_SHLVL
+    set -gx CONDA_SHLVL "0"
+    set -g _CONDA_ROOT (dirname (dirname $CONDA_EXE))
+    set -gx PATH $_CONDA_ROOT/condabin $PATH
+end
 
 function __conda_add_prompt
   if set -q CONDA_DEFAULT_ENV

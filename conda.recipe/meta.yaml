@@ -20,25 +20,24 @@ build:
     - Scripts/deactivate        [win]
 
 requirements:
-  build:
+  host:
     - python
-    - setuptools >=31.0.1
-    - enum34                [py<34]
-    - futures               [py<34]
-    - menuinst >=1.4.11,<2  [win]
-    - pycosat >=0.6.3
-    - pyopenssl >=16.2.0
-    - requests >=2.18.4,<3
+    - enum34                       # [py<34]
+    - futures >=3.0.0              # [py<34]
+    - menuinst >=1.4.11,<2         # [win]
+    - pip
     - ruamel_yaml >=0.11.14,<0.16
+    - setuptools >=31.0.1
   run:
     - python
-    - enum34                [py<34]
-    - futures >=3.0.0       [py<34]
-    - menuinst >=1.4.11,<2  [win]
+    - enum34                       # [py<34]
+    - futures >=3.0.0              # [py<34]
+    - menuinst >=1.4.11,<2         # [win]
     - pycosat >=0.6.3
     - pyopenssl >=16.2.0
     - requests >=2.18.4,<3
     - ruamel_yaml >=0.11.14,<0.16
+    - setuptools >=31.0.1
   run_constrained:
     - conda-build >=3
     - conda-env >=2.6
@@ -61,7 +60,7 @@ test:
   commands:
 {% if on_win %}
     - SET CONDA_SHLVL=
-    - CALL %PREFIX%\condacmd\conda_hook.bat
+    - CALL %PREFIX%\condabin\conda_hook.bat
     - CALL conda.bat activate base
     - FOR /F "delims=" %%i IN ('python -c "import sys; print(sys.version_info[0])"') DO set "PYTHON_MAJOR_VERSION=%%i"
     - set TEST_PLATFORM=win

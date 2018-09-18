@@ -113,7 +113,8 @@ class ActivatorUnitTests(TestCase):
             added_paths = added_paths,
 
         new_path = activator._add_prefix_to_path(test_prefix, path_dirs)
-        assert new_path == added_paths + path_dirs
+        condabin_dir = context.conda_prefix + "/condabin"
+        assert new_path == added_paths + (condabin_dir,) + path_dirs
 
     @pytest.mark.skipif(not on_win, reason="windows-specific test")
     def test_add_prefix_to_path_cmdexe(self):
@@ -130,7 +131,7 @@ class ActivatorUnitTests(TestCase):
         assert new_path[:len(added_paths)] == added_paths
         assert new_path[-len(path_dirs):] == path_dirs
         assert len(new_path) == len(added_paths) + len(path_dirs) + 1
-        assert new_path[len(added_paths)].endswith("condacmd")
+        assert new_path[len(added_paths)].endswith("condabin")
 
     def test_remove_prefix_from_path_1(self):
         activator = PosixActivator()
@@ -1144,7 +1145,7 @@ class InteractiveShell(object):
         'cmd.exe': {
             'activator': 'cmd.exe',
             'init_command': 'set "CONDA_SHLVL=" '
-                            '&& @CALL conda\\shell\\condacmd\\conda_hook.bat '
+                            '&& @CALL conda\\shell\\condabin\\conda_hook.bat '
                             '&& set "CONDA_EXE=python -m conda"',
             'print_env_var': '@echo %%%s%%',
         },
@@ -1286,6 +1287,7 @@ class ShellWrapperIntegrationTests(TestCase):
         num_paths_added = len(tuple(PosixActivator()._get_path_dirs(self.prefix)))
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH0 = shell.get_env_var('PATH').strip(':')
+        assert any(p.endswith("condabin") for p in PATH0.split(":"))
 
         shell.sendline('conda activate base')
         # shell.sendline('env | sort')
