@@ -205,6 +205,14 @@ class MatchSpecTests(TestCase):
         assert m("numpy==1.10=py38_0") == "numpy==1.10=py38_0"
         assert m("numpy[version=1.10 build=py38_0]") == "numpy==1.10=py38_0"
 
+        assert m("numpy!=1.10") == "numpy[version='!=1.10']"
+        assert m("numpy !=1.10") == "numpy[version='!=1.10']"
+        assert m("numpy!=1.10 py38_0") == "numpy[version='!=1.10',build=py38_0]"
+        assert m("numpy !=1.10 py38_0") == "numpy[version='!=1.10',build=py38_0]"
+        assert m("numpy!=1.10=py38_0") == "numpy[version='!=1.10',build=py38_0]"
+        assert m("numpy !=1.10=py38_0") == "numpy[version='!=1.10',build=py38_0]"
+        assert m("numpy >1.7,!=1.10 py38_0") == "numpy[version='>1.7,!=1.10',build=py38_0]"
+
         # # a full, exact spec looks like 'defaults/linux-64::numpy==1.8=py26_0'
         # # can we take an old dist str and reliably parse it with MatchSpec?
         # assert m("numpy-1.10-py38_0") == "numpy==1.10=py38_0"
@@ -651,6 +659,11 @@ class SpecStrParsingTests(TestCase):
             "name": "numpy",
             "version": "1.7*",
         }
+        assert _parse_spec_str("numpy !=1.7") == {
+            "_original_spec_str": "numpy !=1.7",
+            "name": "numpy",
+            "version": "!=1.7",
+        }
 
     def test_parse_hard(self):
         assert _parse_spec_str("numpy>1.8,<2|==1.7") == {
@@ -658,10 +671,11 @@ class SpecStrParsingTests(TestCase):
             "name": "numpy",
             "version": ">1.8,<2|==1.7",
         }
-        assert _parse_spec_str("numpy >1.8,<2|==1.7") == {
-            "_original_spec_str": "numpy >1.8,<2|==1.7",
+        assert _parse_spec_str("numpy >1.8,<2|==1.7,!=1.9 py34_0") == {
+            "_original_spec_str": "numpy >1.8,<2|==1.7,!=1.9 py34_0",
             "name": "numpy",
-            "version": ">1.8,<2|==1.7",
+            "version": ">1.8,<2|==1.7,!=1.9",
+            "build": "py34_0",
         }
         assert _parse_spec_str("*>1.8,<2|==1.7") == {
             "_original_spec_str": "*>1.8,<2|==1.7",

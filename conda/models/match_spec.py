@@ -292,7 +292,7 @@ class MatchSpec(object):
         version = self._match_components.get('version')
         if version:
             version = text_type(version)
-            if any(s in version for s in '><$^|,'):
+            if any(s in version for s in '><$^|,!'):
                 brackets.append("version='%s'" % version)
             elif version.endswith('.*'):
                 builder.append('=' + version[:-2])
