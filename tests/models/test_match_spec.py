@@ -10,7 +10,7 @@ from conda import text_type
 from conda.base.context import context
 from conda.cli.common import arg2spec, spec_from_line
 from conda.common.compat import on_win
-from conda.exceptions import CondaValueError
+from conda.exceptions import CondaValueError, InvalidMatchSpec, InvalidSpec
 from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.records import PackageRecord
@@ -291,18 +291,21 @@ class MatchSpecTests(TestCase):
         assert str(MatchSpec("defaults::*")) == "defaults::*"
 
     def test_matchspec_errors(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidSpec):
             MatchSpec('blas [optional')
 
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidSpec):
             MatchSpec('blas [test=]')
 
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidSpec):
             MatchSpec('blas[invalid="1"]')
 
         if not on_win:
             # skipping on Windows for now.  don't feel like dealing with the windows url path crud
             assert text_type(MatchSpec("/some/file/on/disk/package-1.2.3-2.tar.bz2")) == '*[url=file:///some/file/on/disk/package-1.2.3-2.tar.bz2]'
+
+        with pytest.raises(InvalidSpec):
+            MatchSpec("appdirs ~=1.4.3")
 
     def test_dist(self):
         dst = Dist('defaults::foo-1.2.3-4.tar.bz2')
@@ -696,7 +699,7 @@ class SpecStrParsingTests(TestCase):
         }
 
     def test_parse_errors(self):
-        with pytest.raises(CondaValueError):
+        with pytest.raises(InvalidMatchSpec):
             _parse_spec_str('!xyz 1.3')
 
     def test_parse_channel_subdir(self):
