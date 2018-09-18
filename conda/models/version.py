@@ -496,7 +496,7 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
         if vspec_str[0] == '^' or vspec_str[-1] == '$':
             if vspec_str[0] != '^' or vspec_str[-1] != '$':
                 raise InvalidVersionSpec(vspec_str, "regex specs must start "
-                                                         "with '^' and end with '$'")
+                                                    "with '^' and end with '$'")
             self.regex = re.compile(vspec_str)
             matcher = self.regex_match
             is_exact = False
@@ -605,7 +605,7 @@ class BuildNumberMatch(BaseSpec):  # lgtm [py/missing-equals]
         elif vspec_str[0] == '^' or vspec_str[-1] == '$':
             if vspec_str[0] != '^' or vspec_str[-1] != '$':
                 raise InvalidVersionSpec(vspec_str, "regex specs must start "
-                                                         "with '^' and end with '$'")
+                                                    "with '^' and end with '$'")
             self.regex = re.compile(vspec_str)
             matcher = self.regex_match
             is_exact = False
