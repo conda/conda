@@ -13,7 +13,7 @@ from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_
 from .common.io import time_recorder
 from .common.logic import Clauses, minimal_unsatisfiable_subset
 from .common.toposort import toposort
-from .exceptions import InvalidVersionSpecError, ResolvePackageNotFound, UnsatisfiableError
+from .exceptions import InvalidSpec, ResolvePackageNotFound, UnsatisfiableError
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType
 from .models.match_spec import MatchSpec
@@ -107,7 +107,7 @@ class Resolve(object):
                 filter[prec] = True
                 try:
                     depends = self.ms_depends(prec)
-                except InvalidVersionSpecError as e:
+                except InvalidSpec as e:
                     val = filter[prec] = False
                 else:
                     val = filter[prec] = all(v_ms_(ms) for ms in depends)
@@ -134,7 +134,7 @@ class Resolve(object):
                 filter_out[prec] = False
                 try:
                     has_valid_deps = all(is_valid_spec(ms) for ms in self.ms_depends(prec))
-                except InvalidVersionSpecError as e:
+                except InvalidSpec as e:
                     val = filter_out[prec] = "invalid dep specs"
                 else:
                     val = filter_out[prec] = False if has_valid_deps else "invalid depends specs"
