@@ -277,3 +277,12 @@ class TestVersionSpec(unittest.TestCase):
             VersionSpec("~")
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("^")
+
+    def test_compatible_release_versions(self):
+        assert not VersionSpec("~=3.3.2").match("3.4.0")
+        assert not VersionSpec("~=3.3.2").match("3.3.1")
+        assert VersionSpec("~=3.3.2").match("3.3.2.0")
+        assert VersionSpec("~=3.3.2").match("3.3.3")
+
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("~=3.3.2.*")
