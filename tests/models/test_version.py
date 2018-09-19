@@ -279,6 +279,9 @@ class TestVersionSpec(unittest.TestCase):
             VersionSpec("^")
 
     def test_compatible_release_versions(self):
+        assert VersionSpec("~=1.10").match("1.11.0")
+        assert not VersionSpec("~=1.10.0").match("1.11.0")
+
         assert not VersionSpec("~=3.3.2").match("3.4.0")
         assert not VersionSpec("~=3.3.2").match("3.3.1")
         assert VersionSpec("~=3.3.2").match("3.3.2.0")

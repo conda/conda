@@ -441,6 +441,9 @@ class MatchSpecTests(TestCase):
         assert not MatchSpec("numpy[build_number='>7']").match(record)
         assert MatchSpec("numpy[build_number='>=7']").match(record)
 
+        assert MatchSpec("numpy ~=1.10").match(record)
+        assert MatchSpec("numpy~=1.10").match(record)
+
     def test_license_match(self):
         record = {
             'name': 'numpy',
@@ -670,6 +673,11 @@ class SpecStrParsingTests(TestCase):
         }
 
     def test_parse_hard(self):
+        assert _parse_spec_str("numpy~=1.7.1") == {
+            "_original_spec_str": "numpy~=1.7.1",
+            "name": "numpy",
+            "version": "~=1.7.1",
+        }
         assert _parse_spec_str("numpy>1.8,<2|==1.7") == {
             "_original_spec_str": "numpy>1.8,<2|==1.7",
             "name": "numpy",

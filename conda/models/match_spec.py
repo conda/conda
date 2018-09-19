@@ -505,7 +505,7 @@ def _parse_version_plus_build(v_plus_b):
         >>> _parse_version_plus_build("* *")
         ('*', '*')
     """
-    parts = re.search(r'((?:.+?)[^><!,|]?)(?:(?<![=!|,<>~])(?:[ =])([^-=,|<>]+?))?$', v_plus_b)
+    parts = re.search(r'((?:.+?)[^><!,|]?)(?:(?<![=!|,<>~])(?:[ =])([^-=,|<>~]+?))?$', v_plus_b)
     if parts:
         version, build = parts.groups()
         build = build and build.strip()
@@ -645,7 +645,7 @@ def _parse_spec_str(spec_str):
         subdir = brackets.pop('subdir')
 
     # Step 6. strip off package name from remaining version + build
-    m3 = re.match(r'([^ =<>!]+)?([><!= ].+)?', spec_str)
+    m3 = re.match(r'([^ =<>!~]+)?([><!=~ ].+)?', spec_str)
     if m3:
         name, spec_str = m3.groups()
         if name is None:
