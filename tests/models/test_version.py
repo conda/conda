@@ -284,5 +284,14 @@ class TestVersionSpec(unittest.TestCase):
         assert VersionSpec("~=3.3.2").match("3.3.2.0")
         assert VersionSpec("~=3.3.2").match("3.3.3")
 
+        assert VersionSpec("~=3.3.2|==2.2").match("2.2.0")
+        assert VersionSpec("~=3.3.2|==2.2").match("3.3.3")
+        assert not VersionSpec("~=3.3.2|==2.2").match("2.2.1")
+
         with pytest.raises(InvalidVersionSpec):
             VersionSpec("~=3.3.2.*")
+
+    def test_pep_440_arbitrary_equality_operator(self):
+        # We're going to leave the not implemented for now.
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("===3.3.2")
