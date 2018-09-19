@@ -27,7 +27,7 @@ def print_export_header(subdir):
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
     for prefix_rec in sorted(installed, key=lambda x: x.name.lower()):
-        if pat and pat.search(str(prefix_rec)) is None:
+        if pat and pat.search(prefix_rec.name) is None:
             continue
         yield prefix_rec
 
