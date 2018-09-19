@@ -1628,7 +1628,6 @@ class IntegrationTests(TestCase):
 
             output = check_output(PYTHON_BINARY + " -m pip install fs==2.1.0", cwd=prefix, shell=True)
             print(output)
-            assert "Successfully installed fs-2.1.0" in text_type(output)
             PrefixData._cache_.clear()
             assert package_is_installed(prefix, "fs==2.1.0")
             # six_record = next(PrefixData(prefix).query("six"))
