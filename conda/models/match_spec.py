@@ -288,24 +288,29 @@ class MatchSpec(object):
         name_matcher = self._match_components.get('name', '*')
         builder.append(('::%s' if builder else '%s') % name_matcher)
 
-        version_exact = False
         version = self._match_components.get('version')
+        build = self._match_components.get('build')
+        version_exact = False
         if version:
             version = text_type(version)
-            if any(s in version for s in '><$^|,!'):
+            if any(s in version for s in "><$^|,"):
                 brackets.append("version='%s'" % version)
-            elif version.endswith('.*'):
-                builder.append('=' + version[:-2])
-            elif version.endswith('*'):
-                builder.append('=' + version[:-1])
-            elif version.startswith('=='):
+            elif version[:2] in ("!=", "~="):
+                if build:
+                    brackets.append("version='%s'" % version)
+                else:
+                    builder.append(version)
+            elif version[-2:] == ".*":
+                builder.append("=" + version[:-2])
+            elif version[-1] == "*":
+                builder.append("=" + version[:-1])
+            elif version.startswith("=="):
                 builder.append(version)
                 version_exact = True
             else:
-                builder.append('==' + version)
+                builder.append("==" + version)
                 version_exact = True
 
-        build = self._match_components.get('build')
         if build:
             build = text_type(build)
             if any(s in build for s in '><$^|,'):
@@ -500,7 +505,7 @@ def _parse_version_plus_build(v_plus_b):
         >>> _parse_version_plus_build("* *")
         ('*', '*')
     """
-    parts = re.search(r'((?:.+?)[^><!,|]?)(?:(?<![=!|,<>])(?:[ =])([^-=,|<>]+?))?$', v_plus_b)
+    parts = re.search(r'((?:.+?)[^><!,|]?)(?:(?<![=!|,<>~])(?:[ =])([^-=,|<>~]+?))?$', v_plus_b)
     if parts:
         version, build = parts.groups()
         build = build and build.strip()
@@ -640,7 +645,7 @@ def _parse_spec_str(spec_str):
         subdir = brackets.pop('subdir')
 
     # Step 6. strip off package name from remaining version + build
-    m3 = re.match(r'([^ =<>!]+)?([><!= ].+)?', spec_str)
+    m3 = re.match(r'([^ =<>!~]+)?([><!=~ ].+)?', spec_str)
     if m3:
         name, spec_str = m3.groups()
         if name is None:

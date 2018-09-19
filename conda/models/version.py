@@ -229,6 +229,9 @@ class VersionOrder(object):
     def __str__(self):
         return self.norm_version
 
+    def __repr__(self):
+        return "%s(\"%s\")" % (self.__class__.__name__, self)
+
     def _eq(self, t1, t2):
         for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
             for c1, c2 in zip_longest(v1, v2, fillvalue=self.fillvalue):
@@ -389,11 +392,15 @@ def untreeify(spec, _inand=False):
     return spec
 
 
+def compatible_release_operator(x, y):
+    return op.__ge__(x, y) and x.startswith(VersionOrder(".".join(text_type(y).split(".")[:-1])))
+
+
 # This RE matches the operators '==', '!=', '<=', '>=', '<', '>'
 # followed by a version string. It rejects expressions like
 # '<= 1.2' (space after operator), '<>1.2' (unknown operator),
 # and '<=!1.2' (nonsensical operator).
-version_relation_re = re.compile(r'^(=|==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
+version_relation_re = re.compile(r'^(=|==|!=|<=|>=|<|>|~=)(?![=<>!~])(\S+)$')
 regex_split_re = re.compile(r'.*[()|,^$]')
 OPERATOR_MAP = {
     '==': op.__eq__,
@@ -402,10 +409,11 @@ OPERATOR_MAP = {
     '>=': op.__ge__,
     '<': op.__lt__,
     '>': op.__gt__,
-    '=': lambda x, y: text_type(x).startswith(text_type(y)),
-    "!=startswith": lambda x, y: not text_type(x).startswith(text_type(y)),
+    '=': lambda x, y: x.startswith(y),
+    "!=startswith": lambda x, y: not x.startswith(y),
+    "~=": compatible_release_operator,
 }
-OPERATOR_START = frozenset(('=', '<', '>', '!'))
+OPERATOR_START = frozenset(('=', '<', '>', '!', '~'))
 
 class BaseSpec(object):
 
