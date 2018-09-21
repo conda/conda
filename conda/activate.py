@@ -15,6 +15,7 @@ from tempfile import NamedTemporaryFile
 #   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CondaError
 from ._vendor.toolz import concatv, drop
+from ._vendor.auxlib.ish import dals
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
 from .common.path import paths_equal
@@ -102,8 +103,9 @@ class _Activator(object):
         condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
         self.export_var_tmpl % ("PATH", self.pathsep_join((condabin_dir, )))
 
-        with open(self.hook_source_path) as fsrc:
-            builder.append(fsrc.read())
+        if self.hook_source_path is not None:
+            with open(self.hook_source_path) as fsrc:
+                builder.append(fsrc.read())
         if auto_activate_base is None and context.auto_activate_base or auto_activate_base:
             builder.append("conda activate base\n")
         return "\n".join(builder)
@@ -757,7 +759,7 @@ class FishActivator(_Activator):
                     % (context.conda_exe, context.conda_prefix, context.conda_exe))
 
 
-class PowershellActivator(_Activator):
+class PowerShellActivator(_Activator):
 
     def __init__(self, arguments=None):
         self.pathsep_join = ';'.join
@@ -772,12 +774,16 @@ class PowershellActivator(_Activator):
         self.set_var_tmpl = '$env:%s = "%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = '. "%s"'
 
-        self.hook_source_path = None  # TODO: doesn't yet exist
+        self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda-hook.ps1')
 
-        super(PowershellActivator, self).__init__(arguments)
+        super(PowerShellActivator, self).__init__(arguments)
 
     def _hook_preamble(self):
-        raise NotImplementedError()
+        return dals(f"""
+        $Env:CONDA_EXE = "{context.conda_exe}"
+        $Env:_CONDA_ROOT = "{context.conda_prefix}"
+        $Env:_CONDA_EXE = "{context.conda_exe}"
+        """)
 
 
 activator_map = {
@@ -791,7 +797,7 @@ activator_map = {
     'xonsh': XonshActivator,
     'cmd.exe': CmdExeActivator,
     'fish': FishActivator,
-    'powershell': PowershellActivator,
+    'powershell': PowerShellActivator,
 }
 
 

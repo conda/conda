@@ -45,7 +45,7 @@ from tempfile import NamedTemporaryFile
 
 from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
-from ..activate import CshActivator, FishActivator, PosixActivator, XonshActivator
+from ..activate import CshActivator, FishActivator, PosixActivator, XonshActivator, PowerShellActivator
 from ..base.context import context
 from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_text_type, on_mac,
                              on_win, open)
@@ -360,6 +360,20 @@ def make_install_plan(conda_prefix):
         'function': install_conda_fish.__name__,
         'kwargs': {
             'target_path': join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish'),
+            'conda_prefix': conda_prefix,
+        },
+    })
+    plan.append({
+        'function': install_conda_psm1.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, 'shell', 'condabin', 'Conda.psm1'),
+            'conda_prefix': conda_prefix,
+        },
+    })
+    plan.append({
+        'function': install_conda_hook_ps1.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, 'shell', 'condabin', 'conda-hook.ps1'),
             'conda_prefix': conda_prefix,
         },
     })
@@ -830,6 +844,17 @@ def install_conda_fish(target_path, conda_prefix):
     file_content = FishActivator().hook(auto_activate_base=False)
     return _install_file(target_path, file_content)
 
+def install_conda_psm1(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'shell', 'condabin', 'Conda.psm1')
+    conda_psm1_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'Conda.psm1')
+    with open(conda_psm1_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+def install_conda_hook_ps1(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'shell', 'condabin', 'conda-hook.ps1')
+    file_content = PowerShellActivator().hook(auto_activate_base=False)
+    return _install_file(target_path, file_content)
 
 def install_conda_xsh(target_path, conda_prefix):
     # target_path: join(site_packages_dir, 'xonsh', 'conda.xsh')
@@ -1163,8 +1188,49 @@ def init_long_path(target_path):
                   'the fall 2016 "Anniversary update" or newer.')
             return Result.NO_CHANGE
 
+def _powershell_profile_content(conda_prefix):
+    if on_win:
+        conda_exe = join(conda_prefix, 'Scripts', 'conda.exe')
+    else:
+        conda_exe = join(conda_prefix, 'bin', 'conda')
+
+    conda_powershell_module = dals(f"""
+    #region conda initialize
+    # !! Contents within this block are managed by 'conda init' !!
+    (& {conda_exe} shell.powershell hook) | Out-String | Invoke-Expression
+    #endregion
+    """)
+
+    return conda_powershell_module
+
 def init_powershell_user(target_path, conda_prefix):
-    print(f"TODO: write to $PROFILE == {target_path}")
+    # target_path: $PROFILE
+    profile_path = target_path
+
+    with open(profile_path) as fp:
+        profile_content = fp.read()
+
+    profile_original_content = profile_content
+
+    # Find what content we need to add.
+    conda_initialize_content = _powershell_profile_content(conda_prefix)
+
+    # TODO: comment out old ipmos and Import-Modules.
+    
+    if "#region conda initialize" not in profile_content:
+        profile_content += f"\n{conda_initialize_content}\n"
+    
+    if profile_content != profile_original_content:
+        if context.verbosity:
+            print('\n')
+            print(target_path)
+            print(make_diff(profile_original_content, profile_content))
+        if not context.dry_run:
+            with open(profile_path, 'w') as fp:
+                fp.write(profile_content)
+        return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
 
 
 def remove_conda_in_sp_dir(target_path):

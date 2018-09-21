@@ -14,7 +14,7 @@ from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
-    PowershellActivator, XonshActivator, activator_map, main as activate_main, native_path_to_unix
+    PowerShellActivator, XonshActivator, activator_map, main as activate_main, native_path_to_unix
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context, reset_context
 from conda.common.compat import ensure_text_type, iteritems, on_win, \
@@ -1036,7 +1036,7 @@ class ShellWrapperUnitTests(TestCase):
             }
 
     def test_powershell_basic(self):
-        activator = PowershellActivator()
+        activator = PowerShellActivator()
         self.make_dot_d_files(activator.script_extension)
 
         with captured() as c:
@@ -1068,7 +1068,7 @@ class ShellWrapperUnitTests(TestCase):
             'CONDA_SHLVL': '1',
             'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
         }):
-            activator = PowershellActivator()
+            activator = PowerShellActivator()
             with captured() as c:
                 rc = activate_main(('', 'shell.powershell', 'reactivate'))
             assert not c.stderr
