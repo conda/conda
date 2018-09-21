@@ -439,10 +439,24 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
             raise NotImplementedError()
 
     if 'powershell' in shells:
-        if for_user:
-            raise NotImplementedError()
+        # There's several places PowerShell can store its path, depending
+        # on if it's Windows PowerShell, PowerShell Core on Windows, or
+        # PowerShell Core on macOS/Linux. The easiest way to resolve it is to
+        # just ask different possible installations of PowerShell where their
+        # profiles are.
+        config_powershell_paths = list(map(find_powershell_path, ['powershell', 'pwsh', 'pwsh-preview']))
+        for config_path in config_powershell_paths:
+            if config_path is not None:
+                plan.append({
+                    'function': init_powershell_user.__name__,
+                    'kwargs': {
+                        'target_path': config_path,
+                        'conda_prefix': conda_prefix
+                    }
+                })
+    
         if for_system:
-            raise NotImplementedError()
+            raise NotImplementedError("PowerShell hooks are only implemented for per-user profiles.")
 
     if 'cmd.exe' in shells:
         if for_user:
@@ -1149,6 +1163,9 @@ def init_long_path(target_path):
                   'the fall 2016 "Anniversary update" or newer.')
             return Result.NO_CHANGE
 
+def init_powershell_user(target_path, conda_prefix):
+    print(f"TODO: write to $PROFILE == {target_path}")
+
 
 def remove_conda_in_sp_dir(target_path):
     # target_path: site_packages_dir
@@ -1288,6 +1305,11 @@ def _get_python_info(prefix):
                              win_path_ok(get_python_site_packages_short_path(python_version)))
     return python_exe, python_version, site_packages_dir
 
+def find_powershell_path(exe_name):
+    try:
+        return subprocess_call([exe_name, '-NoProfile', '-Command', '$PROFILE']).stdout.strip()
+    except:
+        return None
 
 if __name__ == "__main__":
     if on_win:
