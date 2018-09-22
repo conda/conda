@@ -55,8 +55,6 @@ function New-EnvironmentNameParameter() {
     $AttributeCollection.Add((New-ParameterAttribute -Position $Position));
 
     $ValidEnvs = Get-CondaEnvironment | ForEach-Object { $_.Name } | Where-Object { $_.Length -ne 0 };
-    $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($ValidEnvs);
-    $AttributeCollection.Add($ValidateSetAttribute);
 
     $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection);
 
@@ -266,6 +264,71 @@ function Invoke-Conda {
     }
 }
 
+## TAB COMPLETION ##############################################################
+# We borrow the approach used by posh-git, in which we override any existing
+# functions named TabExpansion, look for commands we can complete on, and then
+# default to the previously defined TabExpansion function for everything else.
+
+if (Test-Path Function:\TabExpansion) {
+    # Since this technique is common, we encounter an infinite loop if it's
+    # used more than once unless we give our backup a unique name.
+    Rename-Item Function:\TabExpansion CondaTabExpansionBackup
+}
+
+function Expand-CondaEnv() {
+    param(
+        [string]
+        $Filter
+    );
+
+    $ValidEnvs = Get-CondaEnvironment;
+    $ValidEnvs `
+        | Where-Object { $_.Name -like "$filter*" } `
+        | ForEach-Object { $_.Name } `
+        | Write-Output;
+    $ValidEnvs `
+        | Where-Object { $_.Path -like "$filter*" } `
+        | ForEach-Object { $_.Path } `
+        | Write-Output;
+
+}
+
+function Expand-CondaSubcommands() {
+    param(
+        [string]
+        $Filter
+    );
+
+    $ValidCommands = Invoke-Conda shell_support.commands;
+
+    # Add in the commands defined within this wrapper, filter, sort, and return.
+    $ValidCommands + @('activate', 'deactivate') `
+        | Where-Object { $_ -like "$Filter*" } `
+        | Sort-Object `
+        | Write-Output;
+    
+}
+
+function TabExpansion($line, $lastWord) {
+    $lastBlock = [regex]::Split($line, '[|;]')[-1].TrimStart()
+
+    switch -regex ($lastBlock) {
+        # Pull out conda commands we recognize first before falling through
+        # to the general patterns for conda itself.
+        "^conda activate (.*)" { Expand-CondaEnv $lastWord; break; }
+        "^etenv (.*)" { Expand-CondaEnv $lastWord; break; }
+
+        # If we got down to here, check arguments to conda itself.
+        "^conda (.*)" { Expand-CondaSubcommands $lastWord; break; }
+
+        # Finally, fall back on existing tab expansion.
+        default {
+            if (Test-Path Function:\CondaTabExpansionBackup) {
+                CondaTabExpansionBackup $line $lastWord
+            }
+        }
+    }
+}
 
 ## PROMPT MANAGEMENT ###########################################################
 
