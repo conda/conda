@@ -12,7 +12,7 @@ from .dist import Dist
 from .records import PackageRecord, PackageRef
 from .version import BuildNumberMatch, VersionSpec
 from .._vendor.auxlib.collection import frozendict
-from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..base.constants import CONDA_TARBALL_EXTENSIONS
 from ..common.compat import (isiterable, iteritems, itervalues, string_types, text_type,
                              with_metaclass)
 from ..common.path import expand
@@ -233,7 +233,7 @@ class MatchSpec(object):
             return fn_field
         vals = tuple(self.get_exact_value(x) for x in ('name', 'version', 'build'))
         if not any(x is None for x in vals):
-            return '%s-%s-%s.tar.bz2' % vals
+            return '%s-%s-%s2%s' % (vals, CONDA_TARBALL_EXTENSIONS[0])
         else:
             return None
 
@@ -476,8 +476,8 @@ def _parse_legacy_dist(dist_str):
         >>> _parse_legacy_dist("_license-1.1-py27_1")
         ('_license', '1.1', 'py27_1')
     """
-    if dist_str.endswith(CONDA_TARBALL_EXTENSION):
-        dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSION)]
+    if dist_str.endswith(CONDA_TARBALL_EXTENSIONS):
+        dist_str = dist_str[:-len(CONDA_TARBALL_EXTENSIONS[0])]
     name, version, build = dist_str.rsplit('-', 2)
     return name, version, build
 
@@ -506,7 +506,7 @@ def _parse_spec_str(spec_str):
         spec_str.strip()
 
     # Step 2. done if spec_str is a tarball
-    if spec_str.endswith(CONDA_TARBALL_EXTENSION):
+    if spec_str.endswith(CONDA_TARBALL_EXTENSIONS):
         # treat as a normal url
         if not is_url(spec_str):
             spec_str = unquote(path_to_url(expand(spec_str)))

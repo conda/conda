@@ -13,7 +13,7 @@ from conda._vendor.auxlib.decorators import memoizemethod
 from .path_actions import CacheUrlAction, ExtractPackageAction
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
-from ..base.constants import CONDA_TARBALL_EXTENSION, PACKAGE_CACHE_MAGIC_FILE
+from ..base.constants import CONDA_TARBALL_EXTENSIONS, PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import (JSONDecodeError, iteritems, itervalues, odict, string_types,
                              text_type, with_metaclass)
@@ -88,7 +88,7 @@ class PackageCacheData(object):
             if islink(full_path):
                 continue
             elif (isdir(full_path) and isfile(join(full_path, 'info', 'index.json'))
-                  or isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSION)):
+                  or isfile(full_path) and full_path.endswith(CONDA_TARBALL_EXTENSIONS)):
                 package_cache_record = self._make_single_record(base_name)
                 if package_cache_record:
                     _package_cache_records[package_cache_record] = package_cache_record
@@ -269,12 +269,12 @@ class PackageCacheData(object):
         return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
 
     def _make_single_record(self, package_filename):
-        if not package_filename.endswith(CONDA_TARBALL_EXTENSION):
-            package_filename += CONDA_TARBALL_EXTENSION
+        if not package_filename.endswith(CONDA_TARBALL_EXTENSIONS):
+            package_filename += CONDA_TARBALL_EXTENSIONS[0]
 
         package_tarball_full_path = join(self.pkgs_dir, package_filename)
         log.trace("adding to package cache %s", package_tarball_full_path)
-        extracted_package_dir = package_tarball_full_path[:-len(CONDA_TARBALL_EXTENSION)]
+        extracted_package_dir = package_tarball_full_path[:-len(CONDA_TARBALL_EXTENSIONS[0])]
 
         # try reading info/repodata_record.json
         try:
@@ -385,7 +385,7 @@ class PackageCacheData(object):
         contents = []
 
         def _process(x, y):
-            if x + CONDA_TARBALL_EXTENSION != y:
+            if x + CONDA_TARBALL_EXTENSIONS[0] != y:
                 contents.append(x)
             return y
 
@@ -425,8 +425,8 @@ class UrlsData(object):
         # package path can be a full path or just a basename
         #   can be either an extracted directory or tarball
         package_path = basename(package_path)
-        if not package_path.endswith(CONDA_TARBALL_EXTENSION):
-            package_path += CONDA_TARBALL_EXTENSION
+        if not package_path.endswith(CONDA_TARBALL_EXTENSIONS):
+            package_path += CONDA_TARBALL_EXTENSIONS[0]
         return first(self, lambda url: basename(url) == package_path)
 
 
@@ -500,7 +500,7 @@ class ProgressiveFetchExtract(object):
                 md5sum=md5,
                 expected_size_in_bytes=expected_size_in_bytes,
             )
-            trgt_extracted_dirname = pcrec_from_read_only_cache.fn[:-len(CONDA_TARBALL_EXTENSION)]
+            trgt_extracted_dirname = pcrec_from_read_only_cache.fn[:-len(CONDA_TARBALL_EXTENSIONS[0])]
             extract_axn = ExtractPackageAction(
                 source_full_path=cache_axn.target_full_path,
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
@@ -528,7 +528,7 @@ class ProgressiveFetchExtract(object):
         extract_axn = ExtractPackageAction(
             source_full_path=cache_axn.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_extracted_dirname=pref_or_spec.fn[:-len(CONDA_TARBALL_EXTENSION)],
+            target_extracted_dirname=pref_or_spec.fn[:-len(CONDA_TARBALL_EXTENSIONS[0])],
             record_or_spec=pref_or_spec,
             md5sum=md5,
         )

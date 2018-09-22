@@ -12,6 +12,7 @@ from .path import split_filename
 from .._vendor.auxlib.decorators import memoize
 from .._vendor.urllib3.exceptions import LocationParseError
 from .._vendor.urllib3.util.url import Url, parse_url
+from ..base.constants import CONDA_TARBALL_EXTENSIONS
 
 try:  # pragma: py2 no cover
     # Python 3
@@ -189,6 +190,11 @@ def split_anaconda_token(url):
     return cleaned_url.rstrip('/'), token
 
 
+def rreplace(s, old, new, occurrence):
+    li = s.rsplit(old, occurrence)
+    return new.join(li)
+
+
 def split_platform(url, known_subdirs):
     """
 
@@ -201,7 +207,7 @@ def split_platform(url, known_subdirs):
     _platform_match_regex = r'/(%s)/?' % r'|'.join(r'%s' % d for d in known_subdirs)
     _platform_match = re.search(_platform_match_regex, url, re.IGNORECASE)
     platform = _platform_match.groups()[0] if _platform_match else None
-    cleaned_url = url.replace('/' + platform, '', 1) if platform is not None else url
+    cleaned_url = rreplace(url, '/' + platform, '', 1) if platform is not None else url
     return cleaned_url.rstrip('/'), platform
 
 
@@ -214,7 +220,7 @@ def has_platform(url, known_subdirs):
 
 
 def _split_package_filename(url):
-    cleaned_url, package_filename = (url.rsplit('/', 1) if url.endswith(('.tar.bz2', '.json'))
+    cleaned_url, package_filename = (url.rsplit('/', 1) if url.endswith((CONDA_TARBALL_EXTENSIONS + ('.json',)))
                                      else (url, None))
     return cleaned_url, package_filename
 

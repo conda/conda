@@ -10,6 +10,7 @@ import re
 import shutil
 import sys
 
+from .base.constants import CONDA_TARBALL_EXTENSIONS
 from .base.context import context
 from .common.compat import iteritems, itervalues, on_win, open
 from .common.path import expand
@@ -40,8 +41,9 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
+exts = r'|'.join([re.escape(ext) for ext in CONDA_TARBALL_EXTENSIONS])
 url_pat = re.compile(r'(?:(?P<url_p>.+)(?:[/\\]))?'
-                     r'(?P<fn>[^/\\#]+\.tar\.bz2)'
+                     r'(?P<fn>[^/\\#]+('+exts+r'))'
                      r'(:?#(?P<md5>[0-9a-f]{32}))?$')
 def explicit(specs, prefix, verbose=False, force_extract=True, index_args=None, index=None):
     actions = defaultdict(list)

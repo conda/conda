@@ -6,7 +6,7 @@ from itertools import chain
 from logging import getLogger
 
 from .._vendor.boltons.setutils import IndexedSet
-from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
+from ..base.constants import CONDA_TARBALL_EXTENSIONS, DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
 from ..common.path import is_path, win_path_backout
@@ -108,7 +108,7 @@ class Channel(object):
             return Channel.from_url(value)
         elif is_path(value):
             return Channel.from_url(path_to_url(value))
-        elif value.endswith('.tar.bz2'):
+        elif value.endswith(CONDA_TARBALL_EXTENSIONS):
             if value.startswith('file:'):
                 value = win_path_backout(value)
             return Channel.from_url(value)

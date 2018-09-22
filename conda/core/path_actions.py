@@ -13,7 +13,7 @@ from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
-from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..base.constants import CONDA_TARBALL_EXTENSIONS
 from ..base.context import context
 from ..common.compat import iteritems, on_win, text_type
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
@@ -774,7 +774,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             type=self.requested_link_type,
         )
         extracted_package_dir = self.package_info.extracted_package_dir
-        package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
+        package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSIONS[0]
         # TODO: don't make above assumption; put package_tarball_full_path in package_info
 
         files = (x.target_short_path for x in self.all_link_path_actions if x)
