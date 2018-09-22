@@ -33,6 +33,7 @@ Additional help for each command can be accessed by using:
     conda <command> -h
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
+from .find_commands import find_builtin_commands, find_commands
 
 import sys
 
@@ -103,6 +104,14 @@ def main(*args, **kwargs):
             if argv1.startswith('shell.'):
                 from ..activate import main as activator_main
                 return activator_main()
+            elif argv1.startswith('shell_support.'):
+                # Hidden commands to provide metadata to shells.
+                if argv1 == 'shell_support.commands':
+                    for command in sorted(
+                            find_builtin_commands() + list(find_commands(True))
+                    ):
+                        print(command)
+                    return
             elif argv1.startswith('..'):
                 import conda.cli.activate as activate
                 activate.main()

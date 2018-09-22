@@ -11,6 +11,7 @@ import sysconfig
 
 from .._vendor.auxlib.decorators import memoize
 from ..common.compat import on_win
+from .conda_argparse import generate_parser
 
 
 def find_executable(executable, include_others=True):
@@ -43,6 +44,13 @@ def find_executable(executable, include_others=True):
             if isfile(expanduser(path)):
                 return expanduser(path)
     return None
+
+
+def find_builtin_commands():
+    # ArgumentParser doesn't have an API for getting back what subparsers
+    # exist, so we need to use internal properties to do so.
+    p = generate_parser()
+    return list(p._subparsers._group_actions[0].choices.keys())
 
 
 @memoize
