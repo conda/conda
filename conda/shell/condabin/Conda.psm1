@@ -118,19 +118,12 @@ function Get-CondaEnvironment {
 function Enter-CondaEnvironment {
     [CmdletBinding()]
     param(
+        [Parameter(Position=0)]
+        [string]
+        $Name
     );
 
-    DynamicParam {
-        $ParameterName = "Name";
-
-        $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary;
-        $RuntimeParameterDictionary.Add($ParameterName, (New-EnvironmentNameParameter $ParameterName -Position 0));
-        return $RuntimeParameterDictionary;
-    }
-
     begin {
-        $Name = $PSBoundParameters[$ParameterName];
-
         $activateCommand = (& $Env:CONDA_EXE shell.powershell activate $Name | Out-String);
         Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
         Invoke-Expression -Command $activateCommand;
@@ -385,3 +378,13 @@ New-Alias conda Invoke-Conda -Force
 New-Alias genv Get-CondaEnvironment -Force
 New-Alias etenv Enter-CondaEnvironment -Force
 New-Alias exenv Exit-CondaEnvironment -Force
+
+## EXPORTS ###################################################################
+
+Export-ModuleMember `
+    -Alias * `
+    -Function `
+        Invoke-Conda, `
+        Get-CondaEnvironment, `
+        Enter-CondaEnvironment, Exit-CondaEnvironment, `
+        TabExpansion, prompt
