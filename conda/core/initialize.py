@@ -45,7 +45,8 @@ from tempfile import NamedTemporaryFile
 
 from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
-from ..activate import CshActivator, FishActivator, PosixActivator, XonshActivator, PowerShellActivator
+from ..activate import (CshActivator, FishActivator,
+                        PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context
 from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_text_type, on_mac,
                              on_win, open)
@@ -458,7 +459,9 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
         # PowerShell Core on macOS/Linux. The easiest way to resolve it is to
         # just ask different possible installations of PowerShell where their
         # profiles are.
-        config_powershell_paths = list(map(find_powershell_path, ['powershell', 'pwsh', 'pwsh-preview']))
+        config_powershell_paths = list(
+            map(find_powershell_path, ['powershell', 'pwsh', 'pwsh-preview'])
+        )
         for config_path in config_powershell_paths:
             if config_path is not None:
                 plan.append({
@@ -468,9 +471,11 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                         'conda_prefix': conda_prefix
                     }
                 })
-    
+
         if for_system:
-            raise NotImplementedError("PowerShell hooks are only implemented for per-user profiles.")
+            raise NotImplementedError(
+                "PowerShell hooks are only implemented for per-user profiles."
+            )
 
     if 'cmd.exe' in shells:
         if for_user:
@@ -1376,6 +1381,7 @@ def find_powershell_path(exe_name):
         return subprocess_call([exe_name, '-NoProfile', '-Command', '$PROFILE']).stdout.strip()
     except:
         return None
+
 
 if __name__ == "__main__":
     if on_win:
