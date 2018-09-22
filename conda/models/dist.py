@@ -10,7 +10,7 @@ from .records import PackageRecord, PackageRef
 from .package_info import PackageInfo
 from .. import CondaError
 from .._vendor.auxlib.entity import Entity, EntityType, IntegerField, StringField
-from ..base.constants import CONDA_TARBALL_EXTENSION, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
+from ..base.constants import CONDA_TARBALL_EXTENSIONS, DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, text_type, with_metaclass
 from ..common.constants import NULL
@@ -145,8 +145,8 @@ class Dist(Entity):
                      )
         channel, original_dist, w_f_d = re.search(REGEX_STR, string).groups()
 
-        if original_dist.endswith(CONDA_TARBALL_EXTENSION):
-            original_dist = original_dist[:-len(CONDA_TARBALL_EXTENSION)]
+        if original_dist.endswith(CONDA_TARBALL_EXTENSIONS):
+            original_dist = original_dist[:-len(CONDA_TARBALL_EXTENSIONS[0])]
 
         if channel_override != NULL:
             channel = channel_override
@@ -168,8 +168,8 @@ class Dist(Entity):
         try:
             string = ensure_text_type(string)
 
-            no_tar_bz2_string = (string[:-len(CONDA_TARBALL_EXTENSION)]
-                                 if string.endswith(CONDA_TARBALL_EXTENSION)
+            no_tar_bz2_string = (string[:-len(CONDA_TARBALL_EXTENSIONS[0])]
+                                 if string.endswith(CONDA_TARBALL_EXTENSIONS)
                                  else string)
 
             # remove any directory or channel information
@@ -196,7 +196,7 @@ class Dist(Entity):
     @classmethod
     def from_url(cls, url):
         assert is_url(url), url
-        if not url.endswith(CONDA_TARBALL_EXTENSION) and '::' not in url:
+        if not url.endswith(CONDA_TARBALL_EXTENSIONS) and '::' not in url:
             raise CondaError("url '%s' is not a conda package" % url)
 
         dist_details = cls.parse_dist_name(url)
@@ -223,7 +223,7 @@ class Dist(Entity):
     def to_url(self):
         if not self.base_url:
             return None
-        filename = self.dist_name + CONDA_TARBALL_EXTENSION
+        filename = self.dist_name + CONDA_TARBALL_EXTENSIONS[0]
         return (join_url(self.base_url, self.platform, filename)
                 if self.platform
                 else join_url(self.base_url, filename))
@@ -273,8 +273,8 @@ class Dist(Entity):
 
     def __contains__(self, item):
         item = ensure_text_type(item)
-        if item.endswith(CONDA_TARBALL_EXTENSION):
-            item = item[:-len(CONDA_TARBALL_EXTENSION)]
+        if item.endswith(CONDA_TARBALL_EXTENSIONS):
+            item = item[:-len(CONDA_TARBALL_EXTENSIONS[0])]
         return item in self.__str__()
 
     @property

@@ -6,7 +6,7 @@ from os import listdir
 from logging import getLogger
 from os.path import isfile, join, lexists
 
-from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
+from ..base.constants import CONDA_TARBALL_EXTENSIONS, PREFIX_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import JSONDecodeError, itervalues, string_types, with_metaclass
 from ..common.constants import NULL
@@ -59,8 +59,8 @@ class PrefixData(object):
     def insert(self, prefix_record):
         assert prefix_record.name not in self._prefix_records
 
-        assert prefix_record.fn.endswith(CONDA_TARBALL_EXTENSION)
-        filename = prefix_record.fn[:-len(CONDA_TARBALL_EXTENSION)] + '.json'
+        assert prefix_record.fn.endswith(CONDA_TARBALL_EXTENSIONS)
+        filename = prefix_record.fn[:-len(CONDA_TARBALL_EXTENSIONS[0])] + '.json'
 
         prefix_record_json_path = join(self.prefix_path, 'conda-meta', filename)
         if lexists(prefix_record_json_path):
@@ -80,7 +80,7 @@ class PrefixData(object):
 
         prefix_record = self._prefix_records[package_name]
 
-        filename = prefix_record.fn[:-len(CONDA_TARBALL_EXTENSION)] + '.json'
+        filename = prefix_record.fn[:-len(CONDA_TARBALL_EXTENSIONS[0])] + '.json'
         conda_meta_full_path = join(self.prefix_path, 'conda-meta', filename)
         rm_rf(conda_meta_full_path)
 

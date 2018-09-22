@@ -101,7 +101,7 @@ DEFAULT_AGGRESSIVE_UPDATE_PACKAGES = (
 # Maximum priority, reserved for packages we really want to remove
 MAX_CHANNEL_PRIORITY = 10000
 
-CONDA_TARBALL_EXTENSION = '.tar.bz2'
+CONDA_TARBALL_EXTENSIONS = ('.tar.zst', 'tar.bz2')
 
 UNKNOWN_CHANNEL = "<unknown>"
 

@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import contextlib
 from errno import EACCES, ELOOP, EPERM
 from io import open
 from logging import getLogger
 import os
-from os import X_OK, access, fstat
+from os import X_OK, access, fstat, makedirs
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
+import libarchive
 import sys
 import tarfile
 
@@ -156,6 +158,27 @@ class ProgressFileWrapper(object):
         self.progress_update_callback(rel_pos)
 
 
+@contextlib.contextmanager
+def tmp_chdir(dest):
+    curdir = os.getcwd()
+    try:
+        os.chdir(dest)
+        yield
+    finally:
+        os.chdir(curdir)
+
+def tar_xf(tarball, dir_path):
+    flags = libarchive.extract.EXTRACT_TIME | \
+            libarchive.extract.EXTRACT_PERM | \
+            libarchive.extract.EXTRACT_SECURE_NODOTDOT | \
+            libarchive.extract.EXTRACT_SECURE_SYMLINKS | \
+            libarchive.extract.EXTRACT_SECURE_NOABSOLUTEPATHS
+    if not os.path.isabs(tarball):
+        tarball = os.path.join(os.getcwd(), tarball)
+    with tmp_chdir(dir_path):
+        libarchive.extract_file(tarball, flags)
+
+
 def extract_tarball(tarball_full_path, destination_directory=None, progress_update_callback=None):
     if destination_directory is None:
         destination_directory = tarball_full_path[:-8]
@@ -163,21 +186,26 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
 
     assert not lexists(destination_directory), destination_directory
 
+    # with open(tarball_full_path, 'rb') as fileobj:
+    #     if progress_update_callback:
+    #         fileobj = ProgressFileWrapper(fileobj, progress_update_callback)
+    #     with tarfile.open(fileobj=fileobj) as tar_file:
+    #         try:
+    #              tar_file.extractall(path=destination_directory)
+    #         except EnvironmentError as e:
+    #             if e.errno == ELOOP:
+    #                 raise CaseInsensitiveFileSystemError(
+    #                     package_location=tarball_full_path,
+    #                     extract_location=destination_directory,
+    #                    caused_by=e,
+    #                 )
+    #             else:
+    #                raise
+    makedirs(destination_directory)
     with open(tarball_full_path, 'rb') as fileobj:
         if progress_update_callback:
             fileobj = ProgressFileWrapper(fileobj, progress_update_callback)
-        with tarfile.open(fileobj=fileobj) as tar_file:
-            try:
-                tar_file.extractall(path=destination_directory)
-            except EnvironmentError as e:
-                if e.errno == ELOOP:
-                    raise CaseInsensitiveFileSystemError(
-                        package_location=tarball_full_path,
-                        extract_location=destination_directory,
-                        caused_by=e,
-                    )
-                else:
-                    raise
+        tar_xf(tarball_full_path, destination_directory)
 
     if sys.platform.startswith('linux') and os.getuid() == 0:
         # When extracting as root, tarfile will by restore ownership
