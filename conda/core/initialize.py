@@ -1223,7 +1223,7 @@ def init_powershell_user(target_path, conda_prefix):
     # TODO: comment out old ipmos and Import-Modules.
 
     if "#region conda initialize" not in profile_content:
-        profile_content += f"\n{conda_initialize_content}\n"
+        profile_content += "\n{}\n".format(conda_initialize_content)
 
     if profile_content != profile_original_content:
         if context.verbosity:

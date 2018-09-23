@@ -779,11 +779,11 @@ class PowerShellActivator(_Activator):
         super(PowerShellActivator, self).__init__(arguments)
 
     def _hook_preamble(self):
-        return dals(f"""
+        return dals("""
         $Env:CONDA_EXE = "{context.conda_exe}"
         $Env:_CONDA_ROOT = "{context.conda_prefix}"
         $Env:_CONDA_EXE = "{context.conda_exe}"
-        """)
+        """.format(context=context))
 
 
 activator_map = {
