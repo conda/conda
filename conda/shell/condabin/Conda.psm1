@@ -347,7 +347,7 @@ if (Test-Path Function:\prompt) {
 #>
 function prompt() {
     if ($Env:CONDA_PROMPT_MODIFIER) {
-        $Env:CONDA_PROMPT_MODIFIER | Write-Host
+        $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline
     }
     CondaPromptBackup;
 }
