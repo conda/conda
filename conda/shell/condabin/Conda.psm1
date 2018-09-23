@@ -352,8 +352,6 @@ function Add-CondaEnvironmentToPrompt {
         $NewLine
     );
 
-    $oldPrompt = Get-CurrentPrompt;
-
     if ($NewLine) {
         Set-Content Function:\prompt -Value {
             if ($Env:CONDA_PROMPT_MODIFIER) {
