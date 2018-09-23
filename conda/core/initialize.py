@@ -1199,12 +1199,12 @@ def _powershell_profile_content(conda_prefix):
     else:
         conda_exe = join(conda_prefix, 'bin', 'conda')
 
-    conda_powershell_module = dals(f"""
+    conda_powershell_module = dals("""
     #region conda initialize
     # !! Contents within this block are managed by 'conda init' !!
     (& {conda_exe} shell.powershell hook) | Out-String | Invoke-Expression
     #endregion
-    """)
+    """.format(conda_exe=conda_exe))
 
     return conda_powershell_module
 
