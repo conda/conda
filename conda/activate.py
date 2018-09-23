@@ -763,7 +763,7 @@ class PowerShellActivator(_Activator):
 
     def __init__(self, arguments=None):
         self.pathsep_join = ';'.join
-        self.sep = '\\'
+        self.sep = '/' # Even on Windows, PowerShell can handle Unix-style separators.
         self.path_conversion = path_identity
         self.script_extension = '.ps1'
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
