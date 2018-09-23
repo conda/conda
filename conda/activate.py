@@ -763,15 +763,15 @@ class PowerShellActivator(_Activator):
 
     def __init__(self, arguments=None):
         self.pathsep_join = ';'.join if on_win else ':'.join
-        self.sep = '/' # Even on Windows, PowerShell can handle Unix-style separators.
+        self.sep = '/'  # Even on Windows, PowerShell can handle Unix-style separators.
         self.path_conversion = path_identity
         self.script_extension = '.ps1'
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
         self.command_join = '\n'
 
-        self.unset_var_tmpl = 'Remove-Variable %s'
+        self.unset_var_tmpl = 'Remove-Item Env:/%s'
         self.export_var_tmpl = '$env:%s = "%s"'
-        self.set_var_tmpl = '$env:%s = "%s"'  # TODO: determine if different than export_var_tmpl
+        self.set_var_tmpl = '$env:%s = "%s"'
         self.run_script_tmpl = '. "%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda-hook.ps1')

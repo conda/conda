@@ -93,13 +93,6 @@ function Exit-CondaEnvironment {
         if ($deactivateCommand.Trim().Length -eq 0) {
             return;
         }
-        # NB: This is an utter hack.
-        #     As of conda 4.5.9, the PowershellActivator class incorrectly emits
-        #     Remove-Variable instead of Remove-Item Env:/, so we replace here.
-        $deactivateCommand = $deactivateCommand.Replace(
-            "Remove-Variable ", # NOTE THE SPACE. We want to eat the whole thing.
-            "Remove-Item Env:/"
-        );
         Write-Verbose "[conda shell.powershell deactivate]`n$deactivateCommand";
         Invoke-Expression -Command $deactivateCommand;
     }
