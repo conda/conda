@@ -762,7 +762,7 @@ class FishActivator(_Activator):
 class PowerShellActivator(_Activator):
 
     def __init__(self, arguments=None):
-        self.pathsep_join = ';'.join
+        self.pathsep_join = ';'.join if on_win else ':'.join
         self.sep = '/' # Even on Windows, PowerShell can handle Unix-style separators.
         self.path_conversion = path_identity
         self.script_extension = '.ps1'
