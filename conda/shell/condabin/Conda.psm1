@@ -345,30 +345,12 @@ if (Test-Path Function:\prompt) {
         Causes the current session's prompt to display the currently activated
         conda environment.
 #>
-function Add-CondaEnvironmentToPrompt {
-    [CmdletBinding()]
-    param(
-        [switch]
-        $NewLine
-    );
-
-    if ($NewLine) {
-        Set-Content Function:\prompt -Value {
-            if ($Env:CONDA_PROMPT_MODIFIER) {
-                $Env:CONDA_PROMPT_MODIFIER | Write-Host
-            }
-            CondaPromptBackup;
-        }
-    } else {
-        Set-Content Function:\prompt -Value {
-            $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline;
-            CondaPromptBackup;
-        }
+function global:prompt() {
+    if ($Env:CONDA_PROMPT_MODIFIER) {
+        $Env:CONDA_PROMPT_MODIFIER | Write-Host
     }
-
+    CondaPromptBackup;
 }
-
-Add-CondaEnvironmentToPrompt
 
 ## ALIASES #####################################################################
 
