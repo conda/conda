@@ -324,14 +324,14 @@ function TabExpansion($line, $lastWord) {
 }
 
 ## PROMPT MANAGEMENT ###########################################################
+# We use the same procedure to nest prompts as we did for nested tab completion.
 
-function Get-CurrentPrompt {
-    $currentDefinition = (Get-Command prompt -ErrorAction SilentlyContinue).Definition;
-    if (-not $currentDefinition) {
-        # Make sure that a global prompt exists.
-        function global:prompt {
-            'PS> '
-        }
+if (Test-Path Function:\prompt) {
+    Rename-Item Function:\prompt CondaPromptBackup
+} else {
+    function CondaPromptBackup() {
+        # Restore a basic prompt if the definition is missing.
+        "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
     }
 }
 
@@ -359,12 +359,12 @@ function Add-CondaEnvironmentToPrompt {
             if ($Env:CONDA_PROMPT_MODIFIER) {
                 $Env:CONDA_PROMPT_MODIFIER | Write-Host
             }
-            & $oldPrompt;
+            CondaPromptBackup;
         }
     } else {
         Set-Content Function:\prompt -Value {
             $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline;
-            & $oldPrompt;
+            CondaPromptBackup;
         }
     }
 
