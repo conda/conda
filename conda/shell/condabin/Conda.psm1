@@ -1,67 +1,4 @@
 
-## DYNAMIC PARAMETERS ##########################################################
-
-function New-ParameterAttribute {
-    param(
-        [switch] $Mandatory,
-        [int] $Position
-    );
-
-    $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute;
-    $ParameterAttribute.Mandatory = $Mandatory.IsPresent;
-    $ParameterAttribute.Position = $Position;
-    $ParameterAttribute | Write-Output;
-}
-
-function New-RuntimeParameter {
-    [CmdletBinding()]
-    param(
-        [string]
-        $ParameterName,
-
-        [Parameter(ValueFromPipeline=$true)]
-        [System.Attribute]
-        $Attribute
-    );
-
-    begin {
-        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute];
-    }
-
-    process {
-        $AttributeCollection.Add($Attribute);
-    }
-
-    end {
-        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection);
-
-        return $RuntimeParameter;
-    }
-}
-
-
-function New-EnvironmentNameParameter() {
-    param(
-        [string]
-        $ParameterName,
-
-        [int]
-        $Position = 0
-    );
-
-
-    $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute];
-
-    $AttributeCollection.Add((New-ParameterAttribute -Position $Position));
-
-    $ValidEnvs = Get-CondaEnvironment | ForEach-Object { $_.Name } | Where-Object { $_.Length -ne 0 };
-
-    $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection);
-
-    return $RuntimeParameter;
-}
-
-
 ## ENVIRONMENT MANAGEMENT ######################################################
 
 <#
@@ -183,77 +120,31 @@ function Exit-CondaEnvironment {
     .EXAMPLE
         conda install toolz
 #>
-function Invoke-Conda {
-    [CmdletBinding()]
-    param (
-        [Parameter(
-            Position=0, Mandatory=$false
-        )]
-        [string]
-        $Command
-    );
-
-    DynamicParam {
-        $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary;
-
-        switch ($Command) {
-            "activate" {
-                $ParameterName = "Name";
-                $RuntimeParameterDictionary.Add($ParameterName, (New-EnvironmentNameParameter $ParameterName -Position 1));
-            }
-
-            "deactivate" {
-                # No dynamic parameters to add here.
-            }
-
-            default {
-                # We want to be able to pass through unknown parameters.
-                # To do so without having access to $Args, we make a whole bunch of
-                # parameters with the [Parameter(Mandatory=$false, Position=$idx)]
-                # attribute set for different values of $idx.
-                # This effectively lets us make our own $Args.
-                0..100 | `
-                    ForEach-Object {
-                        $param = New-ParameterAttribute -Position $_ | New-RuntimeParameter "Arg$_"
-                        $RuntimeParameterDictionary.Add("Arg$_", $param);
-                    }
-            }
-        }
-
-        return $RuntimeParameterDictionary;
+function Invoke-Conda() {
+    # Don't use any explicit args here, we'll use $args and tab completion
+    # so that we can capture everything, INCLUDING short options (e.g. -n).
+    if ($Args.Count -eq 0) {
+        # No args, just call the underlying conda executable.
+        & $Env:CONDA_EXE;
     }
-
-    begin {
+    else {
+        $Command = $Args[0];
+        $OtherArgs = $Args[1..($Args.Count - 1)];
         switch ($Command) {
             "activate" {
-                if ($PSBoundParameters.ContainsKey($ParameterName)) {
-                    Enter-CondaEnvironment $PSBoundParameters[$ParameterName];
-                } else {
-                    Enter-CondaEnvironment
-                }
+                Enter-CondaEnvironment @OtherArgs;
             }
             "deactivate" {
                 Exit-CondaEnvironment;
             }
 
             default {
-                # There may be a command we don't know about, pass it through
+                # There may be a command we don't know want to handle
+                # differently in the shell wrapper, pass it through
                 # verbatim.
-                # Ideally, each such command would get added to the $Command
-                # parameter as time goes on.
-                $OtherArgs = 0..100 | `
-                    ForEach-Object {
-                        $PSBoundParameters["Arg$_"]
-                    };
-                & $Env:CONDA_EXE $Command $OtherArgs;
+                & $Env:CONDA_EXE $Command @OtherArgs;
             }
         }
-    }
-
-    process {
-    }
-
-    end {
     }
 }
 
