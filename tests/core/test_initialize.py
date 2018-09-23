@@ -553,6 +553,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -569,6 +571,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
