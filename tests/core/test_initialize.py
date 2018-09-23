@@ -513,6 +513,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.csh',
             )
         else:
@@ -524,6 +526,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.csh',
             )
 
