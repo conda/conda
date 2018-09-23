@@ -1212,8 +1212,13 @@ def init_powershell_user(target_path, conda_prefix):
     # target_path: $PROFILE
     profile_path = target_path
 
-    with open(profile_path) as fp:
-        profile_content = fp.read()
+    # NB: the user may not have created a profile. We need to check
+    #     if the file exists first.
+    if os.path.exists(profile_path):
+        with open(profile_path) as fp:
+            profile_content = fp.read()
+    else:
+        profile_content = ""
 
     profile_original_content = profile_content
 
@@ -1231,6 +1236,9 @@ def init_powershell_user(target_path, conda_prefix):
             print(target_path)
             print(make_diff(profile_original_content, profile_content))
         if not context.dry_run:
+            # Make the directory if needed.
+            if not os.path.exists(os.path.dirname(profile_path)):
+                os.makedirs(os.path.dirname(profile_path))
             with open(profile_path, 'w') as fp:
                 fp.write(profile_content)
         return Result.MODIFIED
