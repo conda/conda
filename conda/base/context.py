@@ -1149,11 +1149,13 @@ def determine_target_prefix(ctx, args=None):
     elif prefix_path is not None:
         return expand(prefix_path)
     else:
-        if any(x in prefix_name for x in ('/', ' ')):
-            from ..exceptions import CondaValueError
-            builder = ["Invalid environment name: '" + prefix_name + "'"]
-            builder.append("  character not allowed: '" + "/" if "/" in prefix_name else " " + "'")
-            raise CondaValueError("\n".join(builder))
+        for x in ('/', ' ', ':'):
+            if x in prefix_name:
+                from ..exceptions import CondaValueError
+                builder = ["Invalid environment name: '" + prefix_name + "'"]
+                x = "Space" if x is ' ' else x
+                builder.append("  character not allowed: '" + x + "'")
+                raise CondaValueError("\n".join(builder))
         if prefix_name in (ROOT_ENV_NAME, 'root'):
             return ctx.root_prefix
         else:
