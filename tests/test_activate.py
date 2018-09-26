@@ -1268,6 +1268,28 @@ def which(executable):
     from distutils.spawn import find_executable
     return find_executable(executable)
 
+def which_powershell():
+    r"""
+    Since we don't know whether PowerShell is installed as powershell, pwsh, or pwsh-preview,
+    it's helpful to have a utility function that returns the name of the best PowerShell
+    executable available, or `None` if there's no PowerShell installed.
+
+    If PowerShell is found, this function returns both the kind of PowerShell install
+    found and a path to its main executable.
+    E.g.: ('pwsh', r'C:\Program Files\PowerShell\6.0.2\pwsh.exe)
+    """
+    if on_win:
+        posh =  which('powershell.exe')
+        if posh:
+            return 'powershell', posh
+    
+    posh = which('pwsh')
+    if posh:
+        return 'pwsh', posh
+
+    posh = which('pwsh-preview')
+    if posh:
+        return 'pwsh-preview', posh
 
 @pytest.mark.integration
 class ShellWrapperIntegrationTests(TestCase):
@@ -1599,32 +1621,3 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline("deactivate")
             conda_shlvl = shell.get_env_var('CONDA_SHLVL')
             assert int(conda_shlvl) == 0, conda_shlvl
-
-# #############################################################################################
-#
-# utility functions
-#
-# #############################################################################################
-
-def which_powershell():
-    r"""
-    Since we don't know whether PowerShell is installed as powershell, pwsh, or pwsh-preview,
-    it's helpful to have a utility function that returns the name of the best PowerShell
-    executable available, or `None` if there's no PowerShell installed.
-
-    If PowerShell is found, this function returns both the kind of PowerShell install
-    found and a path to its main executable.
-    E.g.: ('pwsh', r'C:\Program Files\PowerShell\6.0.2\pwsh.exe)
-    """
-    if on_win:
-        posh =  which('powershell.exe')
-        if posh:
-            return 'powershell', posh
-    
-    posh = which('pwsh')
-    if posh:
-        return 'pwsh', posh
-
-    posh = which('pwsh-preview')
-    if posh:
-        return 'pwsh-preview', posh
