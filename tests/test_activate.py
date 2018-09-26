@@ -1508,29 +1508,38 @@ class ShellWrapperIntegrationTests(TestCase):
     def test_powershell_basic_integration(self):
         charizard = join(self.prefix, 'envs', 'charizard')
         posh_kind, posh_path = which_powershell()
+        print('## [PowerShell integration] Using {}.'.format(posh_path))
         with InteractiveShell(posh_kind) as shell:
+            print('## [PowerShell integration] Starting test.')
             shell.sendline('(Get-Command conda).CommandType')
             shell.p.expect_exact('Alias')
             shell.sendline('(Get-Command conda).Definition')
             shell.p.expect_exact('Invoke-Conda')
+
+            print('## [PowerShell integration] Activating.')
             shell.sendline('conda activate "%s"' % charizard)
             shell.assert_env_var('CONDA_SHLVL', '1\r')
             shell.sendline('conda activate "%s"' % self.prefix)
             shell.assert_env_var('CONDA_SHLVL', '2\r')
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
 
+            print('## [PowerShell integration] Installing.')
             shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
             shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
-            shell.assert_env_var('errorlevel', '0', True)
+            shell.sendline('$LASTEXITCODE')
+            shell.expect('0')
             # TODO: assert that reactivate worked correctly
 
+            print('## [PowerShell integration] Checking installed version.')
             shell.sendline('sqlite3 -version')
-            shell.expect('3\.21\..*\n')
+            shell.expect('3\.21\..*')
 
             # conda run integration test
+            print('## [PowerShell integration] Checking conda run.')
             shell.sendline('conda run sqlite3 -version')
             shell.expect('3\.21\..*\n')
 
+            print('## [PowerShell integration] Deactivating')
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '1\r')
             shell.sendline('conda deactivate')
