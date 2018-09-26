@@ -2059,8 +2059,10 @@ class IntegrationTests(TestCase):
             conda_version = result.stdout.strip()[6:]
             assert conda_version == "4.5.0"
 
-            result = subprocess_call("%s -m conda init --dev" % join(prefix, python_exe),
-                                     path=dirname(CONDA_PACKAGE_ROOT))
+            result = subprocess_call(
+                ("%s -m conda init --dev" if on_win else "%s -m conda init cmd.exe --dev"
+                % join(prefix, python_exe),
+                path=dirname(CONDA_PACKAGE_ROOT))
 
             result = subprocess_call("%s --version" % join(prefix, conda_exe))
             assert result.rc == 0
