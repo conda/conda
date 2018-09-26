@@ -1166,18 +1166,21 @@ class InteractiveShell(object):
         # powershell, pwsh, or pwsh-preview.
         'powershell': {
             'activator': 'powershell',
+            'args': '-NoProfile',
             'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
             'print_env_var': '$Env:%s',
             'exit_cmd': 'exit'
         },
         'pwsh': {
             'activator': 'powershell',
+            'args': '-NoProfile',
             'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
             'print_env_var': '$Env:%s',
             'exit_cmd': 'exit'
         },
         'pwsh-preview': {
             'activator': 'powershell',
+            'args': '-NoProfile',
             'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
             'print_env_var': '$Env:%s',
             'exit_cmd': 'exit'
@@ -1193,6 +1196,7 @@ class InteractiveShell(object):
             setattr(self, key, value)
         self.activator = activator_map[shell_vals['activator']]()
         self.exit_cmd = self.shells[shell_name].get('exit_cmd', None)
+        self.args = self.shells[shell_name].get('args', "")
 
     def __enter__(self):
         from pexpect.popen_spawn import PopenSpawn
@@ -1203,7 +1207,8 @@ class InteractiveShell(object):
         for var_name in remove_these:
             del env[var_name]
 
-        p = PopenSpawn(self.shell_name, timeout=12, maxread=2000, searchwindowsize=None,
+        p = PopenSpawn("{} {}".format(self.shell_name, self.args) if self.args else self.shell_name,
+                       timeout=12, maxread=2000, searchwindowsize=None,
                        logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
                        codec_errors='strict')
 
