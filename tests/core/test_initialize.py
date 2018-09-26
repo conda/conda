@@ -181,14 +181,14 @@ class InitializeTests(TestCase):
                     {
                         'function': 'install_conda_psm1',
                         'kwargs': {
-                            'target_path': '/darwin/shell/condabin/Conda.psm1',
+                            'target_path': '/darwin\\shell\\condabin\\Conda.psm1',
                             'conda_prefix': '/darwin'
                         }
                     },
                     {
                         'function': 'install_conda_hook_ps1',
                         'kwargs': {
-                            'target_path': '/darwin/shell/condabin/conda-hook.ps1',
+                            'target_path': '/darwin\\shell\\condabin\\conda-hook.ps1',
                             'conda_prefix': '/darwin'
                         }
                     },
