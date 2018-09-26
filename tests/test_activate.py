@@ -1520,9 +1520,9 @@ class ShellWrapperIntegrationTests(TestCase):
 
             print('## [PowerShell integration] Activating.')
             shell.sendline('conda activate "%s"' % charizard)
-            shell.assert_env_var('CONDA_SHLVL', '1')
+            shell.assert_env_var('CONDA_SHLVL', '1\r?')
             shell.sendline('conda activate "%s"' % self.prefix)
-            shell.assert_env_var('CONDA_SHLVL', '2')
+            shell.assert_env_var('CONDA_SHLVL', '2\r?')
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
 
             print('## [PowerShell integration] Installing.')
@@ -1543,11 +1543,11 @@ class ShellWrapperIntegrationTests(TestCase):
 
             print('## [PowerShell integration] Deactivating')
             shell.sendline('conda deactivate')
-            shell.assert_env_var('CONDA_SHLVL', '1')
+            shell.assert_env_var('CONDA_SHLVL', '1\r?')
             shell.sendline('conda deactivate')
-            shell.assert_env_var('CONDA_SHLVL', '0')
+            shell.assert_env_var('CONDA_SHLVL', '0\r?')
             shell.sendline('conda deactivate')
-            shell.assert_env_var('CONDA_SHLVL', '0')
+            shell.assert_env_var('CONDA_SHLVL', '0\r?')
 
 
 
