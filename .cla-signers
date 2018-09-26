@@ -32,7 +32,7 @@ brentp | Brent Pedersen <bpederse@gmail.com> | 2018-07-23
 bryevdv | Bryan Van de Ven <bryanv@continuum.io> | Anaconda, Inc.
 campos-ddc | Diogo de Campos <campos@esss.com.br> | 2018-06-01
 certik | Ondřej Čertík <ondrej.certik@gmail.com> | 2018-07-24
-cgranade | Christopher Granade <chgranad@microsoft.com> | 2018-09-23
+cgranade | Christopher Granade <cgranade@cgranade.com> | 2018-09-21
 chdoig | Christine Doig <christine.doig.cardet@gmail.com> | Anaconda, Inc.
 chrislf | Chris Linton-Ford <chris.lintonford@gmail.com> | 2018-08-01
 CJ-Wright | christopher <cjwright4242@gmail.com> | 2018-08-20
@@ -52,6 +52,7 @@ electronwill | Will Warner <electronwill@gmail.com> | Anaconda, Inc.
 elehcim | Michele Mastropietro <michele.mastropietro@gmail.com> | 2018-07-24
 ericdill | Eric Dill <edill@bnl.gov> | 2018-06-04
 esc | Valentin Haenel <valentin@haenel.co> | 2018-07-24
+faph | Florenz A. P. Hollebrandse <faph@users.noreply.github.com> | 2018-09-19
 flaviomartins | Flavio Martins <flaviomartins@acm.org> | 2018-06-05
 frol | Vlad Frolov <frolvlad@gmail.com> | 2018-06-04
 goanpeca | Gonzalo Peña-Castellanos <goanpeca@gmail.com> | Anaconda, Inc.
@@ -95,7 +96,7 @@ Maggie-M | Maggie Mari <maggie.mari@continuum.io> | Anaconda, Inc.
 majidaldo | majidaldo <majidaldosar-github@yahoo.com> | 2018-07-24
 malev | Marcos Vanetta <marcosvanetta@gmail.com> | Anaconda, Inc.
 marcelotrevisani | Marcelo Duarte Trevisani <marceloduartetrevisani@gmail.com> | 2018-06-04
-mandeep | mandeep <mbhutani@continuum.io> | Anaconda, Inc.
+mandeep | mandeep <mbhutani@continuum.io> | 2018-09-04
 MaxNoe | Maximilian Noethe <maximilian.noethe@tu-dortmund.de> | 2018-07-24
 mbargull | Marcel Bargull <mbargull@users.noreply.github.com> | 2018-06-04
 mcg1969 | Michael Grant <mgrant@continuum.io> | Anaconda, Inc.
@@ -103,6 +104,7 @@ mdeff | Michaël Defferrard <michael.defferrard@epfl.ch> | 2018-07-23
 mdengler | Martin Dengler <martin@martindengler.com> | 2018-06-28
 megies | Tobias Megies <megies@geophysik.uni-muenchen.de> | 2018-07-24
 melund | Morten Enemark Lund <melund@gmail.com> | 2018-06-01
+mguillau | Matthieu Guillaumin <matthieg@amazon.com> | 2018-08-30
 mika-fischer | Mika Fischer <mika.fischer@zoopnet.de> | 2018-07-05
 mingwandroid | Ray Donnelly <mingw.android@gmail.com> | Anaconda, Inc.
 minrk | MinRK <benjaminrk@gmail.com> | 2018-07-30
@@ -159,7 +161,11 @@ zzag | Vlad Zagorodniy <vladzzag@gmail.com> | 2018-07-24
 
 
 # Signed; no commits
+fabioz | Fabio Zadrozny <> | 2018-08-24
 jbcrail | Joseph Crail <> | 2018-06-01
 jesse- | Jesse Hamer <> | 2018-08-05
 ihnorton | Isaiah Norton <> | 2018-07-27
 methane | INADA Naoki <> | 2018-07-23
+ohadravid | Ohad Ravid <> | 2018-07-24
+nickpowersys | Nicholas Brown <> | 2018-09-20
+keszybz | Zbigniew Jędrzejewski-Szmek <> | 2018-09-21
