@@ -1162,6 +1162,23 @@ class InteractiveShell(object):
             'init_command': 'eval (python -m conda shell.fish hook)',
             'print_env_var': 'echo $%s',
         },
+        # We don't know if the PowerShell executable is called
+        # powershell, pwsh, or pwsh-preview.
+        'powershell': {
+            'activator': 'powershell',
+            'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
+            'print_env_var': '$Env:%s'
+        },
+        'pwsh': {
+            'activator': 'powershell',
+            'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
+            'print_env_var': '$Env:%s'
+        },
+        'pwsh-preview': {
+            'activator': 'powershell',
+            'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
+            'print_env_var': '$Env:%s'
+        },
     }
 
     def __init__(self, shell_name):
@@ -1454,6 +1471,42 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '0')
 
+    @pytest.mark.skipif(not which_powershell(), reason='PowerShell not installed')
+    def test_powershell_basic_integration(self):
+        charizard = join(self.prefix, 'envs', 'charizard')
+        posh_kind, posh_path = which_powershell()
+        with InteractiveShell(posh_kind) as shell:
+            shell.sendline('(Get-Command conda).CommandType')
+            shell.p.expect_exact('Alias')
+            shell.sendline('(Get-Command conda).Definition')
+            shell.p.expect_exact('Invoke-Conda')
+            shell.sendline('conda activate "%s"' % charizard)
+            shell.assert_env_var('CONDA_SHLVL', '1\r')
+            shell.sendline('conda activate "%s"' % self.prefix)
+            shell.assert_env_var('CONDA_SHLVL', '2\r')
+            shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
+
+            shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
+            shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
+            shell.assert_env_var('errorlevel', '0', True)
+            # TODO: assert that reactivate worked correctly
+
+            shell.sendline('sqlite3 -version')
+            shell.expect('3\.21\..*\n')
+
+            # conda run integration test
+            shell.sendline('conda run sqlite3 -version')
+            shell.expect('3\.21\..*\n')
+
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '1\r')
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '0\r')
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '0\r')
+
+
+
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
     def test_cmd_exe_basic_integration(self):
         charizard = join(self.prefix, 'envs', 'charizard')
@@ -1546,3 +1599,32 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline("deactivate")
             conda_shlvl = shell.get_env_var('CONDA_SHLVL')
             assert int(conda_shlvl) == 0, conda_shlvl
+
+# #############################################################################################
+#
+# utility functions
+#
+# #############################################################################################
+
+def which_powershell():
+    r"""
+    Since we don't know whether PowerShell is installed as powershell, pwsh, or pwsh-preview,
+    it's helpful to have a utility function that returns the name of the best PowerShell
+    executable available, or `None` if there's no PowerShell installed.
+
+    If PowerShell is found, this function returns both the kind of PowerShell install
+    found and a path to its main executable.
+    E.g.: ('pwsh', r'C:\Program Files\PowerShell\6.0.2\pwsh.exe)
+    """
+    if on_win:
+        posh =  which('powershell.exe')
+        if posh:
+            return 'powershell', posh
+    
+    posh = which('pwsh')
+    if posh:
+        return 'pwsh', posh
+
+    posh = which('pwsh-preview')
+    if posh:
+        return 'pwsh-preview', posh
