@@ -32,7 +32,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from array import array
 from itertools import chain, combinations
 from logging import DEBUG, getLogger
-import pycosat
 
 from .compat import iteritems
 
@@ -150,13 +149,35 @@ class SatSolver(object):
     """
     Simple wrapper to call a SAT solver given a ClauseList/ClauseArray instance.
     """
-    def run(self, clauses, m, **kwargs):
-        solver = self.setup(clauses, m, **kwargs)
+
+    def __init__(self, **run_kwargs):
+        self._run_kwargs = run_kwargs or {}
+        self._clauses = ClauseList()
+        # Bind some methods of _clauses to reduce lookups and call overhead.
+        self.add_clause = self._clauses.append
+        self.add_clauses = self._clauses.extend
+
+    def get_clause_count(self):
+        return self._clauses.get_clause_count()
+
+    def as_list(self):
+        return self._clauses.as_list()
+
+    def save_state(self):
+        return self._clauses.save_state()
+
+    def restore_state(self, saved_state):
+        return self._clauses.restore_state(saved_state)
+
+    def run(self, m, **kwargs):
+        run_kwargs = self._run_kwargs.copy()
+        run_kwargs.update(kwargs)
+        solver = self.setup(m, **run_kwargs)
         sat_solution = self.invoke(solver)
         solution = self.process_solution(sat_solution)
         return solution
 
-    def setup(self, clauses, m, **kwargs):
+    def setup(self, m, **kwargs):
         """Create a solver instance, add the clauses to it, and return it."""
         raise NotImplementedError()
 
@@ -173,13 +194,15 @@ class SatSolver(object):
 
 
 class PycoSatSolver(SatSolver):
-    def setup(self, clauses, m, limit=0):
+    def setup(self, m, limit=0, **kwargs):
+        from pycosat import itersolve
+
         # NOTE: The iterative solving isn't actually used here, we just call
         #       itersolve to separate setup from the actual run.
-        return pycosat.itersolve(clauses.as_list(), vars=m, prop_limit=limit)
+        return itersolve(self._clauses.as_list(), vars=m, prop_limit=limit)
         # If we add support for passing the clauses as an integer stream to the
-        # solvers, we could also use clauses.as_array like this:
-        # return pycosat.itersolve(clauses.as_array(), vars=m, prop_limit=limit)
+        # solvers, we could also use self._clauses.as_array like this:
+        # return itersolve(self._clauses.as_array(), vars=m, prop_limit=limit)
 
     def invoke(self, iter_sol):
         try:
@@ -196,10 +219,11 @@ class PycoSatSolver(SatSolver):
 
 
 class CryptoMiniSatSolver(SatSolver):
-    def setup(self, clauses, m, threads=1):
+    def setup(self, m, threads=1, **kwargs):
         from pycryptosat import Solver
+
         solver = Solver(threads=threads)
-        solver.add_clauses(clauses.as_list())
+        solver.add_clauses(self._clauses.as_list())
         return solver
 
     def invoke(self, solver):
@@ -217,12 +241,11 @@ class CryptoMiniSatSolver(SatSolver):
 
 
 class PySatSolver(SatSolver):
-    def setup(self, clauses, m, **kwargs):
-        from pysat import solvers
-        solver = solvers.Glucose4()
-        # FIXME upstream: pysat.solvers require a clause to be a list...
-        clauses = list(map(list, clauses.as_list()))
-        solver.append_formula(clauses)
+    def setup(self, m, **kwargs):
+        from pysat.solvers import Glucose4
+
+        solver = Glucose4()
+        solver.append_formula(self._clauses.as_list())
         return solver
 
     def invoke(self, solver):
@@ -251,16 +274,16 @@ class Clauses(object):
         self.indices = {}
         self.unsat = False
         self.m = m
-        self._clauses = ClauseList()
-        # Bind some methods of _clauses to reduce lookups and call overhead.
-        self.add_clause = self._clauses.append
-        self.add_clauses = self._clauses.extend
+        self._sat_solver = PycoSatSolver()
+        # Bind some methods of _sat_solver to reduce lookups and call overhead.
+        self.add_clause = self._sat_solver.add_clause
+        self.add_clauses = self._sat_solver.add_clauses
 
     def get_clause_count(self):
-        return self._clauses.get_clause_count()
+        return self._sat_solver.get_clause_count()
 
     def as_list(self):
-        return self._clauses.as_list()
+        return self._sat_solver.as_list()
 
     def name_var(self, m, name):
         nname = '!' + name
@@ -314,7 +337,7 @@ class Clauses(object):
     def Eval_(self, func, args, polarity, name, conv=True):
         if conv:
             args = self.Convert_(args)
-        saved_state = self._clauses.save_state()
+        saved_state = self._sat_solver.save_state()
         vals = func(*args, polarity=polarity)
         if name is None:
             return self._assign_no_name(vals)
@@ -328,7 +351,7 @@ class Clauses(object):
         elif tvals is not bool:
             self.add_clause((vals if polarity else -vals,))
         else:
-            self._clauses.restore_state(saved_state)
+            self._sat_solver.restore_state(saved_state)
             self.unsat = self.unsat or polarity != vals
         return None
 
@@ -677,12 +700,10 @@ class Clauses(object):
         return self.Eval_(
             self.LinearBound_, (equation, lo, hi, preprocess), polarity, name, conv=False)
 
-    def _run_sat(self, clauses, m, limit=0):
+    def _run_sat(self, m, limit=0):
         if log.isEnabledFor(DEBUG):
             log.debug("Invoking SAT with clause count: %s", self.get_clause_count())
-        solution = PycoSatSolver().run(clauses, m, limit=limit)
-        # solution = PySatSolver().run(clauses, m)
-        # solution = CryptoMiniSatSolver().run(clauses, m, threads=1)
+        solution = self._sat_solver.run(m, limit=limit)
         return solution
 
     def sat(self, additional=None, includeIf=False, names=False, limit=0):
@@ -697,7 +718,7 @@ class Clauses(object):
             return None
         if not self.m:
             return set() if names else []
-        saved_state = self._clauses.save_state()
+        saved_state = self._sat_solver.save_state()
         if additional:
             def preproc(eqs):
                 def preproc_(cc):
@@ -720,9 +741,9 @@ class Clauses(object):
                 if not additional[-1]:
                     return None
                 self.add_clauses(additional)
-        solution = self._run_sat(self._clauses, self.m, limit=limit)
+        solution = self._run_sat(self.m, limit=limit)
         if additional and (solution is None or not includeIf):
-            self._clauses.restore_state(saved_state)
+            self._sat_solver.restore_state(saved_state)
         if solution is None:
             return None
         if names:
@@ -793,7 +814,7 @@ class Clauses(object):
             if log.isEnabledFor(DEBUG):
                 # This is only used for the log message below.
                 nz = self.get_clause_count()
-            saved_state = self._clauses.save_state()
+            saved_state = self._sat_solver.save_state()
             if trymax and not peak:
                 try0 = hi - 1
 
@@ -831,8 +852,8 @@ class Clauses(object):
                 self.m = m_orig
                 # Since we only ever _add_ clauses and only remove then via
                 # restore_state, it's fine to test on equality only.
-                if self._clauses.save_state() != saved_state:
-                    self._clauses.restore_state(saved_state)
+                if self._sat_solver.save_state() != saved_state:
+                    self._sat_solver.restore_state(saved_state)
                 self.unsat = False
                 try0 = None
 
