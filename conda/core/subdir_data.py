@@ -16,6 +16,7 @@ from os.path import dirname, isdir, join, splitext
 import re
 from time import time
 import warnings
+from tqdm import tqdm
 
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
@@ -414,7 +415,7 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
     if mod_stamp:
         headers["If-Modified-Since"] = mod_stamp
 
-    if 'repo.anaconda.com' in url:
+    if '.anaconda.com' in url:
         filename = 'repodata.json.bz2'
         headers['Accept-Encoding'] = 'identity'
     else:
@@ -423,9 +424,18 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         filename = 'repodata.json'
 
     try:
+        import math
         timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
         resp = session.get(join_url(url, filename), headers=headers, proxies=session.proxies,
-                           timeout=timeout)
+                           timeout=timeout, stream=True)
+        total_size = int(resp.headers.get('content-length', 0)); 
+        block_size = 1024
+        wrote = 0
+        from io import BytesIO
+        raw_response = BytesIO()
+        for data in tqdm(resp.iter_content(block_size), desc=url, total=math.ceil(total_size//block_size) , unit='KB', unit_scale=True):
+            wrote = wrote  + len(data)
+            raw_response.write(data)
         if log.isEnabledFor(DEBUG):
             log.debug(stringify(resp, content_max_len=256))
         resp.raise_for_status()
@@ -536,12 +546,12 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
     if resp.status_code == 304:
         raise Response304ContentUnchanged()
 
-    def maybe_decompress(filename, resp_content):
-        return ensure_text_type(bz2.decompress(resp_content)
+    def maybe_decompress(filename, content):
+        return ensure_text_type(bz2.decompress(content)
                                 if filename.endswith('.bz2')
-                                else resp_content).strip()
+                                else content).strip()
 
-    json_str = maybe_decompress(filename, resp.content)
+    json_str = maybe_decompress(filename, raw_response.getvalue())
 
     saved_fields = {'_url': url}
     add_http_value_to_dict(resp, 'Etag', saved_fields, '_etag')
