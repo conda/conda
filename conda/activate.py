@@ -10,12 +10,12 @@ from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, j
 import re
 import sys
 from tempfile import NamedTemporaryFile
+from textwrap import dedent
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CondaError
 from ._vendor.toolz import concatv, drop
-from ._vendor.auxlib.ish import dals
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
 from .common.path import paths_equal
@@ -103,9 +103,8 @@ class _Activator(object):
         condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
         self.export_var_tmpl % ("PATH", self.pathsep_join((condabin_dir, )))
 
-        if self.hook_source_path is not None:
-            with open(self.hook_source_path) as fsrc:
-                builder.append(fsrc.read())
+        with open(self.hook_source_path) as fsrc:
+            builder.append(fsrc.read())
         if auto_activate_base is None and context.auto_activate_base or auto_activate_base:
             builder.append("conda activate base\n")
         return "\n".join(builder)
@@ -779,7 +778,7 @@ class PowerShellActivator(_Activator):
         super(PowerShellActivator, self).__init__(arguments)
 
     def _hook_preamble(self):
-        return dals("""
+        return dedent("""\
         $Env:CONDA_EXE = "{context.conda_exe}"
         $Env:_CONDA_ROOT = "{context.conda_prefix}"
         $Env:_CONDA_EXE = "{context.conda_exe}"

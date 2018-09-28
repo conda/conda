@@ -459,9 +459,19 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
         # PowerShell Core on macOS/Linux. The easiest way to resolve it is to
         # just ask different possible installations of PowerShell where their
         # profiles are.
-        config_powershell_paths = list(
-            map(find_powershell_path, ['powershell', 'pwsh', 'pwsh-preview'])
+        def find_powershell_paths(*exe_names):
+            for exe_name in exe_names:
+                try:
+                    yield subprocess_call(
+                        (exe_name, '-NoProfile', '-Command', '$PROFILE')
+                    ).stdout.strip()
+                except Exception:
+                    pass
+
+        config_powershell_paths = tuple(
+            find_powershell_paths('powershell', 'pwsh', 'pwsh-preview')
         )
+
         for config_path in config_powershell_paths:
             if config_path is not None:
                 plan.append({
@@ -1392,12 +1402,6 @@ def _get_python_info(prefix):
     site_packages_dir = join(prefix,
                              win_path_ok(get_python_site_packages_short_path(python_version)))
     return python_exe, python_version, site_packages_dir
-
-def find_powershell_path(exe_name):
-    try:
-        return subprocess_call([exe_name, '-NoProfile', '-Command', '$PROFILE']).stdout.strip()
-    except:
-        return None
 
 
 if __name__ == "__main__":

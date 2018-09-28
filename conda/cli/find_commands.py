@@ -46,13 +46,6 @@ def find_executable(executable, include_others=True):
     return None
 
 
-def find_builtin_commands():
-    # ArgumentParser doesn't have an API for getting back what subparsers
-    # exist, so we need to use internal properties to do so.
-    p = generate_parser()
-    return list(p._subparsers._group_actions[0].choices.keys())
-
-
 @memoize
 def find_commands(include_others=True):
 
