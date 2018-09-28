@@ -856,6 +856,7 @@ def install_conda_psm1(target_path, conda_prefix):
         file_content = fsrc.read()
     return _install_file(target_path, file_content)
 
+
 def install_conda_hook_ps1(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'shell', 'condabin', 'conda-hook.ps1')
     file_content = PowerShellActivator().hook(auto_activate_base=False)
@@ -1229,6 +1230,14 @@ def init_powershell_user(target_path, conda_prefix):
 
     if "#region conda initialize" not in profile_content:
         profile_content += "\n{}\n".format(conda_initialize_content)
+    else:
+        re.sub(
+            r"\#region conda initialize.*\#endregion"
+            conda_initialize_content
+            profile_content,
+            count=1,
+            flags=re.DOTALL | re.MULTILINE
+        )
 
     if profile_content != profile_original_content:
         if context.verbosity:
@@ -1237,8 +1246,8 @@ def init_powershell_user(target_path, conda_prefix):
             print(make_diff(profile_original_content, profile_content))
         if not context.dry_run:
             # Make the directory if needed.
-            if not os.path.exists(os.path.dirname(profile_path)):
-                os.makedirs(os.path.dirname(profile_path))
+            if not exists(dirname(profile_path)):
+                mkdir_p(dirname(profile_path))
             with open(profile_path, 'w') as fp:
                 fp.write(profile_content)
         return Result.MODIFIED
