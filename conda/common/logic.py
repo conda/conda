@@ -47,7 +47,12 @@ class ClauseList(object):
         # to avoid call overhead and lookups.
         self.append = self._clause_list.append
         self.extend = self._clause_list.extend
-        self.get_clause_count = self._clause_list.__len__
+
+    def get_clause_count(self):
+        """
+        Return number of stored clauses.
+        """
+        return len(self._clause_list)
 
     def save_state(self):
         """
@@ -250,10 +255,12 @@ class Clauses(object):
         # Bind some methods of _clauses to reduce lookups and call overhead.
         self.add_clause = self._clauses.append
         self.add_clauses = self._clauses.extend
-        self.get_clause_count = self._clauses.get_clause_count
-        self.save_state = self._clauses.save_state
-        self.restore_state = self._clauses.restore_state
-        self.as_list = self._clauses.as_list
+
+    def get_clause_count(self):
+        return self._clauses.get_clause_count()
+
+    def as_list(self):
+        return self._clauses.as_list()
 
     def name_var(self, m, name):
         nname = '!' + name
@@ -307,7 +314,7 @@ class Clauses(object):
     def Eval_(self, func, args, polarity, name, conv=True):
         if conv:
             args = self.Convert_(args)
-        saved_state = self.save_state()
+        saved_state = self._clauses.save_state()
         vals = func(*args, polarity=polarity)
         if name is None:
             return self._assign_no_name(vals)
@@ -321,7 +328,7 @@ class Clauses(object):
         elif tvals is not bool:
             self.add_clause((vals if polarity else -vals,))
         else:
-            self.restore_state(saved_state)
+            self._clauses.restore_state(saved_state)
             self.unsat = self.unsat or polarity != vals
         return None
 
@@ -690,7 +697,7 @@ class Clauses(object):
             return None
         if not self.m:
             return set() if names else []
-        saved_state = self.save_state()
+        saved_state = self._clauses.save_state()
         if additional:
             def preproc(eqs):
                 def preproc_(cc):
@@ -715,7 +722,7 @@ class Clauses(object):
                 self.add_clauses(additional)
         solution = self._run_sat(self._clauses, self.m, limit=limit)
         if additional and (solution is None or not includeIf):
-            self.restore_state(saved_state)
+            self._clauses.restore_state(saved_state)
         if solution is None:
             return None
         if names:
@@ -786,7 +793,7 @@ class Clauses(object):
             if log.isEnabledFor(DEBUG):
                 # This is only used for the log message below.
                 nz = self.get_clause_count()
-            saved_state = self.save_state()
+            saved_state = self._clauses.save_state()
             if trymax and not peak:
                 try0 = hi - 1
 
@@ -823,9 +830,9 @@ class Clauses(object):
                         break
                 self.m = m_orig
                 # Since we only ever _add_ clauses and only remove then via
-                # self.restore_state, it's fine to test on equality only.
-                if self.save_state() != saved_state:
-                    self.restore_state(saved_state)
+                # restore_state, it's fine to test on equality only.
+                if self._clauses.save_state() != saved_state:
+                    self._clauses.restore_state(saved_state)
                 self.unsat = False
                 try0 = None
 
