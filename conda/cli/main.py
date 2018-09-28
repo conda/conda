@@ -105,14 +105,6 @@ def main(*args, **kwargs):
             if argv1.startswith('shell.'):
                 from ..activate import main as activator_main
                 return activator_main()
-            elif argv1.startswith('shell_support.'):
-                # Hidden commands to provide metadata to shells.
-                if argv1 == 'shell_support.commands':
-                    for command in sorted(
-                            find_builtin_commands(generate_parser()) + list(find_commands(True))
-                    ):
-                        print(command)
-                    return
             elif argv1.startswith('..'):
                 import conda.cli.activate as activate
                 activate.main()

@@ -85,7 +85,7 @@ def do_call(args, parser):
 def find_builtin_commands(parser):
     # ArgumentParser doesn't have an API for getting back what subparsers
     # exist, so we need to use internal properties to do so.
-    return list(parser._subparsers._group_actions[0].choices.keys())
+    return tuple(parser._subparsers._group_actions[0].choices.keys())
 
 
 class ArgumentParser(ArgumentParserBase):

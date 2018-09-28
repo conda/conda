@@ -15,6 +15,8 @@ from textwrap import dedent
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
 from . import CONDA_PACKAGE_ROOT, CondaError
+from .cli.find_commands import find_commands
+from .cli.conda_argparse import generate_parser, find_builtin_commands
 from ._vendor.toolz import concatv, drop
 from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
 from .common.compat import FILESYSTEM_ENCODING, PY2, iteritems, on_win, string_types, text_type
@@ -113,6 +115,19 @@ class _Activator(object):
         # return value meant to be written to stdout
         self._parse_and_set_args(self._raw_arguments)
         return getattr(self, self.command)()
+
+    def commands(self):
+        """
+        Returns a list of possible subcommands that are valid
+        immediately following `conda` at the command line.
+        This method is generally only used by tab-completion.
+        """
+        # return value meant to be written to stdout
+        # Hidden commands to provide metadata to shells.
+        return "\n".join(sorted(
+            find_builtin_commands(generate_parser()) +
+            tuple(find_commands(True))
+        ))
 
     def _hook_preamble(self):
         # must be implemented in subclass

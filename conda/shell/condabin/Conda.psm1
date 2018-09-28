@@ -176,7 +176,7 @@ function Expand-CondaSubcommands() {
         $Filter
     );
 
-    $ValidCommands = Invoke-Conda shell_support.commands;
+    $ValidCommands = Invoke-Conda shell.powershell commands;
 
     # Add in the commands defined within this wrapper, filter, sort, and return.
     $ValidCommands + @('activate', 'deactivate') `
