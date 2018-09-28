@@ -11,7 +11,6 @@ import sysconfig
 
 from .._vendor.auxlib.decorators import memoize
 from ..common.compat import on_win
-from .conda_argparse import generate_parser
 
 
 def find_executable(executable, include_others=True):

@@ -33,8 +33,6 @@ Additional help for each command can be accessed by using:
     conda <command> -h
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
-from .find_commands import find_commands
-from .conda_argparse import find_builtin_commands
 
 import sys
 
