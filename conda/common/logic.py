@@ -33,7 +33,7 @@ from array import array
 from itertools import chain, combinations
 from logging import DEBUG, getLogger
 
-from .compat import iteritems
+from .compat import iteritems, odict
 
 log = getLogger(__name__)
 
@@ -264,17 +264,46 @@ class PySatSolver(SatSolver):
         return solution
 
 
+def get_sat_solver_cls(name=None):
+    solvers = odict([
+        ('pycosat', PycoSatSolver),
+        ('pycryptosat', CryptoMiniSatSolver),
+        ('pysat', PySatSolver),
+    ])
+    if name is not None:
+        try:
+            cls = solvers[name]
+        except KeyError:
+            raise ValueError('Unknown SAT solver interface: "{}".'.format(name))
+        try:
+            cls().run(0)
+        except Exception:
+            raise RuntimeError('Could not run SAT solver through interface "{}".'.format(name))
+        else:
+            log.debug('Using SAT solver interface "{}".'.format(name))
+            return cls
+    for name, cls in solvers.items():
+        try:
+            cls().run(0)
+        except Exception:
+            log.warn('Could not run SAT solver through interface "{}".'.format(name))
+        else:
+            log.debug('Using SAT solver interface "{}".'.format(name))
+            return cls
+    raise RuntimeError('Could not run any SAT solver.')
+
+
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
 # minisatp. Code that generates clauses is in Hardware_clausify.cc (and are
 # also described in the paper, "Translating Pseudo-Boolean Constraints into
 # SAT," Eén and Sörensson).
 class Clauses(object):
-    def __init__(self, m=0):
+    def __init__(self, m=0, sat_solver_cls=PycoSatSolver):
         self.names = {}
         self.indices = {}
         self.unsat = False
         self.m = m
-        self._sat_solver = PycoSatSolver()
+        self._sat_solver = sat_solver_cls()
         # Bind some methods of _sat_solver to reduce lookups and call overhead.
         self.add_clause = self._sat_solver.add_clause
         self.add_clauses = self._sat_solver.add_clauses
