@@ -1242,11 +1242,14 @@ def init_powershell_user(target_path, conda_prefix):
         profile_content += "\n{}\n".format(conda_initialize_content)
     else:
         re.sub(
-            r"\#region conda initialize.*\#endregion"
-            conda_initialize_content
+            r"\#region conda initialize.*\#endregion",
+            "__CONDA_REPLACE_ME_123__",
             profile_content,
             count=1,
             flags=re.DOTALL | re.MULTILINE
+        ).replace(
+            "__CONDA_REPLACE_ME_123__",
+            conda_initialize_content
         )
 
     if profile_content != profile_original_content:

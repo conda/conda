@@ -148,7 +148,8 @@ class _Activator(object):
 
         if not command:
             from .exceptions import ArgumentError
-            raise ArgumentError("'activate', 'deactivate', 'hook', or 'reactivate' "
+            raise ArgumentError("'activate', 'deactivate', 'hook', "
+                                "'commands', or 'reactivate' "
                                 "command must be given")
         elif help_requested:
             from .exceptions import ActivateHelp, DeactivateHelp, GenericHelp
@@ -156,10 +157,11 @@ class _Activator(object):
                 'activate': ActivateHelp(),
                 'deactivate': DeactivateHelp(),
                 'hook': GenericHelp('hook'),
+                'commands': GenericHelp('commands'),
                 'reactivate': GenericHelp('reactivate'),
             }
             raise help_classes[command]
-        elif command not in ('activate', 'deactivate', 'reactivate', 'hook'):
+        elif command not in ('activate', 'deactivate', 'reactivate', 'hook', 'commands'):
             from .exceptions import ArgumentError
             raise ArgumentError("invalid command '%s'" % command)
 
