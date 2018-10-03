@@ -1166,7 +1166,7 @@ class InteractiveShell(object):
         # powershell, pwsh, or pwsh-preview.
         'powershell': {
             'activator': 'powershell',
-            'args': '-NoProfile',
+            'args': '-NoProfile -NoLogo',
             'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
             'print_env_var': '$Env:%s',
             'exit_cmd': 'exit'
