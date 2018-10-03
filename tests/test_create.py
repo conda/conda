@@ -800,7 +800,7 @@ class IntegrationTests(TestCase):
             # assert package_is_installed(prefix, 'mkl')  # removed per above comment
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
-    @pytest.mark.skipif(on_win and datetime.now() <= datetime(2018, 10, 1), reason="conda-forge repodata needs vc patching")
+    @pytest.mark.skipif(on_win and datetime.now() <= datetime(2018, 11, 1), reason="conda-forge repodata needs vc patching")
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
@@ -925,7 +925,7 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix,
                             "conda-forge::tensorflow>=1.4 --dry-run --freeze-installed")
 
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 10, 1),
+    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 11, 1),
                        reason="need to talk with @msarahan about blas patches on Windows",
                        strict=True)
     def test_install_features(self):
