@@ -1172,18 +1172,10 @@ class InteractiveShell(object):
             'exit_cmd': 'exit'
         },
         'pwsh': {
-            'activator': 'powershell',
-            'args': '-NoProfile',
-            'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
-            'print_env_var': '$Env:%s',
-            'exit_cmd': 'exit'
+            'base_shell': 'powershell'
         },
         'pwsh-preview': {
-            'activator': 'powershell',
-            'args': '-NoProfile',
-            'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
-            'print_env_var': '$Env:%s',
-            'exit_cmd': 'exit'
+            'base_shell': 'powershell'
         },
     }
 
