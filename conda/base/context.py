@@ -174,7 +174,7 @@ class Context(Configuration):
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',))  # channel for args.channel
     _custom_channels = MapParameter(string_types, DEFAULT_CUSTOM_CHANNELS,
-                                    aliases=('custom_channels',))
+                                    aliases=('custom_channels',), expandvars=True)
     _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
                                           aliases=('default_channels',))

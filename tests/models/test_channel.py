@@ -615,6 +615,32 @@ class CustomConfigChannelTests(TestCase):
             "ftp://new.url:8082/conda-forge/label/dev/noarch",
         ]
 
+@patch.dict('os.environ', {'EXPANDED_PWD': 'pass44'})
+class ChannelEnvironmentVarExpansionTest(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        channels_config = dals("""
+        custom_channels:
+          unexpanded: http://user1:$UNEXPANDED_PWD@another.url:8080/with/path/t/tk-1234
+          expanded: http://user33:$EXPANDED_PWD@another.url:8080/with/path/t/tk-1234
+        """)
+        reset_context()
+        rd = odict(testdata=YamlRawParameter.make_raw_parameters('testdata', yaml_load(channels_config)))
+        context._set_raw_data(rd)
+
+    @classmethod
+    def tearDownClass(cls):
+        reset_context()
+
+    def test_unexpanded_variables(self):
+        channel = Channel('unexpanded')
+        assert channel.auth == 'user1:$UNEXPANDED_PWD'
+
+    def test_expanded_variables(self):
+        channel = Channel('expanded')
+        assert channel.auth == 'user33:pass44'
+
 
 class ChannelAuthTokenPriorityTests(TestCase):
 
