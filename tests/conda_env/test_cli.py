@@ -50,6 +50,7 @@ foo: bar
 
 test_env_name_1 = "env-1"
 test_env_name_2 = "snowflakes"
+test_env_name_42 = "env-42"
 
 
 def escape_for_winpath(p):
@@ -88,14 +89,14 @@ def run_env_command(command, prefix, *arguments):
         if prefix :
             command_line = "{0} -f {1}  {2}".format(command, prefix, " ".join(arguments))
         else:
-            command_line = "{0} ".format(command)
+            command_line = "{0} {1}".format(command, " ".join(arguments))
     elif command is Commands.ENV_REMOVE:  # REMOVE
         command_line = "{0} --yes -n {1} {2}".format(command, prefix, " ".join(arguments))
     elif command is Commands.ENV_UPDATE:
         command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
     else:
         command_line = " --help "
-
+    print(command_line)
     args = p.parse_args(split(command_line))
     context._set_argparse_args(args)
 
@@ -155,6 +156,9 @@ class IntegrationTests(unittest.TestCase):
         if env_is_created(test_env_name_1):
             run_env_command(Commands.ENV_REMOVE, test_env_name_1)
 
+        if env_is_created(test_env_name_42):
+            run_env_command(Commands.ENV_REMOVE, test_env_name_42)
+
     def test_conda_env_create_no_file(self):
         '''
         Test `conda env create` without an environment.yml file
@@ -174,6 +178,17 @@ class IntegrationTests(unittest.TestCase):
             run_env_command(Commands.ENV_CREATE, None, '--file not_a_file.txt')
         except Exception as e:
             self.assertIsInstance(e, EnvironmentFileNotFound)
+
+    def test_create_valid_remote_env(self):
+        run_env_command(Commands.ENV_CREATE, None, 'goanpeca/env-42')
+        self.assertTrue(env_is_created(test_env_name_42))
+
+        o, e = run_conda_command(Commands.INFO, None, "--json")
+
+        parsed = json.loads(o)
+        self.assertNotEqual(
+            len([env for env in parsed['envs'] if env.endswith(test_env_name_42)]), 0
+        )
 
     def test_create_valid_env(self):
         '''
@@ -209,6 +224,7 @@ class IntegrationTests(unittest.TestCase):
             run_env_command(Commands.ENV_CREATE, test_env_name_1, "create")
         except Exception as e:
             self.assertIsInstance(e, EnvironmentFileNotFound, str(e))
+        raise Exception
 
 
 def env_is_created(env_name):
