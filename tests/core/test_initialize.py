@@ -179,6 +179,20 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
+                        'function': 'install_conda_psm1',
+                        'kwargs': {
+                            'target_path': '/darwin\\shell\\condabin\\Conda.psm1',
+                            'conda_prefix': '/darwin'
+                        }
+                    },
+                    {
+                        'function': 'install_conda_hook_ps1',
+                        'kwargs': {
+                            'target_path': '/darwin\\shell\\condabin\\conda-hook.ps1',
+                            'conda_prefix': '/darwin'
+                        }
+                    },
+                    {
                         "function": "install_conda_xsh",
                         "kwargs": {
                             "conda_prefix": "/darwin",
@@ -248,6 +262,20 @@ class InitializeTests(TestCase):
                         "kwargs": {
                             "conda_prefix": "/darwin",
                             "target_path": "/darwin/etc/fish/conf.d/conda.fish"
+                        }
+                    },
+                    {
+                        'function': 'install_conda_psm1',
+                        'kwargs': {
+                            'target_path': '/darwin/shell/condabin/Conda.psm1',
+                            'conda_prefix': '/darwin'
+                        }
+                    },
+                    {
+                        'function': 'install_conda_hook_ps1',
+                        'kwargs': {
+                            'target_path': '/darwin/shell/condabin/conda-hook.ps1',
+                            'conda_prefix': '/darwin'
                         }
                     },
                     {
@@ -485,6 +513,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.csh',
             )
         else:
@@ -496,6 +526,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.csh',
             )
 
@@ -539,6 +571,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -555,6 +589,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -601,6 +637,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -618,6 +656,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir

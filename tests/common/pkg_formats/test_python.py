@@ -398,7 +398,7 @@ def test_metadata():
 
 # Python Distributions
 # -----------------------------------------------------------------------------
-@pytest.mark.xfail(datetime.now() < datetime(2018, 10, 1),
+@pytest.mark.xfail(datetime.now() < datetime(2018, 11, 1),
                    reason="This test needs to be refactored for the case of raising a hard "
                                 "error when the anchor_file doesn't exist.",
                    strict=True)

@@ -32,7 +32,7 @@ def execute(args, parser):
         selected_shells = tuple(args.shells)
 
     if not selected_shells:
-        selected_shells = ('cmd.exe' if on_win else 'bash',)
+        selected_shells = ('cmd.exe', 'powershell') if on_win else ('bash',)
 
     if args.dev:
         assert len(selected_shells) == 1, "--dev can only handle one shell at a time right now"
