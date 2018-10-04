@@ -122,7 +122,11 @@ function Invoke-Conda() {
     }
     else {
         $Command = $Args[0];
-        $OtherArgs = $Args[1..($Args.Count - 1)];
+        if ($Args.Count -ge 2) {
+            $OtherArgs = $Args[1..($Args.Count - 1)];
+        } else {
+            $OtherArgs = @();
+        }
         switch ($Command) {
             "activate" {
                 Enter-CondaEnvironment @OtherArgs;
