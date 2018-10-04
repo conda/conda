@@ -218,7 +218,12 @@ class IntegrationTests(unittest.TestCase):
         self.assertNotEqual(len(parsed), 0)
 
     def test_name(self):
+        """
         # smoke test for gh-254
+        Previously we could override the name from an environment file using
+        --name in the CLI, but this is no longer respected after the latest
+        release. This was very useful for heroku buildpacks.
+        """
         create_env(environment_1)
         try:
             run_env_command(Commands.ENV_CREATE, test_env_name_1, "create")
