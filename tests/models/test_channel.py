@@ -643,7 +643,6 @@ class ChannelEnvironmentVarExpansionTest(TestCase):
             channel = Channel('unexpanded')
             assert channel.auth == 'user1:$UNEXPANDED_PWD'
 
-    @env_var('EXPANDED_PWD', 'pass44')
     def test_expanded_variables(self):
         with env_var('EXPANDED_PWD', 'pass44'):
             channel = Channel('expanded')
