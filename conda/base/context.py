@@ -189,7 +189,8 @@ class Context(Configuration):
                                           expandvars=True)
     _migrated_channel_aliases = SequenceParameter(string_types,
                                                   aliases=('migrated_channel_aliases',))
-    migrated_custom_channels = MapParameter(string_types, expandvars=True)  # TODO: also take a list of strings
+    migrated_custom_channels = MapParameter(string_types,
+                                            expandvars=True)  # TODO: also take a list of strings
     override_channels_enabled = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
     use_local = PrimitiveParameter(False)

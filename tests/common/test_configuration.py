@@ -483,12 +483,12 @@ class ConfigurationTests(TestCase):
         with raises(InvalidTypeError):
             config.channels
 
-    @env_vars({'EXPANDED_VAR': 'itsexpanded', 'BOOL_VAR': 'True'})
     def test_expanded_variables(self):
-        config = SampleConfiguration()._set_raw_data(load_from_string_data('env_vars'))
-        assert config.env_var_map['expanded'] == 'itsexpanded'
-        assert config.env_var_map['unexpanded'] == '$UNEXPANDED_VAR'
-        assert config.env_var_str == 'itsexpanded'
-        assert config.env_var_bool is True
-        assert config.normal_str == '$EXPANDED_VAR'
-        assert config.env_var_list == ('itsexpanded', '$UNEXPANDED_VAR', 'regular_var')
+        with env_vars({'EXPANDED_VAR': 'itsexpanded', 'BOOL_VAR': 'True'}):
+            config = SampleConfiguration()._set_raw_data(load_from_string_data('env_vars'))
+            assert config.env_var_map['expanded'] == 'itsexpanded'
+            assert config.env_var_map['unexpanded'] == '$UNEXPANDED_VAR'
+            assert config.env_var_str == 'itsexpanded'
+            assert config.env_var_bool is True
+            assert config.normal_str == '$EXPANDED_VAR'
+            assert config.env_var_list == ('itsexpanded', '$UNEXPANDED_VAR', 'regular_var')
