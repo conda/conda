@@ -6,12 +6,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from logging import DEBUG, getLogger
 
+from ._vendor.auxlib.decorators import memoize
 from ._vendor.toolz import concat, groupby
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
-from .common.logic import Clauses, minimal_unsatisfiable_subset
+from .common.logic import Clauses, get_sat_solver_cls, minimal_unsatisfiable_subset
 from .common.toposort import toposort
 from .exceptions import InvalidSpec, ResolvePackageNotFound, UnsatisfiableError
 from .models.channel import Channel, MultiChannel
@@ -26,6 +27,8 @@ stdoutlog = getLogger('conda.stdoutlog')
 # used in conda build
 Unsatisfiable = UnsatisfiableError
 ResolvePackageNotFound = ResolvePackageNotFound
+
+get_sat_solver_cls = memoize(get_sat_solver_cls)
 
 
 def dashlist(iterable, indent=2):
@@ -579,7 +582,7 @@ class Resolve(object):
 
     @time_recorder(module_name=__name__)
     def gen_clauses(self):
-        C = Clauses()
+        C = Clauses(sat_solver_cls=get_sat_solver_cls(context.sat_solver))
         for name, group in iteritems(self.groups):
             group = [self.to_sat_name(prec) for prec in group]
             # Create one variable for each package

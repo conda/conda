@@ -35,7 +35,7 @@ install:
   # conda install -y -c defaults -c conda-forge pytest pytest-cov pytest-timeout mock responses pexpect xonsh
   # TODO: add xonsh for PY3 builds
   - "%PYTHON_ROOT%\\Scripts\\pip install codecov==2.0.5"
-  - "%PYTHON_ROOT%\\python -m conda init --dev"
+  - "%PYTHON_ROOT%\\python -m conda init cmd.exe --dev"
 
 build: false
 

@@ -45,7 +45,8 @@ from tempfile import NamedTemporaryFile
 
 from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
-from ..activate import CshActivator, FishActivator, PosixActivator, XonshActivator
+from ..activate import (CshActivator, FishActivator,
+                        PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context
 from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_text_type, on_mac,
                              on_win, open)
@@ -363,6 +364,20 @@ def make_install_plan(conda_prefix):
             'conda_prefix': conda_prefix,
         },
     })
+    plan.append({
+        'function': install_conda_psm1.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, 'shell', 'condabin', 'Conda.psm1'),
+            'conda_prefix': conda_prefix,
+        },
+    })
+    plan.append({
+        'function': install_conda_hook_ps1.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, 'shell', 'condabin', 'conda-hook.ps1'),
+            'conda_prefix': conda_prefix,
+        },
+    })
     if site_packages_dir:
         plan.append({
             'function': install_conda_xsh.__name__,
@@ -439,10 +454,38 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
             raise NotImplementedError()
 
     if 'powershell' in shells:
-        if for_user:
-            raise NotImplementedError()
+        # There's several places PowerShell can store its path, depending
+        # on if it's Windows PowerShell, PowerShell Core on Windows, or
+        # PowerShell Core on macOS/Linux. The easiest way to resolve it is to
+        # just ask different possible installations of PowerShell where their
+        # profiles are.
+        def find_powershell_paths(*exe_names):
+            for exe_name in exe_names:
+                try:
+                    yield subprocess_call(
+                        (exe_name, '-NoProfile', '-Command', '$PROFILE')
+                    ).stdout.strip()
+                except Exception:
+                    pass
+
+        config_powershell_paths = tuple(
+            find_powershell_paths('powershell', 'pwsh', 'pwsh-preview')
+        )
+
+        for config_path in config_powershell_paths:
+            if config_path is not None:
+                plan.append({
+                    'function': init_powershell_user.__name__,
+                    'kwargs': {
+                        'target_path': config_path,
+                        'conda_prefix': conda_prefix
+                    }
+                })
+
         if for_system:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                "PowerShell hooks are only implemented for per-user profiles."
+            )
 
     if 'cmd.exe' in shells:
         if for_user:
@@ -816,6 +859,18 @@ def install_conda_fish(target_path, conda_prefix):
     file_content = FishActivator().hook(auto_activate_base=False)
     return _install_file(target_path, file_content)
 
+def install_conda_psm1(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'shell', 'condabin', 'Conda.psm1')
+    conda_psm1_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'Conda.psm1')
+    with open(conda_psm1_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_conda_hook_ps1(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'shell', 'condabin', 'conda-hook.ps1')
+    file_content = PowerShellActivator().hook(auto_activate_base=False)
+    return _install_file(target_path, file_content)
 
 def install_conda_xsh(target_path, conda_prefix):
     # target_path: join(site_packages_dir, 'xonsh', 'conda.xsh')
@@ -1148,6 +1203,69 @@ def init_long_path(target_path):
             print('Not setting long path registry key; Windows version must be at least 10 with '
                   'the fall 2016 "Anniversary update" or newer.')
             return Result.NO_CHANGE
+
+def _powershell_profile_content(conda_prefix):
+    if on_win:
+        conda_exe = join(conda_prefix, 'Scripts', 'conda.exe')
+    else:
+        conda_exe = join(conda_prefix, 'bin', 'conda')
+
+    conda_powershell_module = dals("""
+    #region conda initialize
+    # !! Contents within this block are managed by 'conda init' !!
+    (& {conda_exe} shell.powershell hook) | Out-String | Invoke-Expression
+    #endregion
+    """.format(conda_exe=conda_exe))
+
+    return conda_powershell_module
+
+def init_powershell_user(target_path, conda_prefix):
+    # target_path: $PROFILE
+    profile_path = target_path
+
+    # NB: the user may not have created a profile. We need to check
+    #     if the file exists first.
+    if os.path.exists(profile_path):
+        with open(profile_path) as fp:
+            profile_content = fp.read()
+    else:
+        profile_content = ""
+
+    profile_original_content = profile_content
+
+    # Find what content we need to add.
+    conda_initialize_content = _powershell_profile_content(conda_prefix)
+
+    # TODO: comment out old ipmos and Import-Modules.
+
+    if "#region conda initialize" not in profile_content:
+        profile_content += "\n{}\n".format(conda_initialize_content)
+    else:
+        re.sub(
+            r"\#region conda initialize.*\#endregion",
+            "__CONDA_REPLACE_ME_123__",
+            profile_content,
+            count=1,
+            flags=re.DOTALL | re.MULTILINE
+        ).replace(
+            "__CONDA_REPLACE_ME_123__",
+            conda_initialize_content
+        )
+
+    if profile_content != profile_original_content:
+        if context.verbosity:
+            print('\n')
+            print(target_path)
+            print(make_diff(profile_original_content, profile_content))
+        if not context.dry_run:
+            # Make the directory if needed.
+            if not exists(dirname(profile_path)):
+                mkdir_p(dirname(profile_path))
+            with open(profile_path, 'w') as fp:
+                fp.write(profile_content)
+        return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
 
 
 def remove_conda_in_sp_dir(target_path):
