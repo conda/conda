@@ -452,9 +452,18 @@ class Parameter(object):
     def _merge(self, matches):
         raise NotImplementedError()
 
-    @abstractmethod
-    def _expand(self, unexpanded):
-        raise NotImplementedError()
+    def _expand(self, data):
+        if self._expandvars:
+            # This is similar to conda._vendor.auxlib.type_coercion.typify_data_structure
+            # It could be DRY-er but that would break SRP.
+            if isinstance(data, Mapping):
+                return type(data)((k, expand_environment_variables(v)) for k, v in iteritems(data))
+            elif isiterable(data):
+                return type(data)(expand_environment_variables(v) for v in data)
+            else:
+                return expand_environment_variables(data)
+        else:
+            return data
 
     def __get__(self, instance, instance_type):
         # strategy is "extract and merge," which is actually just map and reduce
@@ -464,16 +473,17 @@ class Parameter(object):
             return instance._cache_[self.name]
 
         matches, errors = self._get_all_matches(instance)
+        merged = self._merge(matches) if matches else self.default
+        # We need to expand any environment variables before type casting.
+        # Otherwise e.g. `my_bool_var: $BOOL` with BOOL=True would raise a TypeCoercionError.
+        expanded = self._expand(merged)
         try:
-            result = typify_data_structure(self._merge(matches) if matches else self.default,
-                                           self._element_type)
+            result = typify_data_structure(expanded, self._element_type)
         except TypeCoercionError as e:
             errors.append(CustomValidationError(self.name, e.value, "<<merged>>", text_type(e)))
         else:
             errors.extend(self.collect_errors(instance, result))
         raise_errors(errors)
-        if self._expandvars:
-            result = self._expand(result)  # lgtm [py/uninitialized-local-variable]
         instance._cache_[self.name] = result  # lgtm [py/uninitialized-local-variable]
         return result  # lgtm [py/uninitialized-local-variable]
 
@@ -554,9 +564,6 @@ class PrimitiveParameter(Parameter):
             return last_match.value(self)
         raise ThisShouldNeverHappenError()  # pragma: no cover
 
-    def _expand(self, unexpanded):
-        return expand_environment_variables(unexpanded)
-
     def repr_raw(self, raw_parameter):
         return "%s: %s%s" % (raw_parameter.key,
                              self._str_format_value(raw_parameter.value(self)),
@@ -634,9 +641,6 @@ class SequenceParameter(Parameter):
         # just reverse, and we're good to go
         return tuple(reversed(tuple(bottom_deduped)))
 
-    def _expand(self, unexpanded):
-        return [expand_environment_variables(value) for value in unexpanded]
-
     def repr_raw(self, raw_parameter):
         lines = list()
         lines.append("%s:%s" % (raw_parameter.key,
@@ -707,9 +711,6 @@ class MapParameter(Parameter):
         # then overwrite with important matches
         return frozendict(merge(concatv((v for _, v in relevant_matches_and_values),
                                         reversed(important_maps))))
-
-    def _expand(self, unexpanded):
-        return {key: expand_environment_variables(value) for key, value in iteritems(unexpanded)}
 
     def repr_raw(self, raw_parameter):
         lines = list()

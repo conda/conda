@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.common.io import env_var
+from conda.common.io import env_var, env_vars
 
 from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
@@ -17,11 +17,6 @@ from pytest import raises
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
 
 test_yaml_raw = {
     'file1': dals("""
@@ -145,7 +140,7 @@ test_yaml_raw = {
           unexpanded: $UNEXPANDED_VAR
         
         env_var_str: $EXPANDED_VAR
-        
+        env_var_bool: $BOOL_VAR
         normal_str: $EXPANDED_VAR
         
         env_var_list:
@@ -170,6 +165,7 @@ class SampleConfiguration(Configuration):
 
     env_var_map = MapParameter(string_types, expandvars=True)
     env_var_str = PrimitiveParameter('', expandvars=True)
+    env_var_bool = PrimitiveParameter(False, element_type=bool, expandvars=True)
     normal_str = PrimitiveParameter('', expandvars=False)
     env_var_list = SequenceParameter(string_types, expandvars=True)
 
@@ -487,11 +483,12 @@ class ConfigurationTests(TestCase):
         with raises(InvalidTypeError):
             config.channels
 
-    @patch.dict('os.environ', {'EXPANDED_VAR': 'itsexpanded'})
+    @env_vars({'EXPANDED_VAR': 'itsexpanded', 'BOOL_VAR': 'True'})
     def test_expanded_variables(self):
         config = SampleConfiguration()._set_raw_data(load_from_string_data('env_vars'))
         assert config.env_var_map['expanded'] == 'itsexpanded'
         assert config.env_var_map['unexpanded'] == '$UNEXPANDED_VAR'
         assert config.env_var_str == 'itsexpanded'
+        assert config.env_var_bool is True
         assert config.normal_str == '$EXPANDED_VAR'
-        assert config.env_var_list == ['itsexpanded', '$UNEXPANDED_VAR', 'regular_var']
+        assert config.env_var_list == ('itsexpanded', '$UNEXPANDED_VAR', 'regular_var')
