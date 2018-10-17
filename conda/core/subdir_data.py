@@ -227,7 +227,7 @@ class SubdirData(object):
                 mkdir_p(dirname(self.cache_path_json))
             try:
                 with open(self.cache_path_json, 'w') as fh:
-                    fh.write(raw_repodata_str or '{}')
+                    fh.write(raw_repodata_str.encode("UTF-8") or '{}')
             except (IOError, OSError) as e:
                 if e.errno in (EACCES, EPERM):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
