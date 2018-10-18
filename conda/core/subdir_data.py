@@ -16,6 +16,7 @@ from os.path import dirname, isdir, join, splitext
 import re
 from time import time
 import warnings
+from io import open as io_open
 
 from .. import CondaError
 from .._vendor.auxlib.ish import dals
@@ -226,8 +227,8 @@ class SubdirData(object):
             if not isdir(dirname(self.cache_path_json)):
                 mkdir_p(dirname(self.cache_path_json))
             try:
-                with open(self.cache_path_json, 'w') as fh:
-                    fh.write(raw_repodata_str.encode("UTF-8") or '{}')
+                with io_open(self.cache_path_json, 'w') as fh:
+                    fh.write(raw_repodata_str or '{}')
             except (IOError, OSError) as e:
                 if e.errno in (EACCES, EPERM):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
