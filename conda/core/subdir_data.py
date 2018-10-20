@@ -354,6 +354,8 @@ class SubdirData(object):
 
         channel_url = self.url_w_credentials
         for fn, info in iteritems(json_obj.get('packages', {})):
+            if info is None:
+                continue
             info['fn'] = fn
             info['url'] = join_url(channel_url, fn)
             if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
