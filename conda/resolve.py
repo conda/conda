@@ -6,14 +6,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from logging import DEBUG, getLogger
 
+from ._vendor.auxlib.decorators import memoize
 from ._vendor.toolz import concat, groupby
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY
 from .base.context import context
 from .common.compat import iteritems, iterkeys, itervalues, odict, on_win, text_type
 from .common.io import time_recorder
-from .common.logic import Clauses, minimal_unsatisfiable_subset
+from .common.logic import Clauses, get_sat_solver_cls, minimal_unsatisfiable_subset
 from .common.toposort import toposort
-from .exceptions import InvalidVersionSpecError, ResolvePackageNotFound, UnsatisfiableError
+from .exceptions import InvalidSpec, ResolvePackageNotFound, UnsatisfiableError
 from .models.channel import Channel, MultiChannel
 from .models.enums import NoarchType
 from .models.match_spec import MatchSpec
@@ -26,6 +27,8 @@ stdoutlog = getLogger('conda.stdoutlog')
 # used in conda build
 Unsatisfiable = UnsatisfiableError
 ResolvePackageNotFound = ResolvePackageNotFound
+
+get_sat_solver_cls = memoize(get_sat_solver_cls)
 
 
 def dashlist(iterable, indent=2):
@@ -107,7 +110,7 @@ class Resolve(object):
                 filter[prec] = True
                 try:
                     depends = self.ms_depends(prec)
-                except InvalidVersionSpecError as e:
+                except InvalidSpec as e:
                     val = filter[prec] = False
                 else:
                     val = filter[prec] = all(v_ms_(ms) for ms in depends)
@@ -134,7 +137,7 @@ class Resolve(object):
                 filter_out[prec] = False
                 try:
                     has_valid_deps = all(is_valid_spec(ms) for ms in self.ms_depends(prec))
-                except InvalidVersionSpecError as e:
+                except InvalidSpec as e:
                     val = filter_out[prec] = "invalid dep specs"
                 else:
                     val = filter_out[prec] = False if has_valid_deps else "invalid depends specs"
@@ -579,7 +582,7 @@ class Resolve(object):
 
     @time_recorder(module_name=__name__)
     def gen_clauses(self):
-        C = Clauses()
+        C = Clauses(sat_solver_cls=get_sat_solver_cls(context.sat_solver))
         for name, group in iteritems(self.groups):
             group = [self.to_sat_name(prec) for prec in group]
             # Create one variable for each package
@@ -919,6 +922,7 @@ class Resolve(object):
             log.debug('Solving for: %s', dashlist(sorted(text_type(s) for s in specs)))
 
         # Find the compliant packages
+        log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
         specs = tuple(map(MatchSpec, specs))
         reduced_index = self.get_reduced_index(specs)
@@ -926,6 +930,8 @@ class Resolve(object):
             return False if reduced_index is None else ([[]] if returnall else [])
 
         # Check if satisfiable
+        log.debug("Solve: determining satisfiability")
+
         def mysat(specs, add_if=False):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
@@ -953,18 +959,21 @@ class Resolve(object):
         speca.extend(MatchSpec(s) for s in specm)
 
         # Removed packages: minimize count
+        log.debug("Solve: minimize removed packages")
         if _remove:
             eq_optional_c = r2.generate_removal_count(C, speco)
             solution, obj7 = C.minimize(eq_optional_c, solution)
             log.debug('Package removal metric: %d', obj7)
 
         # Requested packages: maximize versions
+        log.debug("Solve: maximize versions of requested packages")
         eq_req_c, eq_req_v, eq_req_b, eq_req_t = r2.generate_version_metrics(C, specr)
         solution, obj3a = C.minimize(eq_req_c, solution)
         solution, obj3 = C.minimize(eq_req_v, solution)
         log.debug('Initial package channel/version metric: %d/%d', obj3a, obj3)
 
         # Track features: minimize feature count
+        log.debug("Solve: minimize track_feature count")
         eq_feature_count = r2.generate_feature_count(C)
         solution, obj1 = C.minimize(eq_feature_count, solution)
         log.debug('Track feature count: %d', obj1)
@@ -977,26 +986,31 @@ class Resolve(object):
         # environment, but not 'feat2'. In this case, the 'feat2' version of foo is
         # considered "featureless."
         if not context.featureless_minimization_disabled_feature_flag:
+            log.debug("Solve: maximize number of packages that have necessary features")
             eq_feature_metric = r2.generate_feature_metric(C)
             solution, obj2 = C.minimize(eq_feature_metric, solution)
             log.debug('Package misfeature count: %d', obj2)
 
         # Requested packages: maximize builds
+        log.debug("Solve: maximize build numbers of requested packages")
         solution, obj4 = C.minimize(eq_req_b, solution)
         log.debug('Initial package build metric: %d', obj4)
 
         # Optional installations: minimize count
         if not _remove:
+            log.debug("Solve: minimize number of optional installations")
             eq_optional_install = r2.generate_install_count(C, speco)
             solution, obj49 = C.minimize(eq_optional_install, solution)
             log.debug('Optional package install metric: %d', obj49)
 
         # Dependencies: minimize the number of packages that need upgrading
+        log.debug("Solve: minimize number of necessary upgrades")
         eq_u = r2.generate_update_count(C, speca)
         solution, obj50 = C.minimize(eq_u, solution)
         log.debug('Dependency update count: %d', obj50)
 
         # Remaining packages: maximize versions, then builds
+        log.debug("Solve: maximize versions and builds of indirect dependencies")
         eq_c, eq_v, eq_b, eq_t = r2.generate_version_metrics(C, speca)
         solution, obj5a = C.minimize(eq_c, solution)
         solution, obj5 = C.minimize(eq_v, solution)
@@ -1005,11 +1019,13 @@ class Resolve(object):
                   obj5a, obj5, obj6)
 
         # Maximize timestamps
+        log.debug("Solve: maximize timestamps")
         eq_t.update(eq_req_t)
         solution, obj6t = C.minimize(eq_t, solution)
         log.debug('Timestamp metric: %d', obj6t)
 
         # Prune unnecessary packages
+        log.debug("Solve: prune unnecessary packages")
         eq_c = r2.generate_package_count(C, specm)
         solution, obj7 = C.minimize(eq_c, solution, trymax=True)
         log.debug('Weak dependency count: %d', obj7)

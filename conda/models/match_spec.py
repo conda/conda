@@ -22,7 +22,7 @@ from ..common.compat import (isiterable, iteritems, itervalues, string_types, te
 from ..common.io import dashlist
 from ..common.path import expand
 from ..common.url import is_url, path_to_url, unquote
-from ..exceptions import CondaValueError
+from ..exceptions import CondaValueError, InvalidMatchSpec
 
 log = getLogger(__name__)
 
@@ -288,24 +288,29 @@ class MatchSpec(object):
         name_matcher = self._match_components.get('name', '*')
         builder.append(('::%s' if builder else '%s') % name_matcher)
 
-        version_exact = False
         version = self._match_components.get('version')
+        build = self._match_components.get('build')
+        version_exact = False
         if version:
             version = text_type(version)
-            if any(s in version for s in '><$^|,'):
+            if any(s in version for s in "><$^|,"):
                 brackets.append("version='%s'" % version)
-            elif version.endswith('.*'):
-                builder.append('=' + version[:-2])
-            elif version.endswith('*'):
-                builder.append('=' + version[:-1])
-            elif version.startswith('=='):
+            elif version[:2] in ("!=", "~="):
+                if build:
+                    brackets.append("version='%s'" % version)
+                else:
+                    builder.append(version)
+            elif version[-2:] == ".*":
+                builder.append("=" + version[:-2])
+            elif version[-1] == "*":
+                builder.append("=" + version[:-1])
+            elif version.startswith("=="):
                 builder.append(version)
                 version_exact = True
             else:
-                builder.append('==' + version)
+                builder.append("==" + version)
                 version_exact = True
 
-        build = self._match_components.get('build')
         if build:
             build = text_type(build)
             if any(s in build for s in '><$^|,'):
@@ -372,11 +377,11 @@ class MatchSpec(object):
     def __contains__(self, field):
         return field in self._match_components
 
-    @staticmethod
-    def _build_components(**kwargs):
+    def _build_components(self, **kwargs):
         not_fields = set(kwargs) - MatchSpec.FIELD_NAMES_SET
         if not_fields:
-            raise CondaValueError('Cannot match on field(s): %s' % not_fields)
+            raise InvalidMatchSpec(self._original_spec_str,
+                                   'Cannot match on field(s): %s' % not_fields)
         _make_component = MatchSpec._make_component
         return frozendict(_make_component(key, value) for key, value in iteritems(kwargs))
 
@@ -500,13 +505,12 @@ def _parse_version_plus_build(v_plus_b):
         >>> _parse_version_plus_build("* *")
         ('*', '*')
     """
-    parts = re.search(r'((?:.+?)[^><!,|]?)(?:(?<![=!|,<>])(?:[ =])([^-=,|<>]+?))?$', v_plus_b)
+    parts = re.search(r'((?:.+?)[^><!,|]?)(?:(?<![=!|,<>~])(?:[ =])([^-=,|<>~]+?))?$', v_plus_b)
     if parts:
         version, build = parts.groups()
         build = build and build.strip()
     else:
         version, build = v_plus_b, None
-
     return version and version.replace(' ', ''), build
 
 
@@ -600,7 +604,7 @@ def _parse_spec_str(spec_str):
         for match in m3b:
             key, _, value, _ = match.groups()
             if not key or not value:
-                raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
+                raise InvalidMatchSpec(original_spec_str, "key-value mismatch in brackets")
             brackets[key] = value
 
     # Step 4. strip off parens portion
@@ -641,13 +645,13 @@ def _parse_spec_str(spec_str):
         subdir = brackets.pop('subdir')
 
     # Step 6. strip off package name from remaining version + build
-    m3 = re.match(r'([^ =<>!]+)?([><!= ].+)?', spec_str)
+    m3 = re.match(r'([^ =<>!~]+)?([><!=~ ].+)?', spec_str)
     if m3:
         name, spec_str = m3.groups()
         if name is None:
-            raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
+            raise InvalidMatchSpec(original_spec_str, "no package name found in '%s'" % spec_str)
     else:
-        raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
+        raise InvalidMatchSpec(original_spec_str, "no package name found")
 
     # Step 7. otherwise sort out version + build
     spec_str = spec_str and spec_str.strip()
@@ -657,7 +661,7 @@ def _parse_spec_str(spec_str):
     #     name, version, build = _parse_legacy_dist(name)
     if spec_str:
         if '[' in spec_str:
-            raise CondaValueError("Invalid MatchSpec: %s" % spec_str)
+            raise InvalidMatchSpec(original_spec_str, "multiple brackets sections not allowed")
 
         version, build = _parse_version_plus_build(spec_str)
 

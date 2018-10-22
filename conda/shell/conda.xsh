@@ -78,5 +78,7 @@ def _conda_main(args=None):
 
 if 'CONDA_SHLVL' not in ${...}:
     $CONDA_SHLVL = '0'
+    import os, sys
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname($CONDA_EXE)), "condabin"))
 
 aliases['conda'] = _conda_main

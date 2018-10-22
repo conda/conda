@@ -26,7 +26,7 @@ def _get_activated_env_vars_win(env_location):
     try:
         conda_bat = os.environ["CONDA_BAT"]
     except KeyError:
-        conda_bat = abspath(join(sys.prefix, 'condacmd', 'conda.bat'))
+        conda_bat = abspath(join(sys.prefix, 'condabin', 'conda.bat'))
 
     temp_path = None
     try:

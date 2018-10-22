@@ -7,6 +7,7 @@
   config (#7195, #7226, #7233)
 * resolve #7087 add non-conda-installed python packages into PrefixData (#7067, #7370)
 * resolve #2682 add 'conda run' preview support (#7320, #7625)
+* resolve #626 conda wrapper for PowerShell (#7794)
 
 ### Deprecations/Breaking Changes
 * resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
@@ -51,6 +52,8 @@
 * resolve #7336 'conda search' tries "fuzzy match" before showing PackagesNotFound (#7722)
 * resolve #7656 strict channel priority via 'channel_priority' config option or --strict-channel-priority CLI flag (#7729)
 * performance improvement to cache __hash__ value on PackageRecord (#7715)
+* resolve #7764 change name of 'condacmd' dir to 'condabin'; use on all platforms (#7773)
+* resolve #7782 implement PEP-440 '~=' compatible release operator (#7783)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
@@ -71,6 +74,8 @@
 * fix conda env compatibility with pip 18 (#7612)
 * fix #7184 remove conflicting specs to find solution to user's active request (#7719)
 * fix #7706 add condacmd dir to cmd.exe path on first activation (#7735)
+* fix #7761 spec handling errors in 4.6.0b0 (#7780)
+* fix #7770 'conda list regex' only applies regex to package name (#7784)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
@@ -83,13 +88,17 @@
 * test building conda using conda-build (#7251)
 * solver test metadata updates (#7664)
 * explicitly add Mapping, Sequence to common.compat (#7677)
+* add debug messages to communicate solver stages (#7803)
+* add undocumented sat_solver config parameter (#7811)
 
 ### Preview Releases
 
 * 4.6.0a1 at d5bec21d1f64c3bc66c2999cfc690681e9c46177 on 2018-04-20
 * 4.6.0a2 at c467517ca652371ebc4224f0d49315b7ec225108 on 2018-05-01
+* 4.6.0b0 at 21a24f02b2687d0895de04664a4ec23ccc75c33a on 2018-09-07
 
 ### Contributors
+* @cgranade
 * @fabioz
 * @goanpeca
 * @jesse-

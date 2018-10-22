@@ -15,7 +15,7 @@ from .._vendor.toolz import concat, concatv, groupby
 from ..base.context import context
 from ..common.compat import itervalues
 from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, dashlist, time_recorder
-from ..exceptions import ChannelNotAllowed, InvalidVersionSpecError
+from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord
@@ -188,8 +188,8 @@ def get_reduced_index(prefix, channels, subdirs, specs):
         def push_record(record):
             try:
                 combined_depends = record.combined_depends
-            except InvalidVersionSpecError as e:
-                log.warning("Skipping %s due to InvalidVersionSpecError: %s",
+            except InvalidSpec as e:
+                log.warning("Skipping %s due to InvalidSpec: %s",
                             record.record_id(), e._kwargs["invalid_spec"])
                 return
             push_spec(MatchSpec(record.name))

@@ -10,6 +10,7 @@ from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, j
 import re
 import sys
 from tempfile import NamedTemporaryFile
+from textwrap import dedent
 
 # Since we have to have configuration context here, anything imported by
 #   conda.base.context is fair game, but nothing more.
@@ -97,6 +98,11 @@ class _Activator(object):
     def hook(self, auto_activate_base=None):
         builder = []
         builder.append(self._hook_preamble())
+
+        # here
+        condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
+        self.export_var_tmpl % ("PATH", self.pathsep_join((condabin_dir, )))
+
         with open(self.hook_source_path) as fsrc:
             builder.append(fsrc.read())
         if auto_activate_base is None and context.auto_activate_base or auto_activate_base:
@@ -107,6 +113,22 @@ class _Activator(object):
         # return value meant to be written to stdout
         self._parse_and_set_args(self._raw_arguments)
         return getattr(self, self.command)()
+
+    def commands(self):
+        """
+        Returns a list of possible subcommands that are valid
+        immediately following `conda` at the command line.
+        This method is generally only used by tab-completion.
+        """
+        # Import locally to reduce impact on initialization time.
+        from .cli.find_commands import find_commands
+        from .cli.conda_argparse import generate_parser, find_builtin_commands
+        # return value meant to be written to stdout
+        # Hidden commands to provide metadata to shells.
+        return "\n".join(sorted(
+            find_builtin_commands(generate_parser()) +
+            tuple(find_commands(True))
+        ))
 
     def _hook_preamble(self):
         # must be implemented in subclass
@@ -127,7 +149,8 @@ class _Activator(object):
 
         if not command:
             from .exceptions import ArgumentError
-            raise ArgumentError("'activate', 'deactivate', 'hook', or 'reactivate' "
+            raise ArgumentError("'activate', 'deactivate', 'hook', "
+                                "'commands', or 'reactivate' "
                                 "command must be given")
         elif help_requested:
             from .exceptions import ActivateHelp, DeactivateHelp, GenericHelp
@@ -135,10 +158,11 @@ class _Activator(object):
                 'activate': ActivateHelp(),
                 'deactivate': DeactivateHelp(),
                 'hook': GenericHelp('hook'),
+                'commands': GenericHelp('commands'),
                 'reactivate': GenericHelp('reactivate'),
             }
             raise help_classes[command]
-        elif command not in ('activate', 'deactivate', 'reactivate', 'hook'):
+        elif command not in ('activate', 'deactivate', 'reactivate', 'hook', 'commands'):
             from .exceptions import ArgumentError
             raise ArgumentError("invalid command '%s'" % command)
 
@@ -422,6 +446,16 @@ class _Activator(object):
             path_list = list(self.path_conversion(self._get_starting_path_list()))
         else:
             path_list = list(self.path_conversion(starting_path_dirs))
+
+        # If this is the first time we're activating an environment, we need to ensure that
+        # the condabin directory is included in the path list.
+        # Under normal conditions, if the shell hook is working correctly, this should
+        # never trigger.
+        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
+        if not old_conda_shlvl and not any(p.endswith("condabin") for p in path_list):
+            condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
+            path_list.insert(0, condabin_dir)
+
         path_list[0:0] = list(self.path_conversion(self._get_path_dirs2(prefix)))
         return tuple(path_list)
 
@@ -610,7 +644,7 @@ class PosixActivator(_Activator):
         if on_win:
             return ('export CONDA_EXE="$(cygpath \'%s\')"\n'
                     'export CONDA_BAT="%s"'
-                    % (context.conda_exe, join(context.conda_prefix, 'condacmd', 'conda.bat'))
+                    % (context.conda_exe, join(context.conda_prefix, 'condabin', 'conda.bat'))
                     )
         else:
             return 'export CONDA_EXE="%s"' % context.conda_exe
@@ -711,18 +745,6 @@ class CmdExeActivator(_Activator):
     def _hook_preamble(self):
         raise NotImplementedError()
 
-    def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
-        # If this is the first time we're activating an environment, we need to ensure that
-        # the condacmd directory is included in the path list.
-        old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
-        if starting_path_dirs is None:
-            starting_path_dirs = self._get_starting_path_list()
-        starting_path_dirs = list(starting_path_dirs)
-        if not old_conda_shlvl and not any(p.endswith("condacmd") for p in starting_path_dirs):
-            condacmd_dir = self.path_conversion(join(context.conda_prefix, "condacmd"))
-            starting_path_dirs.insert(0, condacmd_dir)
-        return super(CmdExeActivator, self)._add_prefix_to_path(prefix, starting_path_dirs)
-
 
 class FishActivator(_Activator):
 
@@ -757,27 +779,31 @@ class FishActivator(_Activator):
                     % (context.conda_exe, context.conda_prefix, context.conda_exe))
 
 
-class PowershellActivator(_Activator):
+class PowerShellActivator(_Activator):
 
     def __init__(self, arguments=None):
-        self.pathsep_join = ';'.join
-        self.sep = '\\'
+        self.pathsep_join = ';'.join if on_win else ':'.join
+        self.sep = '/'  # Even on Windows, PowerShell can handle Unix-style separators.
         self.path_conversion = path_identity
         self.script_extension = '.ps1'
         self.tempfile_extension = None  # write instructions to stdout rather than a temp file
         self.command_join = '\n'
 
-        self.unset_var_tmpl = 'Remove-Variable %s'
+        self.unset_var_tmpl = 'Remove-Item Env:/%s'
         self.export_var_tmpl = '$env:%s = "%s"'
-        self.set_var_tmpl = '$env:%s = "%s"'  # TODO: determine if different than export_var_tmpl
+        self.set_var_tmpl = '$env:%s = "%s"'
         self.run_script_tmpl = '. "%s"'
 
-        self.hook_source_path = None  # TODO: doesn't yet exist
+        self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda-hook.ps1')
 
-        super(PowershellActivator, self).__init__(arguments)
+        super(PowerShellActivator, self).__init__(arguments)
 
     def _hook_preamble(self):
-        raise NotImplementedError()
+        return dedent("""\
+        $Env:CONDA_EXE = "{context.conda_exe}"
+        $Env:_CONDA_ROOT = "{context.conda_prefix}"
+        $Env:_CONDA_EXE = "{context.conda_exe}"
+        """.format(context=context))
 
 
 activator_map = {
@@ -791,7 +817,7 @@ activator_map = {
     'xonsh': XonshActivator,
     'cmd.exe': CmdExeActivator,
     'fish': FishActivator,
-    'powershell': PowershellActivator,
+    'powershell': PowerShellActivator,
 }
 
 

@@ -20,7 +20,7 @@ from random import sample
 import re
 from shlex import split
 from shutil import copyfile, rmtree
-from subprocess import check_call, CalledProcessError, check_output
+from subprocess import check_call, CalledProcessError, check_output, Popen, PIPE
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
@@ -800,7 +800,7 @@ class IntegrationTests(TestCase):
             # assert package_is_installed(prefix, 'mkl')  # removed per above comment
 
     @pytest.mark.skipif(on_win and context.bits == 32, reason="no 32-bit windows python on conda-forge")
-    @pytest.mark.skipif(on_win and datetime.now() <= datetime(2018, 10, 1), reason="conda-forge repodata needs vc patching")
+    @pytest.mark.skipif(on_win and datetime.now() <= datetime(2018, 11, 1), reason="conda-forge repodata needs vc patching")
     def test_dash_c_usage_replacing_python(self):
         # Regression test for #2606
         with make_temp_env("-c conda-forge python=3.5") as prefix:
@@ -925,7 +925,7 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix,
                             "conda-forge::tensorflow>=1.4 --dry-run --freeze-installed")
 
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 9, 15),
+    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 11, 1),
                        reason="need to talk with @msarahan about blas patches on Windows",
                        strict=True)
     def test_install_features(self):
@@ -1610,6 +1610,37 @@ class IntegrationTests(TestCase):
             assert unlink_dists[0]["name"] == "urllib3"
             assert unlink_dists[0]["channel"] == "pypi"
 
+    def test_conda_pip_interop_compatible_release_operator(self):
+        # Regression test for #7776
+        with make_temp_env("pip=10 six=1.9 appdirs") as prefix:
+            assert package_is_installed(prefix, "python")
+            assert package_is_installed(prefix, "six=1.9")
+            assert package_is_installed(prefix, "appdirs>=1.4.3")
+
+            p = Popen(PYTHON_BINARY + " -m pip install fs==2.1.0", stdout=PIPE, stderr=PIPE, cwd=prefix, shell=True)
+            stdout, stderr = p.communicate()
+            rc = p.returncode
+            assert int(rc) != 0
+            assert "Cannot uninstall" in text_type(stderr)
+
+            run_command(Commands.REMOVE, prefix, "six")
+            assert not package_is_installed(prefix, "six")
+
+            output = check_output(PYTHON_BINARY + " -m pip install fs==2.1.0", cwd=prefix, shell=True)
+            print(output)
+            PrefixData._cache_.clear()
+            assert package_is_installed(prefix, "fs==2.1.0")
+            # six_record = next(PrefixData(prefix).query("six"))
+            # print(json_dump(six_record.dump()))
+            assert package_is_installed(prefix, "six~=1.10")
+
+            stdout, stderr = run_command(Commands.LIST, prefix)
+            assert not stderr
+            assert "fs                        2.1.0                    pypi_0    pypi" in stdout
+
+            with pytest.raises(DryRunExit):
+                run_command(Commands.INSTALL, prefix, "agate=1.6 --dry-run")
+
     @pytest.mark.skipif(on_win, reason="gawk is a windows only package")
     def test_search_gawk_not_win_filter(self):
         with make_temp_env() as prefix:
@@ -2028,8 +2059,10 @@ class IntegrationTests(TestCase):
             conda_version = result.stdout.strip()[6:]
             assert conda_version == "4.5.0"
 
-            result = subprocess_call("%s -m conda init --dev" % join(prefix, python_exe),
-                                     path=dirname(CONDA_PACKAGE_ROOT))
+            result = subprocess_call(
+                ("%s -m conda init cmd.exe --dev" if on_win else "%s -m conda init --dev")
+                % join(prefix, python_exe),
+                path=dirname(CONDA_PACKAGE_ROOT))
 
             result = subprocess_call("%s --version" % join(prefix, conda_exe))
             assert result.rc == 0

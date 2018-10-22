@@ -45,7 +45,8 @@ from tempfile import NamedTemporaryFile
 
 from .. import CONDA_PACKAGE_ROOT, CondaError, __version__ as CONDA_VERSION
 from .._vendor.auxlib.ish import dals
-from ..activate import CshActivator, FishActivator, PosixActivator, XonshActivator
+from ..activate import (CshActivator, FishActivator,
+                        PosixActivator, XonshActivator, PowerShellActivator)
 from ..base.context import context
 from ..common.compat import (PY2, ensure_binary, ensure_fs_path_encoding, ensure_text_type, on_mac,
                              on_win, open)
@@ -198,9 +199,9 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         builder += ["@SET %s=" % unset_env_var for unset_env_var in unset_env_vars]
         builder += ['@SET "%s=%s"' % (key, env_vars[key]) for key in sorted(env_vars)]
         builder += [
-            '@CALL \"%s\"' % join(dev_env_prefix, 'condacmd', 'conda_hook.bat'),
+            '@CALL \"%s\"' % join(dev_env_prefix, 'condabin', 'conda_hook.bat'),
             '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
-            '@CALL \"%s\" activate \"%s\"' % (join(dev_env_prefix, 'condacmd', 'conda.bat'),
+            '@CALL \"%s\" activate \"%s\"' % (join(dev_env_prefix, 'condabin', 'conda.bat'),
                                               dev_env_prefix),
             '@IF %errorlevel% NEQ 0 @EXIT /B %errorlevel%',
         ]
@@ -248,6 +249,16 @@ def make_install_plan(conda_prefix):
             },
         })
     else:
+        # We can't put a conda.exe in condabin on Windows. It'll conflict with conda.bat.
+        plan.append({
+            'function': make_entry_point.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'condabin', 'conda'),
+                'conda_prefix': conda_prefix,
+                'module': 'conda.cli',
+                'func': 'main',
+            },
+        })
         conda_exe_path = join(conda_prefix, 'bin', 'conda')
         conda_env_exe_path = join(conda_prefix, 'bin', 'conda-env')
 
@@ -275,30 +286,30 @@ def make_install_plan(conda_prefix):
     # ######################################
     if on_win:
         plan.append({
-            'function': install_condacmd_conda_bat.__name__,
+            'function': install_condabin_conda_bat.__name__,
             'kwargs': {
-                'target_path': join(conda_prefix, 'condacmd', 'conda.bat'),
+                'target_path': join(conda_prefix, 'condabin', 'conda.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
         plan.append({
-            'function': install_condacmd_conda_activate_bat.__name__,
+            'function': install_condabin_conda_activate_bat.__name__,
             'kwargs': {
-                'target_path': join(conda_prefix, 'condacmd', '_conda_activate.bat'),
+                'target_path': join(conda_prefix, 'condabin', '_conda_activate.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
         plan.append({
-            'function': install_condacmd_conda_auto_activate_bat.__name__,
+            'function': install_condabin_conda_auto_activate_bat.__name__,
             'kwargs': {
-                'target_path': join(conda_prefix, 'condacmd', 'conda_auto_activate.bat'),
+                'target_path': join(conda_prefix, 'condabin', 'conda_auto_activate.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
         plan.append({
-            'function': install_condacmd_hook_bat.__name__,
+            'function': install_condabin_hook_bat.__name__,
             'kwargs': {
-                'target_path': join(conda_prefix, 'condacmd', 'conda_hook.bat'),
+                'target_path': join(conda_prefix, 'condabin', 'conda_hook.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
@@ -312,14 +323,14 @@ def make_install_plan(conda_prefix):
         plan.append({
             'function': install_activate_bat.__name__,
             'kwargs': {
-                'target_path': join(conda_prefix, 'condacmd', 'activate.bat'),
+                'target_path': join(conda_prefix, 'condabin', 'activate.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
         plan.append({
             'function': install_deactivate_bat.__name__,
             'kwargs': {
-                'target_path': join(conda_prefix, 'condacmd', 'deactivate.bat'),
+                'target_path': join(conda_prefix, 'condabin', 'deactivate.bat'),
                 'conda_prefix': conda_prefix,
             },
         })
@@ -350,6 +361,20 @@ def make_install_plan(conda_prefix):
         'function': install_conda_fish.__name__,
         'kwargs': {
             'target_path': join(conda_prefix, 'etc', 'fish', 'conf.d', 'conda.fish'),
+            'conda_prefix': conda_prefix,
+        },
+    })
+    plan.append({
+        'function': install_conda_psm1.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, 'shell', 'condabin', 'Conda.psm1'),
+            'conda_prefix': conda_prefix,
+        },
+    })
+    plan.append({
+        'function': install_conda_hook_ps1.__name__,
+        'kwargs': {
+            'target_path': join(conda_prefix, 'shell', 'condabin', 'conda-hook.ps1'),
             'conda_prefix': conda_prefix,
         },
     })
@@ -429,10 +454,38 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
             raise NotImplementedError()
 
     if 'powershell' in shells:
-        if for_user:
-            raise NotImplementedError()
+        # There's several places PowerShell can store its path, depending
+        # on if it's Windows PowerShell, PowerShell Core on Windows, or
+        # PowerShell Core on macOS/Linux. The easiest way to resolve it is to
+        # just ask different possible installations of PowerShell where their
+        # profiles are.
+        def find_powershell_paths(*exe_names):
+            for exe_name in exe_names:
+                try:
+                    yield subprocess_call(
+                        (exe_name, '-NoProfile', '-Command', '$PROFILE')
+                    ).stdout.strip()
+                except Exception:
+                    pass
+
+        config_powershell_paths = tuple(
+            find_powershell_paths('powershell', 'pwsh', 'pwsh-preview')
+        )
+
+        for config_path in config_powershell_paths:
+            if config_path is not None:
+                plan.append({
+                    'function': init_powershell_user.__name__,
+                    'kwargs': {
+                        'target_path': config_path,
+                        'conda_prefix': conda_prefix
+                    }
+                })
+
         if for_system:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                "PowerShell hooks are only implemented for per-user profiles."
+            )
 
     if 'cmd.exe' in shells:
         if for_user:
@@ -466,7 +519,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
             plan.append({
                 'function': install_anaconda_prompt.__name__,
                 'kwargs': {
-                    'target_path': join(conda_prefix, 'condacmd', 'Anaconda Prompt.lnk'),
+                    'target_path': join(conda_prefix, 'condabin', 'Anaconda Prompt.lnk'),
                     'conda_prefix': conda_prefix,
                 },
             })
@@ -667,14 +720,14 @@ def make_entry_point_exe(target_path, conda_prefix):
 
 
 def install_anaconda_prompt(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'Anaconda Prompt.lnk')
+    # target_path: join(conda_prefix, 'condabin', 'Anaconda Prompt.lnk')
     # target: join(os.environ["HOMEPATH"], "Desktop", "Anaconda Prompt.lnk")
     icon_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda_icon.ico')
 
     args = (
         '/K',
-        '""%s" && "%s""' % (join(conda_prefix, 'condacmd', 'conda_hook.bat'),
-                            join(conda_prefix, 'condacmd', 'conda_auto_activate.bat')),
+        '""%s" && "%s""' % (join(conda_prefix, 'condabin', 'conda_hook.bat'),
+                            join(conda_prefix, 'condabin', 'conda_auto_activate.bat')),
     )
     # The API for the call to 'create_shortcut' has 3
     # required arguments (path, description, filename)
@@ -730,16 +783,16 @@ def install_Scripts_activate_bat(target_path, conda_prefix):
 
 
 def install_activate_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'activate.bat')
-    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'activate.bat')
+    # target_path: join(conda_prefix, 'condabin', 'activate.bat')
+    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'activate.bat')
     with open(src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)
 
 
 def install_deactivate_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'deactivate.bat')
-    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'deactivate.bat')
+    # target_path: join(conda_prefix, 'condabin', 'deactivate.bat')
+    src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'deactivate.bat')
     with open(src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)
@@ -769,33 +822,33 @@ def install_deactivate(target_path, conda_prefix):
     return _install_file(target_path, file_content)
 
 
-def install_condacmd_conda_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'conda.bat')
-    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda.bat')
+def install_condabin_conda_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condabin', 'conda.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda.bat')
     with open(conda_bat_src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)
 
 
-def install_condacmd_conda_activate_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', '_conda_activate.bat')
-    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', '_conda_activate.bat')
+def install_condabin_conda_activate_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condabin', '_conda_activate.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', '_conda_activate.bat')
     with open(conda_bat_src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)
 
 
-def install_condacmd_conda_auto_activate_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'conda_auto_activate.bat')
-    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda_auto_activate.bat')
+def install_condabin_conda_auto_activate_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condabin', 'conda_auto_activate.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda_auto_activate.bat')
     with open(conda_bat_src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)
 
 
-def install_condacmd_hook_bat(target_path, conda_prefix):
-    # target_path: join(conda_prefix, 'condacmd', 'conda_hook.bat')
-    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda_hook.bat')
+def install_condabin_hook_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condabin', 'conda_hook.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda_hook.bat')
     with open(conda_bat_src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)
@@ -806,6 +859,18 @@ def install_conda_fish(target_path, conda_prefix):
     file_content = FishActivator().hook(auto_activate_base=False)
     return _install_file(target_path, file_content)
 
+def install_conda_psm1(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'shell', 'condabin', 'Conda.psm1')
+    conda_psm1_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'Conda.psm1')
+    with open(conda_psm1_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_conda_hook_ps1(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'shell', 'condabin', 'conda-hook.ps1')
+    file_content = PowerShellActivator().hook(auto_activate_base=False)
+    return _install_file(target_path, file_content)
 
 def install_conda_xsh(target_path, conda_prefix):
     # target_path: join(site_packages_dir, 'xonsh', 'conda.xsh')
@@ -1089,7 +1154,7 @@ def init_cmd_exe_registry(target_path, conda_prefix):
         prev_value = ""
         value_type = winreg.REG_EXPAND_SZ
 
-    hook_path = '"%s"' % join(conda_prefix, 'condacmd', 'conda_hook.bat')
+    hook_path = '"%s"' % join(conda_prefix, 'condabin', 'conda_hook.bat')
     replace_str = "__CONDA_REPLACE_ME_123__"
     new_value = re.sub(
         r'(\".*?conda[-_]hook\.bat\")',
@@ -1138,6 +1203,69 @@ def init_long_path(target_path):
             print('Not setting long path registry key; Windows version must be at least 10 with '
                   'the fall 2016 "Anniversary update" or newer.')
             return Result.NO_CHANGE
+
+def _powershell_profile_content(conda_prefix):
+    if on_win:
+        conda_exe = join(conda_prefix, 'Scripts', 'conda.exe')
+    else:
+        conda_exe = join(conda_prefix, 'bin', 'conda')
+
+    conda_powershell_module = dals("""
+    #region conda initialize
+    # !! Contents within this block are managed by 'conda init' !!
+    (& {conda_exe} shell.powershell hook) | Out-String | Invoke-Expression
+    #endregion
+    """.format(conda_exe=conda_exe))
+
+    return conda_powershell_module
+
+def init_powershell_user(target_path, conda_prefix):
+    # target_path: $PROFILE
+    profile_path = target_path
+
+    # NB: the user may not have created a profile. We need to check
+    #     if the file exists first.
+    if os.path.exists(profile_path):
+        with open(profile_path) as fp:
+            profile_content = fp.read()
+    else:
+        profile_content = ""
+
+    profile_original_content = profile_content
+
+    # Find what content we need to add.
+    conda_initialize_content = _powershell_profile_content(conda_prefix)
+
+    # TODO: comment out old ipmos and Import-Modules.
+
+    if "#region conda initialize" not in profile_content:
+        profile_content += "\n{}\n".format(conda_initialize_content)
+    else:
+        re.sub(
+            r"\#region conda initialize.*\#endregion",
+            "__CONDA_REPLACE_ME_123__",
+            profile_content,
+            count=1,
+            flags=re.DOTALL | re.MULTILINE
+        ).replace(
+            "__CONDA_REPLACE_ME_123__",
+            conda_initialize_content
+        )
+
+    if profile_content != profile_original_content:
+        if context.verbosity:
+            print('\n')
+            print(target_path)
+            print(make_diff(profile_original_content, profile_content))
+        if not context.dry_run:
+            # Make the directory if needed.
+            if not exists(dirname(profile_path)):
+                mkdir_p(dirname(profile_path))
+            with open(profile_path, 'w') as fp:
+                fp.write(profile_content)
+        return Result.MODIFIED
+    else:
+        return Result.NO_CHANGE
 
 
 def remove_conda_in_sp_dir(target_path):

@@ -102,6 +102,7 @@ def ssl_verify_validation(value):
 class Context(Configuration):
 
     add_pip_as_python_dependency = PrimitiveParameter(True)
+    allow_conda_downgrades = PrimitiveParameter(False)
     allow_cycles = PrimitiveParameter(True)  # allow cyclical dependencies, or raise
     allow_softlinks = PrimitiveParameter(False)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
@@ -205,6 +206,7 @@ class Context(Configuration):
     # ######################################################
     deps_modifier = PrimitiveParameter(DepsModifier.NOT_SET)
     update_modifier = PrimitiveParameter(UpdateModifier.UPDATE_SPECS)
+    sat_solver = PrimitiveParameter(None, element_type=string_types + (NoneType,))
 
     # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
     # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
@@ -731,6 +733,7 @@ class Context(Configuration):
         ('Hidden and Undocumented', (
             'allow_cycles',  # allow cyclical dependencies, or raise
             'add_pip_as_python_dependency',
+            'allow_conda_downgrades',
             'debug',
             'default_python',
             'enable_private_envs',
@@ -739,6 +742,7 @@ class Context(Configuration):
             'force_32bit',
             'pip_interop_enabled',  # temporary feature flag
             'root_prefix',
+            'sat_solver',
             'subdir',
             'subdirs',
             # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA

@@ -8,7 +8,7 @@ import re
 
 from .._vendor.toolz import excepts
 from ..common.compat import string_types, zip, zip_longest, text_type, with_metaclass
-from ..exceptions import CondaValueError, InvalidVersionSpecError
+from ..exceptions import InvalidVersionSpec
 
 log = getLogger(__name__)
 
@@ -41,14 +41,6 @@ class SingleStrArgCachingType(type):
                 return val
         else:
             return super(SingleStrArgCachingType, cls).__call__(arg)
-
-
-class MalformedVersionError(CondaValueError):
-
-    def __init__(self, version_string, details):
-        message = "Malformed version string '%(version_string)s': %(details)s"
-        super(MalformedVersionError, self).__init__(message, version_string=version_string,
-                                                    details=details)
 
 
 @with_metaclass(SingleStrArgCachingType)
@@ -168,7 +160,7 @@ class VersionOrder(object):
         version = vstr.strip().rstrip().lower()
         # basic validity checks
         if version == '':
-            raise MalformedVersionError(vstr, "empty version string")
+            raise InvalidVersionSpec(vstr, "empty version string")
         invalid = not version_check_re.match(version)
         if invalid and '-' in version and '_' not in version:
             # Allow for dashes as long as there are no underscores
@@ -176,7 +168,7 @@ class VersionOrder(object):
             version = version.replace('-', '_')
             invalid = not version_check_re.match(version)
         if invalid:
-            raise MalformedVersionError(vstr, "invalid character(s)")
+            raise InvalidVersionSpec(vstr, "invalid character(s)")
 
         # when fillvalue ==  0  =>  1.1 == 1.1.0
         # when fillvalue == -1  =>  1.1  < 1.1.0
@@ -191,10 +183,10 @@ class VersionOrder(object):
         elif len(version) == 2:
             # epoch given, must be an integer
             if not version[0].isdigit():
-                raise MalformedVersionError(vstr, "epoch must be an integer")
+                raise InvalidVersionSpec(vstr, "epoch must be an integer")
             epoch = [version[0]]
         else:
-            raise MalformedVersionError(vstr, "duplicated epoch separator '!'")
+            raise InvalidVersionSpec(vstr, "duplicated epoch separator '!'")
 
         # find local version string
         version = version[-1].split('+')
@@ -205,7 +197,7 @@ class VersionOrder(object):
             # local version given
             self.local = version[1].replace('_', '.').split('.')
         else:
-            raise MalformedVersionError(vstr, "duplicated local version separator '+'")
+            raise InvalidVersionSpec(vstr, "duplicated local version separator '+'")
 
         # split version
         self.version = epoch + version[0].replace('_', '.').split('.')
@@ -216,7 +208,7 @@ class VersionOrder(object):
             for k in range(len(v)):
                 c = version_split_re.findall(v[k])
                 if not c:
-                    raise MalformedVersionError(vstr, "empty version component")
+                    raise InvalidVersionSpec(vstr, "empty version component")
                 for j in range(len(c)):
                     if c[j].isdigit():
                         c[j] = int(c[j])
@@ -236,6 +228,9 @@ class VersionOrder(object):
 
     def __str__(self):
         return self.norm_version
+
+    def __repr__(self):
+        return "%s(\"%s\")" % (self.__class__.__name__, self)
 
     def _eq(self, t1, t2):
         for v1, v2 in zip_longest(t1, t2, fillvalue=[]):
@@ -335,7 +330,7 @@ def treeify(spec_str):
         # cstop: operators with lower precedence
         while stack and stack[-1] not in cstop:
             if len(output) < 2:
-                raise InvalidVersionSpecError(spec_str)
+                raise InvalidVersionSpec(spec_str, "cannot join single expression")
             c = stack.pop()
             r = output.pop()
             # Fuse expressions with the same operator; e.g.,
@@ -363,12 +358,12 @@ def treeify(spec_str):
         elif item == ')':
             apply_ops('(')
             if not stack or stack[-1] != '(':
-                raise InvalidVersionSpecError(spec_str)
+                raise InvalidVersionSpec(spec_str, "expression must start with '('")
             stack.pop()
         else:
             output.append(item)
     if stack:
-        raise InvalidVersionSpecError(spec_str)
+        raise InvalidVersionSpec(spec_str, "unable to convert to expression tree: %s" % stack)
     return output[0]
 
 
@@ -397,11 +392,15 @@ def untreeify(spec, _inand=False):
     return spec
 
 
+def compatible_release_operator(x, y):
+    return op.__ge__(x, y) and x.startswith(VersionOrder(".".join(text_type(y).split(".")[:-1])))
+
+
 # This RE matches the operators '==', '!=', '<=', '>=', '<', '>'
 # followed by a version string. It rejects expressions like
 # '<= 1.2' (space after operator), '<>1.2' (unknown operator),
 # and '<=!1.2' (nonsensical operator).
-version_relation_re = re.compile(r'(=|==|!=|<=|>=|<|>)(?![=<>!])(\S+)$')
+version_relation_re = re.compile(r'^(=|==|!=|<=|>=|<|>|~=)(?![=<>!~])(\S+)$')
 regex_split_re = re.compile(r'.*[()|,^$]')
 OPERATOR_MAP = {
     '==': op.__eq__,
@@ -410,10 +409,11 @@ OPERATOR_MAP = {
     '>=': op.__ge__,
     '<': op.__lt__,
     '>': op.__gt__,
-    '=': lambda x, y: text_type(x).startswith(text_type(y)),
-    "!=startswith": lambda x, y: not text_type(x).startswith(text_type(y)),
+    '=': lambda x, y: x.startswith(y),
+    "!=startswith": lambda x, y: not x.startswith(y),
+    "~=": compatible_release_operator,
 }
-OPERATOR_START = frozenset(('=', '<', '>', '!'))
+OPERATOR_START = frozenset(('=', '<', '>', '!', '~'))
 
 class BaseSpec(object):
 
@@ -503,14 +503,15 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
         vspec_str = text_type(vspec).strip()
         if vspec_str[0] == '^' or vspec_str[-1] == '$':
             if vspec_str[0] != '^' or vspec_str[-1] != '$':
-                raise InvalidVersionSpecError(vspec_str)
+                raise InvalidVersionSpec(vspec_str, "regex specs must start "
+                                                    "with '^' and end with '$'")
             self.regex = re.compile(vspec_str)
             matcher = self.regex_match
             is_exact = False
         elif vspec_str[0] in OPERATOR_START:
             m = version_relation_re.match(vspec_str)
             if m is None:
-                raise InvalidVersionSpecError(vspec_str)
+                raise InvalidVersionSpec(vspec_str, "invalid operator")
             operator_str, vo_str = m.groups()
             if vo_str[-2:] == '.*':
                 if operator_str in ("=", ">="):
@@ -519,8 +520,11 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
                     vo_str = vo_str[:-2]
                     operator_str = "!=startswith"
                 else:
-                    raise InvalidVersionSpecError(vspec_str)
-            self.operator_func = OPERATOR_MAP[operator_str]
+                    raise InvalidVersionSpec(vspec_str, "invalid operator with '.*'")
+            try:
+                self.operator_func = OPERATOR_MAP[operator_str]
+            except KeyError:
+                raise InvalidVersionSpec(vspec_str, "invalid operator: %s" % operator_str)
             self.matcher_vo = VersionOrder(vo_str)
             matcher = self.operator_match
             is_exact = operator_str == "=="
@@ -596,16 +600,20 @@ class BuildNumberMatch(BaseSpec):  # lgtm [py/missing-equals]
         elif vspec_str.startswith(('=', '<', '>', '!')):
             m = version_relation_re.match(vspec_str)
             if m is None:
-                raise InvalidVersionSpecError(vspec_str)
+                raise InvalidVersionSpec(vspec_str, "invalid operator")
             operator_str, vo_str = m.groups()
-            self.operator_func = OPERATOR_MAP[operator_str]
+            try:
+                self.operator_func = OPERATOR_MAP[operator_str]
+            except KeyError:
+                raise InvalidVersionSpec(vspec_str, "invalid operator: %s" % operator_str)
             self.matcher_vo = VersionOrder(vo_str)
             matcher = self.operator_match
 
             is_exact = operator_str == "=="
         elif vspec_str[0] == '^' or vspec_str[-1] == '$':
             if vspec_str[0] != '^' or vspec_str[-1] != '$':
-                raise InvalidVersionSpecError(vspec_str)
+                raise InvalidVersionSpec(vspec_str, "regex specs must start "
+                                                    "with '^' and end with '$'")
             self.regex = re.compile(vspec_str)
             matcher = self.regex_match
             is_exact = False

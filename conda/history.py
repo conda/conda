@@ -231,7 +231,7 @@ class History(object):
 
         conda_versions_from_history = tuple(x['conda_version'] for x in res
                                             if 'conda_version' in x)
-        if conda_versions_from_history:
+        if conda_versions_from_history and not context.allow_conda_downgrades:
             minimum_conda_version = sorted(conda_versions_from_history, key=VersionOrder)[-1]
             minimum_major_minor = '.'.join(take(2, minimum_conda_version.split('.')))
             current_major_minor = '.'.join(take(2, CONDA_VERSION.split('.')))
