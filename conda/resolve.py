@@ -42,6 +42,8 @@ class Resolve(object):
 
         self.channels = channels
         self._channel_priorities_map = self._make_channel_priorities(channels) if channels else {}
+        self._channel_priority = context.channel_priority
+        self._solver_ignore_timestamps = context.solver_ignore_timestamps
 
         groups = {}
         trackers = defaultdict(list)
@@ -397,9 +399,14 @@ class Resolve(object):
         build_string = rec.get('build')
         ts = rec.get('timestamp', 0)
         if context.channel_priority:
-            return valid, -channel_priority, version_comparator, build_number, ts, build_string
+            vkey = [valid, -channel_priority, version_comparator, build_number]
         else:
-            return valid, version_comparator, -channel_priority, build_number, ts, build_string
+            vkey = [valid, version_comparator, -channel_priority, build_number]
+        if self._solver_ignore_timestamps:
+            vkey.append(build_string)
+        else:
+            vkey.extend((ts, build_string))
+        return vkey
 
     @staticmethod
     def _make_channel_priorities(channels):
@@ -597,7 +604,7 @@ class Resolve(object):
                 elif pkey[3] != version_key[3]:
                     ib += 1
                     it = 0
-                elif pkey[4] != version_key[4]:
+                elif not self._solver_ignore_timestamps and pkey[4] != version_key[4]:
                     it += 1
 
                 if ic or include0:

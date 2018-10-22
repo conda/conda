@@ -204,6 +204,7 @@ class Context(Configuration):
     update_dependencies = PrimitiveParameter(False, aliases=('update_deps',))
     _verbosity = PrimitiveParameter(0, aliases=('verbose', 'verbosity'), element_type=int)
 
+    solver_ignore_timestamps = PrimitiveParameter(True)
     featureless_minimization_disabled_feature_flag = PrimitiveParameter(False)
     target_prefix_override = PrimitiveParameter('')
 
@@ -602,6 +603,7 @@ class Context(Configuration):
             'only_dependencies',
             'prune',
             'root_prefix',
+            'solver_ignore_timestamps',
             'subdir',
             'subdirs',
 # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA

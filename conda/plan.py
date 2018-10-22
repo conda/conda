@@ -17,7 +17,7 @@ import sys
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context
 from .common.compat import itervalues, text_type
-from .common.io import env_var, time_recorder
+from .common.io import env_vars, time_recorder
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.prefix_data import is_linked, linked_data
@@ -509,7 +509,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                     channel_priority_map=None, is_update=False,
                     minimal_hint=False):  # pragma: no cover
     # this is for conda-build
-    with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', reset_context):
+    with env_vars({
+        'CONDA_ALLOW_NON_CHANNEL_URLS': 'true',
+        'CONDA_SOLVER_IGNORE_TIMESTAMPS': 'false',
+    }, reset_context):
         from os.path import basename
         from ._vendor.boltons.setutils import IndexedSet
         from .core.solve import Solver
