@@ -87,7 +87,7 @@ def run_env_command(command, prefix, *arguments):
         command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
     elif command is Commands.ENV_CREATE: # CREATE
         if prefix :
-            command_line = "{0} -f {1}  {2}".format(command, prefix, " ".join(arguments))
+            command_line = "{0} -f {1} {2}".format(command, prefix, " ".join(arguments))
         else:
             command_line = "{0} {1}".format(command, " ".join(arguments))
     elif command is Commands.ENV_REMOVE:  # REMOVE
@@ -220,16 +220,22 @@ class IntegrationTests(unittest.TestCase):
     def test_name(self):
         """
         # smoke test for gh-254
-        Previously we could override the name from an environment file using
-        --name in the CLI, but this is no longer respected after the latest
-        release. This was very useful for heroku buildpacks.
+        Test that --name can overide the `name` key inside an environment.yml
         """
         create_env(environment_1)
+        env_name = 'smoke-gh-254'
         try:
-            run_env_command(Commands.ENV_CREATE, test_env_name_1, "create")
+            run_env_command(Commands.ENV_CREATE, 'environment.yml', "-n",
+                            env_name)
         except Exception as e:
-            self.assertIsInstance(e, EnvironmentFileNotFound, str(e))
-        raise Exception
+            print(e)
+
+        o, e = run_conda_command(Commands.INFO, None, "--json")
+
+        parsed = json.loads(o)
+        self.assertNotEqual(
+            len([env for env in parsed['envs'] if env.endswith(env_name)]), 0
+        )
 
 
 def env_is_created(env_name):
