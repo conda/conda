@@ -919,7 +919,7 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="tensorflow package used in test not available on Windows")
     def test_install_freeze_installed_flag(self):
-        with make_temp_env("bleach") as prefix:
+        with make_temp_env("bleach=2") as prefix:
             assert package_is_installed(prefix, "bleach=2")
             with pytest.raises(UnsatisfiableError):
                 run_command(Commands.INSTALL, prefix,
@@ -1363,7 +1363,7 @@ class IntegrationTests(TestCase):
         # 2. pip install -U six
         # 3. conda list shows new six and deletes old conda record
         # 4. probably need to purge something with the history file too?
-        with make_temp_env("six=1.9 pip=9.0.3") as prefix:
+        with make_temp_env("six=1.9 pip=9.0.3 python=3.5") as prefix:
             assert package_is_installed(prefix, "six=1.9.0")
             assert package_is_installed(prefix, "python=3.5")
             output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)
