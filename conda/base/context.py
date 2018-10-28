@@ -229,7 +229,7 @@ class Context(Configuration):
     anaconda_upload = PrimitiveParameter(None, aliases=('binstar_upload',),
                                          element_type=(bool, NoneType))
     _croot = PrimitiveParameter('', aliases=('croot',))
-    _conda_build = MapParameter(string_types, aliases=('conda-build',))
+    _conda_build = MapParameter(string_types, aliases=('conda-build', 'conda_build'))
 
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:
