@@ -8,6 +8,7 @@
 @IF "%1"=="deactivate" GOTO :DO_DEACTIVATE
 
 @CALL %_CONDA_EXE% %*
+@IF %ERRORLEVEL% NEQ 0 GOTO :ErrorEnd
 
 @REM This block should really be the equivalent of
 @REM   if "install" in %* GOTO :DO_REACTIVATE
