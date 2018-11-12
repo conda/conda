@@ -11,10 +11,7 @@ Redirects
    :hidden:
 
    admin
-   announcements
-   bdist_conda
    build-commands
-   build
    changelog
    channels
    config
@@ -23,35 +20,18 @@ Redirects
    env-commands
    faq
    general-commands
-   get-involved
    get-started
    installation
    intro
    mro
    py2or3
    r-with-conda
-   signed-packages
-   spec
    test-drive
    travis
    troubleshooting
    winxp-proxy
-   building/bpp
-   building/build-scripts
-   building/build
-   building/dirs
-   building/environment-vars
-   building/meta-pkg
-   building/meta-yaml
-   building/pkg-name-conv
-   building/recipe
-   building/sample-recipes
-   building/shared-libraries
-   building/variants
    help/conda-pip-virtualenv-translator
-   help/help
    help/silent
-   help/support
    install/central
    install/full
    install/quick
