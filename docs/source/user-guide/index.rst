@@ -10,7 +10,6 @@ User guide
    getting-started
    install/index
    configuration/index
-   tutorials/index
    tasks/index
    cheatsheet
    troubleshooting

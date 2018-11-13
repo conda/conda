@@ -8,23 +8,20 @@ from errno import ENOSPC
 import json
 from logging import getLogger
 import os
+from os.path import join
 import sys
+from textwrap import dedent
 from traceback import format_exception, format_exception_only
 
 from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
+from ._vendor.toolz import groupby
 from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
 from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
 from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
-from .common.url import maybe_unquote
-
-try:
-    from cytoolz.itertoolz import groupby
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -34,8 +31,11 @@ log = getLogger(__name__)
 class ResolvePackageNotFound(CondaError):
     def __init__(self, bad_deps):
         # bad_deps is a list of lists
+        # bad_deps should really be named 'invalid_chains'
         self.bad_deps = tuple(dep for deps in bad_deps for dep in deps if dep)
-        message = '\n' + '\n'.join(('  - %s' % dep) for dep in self.bad_deps)
+        formatted_chains = tuple(" -> ".join(map(str, bad_chain)) for bad_chain in bad_deps)
+        self._formatted_chains = formatted_chains
+        message = '\n' + '\n'.join(('  - %s' % bad_chain) for bad_chain in formatted_chains)
         super(ResolvePackageNotFound, self).__init__(message)
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
@@ -412,15 +412,55 @@ class CondaKeyError(CondaError, KeyError):
 
 
 class ChannelError(CondaError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(ChannelError, self).__init__(msg)
+    pass
 
 
 class ChannelNotAllowed(ChannelError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(ChannelNotAllowed, self).__init__(msg, *args)
+    def __init__(self, channel):
+        from .models.channel import Channel
+        from .common.url import maybe_unquote
+        channel = Channel(channel)
+        channel_name = channel.name
+        channel_url = maybe_unquote(channel.base_url)
+        message = dals("""
+        Channel not included in whitelist:
+          channel name: %(channel_name)s
+          channel url: %(channel_url)s
+        """)
+        super(ChannelNotAllowed, self).__init__(message, channel_url=channel_url,
+                                                channel_name=channel_name)
+
+
+class UnavailableInvalidChannel(ChannelError):
+
+    def __init__(self, channel, error_code):
+        from .models.channel import Channel
+        from .common.url import join_url, maybe_unquote
+        channel = Channel(channel)
+        channel_name = channel.name
+        channel_url = maybe_unquote(channel.base_url)
+        message = dals("""
+        The channel is not accessible or is invalid.
+          channel name: %(channel_name)s
+          channel url: %(channel_url)s
+          error code: %(error_code)d
+
+        You will need to adjust your conda configuration to proceed.
+        Use `conda config --show channels` to view your configuration's current state,
+        and use `conda config --show-sources` to view config file locations.
+        """)
+
+        if channel.scheme == 'file':
+            message += dedent("""
+            As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
+            associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+            empty. Use `conda index %s`, or create `noarch/repodata.json`
+            and associated `noarch/repodata.json.bz2`.
+            """) % join_url(channel.location, channel.name)
+
+        super(UnavailableInvalidChannel, self).__init__(message, channel_url=channel_url,
+                                                        channel_name=channel_name,
+                                                        error_code=error_code)
 
 
 class OperationNotAllowed(CondaError):
@@ -456,6 +496,7 @@ class MD5MismatchError(CondaError):
           expected md5 sum: %(expected_md5sum)s
           actual md5 sum: %(actual_md5sum)s
         """)
+        from .common.url import maybe_unquote
         url = maybe_unquote(url)
         super(MD5MismatchError, self).__init__(message, url=url, target_full_path=target_full_path,
                                                expected_md5sum=expected_md5sum,
@@ -477,6 +518,7 @@ class PackageNotInstalledError(CondaError):
 class CondaHTTPError(CondaError):
     def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):
+        from .common.url import maybe_unquote
         _message = dals("""
         HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s
@@ -568,7 +610,6 @@ class UnsatisfiableError(CondaError):
 
     def __init__(self, bad_deps, chains=True):
         from .models.match_spec import MatchSpec
-        from .resolve import dashlist
 
         # Remove any target values from the MatchSpecs, convert to strings
         bad_deps = [list(map(lambda x: str(MatchSpec(x, target=None)), dep)) for dep in bad_deps]
@@ -627,13 +668,31 @@ class RemoveError(CondaError):
 
 class DisallowedPackageError(CondaError):
     def __init__(self, package_ref, **kwargs):
-        from .models.records import PackageRef
-        package_ref = PackageRef.from_objects(package_ref)
+        from .models.records import PackageRecord
+        package_ref = PackageRecord.from_objects(package_ref)
         message = ("The package '%(dist_str)s' is disallowed by configuration.\n"
                    "See 'conda config --show disallowed_packages'.")
         super(DisallowedPackageError, self).__init__(message, package_ref=package_ref,
                                                      dist_str=package_ref.dist_str(), **kwargs)
 
+class SpecsConfigurationConflictError(CondaError):
+
+    def __init__(self, requested_specs, pinned_specs, prefix):
+        message = dals("""
+        Requested specs conflict with configured specs.
+          requested specs: {requested_specs_formatted}
+          pinned specs: {pinned_specs_formatted}
+        Use 'conda config --show-sources' to look for 'pinned_specs' and 'track_features'
+        configuration parameters.  Pinned specs may also be defined in the file
+        {pinned_specs_path}.
+        """).format(
+            requested_specs_formatted=dashlist(requested_specs, 4),
+            pinned_specs_formatted=dashlist(pinned_specs, 4),
+            pinned_specs_path=join(prefix, "conda-meta", "pinned"),
+        )
+        super(SpecsConfigurationConflictError, self).__init__(
+            message, requested_specs=requested_specs, pinned_specs=pinned_specs, prefix=prefix,
+        )
 
 class CondaIndexError(CondaError, IndexError):
     def __init__(self, message):
@@ -642,9 +701,9 @@ class CondaIndexError(CondaError, IndexError):
 
 
 class CondaValueError(CondaError, ValueError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(CondaValueError, self).__init__(msg)
+
+    def __init__(self, message, *args, **kwargs):
+        super(CondaValueError, self).__init__(message, *args, **kwargs)
 
 
 class CondaTypeError(CondaError, TypeError):
@@ -655,9 +714,8 @@ class CondaTypeError(CondaError, TypeError):
 
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles, **kwargs):
-        from .resolve import dashlist
-        from .models.records import PackageRef
-        packages_with_cycles = tuple(PackageRef.from_objects(p) for p in packages_with_cycles)
+        from .models.records import PackageRecord
+        packages_with_cycles = tuple(PackageRecord.from_objects(p) for p in packages_with_cycles)
         message = "Cyclic dependencies exist among these items: %s" % dashlist(
             p.dist_str() for p in packages_with_cycles
         )
@@ -752,7 +810,6 @@ class NotWritableError(CondaError, OSError):
 
             In general, it's not advisable to use 'sudo conda'.
             """)
-            import os
             kwargs.update({
                 'uid': os.geteuid(),
                 'gid': os.getegid(),
@@ -772,6 +829,31 @@ class NoWritablePkgsDirError(CondaError):
     def __init__(self, pkgs_dirs, **kwargs):
         message = "No writeable pkgs directories configured.%s" % dashlist(pkgs_dirs)
         super(NoWritablePkgsDirError, self).__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
+
+
+class EnvironmentNotWritableError(CondaError):
+
+    def __init__(self, environment_location, **kwargs):
+        kwargs.update({
+            'environment_location': environment_location,
+        })
+        if on_win:
+            message = dals("""
+            The current user does not have write permissions to the target environment.
+              environment location: %(environment_location)s
+            """)
+        else:
+            message = dals("""
+            The current user does not have write permissions to the target environment.
+              environment location: %(environment_location)s
+              uid: %(uid)s
+              gid: %(gid)s
+            """)
+            kwargs.update({
+                'uid': os.geteuid(),
+                'gid': os.getegid(),
+            })
+        super(EnvironmentNotWritableError, self).__init__(message, **kwargs)
 
 
 class CondaDependencyError(CondaError):
@@ -799,10 +881,24 @@ class BinaryPrefixReplacementError(CondaError):
         super(BinaryPrefixReplacementError, self).__init__(message, **kwargs)
 
 
-class InvalidVersionSpecError(CondaError):
-    def __init__(self, invalid_spec):
-        message = "Invalid version spec: %(invalid_spec)s"
-        super(InvalidVersionSpecError, self).__init__(message, invalid_spec=invalid_spec)
+class InvalidSpec(CondaError, ValueError):
+
+    def __init__(self, message, **kwargs):
+        super(InvalidSpec, self).__init__(message, **kwargs)
+
+
+class InvalidVersionSpec(InvalidSpec):
+    def __init__(self, invalid_spec, details):
+        message = "Invalid version '%(invalid_spec)s': %(details)s"
+        super(InvalidVersionSpec, self).__init__(message, invalid_spec=invalid_spec,
+                                                 details=details)
+
+
+class InvalidMatchSpec(InvalidSpec):
+    def __init__(self, invalid_spec, details):
+        message = "Invalid spec '%(invalid_spec)s': %(details)s"
+        super(InvalidMatchSpec, self).__init__(message, invalid_spec=invalid_spec,
+                                               details=details)
 
 
 class EncodingError(CondaError):
@@ -868,17 +964,16 @@ def maybe_raise(error, context):
 def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
     rc = getattr(exc_val, 'return_code', None)
-    if context.debug or context.verbosity > 0:
+    if (context.debug
+            or context.verbosity > 2
+            or (not isinstance(exc_val, DryRunExit) and context.verbosity > 0)):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
-        if rc == 0:
-            # suppress DryRunExit and CondaSystemExit messages
-            pass
-        else:
-            import json
-            stdoutlog = getLogger('conda.stdout')
-            exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
-            stdoutlog.error("%s\n" % exc_json)
+        if isinstance(exc_val, DryRunExit):
+            return
+        logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
+        exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
+        logger.info("%s\n" % exc_json)
     else:
         stderrlog = getLogger('conda.stderr')
         if rc == 0:
@@ -904,7 +999,7 @@ class ExceptionHandler(object):
     def __call__(self, func, *args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except:
+        except:  # lgtm [py/catch-base-exception]
             _, exc_val, exc_tb = sys.exc_info()
             return self.handle_exception(exc_val, exc_tb)
 
@@ -929,10 +1024,11 @@ class ExceptionHandler(object):
         return context.error_upload_url
 
     def handle_exception(self, exc_val, exc_tb):
-        if isinstance(exc_val, CondaHTTPError):
-            return self.handle_reportable_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, CondaError):
-            return self.handle_application_exception(exc_val, exc_tb)
+            if exc_val.reportable:
+                return self.handle_reportable_application_exception(exc_val, exc_tb)
+            else:
+                return self.handle_application_exception(exc_val, exc_tb)
         if isinstance(exc_val, UnicodeError) and PY2:
             return self.handle_application_exception(EncodingError(exc_val), exc_tb)
         if isinstance(exc_val, EnvironmentError):
@@ -949,8 +1045,7 @@ class ExceptionHandler(object):
 
     def handle_application_exception(self, exc_val, exc_tb):
         self._print_conda_exception(exc_val, exc_tb)
-        rc = getattr(exc_val, 'return_code', None)
-        return rc if rc is not None else 1
+        return exc_val.return_code
 
     def _print_conda_exception(self, exc_val, exc_tb):
         print_conda_exception(exc_val, exc_tb)
@@ -977,8 +1072,7 @@ class ExceptionHandler(object):
         if do_upload:
             self._execute_upload(error_report)
         self.print_upload_confirm(do_upload, ask_for_upload, ask_response)
-        rc = getattr(exc_val, 'return_code', None)
-        return rc if rc is not None else 1
+        return exc_val.return_code
 
     def get_error_report(self, exc_val, exc_tb):
         command = ' '.join(ensure_text_type(s) for s in sys.argv)

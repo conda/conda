@@ -52,7 +52,8 @@ class TestJson(unittest.TestCase):
         for key in keys:
             assert key in res
 
-        res = capture_json_with_argv('conda info conda --json')
+        res = capture_json_with_argv('conda info conda --json', disallow_stderr=False,
+                                     ignore_stderr=True)
         self.assertIsInstance(res, dict)
         self.assertIn('conda', res)
         self.assertIsInstance(res['conda'], list)
@@ -106,7 +107,7 @@ class TestJson(unittest.TestCase):
             stdout, stderr = run_command(Commands.SEARCH, prefix, "nose", use_exception_handler=True)
             result = stdout.replace("Loading channels: ...working... done", "")
 
-            assert "nose                      1.3.4          py34_0  pkgs/free" in result
+            assert "nose                           1.3.4          py34_0  pkgs/free" in result
 
     @pytest.mark.integration
     def test_search_3(self):

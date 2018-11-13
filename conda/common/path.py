@@ -13,6 +13,7 @@ import subprocess
 from .compat import PY2, ensure_fs_path_encoding, on_win, string_types
 from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
+from .._vendor.toolz import accumulate, concat, take
 
 try:
     # Python 3
@@ -21,11 +22,6 @@ except ImportError:  # pragma: no cover
     # Python 2
     from urllib import unquote  # NOQA
     from urlparse import urlsplit  # NOQA
-
-try:
-    from cytoolz.itertoolz import accumulate, concat, take
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import accumulate, concat, take
 
 log = getLogger(__name__)
 
@@ -94,8 +90,7 @@ def tokenized_startswith(test_iterable, startswith_iterable):
 
 
 def get_all_directories(files):
-    directories = sorted(set(tuple(f.split('/')[:-1]) for f in files))
-    return directories or ()
+    return sorted(set(tuple(f.split('/')[:-1]) for f in files) - {()})
 
 
 def get_leaf_directories(files):
@@ -126,7 +121,8 @@ def explode_directories(child_directories, already_split=False):
     # get all directories including parents
     # use already_split=True for the result of get_all_directories()
     maybe_split = lambda x: x if already_split else x.split('/')
-    return set(concat(accumulate(join, maybe_split(directory)) for directory in child_directories))
+    return set(concat(accumulate(join, maybe_split(directory))
+                      for directory in child_directories if directory))
 
 
 def pyc_path(py_path, python_major_minor_version):

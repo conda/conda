@@ -1,0 +1,140 @@
+{
+  "build": "py27_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [
+    "linecache2",
+    "python >=2.7,<2.8.0a0",
+    "six"
+  ],
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/traceback2-1.4.0-py27_0",
+  "features": "",
+  "files": [
+    "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/PKG-INFO",
+    "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/SOURCES.txt",
+    "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/dependency_links.txt",
+    "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/not-zip-safe",
+    "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/pbr.json",
+    "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/requires.txt",
+    "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/top_level.txt",
+    "lib/python2.7/site-packages/traceback2/__init__.py",
+    "lib/python2.7/site-packages/traceback2/__init__.pyc",
+    "lib/python2.7/site-packages/traceback2/tests/__init__.py",
+    "lib/python2.7/site-packages/traceback2/tests/__init__.pyc",
+    "lib/python2.7/site-packages/traceback2/tests/test_traceback.py",
+    "lib/python2.7/site-packages/traceback2/tests/test_traceback.pyc"
+  ],
+  "fn": "traceback2-1.4.0-py27_0.tar.bz2",
+  "license": "PSF 2.0",
+  "link": {
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/traceback2-1.4.0-py27_0",
+    "type": 1
+  },
+  "md5": "63bf1cd4d7d8d983b43d5b1a96f29a9c",
+  "name": "traceback2",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/traceback2-1.4.0-py27_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/PKG-INFO",
+        "path_type": "hardlink",
+        "sha256": "7eee4dad915b9c306c61b3aeffc5e8028dbdbadad6aaa69314e0bcc62aab58fa",
+        "sha256_in_prefix": "7eee4dad915b9c306c61b3aeffc5e8028dbdbadad6aaa69314e0bcc62aab58fa",
+        "size_in_bytes": 1607
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/SOURCES.txt",
+        "path_type": "hardlink",
+        "sha256": "d5a5c24cab634a315e5404d64cdb44e62ffe4b12981e227118aa22773c67424a",
+        "sha256_in_prefix": "d5a5c24cab634a315e5404d64cdb44e62ffe4b12981e227118aa22773c67424a",
+        "size_in_bytes": 425
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/dependency_links.txt",
+        "path_type": "hardlink",
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "sha256_in_prefix": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "size_in_bytes": 1
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/not-zip-safe",
+        "path_type": "hardlink",
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "sha256_in_prefix": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "size_in_bytes": 1
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/pbr.json",
+        "path_type": "hardlink",
+        "sha256": "7e7fc2af3525ead11a3a73a0873f4a7cb80c264f6361f07dc93cf26f77636a2b",
+        "sha256_in_prefix": "7e7fc2af3525ead11a3a73a0873f4a7cb80c264f6361f07dc93cf26f77636a2b",
+        "size_in_bytes": 46
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/requires.txt",
+        "path_type": "hardlink",
+        "sha256": "a059ca4d54d0257fc1dbed8716863ba7c4e9b06d01cbf2fdd1e639979e4c4c78",
+        "sha256_in_prefix": "a059ca4d54d0257fc1dbed8716863ba7c4e9b06d01cbf2fdd1e639979e4c4c78",
+        "size_in_bytes": 11
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2-1.4.0-py2.7.egg-info/top_level.txt",
+        "path_type": "hardlink",
+        "sha256": "3788174b53a10d6cf1e4e4af3826f116d3fe90d510d713ed6e09196c166b3951",
+        "sha256_in_prefix": "3788174b53a10d6cf1e4e4af3826f116d3fe90d510d713ed6e09196c166b3951",
+        "size_in_bytes": 11
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "7b8b4e4ecb62edfbd9481eac79c27d711ec7910541e2187b7438d59459ab948b",
+        "sha256_in_prefix": "7b8b4e4ecb62edfbd9481eac79c27d711ec7910541e2187b7438d59459ab948b",
+        "size_in_bytes": 22707
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2/__init__.pyc",
+        "path_type": "hardlink",
+        "sha256": "16c4c8f0c4ae4372cd0fefa5111427509d37cd80b8d51c317fe0b82cf6afc0b7",
+        "sha256_in_prefix": "16c4c8f0c4ae4372cd0fefa5111427509d37cd80b8d51c317fe0b82cf6afc0b7",
+        "size_in_bytes": 23052
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2/tests/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_in_bytes": 0
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2/tests/__init__.pyc",
+        "path_type": "hardlink",
+        "sha256": "3f6317f76e666fda7894d6ea96a8208a525c724a75abb99ae12b416317fdabff",
+        "sha256_in_prefix": "3f6317f76e666fda7894d6ea96a8208a525c724a75abb99ae12b416317fdabff",
+        "size_in_bytes": 143
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2/tests/test_traceback.py",
+        "path_type": "hardlink",
+        "sha256": "d33ec790b08a0d585403551693ec9383389c43140dd2e8b245e87298fc0022f8",
+        "sha256_in_prefix": "d33ec790b08a0d585403551693ec9383389c43140dd2e8b245e87298fc0022f8",
+        "size_in_bytes": 34910
+      },
+      {
+        "_path": "lib/python2.7/site-packages/traceback2/tests/test_traceback.pyc",
+        "path_type": "hardlink",
+        "sha256": "1b68955564470d39943036c8431240b54d41719e9d690e97e995f3d9d1b09fe1",
+        "sha256_in_prefix": "1b68955564470d39943036c8431240b54d41719e9d690e97e995f3d9d1b09fe1",
+        "size_in_bytes": 38791
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 31390,
+  "subdir": "osx-64",
+  "timestamp": 1530882341265,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/traceback2-1.4.0-py27_0.tar.bz2",
+  "version": "1.4.0"
+}

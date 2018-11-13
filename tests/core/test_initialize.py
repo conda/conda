@@ -21,7 +21,7 @@ from conda.common.path import get_python_short_path, win_path_backout, win_path_
 from conda.core.initialize import Result, _get_python_info, init_sh_system, init_sh_user, \
     initialize_dev, install, install_conda_csh, install_conda_fish, \
     install_conda_sh, install_conda_xsh, make_entry_point, make_entry_point_exe, \
-    make_initialize_plan, make_install_plan, install_condacmd_conda_bat
+    make_initialize_plan, make_install_plan, install_condabin_conda_bat
 from conda.exceptions import CondaValueError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.models.enums import LinkType
@@ -102,31 +102,31 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
-                        "function": "install_condacmd_conda_bat",
+                        "function": "install_condabin_conda_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\condacmd\\conda.bat"
+                            "target_path": "/darwin\\condabin\\conda.bat"
                         }
                     },
                     {
-                        "function": "install_condacmd_conda_activate_bat",
+                        "function": "install_condabin_conda_activate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\condacmd\\_conda_activate.bat"
+                            "target_path": "/darwin\\condabin\\_conda_activate.bat"
                         }
                     },
                     {
-                        "function": "install_condacmd_conda_auto_activate_bat",
+                        "function": "install_condabin_conda_auto_activate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\condacmd\\conda_auto_activate.bat"
+                            "target_path": "/darwin\\condabin\\conda_auto_activate.bat"
                         }
                     },
                     {
-                        "function": "install_condacmd_hook_bat",
+                        "function": "install_condabin_hook_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\condacmd\\conda_hook.bat"
+                            "target_path": "/darwin\\condabin\\conda_hook.bat"
                         }
                     },
                     {
@@ -140,14 +140,14 @@ class InitializeTests(TestCase):
                         "function": "install_activate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\condacmd\\activate.bat"
+                            "target_path": "/darwin\\condabin\\activate.bat"
                         }
                     },
                     {
                         "function": "install_deactivate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
-                            "target_path": "/darwin\\condacmd\\deactivate.bat"
+                            "target_path": "/darwin\\condabin\\deactivate.bat"
                         }
                     },
                     {
@@ -179,6 +179,20 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
+                        'function': 'install_conda_psm1',
+                        'kwargs': {
+                            'target_path': '/darwin\\shell\\condabin\\Conda.psm1',
+                            'conda_prefix': '/darwin'
+                        }
+                    },
+                    {
+                        'function': 'install_conda_hook_ps1',
+                        'kwargs': {
+                            'target_path': '/darwin\\shell\\condabin\\conda-hook.ps1',
+                            'conda_prefix': '/darwin'
+                        }
+                    },
+                    {
                         "function": "install_conda_xsh",
                         "kwargs": {
                             "conda_prefix": "/darwin",
@@ -195,6 +209,15 @@ class InitializeTests(TestCase):
                 ]
             else:
                 assert plan == [
+                    {
+                        "function": "make_entry_point",
+                        "kwargs": {
+                            "conda_prefix": "/darwin",
+                            "func": "main",
+                            "module": "conda.cli",
+                            "target_path": "/darwin/condabin/conda"
+                        }
+                    },
                     {
                         "function": "make_entry_point",
                         "kwargs": {
@@ -242,6 +265,20 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
+                        'function': 'install_conda_psm1',
+                        'kwargs': {
+                            'target_path': '/darwin/shell/condabin/Conda.psm1',
+                            'conda_prefix': '/darwin'
+                        }
+                    },
+                    {
+                        'function': 'install_conda_hook_ps1',
+                        'kwargs': {
+                            'target_path': '/darwin/shell/condabin/conda-hook.ps1',
+                            'conda_prefix': '/darwin'
+                        }
+                    },
+                    {
                         "function": "install_conda_xsh",
                         "kwargs": {
                             "conda_prefix": "/darwin",
@@ -274,6 +311,8 @@ class InitializeTests(TestCase):
             assert len(steps) == 2
             steps = tuple(step for step in plan if step['function'] == 'install_anaconda_prompt')
             assert len(steps) == 2
+            steps = tuple(step for step in plan if step['function'] == 'init_long_path')
+            assert len(steps) == 1
 
     def test_make_entry_point(self):
         with tempdir() as conda_temp_prefix:
@@ -335,7 +374,7 @@ class InitializeTests(TestCase):
             if on_win:
                 first_line, second_line, remainder = created_file_contents.split('\n', 2)
                 assert first_line == "export CONDA_EXE=\"$(cygpath '%s')\"" % context.conda_exe
-                assert second_line == "export CONDA_BAT=\"%s\"" % join(context.conda_prefix, 'condacmd', 'conda.bat')
+                assert second_line == "export CONDA_BAT=\"%s\"" % join(context.conda_prefix, 'condabin', 'conda.bat')
             else:
                 first_line, remainder = created_file_contents.split('\n', 1)
                 assert first_line == 'export CONDA_EXE="%s"' % context.conda_exe
@@ -425,11 +464,11 @@ class InitializeTests(TestCase):
             result = install_conda_csh(target_path, conda_prefix)
             assert result == Result.NO_CHANGE
 
-    def test_install_condacmd_conda_bat(self):
+    def test_install_condabin_conda_bat(self):
         with tempdir() as conda_temp_prefix:
             conda_prefix = abspath(sys.prefix)
-            target_path = join(conda_temp_prefix, 'condacmd', 'conda.bat')
-            result = install_condacmd_conda_bat(target_path, conda_prefix)
+            target_path = join(conda_temp_prefix, 'condabin', 'conda.bat')
+            result = install_condabin_conda_bat(target_path, conda_prefix)
             assert result == Result.MODIFIED
 
             with open(target_path) as fh:
@@ -437,11 +476,11 @@ class InitializeTests(TestCase):
 
             remainder = created_file_contents
 
-            with open(join(CONDA_PACKAGE_ROOT, 'shell', 'condacmd', 'conda.bat')) as fh:
+            with open(join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'conda.bat')) as fh:
                 original_contents = fh.read()
             assert remainder == original_contents
 
-            result = install_condacmd_conda_bat(target_path, conda_prefix)
+            result = install_condabin_conda_bat(target_path, conda_prefix)
             assert result == Result.NO_CHANGE
 
     def test__get_python_info(self):
@@ -474,16 +513,21 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.csh',
             )
         else:
             modified_files = (
-                'conda',
+                'conda',  # condabin/conda
+                'conda',  # bin/conda
                 'conda-env',
                 'activate',
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.csh',
             )
 
@@ -527,6 +571,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -536,12 +582,15 @@ class InitializeTests(TestCase):
             )
         else:
             modified_files = (
-                'conda',
+                'conda',  # condabin/conda
+                'conda',  # bin/conda
                 'conda-env',
                 'activate',
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -588,6 +637,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -598,12 +649,15 @@ class InitializeTests(TestCase):
             )
         else:
             modified_files = (
-                'conda',
+                'conda',  # condabin/conda
+                'conda',  # bin/conda
                 'conda-env',
                 'activate',
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -767,8 +821,36 @@ class InitializeTests(TestCase):
             initialize._read_windows_registry = orig_read_windows_registry
             initialize.join = orig_join
 
-        expected = "echo hello & \"c:\\Users\\Lars\\miniconda\\condacmd\\conda_hook.bat\" & echo \"world\""
+        expected = "echo hello & \"c:\\Users\\Lars\\miniconda\\condabin\\conda_hook.bat\" & echo \"world\""
         assert c.stdout.strip().splitlines()[-1][1:] == expected
+
+    @pytest.mark.skipif(not on_win, reason="win-only test")
+    def test_init_enable_long_path(self):
+        self.dummy_value = "0"
+
+        def _read_windows_registry_mock(target_path):
+            return self.dummy_value, "REG_DWORD"
+
+        def _write_windows_registry_mock(target_path, value, dtype):
+            self.dummy_value = value
+
+        from conda.core import initialize
+        orig_read_windows_registry = initialize._read_windows_registry
+        initialize._read_windows_registry = _read_windows_registry_mock
+        orig_write_windows_registry = initialize._write_windows_registry
+        initialize._write_windows_registry = _write_windows_registry_mock
+        orig_join = initialize.join
+        initialize.join = ntpath.join
+
+        try:
+            target_path = r'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem\\LongPathsEnabled'
+            assert initialize._read_windows_registry(target_path)[0] == "0"
+            initialize.init_long_path(target_path)
+            assert initialize._read_windows_registry(target_path)[0] == "1"
+        finally:
+            initialize._read_windows_registry = orig_read_windows_registry
+            initialize._write_windows_registry = orig_write_windows_registry
+            initialize.join = orig_join
 
     def test_init_sh_system(self):
         with tempdir() as td:

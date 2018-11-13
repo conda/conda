@@ -19,7 +19,6 @@ from ..core.prefix_data import PrefixData
 from ..gateways.disk.delete import rmtree
 from ..install import PREFIX_PLACEHOLDER
 from ..misc import untracked
-from ..models.dist import Dist
 
 
 def remove(prefix, files):
@@ -45,8 +44,8 @@ def execute(args, parser):
 
     if args.which:
         for path in args.which:
-            for dist in which_package(path):
-                print('%-50s  %s' % (path, dist))
+            for prec in which_package(path):
+                print('%-50s  %s' % (path, prec.dist_str()))
         return
 
     print('# prefix:', prefix)
@@ -142,8 +141,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     t = tarfile.open(tar_path, 'w:bz2')
     h = hashlib.new('sha1')
     for f in files:
-        assert not (f.startswith('/') or f.endswith('/') or
-                    '\\' in f or f == ''), f
+        assert not (f.startswith('/') or f.endswith('/') or '\\' in f or f == ''), f
         path = join(prefix, f)
         if f.startswith('bin/') and fix_shebang(tmp_dir, path):
             path = join(tmp_dir, basename(path))
@@ -212,7 +210,7 @@ def which_package(path):
 
     for prec in PrefixData(prefix).iter_records():
         if any(paths_equal(join(prefix, f), path) for f in prec['files'] or ()):
-            yield Dist(prec)
+            yield prec
 
 
 def which_prefix(path):

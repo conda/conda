@@ -5,6 +5,405 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
+4.6.0 (unreleased)
+------------------
+
+New Feature Highlights
+^^^^^^^^^^^^^^^^^^^^^^
+
+* resolve #7053 preview support for conda operability with pip (#7067, #7370, #7710)
+* conda initialize (#6518, #7388, #7629)
+* resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
+  config (#7195, #7226, #7233)
+* resolve #7087 add non-conda-installed python packages into PrefixData (#7067, #7370)
+* resolve #2682 add 'conda run' preview support (#7320, #7625)
+* resolve #626 conda wrapper for PowerShell (#7794)
+
+Deprecations/Breaking Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
+* resolve #7061 remove pkgs/pro from defaults (#7162)
+* resolve #7078 add deprecation warnings for 'conda.cli.activate',
+  'conda.compat', and 'conda.install' (#7079)
+* resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
+  config (#7195)
+* resolve #6979, #7086 remove Dist from majority of project (#7216, #7252)
+* fix #7362 remove --license from conda info and related code paths (#7386)
+* resolve #7309 deprecate 'conda info package_name' (#7310)
+* remove 'conda clean --source-cache' and defer to conda-build (#7731)
+* resolve #7724 move windows package cache and envs dirs back to .conda directory (#7725)
+
+Improvements
+^^^^^^^^^^^^
+
+* import speedups (#7122)
+* --help cleanup (#7120)
+* fish autocompletion for conda env (#7101)
+* remove reference to 'system' channel (#7163)
+* add http error body to debug information (#7160)
+* warn creating env name with space is not supported (#7168)
+* support complete MatchSpec syntax in environment.yml files (#7178)
+* resolve #4274 add option to remove an existing environment with 'conda create' (#7133)
+* add ability for conda prompt customization via 'env_prompt' config param (#7047)
+* resolve #7063 add license and license_family to MatchSpec for 'conda search' (#7064)
+* resolve #7189 progress bar formatting improvement (#7191)
+* raise log level for errors to error (#7229)
+* add to conda.exports (#7217)
+* resolve #6845 add option -S / --satisfied-skip-solve to exit early for satisfied specs (#7291)
+* add NoBaseEnvironmentError and DirectoryNotACondaEnvironmentError (#7378)
+* replace menuinst subprocessing by ctypes win elevation (4.6.0a3) (#7426)
+* bump minimum requests version to stable, unbundled release (#7528)
+* resolve #7591 updates and improvements from namespace PR for 4.6 (#7599)
+* resolve #7592 compatibility shims (#7606)
+* user-agent context refactor (#7630)
+* solver performance improvements with benchmarks in common.logic (#7676)
+* enable fuzzy-not-equal version constraint for pip interop (#7711)
+* add -d short option for --dry-run (#7719)
+* add --force-pkgs-dirs option to conda clean (#7719)
+* address #7709 ensure --update-deps unlocks specs from previous user requests (#7719)
+* add package timestamp information to output of 'conda search --info' (#7722)
+* resolve #7336 'conda search' tries "fuzzy match" before showing PackagesNotFound (#7722)
+* resolve #7656 strict channel priority via 'channel_priority' config option or --strict-channel-priority CLI flag (#7729)
+* performance improvement to cache __hash__ value on PackageRecord (#7715)
+* resolve #7764 change name of 'condacmd' dir to 'condabin'; use on all platforms (#7773)
+* resolve #7782 implement PEP-440 '~=' compatible release operator (#7783)
+
+Bug Fixes
+^^^^^^^^^
+
+* fix #7107 verify hangs when a package is corrupted (#7131)
+* fix #7145 progress bar uses stderr instead of stdout (#7146)
+* fix typo in conda.fish (#7152)
+* fix #2154 conda remove should complain if requested removals don't exist (#7135)
+* fix #7094 exit early for --dry-run with explicit and clone (#7096)
+* fix activation script sort order (#7176)
+* fix #7109 incorrect chown with sudo (#7180)
+* fix #7210 add suppressed --mkdir back to 'conda create' (fix for 4.6.0a1) (#7211)
+* fix #5681 conda env create / update when --file does not exist (#7385)
+* resolve #7375 enable conda config --set update_modifier (#7377)
+* fix #5885 improve conda env error messages and add extra tests (#7395)
+* msys2 path conversion (#7389)
+* fix autocompletion in fish (#7575)
+* fix #3982 following 4.4 activation refactor (#7607)
+* fix #7242 configuration load error message (#7243)
+* fix conda env compatibility with pip 18 (#7612)
+* fix #7184 remove conflicting specs to find solution to user's active request (#7719)
+* fix #7706 add condacmd dir to cmd.exe path on first activation (#7735)
+* fix #7761 spec handling errors in 4.6.0b0 (#7780)
+* fix #7770 'conda list regex' only applies regex to package name (#7784)
+
+Non-User-Facing Changes
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* resolve #6595 use OO inheritance in activate.py (#7049)
+* resolve #7220 pep8 project renamed to pycodestyle (#7221)
+* proxy test routine (#7308)
+* add .mailmap and .cla-signers (#7361)
+* add copyright headers (#7367)
+* rename common.platform to common.os and split among windows, linux, and unix utils (#7396)
+* fix windows test failures when symlink not available (#7369)
+* test building conda using conda-build (#7251)
+* solver test metadata updates (#7664)
+* explicitly add Mapping, Sequence to common.compat (#7677)
+* add debug messages to communicate solver stages (#7803)
+* add undocumented sat_solver config parameter (#7811)
+
+Preview Releases
+^^^^^^^^^^^^^^^^
+
+* 4.6.0a1 at d5bec21d1f64c3bc66c2999cfc690681e9c46177 on 2018-04-20
+* 4.6.0a2 at c467517ca652371ebc4224f0d49315b7ec225108 on 2018-05-01
+* 4.6.0b0 at 21a24f02b2687d0895de04664a4ec23ccc75c33a on 2018-09-07
+
+Contributors
+^^^^^^^^^^^^
+
+* @cgranade
+* @fabioz
+* @goanpeca
+* @jesse-
+* @kalefranz
+* @mandeep
+* @mbargull
+* @msarahan
+* @ohadravid
+
+
+4.5.11 (2018-08-21)
+-------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* resolve #7672 compatibility with ruamel.yaml 0.15.54 (#7675)
+
+Contributors
+^^^^^^^^^^^^
+
+* @CJ-Wright
+* @mbargull
+
+
+4.5.10 (2018-08-13)
+-------------------
+
+Bug Fixes
+^^^^^^^^^
+
+* fix conda env compatibility with pip 18 (#7627)
+* fix py37 compat 4.5.x (#7641)
+* fix #7451 don't print name, version, and size if unknown (#7648)
+* replace glob with fnmatch in PrefixData (#7645)
+
+Contributors
+^^^^^^^^^^^^
+
+* @jesse-
+* @nehaljwani
+
+
+4.5.9 (2018-07-30)
+------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* resolve #7522 prevent conda from scheduling downgrades (#7598)
+* allow skipping feature maximization in resolver (#7601)
+
+Bug Fixes
+^^^^^^^^^
+
+* fix #7559 symlink stat in localfs adapter (#7561)
+* fix #7486 activate with no PATH set (#7562)
+* resolve #7522 prevent conda from scheduling downgrades (#7598)
+
+Contributors
+^^^^^^^^^^^^
+
+* @kalefranz
+* @loriab
+
+
+4.5.8 (2018-07-10)
+------------------
+
+Bug Fixes
+^^^^^^^^^
+
+* fix #7524 should_bypass_proxies for requests 2.13.0 and earlier (#7525)
+
+Contributors
+^^^^^^^^^^^^
+
+* @kalefranz
+
+
+4.5.7 (2018-07-09)
+------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* resolve #7423 add upgrade error for unsupported repodata_version (#7415)
+* raise CondaUpgradeError for conda version downgrades on environments (#7517)
+
+Bug Fixes
+^^^^^^^^^
+
+* fix #7505 temp directory for UnlinkLinkTransaction should be in target prefix (#7516)
+* fix #7506 requests monkeypatch fallback for old requests versions (#7515)
+
+Contributors
+^^^^^^^^^^^^
+
+* @kalefranz
+* @nehaljwani
+
+
+4.5.6 (2018-07-06)
+------------------
+
+Bug Fixes
+^^^^^^^^^
+
+* resolve #7473 py37 support (#7499)
+* fix #7494 History spec parsing edge cases (#7500)
+* fix requests 2.19 incompatibility with NO_PROXY env var (#7498)
+* resolve #7372 disable http error uploads and CI cleanup (#7498, #7501)
+
+Contributors
+^^^^^^^^^^^^
+
+* @kalefranz
+
+
+4.5.5 (2018-06-29)
+------------------
+
+Bug Fixes
+^^^^^^^^^
+
+* fix #7165 conda version check should be restricted to channel conda is from (#7289, #7303)
+* fix #7341 ValueError n cannot be negative (#7360)
+* fix #6691 fix history file parsing containing comma-joined version specs (#7418)
+* fix msys2 path conversion (#7471)
+
+Contributors
+^^^^^^^^^^^^
+
+* @goanpeca
+* @kalefranz
+* @mingwandroid
+* @mbargull
+
+
+4.5.4 (2018-05-14)
+------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* resolve #7189 progress bar improvement (#7191 via #7274)
+
+Bug Fixes
+^^^^^^^^^
+
+* fix twofold tarball extraction, improve progress update (#7275)
+* fix #7253 always respect copy LinkType (#7269)
+
+Contributors
+^^^^^^^^^^^^
+
+* @jakirkham
+* @kalefranz
+* @mbargull
+
+
+4.5.3 (2018-05-07)
+------------------
+
+Bug Fixes
+^^^^^^^^^
+
+* fix #7240 conda's configuration context is not initialized in conda.exports (#7244)
+
+
+4.5.2 (2018-04-27)
+------------------
+
+Bug Fixes
+^^^^^^^^^
+
+* fix #7107 verify hangs when a package is corrupted (#7223)
+* fix #7094 exit early for --dry-run with explicit and clone (#7224)
+* fix activation/deactivation script sort order (#7225)
+
+
+4.5.1 (2018-04-13)
+------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* resolve #7075 add anaconda.org search message to PackagesNotFoundError (#7076)
+* add CondaError details to auto-upload reports (#7060)
+
+Bug Fixes
+^^^^^^^^^
+
+* fix #6703,#6981 index out of bound when running deactivate on fish shell (#6993)
+* properly close over $_CONDA_EXE variable (#7004)
+* fix condarc map parsing with comments (#7021)
+* fix #6919 csh prompt (#7041)
+* add _file_created attribute (#7054)
+* fix handling of non-ascii characters in custom_multichannels (#7050)
+* fix #6877 handle non-zero return in CSH (#7042)
+* fix #7040 update tqdm to version 4.22.0 (#7157)
+
+
+4.5.0 (2018-03-20)
+------------------
+
+New Feature Highlights
+^^^^^^^^^^^^^^^^^^^^^^
+
+* A new flag, '--envs', has been added to 'conda search'. In this mode,
+  'conda search' will look for the package query in existing conda environments
+  on your system. If ran as UID 0 (i.e. root) on unix systems or as an
+  Administrator user on Windows, all known conda environments for all users
+  on the system will be searched.  For example, 'conda search --envs openssl'
+  will show the openssl version and environment location for all
+  conda-installed openssl packages.
+
+Deprecations/Breaking Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* resolve #6886 transition defaults from repo.continuum.io to repo.anaconda.com (#6887)
+* resolve #6192 deprecate 'conda help' in favor of --help CLI flag (#6918)
+* resolve #6894 add http errors to auto-uploaded error reports (#6895)
+
+Improvements
+^^^^^^^^^^^^
+
+* resolve #6791 conda search --envs (#6794)
+* preserve exit status in fish shell (#6760)
+* resolve #6810 add CONDA_EXE environment variable to activate (#6923)
+* resolve #6695 outdated conda warning respects --quiet flag (#6935)
+* add instructions to activate default environment (#6944)
+
+API
+^^^
+
+* resolve #5610 add PrefixData, SubdirData, and PackageCacheData to conda/api.py (#6922)
+
+Bug Fixes
+^^^^^^^^^
+
+* channel matchspec fixes (#6893)
+* fix #6930 add missing return statement to S3Adapter (#6931)
+* fix #5802, #6736 enforce disallowed_packages configuration parameter (#6932)
+* fix #6860 infinite recursion in resolve.py for empty track_features (#6928)
+* set encoding for PY2 stdout/stderr (#6951)
+* fix #6821 non-deterministic behavior from MatchSpec merge clobbering (#6956)
+* fix #6904 logic errors in prefix graph data structure (#6929)
+
+Non-User-Facing Changes
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* fix several lgtm.com flags (#6757, #6883)
+* cleanups and refactors for conda 4.5 (#6889)
+* unify location of record types in conda/models/records.py (#6924)
+* resolve #6952 memoize url search in package cache loading (#6957)
+
+
+4.4.11 (2018-02-23)
+-------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* resolve #6582 swallow_broken_pipe context manager and Spinner refactor (#6616)
+* resolve #6882 document max_shlvl (#6892)
+* resolve #6733 make empty env vars sequence-safe for sequence parameters (#6741)
+* resolve #6900 don't record conda skeleton environments in environments.txt (#6908)
+
+Bug Fixes
+^^^^^^^^^
+
+* fix potential error in ensure_pad(); add more tests (#6817)
+* fix #6840 handle error return values in conda.sh (#6850)
+* use conda.gateways.disk for misc.py imports (#6870)
+* fix #6672 don't update conda during conda-env operations (#6773)
+* fix #6811 don't attempt copy/remove fallback for rename failures (#6867)
+* fix #6667 aliased posix commands (#6669)
+* fix #6816 fish environment autocomplete (#6885)
+* fix #6880 build_number comparison not functional in match_spec (#6881)
+* fix #6910 sort key prioritizes build string over build number (#6911)
+* fix #6914, #6691 conda can fail to update packages even though newer versions exist (#6921)
+* fix #6899 handle Unicode output in activate commands (#6909)
+
 4.4.10 (2018-02-09)
 -------------------
 

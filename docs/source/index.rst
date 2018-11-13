@@ -52,10 +52,10 @@ that approach may not be as up to date.
    :maxdepth: 1
 
    user-guide/index
-   help-support
    release-notes
    commands
    glossary
+   contributing
    license
 
 .. |reg|    unicode:: U+000AE .. REGISTERED SIGN

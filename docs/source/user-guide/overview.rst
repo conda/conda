@@ -7,7 +7,7 @@ overview of what conda is and what it does, please see the
 :doc:`front page <../index>`.
 
 The quickest way to start using conda is to go through the 
-30-minute :doc:`getting-started` guide.
+20-minute :doc:`getting-started` guide.
 
 The ``conda`` command is the primary interface for managing 
 installations of various packages. It can:

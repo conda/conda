@@ -7,31 +7,27 @@ from errno import ENOENT
 from logging import getLogger
 import os
 from os.path import abspath, basename, expanduser, isdir, isfile, join, split as path_split
-from platform import machine
+import platform
 import sys
 
-from .constants import (APP_NAME, DEFAULTS_CHANNEL_NAME, DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
-                        DEFAULT_CHANNELS, DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS,
-                        DepsModifier, ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE,
-                        PathConflict, ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, UpdateModifier)
+from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME,
+                        DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
+                        DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
+                        ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
-from .._vendor.auxlib.collection import frozendict
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
 from .._vendor.auxlib.ish import dals
 from .._vendor.boltons.setutils import IndexedSet
+from .._vendor.frozendict import frozendict
+from .._vendor.toolz import concat, concatv, unique
 from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
-from ..common.configuration import (Configuration, LoadError, MapParameter, PrimitiveParameter,
-                                    SequenceParameter, ValidationError)
-from ..common.disk import conda_bld_ensure_dir
-from ..common.path import expand
+from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
+                                    PrimitiveParameter, SequenceParameter, ValidationError)
+from ..common.path import expand, paths_equal
 from ..common.os.linux import linux_get_libc_version
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
-
-try:
-    from cytoolz.itertoolz import concat, concatv, unique
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, unique
 
 try:
     os.getcwd()
@@ -106,6 +102,7 @@ def ssl_verify_validation(value):
 class Context(Configuration):
 
     add_pip_as_python_dependency = PrimitiveParameter(True)
+    allow_conda_downgrades = PrimitiveParameter(False)
     allow_cycles = PrimitiveParameter(True)  # allow cyclical dependencies, or raise
     allow_softlinks = PrimitiveParameter(False)
     auto_update_conda = PrimitiveParameter(True, aliases=('self_update',))
@@ -123,7 +120,7 @@ class Context(Configuration):
     force_32bit = PrimitiveParameter(False)
     non_admin_enabled = PrimitiveParameter(True)
 
-    pip_interop_enabled = PrimitiveParameter(False)
+    pip_interop_enabled = PrimitiveParameter(True)
 
     # Safety & Security
     _aggressive_update_packages = SequenceParameter(string_types,
@@ -173,7 +170,7 @@ class Context(Configuration):
     _channel_alias = PrimitiveParameter(DEFAULT_CHANNEL_ALIAS,
                                         aliases=('channel_alias',),
                                         validation=channel_alias_validation)
-    channel_priority = PrimitiveParameter(True)
+    channel_priority = PrimitiveParameter(ChannelPriority.FLEXIBLE)
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
                                   aliases=('channels', 'channel',))  # channel for args.channel
     _custom_channels = MapParameter(string_types, DEFAULT_CUSTOM_CHANNELS,
@@ -209,6 +206,8 @@ class Context(Configuration):
     # ######################################################
     deps_modifier = PrimitiveParameter(DepsModifier.NOT_SET)
     update_modifier = PrimitiveParameter(UpdateModifier.UPDATE_SPECS)
+    sat_solver = PrimitiveParameter(None, element_type=string_types + (NoneType,))
+    solver_ignore_timestamps = PrimitiveParameter(True)
 
     # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
     # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
@@ -223,13 +222,14 @@ class Context(Configuration):
     force_reinstall = PrimitiveParameter(False)
 
     target_prefix_override = PrimitiveParameter('')
+    featureless_minimization_disabled_feature_flag = PrimitiveParameter(False)
 
     # conda_build
     bld_path = PrimitiveParameter('')
     anaconda_upload = PrimitiveParameter(None, aliases=('binstar_upload',),
                                          element_type=(bool, NoneType))
     _croot = PrimitiveParameter('', aliases=('croot',))
-    conda_build = MapParameter(string_types, aliases=('conda-build',))
+    _conda_build = MapParameter(string_types, aliases=('conda-build',))
 
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:
@@ -303,32 +303,17 @@ class Context(Configuration):
         return self.croot
 
     @property
-    def src_cache(self):
-        path = join(self.croot, 'src_cache')
-        conda_bld_ensure_dir(path)
-        return path
-
-    @property
-    def git_cache(self):
-        path = join(self.croot, 'git_cache')
-        conda_bld_ensure_dir(path)
-        return path
-
-    @property
-    def hg_cache(self):
-        path = join(self.croot, 'hg_cache')
-        conda_bld_ensure_dir(path)
-        return path
-
-    @property
-    def svn_cache(self):
-        path = join(self.croot, 'svn_cache')
-        conda_bld_ensure_dir(path)
-        return path
+    def conda_build(self):
+        # conda-build needs its config map to be mutable
+        try:
+            return self.__conda_build
+        except AttributeError:
+            self.__conda_build = __conda_build = dict(self._conda_build)
+            return __conda_build
 
     @property
     def arch_name(self):
-        m = machine()
+        m = platform.machine()
         if self.platform == 'linux' and m in non_x86_linux_machines:
             return m
         else:
@@ -346,7 +331,7 @@ class Context(Configuration):
     def subdir(self):
         if self._subdir:
             return self._subdir
-        m = machine()
+        m = platform.machine()
         if m in non_x86_linux_machines:
             return 'linux-%s' % m
         elif self.platform == 'zos':
@@ -396,15 +381,15 @@ class Context(Configuration):
         if self.root_writable:
             fixed_dirs = (
                 join(self.root_prefix, 'envs'),
-                join(self._user_data_dir, 'envs'),
                 join('~', '.conda', 'envs'),
             )
         else:
             fixed_dirs = (
-                join(self._user_data_dir, 'envs'),
-                join(self.root_prefix, 'envs'),
                 join('~', '.conda', 'envs'),
+                join(self.root_prefix, 'envs'),
             )
+        if on_win:
+            fixed_dirs += join(user_data_dir(APP_NAME, APP_NAME), 'envs'),
         return tuple(IndexedSet(expand(p) for p in concatv(self._envs_dirs, fixed_dirs)))
 
     @property
@@ -413,10 +398,13 @@ class Context(Configuration):
             return tuple(IndexedSet(expand(p) for p in self._pkgs_dirs))
         else:
             cache_dir_name = 'pkgs32' if context.force_32bit else 'pkgs'
-            return tuple(IndexedSet(expand(join(p, cache_dir_name)) for p in (
+            fixed_dirs = (
                 self.root_prefix,
-                self._user_data_dir,
-            )))
+                join('~', '.conda'),
+            )
+            if on_win:
+                fixed_dirs += user_data_dir(APP_NAME, APP_NAME),
+            return tuple(IndexedSet(expand(join(p, cache_dir_name)) for p in (fixed_dirs)))
 
     @memoizedproperty
     def trash_dir(self):
@@ -427,13 +415,6 @@ class Context(Configuration):
         from ..gateways.disk.create import mkdir_p
         mkdir_p(trash_dir)
         return trash_dir
-
-    @property
-    def _user_data_dir(self):
-        if on_win:
-            return user_data_dir(APP_NAME, APP_NAME)
-        else:
-            return expand(join('~', '.conda'))
 
     @property
     def default_prefix(self):
@@ -504,8 +485,8 @@ class Context(Configuration):
 
     @property
     def prefix_specified(self):
-        return (self._argparse_args.get("prefix") is not None or
-                self._argparse_args.get("name") is not None)
+        return (self._argparse_args.get("prefix") is not None
+                or self._argparse_args.get("name") is not None)
 
     @memoizedproperty
     def default_channels(self):
@@ -588,12 +569,83 @@ class Context(Configuration):
         return self.anaconda_upload
 
     @property
-    def user_agent(self):
-        return _get_user_agent(self.platform)
-
-    @property
     def verbosity(self):
         return 2 if self.debug else self._verbosity
+
+    @memoizedproperty
+    def user_agent(self):
+        builder = ["conda/%s requests/%s" % (CONDA_VERSION, self.requests_version)]
+        builder.append("%s/%s" % self.python_implementation_name_version)
+        builder.append("%s/%s" % self.platform_system_release)
+        builder.append("%s/%s" % self.os_distribution_name_version)
+        if self.libc_family_version[0]:
+            builder.append("%s/%s" % self.libc_family_version)
+        return " ".join(builder)
+
+    @memoizedproperty
+    def requests_version(self):
+        try:
+            from requests import __version__ as REQUESTS_VERSION
+        except ImportError:  # pragma: no cover
+            try:
+                from pip._vendor.requests import __version__ as REQUESTS_VERSION
+            except ImportError:
+                REQUESTS_VERSION = "unknown"
+        return REQUESTS_VERSION
+
+    @memoizedproperty
+    def python_implementation_name_version(self):
+        # CPython, Jython
+        # '2.7.14'
+        return platform.python_implementation(), platform.python_version()
+
+    @memoizedproperty
+    def platform_system_release(self):
+        # tuple of system name and release version
+        #
+        # `uname -s` Linux, Windows, Darwin, Java
+        #
+        # `uname -r`
+        # '17.4.0' for macOS
+        # '10' or 'NT' for Windows
+        return platform.system(), platform.release()
+
+    @memoizedproperty
+    def os_distribution_name_version(self):
+        # tuple of os distribution name and version
+        # e.g.
+        #   'debian', '9'
+        #   'OSX', '10.13.6'
+        #   'Windows', '10.0.17134'
+        platform_name = self.platform_system_release[0]
+        if platform_name == 'Linux':
+            from .._vendor.distro import id, version
+            try:
+                distinfo = id(), version(best=True)
+            except Exception as e:
+                log.debug('%r', e, exc_info=True)
+                distinfo = ('Linux', 'unknown')
+            distribution_name, distribution_version = distinfo[0], distinfo[1]
+        elif platform_name == 'Darwin':
+            distribution_name = 'OSX'
+            distribution_version = platform.mac_ver()[0]
+        else:
+            distribution_name = platform.system()
+            distribution_version = platform.version()
+        return distribution_name, distribution_version
+
+    @memoizedproperty
+    def libc_family_version(self):
+        # tuple of lic_family and libc_version
+        # None, None if not on Linux
+        libc_family, libc_version = linux_get_libc_version()
+        return libc_family, libc_version
+
+    @memoizedproperty
+    def cpu_flags(self):
+        # DANGER: This is rather slow
+        info = _get_cpu_info()
+        return info['flags']
 
     @property
     def category_map(self):
@@ -682,13 +734,17 @@ class Context(Configuration):
         ('Hidden and Undocumented', (
             'allow_cycles',  # allow cyclical dependencies, or raise
             'add_pip_as_python_dependency',
+            'allow_conda_downgrades',
             'debug',
             'default_python',
             'enable_private_envs',
             'error_upload_url',  # should remain undocumented
+            'featureless_minimization_disabled_feature_flag',
             'force_32bit',
             'pip_interop_enabled',  # temporary feature flag
             'root_prefix',
+            'sat_solver',
+            'solver_ignore_timestamps',
             'subdir',
             'subdirs',
             # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
@@ -768,9 +824,15 @@ class Context(Configuration):
                 The prepended url location to associate with channel names.
                 """),
             'channel_priority': dals("""
-                When True, the solver is instructed to prefer channel order over package
-                version. When False, the solver is instructed to give package version
-                preference over channel priority.
+                Accepts values of 'strict', 'flexible', and 'disabled'. The default value
+                is 'flexible'. With strict channel priority, packages in lower priority channels
+                are not considered if a package with the same name appears in a higher
+                priority channel. With flexible channel priority, the solver may reach into
+                lower priority channels to fulfill dependencies, rather than raising an
+                unsatisfiable error. With channel priority disabled, package version takes
+                precedence, and the configured priority of channels is used only to break ties.
+                In previous versions of conda, this parameter was configured as either True or
+                False. True is now an alias to 'flexible'.
                 """),
             'channels': dals("""
                 The list of conda channels to include for relevant operations.
@@ -996,6 +1058,7 @@ def conda_in_private_env():
 
 def reset_context(search_path=SEARCH_PATH, argparse_args=None):
     context.__init__(search_path, argparse_args)
+    context.__dict__.pop('_Context__conda_build', None)
     from ..models.channel import Channel
     Channel._reset_state()
     # need to import here to avoid circular dependency
@@ -1003,46 +1066,23 @@ def reset_context(search_path=SEARCH_PATH, argparse_args=None):
 
 
 @memoize
-def _get_user_agent(context_platform):
-    import platform
-    try:
-        from requests import __version__ as REQUESTS_VERSION
-    except ImportError:  # pragma: no cover
-        try:
-            from pip._vendor.requests import __version__ as REQUESTS_VERSION
-        except ImportError:
-            REQUESTS_VERSION = "unknown"
+def _get_cpu_info():
+    # DANGER: This is rather slow
+    from .._vendor.cpuinfo import get_cpu_info
+    return frozendict(get_cpu_info())
 
-    _user_agent = ("conda/{conda_ver} "
-                   "requests/{requests_ver} "
-                   "{python}/{py_ver} "
-                   "{system}/{kernel} {dist}/{ver}")
 
-    libc_family, libc_ver = linux_get_libc_version()
-    if context_platform == 'linux':
-        from .._vendor.distro import linux_distribution
-        try:
-            distinfo = linux_distribution(full_distribution_name=False)
-        except Exception as e:
-            log.debug('%r', e, exc_info=True)
-            distinfo = ('Linux', 'unknown')
-        dist, ver = distinfo[0], distinfo[1]
-    elif context_platform == 'osx':
-        dist = 'OSX'
-        ver = platform.mac_ver()[0]
-    else:
-        dist = platform.system()
-        ver = platform.version()
-
-    user_agent = _user_agent.format(conda_ver=CONDA_VERSION,
-                                    requests_ver=REQUESTS_VERSION,
-                                    python=platform.python_implementation(),
-                                    py_ver=platform.python_version(),
-                                    system=platform.system(), kernel=platform.release(),
-                                    dist=dist, ver=ver)
-    if libc_ver:
-        user_agent += " {}/{}".format(libc_family, libc_ver)
-    return user_agent
+def env_name(prefix):
+    # counter part to `locate_prefix_by_name()` below
+    if not prefix:
+        return None
+    if paths_equal(prefix, context.root_prefix):
+        return ROOT_ENV_NAME
+    maybe_envs_dir, maybe_name = path_split(prefix)
+    for envs_dir in context.envs_dirs:
+        if paths_equal(envs_dir, maybe_envs_dir):
+            return maybe_name
+    return prefix
 
 
 def locate_prefix_by_name(name, envs_dirs=None):
@@ -1099,14 +1139,11 @@ def determine_target_prefix(ctx, args=None):
     elif prefix_path is not None:
         return expand(prefix_path)
     else:
-        if '/' in prefix_name:
+        if any(x in prefix_name for x in ('/', ' ')):
             from ..exceptions import CondaValueError
-            raise CondaValueError("'/' not allowed in environment name: %s" %
-                                  prefix_name)
-        if ' ' in prefix_name:
-            from ..exceptions import CondaValueError
-            raise CondaValueError("Space not allowed in environment name: '%s'" %
-                                  prefix_name)
+            builder = ["Invalid environment name: '" + prefix_name + "'"]
+            builder.append("  character not allowed: '" + "/" if "/" in prefix_name else " " + "'")
+            raise CondaValueError("\n".join(builder))
         if prefix_name in (ROOT_ENV_NAME, 'root'):
             return ctx.root_prefix
         else:
@@ -1149,7 +1186,7 @@ def get_prefix(ctx, args, search=True):  # pragma: no cover
 
 try:
     context = Context((), None)
-except LoadError as e:  # pragma: no cover
-    print(e, file=sys.stderr)
+except ConfigurationLoadError as e:  # pragma: no cover
+    print(repr(e), file=sys.stderr)
     # Exception handler isn't loaded so use sys.exit
     sys.exit(1)

@@ -34,6 +34,7 @@ CONDA_PACKAGE_ROOT = dirname(__file__)
 
 class CondaError(Exception):
     return_code = 1
+    reportable = False  # Exception may be reported to core maintainers
 
     def __init__(self, message, caused_by=None, **kwargs):
         self.message = message
@@ -47,7 +48,7 @@ class CondaError(Exception):
     def __str__(self):
         try:
             return text_type(self.message % self._kwargs)
-        except:
+        except Exception:
             debug_message = "\n".join((
                 "class: " + self.__class__.__name__,
                 "message:",
@@ -77,7 +78,10 @@ class CondaMultiError(CondaError):
         super(CondaMultiError, self).__init__(None)
 
     def __repr__(self):
-        return '\n'.join(repr(e) for e in self.errors) + '\n'
+        return '\n'.join(text_type(e)
+                         if isinstance(e, EnvironmentError) and not isinstance(e, CondaError)
+                         else repr(e)
+                         for e in self.errors) + '\n'
 
     def __str__(self):
         return '\n'.join(text_type(e) for e in self.errors) + '\n'

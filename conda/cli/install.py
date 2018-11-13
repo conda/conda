@@ -7,7 +7,6 @@ from logging import getLogger
 import os
 from os.path import abspath, basename, exists, isdir, isfile, join
 
-from conda.common.path import paths_equal
 from . import common
 from .common import check_non_admin
 from .. import CondaError
@@ -15,15 +14,15 @@ from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME, UpdateModifier
 from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_win, text_type
+from ..common.path import paths_equal
 from ..core.index import calculate_channel_urls, get_index
 from ..core.prefix_data import PrefixData
 from ..core.solve import DepsModifier, Solver
 from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
-                          CondaValueError, DirectoryNotFoundError, DryRunExit,
-                          EnvironmentLocationNotFound,
-                          PackageNotInstalledError, PackagesNotFoundError, TooManyArgumentsError,
-                          UnsatisfiableError, NoBaseEnvironmentError,
-                          DirectoryNotACondaEnvironmentError)
+                          CondaValueError, DirectoryNotACondaEnvironmentError,
+                          DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
+                          NoBaseEnvironmentError, PackageNotInstalledError, PackagesNotFoundError,
+                          TooManyArgumentsError, UnsatisfiableError)
 from ..gateways.disk.create import mkdir_p
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
@@ -258,7 +257,7 @@ def install(args, parser, command='install'):
             platform=None,
             use_local=index_args['use_local'],
         ))
-        raise PackagesNotFoundError(e.bad_deps, channels_urls)
+        raise PackagesNotFoundError(e._formatted_chains, channels_urls)
 
     except (UnsatisfiableError, SystemExit) as e:
         # Unsatisfiable package specifications/no such revision/import error

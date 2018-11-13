@@ -124,11 +124,11 @@ class LeasedPathType(Enum):
 class PackageType(Enum):
     NOARCH_GENERIC = 'noarch_generic'
     NOARCH_PYTHON = 'noarch_python'
-    SHADOW_PRIVATE_ENV = 'shadow_private_env'
-    SHADOW_PYTHON_DIST_INFO = 'shadow_python_dist_info'
-    SHADOW_PYTHON_EGG_INFO_DIR = 'shadow_python_egg_info_dir'
-    SHADOW_PYTHON_EGG_INFO_FILE = 'shadow_python_egg_info_file'
-    SHADOW_PYTHON_EGG_LINK = 'shadow_python_egg_link'
+    VIRTUAL_PRIVATE_ENV = 'virtual_private_env'
+    VIRTUAL_PYTHON_WHEEL = 'virtual_python_wheel'  # manageable
+    VIRTUAL_PYTHON_EGG_MANAGEABLE = 'virtual_python_egg_manageable'
+    VIRTUAL_PYTHON_EGG_UNMANAGEABLE = 'virtual_python_egg_unmanageable'
+    VIRTUAL_PYTHON_EGG_LINK = 'virtual_python_egg_link'  # unmanageable
 
     @staticmethod
     def conda_package_types():
@@ -136,6 +136,13 @@ class PackageType(Enum):
             None,
             PackageType.NOARCH_GENERIC,
             PackageType.NOARCH_PYTHON,
+        }
+
+    @staticmethod
+    def unmanageable_package_types():
+        return {
+            PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE,
+            PackageType.VIRTUAL_PYTHON_EGG_LINK,
         }
 
 

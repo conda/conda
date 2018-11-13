@@ -63,9 +63,7 @@ class CondaSession(Session):
 
         self.auth = CondaHttpAuth()  # TODO: should this just be for certain protocol adapters?
 
-        proxies = context.proxy_servers
-        if proxies:
-            self.proxies = proxies
+        self.proxies.update(context.proxy_servers)
 
         if context.offline:
             unused_adapter = EnforceUnusedAdapter()

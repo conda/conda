@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# source: https://raw.githubusercontent.com/mahmoud/boltons/18.0.0/boltons/setutils.py
+# version: 18.0.0
+# date: 2018-07-11
 """\
 
 The :class:`set` type brings the practical expressiveness of

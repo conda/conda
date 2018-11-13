@@ -6,7 +6,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import EACCES, EEXIST, ENOENT, ENOTEMPTY, EPERM, errorcode
 from logging import getLogger
 import os
-from os import makedirs, mkdir
 from os.path import basename, isdir, dirname
 import sys
 from time import sleep
@@ -59,7 +58,7 @@ def mkdir_p(path):
     try:
         log.trace('making directory %s', path)
         if path:
-            makedirs(path)
+            os.makedirs(path)
             return isdir(path) and path
     except EnvironmentError as e:
         if e.errno == EEXIST and isdir(path):
@@ -75,7 +74,7 @@ def mkdir_p_sudo_safe(path):
     if not isdir(base_dir):
         mkdir_p_sudo_safe(base_dir)
     log.trace('making directory %s', path)
-    mkdir(path)
+    os.mkdir(path)
     # # per the following issues, removing this code as of 4.6.0:
     # #   - https://github.com/conda/conda/issues/6569
     # #   - https://github.com/conda/conda/issues/6576

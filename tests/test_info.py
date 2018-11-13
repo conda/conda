@@ -44,7 +44,6 @@ def test_info():
 @pytest.mark.integration
 def test_info_package_json():
     out, err, rc = run_command(Commands.INFO, "--json", "numpy=1.11.0=py35_0")
-    assert err == ""
 
     out = json.loads(out)
     assert set(out.keys()) == {"numpy=1.11.0=py35_0"}
@@ -52,7 +51,6 @@ def test_info_package_json():
     assert isinstance(out["numpy=1.11.0=py35_0"], list)
 
     out, err, rc = run_command(Commands.INFO, "--json", "numpy")
-    assert err == ""
 
     out = json.loads(out)
     assert set(out.keys()) == {"numpy"}

@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import partial
-import logging
+import logging  # lgtm [py/import-and-import-from]
 from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
 import re
 import sys
@@ -69,9 +69,7 @@ class StdStreamHandler(StreamHandler):
             stream.write(msg)
             stream.write(terminator)
             self.flush()
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
+        except Exception:
             self.handleError(record)
 
 

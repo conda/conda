@@ -17,10 +17,11 @@ from logging import getLogger
 import sys
 
 from ._vendor.boltons.setutils import IndexedSet
+from ._vendor.toolz import concatv
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context
 from .common.compat import itervalues, text_type
-from .common.io import env_var, time_recorder
+from .common.io import env_vars, time_recorder
 from .core.index import LAST_CHANNEL_URLS, _supplement_index_with_prefix
 from .core.link import PrefixSetup, UnlinkLinkTransaction
 from .core.solve import diff_for_unlink_link_precs
@@ -36,11 +37,6 @@ from .models.records import PackageRecord
 from .models.version import normalized_version
 from .resolve import MatchSpec, dashlist
 from .utils import human_bytes
-
-try:
-    from cytoolz.itertoolz import concat, concatv, remove
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import concat, concatv, remove  # NOQA
 
 log = getLogger(__name__)
 
@@ -442,7 +438,10 @@ def install_actions(prefix, index, specs, force=False, only_names=None, always_c
                     channel_priority_map=None, is_update=False,
                     minimal_hint=False):  # pragma: no cover
     # this is for conda-build
-    with env_var('CONDA_ALLOW_NON_CHANNEL_URLS', 'true', reset_context):
+    with env_vars({
+        'CONDA_ALLOW_NON_CHANNEL_URLS': 'true',
+        'CONDA_SOLVER_IGNORE_TIMESTAMPS': 'false',
+    }, reset_context):
         from os.path import basename
         from ._vendor.boltons.setutils import IndexedSet
         from .core.solve import Solver
@@ -532,8 +531,8 @@ def execute_instructions(plan, index=None, verbose=False, _commands=None):  # pr
         if callable(cmd):
             cmd(state, arg)
 
-        if (state['i'] is not None and instruction in PROGRESS_COMMANDS and
-                state['maxval'] == state['i']):
+        if (state['i'] is not None and instruction in PROGRESS_COMMANDS
+                and state['maxval'] == state['i']):
 
             state['i'] = None
             getLogger('progress.stop').info(None)

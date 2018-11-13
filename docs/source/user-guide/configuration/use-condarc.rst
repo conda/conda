@@ -78,10 +78,6 @@ is available at the Terminal or Anaconda Prompt by running
 TIP: Conda supports :doc:`tab completion <enable-tab-completion>`
 with external packages instead of internal configuration.
 
-For more information, see the `Configuration section of Advanced
-Features of conda Part 1
-<http://continuum.io/blog/advanced-conda-part-1#configuration>`_.
-
 
 General configuration
 =====================
@@ -111,7 +107,8 @@ EXAMPLE:
     - defaults
 
 To select channels for a single environment, put a ``.condarc``
-file in the root directory of that environment.
+file in the root directory of that environment (or use the
+``--env`` option when using ``conda config``).
 
 EXAMPLE: If you have installed Miniconda with Python 3 in your
 home directory and the environment is named "flowers", the
@@ -434,9 +431,9 @@ that package. However if dependencies that satisfy the package's
 requirements are already installed, conda will not update those
 packages to the latest version.
 
-If you prefer to update only the packages given explicitly at
-the command line and avoid updating existing installed packages
-as much as possible, set update_dependencies to ``False``:
+In this case, if you would prefer that conda update all dependencies
+to the latest version that is compatible with the environment,
+set update_dependencies to ``True``:
 
 .. code-block:: yaml
 

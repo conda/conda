@@ -14,7 +14,6 @@ from ..common.compat import text_type
 from ..core.prefix_data import PrefixData
 from ..gateways.disk.test import is_conda_environment
 from ..history import History
-from ..models.dist import Dist
 
 log = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ def print_export_header(subdir):
 def get_packages(installed, regex):
     pat = re.compile(regex, re.I) if regex else None
     for prefix_rec in sorted(installed, key=lambda x: x.name.lower()):
-        if pat and pat.search(str(prefix_rec)) is None:
+        if pat and pat.search(prefix_rec.name) is None:
             continue
         yield prefix_rec
 
@@ -48,7 +47,7 @@ def list_packages(prefix, regex=None, format='human',
 
     for prec in get_packages(installed, regex) if regex else installed:
         if format == 'canonical':
-            result.append(Dist(prec) if context.json else prec.dist_str())
+            result.append(prec.dist_fields_dump() if context.json else prec.dist_str())
             continue
         if format == 'export':
             result.append('='.join((prec.name, prec.version, prec.build)))

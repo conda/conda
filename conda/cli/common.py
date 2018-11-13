@@ -55,7 +55,7 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
     if context.always_yes:
         return True
     try:
-        choice = confirm(message=message, choices=('yes', 'no'))
+        choice = confirm(message=message, choices=('yes', 'no'), default=default)
     except KeyboardInterrupt as e:  # pragma: no cover
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.")
@@ -93,16 +93,14 @@ def specs_from_args(args, json=False):
     return [arg2spec(arg, json=json) for arg in args]
 
 
-spec_pat = re.compile(r'''
-(?P<name>[^=<>!\s]+)               # package name
-\s*                                # ignore spaces
-(
-  (?P<cc>=[^=]+(=[^=]+)?)          # conda constraint
-  |
-  (?P<pc>(?:[=!]=|[><]=?).+)       # new (pip-style) constraint(s)
-)?
-$                                  # end-of-line
-''', re.VERBOSE)
+spec_pat = re.compile(r'(?P<name>[^=<>!\s]+)'  # package name  # lgtm [py/regex/unmatchable-dollar]
+                      r'\s*'  # ignore spaces
+                      r'('
+                      r'(?P<cc>=[^=]+(=[^=]+)?)'  # conda constraint
+                      r'|'
+                      r'(?P<pc>(?:[=!]=|[><]=?).+)'  # new (pip-style) constraint(s)
+                      r')?$',
+                      re.VERBOSE)  # lgtm [py/regex/unmatchable-dollar]
 
 
 def strip_comment(line):
@@ -167,14 +165,13 @@ def stdout_json(d):
 
 
 def stdout_json_success(success=True, **kwargs):
-    from ..models.dist import Dist
     result = {'success': success}
     actions = kwargs.pop('actions', None)
     if actions:
         if 'LINK' in actions:
-            actions['LINK'] = [Dist(prec) for prec in actions['LINK']]
+            actions['LINK'] = [prec.dist_fields_dump() for prec in actions['LINK']]
         if 'UNLINK' in actions:
-            actions['UNLINK'] = [Dist(prec) for prec in actions['UNLINK']]
+            actions['UNLINK'] = [prec.dist_fields_dump() for prec in actions['UNLINK']]
         result['actions'] = actions
     result.update(kwargs)
     stdout_json(result)

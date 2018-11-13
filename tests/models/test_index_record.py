@@ -6,7 +6,7 @@ from unittest import TestCase
 from conda.base.context import context
 from conda.common.compat import text_type
 from conda.models.channel import Channel
-from conda.models.records import IndexJsonRecord, PackageRecord, PrefixRecord
+from conda.models.records import PackageRecord, PrefixRecord
 
 log = getLogger(__name__)
 
@@ -48,26 +48,26 @@ class PrefixRecordTests(TestCase):
 
     def test_index_record_timestamp(self):
         # regression test for #6096
-        ts = 1507565728
-        new_ts = ts * 1000
+        ts_secs = 1507565728
+        ts_millis = ts_secs * 1000
         rec = PackageRecord(
             name='test-package',
             version='1.2.3',
             build='2',
             build_number=2,
-            timestamp=ts
+            timestamp=ts_secs
         )
-        assert rec.timestamp == new_ts
-        assert rec.dump()['timestamp'] == new_ts
+        assert rec.timestamp == ts_secs
+        assert rec.dump()['timestamp'] == ts_millis
 
-        ts = 1507565728999
-        new_ts = ts
+        ts_millis = 1507565728999
+        ts_secs = ts_millis / 1000
         rec = PackageRecord(
             name='test-package',
             version='1.2.3',
             build='2',
             build_number=2,
-            timestamp=ts
+            timestamp=ts_secs
         )
-        assert rec.timestamp == new_ts
-        assert rec.dump()['timestamp'] == new_ts
+        assert rec.timestamp == ts_secs
+        assert rec.dump()['timestamp'] == ts_millis

@@ -23,15 +23,14 @@ from errno import EACCES, EEXIST, ENOENT, EPERM, EROFS
 import functools
 import logging
 import os
-from os import chmod, makedirs, stat
 from os.path import dirname, isdir, isfile, join, normcase, normpath
 import sys
 
-from conda.models.enums import PackageType
 from .base.constants import PREFIX_PLACEHOLDER
 from .common.compat import itervalues, on_win, open, iteritems
 from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
 from .models.dist import Dist
+from .models.enums import PackageType
 from .models.match_spec import MatchSpec
 
 delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
@@ -72,7 +71,7 @@ if on_win:  # pragma: no cover
         """
         from .utils import shells
         try:
-            makedirs(dirname(dst))
+            os.makedirs(dirname(dst))
         except OSError as exc:  # Python >2.5
             if exc.errno == EEXIST and isdir(dirname(dst)):
                 pass
@@ -101,9 +100,9 @@ if on_win:  # pragma: no cover
                     f.write('source %s "$@"' % shells[shell]['path_to'](src))
             # Make the new file executable
             # http://stackoverflow.com/a/30463972/1170370
-            mode = stat(dst).st_mode
+            mode = os.stat(dst).st_mode
             mode |= (mode & 292) >> 2    # copy R bits to X
-            chmod(dst, mode)
+            os.chmod(dst, mode)
 
 
 # Should this be an API function?
@@ -139,8 +138,7 @@ def symlink_conda_hlp(prefix, root_dir, where, symlink_fn):  # pragma: no cover
             if not os.path.lexists(prefix_file):
                 symlink_fn(root_file, prefix_file)
         except (IOError, OSError) as e:
-            if (os.path.lexists(prefix_file) and
-                    (e.errno in (EPERM, EACCES, EROFS, EEXIST))):
+            if os.path.lexists(prefix_file) and (e.errno in (EPERM, EACCES, EROFS, EEXIST)):
                 log.debug("Cannot symlink {0} to {1}. Ignoring since link already exists."
                           .format(root_file, prefix_file))
             elif e.errno == ENOENT:

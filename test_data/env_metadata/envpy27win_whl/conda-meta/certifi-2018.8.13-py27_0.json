@@ -1,0 +1,98 @@
+{
+  "build": "py27_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/win-64",
+  "constrains": [],
+  "depends": [
+    "python >=2.7,<2.8.0a0"
+  ],
+  "extracted_package_dir": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\certifi-2018.8.13-py27_0",
+  "features": "",
+  "files": [
+    "Lib/site-packages/certifi-2018.08.13-py2.7.egg-info",
+    "Lib/site-packages/certifi/__init__.py",
+    "Lib/site-packages/certifi/__init__.pyc",
+    "Lib/site-packages/certifi/__main__.py",
+    "Lib/site-packages/certifi/__main__.pyc",
+    "Lib/site-packages/certifi/cacert.pem",
+    "Lib/site-packages/certifi/core.py",
+    "Lib/site-packages/certifi/core.pyc"
+  ],
+  "fn": "certifi-2018.8.13-py27_0.tar.bz2",
+  "license": "ISC",
+  "link": {
+    "source": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\certifi-2018.8.13-py27_0",
+    "type": 1
+  },
+  "md5": "4877614da8d394a1262f8dd25c006d95",
+  "name": "certifi",
+  "package_tarball_full_path": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\certifi-2018.8.13-py27_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "Lib/site-packages/certifi-2018.08.13-py2.7.egg-info",
+        "path_type": "hardlink",
+        "sha256": "7281b58c67dce5d2915b7fbbdd6d3af103c5dac7994de824f01069f23b22a145",
+        "sha256_in_prefix": "7281b58c67dce5d2915b7fbbdd6d3af103c5dac7994de824f01069f23b22a145",
+        "size_in_bytes": 3019
+      },
+      {
+        "_path": "Lib/site-packages/certifi/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "207251106dfe2667950c8c536ae98cbb8373990924c7ece9cccf49d5aa2f6c4a",
+        "sha256_in_prefix": "207251106dfe2667950c8c536ae98cbb8373990924c7ece9cccf49d5aa2f6c4a",
+        "size_in_bytes": 63
+      },
+      {
+        "_path": "Lib/site-packages/certifi/__init__.pyc",
+        "path_type": "hardlink",
+        "sha256": "b1656b25071d0330a5b2ff96bae3605a2d735e46770e0734594b65778395a10e",
+        "sha256_in_prefix": "b1656b25071d0330a5b2ff96bae3605a2d735e46770e0734594b65778395a10e",
+        "size_in_bytes": 238
+      },
+      {
+        "_path": "Lib/site-packages/certifi/__main__.py",
+        "path_type": "hardlink",
+        "sha256": "162398b75165b6cb7bc24f4345ae860a806bf2a054c65350bbf30a25fd3813ab",
+        "sha256_in_prefix": "162398b75165b6cb7bc24f4345ae860a806bf2a054c65350bbf30a25fd3813ab",
+        "size_in_bytes": 41
+      },
+      {
+        "_path": "Lib/site-packages/certifi/__main__.pyc",
+        "path_type": "hardlink",
+        "sha256": "2135ad118b50c759b997bcee3a4ead11c2f7454b7f39adba214ef05b901c7710",
+        "sha256_in_prefix": "2135ad118b50c759b997bcee3a4ead11c2f7454b7f39adba214ef05b901c7710",
+        "size_in_bytes": 187
+      },
+      {
+        "_path": "Lib/site-packages/certifi/cacert.pem",
+        "path_type": "hardlink",
+        "sha256": "0236c0bb96caef0e474ba9f2571dee1911a619287b038b42a305ae5dd5570499",
+        "sha256_in_prefix": "0236c0bb96caef0e474ba9f2571dee1911a619287b038b42a305ae5dd5570499",
+        "size_in_bytes": 261652
+      },
+      {
+        "_path": "Lib/site-packages/certifi/core.py",
+        "path_type": "hardlink",
+        "sha256": "c4f403746fec8b2e40ec17ea1966bb44985c03ad715c4a8f892af0f463728471",
+        "sha256_in_prefix": "c4f403746fec8b2e40ec17ea1966bb44985c03ad715c4a8f892af0f463728471",
+        "size_in_bytes": 836
+      },
+      {
+        "_path": "Lib/site-packages/certifi/core.pyc",
+        "path_type": "hardlink",
+        "sha256": "cb99aecbf63c73952fabad1ae8f87f275914c68b398f0b7f540bbc568ff78219",
+        "sha256_in_prefix": "cb99aecbf63c73952fabad1ae8f87f275914c68b398f0b7f540bbc568ff78219",
+        "size_in_bytes": 1315
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 142292,
+  "subdir": "win-64",
+  "timestamp": 1534172580535,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/win-64/certifi-2018.8.13-py27_0.tar.bz2",
+  "version": "2018.8.13"
+}

@@ -382,12 +382,12 @@ Windows
 -------
 
 #. Locate the directory for the conda environment in your
-   Anaconda Prompt, such as ``C:\Users\jsmith\Anaconda3\envs\analytics``.
+   Anaconda Prompt by running in the command shell ``%CONDA_PREFIX%``.
 
 #. Enter that directory and create these subdirectories and
    files::
 
-    cd C:\Users\jsmith\Anaconda3\envs\analytics
+    cd %CONDA_PREFIX%
     mkdir .\etc\conda\activate.d
     mkdir .\etc\conda\deactivate.d
     type NUL > .\etc\conda\activate.d\env_vars.bat
@@ -412,13 +412,12 @@ When you run ``deactivate``, those variables are erased.
 macOS and Linux
 ---------------
 
-#. Locate the directory for the conda environment in your Terminal window, such as
-   ``/home/jsmith/anaconda3/envs/analytics``.
+#. Locate the directory for the conda environment in your Terminal window by running in the terminal ``echo $CONDA_PREFIX``.
 
 #. Enter that directory and create these subdirectories and
    files::
 
-     cd /home/jsmith/anaconda3/envs/analytics
+     cd $CONDA_PREFIX
      mkdir -p ./etc/conda/activate.d
      mkdir -p ./etc/conda/deactivate.d
      touch ./etc/conda/activate.d/env_vars.sh

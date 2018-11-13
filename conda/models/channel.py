@@ -8,6 +8,7 @@ from itertools import chain
 from logging import getLogger
 
 from .._vendor.boltons.setutils import IndexedSet
+from .._vendor.toolz import concat, concatv, drop
 from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
@@ -15,11 +16,6 @@ from ..common.path import is_path, win_path_backout
 from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
                           split_conda_url_easy_parts, split_platform, split_scheme_auth_token,
                           urlparse)
-
-try:
-    from cytoolz.itertoolz import concat, concatv, drop
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, drop  # NOQA
 
 log = getLogger(__name__)
 
@@ -254,14 +250,7 @@ class Channel(object):
             return base
 
     def __repr__(self):
-        return ("Channel(scheme=%r, auth=%r, location=%r, token=%r, name=%r, platform=%r, "
-                "package_filename=%r)" % (self.scheme,
-                                          self.auth and "%s:<PASSWORD>" % self.auth.split(':')[0],
-                                          self.location,
-                                          self.token and "<TOKEN>",
-                                          self.name,
-                                          self.platform,
-                                          self.package_filename))
+        return 'Channel("%s")' % (join_url(self.name, self.subdir) if self.subdir else self.name)
 
     def __eq__(self, other):
         if isinstance(other, Channel):

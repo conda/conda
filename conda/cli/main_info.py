@@ -7,18 +7,15 @@ from collections import OrderedDict
 import json
 from logging import getLogger
 import os
-from os import listdir
 from os.path import exists, expanduser, isfile, join
 import re
 import sys
 
 from .common import print_envs_list, stdout_json
 from .. import CONDA_PACKAGE_ROOT, __version__ as conda_version
-from ..base.context import conda_in_private_env, context, sys_rc_path, user_rc_path
+from ..base.context import conda_in_private_env, context, env_name, sys_rc_path, user_rc_path
 from ..common.compat import iteritems, itervalues, on_win, text_type
 from ..common.url import mask_anaconda_token
-from ..core.envs_manager import env_name
-from ..core.subdir_data import SubdirData
 from ..models.channel import all_channel_urls, offline_keep
 from ..models.match_spec import MatchSpec
 from ..utils import human_bytes
@@ -32,7 +29,7 @@ def get_user_site():  # pragma: no cover
         if not on_win:
             if exists(expanduser('~/.local/lib')):
                 python_re = re.compile('python\d\.\d')
-                for path in listdir(expanduser('~/.local/lib/')):
+                for path in os.listdir(expanduser('~/.local/lib/')):
                     if python_re.match(path):
                         site_dirs.append("~/.local/lib/%s" % path)
         else:
@@ -41,7 +38,7 @@ def get_user_site():  # pragma: no cover
             APPDATA = os.environ[str('APPDATA')]
             if exists(join(APPDATA, 'Python')):
                 site_dirs = [join(APPDATA, 'Python', i) for i in
-                             listdir(join(APPDATA, 'PYTHON'))]
+                             os.listdir(join(APPDATA, 'PYTHON'))]
     except (IOError, OSError) as e:
         log.debug('Error accessing user site directory.\n%r', e)
     return site_dirs
@@ -84,7 +81,7 @@ def pretty_package(prec):
 
 
 def print_package_info(packages):
-
+    from ..core.subdir_data import SubdirData
     results = {}
     for package in packages:
         spec = MatchSpec(package)
@@ -96,6 +93,10 @@ def print_package_info(packages):
         for result in itervalues(results):
             for prec in result:
                 pretty_package(prec)
+
+    print("WARNING: 'conda info package_name' is deprecated.\n"
+          "          Use 'conda search package_name --info'.",
+          file=sys.stderr)
 
 
 def get_info_dict(system=False):
@@ -116,7 +117,7 @@ def get_info_dict(system=False):
 
     try:
         from conda_env import __version__ as conda_env_version
-    except:  # pragma: no cover
+    except Exception:  # pragma: no cover
         conda_env_version = "not installed"
 
     try:

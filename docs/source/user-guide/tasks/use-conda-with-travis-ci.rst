@@ -111,10 +111,6 @@ recipe is tested as well.
       - conda install your-package --use-local
 
 
-For more information on building conda packages, see
-:doc:`build-packages/index` and
-:doc:`build-packages/sample-recipes`.
-
 
 AppVeyor
 ========

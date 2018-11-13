@@ -22,7 +22,7 @@ def execute(args, parser):
         if paths_equal(context.target_prefix, context.root_prefix):
             raise CondaValueError("The target prefix is the base prefix. Aborting.")
         confirm_yn("WARNING: A conda environment already exists at '%s'\n"
-                   "Removing existing environment" % context.target_prefix,
+                   "Remove existing environment" % context.target_prefix,
                    default='no',
                    dry_run=False)
         log.info("Removing existing environment %s", context.target_prefix)

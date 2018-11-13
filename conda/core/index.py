@@ -3,26 +3,22 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from itertools import chain
 from logging import getLogger
+
+from itertools import chain
 
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData, make_feature_record
 from .._vendor.boltons.setutils import IndexedSet
+from .._vendor.toolz import concat, concatv, groupby
 from ..base.context import context
 from ..common.compat import itervalues
-from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, time_recorder
-from ..exceptions import OperationNotAllowed
+from ..common.io import ThreadLimitedThreadPoolExecutor, as_completed, dashlist, time_recorder
+from ..exceptions import ChannelNotAllowed, InvalidSpec
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PrefixRecord
-from ..resolve import dashlist
-
-try:
-    from cytoolz.itertoolz import concat, concatv, groupby, take
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby, take  # NOQA
 
 log = getLogger(__name__)
 
@@ -35,11 +31,7 @@ def check_whitelist(channel_urls):
         for url in channel_urls:
             these_urls = Channel(url).base_urls
             if not all(this_url in whitelist_channel_urls for this_url in these_urls):
-                bad_channel = Channel(url)
-                raise OperationNotAllowed("Channel not included in whitelist:\n"
-                                          "  location: %s\n"
-                                          "  canonical name: %s\n"
-                                          % (bad_channel.location, bad_channel.canonical_name))
+                raise ChannelNotAllowed(Channel(url))
 
 
 LAST_CHANNEL_URLS = []
@@ -194,8 +186,14 @@ def get_reduced_index(prefix, channels, subdirs, specs):
                         pending_track_features.add(ftr_name)
 
         def push_record(record):
+            try:
+                combined_depends = record.combined_depends
+            except InvalidSpec as e:
+                log.warning("Skipping %s due to InvalidSpec: %s",
+                            record.record_id(), e._kwargs["invalid_spec"])
+                return
             push_spec(MatchSpec(record.name))
-            for _spec in record.combined_depends:
+            for _spec in combined_depends:
                 push_spec(_spec)
             if record.track_features:
                 for ftr_name in record.track_features:

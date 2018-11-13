@@ -1,0 +1,16 @@
+.coveragerc
+.gitignore
+.travis.yml
+HACKING.rst
+LICENSE
+README.rst
+setup.cfg
+setup.py
+tox.ini
+src/backports/__init__.py
+src/backports/weakref.py
+src/backports.weakref.egg-info/PKG-INFO
+src/backports.weakref.egg-info/SOURCES.txt
+src/backports.weakref.egg-info/dependency_links.txt
+src/backports.weakref.egg-info/top_level.txt
+tests/test_weakref.py

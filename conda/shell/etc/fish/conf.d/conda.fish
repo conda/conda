@@ -6,8 +6,11 @@
 #     Run 'conda init fish' and restart your shell.
 #
 
-test -n "$CONDA_SHLVL"; or set -gx CONDA_SHLVL "0"
-set -g _CONDA_ROOT (dirname (dirname $CONDA_EXE))
+if not set -q CONDA_SHLVL
+    set -gx CONDA_SHLVL "0"
+    set -g _CONDA_ROOT (dirname (dirname $CONDA_EXE))
+    set -gx PATH $_CONDA_ROOT/condabin $PATH
+end
 
 function __conda_add_prompt
   if set -q CONDA_DEFAULT_ENV
@@ -97,7 +100,7 @@ function __fish_conda_env_commands
 end
 
 function __fish_conda_envs
-  conda config --show envs_dirs | awk 'NR > 1 {print $2}' | xargs -IX find X -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort
+  conda config --json --show envs_dirs | python -c "import json, os, sys; from os.path import isdir, join; print('\n'.join(d for ed in json.load(sys.stdin)['envs_dirs'] if isdir(ed) for d in os.listdir(ed) if isdir(join(ed, d))))"
 end
 
 function __fish_conda_packages

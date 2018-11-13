@@ -82,6 +82,12 @@ def do_call(args, parser):
     return exit_code
 
 
+def find_builtin_commands(parser):
+    # ArgumentParser doesn't have an API for getting back what subparsers
+    # exist, so we need to use internal properties to do so.
+    return tuple(parser._subparsers._group_actions[0].choices.keys())
+
+
 class ArgumentParser(ArgumentParserBase):
     def __init__(self, *args, **kwargs):
         if not kwargs.get('formatter_class'):
@@ -127,7 +133,7 @@ class ArgumentParser(ArgumentParserBase):
             else:
                 argument = None
             if argument and argument.dest == "cmd":
-                m = re.match(r"invalid choice: u?'([\w\-]*?)'", exc.message)
+                m = re.match(r"invalid choice: u?'([-\w]*?)'", exc.message)
                 if m:
                     cmd = m.group(1)
                     if not cmd:
@@ -229,18 +235,28 @@ def configure_parser_clean(sub_parsers):
     removal_target_options.add_argument(
         '-p', '--packages',
         action='store_true',
-        help="Remove unused cached packages. Warning: This does not check for symlinked packages.",
+        help="Remove unused packages from writable package caches. "
+             "WARNING: This does not check for packages installed using "
+             "symlinks back to the package cache.",
     )
     removal_target_options.add_argument(
         '-s', '--source-cache',
         action='store_true',
         # help="Remove files from the source cache of conda build.",
         help=SUPPRESS,
+        # TODO: Deprecation warning issued. Remove in future release.
     )
     removal_target_options.add_argument(
         "-t", "--tarballs",
         action="store_true",
         help="Remove cached package tarballs.",
+    )
+    removal_target_options.add_argument(
+        '-f', '--force-pkgs-dirs',
+        action='store_true',
+        help="Remove *all* writable package caches. This option is not included with the --all "
+             "flag. WARNING: This will break environments with packages installed using symlinks "
+             "back to the package cache.",
     )
 
     add_output_and_prompt_options(p)
@@ -301,12 +317,11 @@ def configure_parser_info(sub_parsers):
         help='Display list of channels with tokens exposed.',
     )
 
-    # TODO: deprecate 'conda info <PACKAGE>'
     p.add_argument(
         'packages',
         action="store",
         nargs='*',
-        help="Display information about packages.",
+        help=SUPPRESS,
     )
 
     p.set_defaults(func='.main_info.execute')
@@ -496,8 +511,7 @@ def configure_parser_config(sub_parsers):
 
 def configure_parser_create(sub_parsers):
     help = "Create a new conda environment from a list of specified packages. "
-    descr = (help +
-             "To use the created environment, use 'source activate "
+    descr = (help + "To use the created environment, use 'source activate "
              "envname' look in that directory first.  This command requires either "
              "the -n NAME or -p PREFIX option.")
 
@@ -644,7 +658,7 @@ def configure_parser_init(sub_parsers):
 
     add_parser_json(p)
     p.add_argument(
-        "--dry-run",
+        "-d", "--dry-run",
         action="store_true",
         help="Only display what would have been done.",
     )
@@ -962,7 +976,7 @@ def configure_parser_run(sub_parsers):
     Example usage:
 
         $ conda create -y -n my-python-2-env python=2
-        $ conda run -n my-python-2-env python -- --version
+        $ conda run -n my-python-2-env python --version
     """)
 
     epilog = dedent("""
@@ -1301,7 +1315,7 @@ def add_output_and_prompt_options(p):
         help=SUPPRESS,
     )
     output_and_prompt_options.add_argument(
-        "--dry-run",
+        "-d", "--dry-run",
         action="store_true",
         help="Only display what would have been done.",
     )
@@ -1365,6 +1379,15 @@ def add_parser_solver_mode(p):
     solver_mode_options = p.add_argument_group("Solver Mode Modifiers")
     deps_modifiers = solver_mode_options.add_mutually_exclusive_group()
     solver_mode_options.add_argument(
+        "--strict-channel-priority",
+        action="store_const",
+        dest="channel_priority",
+        default=NULL,
+        const="strict",
+        help="Packages in lower priority channels are not considered if a package "
+             "with the same name appears in a higher priority channel.",
+    )
+    solver_mode_options.add_argument(
         "--channel-priority",
         action="store_true",
         dest="channel_priority",
@@ -1373,9 +1396,10 @@ def add_parser_solver_mode(p):
     )
     solver_mode_options.add_argument(
         "--no-channel-priority",
-        action="store_false",
+        action="store_const",
         dest="channel_priority",
         default=NULL,
+        const="disabled",
         help="Package version takes precedence over channel priority. "
              "Overrides the value given by `conda config --show channel_priority`."
     )
