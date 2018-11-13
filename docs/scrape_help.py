@@ -50,7 +50,8 @@ def run_command(*args, **kwargs):
         err = b''
     out, err = out.decode('utf-8'), err.decode('utf-8')
     if p.returncode != 0:
-        print("%r failed with error code %s" % (' '.join(map(quote, args[0])), p.returncode), file=sys.stderr)
+        print("%r failed with error code %s" %
+              (' '.join(map(quote, args[0])), p.returncode), file=sys.stderr)
     elif err:
         print("%r gave stderr output: %s" % (' '.join(*args), err))
 
@@ -128,7 +129,7 @@ def external_commands():
                 m = subcommands_re.match(line)
                 if m:
                     commands.extend(['%s %s' % (command, i) for i in
-                        m.group(1).split(',')])
+                                     m.group(1).split(',')])
                 break
     return commands
 
@@ -147,7 +148,7 @@ def man_replacements():
         (info['sys_rc_path'], r'\fI\,system .condarc path\/\fP'),
 
         (info['root_prefix'], r'root prefix'),
-        ])
+    ])
 
     return r
 
@@ -165,7 +166,7 @@ def generate_man(command):
             '--version-string', conda_version,
             '--no-info',
             'conda %s' % command,
-            ])
+        ])
         retries -= 1
 
     if not manpage:
@@ -186,11 +187,11 @@ def generate_html(command):
     man = Popen(['man', abspath(join(manpath, 'conda-%s.1' % command_file))], stdout=PIPE)
     htmlpage = check_output([
         'man2html',
-        '-bare', # Don't use HTML, HEAD, or BODY tags
+        '-bare',  # Don't use HTML, HEAD, or BODY tags
         'title', 'conda-%s' % command_file,
-        '-topm', '0', # No top margin
-        '-botm', '0', # No bottom margin
-        ],
+        '-topm', '0',  # No top margin
+        '-botm', '0',  # No bottom margin
+    ],
         stdin=man.stdout)
 
     with open(join(manpath, 'conda-%s.html' % command_file), 'wb') as f:
@@ -233,7 +234,9 @@ def main():
         'metapackage',
         # 'pipbuild',
         'render',
-        # 'sign',  # let's drop this one; I've dropped support for it in 4.3.x; coming back with TUF in the near future
+        # let's drop this one; I've dropped support for it in 4.3.x
+        # coming back with TUF in the near future
+        # 'sign',
         'skeleton',
         'skeleton cpan',
         'skeleton cran',
@@ -266,6 +269,7 @@ def main():
             write_rst(command, sep='env')
         else:
             write_rst(command, sep='build')
+
 
 if __name__ == '__main__':
     sys.exit(main())
