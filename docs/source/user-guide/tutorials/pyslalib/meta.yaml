@@ -1,0 +1,32 @@
+package:
+    name: pyslalib
+    version: "1.0.2"
+
+source:
+    git_url: https://github.com/scottransom/pyslalib
+    # no official tagged release available at time of recipe creation.
+    #    rev here is latest revision at time of recipe creation.
+    git_rev: "46e7c325e12980e0aee43b52c4b521ca81144380"
+    patches:
+      - intel_fortran_use.patch    # [win]
+
+requirements:
+    build:
+        # numpy is used for f2py, not for numpy itself.  No
+        #   version pinning is necessary
+        - numpy
+        - python
+    run:
+        - python
+
+test:
+    requires:
+        - numpy
+    # run_test.py is a manually copied test/test_slalib.py
+    #    file from the git repo.  It is run automatically by conda-build,
+    #    because run_test.py matches conda-build's search patterns for tests.
+  
+about:
+    summary: f2py wrappers of P.T. Wallace's SLALIB positional astronomy library
+    license: GPL
+ 
