@@ -1157,7 +1157,7 @@ def init_cmd_exe_registry(target_path, conda_prefix):
     hook_path = '"%s"' % join(conda_prefix, 'condabin', 'conda_hook.bat')
     replace_str = "__CONDA_REPLACE_ME_123__"
     new_value = re.sub(
-        r'(\".*?conda[-_]hook\.bat\")',
+        r'(\"[^\"]*?conda[-_]hook\.bat\")',
         replace_str,
         prev_value,
         count=1,
