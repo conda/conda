@@ -332,8 +332,7 @@ than the one that the package cache is on.
 When allow_softlinks is ``False``, conda still uses
 hard-links when possible, but when it is not possible, conda
 copies files. Individual packages can override this option,
-specifying that certain files should never be soft-linked. See
-:ref:`no-link`.
+specifying that certain files should never be soft-linked.
 
 The default is ``True``.
 

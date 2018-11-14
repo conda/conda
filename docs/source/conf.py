@@ -22,7 +22,11 @@ import sys
 
 sys.path.insert(0, os.path.abspath('..'))
 
-import conda
+# When rendering docs, we need to be able to import ourselves, this
+# means that we need to add the src directory to the sys.path.
+src_dir = here = os.path.abspath(os.path.dirname("../../setup.py"))
+sys.path.insert(0, src_dir)
+import conda._vendor.auxlib.packaging  # NOQA
 
 # -- General configuration ------------------------------------------------
 
