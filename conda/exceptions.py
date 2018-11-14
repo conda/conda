@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from datetime import timedelta
+from errno import ENOSPC
 import json
 from logging import getLogger
 import os
+from os.path import join
 import sys
-from traceback import format_exception_only, format_exception
+from textwrap import dedent
+from traceback import format_exception, format_exception_only
 
 from . import CondaError, CondaExitZero, CondaMultiError, text_type
 from ._vendor.auxlib.entity import EntityEncoder
 from ._vendor.auxlib.ish import dals
 from ._vendor.auxlib.type_coercion import boolify
-from .base.constants import PathConflict, SafetyChecks
-from .common.compat import ensure_text_type, input, iteritems, iterkeys, on_win, string_types
-from .common.io import timeout
+from ._vendor.toolz import groupby
+from .base.constants import COMPATIBLE_SHELLS, PathConflict, SafetyChecks
+from .common.compat import PY2, ensure_text_type, input, iteritems, iterkeys, on_win, string_types
+from .common.io import dashlist, timeout
 from .common.signals import get_signal_name
-from .common.url import maybe_unquote
-
-try:
-    from cytoolz.itertoolz import groupby
-except ImportError:  # pragma: no cover
-    from ._vendor.toolz.itertoolz import groupby  # NOQA
 
 log = getLogger(__name__)
 
@@ -31,8 +31,11 @@ log = getLogger(__name__)
 class ResolvePackageNotFound(CondaError):
     def __init__(self, bad_deps):
         # bad_deps is a list of lists
+        # bad_deps should really be named 'invalid_chains'
         self.bad_deps = tuple(dep for deps in bad_deps for dep in deps if dep)
-        message = '\n' + '\n'.join(('  - %s' % dep) for dep in self.bad_deps)
+        formatted_chains = tuple(" -> ".join(map(str, bad_chain)) for bad_chain in bad_deps)
+        self._formatted_chains = formatted_chains
+        message = '\n' + '\n'.join(('  - %s' % bad_chain) for bad_chain in formatted_chains)
         super(ResolvePackageNotFound, self).__init__(message)
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound  # NOQA
 
@@ -44,14 +47,71 @@ class LockError(CondaError):
 
 
 class ArgumentError(CondaError):
+    return_code = 2
+
     def __init__(self, message, **kwargs):
         super(ArgumentError, self).__init__(message, **kwargs)
 
 
 class CommandArgumentError(ArgumentError):
+    # TODO: Consolidate with ArgumentError.
+    return_code = 2
+
     def __init__(self, message, **kwargs):
         command = ' '.join(ensure_text_type(s) for s in sys.argv)
         super(CommandArgumentError, self).__init__(message, command=command, **kwargs)
+
+
+class Help(CondaError):
+    pass
+
+
+class ActivateHelp(Help):
+
+    def __init__(self):
+        message = dals("""
+        usage: conda activate [-h] [--stack] [env_name_or_prefix]
+
+        Activate a conda environment.
+
+        Options:
+
+        positional arguments:
+          env_name_or_prefix    The environment name or prefix to activate. If the
+                                prefix is a relative path, it must start with './'
+                                (or '.\\' on Windows).
+
+        optional arguments:
+          -h, --help            Show this help message and exit.
+          --stack               Stack the environment being activated on top of the
+                                previous active environment, rather replacing the
+                                current active environment with a new one. Currently,
+                                only the PATH environment variable is stacked.
+        """)
+        super(ActivateHelp, self).__init__(message)
+
+
+class DeactivateHelp(Help):
+
+    def __init__(self):
+        message = dals("""
+        usage: conda deactivate [-h]
+
+        Deactivate the current active conda environment.
+
+        Options:
+
+        optional arguments:
+          -h, --help            Show this help message and exit.
+        """)
+        super(DeactivateHelp, self).__init__(message)
+
+
+class GenericHelp(Help):
+
+    def __init__(self, command):
+        message = "help requested for %s" % command
+        super(GenericHelp, self).__init__(message)
 
 
 class CondaSignalInterrupt(CondaError):
@@ -170,6 +230,26 @@ class SharedLinkPathClobberError(ClobberError):
 
 class CommandNotFoundError(CondaError):
     def __init__(self, command):
+        activate_commands = {
+            'activate',
+            'deactivate',
+            'run',
+        }
+        conda_commands = {
+            'clean',
+            'config',
+            'create',
+            'help',
+            'info',
+            'install',
+            'list',
+            'package',
+            'remove',
+            'search',
+            'uninstall',
+            'update',
+            'upgrade',
+        }
         build_commands = {
             'build',
             'convert',
@@ -180,22 +260,41 @@ class CommandNotFoundError(CondaError):
             'render',
             'skeleton',
         }
-        needs_source = {
-            'activate',
-            'deactivate'
-        }
-        if command in build_commands:
-            message = dals("""
-            You need to install conda-build in order to
-            use the 'conda %(command)s' command.
-            """)
-        elif command in needs_source and not on_win:
-            message = dals("""
-            '%(command)s is not a conda command.
-            Did you mean 'source %(command)s'?
-            """)
+        from .base.context import context
+        from .cli.main import init_loggers
+        init_loggers(context)
+        if command in activate_commands:
+            # TODO: Point users to a page at conda-docs, which explains this context in more detail
+            builder = ["Your shell has not been properly configured to use 'conda %(command)s'."]
+            if on_win:
+                builder.append(dals("""
+                If using 'conda %(command)s' from a batch script, change your
+                invocation to 'CALL conda.bat %(command)s'.
+                """))
+            builder.append(dals("""
+            To initialize your shell, run
+
+                $ conda init <SHELL_NAME>
+
+            Currently supported shells are:%(supported_shells)s
+
+            See 'conda init --help' for more information and options.
+
+            IMPORTANT: You may need to close and restart your shell after running 'conda init'.
+            """) % {
+                'supported_shells': dashlist(COMPATIBLE_SHELLS),
+            })
+            message = '\n'.join(builder)
+        elif command in build_commands:
+            message = "To use 'conda %(command)s', install conda-build."
         else:
-            message = "'%(command)s'"
+            from difflib import get_close_matches
+            from .cli.find_commands import find_commands
+            message = "No command 'conda %(command)s'."
+            choices = activate_commands | conda_commands | build_commands | set(find_commands())
+            close = get_close_matches(command, choices)
+            if close:
+                message += "\nDid you mean 'conda %s'?" % close[0]
         super(CommandNotFoundError, self).__init__(message, command=command)
 
 
@@ -226,6 +325,29 @@ class EnvironmentNameNotFound(CondaError):
         super(EnvironmentNameNotFound, self).__init__(message, environment_name=environment_name)
 
 
+class NoBaseEnvironmentError(CondaError):
+
+    def __init__(self):
+        message = dals("""
+        This conda installation has no default base environment. Use
+        'conda create' to create new environments and 'conda activate' to
+        activate environments.
+        """)
+        super(NoBaseEnvironmentError, self).__init__(message)
+
+
+class DirectoryNotACondaEnvironmentError(CondaError):
+
+    def __init__(self, target_directory):
+        message = dals("""
+        The target directory exists, but it is not a conda environment.
+        Use 'conda create' to convert the directory to a conda environment.
+          target directory: %(target_directory)s
+        """)
+        super(DirectoryNotACondaEnvironmentError, self).__init__(message,
+                                                                 target_directory=target_directory)
+
+
 class CondaEnvironmentError(CondaError, EnvironmentError):
     def __init__(self, message, *args):
         msg = '%s' % message
@@ -234,7 +356,7 @@ class CondaEnvironmentError(CondaError, EnvironmentError):
 
 class DryRunExit(CondaExitZero):
     def __init__(self):
-        msg = 'Dry run exiting'
+        msg = 'Dry run. Exiting.'
         super(DryRunExit, self).__init__(msg)
 
 
@@ -242,11 +364,6 @@ class CondaSystemExit(CondaExitZero, SystemExit):
     def __init__(self, *args):
         msg = ' '.join(text_type(arg) for arg in self.args)
         super(CondaSystemExit, self).__init__(msg)
-
-
-class SubprocessExit(CondaExitZero):
-    def __init__(self, *args, **kwargs):
-        super(SubprocessExit, self).__init__(*args, **kwargs)
 
 
 class PaddingError(CondaError):
@@ -262,9 +379,9 @@ class LinkError(CondaError):
 
 
 class CondaOSError(CondaError, OSError):
-    def __init__(self, message):
+    def __init__(self, message, **kwargs):
         msg = '%s' % message
-        super(CondaOSError, self).__init__(msg)
+        super(CondaOSError, self).__init__(msg, **kwargs)
 
 
 class ProxyError(CondaError):
@@ -295,15 +412,55 @@ class CondaKeyError(CondaError, KeyError):
 
 
 class ChannelError(CondaError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(ChannelError, self).__init__(msg)
+    pass
 
 
 class ChannelNotAllowed(ChannelError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(ChannelNotAllowed, self).__init__(msg, *args)
+    def __init__(self, channel):
+        from .models.channel import Channel
+        from .common.url import maybe_unquote
+        channel = Channel(channel)
+        channel_name = channel.name
+        channel_url = maybe_unquote(channel.base_url)
+        message = dals("""
+        Channel not included in whitelist:
+          channel name: %(channel_name)s
+          channel url: %(channel_url)s
+        """)
+        super(ChannelNotAllowed, self).__init__(message, channel_url=channel_url,
+                                                channel_name=channel_name)
+
+
+class UnavailableInvalidChannel(ChannelError):
+
+    def __init__(self, channel, error_code):
+        from .models.channel import Channel
+        from .common.url import join_url, maybe_unquote
+        channel = Channel(channel)
+        channel_name = channel.name
+        channel_url = maybe_unquote(channel.base_url)
+        message = dals("""
+        The channel is not accessible or is invalid.
+          channel name: %(channel_name)s
+          channel url: %(channel_url)s
+          error code: %(error_code)d
+
+        You will need to adjust your conda configuration to proceed.
+        Use `conda config --show channels` to view your configuration's current state,
+        and use `conda config --show-sources` to view config file locations.
+        """)
+
+        if channel.scheme == 'file':
+            message += dedent("""
+            As of conda 4.3, a valid channel must contain a `noarch/repodata.json` and
+            associated `noarch/repodata.json.bz2` file, even if `noarch/repodata.json` is
+            empty. Use `conda index %s`, or create `noarch/repodata.json`
+            and associated `noarch/repodata.json.bz2`.
+            """) % join_url(channel.location, channel.name)
+
+        super(UnavailableInvalidChannel, self).__init__(message, channel_url=channel_url,
+                                                        channel_name=channel_name,
+                                                        error_code=error_code)
 
 
 class OperationNotAllowed(CondaError):
@@ -339,6 +496,7 @@ class MD5MismatchError(CondaError):
           expected md5 sum: %(expected_md5sum)s
           actual md5 sum: %(actual_md5sum)s
         """)
+        from .common.url import maybe_unquote
         url = maybe_unquote(url)
         super(MD5MismatchError, self).__init__(message, url=url, target_full_path=target_full_path,
                                                expected_md5sum=expected_md5sum,
@@ -360,6 +518,7 @@ class PackageNotInstalledError(CondaError):
 class CondaHTTPError(CondaError):
     def __init__(self, message, url, status_code, reason, elapsed_time, response=None,
                  caused_by=None):
+        from .common.url import maybe_unquote
         _message = dals("""
         HTTP %(status_code)s %(reason)s for url <%(url)s>
         Elapsed: %(elapsed_time)s
@@ -373,7 +532,7 @@ class CondaHTTPError(CondaError):
         elapsed_time = elapsed_time or '-'
 
         from ._vendor.auxlib.logz import stringify
-        response_details = (stringify(response) or '') if response else ''
+        response_details = (stringify(response, content_max_len=1024) or '') if response else ''
 
         url = maybe_unquote(url)
         if isinstance(elapsed_time, timedelta):
@@ -411,6 +570,13 @@ class PackagesNotFoundError(CondaError):
             Current channels:
 
             %(channels_formatted)s
+
+            To search for alternate channels that may provide the conda package you're
+            looking for, navigate to
+
+                https://anaconda.org
+
+            and use the search bar at the top of the page.
             """)
             packages_formatted = format_list(packages)
             channels_formatted = format_list(channel_urls)
@@ -444,7 +610,6 @@ class UnsatisfiableError(CondaError):
 
     def __init__(self, bad_deps, chains=True):
         from .models.match_spec import MatchSpec
-        from .resolve import dashlist
 
         # Remove any target values from the MatchSpecs, convert to strings
         bad_deps = [list(map(lambda x: str(MatchSpec(x, target=None)), dep)) for dep in bad_deps]
@@ -478,13 +643,13 @@ class UnsatisfiableError(CondaError):
                 chains[key] = ' -> '.join(deps)
             bad_deps = [chains[key] for key in sorted(iterkeys(chains))]
             msg = '''The following specifications were found to be in conflict:%s
-Use "conda info <package>" to see the dependencies for each package.'''
+Use "conda search <package> --info" to see the dependencies for each package.'''
         else:
             bad_deps = [sorted(dep) for dep in bad_deps]
             bad_deps = [', '.join(dep) for dep in sorted(bad_deps)]
             msg = '''The following specifications were found to be incompatible with the
 others, or with the existing package set:%s
-Use "conda info <package>" to see the dependencies for each package.'''
+Use "conda search <package> --info" to see the dependencies for each package.'''
         msg = msg % dashlist(bad_deps)
         super(UnsatisfiableError, self).__init__(msg)
 
@@ -501,6 +666,34 @@ class RemoveError(CondaError):
         super(RemoveError, self).__init__(msg)
 
 
+class DisallowedPackageError(CondaError):
+    def __init__(self, package_ref, **kwargs):
+        from .models.records import PackageRecord
+        package_ref = PackageRecord.from_objects(package_ref)
+        message = ("The package '%(dist_str)s' is disallowed by configuration.\n"
+                   "See 'conda config --show disallowed_packages'.")
+        super(DisallowedPackageError, self).__init__(message, package_ref=package_ref,
+                                                     dist_str=package_ref.dist_str(), **kwargs)
+
+class SpecsConfigurationConflictError(CondaError):
+
+    def __init__(self, requested_specs, pinned_specs, prefix):
+        message = dals("""
+        Requested specs conflict with configured specs.
+          requested specs: {requested_specs_formatted}
+          pinned specs: {pinned_specs_formatted}
+        Use 'conda config --show-sources' to look for 'pinned_specs' and 'track_features'
+        configuration parameters.  Pinned specs may also be defined in the file
+        {pinned_specs_path}.
+        """).format(
+            requested_specs_formatted=dashlist(requested_specs, 4),
+            pinned_specs_formatted=dashlist(pinned_specs, 4),
+            pinned_specs_path=join(prefix, "conda-meta", "pinned"),
+        )
+        super(SpecsConfigurationConflictError, self).__init__(
+            message, requested_specs=requested_specs, pinned_specs=pinned_specs, prefix=prefix,
+        )
+
 class CondaIndexError(CondaError, IndexError):
     def __init__(self, message):
         msg = '%s' % message
@@ -508,15 +701,44 @@ class CondaIndexError(CondaError, IndexError):
 
 
 class CondaValueError(CondaError, ValueError):
-    def __init__(self, message, *args):
-        msg = '%s' % message
-        super(CondaValueError, self).__init__(msg)
+
+    def __init__(self, message, *args, **kwargs):
+        super(CondaValueError, self).__init__(message, *args, **kwargs)
 
 
 class CondaTypeError(CondaError, TypeError):
     def __init__(self, expected_type, received_type, optional_message):
         msg = "Expected type '%s' and got type '%s'. %s"
         super(CondaTypeError, self).__init__(msg)
+
+
+class CyclicalDependencyError(CondaError, ValueError):
+    def __init__(self, packages_with_cycles, **kwargs):
+        from .models.records import PackageRecord
+        packages_with_cycles = tuple(PackageRecord.from_objects(p) for p in packages_with_cycles)
+        message = "Cyclic dependencies exist among these items: %s" % dashlist(
+            p.dist_str() for p in packages_with_cycles
+        )
+        super(CyclicalDependencyError, self).__init__(
+            message, packages_with_cycles=packages_with_cycles, **kwargs
+        )
+
+
+class CorruptedEnvironmentError(CondaError):
+    def __init__(self, environment_location, corrupted_file, **kwargs):
+        message = dals("""
+        The target environment has been corrupted. Corrupted environments most commonly
+        occur when the conda process is force-terminated while in an unlink-link
+        transaction.
+          environment location: %(environment_location)s
+          corrupted file: %(corrupted_file)s
+        """)
+        super(CorruptedEnvironmentError, self).__init__(
+            message,
+            environment_location=environment_location,
+            corrupted_file=corrupted_file,
+            **kwargs
+        )
 
 
 class CondaHistoryError(CondaError):
@@ -531,6 +753,21 @@ class CondaUpgradeError(CondaError):
         super(CondaUpgradeError, self).__init__(msg)
 
 
+class CaseInsensitiveFileSystemError(CondaError):
+    def __init__(self, package_location, extract_location, **kwargs):
+        message = dals("""
+        Cannot extract package to a case-insensitive file system.
+          package location: %(package_location)s
+          extract location: %(extract_location)s
+        """)
+        super(CaseInsensitiveFileSystemError, self).__init__(
+            message,
+            package_location=package_location,
+            extract_location=extract_location,
+            **kwargs
+        )
+
+
 class CondaVerificationError(CondaError):
     def __init__(self, message):
         super(CondaVerificationError, self).__init__(message)
@@ -541,12 +778,19 @@ class SafetyError(CondaError):
         super(SafetyError, self).__init__(message)
 
 
-class NotWritableError(CondaError):
+class CondaMemoryError(CondaError, MemoryError):
+    def __init__(self, caused_by, **kwargs):
+        message = "The conda process ran out of memory. Increase system memory and/or try again."
+        super(CondaMemoryError, self).__init__(message, caused_by=caused_by, **kwargs)
 
-    def __init__(self, path):
-        kwargs = {
+
+class NotWritableError(CondaError, OSError):
+
+    def __init__(self, path, errno, **kwargs):
+        kwargs.update({
             'path': path,
-        }
+            'errno': errno,
+        })
         if on_win:
             message = dals("""
             The current user does not have write permissions to a required path.
@@ -562,14 +806,54 @@ class NotWritableError(CondaError):
             If you feel that permissions on this path are set incorrectly, you can manually
             change them by executing
 
-              $ sudo chmod %(uid)s:%(gid)s %(path)s
+              $ sudo chown %(uid)s:%(gid)s %(path)s
+
+            In general, it's not advisable to use 'sudo conda'.
             """)
-            import os
             kwargs.update({
                 'uid': os.geteuid(),
                 'gid': os.getegid(),
             })
         super(NotWritableError, self).__init__(message, **kwargs)
+
+
+class NoWritableEnvsDirError(CondaError):
+
+    def __init__(self, envs_dirs, **kwargs):
+        message = "No writeable envs directories configured.%s" % dashlist(envs_dirs)
+        super(NoWritableEnvsDirError, self).__init__(message, envs_dirs=envs_dirs, **kwargs)
+
+
+class NoWritablePkgsDirError(CondaError):
+
+    def __init__(self, pkgs_dirs, **kwargs):
+        message = "No writeable pkgs directories configured.%s" % dashlist(pkgs_dirs)
+        super(NoWritablePkgsDirError, self).__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
+
+
+class EnvironmentNotWritableError(CondaError):
+
+    def __init__(self, environment_location, **kwargs):
+        kwargs.update({
+            'environment_location': environment_location,
+        })
+        if on_win:
+            message = dals("""
+            The current user does not have write permissions to the target environment.
+              environment location: %(environment_location)s
+            """)
+        else:
+            message = dals("""
+            The current user does not have write permissions to the target environment.
+              environment location: %(environment_location)s
+              uid: %(uid)s
+              gid: %(gid)s
+            """)
+            kwargs.update({
+                'uid': os.geteuid(),
+                'gid': os.getegid(),
+            })
+        super(EnvironmentNotWritableError, self).__init__(message, **kwargs)
 
 
 class CondaDependencyError(CondaError):
@@ -597,10 +881,50 @@ class BinaryPrefixReplacementError(CondaError):
         super(BinaryPrefixReplacementError, self).__init__(message, **kwargs)
 
 
-class InvalidVersionSpecError(CondaError):
-    def __init__(self, invalid_spec):
-        message = "Invalid version spec: %(invalid_spec)s"
-        super(InvalidVersionSpecError, self).__init__(message, invalid_spec=invalid_spec)
+class InvalidSpec(CondaError, ValueError):
+
+    def __init__(self, message, **kwargs):
+        super(InvalidSpec, self).__init__(message, **kwargs)
+
+
+class InvalidVersionSpec(InvalidSpec):
+    def __init__(self, invalid_spec, details):
+        message = "Invalid version '%(invalid_spec)s': %(details)s"
+        super(InvalidVersionSpec, self).__init__(message, invalid_spec=invalid_spec,
+                                                 details=details)
+
+
+class InvalidMatchSpec(InvalidSpec):
+    def __init__(self, invalid_spec, details):
+        message = "Invalid spec '%(invalid_spec)s': %(details)s"
+        super(InvalidMatchSpec, self).__init__(message, invalid_spec=invalid_spec,
+                                               details=details)
+
+
+class EncodingError(CondaError):
+
+    def __init__(self, caused_by, **kwargs):
+        message = dals("""
+        A unicode encoding or decoding error has occurred.
+        Python 2 is the interpreter under which conda is running in your base environment.
+        Replacing your base environment with one having Python 3 may help resolve this issue.
+        If you still have a need for Python 2 environments, consider using 'conda create'
+        and 'conda activate'.  For example:
+
+            $ conda create -n py2 python=2
+            $ conda activate py2
+
+        Error details: %r
+
+        """) % caused_by
+        super(EncodingError, self).__init__(message, caused_by=caused_by, **kwargs)
+
+
+class NoSpaceLeftError(CondaError):
+
+    def __init__(self, caused_by, **kwargs):
+        message = "No space left on devices."
+        super(NoSpaceLeftError, self).__init__(message, caused_by=caused_by, **kwargs)
 
 
 def maybe_raise(error, context):
@@ -639,17 +963,23 @@ def maybe_raise(error, context):
 
 def print_conda_exception(exc_val, exc_tb=None):
     from .base.context import context
-    if context.debug or context.verbosity > 0:
-        sys.stderr.write(_format_exc(exc_val, exc_tb))
-        sys.stderr.write('\n')
+    rc = getattr(exc_val, 'return_code', None)
+    if (context.debug
+            or context.verbosity > 2
+            or (not isinstance(exc_val, DryRunExit) and context.verbosity > 0)):
+        print(_format_exc(exc_val, exc_tb), file=sys.stderr)
     elif context.json:
-        import json
-        stdoutlog = getLogger('conda.stdout')
+        if isinstance(exc_val, DryRunExit):
+            return
+        logger = getLogger('conda.stdout' if exc_val.return_code else 'conda.stderr')
         exc_json = json.dumps(exc_val.dump_map(), indent=2, sort_keys=True, cls=EntityEncoder)
-        stdoutlog.info("%s\n" % exc_json)
+        logger.info("%s\n" % exc_json)
     else:
         stderrlog = getLogger('conda.stderr')
-        stderrlog.info("\n%r\n", exc_val)
+        if rc == 0:
+            stderrlog.error("\n%s\n", exc_val)
+        else:
+            stderrlog.error("\n%r\n", exc_val)
 
 
 def _format_exc(exc_val=None, exc_tb=None):
@@ -669,7 +999,7 @@ class ExceptionHandler(object):
     def __call__(self, func, *args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except:
+        except:  # lgtm [py/catch-base-exception]
             _, exc_val, exc_tb = sys.exc_info()
             return self.handle_exception(exc_val, exc_tb)
 
@@ -694,30 +1024,35 @@ class ExceptionHandler(object):
         return context.error_upload_url
 
     def handle_exception(self, exc_val, exc_tb):
-        return_code = getattr(exc_val, 'return_code', None)
-        if return_code == 0:
-            return 0
-        elif isinstance(exc_val, CondaError):
-            return self.handle_application_exception(exc_val, exc_tb)
-        elif isinstance(exc_val, KeyboardInterrupt):
+        if isinstance(exc_val, CondaError):
+            if exc_val.reportable:
+                return self.handle_reportable_application_exception(exc_val, exc_tb)
+            else:
+                return self.handle_application_exception(exc_val, exc_tb)
+        if isinstance(exc_val, UnicodeError) and PY2:
+            return self.handle_application_exception(EncodingError(exc_val), exc_tb)
+        if isinstance(exc_val, EnvironmentError):
+            if getattr(exc_val, 'errno', None) == ENOSPC:
+                return self.handle_application_exception(NoSpaceLeftError(exc_val), exc_tb)
+        if isinstance(exc_val, MemoryError):
+            return self.handle_application_exception(CondaMemoryError(exc_val), exc_tb)
+        if isinstance(exc_val, KeyboardInterrupt):
             self._print_conda_exception(CondaError("KeyboardInterrupt"), _format_exc())
             return 1
-        elif isinstance(exc_val, SystemExit):
+        if isinstance(exc_val, SystemExit):
             return exc_val.code
-        else:
-            return self.handle_unexpected_exception(exc_val, exc_tb)
+        return self.handle_unexpected_exception(exc_val, exc_tb)
 
     def handle_application_exception(self, exc_val, exc_tb):
         self._print_conda_exception(exc_val, exc_tb)
-        rc = getattr(exc_val, 'return_code', None)
-        return rc if rc is not None else 1
+        return exc_val.return_code
 
     def _print_conda_exception(self, exc_val, exc_tb):
         print_conda_exception(exc_val, exc_tb)
 
     def handle_unexpected_exception(self, exc_val, exc_tb):
         error_report = self.get_error_report(exc_val, exc_tb)
-        self.print_error_report(error_report)
+        self.print_unexpected_error_report(error_report)
         ask_for_upload, do_upload = self._calculate_ask_do_upload()
         do_upload, ask_response = self.ask_for_upload() if ask_for_upload else (do_upload, None)
         if do_upload:
@@ -725,6 +1060,19 @@ class ExceptionHandler(object):
         self.print_upload_confirm(do_upload, ask_for_upload, ask_response)
         rc = getattr(exc_val, 'return_code', None)
         return rc if rc is not None else 1
+
+    def handle_reportable_application_exception(self, exc_val, exc_tb):
+        error_report = self.get_error_report(exc_val, exc_tb)
+        from .base.context import context
+        if context.json:
+            error_report.update(exc_val.dump_map())
+        self.print_expected_error_report(error_report)
+        ask_for_upload, do_upload = self._calculate_ask_do_upload()
+        do_upload, ask_response = self.ask_for_upload() if ask_for_upload else (do_upload, None)
+        if do_upload:
+            self._execute_upload(error_report)
+        self.print_upload_confirm(do_upload, ask_for_upload, ask_response)
+        return exc_val.return_code
 
     def get_error_report(self, exc_val, exc_tb):
         command = ' '.join(ensure_text_type(s) for s in sys.argv)
@@ -752,9 +1100,13 @@ class ExceptionHandler(object):
             'traceback': _format_exc(exc_val, exc_tb),
             'conda_info': info_dict,
         }
+
+        if isinstance(exc_val, CondaError):
+            error_report['conda_error_components'] = exc_val.dump_map()
+
         return error_report
 
-    def print_error_report(self, error_report):
+    def print_unexpected_error_report(self, error_report):
         from .base.context import context
         if context.json:
             from .cli.common import stdout_json
@@ -762,21 +1114,61 @@ class ExceptionHandler(object):
         else:
             message_builder = []
             message_builder.append('')
-            message_builder.append('`$ %s`' % error_report['command'])
+            message_builder.append('# >>>>>>>>>>>>>>>>>>>>>> ERROR REPORT <<<<<<<<<<<<<<<<<<<<<<')
             message_builder.append('')
             message_builder.extend('    ' + line
                                    for line in error_report['traceback'].splitlines())
             message_builder.append('')
+            message_builder.append('`$ %s`' % error_report['command'])
+            message_builder.append('')
             if error_report['conda_info']:
-                from .cli.main_info import get_main_info_str
+                from .cli.main_info import get_env_vars_str, get_main_info_str
                 try:
+                    # TODO: Sanitize env vars to remove secrets (e.g credentials for PROXY)
+                    message_builder.append(get_env_vars_str(error_report['conda_info']))
                     message_builder.append(get_main_info_str(error_report['conda_info']))
                 except Exception as e:
+                    log.warn("%r", e, exc_info=True)
                     message_builder.append('conda info could not be constructed.')
                     message_builder.append('%r' % e)
             message_builder.append('')
             message_builder.append(
                 "An unexpected error has occurred. Conda has prepared the above report."
+            )
+            message_builder.append('')
+            self.out_stream.write('\n'.join(message_builder))
+
+    def print_expected_error_report(self, error_report):
+        from .base.context import context
+        if context.json:
+            from .cli.common import stdout_json
+            stdout_json(error_report)
+        else:
+            message_builder = []
+            message_builder.append('')
+            message_builder.append('# >>>>>>>>>>>>>>>>>>>>>> ERROR REPORT <<<<<<<<<<<<<<<<<<<<<<')
+            message_builder.append('')
+            message_builder.append('`$ %s`' % error_report['command'])
+            message_builder.append('')
+            if error_report['conda_info']:
+                from .cli.main_info import get_env_vars_str, get_main_info_str
+                try:
+                    # TODO: Sanitize env vars to remove secrets (e.g credentials for PROXY)
+                    message_builder.append(get_env_vars_str(error_report['conda_info']))
+                    message_builder.append(get_main_info_str(error_report['conda_info']))
+                except Exception as e:
+                    log.warn("%r", e, exc_info=True)
+                    message_builder.append('conda info could not be constructed.')
+                    message_builder.append('%r' % e)
+            message_builder.append('')
+            message_builder.append('V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V')
+            message_builder.append('')
+
+            message_builder.extend(error_report['error'].splitlines())
+            message_builder.append('')
+
+            message_builder.append(
+                "A reportable application error has occurred. Conda has prepared the above report."
             )
             message_builder.append('')
             self.out_stream.write('\n'.join(message_builder))
@@ -810,10 +1202,11 @@ class ExceptionHandler(object):
         return ask_for_upload, do_upload
 
     def ask_for_upload(self):
-        message_builder = []
-        message_builder.append(
-            "Would you like conda to send this report to the core maintainers?"
-        )
+        message_builder = [
+            "If submitted, this report will be used by core maintainers to improve",
+            "future releases of conda.",
+            "Would you like conda to send this report to the core maintainers?",
+        ]
         message_builder.append(
             "[y/N]: "
         )
@@ -887,7 +1280,9 @@ class ExceptionHandler(object):
             )
         elif ask_response is None and ask_for_upload:
             # means timeout was reached for `input`
-            self.out_stream.write('\nTimeout reached. No report sent.\n')
+            self.out_stream.write(  # lgtm [py/unreachable-statement]
+                '\nTimeout reached. No report sent.\n'
+            )
 
 
 def conda_exception_handler(func, *args, **kwargs):

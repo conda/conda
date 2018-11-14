@@ -1,5 +1,6 @@
 import json
 import os
+from os.path import join
 from shlex import split
 import tempfile
 import unittest
@@ -8,13 +9,17 @@ import pytest
 
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context
-from conda.cli.common import list_prefixes
+from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser
 from conda.common.io import captured
-from conda.exceptions import EnvironmentNameNotFound, EnvironmentLocationNotFound
+from conda.core.envs_manager import list_all_known_prefixes
+from conda.exceptions import EnvironmentLocationNotFound
 from conda.install import rm_rf
-from conda_env.cli.main import create_parser
-from conda_env.exceptions import SpecNotFound
+from conda_env.cli.main import create_parser, do_call as do_call_conda_env
+from conda_env.exceptions import EnvironmentFileExtensionNotValid, EnvironmentFileNotFound
+from conda_env.yaml import load as yaml_load
+
+from . import support_file
 
 environment_1 = '''
 name: env-1
@@ -33,13 +38,25 @@ channels:
   - malev
 '''
 
+environment_3_invalid = '''
+name: env-1
+dependecies:
+  - python
+  - flask
+channels:
+  - malev
+foo: bar
+'''
+
 test_env_name_1 = "env-1"
 test_env_name_2 = "snowflakes"
-test_env_name_3 = "env_foo"
+test_env_name_42 = "env-42"
+
 
 def escape_for_winpath(p):
     if p:
         return p.replace('\\', '\\\\')
+
 
 class Commands:
     ENV_CREATE = "create"
@@ -50,6 +67,7 @@ class Commands:
     CREATE = "create"
     INFO = "info"
     INSTALL = "install"
+
 
 def run_env_command(command, prefix, *arguments):
     """
@@ -69,21 +87,21 @@ def run_env_command(command, prefix, *arguments):
         command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
     elif command is Commands.ENV_CREATE: # CREATE
         if prefix :
-            command_line = "{0} -f {1}  {2}".format(command, prefix, " ".join(arguments))
+            command_line = "{0} -f {1} {2}".format(command, prefix, " ".join(arguments))
         else:
-            command_line = "{0} ".format(command)
+            command_line = "{0} {1}".format(command, " ".join(arguments))
     elif command is Commands.ENV_REMOVE:  # REMOVE
         command_line = "{0} --yes -n {1} {2}".format(command, prefix, " ".join(arguments))
     elif command is Commands.ENV_UPDATE:
         command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
     else:
         command_line = " --help "
-
+    print(command_line)
     args = p.parse_args(split(command_line))
     context._set_argparse_args(args)
 
     with captured() as c:
-        args.func(args, p)
+        do_call_conda_env(args, p)
 
     return c.stdout, c.stderr
 
@@ -111,7 +129,7 @@ def run_conda_command(command, prefix, *arguments):
     args = p.parse_args(split(command_line))
     context._set_argparse_args(args)
     with captured() as c:
-        args.func(args, p)
+        do_call(args, p)
 
     return c.stdout, c.stderr
 
@@ -138,6 +156,9 @@ class IntegrationTests(unittest.TestCase):
         if env_is_created(test_env_name_1):
             run_env_command(Commands.ENV_REMOVE, test_env_name_1)
 
+        if env_is_created(test_env_name_42):
+            run_env_command(Commands.ENV_REMOVE, test_env_name_42)
+
     def test_conda_env_create_no_file(self):
         '''
         Test `conda env create` without an environment.yml file
@@ -146,8 +167,28 @@ class IntegrationTests(unittest.TestCase):
         try:
             run_env_command(Commands.ENV_CREATE, None)
         except Exception as e:
-            self.assertIsInstance(e, SpecNotFound)
+            self.assertIsInstance(e, EnvironmentFileNotFound)
 
+    def test_conda_env_create_no_existent_file(self):
+        '''
+        Test `conda env create --file=not_a_file.txt` with a file that does not
+        exist.
+        '''
+        try:
+            run_env_command(Commands.ENV_CREATE, None, '--file not_a_file.txt')
+        except Exception as e:
+            self.assertIsInstance(e, EnvironmentFileNotFound)
+
+    def test_create_valid_remote_env(self):
+        run_env_command(Commands.ENV_CREATE, None, 'goanpeca/env-42')
+        self.assertTrue(env_is_created(test_env_name_42))
+
+        o, e = run_conda_command(Commands.INFO, None, "--json")
+
+        parsed = json.loads(o)
+        self.assertNotEqual(
+            len([env for env in parsed['envs'] if env.endswith(test_env_name_42)]), 0
+        )
 
     def test_create_valid_env(self):
         '''
@@ -162,8 +203,7 @@ class IntegrationTests(unittest.TestCase):
         o, e = run_conda_command(Commands.INFO, None, "--json")
         parsed = json.loads(o)
         self.assertNotEqual(
-            len([env for env in parsed['envs'] if env.endswith(test_env_name_1)]),
-            0
+            len([env for env in parsed['envs'] if env.endswith(test_env_name_1)]), 0
         )
 
     def test_update(self):
@@ -178,12 +218,24 @@ class IntegrationTests(unittest.TestCase):
         self.assertNotEqual(len(parsed), 0)
 
     def test_name(self):
+        """
         # smoke test for gh-254
+        Test that --name can overide the `name` key inside an environment.yml
+        """
         create_env(environment_1)
+        env_name = 'smoke-gh-254'
         try:
-            run_env_command(Commands.ENV_CREATE, test_env_name_1, "create")
+            run_env_command(Commands.ENV_CREATE, 'environment.yml', "-n",
+                            env_name)
         except Exception as e:
-            self.assertIsInstance(e, SpecNotFound, str(e))
+            print(e)
+
+        o, e = run_conda_command(Commands.INFO, None, "--json")
+
+        parsed = json.loads(o)
+        self.assertNotEqual(
+            len([env for env in parsed['envs'] if env.endswith(env_name)]), 0
+        )
 
 
 def env_is_created(env_name):
@@ -196,7 +248,7 @@ def env_is_created(env_name):
     """
     from os.path import basename
 
-    for prefix in list_prefixes():
+    for prefix in list_all_known_prefixes():
         name = (ROOT_ENV_NAME if prefix == context.root_dir else
                 basename(prefix))
         if name == env_name:
@@ -217,46 +269,46 @@ class NewIntegrationTests(unittest.TestCase):
     def setUp(self):
         if env_is_created(test_env_name_2):
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
-            self.assertFalse(env_is_created(test_env_name_2))
 
     def tearDown(self):
         if env_is_created(test_env_name_2):
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
-            self.assertFalse(env_is_created(test_env_name_2))
 
-    def test_create_remove_env(self):
-        """
-            Test conda create and remove env
-        """
+    def test_non_existant_env_raises_on_remove(self):
+        with pytest.raises(EnvironmentLocationNotFound):
+            run_env_command(Commands.ENV_REMOVE, 'no-conda-environment-here')
 
-        run_conda_command(Commands.CREATE, test_env_name_3)
-        self.assertTrue(env_is_created(test_env_name_3))
-
-        with pytest.raises(EnvironmentLocationNotFound) as execinfo:
-            run_env_command(Commands.ENV_REMOVE, 'does-not-exist')
-
-        run_env_command(Commands.ENV_REMOVE, test_env_name_3)
-        self.assertFalse(env_is_created(test_env_name_3))
-
-
-    def test_export(self):
+    def test_env_export(self):
         """
             Test conda env export
         """
 
         run_conda_command(Commands.CREATE, test_env_name_2, "flask")
-        self.assertTrue(env_is_created(test_env_name_2))
+        assert env_is_created(test_env_name_2)
 
         snowflake, e,  = run_env_command(Commands.ENV_EXPORT, test_env_name_2)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix="yml", delete=False) as env_yaml:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
             env_yaml.write(snowflake)
             env_yaml.flush()
             env_yaml.close()
+
             run_env_command(Commands.ENV_REMOVE, test_env_name_2)
             self.assertFalse(env_is_created(test_env_name_2))
             run_env_command(Commands.ENV_CREATE, env_yaml.name)
             self.assertTrue(env_is_created(test_env_name_2))
+
+            # regression test for #6220
+            snowflake, e, = run_env_command(Commands.ENV_EXPORT, test_env_name_2, '--no-builds')
+            assert not e.strip()
+            env_description = yaml_load(snowflake)
+            assert len(env_description['dependencies'])
+            for spec_str in env_description['dependencies']:
+                assert spec_str.count('=') == 1
+
+        run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+        assert not env_is_created(test_env_name_2)
+
 
     def test_list(self):
         """
@@ -268,7 +320,7 @@ class NewIntegrationTests(unittest.TestCase):
 
         snowflake, e = run_conda_command(Commands.LIST, test_env_name_2, "-e")
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix="txt", delete=False) as env_txt:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as env_txt:
             env_txt.write(snowflake)
             env_txt.flush()
             env_txt.close()
@@ -284,7 +336,7 @@ class NewIntegrationTests(unittest.TestCase):
         """
             Test conda env export
         """
-        from conda.core.linked_data import PrefixData
+        from conda.core.prefix_data import PrefixData
         PrefixData._cache_.clear()
         run_conda_command(Commands.CREATE, test_env_name_2, "python=3.5")
         self.assertTrue(env_is_created(test_env_name_2))
@@ -296,7 +348,7 @@ class NewIntegrationTests(unittest.TestCase):
 
         check1, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix="yml", delete=False) as env_yaml:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as env_yaml:
             env_yaml.write(snowflake)
             env_yaml.flush()
             env_yaml.close()
@@ -308,6 +360,17 @@ class NewIntegrationTests(unittest.TestCase):
         # check explicit that we have same file
         check2, e = run_conda_command(Commands.LIST, test_env_name_2, "--explicit")
         self.assertEqual(check1, check2)
+
+    def test_non_existent_file(self):
+        with self.assertRaises(EnvironmentFileNotFound):
+            run_env_command(Commands.ENV_CREATE, 'i_do_not_exist.yml')
+
+    def test_invalid_extensions(self):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".ymla", delete=False) as env_yaml:
+            with self.assertRaises(EnvironmentFileExtensionNotValid):
+                run_env_command(Commands.ENV_CREATE, env_yaml.name)
+
+
 
 if __name__ == '__main__':
     unittest.main()

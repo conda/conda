@@ -3,7 +3,8 @@ from logging import getLogger, Handler, DEBUG
 import os
 
 from conda import instructions
-from conda.instructions import execute_instructions, commands
+from conda.exports import execute_instructions
+from conda.instructions import commands
 from conda.exceptions import CondaFileIOError
 
 try:
@@ -39,14 +40,6 @@ class LoggingTestHandler(Handler):
 
 
 class TestExecutePlan(unittest.TestCase):
-
-    # def test_invalid_instruction(self):
-    #     index = {'This is an index': True}
-    #
-    #     plan = [('DOES_NOT_EXIST', ())]
-    #
-    #     with self.assertRaises(exceptions.InvalidInstruction):
-    #         execute_instructions(plan, index, verbose=False)
 
     def test_simple_instruction(self):
 
@@ -84,42 +77,6 @@ class TestExecutePlan(unittest.TestCase):
 
         execute_instructions(plan, index, verbose=False)
         self.assertTrue(simple_cmd.called)
-
-    # def test_progess(self):
-    #
-    #     index = {'This is an index': True}
-    #
-    #     plan = [
-    #         ('PROGRESS', '2'),
-    #         ('LINK', 'ipython'),
-    #         ('LINK', 'menuinst'),
-    #     ]
-    #
-    #     def cmd(state, arg):
-    #         pass  # NO-OP
-    #
-    #     _commands = {'PROGRESS': PROGRESS_CMD, 'LINK': cmd, 'UNLINKLINKTRANSACTION': cmd}
-    #     h = LoggingTestHandler()
-    #
-    #     update_logger = getLogger('progress.update')
-    #     update_logger.setLevel(DEBUG)
-    #     update_logger.addHandler(h)
-    #
-    #     stop_logger = getLogger('progress.stop')
-    #     stop_logger.setLevel(DEBUG)
-    #     stop_logger.addHandler(h)
-    #
-    #     execute_instructions(plan, index, _commands=_commands)
-    #
-    #     update_logger.removeHandler(h)
-    #     stop_logger.removeHandler(h)
-    #
-    #     expected = [('progress.update', ('ipython', 0)),
-    #                 ('progress.update', ('menuinst', 1)),
-    #                 ('progress.stop', None)
-    #                 ]
-    #
-    #     self.assertEqual(h.records, expected)
 
     def test_check_files_in_tarball_files_exist(self):
         source_dir = os.getcwd()

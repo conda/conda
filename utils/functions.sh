@@ -1,17 +1,23 @@
+echo >&2
+echo >&2 "WARNING: The utils/functions.sh is deprecated and scheduled for removal."
+echo >&2 "         Consider transitioning tooling to make use of 'conda init'."
+echo >&2
+
+
 set_vars() {
     # Set global variables
     local arch
     case "$PYTHON_ARCH" in 32) arch=x86;; *) arch=x86_64;; esac
     case "$(uname -s)" in
         'Darwin')
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-MacOSX-$arch.sh"
+            export MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-4.3.30.1-MacOSX-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
             export ON_WIN=
             ;;
         'Linux')
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Linux-$arch.sh"
+            export MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-4.3.30-Linux-$arch.sh"
             export BIN_DIR="bin"
             export EXE_EXT=""
             export INSTALL_PREFIX=~/miniconda
@@ -19,7 +25,7 @@ set_vars() {
             ;;
         CYGWIN*|MINGW*|MSYS*)
             export ON_WIN=true
-            export MINICONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-4.3.11-Windows-$arch.exe"
+            export MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-4.3.30-Windows-$arch.exe"
             export BIN_DIR="Scripts"
             export EXE_EXT=".exe"
             export INSTALL_PREFIX=/c/conda-root
@@ -81,7 +87,7 @@ install_conda_full() {
 
     if ! [ -f "$prefix/conda-meta/history" ]; then
         install_miniconda $prefix
-        $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip
+        $prefix/$BIN_DIR/conda install -y -q -c conda-canary -c defaults python=$python_version setuptools pip pycosat 'ruamel_yaml<=0.15.37' requests
     fi
 
     local site_packages=$($PYTHON_EXE -c "from distutils.sysconfig import get_python_lib as g; print(g())")
@@ -120,8 +126,6 @@ remove_conda() {
        $prefix/conda-meta/cryptography-*.json \
        $prefix/conda-meta/idna-*.json \
        $prefix/conda-meta/ruamel-*.json \
-       $prefix/conda-meta/pycrypto-*.json \
-       $prefix/conda-meta/pycosat-*.json \
        $site_packages/conda* \
        $site_packages/requests* \
        $site_packages/pyopenssl* \
@@ -129,9 +133,15 @@ remove_conda() {
        $site_packages/idna* \
        $site_packages/ruamel*
 
+
        # leave these until appveyor gets its compilers worked out for py36
+       # $prefix/conda-meta/pycrypto-*.json \
        # $site_packages/pycrypto* \
+
+       # leave pycosat until version 0.6.3 is posted on PyPI
+       # $prefix/conda-meta/pycosat-*.json \
        # $site_packages/pycosat*
+
     ls -al $site_packages
 
     hash -r
@@ -143,7 +153,7 @@ install_python() {
     local python_version=${2:-$PYTHON_VERSION}
 
     install_miniconda $prefix
-    $prefix/$BIN_DIR/conda install -y -q python=$python_version setuptools pip
+    $prefix/$BIN_DIR/conda install -y -q -c conda-canary -c defaults python=$python_version setuptools pip pycosat 'ruamel_yaml<=0.15.37' requests
     remove_conda $prefix
 
     $PYTHON_EXE --version
@@ -157,50 +167,87 @@ install_conda_shell_scripts() {
     local prefix=${1:-$INSTALL_PREFIX}
     local src_dir=${2:-${SRC_DIR:-$PWD}}
 
-    mkdir -p "$prefix/etc/profile.d/"
-    rm -f "$prefix/etc/profile.d/conda.sh"
-    local conda_exe="$prefix/$BIN_DIR/conda$EXE_EXT"
-    echo "_CONDA_EXE=\"$conda_exe\"" > "$prefix/etc/profile.d/conda.sh"
-    echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/etc/profile.d/conda.sh"
-    cat "$src_dir/shell/etc/profile.d/conda.sh" >> "$prefix/etc/profile.d/conda.sh"
-
-    mkdir -p "$prefix/$BIN_DIR"
-
-    rm -f "$prefix/$BIN_DIR/activate"
-    echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
-    echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/activate"
-    cat "$src_dir/shell/bin/activate" >> "$prefix/$BIN_DIR/activate"
-    chmod +x "$prefix/$BIN_DIR/activate"
-
-    rm -f "$prefix/$BIN_DIR/deactivate"
-    echo "#!/bin/sh" > "$prefix/$BIN_DIR/deactivate"
-    echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/deactivate"
-    cat "$src_dir/shell/bin/deactivate" >> "$prefix/$BIN_DIR/deactivate"
-    chmod +x "$prefix/$BIN_DIR/deactivate"
-
     if [ -n "$ON_WIN" ]; then
+        local conda_exe="$WIN_PREFIX\\$BIN_DIR\\conda$EXE_EXT"
+
+        mkdir -p "$prefix/$BIN_DIR"
+
         rm -f "$prefix/$BIN_DIR/activate.bat"
-        cp "$src_dir/shell/Scripts/activate.bat" "$prefix/$BIN_DIR/activate.bat"
+        cp "$src_dir/conda/shell/Scripts/activate.bat" "$prefix/$BIN_DIR/activate.bat"
 
         rm -f "$prefix/$BIN_DIR/deactivate.bat"
-        cp "$src_dir/shell/Scripts/deactivate.bat" "$prefix/$BIN_DIR/deactivate.bat"
+        cp "$src_dir/conda/shell/Scripts/deactivate.bat" "$prefix/$BIN_DIR/deactivate.bat"
 
         mkdir -p "$prefix/Library/bin"
         rm -f "$prefix/Library/bin/conda.bat"
-        local win_conda_exe="$(cygpath --windows "$conda_exe")"
-        echo "@SET \"_CONDA_EXE=$win_conda_exe\"" > "$prefix/Library/bin/conda.bat"
-        cat "$src_dir/shell/Library/bin/conda.bat" >> "$prefix/Library/bin/conda.bat"
+        # echo "@SET \"_CONDA_EXE=\"$conda_exe\"\"" > "$prefix/Library/bin/conda.bat"
+        # cat "$src_dir/conda/shell/Library/bin/conda.bat" >> "$prefix/Library/bin/conda.bat"
+        cp "$src_dir/conda/shell/Library/bin/conda.bat" "$prefix/Library/bin/conda.bat"
+
+        rm -f "$prefix/$BIN_DIR/activate"
+        echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
+        echo "_CONDA_ROOT=\"\$(cygpath '$WIN_PREFIX')\"" >> "$prefix/$BIN_DIR/activate"
+        cat "$src_dir/conda/shell/bin/activate" >> "$prefix/$BIN_DIR/activate"
+        # chmod +x "$prefix/$BIN_DIR/activate"
+        # we no longer set activate as executable, to ensure that it is being sourced
+
+        rm -f "$prefix/$BIN_DIR/deactivate"
+        echo "#!/bin/sh" > "$prefix/$BIN_DIR/deactivate"
+        echo "_CONDA_ROOT=\"\$(cygpath '$WIN_PREFIX')\"" >> "$prefix/$BIN_DIR/deactivate"
+        cat "$src_dir/conda/shell/bin/deactivate" >> "$prefix/$BIN_DIR/deactivate"
+        # chmod +x "$prefix/$BIN_DIR/deactivate"
+        # we no longer set deactivate as executable, to ensure that it is being sourced
+
+        mkdir -p "$prefix/etc/profile.d/"
+        rm -f "$prefix/etc/profile.d/conda.sh"
+        echo "_CONDA_EXE=\"\$(cygpath '$conda_exe')\"" > "$prefix/etc/profile.d/conda.sh"
+        cat "$src_dir/conda/shell/etc/profile.d/conda.sh" >> "$prefix/etc/profile.d/conda.sh"
+
+
+    else
+        local conda_exe="$prefix/$BIN_DIR/conda$EXE_EXT"
+
+        mkdir -p "$prefix/etc/profile.d/"
+        rm -f "$prefix/etc/profile.d/conda.sh"
+        echo "_CONDA_EXE=\"$conda_exe\"" > "$prefix/etc/profile.d/conda.sh"
+        echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/etc/profile.d/conda.sh"
+        cat "$src_dir/conda/shell/etc/profile.d/conda.sh" >> "$prefix/etc/profile.d/conda.sh"
+
+        mkdir -p "$prefix/$BIN_DIR"
+
+        rm -f "$prefix/$BIN_DIR/activate"
+        echo "#!/bin/sh" > "$prefix/$BIN_DIR/activate"
+        echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/activate"
+        cat "$src_dir/conda/shell/bin/activate" >> "$prefix/$BIN_DIR/activate"
+        # chmod +x "$prefix/$BIN_DIR/activate"
+        # we no longer set activate as executable, to ensure that it is being sourced
+
+        rm -f "$prefix/$BIN_DIR/deactivate"
+        echo "#!/bin/sh" > "$prefix/$BIN_DIR/deactivate"
+        echo "_CONDA_ROOT=\"$prefix\"" >> "$prefix/$BIN_DIR/deactivate"
+        cat "$src_dir/conda/shell/bin/deactivate" >> "$prefix/$BIN_DIR/deactivate"
+        # chmod +x "$prefix/$BIN_DIR/deactivate"
+        # we no longer set deactivate as executable, to ensure that it is being sourced
+
     fi
 
     mkdir -p "$prefix/etc/fish/conf.d/"
     rm -f "$prefix/etc/fish/conf.d/conda.fish"
-    cp "$src_dir/shell/etc/fish/conf.d/conda.fish" "$prefix/etc/fish/conf.d/conda.fish"
+    echo "set _CONDA_EXE \"$conda_exe\"" > "$prefix/etc/fish/conf.d/conda.fish"
+    echo "set _CONDA_ROOT \"$prefix\"" >> "$prefix/etc/fish/conf.d/conda.fish"
+    cat "$src_dir/conda/shell/etc/fish/conf.d/conda.fish" >> "$prefix/etc/fish/conf.d/conda.fish"
 
     local sp_dir=$("$PYTHON_EXE" -c "from distutils.sysconfig import get_python_lib as g; print(g())")
     mkdir -p "$sp_dir/xonsh"
     rm -f "$sp_dir/xonsh/conda.xsh"
-    echo "_CONDA_EXE = \"$CONDA_EXE\"" > "$sp_dir/xonsh/conda.xsh"
-    cat "$src_dir/shell/conda.xsh" >> "$sp_dir/xonsh/conda.xsh"
+    echo "_CONDA_EXE = \"$conda_exe\"" > "$sp_dir/xonsh/conda.xsh"
+    cat "$src_dir/conda/shell/conda.xsh" >> "$sp_dir/xonsh/conda.xsh"
+
+    mkdir -p "$prefix/etc/profile.d/"
+    rm -f "$prefix/etc/profile.d/conda.csh"
+    echo "setenv _CONDA_EXE \"$conda_exe\"" > "$prefix/etc/profile.d/conda.csh"
+    echo "setenv _CONDA_ROOT \"$prefix\"" >> "$prefix/etc/profile.d/conda.csh"
+    cat "$src_dir/conda/shell/etc/profile.d/conda.csh" >> "$prefix/etc/profile.d/conda.csh"
 
 }
 
@@ -243,7 +290,7 @@ install_conda_dev() {
     else
         $PYTHON_EXE setup.py develop
         make_conda_entrypoint "$CONDA_EXE" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
-        make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda.cli import main"
+        make_conda_entrypoint "$prefix/bin/conda-env" "$PYTHON_EXE" "$src_dir" "from conda_env.cli.main import main"
     fi
 
     # install_conda_shell_scripts "$prefix" "$src_dir"
@@ -258,7 +305,7 @@ install_conda_dev() {
 
 
 install_conda_dev_usr_local() {
-    sudo -E bash -c "source utils/functions.sh && install_conda_dev /usr/local"
+    sudo su root -c "PYTHON_VERSION=$PYTHON_VERSION SUDO=true source utils/functions.sh && install_conda_dev /usr/local"
     sudo chown -R root:root ./conda
     ls -al ./conda
 }
@@ -274,10 +321,10 @@ install_conda_build() {
 
     # install conda-build dependencies (runtime and test)
     conda config --append channels conda-forge
-    $prefix/$BIN_DIR/conda install -y -vvv \
+    $prefix/$BIN_DIR/conda install -y \
         perl pytest-xdist pytest-catchlog pytest-mock \
         anaconda-client numpy \
-        filelock jinja2 conda-verify contextlib2 pkginfo \
+        filelock jinja2 conda-verify<3 contextlib2 pkginfo \
         glob2 beautifulsoup4 chardet pycrypto
     conda config --remove channels conda-forge
     if ! [ -n "$ON_WIN" ]; then
@@ -317,19 +364,19 @@ set_test_vars() {
     export TEST_PLATFORM=$($PYTHON_EXE -c "import sys; print('win' if sys.platform.startswith('win') else 'unix')")
     export PYTHONHASHSEED=$($PYTHON_EXE -c "import random as r; print(r.randint(0,4294967296))")
 
-    export ADD_COV="--cov-report xml --cov-report term-missing --cov-append --cov conda"
+    export ADD_COV="--cov-report xml --cov-report term-missing --cov conda"
 
 }
 
 
 conda_unit_test() {
     $PYTHON_EXE utils/setup-testing.py --version
-    $PYTEST_EXE $ADD_COV -m "not integration and not installed"
+    $PYTEST_EXE $ADD_COV -m "not integration and not installed" -v
 }
 
 
 conda_integration_test() {
-    $PYTEST_EXE $ADD_COV -m "integration and not installed" -v
+    $PYTEST_EXE $ADD_COV --cov-append -m "integration and not installed" -v
 }
 
 
@@ -379,8 +426,9 @@ conda_build_test() {
     pushd conda-build
 
     # TODO: remove -k flag when conda/conda-build#1927 is merged
-    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "not xattr"
-    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "not xattr"
+    condabuild_skip="not xattr and not skeleton_pypi and not perl-cpan-Moo"
+    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 2 -m "not serial" tests -k "$condabuild_skip"
+    $prefix/$BIN_DIR/python -m pytest --basetemp /tmp/cb -v --durations=20 -n 0 -m "serial" tests -k "$condabuild_skip"
     popd
 }
 
@@ -406,15 +454,18 @@ run_tests() {
         # conda_build_smoke_test
         if ! [ -n "$ON_WIN" ]; then
             conda_build_test
+            $PYTHON_EXE -m conda.common.io
         fi
     elif [ -n "$SHELL_INTEGRATION" ]; then
         conda_unit_test
         conda_activate_test
         # $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags activate --required
+        $PYTHON_EXE -m conda.common.io
     else
         conda_unit_test
         conda_integration_test
         $INSTALL_PREFIX/$BIN_DIR/codecov --env PYTHON_VERSION --flags integration --required
+        $PYTHON_EXE -m conda.common.io
     fi
 }
 

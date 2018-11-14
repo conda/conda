@@ -1,0 +1,21 @@
+entrypoints
+
+[:(sys_platform=="linux2" or sys_platform=="linux") and python_version<"3.5"]
+secretstorage<3
+
+[:sys_platform=="linux" and python_version>="3.5"]
+secretstorage
+
+[:sys_platform=="win32"]
+pywin32-ctypes!=0.1.0,!=0.1.1
+
+[docs]
+sphinx
+jaraco.packaging>=3.2
+rst.linker>=1.9
+
+[testing]
+pytest>=3.5
+pytest-sugar>=0.9.1
+collective.checkdocs
+pytest-flake8

@@ -1,69 +1,38 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .conda_argparse import add_parser_create_install_update, add_parser_json
-from ..common.compat import on_win
-from ..common.constants import NULL
+from logging import getLogger
+from os.path import isdir
 
-help = "Create a new conda environment from a list of specified packages. "
-descr = (help +
-         "To use the created environment, use 'source activate "
-         "envname' look in that directory first.  This command requires either "
-         "the -n NAME or -p PREFIX option.")
+from .common import confirm_yn
+from .install import install
+from ..base.context import context
+from ..common.path import paths_equal
+from ..exceptions import CondaValueError
+from ..gateways.disk.delete import delete_trash, rm_rf
+from ..gateways.disk.test import is_conda_environment
 
-example = """
-Examples:
-
-    conda create -n myenv sqlite
-
-"""
-
-
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'create',
-        description=descr,
-        help=help,
-        epilog=example,
-    )
-    if on_win:
-        p.add_argument(
-            "--shortcuts",
-            action="store_true",
-            help="Install start menu shortcuts",
-            dest="shortcuts",
-            default=NULL,
-        )
-        p.add_argument(
-            "--no-shortcuts",
-            action="store_false",
-            help="Don't install start menu shortcuts",
-            dest="shortcuts",
-            default=NULL,
-        )
-    add_parser_create_install_update(p)
-    add_parser_json(p)
-    p.add_argument(
-        "--clone",
-        action="store",
-        help='Path to (or name of) existing local environment.',
-        metavar='ENV',
-    )
-    p.add_argument(
-        "--no-default-packages",
-        action="store_true",
-        help='Ignore create_default_packages in the .condarc file.',
-    )
-    p.set_defaults(func=execute)
+log = getLogger(__name__)
 
 
 def execute(args, parser):
-    from .install import install
-    from ..gateways.disk.delete import delete_trash
+    if is_conda_environment(context.target_prefix):
+        if paths_equal(context.target_prefix, context.root_prefix):
+            raise CondaValueError("The target prefix is the base prefix. Aborting.")
+        confirm_yn("WARNING: A conda environment already exists at '%s'\n"
+                   "Remove existing environment" % context.target_prefix,
+                   default='no',
+                   dry_run=False)
+        log.info("Removing existing environment %s", context.target_prefix)
+        rm_rf(context.target_prefix)
+    elif isdir(context.target_prefix):
+        confirm_yn("WARNING: A directory already exists at the target location '%s'\n"
+                   "but it is not a conda environment.\n"
+                   "Continue creating environment" % context.target_prefix,
+                   default='no',
+                   dry_run=False)
+
     install(args, parser, 'create')
     delete_trash()

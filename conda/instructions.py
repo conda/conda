@@ -1,14 +1,15 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function
 
 from logging import getLogger
 from os.path import isfile, join
 
-from .base.context import context
 from .core.link import UnlinkLinkTransaction
-from .core.package_cache import ProgressiveFetchExtract
+from .core.package_cache_data import ProgressiveFetchExtract
 from .exceptions import CondaFileIOError
 from .gateways.disk.link import islink
-from .models.dist import Dist
 
 log = getLogger(__name__)
 
@@ -47,7 +48,7 @@ def PREFIX_CMD(state, prefix):
     state['prefix'] = prefix
 
 
-def PRINT_CMD(state, arg):
+def PRINT_CMD(state, arg):  # pragma: no cover
     if arg.startswith(('Unlinking packages', 'Linking packages')):
         return
     getLogger('conda.stdout.verbose').info(arg)
@@ -61,12 +62,12 @@ def EXTRACT_CMD(state, arg):
     raise NotImplementedError()
 
 
-def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):
+def PROGRESSIVEFETCHEXTRACT_CMD(state, progressive_fetch_extract):  # pragma: no cover
     assert isinstance(progressive_fetch_extract, ProgressiveFetchExtract)
     progressive_fetch_extract.execute()
 
 
-def UNLINKLINKTRANSACTION_CMD(state, arg):
+def UNLINKLINKTRANSACTION_CMD(state, arg):  # pragma: no cover
     unlink_link_transaction = arg
     assert isinstance(unlink_link_transaction, UnlinkLinkTransaction)
     unlink_link_transaction.execute()
@@ -105,39 +106,3 @@ OP_ORDER = (RM_FETCHED,
             UNLINK,
             LINK,
             )
-
-
-def execute_instructions(plan, index=None, verbose=False, _commands=None):
-    """Execute the instructions in the plan
-
-    :param plan: A list of (instruction, arg) tuples
-    :param index: The meta-data index
-    :param verbose: verbose output
-    :param _commands: (For testing only) dict mapping an instruction to executable if None
-    then the default commands will be used
-    """
-    if _commands is None:
-        _commands = commands
-
-    log.debug("executing plan %s", plan)
-
-    state = {'i': None, 'prefix': context.root_prefix, 'index': index}
-
-    for instruction, arg in plan:
-
-        log.debug(' %s(%r)', instruction, arg)
-
-        if state['i'] is not None and instruction in PROGRESS_COMMANDS:
-            state['i'] += 1
-            getLogger('progress.update').info((Dist(arg).dist_name,
-                                               state['i'] - 1))
-        cmd = _commands[instruction]
-
-        if callable(cmd):
-            cmd(state, arg)
-
-        if (state['i'] is not None and instruction in PROGRESS_COMMANDS and
-                state['maxval'] == state['i']):
-
-            state['i'] = None
-            getLogger('progress.stop').info(None)

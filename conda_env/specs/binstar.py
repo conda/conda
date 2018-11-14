@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 import re
 
 from conda.models.version import normalized_version
@@ -39,6 +42,10 @@ class BinstarSpec(object):
             self.binstar = None
 
     def can_handle(self):
+        result = self._can_handle()
+        return result
+
+    def _can_handle(self):
         """
         Validates loader can process environment definition.
         :return: True or False
@@ -49,6 +56,7 @@ class BinstarSpec(object):
                 self.msg = ("Anaconda Client is required to interact with anaconda.org or an "
                             "Anaconda API. Please run `conda install anaconda-client`.")
                 return False
+
             return self.package is not None and self.valid_package()
         return False
 

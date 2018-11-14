@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 import os
 from os.path import isdir, join
 import sys
@@ -5,7 +8,7 @@ import sys
 from conda._vendor.auxlib.entity import EntityEncoder
 from conda.base.context import context
 
-root_env_name = 'root'
+base_env_name = 'base'
 
 
 def stdout_json(d):
@@ -16,12 +19,12 @@ def stdout_json(d):
 
 
 def get_prefix(args, search=True):
-    from conda.core.envs_manager import determine_target_prefix
+    from conda.base.context import determine_target_prefix
     return determine_target_prefix(context, args)
 
 
 def find_prefix_name(name):
-    if name == root_env_name:
+    if name == base_env_name:
         return context.root_prefix
     # always search cwd in addition to envs dirs (for relative path access)
     for envs_dir in list(context.envs_dirs) + [os.getcwd(), ]:

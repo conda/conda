@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
@@ -48,8 +51,8 @@ activate' from PATH. """)
 
 
 def locate_prefix_by_name(ctx, name):
-    from ..core.envs_manager import EnvsDirectory
-    return EnvsDirectory.locate_prefix_by_name(name, ctx.envs_dirs)
+    from ..base.context import locate_prefix_by_name
+    return locate_prefix_by_name(name, ctx.envs_dirs)
 
 
 def prefix_from_arg(arg, shell):
@@ -83,12 +86,15 @@ def _get_prefix_paths(prefix):
         yield os.path.join(prefix, 'bin')
 
 
-def binpath_from_arg(arg, shell):
+def binpath_from_arg(arg, shell, going_to_shell=True):
     shelldict = shells[shell] if shell else {}
     # prefix comes back as platform-native path
     prefix = prefix_from_arg(arg, shell)
     # convert paths to shell-native paths
-    return [shelldict['path_to'](path) for path in _get_prefix_paths(prefix)]
+    if going_to_shell:
+        return [shelldict['path_to'](path) for path in _get_prefix_paths(prefix)]
+    else:
+        return [path for path in _get_prefix_paths(prefix)]
 
 
 def pathlist_to_str(paths, escape_backslashes=True):
@@ -105,16 +111,22 @@ def pathlist_to_str(paths, escape_backslashes=True):
     return path
 
 
-def get_activate_path(prefix, shell):
+def get_activate_path(prefix, shell, going_to_shell=True):
     shelldict = shells[shell] if shell else {}
-    binpath = binpath_from_arg(prefix, shell)
+    binpath = binpath_from_arg(prefix, shell, going_to_shell)
 
     # prepend our new entries onto the existing path and make sure that the separator is native
-    path = shelldict['pathsep'].join(binpath)
+    if going_to_shell:
+        path = shelldict['pathsep'].join(binpath)
+    else:
+        path = os.pathsep.join(binpath)
     return path
 
 
 def main():
+    print("WARNING: The module conda.cli.activate is deprecated. It will be removed in a "
+          "future feature release (i.e. minor version release).", file=sys.stderr)
+
     from ..base.constants import ROOT_ENV_NAME
     from ..gateways.logging import initialize_logging
     initialize_logging()
@@ -146,11 +158,11 @@ def main():
                                              shell and env name".format(sys_argv[1]))
 
     if sys_argv[1] == '..activate':
-        print(get_activate_path(sys_argv[3], shell))
+        print(get_activate_path(sys_argv[3], shell, True))
         sys.exit(0)
 
     elif sys_argv[1] == '..deactivate.path':
-        activation_path = get_activate_path(sys_argv[3], shell)
+        activation_path = get_activate_path(sys_argv[3], shell, False)
 
         if os.getenv('_CONDA_HOLD'):
             new_path = regex.sub(r'%s(:?)' % regex.escape(activation_path),
@@ -160,6 +172,7 @@ def main():
             new_path = regex.sub(r'%s(:?)' % regex.escape(activation_path), r'',
                                  os.environ[str('PATH')], 1)
 
+        new_path = shells[shell]['path_to'](new_path)
         print(new_path)
         sys.exit(0)
 
@@ -209,6 +222,10 @@ def main():
     # This print is actually what sets the PATH or PROMPT variable.  The shell
     # script gets this value, and finishes the job.
     print(path)
+
+
+print("WARNING: The conda.cli.activate module is deprecated and will be removed in a "
+      "future release.", file=sys.stderr)
 
 
 if __name__ == '__main__':

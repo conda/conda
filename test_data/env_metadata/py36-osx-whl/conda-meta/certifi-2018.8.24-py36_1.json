@@ -1,0 +1,98 @@
+{
+  "build": "py36_1",
+  "build_number": 1,
+  "channel": "https://repo.anaconda.com/pkgs/main/osx-64",
+  "constrains": [],
+  "depends": [
+    "python >=3.6,<3.7.0a0"
+  ],
+  "extracted_package_dir": "/Users/kfranz/continuum/conda/devenv/pkgs/certifi-2018.8.24-py36_1",
+  "features": "",
+  "files": [
+    "lib/python3.6/site-packages/certifi-2018.08.24-py3.6.egg-info",
+    "lib/python3.6/site-packages/certifi/__init__.py",
+    "lib/python3.6/site-packages/certifi/__main__.py",
+    "lib/python3.6/site-packages/certifi/__pycache__/__init__.cpython-36.pyc",
+    "lib/python3.6/site-packages/certifi/__pycache__/__main__.cpython-36.pyc",
+    "lib/python3.6/site-packages/certifi/__pycache__/core.cpython-36.pyc",
+    "lib/python3.6/site-packages/certifi/cacert.pem",
+    "lib/python3.6/site-packages/certifi/core.py"
+  ],
+  "fn": "certifi-2018.8.24-py36_1.tar.bz2",
+  "license": "ISC",
+  "link": {
+    "source": "/Users/kfranz/continuum/conda/devenv/pkgs/certifi-2018.8.24-py36_1",
+    "type": 1
+  },
+  "md5": "dc7403da84669d25d31ad7d3dae6b01f",
+  "name": "certifi",
+  "package_tarball_full_path": "/Users/kfranz/continuum/conda/devenv/pkgs/certifi-2018.8.24-py36_1.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/python3.6/site-packages/certifi-2018.08.24-py3.6.egg-info",
+        "path_type": "hardlink",
+        "sha256": "273b36e0a8d064e62d811e405093a8aae86486a14f76ff4724234396c6dd1222",
+        "sha256_in_prefix": "273b36e0a8d064e62d811e405093a8aae86486a14f76ff4724234396c6dd1222",
+        "size_in_bytes": 2950
+      },
+      {
+        "_path": "lib/python3.6/site-packages/certifi/__init__.py",
+        "path_type": "hardlink",
+        "sha256": "e65098575896c688ab5f53806921e405852e64675cc048c4052e834bfb6b2f4b",
+        "sha256_in_prefix": "e65098575896c688ab5f53806921e405852e64675cc048c4052e834bfb6b2f4b",
+        "size_in_bytes": 63
+      },
+      {
+        "_path": "lib/python3.6/site-packages/certifi/__main__.py",
+        "path_type": "hardlink",
+        "sha256": "162398b75165b6cb7bc24f4345ae860a806bf2a054c65350bbf30a25fd3813ab",
+        "sha256_in_prefix": "162398b75165b6cb7bc24f4345ae860a806bf2a054c65350bbf30a25fd3813ab",
+        "size_in_bytes": 41
+      },
+      {
+        "_path": "lib/python3.6/site-packages/certifi/__pycache__/__init__.cpython-36.pyc",
+        "path_type": "hardlink",
+        "sha256": "5faac82dc85511918a42769791902c51ced46a5c3b318fdd1dff3832388afc5e",
+        "sha256_in_prefix": "5faac82dc85511918a42769791902c51ced46a5c3b318fdd1dff3832388afc5e",
+        "size_in_bytes": 215
+      },
+      {
+        "_path": "lib/python3.6/site-packages/certifi/__pycache__/__main__.cpython-36.pyc",
+        "path_type": "hardlink",
+        "sha256": "c9a6c77ce469f80cf327424500e96d3808c708a75a45f40d89aa25a6b9a4e03c",
+        "sha256_in_prefix": "c9a6c77ce469f80cf327424500e96d3808c708a75a45f40d89aa25a6b9a4e03c",
+        "size_in_bytes": 186
+      },
+      {
+        "_path": "lib/python3.6/site-packages/certifi/__pycache__/core.cpython-36.pyc",
+        "path_type": "hardlink",
+        "sha256": "057291df8ed53781f379d8eb0ad722dda3b48b4d20c1f36ea9aec7c4fe8abd56",
+        "sha256_in_prefix": "057291df8ed53781f379d8eb0ad722dda3b48b4d20c1f36ea9aec7c4fe8abd56",
+        "size_in_bytes": 1150
+      },
+      {
+        "_path": "lib/python3.6/site-packages/certifi/cacert.pem",
+        "path_type": "hardlink",
+        "sha256": "5c0fb81d506c3ab043e657e0f9bdcf894cc0bf051ddaa948cf05f2a483084463",
+        "sha256_in_prefix": "5c0fb81d506c3ab043e657e0f9bdcf894cc0bf051ddaa948cf05f2a483084463",
+        "size_in_bytes": 263074
+      },
+      {
+        "_path": "lib/python3.6/site-packages/certifi/core.py",
+        "path_type": "hardlink",
+        "sha256": "c4f403746fec8b2e40ec17ea1966bb44985c03ad715c4a8f892af0f463728471",
+        "sha256_in_prefix": "c4f403746fec8b2e40ec17ea1966bb44985c03ad715c4a8f892af0f463728471",
+        "size_in_bytes": 836
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 142446,
+  "subdir": "osx-64",
+  "timestamp": 1535377774422,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/osx-64/certifi-2018.8.24-py36_1.tar.bz2",
+  "version": "2018.8.24"
+}

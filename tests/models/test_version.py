@@ -2,8 +2,9 @@ from __future__ import absolute_import, print_function
 
 import unittest
 
-from conda.exceptions import InvalidVersionSpecError
+from conda.exceptions import InvalidVersionSpec
 from conda.models.version import VersionOrder, VersionSpec, normalized_version, ver_eval, treeify
+import pytest
 
 
 class TestVersionSpec(unittest.TestCase):
@@ -159,9 +160,9 @@ class TestVersionSpec(unittest.TestCase):
         self.assertEqual(ver_eval('1.2.3+4.5.6', '1.2.4+5*'), False)
 
     def test_ver_eval_errors(self):
-        self.assertRaises(InvalidVersionSpecError, ver_eval, '3.0.0', '><2.4.5')
-        self.assertRaises(InvalidVersionSpecError, ver_eval, '3.0.0', '!!2.4.5')
-        self.assertRaises(InvalidVersionSpecError, ver_eval, '3.0.0', '!')
+        self.assertRaises(InvalidVersionSpec, ver_eval, '3.0.0', '><2.4.5')
+        self.assertRaises(InvalidVersionSpec, ver_eval, '3.0.0', '!!2.4.5')
+        self.assertRaises(InvalidVersionSpec, ver_eval, '3.0.0', '!')
 
     def test_version_spec_1(self):
         v1 = VersionSpec('1.7.1')
@@ -181,10 +182,10 @@ class TestVersionSpec(unittest.TestCase):
     def test_version_spec_2(self):
         v1 = VersionSpec('( (1.5|((1.6|1.7), 1.8), 1.9 |2.0))|2.1')
         self.assertEqual(v1.spec, '1.5|1.6|1.7,1.8,1.9|2.0|2.1')
-        self.assertRaises(InvalidVersionSpecError, VersionSpec, '(1.5')
-        self.assertRaises(InvalidVersionSpecError, VersionSpec, '1.5)')
-        self.assertRaises(InvalidVersionSpecError, VersionSpec, '1.5||1.6')
-        self.assertRaises(InvalidVersionSpecError, VersionSpec, '^1.5')
+        self.assertRaises(InvalidVersionSpec, VersionSpec, '(1.5')
+        self.assertRaises(InvalidVersionSpec, VersionSpec, '1.5)')
+        self.assertRaises(InvalidVersionSpec, VersionSpec, '1.5||1.6')
+        self.assertRaises(InvalidVersionSpec, VersionSpec, '^1.5')
 
     def test_version_spec_3(self):
         v1 = VersionSpec('1.7.1*')
@@ -240,3 +241,60 @@ class TestVersionSpec(unittest.TestCase):
         for version in versions:
             m = VersionSpec(version)
             self.assertTrue(m.match(version))
+
+    def test_not_eq_star(self):
+        assert VersionSpec("=3.3").match("3.3.1")
+        assert VersionSpec("=3.3").match("3.3")
+        assert not VersionSpec("=3.3").match("3.4")
+
+        assert VersionSpec("3.3.*").match("3.3.1")
+        assert VersionSpec("3.3.*").match("3.3")
+        assert not VersionSpec("3.3.*").match("3.4")
+
+        assert VersionSpec("=3.3.*").match("3.3.1")
+        assert VersionSpec("=3.3.*").match("3.3")
+        assert not VersionSpec("=3.3.*").match("3.4")
+
+        assert not VersionSpec("!=3.3.*").match("3.3.1")
+        assert VersionSpec("!=3.3.*").match("3.4")
+        assert VersionSpec("!=3.3.*").match("3.4.1")
+
+        assert VersionSpec("!=3.3").match("3.3.1")
+        assert not VersionSpec("!=3.3").match("3.3.0.0")
+        assert not VersionSpec("!=3.3.*").match("3.3.0.0")
+
+    def test_compound_versions(self):
+        vs = VersionSpec('>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*')
+        assert not vs.match('2.6.8')
+        assert vs.match('2.7.2')
+        assert not vs.match('3.3')
+        assert not vs.match('3.3.4')
+        assert vs.match('3.4')
+        assert vs.match('3.4a')
+
+    def test_invalid_version_specs(self):
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("~")
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("^")
+
+    def test_compatible_release_versions(self):
+        assert VersionSpec("~=1.10").match("1.11.0")
+        assert not VersionSpec("~=1.10.0").match("1.11.0")
+
+        assert not VersionSpec("~=3.3.2").match("3.4.0")
+        assert not VersionSpec("~=3.3.2").match("3.3.1")
+        assert VersionSpec("~=3.3.2").match("3.3.2.0")
+        assert VersionSpec("~=3.3.2").match("3.3.3")
+
+        assert VersionSpec("~=3.3.2|==2.2").match("2.2.0")
+        assert VersionSpec("~=3.3.2|==2.2").match("3.3.3")
+        assert not VersionSpec("~=3.3.2|==2.2").match("2.2.1")
+
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("~=3.3.2.*")
+
+    def test_pep_440_arbitrary_equality_operator(self):
+        # We're going to leave the not implemented for now.
+        with pytest.raises(InvalidVersionSpec):
+            VersionSpec("===3.3.2")

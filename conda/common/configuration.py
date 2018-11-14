@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 A generalized application configuration utility.
 
@@ -29,54 +31,53 @@ from enum import Enum, EnumMeta
 
 from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, string_types,
                      text_type, with_metaclass)
-from .constants import EMPTY_MAP, NULL
+from .constants import NULL
 from .path import expand
 from .serialize import yaml_load
 from .. import CondaError, CondaMultiError
-from .._vendor.auxlib.collection import AttrDict, first, frozendict, last, make_immutable
+from .._vendor.auxlib.collection import AttrDict, first, last, make_immutable
 from .._vendor.auxlib.exceptions import ThisShouldNeverHappenError
 from .._vendor.auxlib.type_coercion import TypeCoercionError, typify_data_structure
+from .._vendor.frozendict import frozendict
 from .._vendor.boltons.setutils import IndexedSet
+from .._vendor.toolz import concat, concatv, excepts, merge, unique
 
 try:  # pragma: no cover
-    from cytoolz.dicttoolz import merge
-    from cytoolz.functoolz import excepts
-    from cytoolz.itertoolz import concat, concatv, unique
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.dicttoolz import merge
-    from .._vendor.toolz.functoolz import excepts
-    from .._vendor.toolz.itertoolz import concat, concatv, unique
-try:  # pragma: no cover
     from ruamel_yaml.comments import CommentedSeq, CommentedMap
+    from ruamel_yaml.reader import ReaderError
     from ruamel_yaml.scanner import ScannerError
 except ImportError:  # pragma: no cover
     from ruamel.yaml.comments import CommentedSeq, CommentedMap  # pragma: no cover
+    from ruamel.yaml.reader import ReaderError
     from ruamel.yaml.scanner import ScannerError
 
 log = getLogger(__name__)
+
+EMPTY_MAP = frozendict()
 
 
 def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
     if not isiterable(iterable):
         iterable = [iterable]
-    return '\n'.join("%s- %s" % (padding, item) for item in iterable)
+    try:
+        return '\n'.join("%s- %s" % (padding, item) for item in iterable)
+    except TypeError:
+        return pretty_list([iterable], padding)
 
 
 def pretty_map(dictionary, padding='  '):
     return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in iteritems(dictionary))
 
 
-class LoadError(CondaError):
-    def __init__(self, message, filepath, line, column):
-        self.line = line
-        self.filepath = filepath
-        self.column = column
-        msg = "Load Error: in %s on line %s, column %s. %s" % (filepath, line, column, message)
-        super(LoadError, self).__init__(msg)
-
-
 class ConfigurationError(CondaError):
     pass
+
+
+class ConfigurationLoadError(ConfigurationError):
+    def __init__(self, path, message_addition='', **kwargs):
+        message = "Unable to load configuration file.\n  path: %(path)s\n"
+        super(ConfigurationLoadError, self).__init__(message + message_addition, path=path,
+                                                     **kwargs)
 
 
 class ValidationError(ConfigurationError):
@@ -85,7 +86,7 @@ class ValidationError(ConfigurationError):
         self.parameter_name = parameter_name
         self.parameter_value = parameter_value
         self.source = source
-        super(ConfigurationError, self).__init__(msg, **kwargs)
+        super(ValidationError, self).__init__(msg, **kwargs)
 
 
 class MultipleKeysError(ValidationError):
@@ -204,14 +205,12 @@ class EnvRawParameter(RawParameter):
 
     def value(self, parameter_obj):
         if hasattr(parameter_obj, 'string_delimiter'):
+            assert isinstance(self._raw_value, string_types)
             string_delimiter = getattr(parameter_obj, 'string_delimiter')
             # TODO: add stripping of !important, !top, and !bottom
-            raw_value = self._raw_value
-            if string_delimiter in raw_value:
-                value = raw_value.split(string_delimiter)
-            else:
-                value = [raw_value]
-            return tuple(v.strip() for v in value)
+            return tuple(v for v in (
+                vv.strip() for vv in self._raw_value.split(string_delimiter)
+            ) if v)
         else:
             return self.__important_split_value[0].strip()
 
@@ -311,7 +310,7 @@ class YamlRawParameter(RawParameter):
 
     @staticmethod
     def _get_yaml_map_comments(rawvalue):
-        return dict((key, excepts(KeyError,
+        return dict((key, excepts((AttributeError, KeyError),
                                   lambda k: rawvalue.ca.items[k][2].value.strip() or None,
                                   lambda _: None  # default value on exception
                                   )(key))
@@ -332,8 +331,17 @@ class YamlRawParameter(RawParameter):
                 ruamel_yaml = yaml_load(fh)
             except ScannerError as err:
                 mark = err.problem_mark
-                raise LoadError("Invalid YAML", filepath, mark.line, mark.column)
-        return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
+                raise ConfigurationLoadError(
+                    filepath,
+                    "  reason: invalid yaml at line %(line)s, column %(column)s",
+                    line=mark.line,
+                    column=mark.column
+                )
+            except ReaderError as err:
+                raise ConfigurationLoadError(filepath,
+                                             "  reason: invalid yaml at position %(position)s",
+                                             position=err.position)
+            return cls.make_raw_parameters(filepath, ruamel_yaml) or EMPTY_MAP
 
 
 def load_file_configs(search_path):
@@ -385,8 +393,9 @@ class Parameter(object):
     def _set_name(self, name):
         # this is an explicit method, and not a descriptor/setter
         # it's meant to be called by the Configuration metaclass
-        self._name = name
-        self._names = frozenset(x for x in chain(self.aliases, (name, )))
+        self._name = name  # lgtm [py/mutable-descriptor]
+        _names = frozenset(x for x in chain(self.aliases, (name, )))
+        self._names = _names  # lgtm [py/mutable-descriptor]
         return name
 
     @property
@@ -452,8 +461,8 @@ class Parameter(object):
         else:
             errors.extend(self.collect_errors(instance, result))
         raise_errors(errors)
-        instance._cache_[self.name] = result
-        return result
+        instance._cache_[self.name] = result  # lgtm [py/uninitialized-local-variable]
+        return result  # lgtm [py/uninitialized-local-variable]
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         """Validate a Parameter value.
@@ -632,7 +641,7 @@ class MapParameter(Parameter):
     """Parameter type for a Configuration class that holds a map (i.e. dict) of python
     primitive values.
     """
-    _type = dict
+    _type = frozendict
 
     def __init__(self, element_type, default=None, aliases=(), validation=None):
         """
@@ -645,7 +654,8 @@ class MapParameter(Parameter):
 
         """
         self._element_type = element_type
-        super(MapParameter, self).__init__(default or dict(), aliases, validation)
+        default = default and frozendict(default) or frozendict()
+        super(MapParameter, self).__init__(default, aliases, validation)
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(MapParameter, self).collect_errors(instance, value)
@@ -669,15 +679,15 @@ class MapParameter(Parameter):
 
         # mapkeys with important matches
         def key_is_important(match, key):
-            return match.valueflags(self).get(key) is ParameterFlag.final
+            return match.valueflags(self).get(key) == ParameterFlag.final
         important_maps = tuple(dict((k, v)
                                     for k, v in iteritems(match_value)
                                     if key_is_important(match, k))
                                for match, match_value in relevant_matches_and_values)
         # dump all matches in a dict
         # then overwrite with important matches
-        return merge(concatv((v for _, v in relevant_matches_and_values),
-                             reversed(important_maps)))
+        return frozendict(merge(concatv((v for _, v in relevant_matches_and_values),
+                                        reversed(important_maps))))
 
     def repr_raw(self, raw_parameter):
         lines = list()
@@ -711,54 +721,28 @@ class ConfigurationType(type):
 class Configuration(object):
 
     def __init__(self, search_path=(), app_name=None, argparse_args=None):
+        # Currently, __init__ does a **full** disk reload of all files.
+        # A future improvement would be to cache files that are already loaded.
         self.raw_data = odict()
         self._cache_ = dict()
-        self._reset_callbacks = set()  # TODO: make this a boltons ordered set
+        self._reset_callbacks = IndexedSet()
         self._validation_errors = defaultdict(list)
-
-        if not hasattr(self, '_search_path') and search_path is not None:
-            # we only set search_path once; we never change it
-            self._search_path = IndexedSet(search_path)
-
-        if not hasattr(self, '_app_name') and app_name is not None:
-            # we only set app_name once; we never change it
-            self._app_name = app_name
 
         self._set_search_path(search_path)
         self._set_env_vars(app_name)
         self._set_argparse_args(argparse_args)
 
     def _set_search_path(self, search_path):
-        if not hasattr(self, '_search_path') and search_path is not None:
-            # we only set search_path once; we never change it
-            self._search_path = IndexedSet(search_path)
-
-        if getattr(self, '_search_path', None):
-
-            # we need to make sure old data doesn't stick around if we are resetting
-            #   easiest solution is to completely clear raw_data and re-load other sources
-            #   if raw_data holds contents
-            raw_data_held_contents = bool(self.raw_data)
-            if raw_data_held_contents:
-                self.raw_data = odict()
-
-            self._set_raw_data(load_file_configs(search_path))
-
-            if raw_data_held_contents:
-                # this should only be triggered on re-initialization / reset
-                self._set_env_vars(getattr(self, '_app_name', None))
-                self._set_argparse_args(self._argparse_args)
-
+        self._search_path = IndexedSet(search_path)
+        self._set_raw_data(load_file_configs(search_path))
         self._reset_cache()
         return self
 
     def _set_env_vars(self, app_name=None):
-        if not hasattr(self, '_app_name') and app_name is not None:
-            # we only set app_name once; we never change it
-            self._app_name = app_name
-        if getattr(self, '_app_name', None):
-            erp = EnvRawParameter
-            self.raw_data[erp.source] = erp.make_raw_parameters(self._app_name)
+        self._app_name = app_name
+        if not app_name:
+            return self
+        self.raw_data[EnvRawParameter.source] = EnvRawParameter.make_raw_parameters(app_name)
         self._reset_cache()
         return self
 
@@ -876,7 +860,7 @@ class Configuration(object):
         name = parameter.name.lstrip('_')
         aliases = tuple(alias for alias in parameter.aliases if alias != name)
 
-        description = self.get_descriptions()[name]
+        description = self.get_descriptions().get(name, '')
         et = parameter._element_type
         if type(et) == EnumMeta:
             et = [et]

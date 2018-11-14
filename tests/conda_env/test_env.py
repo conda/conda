@@ -14,7 +14,7 @@ except ImportError:
 from conda_env import env
 from conda_env import exceptions
 
-from . import utils
+from . import support_file
 
 
 class FakeStream(object):
@@ -25,8 +25,20 @@ class FakeStream(object):
         self.output += chunk.decode('utf-8')
 
 
+def get_environment(filename):
+    return env.from_file(support_file(filename))
+
+
 def get_simple_environment():
-    return env.from_file(utils.support_file('simple.yml'))
+    return get_environment('simple.yml')
+
+
+def get_valid_keys_environment():
+    return get_environment('valid_keys.yml')
+
+
+def get_invalid_keys_environment():
+    return get_environment('invalid_keys.yml')
 
 
 class from_file_TestCase(unittest.TestCase):
@@ -36,10 +48,10 @@ class from_file_TestCase(unittest.TestCase):
 
     def test_retains_full_filename(self):
         e = get_simple_environment()
-        self.assertEqual(utils.support_file('simple.yml'), e.filename)
+        self.assertEqual(support_file('simple.yml'), e.filename)
 
     def test_with_pip(self):
-        e = env.from_file(utils.support_file('with-pip.yml'))
+        e = env.from_file(support_file('with-pip.yml'))
         assert 'pip' in e.dependencies
         assert 'foo' in e.dependencies['pip']
         assert 'baz' in e.dependencies['pip']
@@ -90,7 +102,7 @@ class EnvironmentTestCase(unittest.TestCase):
             dependencies=['nltk', {'pip': ['foo', 'bar']}]
         )
         expected = OrderedDict([
-            ('conda', ['nltk']),
+            ('conda', ['nltk', 'pip']),
             ('pip', ['foo', 'bar'])
         ])
         self.assertEqual(e.dependencies, expected)
@@ -215,9 +227,21 @@ class EnvironmentTestCase(unittest.TestCase):
         e.dependencies.add('bar')
         assert 'bar' in e.dependencies['conda']
 
+    def test_valid_keys(self):
+        e = get_valid_keys_environment()
+        e_dict = e.to_dict()
+        for key in env.VALID_KEYS:
+            assert key in e_dict
+
+    def test_invalid_keys(self):
+        e = get_invalid_keys_environment()
+        e_dict = e.to_dict()
+        assert 'name' in e_dict
+        assert len(e_dict) == 1
+
 
 class DirectoryTestCase(unittest.TestCase):
-    directory = utils.support_file('example')
+    directory = support_file('example')
 
     def setUp(self):
         self.original_working_dir = os.getcwd()
@@ -238,23 +262,23 @@ class DirectoryTestCase(unittest.TestCase):
 
 
 class load_from_directory_example_TestCase(DirectoryTestCase):
-    directory = utils.support_file('example')
+    directory = support_file('example')
 
 
 class load_from_directory_example_yaml_TestCase(DirectoryTestCase):
-    directory = utils.support_file('example-yaml')
+    directory = support_file('example-yaml')
 
 
 class load_from_directory_recursive_TestCase(DirectoryTestCase):
-    directory = utils.support_file('foo/bar')
+    directory = support_file('foo/bar')
 
 
 class load_from_directory_recursive_two_TestCase(DirectoryTestCase):
-    directory = utils.support_file('foo/bar/baz')
+    directory = support_file('foo/bar/baz')
 
 
 class load_from_directory_trailing_slash_TestCase(DirectoryTestCase):
-    directory = utils.support_file('foo/bar/baz/')
+    directory = support_file('foo/bar/baz/')
 
 
 class load_from_directory_TestCase(unittest.TestCase):
@@ -269,7 +293,7 @@ class load_from_directory_TestCase(unittest.TestCase):
 
 
 class LoadEnvFromFileAndSaveTestCase(unittest.TestCase):
-    env_path = utils.support_file(os.path.join('saved-env', 'environment.yml'))
+    env_path = support_file(os.path.join('saved-env', 'environment.yml'))
 
     def setUp(self):
         with open(self.env_path, "rb") as fp:
@@ -293,7 +317,7 @@ class LoadEnvFromFileAndSaveTestCase(unittest.TestCase):
 
 
 class EnvironmentSaveTestCase(unittest.TestCase):
-    env_file = utils.support_file('saved.yml')
+    env_file = support_file('saved.yml')
 
     def tearDown(self):
         if os.path.exists(self.env_file):

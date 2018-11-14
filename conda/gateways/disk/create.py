@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from errno import EACCES, EPERM
+from errno import EACCES, ELOOP, EPERM
 from io import open
 from logging import getLogger
 import os
-from os import X_OK, access
 from os.path import basename, dirname, isdir, isfile, join, splitext
-from shutil import copy as shutil_copy, copystat
+from shutil import copyfileobj, copystat
 import sys
 import tarfile
 
@@ -19,18 +20,20 @@ from .update import touch
 from ..subprocess import subprocess_call
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
-from ...base.constants import ENVS_DIR_MAGIC_FILE, PACKAGE_CACHE_MAGIC_FILE
+from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import ensure_binary, on_win
-from ...common.path import ensure_pad, win_path_double_escape, win_path_ok
+from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
-from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
+from ...exceptions import (BasicClobberError, CaseInsensitiveFileSystemError, CondaOSError,
+                           maybe_raise)
 from ...models.enums import FileMode, LinkType
 
 log = getLogger(__name__)
 stdoutlog = getLogger('conda.stdoutlog')
 
-mkdir_p = mkdir_p  # in __init__.py to help with circular imports
+# in __init__.py to help with circular imports
+mkdir_p = mkdir_p
 
 python_entry_point_template = dals("""
 # -*- coding: utf-8 -*-
@@ -125,6 +128,35 @@ def create_application_entry_point(source_full_path, target_full_path, python_fu
     make_executable(target_full_path)
 
 
+class ProgressFileWrapper(object):
+    def __init__(self, fileobj, progress_update_callback):
+        self.progress_file = fileobj
+        self.progress_update_callback = progress_update_callback
+        self.progress_file_size = max(1, os.fstat(fileobj.fileno()).st_size)
+        self.progress_max_pos = 0
+
+    def __getattr__(self, name):
+        return getattr(self.progress_file, name)
+
+    def __setattr__(self, name, value):
+        if name.startswith("progress_"):
+            super(ProgressFileWrapper, self).__setattr__(name, value)
+        else:
+            setattr(self.progress_file, name, value)
+
+    def read(self, size=-1):
+        data = self.progress_file.read(size)
+        self.progress_update()
+        return data
+
+    def progress_update(self):
+        pos = max(self.progress_max_pos, self.progress_file.tell())
+        pos = min(pos, self.progress_file_size)
+        self.progress_max_pos = pos
+        rel_pos = pos / self.progress_file_size
+        self.progress_update_callback(rel_pos)
+
+
 def extract_tarball(tarball_full_path, destination_directory=None, progress_update_callback=None):
     if destination_directory is None:
         destination_directory = tarball_full_path[:-8]
@@ -132,17 +164,21 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
 
     assert not lexists(destination_directory), destination_directory
 
-    with tarfile.open(tarball_full_path) as t:
-        members = t.getmembers()
-        num_members = len(members)
-
-        def members_with_progress():
-            for q, member in enumerate(members):
-                if progress_update_callback:
-                    progress_update_callback(q / num_members)
-                yield member
-
-        t.extractall(path=destination_directory, members=members_with_progress())
+    with open(tarball_full_path, 'rb') as fileobj:
+        if progress_update_callback:
+            fileobj = ProgressFileWrapper(fileobj, progress_update_callback)
+        with tarfile.open(fileobj=fileobj) as tar_file:
+            try:
+                tar_file.extractall(path=destination_directory)
+            except EnvironmentError as e:
+                if e.errno == ELOOP:
+                    raise CaseInsensitiveFileSystemError(
+                        package_location=tarball_full_path,
+                        extract_location=destination_directory,
+                        caused_by=e,
+                    )
+                else:
+                    raise
 
     if sys.platform.startswith('linux') and os.getuid() == 0:
         # When extracting as root, tarfile will by restore ownership
@@ -170,7 +206,7 @@ def make_menu(prefix, file_path, remove=False):
     try:
         import menuinst
         menuinst.install(join(prefix, win_path_ok(file_path)), remove, prefix)
-    except:
+    except Exception:
         stdoutlog.error("menuinst Exception", exc_info=True)
 
 
@@ -198,7 +234,7 @@ def _is_unix_executable_using_ORIGIN(path):
     if on_win:
         return False
     else:
-        return isfile(path) and not islink(path) and access(path, X_OK)
+        return isfile(path) and not islink(path) and os.access(path, os.X_OK)
 
 
 def _do_softlink(src, dst):
@@ -238,7 +274,17 @@ def copy(src, dst):
 
 def _do_copy(src, dst):
     log.trace("copying %s => %s", src, dst)
-    shutil_copy(src, dst)
+    # src and dst are always files. So we can bypass some checks that shutil.copy does.
+    # Also shutil.copy calls shutil.copymode, which we can skip because we are explicitly
+    # calling copystat.
+
+    # Same size as used by Linux cp command (has performance advantage).
+    # Python's default is 16k.
+    buffer_size = 4194304  # 4 * 1024 * 1024  == 4 MB
+    with open(src, 'rb') as fsrc:
+        with open(dst, 'wb') as fdst:
+            copyfileobj(fsrc, fdst, buffer_size)
+
     try:
         copystat(src, dst)
     except (IOError, OSError) as e:  # pragma: no cover
@@ -260,7 +306,8 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         return
 
     if not lexists(src):
-        raise CondaError("Cannot link a source that does not exist. %s" % src)
+        raise CondaError("Cannot link a source that does not exist. %s\n"
+                         "Running `conda clean --packages` may resolve your problem." % src)
 
     if lexists(dst):
         if not force:
@@ -295,16 +342,20 @@ def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
 
     command = '"%s" -Wi -m py_compile "%s"' % (python_exe_full_path, py_full_path)
     log.trace(command)
-    subprocess_call(command, raise_on_error=False)
+    result = subprocess_call(command, raise_on_error=False)
 
     if not isfile(pyc_full_path):
         message = dals("""
         pyc file failed to compile successfully
-          python_exe_full_path: %()s\n
-          py_full_path: %()s\n
-          pyc_full_path: %()s\n
+          python_exe_full_path: %s
+          py_full_path: %s
+          pyc_full_path: %s
+          compile rc: %s
+          compile stdout: %s
+          compile stderr: %s
         """)
-        log.info(message, python_exe_full_path, py_full_path, pyc_full_path)
+        log.info(message, python_exe_full_path, py_full_path, pyc_full_path,
+                 result.rc, result.stdout, result.stderr)
         return None
 
     return pyc_full_path
@@ -314,9 +365,9 @@ def create_package_cache_directory(pkgs_dir):
     # returns False if package cache directory cannot be created
     try:
         log.trace("creating package cache directory '%s'", pkgs_dir)
-        mkdir_p(pkgs_dir)
-        touch(join(pkgs_dir, 'urls'))
-        touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
+        sudo_safe = expand(pkgs_dir).startswith(expand('~'))
+        touch(join(pkgs_dir, PACKAGE_CACHE_MAGIC_FILE), mkdir=True, sudo_safe=sudo_safe)
+        touch(join(pkgs_dir, 'urls'), sudo_safe=sudo_safe)
     except (IOError, OSError) as e:
         if e.errno in (EACCES, EPERM):
             log.trace("cannot create package cache directory '%s'", pkgs_dir)
@@ -328,10 +379,15 @@ def create_package_cache_directory(pkgs_dir):
 
 def create_envs_directory(envs_dir):
     # returns False if envs directory cannot be created
+
+    # The magic file being used here could change in the future.  Don't write programs
+    # outside this code base that rely on the presence of this file.
+    # This value is duplicated in conda.base.context._first_writable_envs_dir().
+    envs_dir_magic_file = join(envs_dir, '.conda_envs_dir_test')
     try:
         log.trace("creating envs directory '%s'", envs_dir)
-        mkdir_p(envs_dir)
-        touch(join(envs_dir, ENVS_DIR_MAGIC_FILE))
+        sudo_safe = expand(envs_dir).startswith(expand('~'))
+        touch(join(envs_dir, envs_dir_magic_file), mkdir=True, sudo_safe=sudo_safe)
     except (IOError, OSError) as e:
         if e.errno in (EACCES, EPERM):
             log.trace("cannot create envs directory '%s'", envs_dir)

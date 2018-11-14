@@ -1,131 +1,30 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from argparse import RawDescriptionHelpFormatter
-from collections import defaultdict
 import logging
 from os.path import isdir
 import sys
 
-from .conda_argparse import (add_parser_channels, add_parser_help, add_parser_insecure,
-                             add_parser_json, add_parser_no_pin, add_parser_offline,
-                             add_parser_prefix, add_parser_pscheck, add_parser_quiet,
-                             add_parser_use_index_cache, add_parser_use_local, add_parser_yes)
+from .common import check_non_admin, specs_from_args
+from .install import handle_txn
+from ..base.context import context
+from ..core.envs_manager import unregister_env
+from ..core.link import PrefixSetup, UnlinkLinkTransaction
+from ..core.prefix_data import PrefixData
+from ..core.solve import Solver
+from ..exceptions import CondaEnvironmentError, CondaValueError
+from ..gateways.disk.delete import delete_trash, rm_rf
+from ..gateways.disk.test import is_conda_environment
+from ..models.match_spec import MatchSpec
 
-help = "%s a list of packages from a specified conda environment."
-descr = help + """
-
-This command will also remove any package that depends on any of the
-specified packages as well---unless a replacement can be found without
-that dependency. If you wish to skip this dependency checking and remove
-just the requested packages, add the '--force' option. Note however that
-this may result in a broken environment, so use this with caution.
-"""
-example = """
-Examples:
-
-    conda %s -n myenv scipy
-
-"""
-
-uninstall_help = "Alias for conda remove.  See conda remove --help."
 log = logging.getLogger(__name__)
 
 
-def configure_parser(sub_parsers, name='remove'):
-    if name == 'remove':
-        p = sub_parsers.add_parser(
-            name,
-            formatter_class=RawDescriptionHelpFormatter,
-            description=descr % name.capitalize(),
-            help=help % name.capitalize(),
-            epilog=example % name,
-            add_help=False,
-        )
-    else:
-        p = sub_parsers.add_parser(
-            name,
-            formatter_class=RawDescriptionHelpFormatter,
-            description=uninstall_help,
-            help=uninstall_help,
-            epilog=example % name,
-            add_help=False,
-        )
-    add_parser_help(p)
-    add_parser_yes(p)
-    add_parser_json(p)
-    p.add_argument(
-        "--all",
-        action="store_true",
-        help="%s all packages, i.e., the entire environment." % name.capitalize(),
-    )
-    p.add_argument(
-        "--features",
-        action="store_true",
-        help="%s features (instead of packages)." % name.capitalize(),
-    )
-
-    # TODO: --features currently sorta still work. But super sloppy.
-
-    # p.add_argument(
-    #     '--feature',
-    #     metavar='FEATURE_NAME=FEATURE_VALUE',
-    #     dest='features',
-    #     action="append",
-    #     help="Feature to remove in the conda environment. "
-    #          "The value must be a key-value pair separated by an equal sign e.g. blas=nomkl. "
-    #          "Can be used multiple times. "
-    #          "Equivalent to a MatchSpec specifying a single 'provides_features'.",
-    # )
-
-    p.add_argument(
-        "--force",
-        action="store_true",
-        help="Forces removal of a package without removing packages that depend on it. "
-             "Using this option will usually leave your environment in a broken and "
-             "inconsistent state.",
-    )
-    add_parser_no_pin(p)
-    add_parser_channels(p)
-    add_parser_prefix(p)
-    add_parser_quiet(p)
-    # Putting this one first makes it the default
-    add_parser_use_index_cache(p)
-    add_parser_use_local(p)
-    add_parser_offline(p)
-    add_parser_pscheck(p)
-    add_parser_insecure(p)
-    p.add_argument(
-        'package_names',
-        metavar='package_name',
-        action="store",
-        nargs='*',
-        help="Package names to %s from the environment." % name,
-    )
-    p.set_defaults(func=execute)
-
-
 def execute(args, parser):
-    from .common import check_non_admin, confirm_yn, specs_from_args, stdout_json
-    from ..base.context import context
-    from ..common.compat import iteritems, iterkeys
-    from ..exceptions import CondaEnvironmentError, CondaValueError
-    from ..gateways.disk.delete import delete_trash
-    from ..resolve import MatchSpec
-    from ..core.envs_manager import EnvsDirectory
-    from ..core.linked_data import linked_data
-    from ..gateways.disk.delete import rm_rf
-    from ..instructions import PREFIX
-    from ..plan import (add_unlink)
-    from .install import handle_txn
-    from ..core.solve import Solver
 
-    if not (args.all or args.package_names or args.features):
+    if not (args.all or args.package_names):
         raise CondaValueError('no package names supplied,\n'
                               '       try "conda remove -h" for more details')
 
@@ -139,7 +38,7 @@ def execute(args, parser):
         # full environment removal was requested, but environment doesn't exist anyway
         return 0
 
-    if not EnvsDirectory.is_conda_environment(prefix):
+    if not is_conda_environment(prefix):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
 
@@ -150,40 +49,32 @@ def execute(args, parser):
                                         '       add -n NAME or -p PREFIX option')
         print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
 
-        index = linked_data(prefix)
-        index = {dist: info for dist, info in iteritems(index)}
+        if 'package_names' in args:
+            stp = PrefixSetup(
+                target_prefix=prefix,
+                unlink_precs=tuple(PrefixData(prefix).iter_records()),
+                link_precs=(),
+                remove_specs=(),
+                update_specs=(),
+            )
+            txn = UnlinkLinkTransaction(stp)
+            handle_txn(txn, prefix, args, False, True)
 
-        actions = defaultdict(list)
-        actions[PREFIX] = prefix
-        for dist in sorted(iterkeys(index)):
-            add_unlink(actions, dist)
-        actions['ACTION'] = 'REMOVE_ALL'
-        action_groups = (actions, index),
-
-        if not context.json:
-            confirm_yn()
         rm_rf(prefix)
+        unregister_env(prefix)
 
-        if context.json:
-            stdout_json({
-                'success': True,
-                'actions': tuple(x[0] for x in action_groups)
-            })
         return
 
     else:
         if args.features:
             specs = tuple(MatchSpec(track_features=f) for f in set(args.package_names))
-            channel_urls = context.channels
-            subdirs = context.subdirs
         else:
             specs = specs_from_args(args.package_names)
-            channel_urls = ()
-            subdirs = ()
+        channel_urls = ()
+        subdirs = ()
         solver = Solver(prefix, channel_urls, subdirs, specs_to_remove=specs)
-        txn = solver.solve_for_transaction(force_remove=args.force)
-        pfe = txn.get_pfe()
-        handle_txn(pfe, txn, prefix, args, False, True)
+        txn = solver.solve_for_transaction()
+        handle_txn(txn, prefix, args, False, True)
 
     # Keep this code for dev reference until private envs can be re-enabled in
     # Solver.solve_for_transaction

@@ -7,11 +7,11 @@ from unittest import TestCase
 import pytest
 
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import reset_context, context
+from conda.base.context import context, reset_context
 from conda.common.compat import iteritems
 from conda.common.io import env_var
-from conda.core.index import get_index, check_whitelist, get_reduced_index
-from conda.exceptions import OperationNotAllowed
+from conda.core.index import check_whitelist, get_index, get_reduced_index
+from conda.exceptions import ChannelNotAllowed
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from tests.core.test_repodata import platform_in_record
@@ -32,11 +32,11 @@ def test_check_whitelist():
         'https://beta.conda.anaconda.org/conda-test'
     )
     with env_var('CONDA_WHITELIST_CHANNELS', ','.join(whitelist), reset_context):
-        with pytest.raises(OperationNotAllowed):
+        with pytest.raises(ChannelNotAllowed):
             get_index(("conda-canary",))
 
-        with pytest.raises(OperationNotAllowed):
-            get_index(("https://repo.continuum.io/pkgs/denied",))
+        with pytest.raises(ChannelNotAllowed):
+            get_index(("https://repo.anaconda.com/pkgs/denied",))
 
         check_whitelist(("defaults",))
         check_whitelist((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))

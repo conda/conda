@@ -1,0 +1,88 @@
+Metadata-Version: 2.0
+Name: django-twilio
+Version: 0.9.2
+Summary: Build Twilio functionality into your Django apps.
+Home-page: https://github.com/rdegges/django-twilio
+Author: Randall Degges
+Author-email: rdegges@gmail.com
+License: UNLICENSE
+Description-Content-Type: UNKNOWN
+Keywords: twilio telephony call phone voip sms django django-twilio
+Platform: UNKNOWN
+Classifier: Framework :: Django
+Classifier: Framework :: Django :: 1.8
+Classifier: Framework :: Django :: 1.9
+Classifier: Framework :: Django :: 1.10
+Classifier: Framework :: Django :: 1.11
+Classifier: Framework :: Django :: 2.0
+Classifier: Framework :: Django :: 2.1
+Classifier: Intended Audience :: Developers
+Classifier: License :: Public Domain
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Internet :: WWW/HTTP
+Requires-Dist: setuptools (>=36.2)
+Requires-Dist: twilio (<7,>=6.3.0)
+Requires-Dist: django-phonenumber-field (>=0.6)
+Requires-Dist: Django (<2,>=1.8); python_version < "3.4"
+Requires-Dist: Django (<1.9,>=1.8); python_version == "3.3"
+Requires-Dist: Django (<2.2,>=1.8); python_version >= "3.4, <3.7"
+Requires-Dist: Django (<2.2,>=2.1); python_version >= "3.5"
+
+=============
+Django-Twilio
+=============
+
+
+Integrate Twilio into your Django apps with ease.
+
+.. image:: https://badge.fury.io/py/django-twilio.png
+    :target: http://badge.fury.io/py/django-twilio
+    :alt: PyPI version
+.. image:: https://travis-ci.org/rdegges/django-twilio.png?branch=master
+    :target: https://travis-ci.org/rdegges/django-twilio
+    :alt: CI build
+.. image:: https://readthedocs.org/projects/django-twilio/badge/?version=latest
+    :target: https://readthedocs.org/projects/django-twilio/badge/?version=latest
+    :alt: documentation build
+.. image:: https://img.shields.io/pypi/pyversions/django-twilio.svg
+    :target:  https://pypi.python.org/pypi/django-twilio/
+    :alt: Python versions supported
+
+
+Meta
+----
+
+* Author: Randall Degges
+* Email:  rdegges@gmail.com
+* Maintainer: Jason Held
+* Email: jasonsheld@gmail.com
+* Status: active development, stable, maintained
+
+
+Twilio makes it easy to send & receive SMS messages, and create & manage voice calls through software.
+
+Django-twilio makes it easy to use Twilio in your Django projects.
+
+Version 0.9.0 supports twilio 6.x and django 1.8-2.0.
+
+Version 0.9.2 has minimal py3.7 and also allows django 2.1
+
+For legacy twilio (5.x SDK), please see the 0.8 version.
+
+Documentation
+-------------
+
+The documentation is hosted at ReadTheDocs. You can check out the docs
+here - http://django-twilio.rtfd.org/
+
+

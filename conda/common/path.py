@@ -1,30 +1,29 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from functools import reduce
+from logging import getLogger
 import os
-from os.path import (abspath, basename, dirname, expanduser, expandvars, join, normpath, split,
-                     splitext)
+from os.path import abspath, basename, expanduser, expandvars, join, normcase, split, splitext
 import re
+import subprocess
 
-from .compat import on_win, string_types
+from .compat import PY2, ensure_fs_path_encoding, on_win, string_types
 from .. import CondaError
 from .._vendor.auxlib.decorators import memoize
+from .._vendor.toolz import accumulate, concat, take
 
 try:
     # Python 3
     from urllib.parse import unquote, urlsplit
-    from urllib.request import url2pathname
 except ImportError:  # pragma: no cover
     # Python 2
-    from urllib import unquote, url2pathname  # NOQA
+    from urllib import unquote  # NOQA
     from urlparse import urlsplit  # NOQA
 
-try:
-    from cytoolz.itertoolz import accumulate, concat, take
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import accumulate, concat, take
-
+log = getLogger(__name__)
 
 PATH_MATCH_REGEX = (
     r"\./"              # ./
@@ -44,6 +43,8 @@ def is_path(value):
 
 
 def expand(path):
+    if on_win and PY2:
+        path = ensure_fs_path_encoding(path)
     return abspath(expanduser(expandvars(path)))
 
 
@@ -54,7 +55,10 @@ def paths_equal(path1, path2):
         True
 
     """
-    return normpath(abspath(path1)) == normpath(abspath(path2))
+    if on_win:
+        return normcase(abspath(path1)) == normcase(abspath(path2))
+    else:
+        return abspath(path1) == abspath(path2)
 
 
 @memoize
@@ -65,7 +69,7 @@ def url_to_path(url):
     """
     if is_path(url):
         return url
-    if not url.startswith("file://"):
+    if not url.startswith("file://"):  # pragma: no cover
         raise CondaError("You can only turn absolute file: urls into paths (not %s)" % url)
     _, netloc, path, _, _ = urlsplit(url)
     path = unquote(path)
@@ -86,8 +90,7 @@ def tokenized_startswith(test_iterable, startswith_iterable):
 
 
 def get_all_directories(files):
-    directories = sorted(set(tuple(f.split('/')[:-1]) for f in files))
-    return directories or ()
+    return sorted(set(tuple(f.split('/')[:-1]) for f in files) - {()})
 
 
 def get_leaf_directories(files):
@@ -118,7 +121,8 @@ def explode_directories(child_directories, already_split=False):
     # get all directories including parents
     # use already_split=True for the result of get_all_directories()
     maybe_split = lambda x: x if already_split else x.split('/')
-    return set(concat(accumulate(join, maybe_split(directory)) for directory in child_directories))
+    return set(concat(accumulate(join, maybe_split(directory))
+                      for directory in child_directories if directory))
 
 
 def pyc_path(py_path, python_major_minor_version):
@@ -201,29 +205,46 @@ def win_path_backout(path):
 
 
 def ensure_pad(name, pad="_"):
-    return name and "%s%s%s" % (pad, name.strip(pad), pad)
+    """
 
+    Examples:
+        >>> ensure_pad('conda')
+        '_conda_'
+        >>> ensure_pad('_conda')
+        '__conda_'
+        >>> ensure_pad('')
+        ''
 
-def preferred_env_matches_prefix(preferred_env, prefix, root_dir):
-    # type: (str, str, str) -> bool
-    if preferred_env is None:
-        return False
-
-    # check if prefix is within root_prefix/envs
-    prefix_dir = dirname(prefix)
-    if prefix_dir != join(root_dir, 'envs'):
-        return False
-
-    prefix_name = basename(prefix)
-    padded_preferred_env = ensure_pad(preferred_env)
-    return prefix_name == padded_preferred_env
+    """
+    if not name or name[0] == name[-1] == pad:
+        return name
+    else:
+        return "%s%s%s" % (pad, name, pad)
 
 
 def is_private_env_name(env_name):
+    """
+
+    Examples:
+        >>> is_private_env_name("_conda")
+        False
+        >>> is_private_env_name("_conda_")
+        True
+
+    """
     return env_name and env_name[0] == env_name[-1] == "_"
 
 
 def is_private_env_path(env_path):
+    """
+
+    Examples:
+        >>> is_private_env_path('/some/path/to/envs/_conda_')
+        True
+        >>> is_private_env_path('/not/an/envs_dir/_conda_')
+        False
+
+    """
     if env_path is not None:
         envs_directory, env_name = split(env_path)
         if basename(envs_directory) != "envs":
@@ -253,14 +274,23 @@ def get_python_noarch_target_path(source_short_path, target_site_packages_short_
 
 
 def win_path_to_unix(path, root_prefix=""):
-    """Convert a path or ;-separated string of paths into a unix representation
-
-    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-    """
-    path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
-
-    def _translation(found_path):
-        found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
-        return root_prefix + "/" + found
-    path = re.sub(path_re, _translation, path).replace(";/", ":/")
+    # If the user wishes to drive conda from MSYS2 itself while also having
+    # msys2 packages in their environment this allows the path conversion to
+    # happen relative to the actual shell. The onus is on the user to set
+    # CYGPATH to e.g. /usr/bin/cygpath.exe (this will be translated to e.g.
+    # (C:\msys32\usr\bin\cygpath.exe by MSYS2) to ensure this one is used.
+    if not path:
+        return ''
+    cygpath = os.environ.get('CYGPATH', 'cygpath.exe')
+    try:
+        path = subprocess.check_output([cygpath, '-up', path]).decode('ascii').split('\n')[0]
+    except Exception as e:
+        log.debug('%r' % e, exc_info=True)
+        # Convert a path or ;-separated string of paths into a unix representation
+        # Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
+        def _translation(found_path):  # NOQA
+            found = found_path.group(1).replace("\\", "/").replace(":", "").replace("//", "/")
+            return root_prefix + "/" + found
+        path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
+        path = re.sub(path_re, _translation, path).replace(";/", ":/")
     return path

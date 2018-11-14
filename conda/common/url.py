@@ -1,23 +1,32 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from getpass import getpass
 from logging import getLogger
+import os
 from os.path import abspath, expanduser
 import re
 import socket
 
+from .compat import input, on_win
 from .path import split_filename
 from .._vendor.auxlib.decorators import memoize
 from .._vendor.urllib3.exceptions import LocationParseError
 from .._vendor.urllib3.util.url import Url, parse_url
-from ..common.compat import on_win
 
 try:  # pragma: py2 no cover
     # Python 3
     from urllib.parse import (quote, quote_plus, unquote, unquote_plus,  # NOQA
                               urlunparse as stdlib_urlparse, urljoin)  # NOQA
-    from urllib.request import pathname2url  # NOQA
+    # Importing urllib.request is exceptionally slow in Python 3.
+    # Copy pathname2url's implementation directly instead:
+    if os.name == 'nt':
+        from nturl2path import pathname2url  # NOQA
+    else:
+        def pathname2url(pathname):
+            return quote(pathname)
 except ImportError:  # pragma: py3 no cover
     # Python 2
     from urllib import quote, quote_plus, unquote, unquote_plus, pathname2url  # NOQA
@@ -92,9 +101,9 @@ def is_ipv4_address(string_ip):
 def is_ipv6_address(string_ip):
     """
     Examples:
-        >>> [is_ipv6_address(ip) for ip in ('::1', '2001:db8:85a3::370:7334', '1234:'*7+'1234')]
+        >> [is_ipv6_address(ip) for ip in ('::1', '2001:db8:85a3::370:7334', '1234:'*7+'1234')]
         [True, True, True]
-        >>> [is_ipv6_address(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
+        >> [is_ipv6_address(ip) for ip in ('192.168.10.10', '1234:'*8+'1234')]
         [False, False]
     """
     try:
@@ -117,7 +126,8 @@ def is_ipv6_address_win_py27(string_ip):
         [False, False]
     """
     # python 2.7 on windows does not have socket.inet_pton
-    return bool(re.match(r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"
+    return bool(re.match(r""  # lgtm [py/regex/unmatchable-dollar]
+                         r"^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)"
                          r"([\dA-F]{1,4}(\3|:\b)|\2){5}"
                          r"(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|"
                          r"(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z",
@@ -128,11 +138,11 @@ def is_ipv6_address_win_py27(string_ip):
 def is_ip_address(string_ip):
     """
     Examples:
-        >>> is_ip_address('192.168.10.10')
+        >> is_ip_address('192.168.10.10')
         True
-        >>> is_ip_address('::1')
+        >> is_ip_address('::1')
         True
-        >>> is_ip_address('www.google.com')
+        >> is_ip_address('www.google.com')
         False
     """
     return is_ipv4_address(string_ip) or is_ipv6_address(string_ip)

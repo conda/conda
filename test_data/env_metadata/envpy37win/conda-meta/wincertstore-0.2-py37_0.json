@@ -1,0 +1,58 @@
+{
+  "build": "py37_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/win-64",
+  "constrains": [],
+  "depends": [
+    "python >=3.7,<3.8.0a0"
+  ],
+  "extracted_package_dir": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\wincertstore-0.2-py37_0",
+  "features": "",
+  "files": [
+    "Lib/site-packages/__pycache__/wincertstore.cpython-37.pyc",
+    "Lib/site-packages/wincertstore-0.2-py3.7.egg-info",
+    "Lib/site-packages/wincertstore.py"
+  ],
+  "fn": "wincertstore-0.2-py37_0.tar.bz2",
+  "license": "PSF 2",
+  "link": {
+    "source": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\wincertstore-0.2-py37_0",
+    "type": 1
+  },
+  "md5": "0418cf653523e6ef0174c259efaa78b4",
+  "name": "wincertstore",
+  "package_tarball_full_path": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\wincertstore-0.2-py37_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "Lib/site-packages/__pycache__/wincertstore.cpython-37.pyc",
+        "path_type": "hardlink",
+        "sha256": "db73c5bf042ad33242e99763c7b47b5000ea4b9e0dd3470f51c9bf295f38304b",
+        "sha256_in_prefix": "db73c5bf042ad33242e99763c7b47b5000ea4b9e0dd3470f51c9bf295f38304b",
+        "size_in_bytes": 11004
+      },
+      {
+        "_path": "Lib/site-packages/wincertstore-0.2-py3.7.egg-info",
+        "path_type": "hardlink",
+        "sha256": "be59641c20270fd1bd0dd362080d9f1c33586f91971f9cc5630f0b338f119184",
+        "sha256_in_prefix": "be59641c20270fd1bd0dd362080d9f1c33586f91971f9cc5630f0b338f119184",
+        "size_in_bytes": 5788
+      },
+      {
+        "_path": "Lib/site-packages/wincertstore.py",
+        "path_type": "hardlink",
+        "sha256": "9eb1879f68dcdd125eb0ed737ed331f16e335a6a5208ec9f26fd3dd6220cfd08",
+        "sha256_in_prefix": "9eb1879f68dcdd125eb0ed737ed331f16e335a6a5208ec9f26fd3dd6220cfd08",
+        "size_in_bytes": 11873
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 13785,
+  "subdir": "win-64",
+  "timestamp": 1530221279113,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/win-64/wincertstore-0.2-py37_0.tar.bz2",
+  "version": "0.2"
+}

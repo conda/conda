@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 # Portions of the code within this module are taken from https://github.com/jaraco/jaraco.windows
 #   which is MIT licensed by Jason R. Coombs.
 # https://github.com/jaraco/skeleton/issues/1#issuecomment-285448440
@@ -458,25 +460,24 @@ class CrossPlatformStLink(object):
             cls._st_nlink = cls._standard_st_nlink
         else:  # pragma: unix no cover
             # http://msdn.microsoft.com/en-us/library/windows/desktop/aa363858
-            import ctypes
-            from ctypes import POINTER
+            from ctypes import POINTER, Structure, c_void_p, c_wchar_p
             from ctypes.wintypes import DWORD, HANDLE, BOOL
 
-            cls.CreateFile = ctypes.windll.kernel32.CreateFileW
-            cls.CreateFile.argtypes = [ctypes.c_wchar_p, DWORD, DWORD, ctypes.c_void_p,
+            cls.CreateFile = windll.kernel32.CreateFileW
+            cls.CreateFile.argtypes = [c_wchar_p, DWORD, DWORD, c_void_p,
                                        DWORD, DWORD, HANDLE]
             cls.CreateFile.restype = HANDLE
 
             # http://msdn.microsoft.com/en-us/library/windows/desktop/ms724211
-            cls.CloseHandle = ctypes.windll.kernel32.CloseHandle
+            cls.CloseHandle = windll.kernel32.CloseHandle
             cls.CloseHandle.argtypes = [HANDLE]
             cls.CloseHandle.restype = BOOL
 
-            class FILETIME(ctypes.Structure):
+            class FILETIME(Structure):
                 _fields_ = [("dwLowDateTime", DWORD),
                             ("dwHighDateTime", DWORD)]
 
-            class BY_HANDLE_FILE_INFORMATION(ctypes.Structure):
+            class BY_HANDLE_FILE_INFORMATION(Structure):
                 _fields_ = [("dwFileAttributes", DWORD),
                             ("ftCreationTime", FILETIME),
                             ("ftLastAccessTime", FILETIME),
@@ -490,7 +491,7 @@ class CrossPlatformStLink(object):
             cls.BY_HANDLE_FILE_INFORMATION = BY_HANDLE_FILE_INFORMATION
 
             # http://msdn.microsoft.com/en-us/library/windows/desktop/aa364952
-            cls.GetFileInformationByHandle = ctypes.windll.kernel32.GetFileInformationByHandle
+            cls.GetFileInformationByHandle = windll.kernel32.GetFileInformationByHandle
             cls.GetFileInformationByHandle.argtypes = [HANDLE, POINTER(BY_HANDLE_FILE_INFORMATION)]
             cls.GetFileInformationByHandle.restype = BOOL
 

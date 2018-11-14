@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 # Try to keep compat small because it's imported by everything
 # What is compat, and what isn't?
 # If a piece of code is "general" and used in multiple modules, it goes here.
 # If it's only used in one module, keep it in that module, preferably near the top.
+# This module should contain ONLY stdlib imports.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from itertools import chain
@@ -10,6 +13,7 @@ from operator import methodcaller
 import sys
 
 on_win = bool(sys.platform == "win32")
+on_mac = bool(sys.platform == "darwin")
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
@@ -45,12 +49,22 @@ elif PY2:  # pragma: py3 no cover
 # #############################
 
 if PY3:  # pragma: py2 no cover
+    from collections.abc import Mapping, Sequence
     from io import StringIO
     from itertools import zip_longest
+    if sys.version_info[1] >= 5:
+        from json import JSONDecodeError
+        JSONDecodeError = JSONDecodeError
+    else:
+        JSONDecodeError = ValueError
 elif PY2:  # pragma: py3 no cover
+    from collections import Mapping, Sequence
     from cStringIO import StringIO
     from itertools import izip as zip, izip_longest as zip_longest
+    JSONDecodeError = ValueError
 
+Mapping = Mapping
+Sequence = Sequence
 StringIO = StringIO
 zip = zip
 zip_longest = zip_longest
@@ -135,9 +149,45 @@ def with_metaclass(Type, skip_attrs=set(('__dict__', '__weakref__'))):
     return _clone_with_metaclass
 
 
+def six_with_metaclass(meta, *bases):
+    """Create a base class with a metaclass."""
+    # This requires a bit of explanation: the basic idea is to make a dummy
+    # metaclass for one level of class instantiation that replaces itself with
+    # the actual metaclass.
+    class metaclass(type):
+
+        def __new__(cls, name, this_bases, d):
+            return meta(name, bases, d)
+
+        @classmethod
+        def __prepare__(cls, name, this_bases):
+            return meta.__prepare__(name, bases)
+    return type.__new__(metaclass, str('temporary_class'), (), {})
+
 
 NoneType = type(None)
 primitive_types = tuple(chain(string_types, integer_types, (float, complex, bool, NoneType)))
+
+
+def _init_stream_encoding(stream):
+    # PY2 compat: Initialize encoding for an IO stream.
+    # Python 2 sets the encoding of stdout/stderr to None if not run in a
+    # terminal context and thus falls back to ASCII.
+    if not PY2 or not isinstance(stream, file) or stream.encoding:
+        return stream
+    from codecs import getwriter
+    from locale import getpreferredencoding
+    encoding = getpreferredencoding()
+    try:
+        writer_class = getwriter(encoding)
+    except LookupError:
+        writer_class = getwriter("UTF-8")
+    return writer_class(stream)
+
+
+def init_std_stream_encoding():
+    sys.stdout = _init_stream_encoding(sys.stdout)
+    sys.stderr = _init_stream_encoding(sys.stderr)
 
 
 def ensure_binary(value):

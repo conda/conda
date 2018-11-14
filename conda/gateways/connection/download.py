@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import hashlib
@@ -15,6 +17,7 @@ from ..._vendor.auxlib.ish import dals
 from ..._vendor.auxlib.logz import stringify
 from ...base.context import context
 from ...common.compat import text_type
+from ...common.io import time_recorder
 from ...exceptions import (BasicClobberError, CondaDependencyError, CondaHTTPError,
                            MD5MismatchError, maybe_raise)
 
@@ -25,6 +28,7 @@ def disable_ssl_verify_warning():
     warnings.simplefilter('ignore', InsecureRequestWarning)
 
 
+@time_recorder("download")
 def download(url, target_full_path, md5sum, progress_update_callback=None):
     # TODO: For most downloads, we should know the size of the artifact from what's reported
     #       in repodata.  We should validate that here also, in addition to the 'Content-Length'
@@ -40,7 +44,7 @@ def download(url, target_full_path, md5sum, progress_update_callback=None):
         session = CondaSession()
         resp = session.get(url, stream=True, proxies=session.proxies, timeout=timeout)
         if log.isEnabledFor(DEBUG):
-            log.debug(stringify(resp))
+            log.debug(stringify(resp, content_max_len=256))
         resp.raise_for_status()
 
         content_length = int(resp.headers.get('Content-Length', 0))

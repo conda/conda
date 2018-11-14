@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from logging import getLogger
 
 from .channel import Channel
 from .enums import NoarchType
-from .index_record import IndexJsonRecord, IndexRecord, PathsData
-from .._vendor.auxlib.entity import (ComposableField, Entity, EnumField,
-                                     ImmutableEntity, IntegerField, ListField, StringField)
+from .records import PackageRecord, PathsData
+from .._vendor.auxlib.entity import (ComposableField, Entity, EnumField, ImmutableEntity,
+                                     IntegerField, ListField, StringField)
 from ..common.compat import string_types
 
 log = getLogger(__name__)
@@ -43,11 +45,10 @@ class PackageInfo(ImmutableEntity):
     # attributes external to the package tarball
     extracted_package_dir = StringField()
     channel = ComposableField(Channel)
-    repodata_record = ComposableField(IndexRecord)
+    repodata_record = ComposableField(PackageRecord)
     url = StringField()
 
     # attributes within the package tarball
-    index_json_record = ComposableField(IndexJsonRecord)
     icondata = StringField(required=False, nullable=True)
     package_metadata = ComposableField(PackageMetadata, required=False, nullable=True)
     paths_data = ComposableField(PathsData)

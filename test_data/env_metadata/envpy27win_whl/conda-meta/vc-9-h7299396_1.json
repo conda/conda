@@ -1,0 +1,33 @@
+{
+  "build": "h7299396_1",
+  "build_number": 1,
+  "channel": "https://repo.anaconda.com/pkgs/main/win-64",
+  "constrains": [],
+  "depends": [
+    "vs2008_runtime >=9.0.30729.1,<10.0a0"
+  ],
+  "extracted_package_dir": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\vc-9-h7299396_1",
+  "features": "",
+  "files": [],
+  "fn": "vc-9-h7299396_1.tar.bz2",
+  "license": "Modified BSD License (3-clause)",
+  "license_family": "BSD",
+  "link": {
+    "source": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\vc-9-h7299396_1",
+    "type": 1
+  },
+  "md5": "f2d6cc582005c00a970cb9975b894b45",
+  "name": "vc",
+  "package_tarball_full_path": "C:\\Users\\user\\develop\\conda\\devenv\\pkgs\\vc-9-h7299396_1.tar.bz2",
+  "paths_data": {
+    "paths": [],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "size": 2844,
+  "subdir": "win-64",
+  "timestamp": 1508370898881,
+  "track_features": "vc9",
+  "url": "https://repo.anaconda.com/pkgs/main/win-64/vc-9-h7299396_1.tar.bz2",
+  "version": "9"
+}

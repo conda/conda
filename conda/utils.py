@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
@@ -248,6 +251,6 @@ def sys_prefix_unfollowed():
         code = frame.f_code
         filename = code.co_filename
         unfollowed = dirname(dirname(filename))
-    except:
+    except Exception:
         return sys.prefix
     return unfollowed

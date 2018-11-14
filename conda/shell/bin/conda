@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+# WARNING: Not a real conda entry point.  Do not use other than for tests.
+from os.path import abspath, join
+import sys
+
+_conda_root = abspath(join(__file__, '..', '..', '..', '..'))
+
+if __name__ == '__main__':
+    sys.path.insert(0, _conda_root)
+    from conda.cli import main
+    sys.exit(main())

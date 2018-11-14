@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict, namedtuple
@@ -7,41 +9,39 @@ import os
 from os.path import basename, dirname, isdir, join
 from subprocess import CalledProcessError
 import sys
-from tempfile import mkdtemp
 from traceback import format_exception_only
 import warnings
 
-from conda.base.constants import SafetyChecks
-from .linked_data import PrefixData, get_python_version_for_prefix, linked_data as get_linked_data
-from .package_cache import PackageCache
-from .path_actions import (CompilePycAction, CreatePrefixRecordAction, CreateNonadminAction,
+from .package_cache_data import PackageCacheData
+from .path_actions import (CompilePycAction, CreateNonadminAction, CreatePrefixRecordAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
                            RemoveMenuAction, UnlinkPathAction, UnregisterEnvironmentLocationAction,
                            UpdateHistoryAction)
+from .prefix_data import PrefixData, get_python_version_for_prefix
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._vendor.auxlib.collection import first
 from .._vendor.auxlib.ish import dals
+from .._vendor.toolz import concat, concatv, interleave, take
+from ..base.constants import DEFAULTS_CHANNEL_NAME, SafetyChecks, PREFIX_MAGIC_FILE
 from ..base.context import context
-from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win
-from ..common.io import spinner
+from ..common.compat import ensure_text_type, iteritems, itervalues, odict, on_win, text_type
+from ..common.io import Spinner, dashlist, time_recorder
 from ..common.path import (explode_directories, get_all_directories, get_major_minor_version,
                            get_python_site_packages_short_path)
 from ..common.signals import signal_handler
-from ..exceptions import (KnownPackageClobberError, LinkError, RemoveError,
-                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise)
+from ..exceptions import (DisallowedPackageError, KnownPackageClobberError, LinkError, RemoveError,
+                          SharedLinkPathClobberError, UnknownPackageClobberError, maybe_raise,
+                          EnvironmentNotWritableError)
 from ..gateways.disk import mkdir_p
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
-from ..gateways.disk.test import hardlink_supported, softlink_supported
+from ..gateways.disk.test import hardlink_supported, is_conda_environment, softlink_supported
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
+from ..models.version import VersionOrder
 from ..resolve import MatchSpec
-
-try:
-    from cytoolz.itertoolz import concat, concatv, groupby, interleave, take
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.itertoolz import concat, concatv, groupby, interleave, take  # NOQA
+from ..utils import human_bytes
 
 log = getLogger(__name__)
 
@@ -108,7 +108,7 @@ def match_specs_to_dists(packages_info_to_link, specs):
     for spec in specs or ():
         spec = MatchSpec(spec)
         idx = next((q for q, pkg_info in enumerate(packages_info_to_link)
-                    if pkg_info.index_json_record.name == spec.name),
+                    if pkg_info.repodata_record.name == spec.name),
                    None)
         if idx is not None:
             matched_specs[idx] = spec
@@ -138,6 +138,18 @@ ActionGroup = namedtuple('ActionGroup', (
     'target_prefix',
 ))
 
+ChangeReport = namedtuple("ChangeReport", (
+    "prefix",
+    "specs_to_remove",
+    "specs_to_add",
+    "removed_precs",
+    "new_precs",
+    "updated_precs",
+    "downgraded_precs",
+    "superseded_precs",
+    "fetch_precs",
+))
+
 
 class UnlinkLinkTransaction(object):
 
@@ -146,39 +158,46 @@ class UnlinkLinkTransaction(object):
         self.prefix_action_groups = odict()
 
         for stp in itervalues(self.prefix_setups):
-            log.debug("instantiating UnlinkLinkTransaction with\n"
-                      "  target_prefix: %s\n"
-                      "  unlink_precs:\n"
-                      "    %s\n"
-                      "  link_precs:\n"
-                      "    %s\n",
-                      stp.target_prefix,
-                      '\n    '.join(prec.dist_str() for prec in stp.unlink_precs),
-                      '\n    '.join(prec.dist_str() for prec in stp.link_precs))
+            log.info("initializing UnlinkLinkTransaction with\n"
+                     "  target_prefix: %s\n"
+                     "  unlink_precs:\n"
+                     "    %s\n"
+                     "  link_precs:\n"
+                     "    %s\n",
+                     stp.target_prefix,
+                     '\n    '.join(prec.dist_str() for prec in stp.unlink_precs),
+                     '\n    '.join(prec.dist_str() for prec in stp.link_precs))
 
+        self._pfe = None
         self._prepared = False
         self._verified = False
 
     @property
     def nothing_to_do(self):
-        return not any((stp.unlink_precs or stp.link_precs)
-                       for stp in itervalues(self.prefix_setups))
+        return (
+            not any((stp.unlink_precs or stp.link_precs) for stp in itervalues(self.prefix_setups))
+            and all(is_conda_environment(stp.target_prefix)
+                    for stp in itervalues(self.prefix_setups))
+        )
 
-    def get_pfe(self):
-        from .package_cache import ProgressiveFetchExtract
-        if not self.prefix_setups:
-            return ProgressiveFetchExtract(())
-        else:
-            link_precs = set(concat(stp.link_precs for stp in itervalues(self.prefix_setups)))
-            return ProgressiveFetchExtract(link_precs)
+    def download_and_extract(self):
+        if self._pfe is None:
+            self._get_pfe()
+        if not self._pfe._executed:
+            self._pfe.execute()
 
     def prepare(self):
+        if self._pfe is None:
+            self._get_pfe()
+        if not self._pfe._executed:
+            self._pfe.execute()
+
         if self._prepared:
             return
 
         self.transaction_context = {}
 
-        with spinner("Preparing transaction", not context.verbosity and not context.quiet,
+        with Spinner("Preparing transaction", not context.verbosity and not context.quiet,
                      context.json):
             for stp in itervalues(self.prefix_setups):
                 grps = self._prepare(self.transaction_context, stp.target_prefix,
@@ -188,6 +207,7 @@ class UnlinkLinkTransaction(object):
 
         self._prepared = True
 
+    @time_recorder("unlink_link_prepare_and_verify")
     def verify(self):
         if not self._prepared:
             self.prepare()
@@ -198,7 +218,7 @@ class UnlinkLinkTransaction(object):
             self._verified = True
             return
 
-        with spinner("Verifying transaction", not context.verbosity and not context.quiet,
+        with Spinner("Verifying transaction", not context.verbosity and not context.quiet,
                      context.json):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
             if exceptions:
@@ -222,6 +242,17 @@ class UnlinkLinkTransaction(object):
         finally:
             rm_rf(self.transaction_context['temp_dir'])
 
+    def _get_pfe(self):
+        from .package_cache_data import ProgressiveFetchExtract
+        if self._pfe is not None:
+            pfe = self._pfe
+        elif not self.prefix_setups:
+            self._pfe = pfe = ProgressiveFetchExtract(())
+        else:
+            link_precs = set(concat(stp.link_precs for stp in itervalues(self.prefix_setups)))
+            self._pfe = pfe = ProgressiveFetchExtract(link_precs)
+        return pfe
+
     @classmethod
     def _prepare(cls, transaction_context, target_prefix, unlink_precs, link_precs,
                  remove_specs, update_specs):
@@ -242,7 +273,7 @@ class UnlinkLinkTransaction(object):
         # NOTE: load_meta can return None
         # TODO: figure out if this filter shouldn't be an assert not None
         prefix_recs_to_unlink = tuple(lpd for lpd in prefix_recs_to_unlink if lpd)
-        pkg_cache_recs_to_link = tuple(PackageCache.get_entry_to_link(prec)
+        pkg_cache_recs_to_link = tuple(PackageCacheData.get_entry_to_link(prec)
                                        for prec in link_precs)
         assert all(pkg_cache_recs_to_link)
         packages_info_to_link = tuple(read_package_info(prec, pcrec)
@@ -253,14 +284,14 @@ class UnlinkLinkTransaction(object):
 
         # make all the path actions
         # no side effects allowed when instantiating these action objects
-        python_version = cls.get_python_version(target_prefix,
-                                                prefix_recs_to_unlink,
-                                                packages_info_to_link)
+        python_version = cls._get_python_version(target_prefix,
+                                                 prefix_recs_to_unlink,
+                                                 packages_info_to_link)
         transaction_context['target_python_version'] = python_version
         sp = get_python_site_packages_short_path(python_version)
         transaction_context['target_site_packages_short_path'] = sp
 
-        transaction_context['temp_dir'] = mkdtemp()
+        transaction_context['temp_dir'] = join(target_prefix, '.condatmp')
 
         unlink_action_groups = tuple(ActionGroup(
             'unlink',
@@ -277,8 +308,8 @@ class UnlinkLinkTransaction(object):
 
         matchspecs_for_link_dists = match_specs_to_dists(packages_info_to_link, update_specs)
         link_action_groups = tuple(
-            ActionGroup('link', pkg_info, cls.make_link_actions(transaction_context, pkg_info,
-                                                                target_prefix, lt, spec),
+            ActionGroup('link', pkg_info, cls._make_link_actions(transaction_context, pkg_info,
+                                                                 target_prefix, lt, spec),
                         target_prefix)
             for pkg_info, lt, spec in zip(packages_info_to_link, link_types,
                                           matchspecs_for_link_dists)
@@ -287,11 +318,7 @@ class UnlinkLinkTransaction(object):
         history_actions = UpdateHistoryAction.create_actions(
             transaction_context, target_prefix, remove_specs, update_specs,
         )
-        if link_action_groups:
-            register_actions = RegisterEnvironmentLocationAction(transaction_context,
-                                                                 target_prefix),
-        else:
-            register_actions = ()
+        register_actions = RegisterEnvironmentLocationAction(transaction_context, target_prefix),
 
         register_action_groups = ActionGroup('register', None,
                                              register_actions + history_actions,
@@ -331,8 +358,7 @@ class UnlinkLinkTransaction(object):
         #   3. if the target is a private env, leased paths need to be verified
         #   4. make sure conda-meta/history file is writable
         #   5. make sure envs/catalog.json is writable; done with RegisterEnvironmentLocationAction
-        #   6. make sure we're not removing pinned packages without no-pin flag
-        # TODO: 3, 4, 6
+        # TODO: 3, 4
 
         unlink_action_groups = (axn_grp
                                 for action_groups in prefix_action_group
@@ -394,8 +420,13 @@ class UnlinkLinkTransaction(object):
 
     @staticmethod
     def _verify_transaction_level(prefix_setups):
-        # 1. make sure we're not removing conda or a conda dependency from conda's env
+        # 1. make sure we're not removing conda from conda's env
         # 2. make sure we're not removing a conda dependency from conda's env
+        # 3. enforce context.disallowed_packages
+        # 4. make sure we're not removing pinned packages without no-pin flag
+        # 5. make sure conda-meta/history for each prefix is writable
+        # TODO: Verification 4
+
         conda_prefixes = (join(context.root_prefix, 'envs', '_conda_'), context.root_prefix)
         conda_setups = tuple(setup for setup in itervalues(prefix_setups)
                              if setup.target_prefix in conda_prefixes)
@@ -421,20 +452,21 @@ class UnlinkLinkTransaction(object):
         if conda_final_setup is None:
             # means we're not unlinking then linking a new package, so look up current conda record
             conda_final_prefix = context.conda_prefix
-            pkg_names_already_lnkd = tuple(rec.name for rec in get_linked_data(conda_final_prefix)
-                                           or ())
+            pd = PrefixData(conda_final_prefix)
+            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = ()
             pkg_names_being_unlnkd = ()
-            _prefix_records = itervalues(get_linked_data(conda_final_prefix))
-            conda_linked_depends = next((record.depends for record in _prefix_records
-                                         if record.name == 'conda'), ())
+            conda_linked_depends = next(
+                (record.depends for record in pd.iter_records() if record.name == 'conda'),
+                ()
+            )
         else:
             conda_final_prefix = conda_final_setup.target_prefix
-            pkg_names_already_lnkd = tuple(rec.name for rec in get_linked_data(conda_final_prefix)
-                                           or ())
+            pd = PrefixData(conda_final_prefix)
+            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = tuple(prec.name for prec in conda_final_setup.link_precs or ())
-            pkg_names_being_unlnkd = tuple(prec.name
-                                           for prec in conda_final_setup.unlink_precs or ())
+            pkg_names_being_unlnkd = tuple(prec.name for prec in conda_final_setup.unlink_precs
+                                           or ())
             conda_linked_depends = conda_prec.depends
 
         for conda_dependency in conda_linked_depends:
@@ -446,23 +478,52 @@ class UnlinkLinkTransaction(object):
                 yield RemoveError("'%s' is a dependency of conda and cannot be removed from\n"
                                   "conda's operating environment." % dep_name)
 
+        # Verification 3. enforce disallowed_packages
+        disallowed = tuple(MatchSpec(s) for s in context.disallowed_packages)
+        for prefix_setup in itervalues(prefix_setups):
+            for prec in prefix_setup.link_precs:
+                if any(d.match(prec) for d in disallowed):
+                    yield DisallowedPackageError(prec)
+
+        # Verification 5. make sure conda-meta/history for each prefix is writable
+        for prefix_setup in itervalues(prefix_setups):
+            test_path = join(prefix_setup.target_prefix, PREFIX_MAGIC_FILE)
+            test_path_existed = lexists(test_path)
+            dir_existed = None
+            try:
+                dir_existed = mkdir_p(dirname(test_path))
+                open(test_path, "a").close()
+            except EnvironmentError:
+                if dir_existed is False:
+                    rm_rf(dirname(test_path))
+                yield EnvironmentNotWritableError(prefix_setup.target_prefix)
+            else:
+                if not dir_existed:
+                    rm_rf(dirname(test_path))
+                elif not test_path_existed:
+                    rm_rf(test_path)
+
     @classmethod
     def _verify(cls, prefix_setups, prefix_action_groups):
+        transaction_exceptions = tuple(
+            exc for exc in cls._verify_transaction_level(prefix_setups) if exc
+        )
+        if transaction_exceptions:
+            return transaction_exceptions
         exceptions = tuple(exc for exc in concatv(
             concat(cls._verify_individual_level(prefix_group)
                    for prefix_group in itervalues(prefix_action_groups)),
             concat(cls._verify_prefix_level(target_prefix, prefix_group)
                    for target_prefix, prefix_group in iteritems(prefix_action_groups)),
-            cls._verify_transaction_level(prefix_setups),
         ) if exc)
         return exceptions
 
     @classmethod
     def _execute(cls, all_action_groups):
-        with signal_handler(conda_signal_handler):
+        with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             pkg_idx = 0
             try:
-                with spinner("Executing transaction", not context.verbosity and not context.quiet,
+                with Spinner("Executing transaction", not context.verbosity and not context.quiet,
                              context.json):
                     for pkg_idx, axngroup in enumerate(all_action_groups):
                         cls._execute_actions(pkg_idx, axngroup)
@@ -479,7 +540,7 @@ class UnlinkLinkTransaction(object):
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
                 if context.rollback_enabled:
-                    with spinner("Rolling back transaction",
+                    with Spinner("Rolling back transaction",
                                  not context.verbosity and not context.quiet, context.json):
                         failed_pkg_idx = pkg_idx
                         reverse_actions = reversed(tuple(enumerate(
@@ -506,8 +567,9 @@ class UnlinkLinkTransaction(object):
         axn_idx, action, is_unlink = 0, None, axngroup.type == 'unlink'
         prec = axngroup.pkg_data
 
-        if not isdir(join(target_prefix, 'conda-meta')):
-            mkdir_p(join(target_prefix, 'conda-meta'))
+        conda_meta_dir = join(target_prefix, 'conda-meta')
+        if not isdir(conda_meta_dir):
+            mkdir_p(conda_meta_dir)
 
         try:
             if axngroup.type == 'unlink':
@@ -580,15 +642,15 @@ class UnlinkLinkTransaction(object):
         return exceptions
 
     @staticmethod
-    def get_python_version(target_prefix, pcrecs_to_unlink, packages_info_to_link):
+    def _get_python_version(target_prefix, pcrecs_to_unlink, packages_info_to_link):
         # this method determines the python version that will be present at the
         # end of the transaction
         linking_new_python = next((package_info for package_info in packages_info_to_link
-                                   if package_info.index_json_record.name == 'python'),
+                                   if package_info.repodata_record.name == 'python'),
                                   None)
         if linking_new_python:
             # is python being linked? we're done
-            full_version = linking_new_python.index_json_record.version
+            full_version = linking_new_python.repodata_record.version
             assert full_version
             log.debug("found in current transaction python version %s", full_version)
             return get_major_minor_version(full_version)
@@ -609,8 +671,8 @@ class UnlinkLinkTransaction(object):
         return None
 
     @staticmethod
-    def make_link_actions(transaction_context, package_info, target_prefix, requested_link_type,
-                          requested_spec):
+    def _make_link_actions(transaction_context, package_info, target_prefix, requested_link_type,
+                           requested_spec):
         required_quad = transaction_context, package_info, target_prefix, requested_link_type
 
         file_link_actions = LinkPathAction.create_file_link_actions(*required_quad)
@@ -672,16 +734,21 @@ class UnlinkLinkTransaction(object):
             meta_create_actions,
         ))
 
-    def make_legacy_action_groups(self, pfe):
-        from ..models.dist import Dist
+    def _make_legacy_action_groups(self):
+        # this code reverts json output for plan back to previous behavior
+        #   relied on by Anaconda Navigator and nb_conda
         legacy_action_groups = []
+
+        if self._pfe is None:
+            self._get_pfe()
 
         for q, (prefix, setup) in enumerate(iteritems(self.prefix_setups)):
             actions = defaultdict(list)
             if q == 0:
-                pfe.prepare()
-                for axn in pfe.cache_actions:
-                    actions['FETCH'].append(Dist(axn.url))
+                self._pfe.prepare()
+                download_urls = set(axn.url for axn in self._pfe.cache_actions)
+                actions['FETCH'].extend(prec for prec in self._pfe.link_precs
+                                        if prec.url in download_urls)
 
             actions['PREFIX'] = setup.target_prefix
             for prec in setup.unlink_precs:
@@ -693,17 +760,197 @@ class UnlinkLinkTransaction(object):
 
         return legacy_action_groups
 
-    def display_actions(self, pfe):
-        from ..models.dist import Dist
-        from ..plan import display_actions
-        legacy_action_groups = self.make_legacy_action_groups(pfe)
+    def print_transaction_summary(self):
+        legacy_action_groups = self._make_legacy_action_groups()
+
+        download_urls = set(axn.url for axn in self._pfe.cache_actions)
 
         for actions, (prefix, stp) in zip(legacy_action_groups, iteritems(self.prefix_setups)):
-            pseudo_index = {Dist(prec): prec for prec in concatv(stp.unlink_precs, stp.link_precs)}
-            display_actions(actions, pseudo_index, show_channel_urls=context.show_channel_urls,
-                            specs_to_remove=stp.remove_specs, specs_to_add=stp.update_specs)
+            change_report = self._calculate_change_report(prefix, stp.unlink_precs, stp.link_precs,
+                                                          download_urls, stp.remove_specs,
+                                                          stp.update_specs)
+            change_report_str = self._change_report_str(change_report)
+            print(change_report_str)
 
         return legacy_action_groups
+
+    def _change_report_str(self, change_report):
+        builder = ['', '## Package Plan ##\n']
+        builder.append('  environment location: %s' % change_report.prefix)
+        builder.append('')
+        if change_report.specs_to_remove:
+            builder.append('  removed specs:%s'
+                           % dashlist(sorted(text_type(s) for s in change_report.specs_to_remove),
+                                      indent=4))
+            builder.append('')
+        if change_report.specs_to_add:
+            builder.append('  added / updated specs:%s'
+                           % dashlist(sorted(text_type(s) for s in change_report.specs_to_add),
+                                      indent=4))
+            builder.append('')
+
+        def channel_filt(s):
+            if context.show_channel_urls is False:
+                return ''
+            if context.show_channel_urls is None and s == DEFAULTS_CHANNEL_NAME:
+                return ''
+            return s
+
+        def print_dists(dists_extras):
+            lines = []
+            fmt = "    %-27s|%17s"
+            lines.append(fmt % ('package', 'build'))
+            lines.append(fmt % ('-' * 27, '-' * 17))
+            for prec, extra in dists_extras:
+                line = fmt % (strip_global(prec.namekey) + '-' + prec.version, prec.build)
+                if extra:
+                    line += extra
+                lines.append(line)
+            return lines
+
+        convert_namekey = lambda x: ("0:" + x[7:]) if x.startswith("global:") else x
+        strip_global = lambda x: x[7:] if x.startswith("global:") else x
+
+        if change_report.fetch_precs:
+            builder.append("\nThe following packages will be downloaded:\n")
+
+            disp_lst = []
+            total_download_bytes = 0
+            for prec in sorted(change_report.fetch_precs,
+                               key=lambda x: convert_namekey(x.namekey)):
+                extra = '%15s' % human_bytes(prec.size)
+                total_download_bytes += prec.size
+                schannel = channel_filt(text_type(prec.channel.canonical_name))
+                if schannel:
+                    extra += '  ' + schannel
+                disp_lst.append((prec, extra))
+            builder.extend(print_dists(disp_lst))
+
+            builder.append(' ' * 4 + '-' * 60)
+            builder.append(" " * 43 + "Total: %14s" % human_bytes(total_download_bytes))
+
+        def diff_strs(unlink_prec, link_prec):
+            channel_change = unlink_prec.channel.name != link_prec.channel.name
+            subdir_change = unlink_prec.subdir != link_prec.subdir
+            version_change = unlink_prec.version != link_prec.version
+            build_change = unlink_prec.build != link_prec.build
+
+            builder_left = []
+            builder_right = []
+
+            if channel_change or subdir_change:
+                builder_left.append(unlink_prec.channel.name)
+                builder_right.append(link_prec.channel.name)
+            if subdir_change:
+                builder_left.append("/" + unlink_prec.subdir)
+                builder_right.append("/" + link_prec.subdir)
+            if (channel_change or subdir_change) and (version_change or build_change):
+                builder_left.append("::" + unlink_prec.name + "-")
+                builder_right.append("::" + link_prec.name + "-")
+            if version_change or build_change:
+                builder_left.append(unlink_prec.version + "-" + unlink_prec.build)
+                builder_right.append(link_prec.version + "-" + link_prec.build)
+
+            return ''.join(builder_left), ''.join(builder_right)
+
+        def add_single(display_key, disp_str):
+            if len(display_key) > 18:
+                display_key = display_key[:17] + "~"
+            builder.append("  %-18s %s" % (display_key, disp_str))
+
+        def add_double(display_key, left_str, right_str):
+            if len(display_key) > 18:
+                display_key = display_key[:17] + "~"
+            if len(left_str) > 38:
+                left_str = left_str[:37] + "~"
+            builder.append("  %-18s %38s --> %s" % (display_key, left_str, right_str))
+
+        if change_report.new_precs:
+            builder.append("\nThe following NEW packages will be INSTALLED:\n")
+            for namekey in sorted(change_report.new_precs, key=convert_namekey):
+                link_prec = change_report.new_precs[namekey]
+                display_key = strip_global(namekey)
+                add_single(display_key, link_prec.record_id())
+
+        if change_report.removed_precs:
+            builder.append("\nThe following packages will be REMOVED:\n")
+            for namekey in sorted(change_report.removed_precs, key=convert_namekey):
+                unlink_prec = change_report.removed_precs[namekey]
+                builder.append("  " + "-".join(
+                    (unlink_prec.name, unlink_prec.version, unlink_prec.build)
+                ))
+
+        if change_report.updated_precs:
+            builder.append("\nThe following packages will be UPDATED:\n")
+            for namekey in sorted(change_report.updated_precs, key=convert_namekey):
+                unlink_prec, link_prec = change_report.updated_precs[namekey]
+                display_key = strip_global(namekey)
+                left_str, right_str = diff_strs(unlink_prec, link_prec)
+                add_double(display_key, left_str, right_str)
+
+        if change_report.superseded_precs:
+            builder.append("\nThe following packages will be SUPERSEDED "
+                           "by a higher-priority channel:\n")
+            for namekey in sorted(change_report.superseded_precs, key=convert_namekey):
+                unlink_prec, link_prec = change_report.superseded_precs[namekey]
+                display_key = strip_global(namekey)
+                left_str, right_str = diff_strs(unlink_prec, link_prec)
+                add_double(display_key, left_str, right_str)
+
+        if change_report.downgraded_precs:
+            builder.append("\nThe following packages will be DOWNGRADED:\n")
+            for namekey in sorted(change_report.downgraded_precs, key=convert_namekey):
+                unlink_prec, link_prec = change_report.downgraded_precs[namekey]
+                display_key = strip_global(namekey)
+                left_str, right_str = diff_strs(unlink_prec, link_prec)
+                add_double(display_key, left_str, right_str)
+        builder.append('')
+        builder.append('')
+        return "\n".join(builder)
+
+    @staticmethod
+    def _calculate_change_report(prefix, unlink_precs, link_precs, download_urls, specs_to_remove,
+                                 specs_to_add):
+        unlink_map = {prec.namekey: prec for prec in unlink_precs}
+        link_map = {prec.namekey: prec for prec in link_precs}
+        unlink_namekeys, link_namekeys = set(unlink_map), set(link_map)
+
+        removed_precs = {namekey: unlink_map[namekey]
+                         for namekey in (unlink_namekeys - link_namekeys)}
+        new_precs = {namekey: link_map[namekey]
+                     for namekey in (link_namekeys - unlink_namekeys)}
+
+        # updated means a version increase, or a build number increase
+        # downgraded means a version decrease, or build number decrease, but channel canonical_name
+        #   has to be the same
+        # superseded then should be everything else left over
+        updated_precs = {}
+        downgraded_precs = {}
+        superseded_precs = {}
+
+        common_namekeys = link_namekeys & unlink_namekeys
+        for namekey in common_namekeys:
+            unlink_prec, link_prec = unlink_map[namekey], link_map[namekey]
+            unlink_vo = VersionOrder(unlink_prec.version)
+            link_vo = VersionOrder(link_prec.version)
+            build_number_increases = link_prec.build_number > unlink_prec.build_number
+            if link_vo == unlink_vo and build_number_increases or link_vo > unlink_vo:
+                updated_precs[namekey] = (unlink_prec, link_prec)
+            elif (link_prec.channel.name == unlink_prec.channel.name
+                    and link_prec.subdir == unlink_prec.subdir):
+                if link_prec == unlink_prec:
+                    # noarch: python packages are re-linked on a python version change
+                    # just leave them out of the package report
+                    continue
+                downgraded_precs[namekey] = (unlink_prec, link_prec)
+            else:
+                superseded_precs[namekey] = (unlink_prec, link_prec)
+
+        fetch_precs = set(prec for prec in link_precs if prec.url in download_urls)
+        change_report = ChangeReport(prefix, specs_to_remove, specs_to_add, removed_precs,
+                                     new_precs, updated_precs, downgraded_precs, superseded_precs,
+                                     fetch_precs)
+        return change_report
 
 
 def run_script(prefix, prec, action='post-link', env_prefix=None):
@@ -742,7 +989,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None):
 
     if on_win:
         try:
-            command_args = [os.environ[str('COMSPEC')], '/c', path]
+            command_args = [os.environ[str('COMSPEC')], '/d', '/c', path]
         except KeyError:
             log.info("failed to run %s for %s due to COMSPEC KeyError", action, prec.dist_str())
             return False

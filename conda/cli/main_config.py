@@ -1,215 +1,25 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from argparse import SUPPRESS
-import collections
+from collections import OrderedDict
 import json
 import os
 from os.path import isfile, join
 import sys
 from textwrap import wrap
 
-from .conda_argparse import add_parser_json
 from .. import CondaError
-from ..base.constants import CONDA_HOMEPAGE_URL
+from .._vendor.auxlib.entity import EntityEncoder
+from .._vendor.toolz import concat, groupby
+from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
+                              UpdateModifier)
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import isiterable, iteritems, string_types, text_type
-from ..common.constants import NULL
+from ..common.compat import Mapping, Sequence, isiterable, iteritems, itervalues, string_types
+from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
-
-descr = """
-Modify configuration values in .condarc.  This is modeled after the git
-config command.  Writes to the user .condarc file (%s) by default.
-
-""" % user_rc_path
-
-# Note, the extra whitespace in the list keys is on purpose. It's so the
-# formatting from help2man is still valid YAML (otherwise it line wraps the
-# keys like "- conda - defaults"). Technically the parser here still won't
-# recognize it because it removes the indentation, but at least it will be
-# valid.
-additional_descr = """
-See `conda config --describe` or %s/docs/config.html
-for details on all the options that can go in .condarc.
-
-Examples:
-
-Display all configuration values as calculated and compiled:
-
-    conda config --show
-
-Display all identified configuration sources:
-
-    conda config --show-sources
-
-Describe all available configuration options:
-
-    conda config --describe
-
-Add the conda-canary channel:
-
-    conda config --add channels conda-canary
-
-Set the output verbosity to level 3 (highest):
-
-    conda config --set verbosity 3
-""" % CONDA_HOMEPAGE_URL
-
-
-# Note, the formatting of this is designed to work well with help2man
-example = """
-Examples:
-
-Get the channels defined in the system .condarc:
-
-    conda config --get channels --system
-
-Add the 'foo' Binstar channel:
-
-    conda config --add channels foo
-
-Disable the 'show_channel_urls' option:
-
-    conda config --set show_channel_urls no
-"""
-
-
-def configure_parser(sub_parsers):
-    p = sub_parsers.add_parser(
-        'config',
-        description=descr,
-        help=descr,
-        epilog=additional_descr,
-    )
-    add_parser_json(p)
-
-    # TODO: use argparse.FileType
-    location = p.add_mutually_exclusive_group()
-    location.add_argument(
-        "--system",
-        action="store_true",
-        help="""Write to the system .condarc file ({system}). Otherwise writes to the user
-        config file ({user}).""".format(system=sys_rc_path,
-                                        user=user_rc_path),
-    )
-    location.add_argument(
-        "--env",
-        action="store_true",
-        help="Write to the active conda environment .condarc file (%s). "
-             "If no environment is active, write to the user config file (%s)."
-             "" % (os.getenv('CONDA_PREFIX', "<no active environment>"), user_rc_path),
-    )
-    location.add_argument(
-        "--file",
-        action="store",
-        help="""Write to the given file. Otherwise writes to the user config file ({user})
-or the file path given by the 'CONDARC' environment variable, if it is set
-(default: %(default)s).""".format(user=user_rc_path),
-        default=os.environ.get('CONDARC', user_rc_path)
-    )
-
-    # XXX: Does this really have to be mutually exclusive. I think the below
-    # code will work even if it is a regular group (although combination of
-    # --add and --remove with the same keys will not be well-defined).
-    action = p.add_mutually_exclusive_group(required=True)
-    action.add_argument(
-        "--show",
-        nargs='*',
-        default=None,
-        help="Display configuration values as calculated and compiled. "
-             "If no arguments given, show information for all configuration values.",
-    )
-    action.add_argument(
-        "--show-sources",
-        action="store_true",
-        help="Display all identified configuration sources.",
-    )
-    action.add_argument(
-        "--validate",
-        action="store_true",
-        help="Validate all configuration sources.",
-    )
-    action.add_argument(
-        "--describe",
-        nargs='*',
-        default=None,
-        help="Describe given configuration parameters. If no arguments given, show "
-             "information for all configuration parameters.",
-    )
-    action.add_argument(
-        "--write-default",
-        action="store_true",
-        help="Write the default configuration to a file. "
-             "Equivalent to `conda config --describe > ~/.condarc` "
-             "when no --env, --system, or --file flags are given.",
-    )
-    action.add_argument(
-        "--get",
-        nargs='*',
-        action="store",
-        help="Get a configuration value.",
-        default=None,
-        metavar='KEY',
-    )
-    action.add_argument(
-        "--append",
-        nargs=2,
-        action="append",
-        help="""Add one configuration value to the end of a list key.""",
-        default=[],
-        metavar=('KEY', 'VALUE'),
-    )
-    action.add_argument(
-        "--prepend", "--add",
-        nargs=2,
-        action="append",
-        help="""Add one configuration value to the beginning of a list key.""",
-        default=[],
-        metavar=('KEY', 'VALUE'),
-    )
-    action.add_argument(
-        "--set",
-        nargs=2,
-        action="append",
-        help="""Set a boolean or string key""",
-        default=[],
-        metavar=('KEY', 'VALUE'),
-    )
-    action.add_argument(
-        "--remove",
-        nargs=2,
-        action="append",
-        help="""Remove a configuration value from a list key. This removes
-    all instances of the value.""",
-        default=[],
-        metavar=('KEY', 'VALUE'),
-    )
-    action.add_argument(
-        "--remove-key",
-        nargs=1,
-        action="append",
-        help="""Remove a configuration key (and all its values).""",
-        default=[],
-        metavar="KEY",
-    )
-    action.add_argument(
-        "--stdin",
-        action="store_true",
-        help="Apply configuration information given in yaml format piped through stdin.",
-    )
-
-    p.add_argument(
-        "-f", "--force",
-        action="store_true",
-        default=NULL,
-        help=SUPPRESS,  # TODO: No longer used.  Remove in a future release.
-    )
-
-    p.set_defaults(func=execute)
+from ..common.serialize import yaml, yaml_dump, yaml_load
 
 
 def execute(args, parser):
@@ -221,11 +31,9 @@ def execute(args, parser):
 
 
 def format_dict(d):
-    from ..common.configuration import pretty_list, pretty_map
-
     lines = []
     for k, v in iteritems(d):
-        if isinstance(v, collections.Mapping):
+        if isinstance(v, Mapping):
             if v:
                 lines.append("%s:" % k)
                 lines.append(pretty_map(v))
@@ -243,8 +51,6 @@ def format_dict(d):
 
 
 def parameter_description_builder(name):
-    from .._vendor.auxlib.entity import EntityEncoder
-    from ..common.serialize import yaml_dump
     builder = []
     details = context.describe_parameter(name)
     aliases = details['aliases']
@@ -261,28 +67,37 @@ def parameter_description_builder(name):
     if aliases:
         builder.append("  aliases: %s" % ', '.join(aliases))
     if string_delimiter:
-        builder.append("  string delimiter: '%s'" % string_delimiter)
+        builder.append("  env var string delimiter: '%s'" % string_delimiter)
 
     builder.extend('  ' + line for line in wrap(details['description'], 70))
 
     builder.append('')
+    builder = ['# ' + line for line in builder]
 
     builder.extend(yaml_dump({name: json.loads(default_value_str)}).strip().split('\n'))
 
     builder = ['# ' + line for line in builder]
     builder.append('')
-    builder.append('')
     return builder
 
 
-def execute_config(args, parser):
-    try:
-        from cytoolz.itertoolz import concat, groupby
-    except ImportError:  # pragma: no cover
-        from .._vendor.toolz.itertoolz import concat, groupby  # NOQA
-    from .._vendor.auxlib.entity import EntityEncoder
+def describe_all_parameters():
+    builder = []
+    skip_categories = ('CLI-only', 'Hidden and Undocumented')
+    for category, parameter_names in iteritems(context.category_map):
+        if category in skip_categories:
+            continue
+        builder.append('# ######################################################')
+        builder.append('# ## {:^48} ##'.format(category))
+        builder.append('# ######################################################')
+        builder.append('')
+        builder.extend(concat(parameter_description_builder(name)
+                              for name in parameter_names))
+        builder.append('')
+    return '\n'.join(builder)
 
-    from ..common.serialize import yaml_dump, yaml_load
+
+def execute_config(args, parser):
 
     json_warnings = []
     json_get = {}
@@ -307,26 +122,28 @@ def execute_config(args, parser):
             not_params = set(paramater_names) - set(all_names)
             if not_params:
                 from ..exceptions import ArgumentError
-                from ..resolve import dashlist
+                from ..common.io import dashlist
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
         else:
             paramater_names = context.list_parameters()
-
-        from collections import OrderedDict
 
         d = OrderedDict((key, getattr(context, key)) for key in paramater_names)
         if context.json:
             print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
                   cls=EntityEncoder))
         else:
-            # coerce channels
+            # Add in custom formatting
             if 'custom_channels' in d:
-                d['custom_channels'] = {k: text_type(v).replace(k, '')  # TODO: the replace here isn't quite right  # NOQA
-                                        for k, v in iteritems(d['custom_channels'])}
-            # TODO: custom_multichannels needs better formatting
+                d['custom_channels'] = {
+                    channel.name: "%s://%s" % (channel.scheme, channel.location)
+                    for channel in itervalues(d['custom_channels'])
+                }
             if 'custom_multichannels' in d:
-                d['custom_multichannels'] = {k: json.dumps([text_type(c) for c in chnls])
-                                             for k, chnls in iteritems(d['custom_multichannels'])}
+                from ..common.io import dashlist
+                d['custom_multichannels'] = {
+                    multichannel_name: dashlist(channels, indent=4)
+                    for multichannel_name, channels in iteritems(d['custom_multichannels'])
+                }
 
             print('\n'.join(format_dict(d)))
         context.validate_configuration()
@@ -339,17 +156,29 @@ def execute_config(args, parser):
             not_params = set(paramater_names) - set(all_names)
             if not_params:
                 from ..exceptions import ArgumentError
-                from ..resolve import dashlist
+                from ..common.io import dashlist
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
+            if context.json:
+                print(json.dumps([context.describe_parameter(name) for name in paramater_names],
+                                 sort_keys=True, indent=2, separators=(',', ': '),
+                                 cls=EntityEncoder))
+            else:
+                builder = []
+                builder.extend(concat(parameter_description_builder(name)
+                                      for name in paramater_names))
+                print('\n'.join(builder))
         else:
-            paramater_names = context.list_parameters()
-        if context.json:
-            print(json.dumps([context.describe_parameter(name) for name in paramater_names],
-                             sort_keys=True, indent=2, separators=(',', ': '),
-                             cls=EntityEncoder))
-        else:
-            print('\n'.join(concat(parameter_description_builder(name)
-                                   for name in paramater_names)))
+            if context.json:
+                skip_categories = ('CLI-only', 'Hidden and Undocumented')
+                paramater_names = sorted(concat(
+                    parameter_names for category, parameter_names in context.category_map.items()
+                    if category not in skip_categories
+                ))
+                print(json.dumps([context.describe_parameter(name) for name in paramater_names],
+                                 sort_keys=True, indent=2, separators=(',', ': '),
+                                 cls=EntityEncoder))
+            else:
+                print(describe_all_parameters())
         return
 
     if args.validate:
@@ -380,9 +209,7 @@ def execute_config(args, parser):
                                  % rc_path)
 
         with open(rc_path, 'w') as fh:
-            paramater_names = context.list_parameters()
-            fh.write('\n'.join(concat(parameter_description_builder(name)
-                                      for name in paramater_names)))
+            fh.write(describe_all_parameters())
         return
 
     # read existing condarc
@@ -453,13 +280,11 @@ def execute_config(args, parser):
             if key not in sequence_parameters:
                 from ..exceptions import CondaValueError
                 raise CondaValueError("Key '%s' is not a known sequence parameter." % key)
-            if not isinstance(rc_config.get(key, []), list):
+            if not (isinstance(rc_config.get(key, []), Sequence) and not
+                    isinstance(rc_config.get(key, []), string_types)):
                 from ..exceptions import CouldntParseError
                 bad = rc_config[key].__class__.__name__
                 raise CouldntParseError("key %r should be a list, not %s." % (key, bad))
-            if key == 'default_channels' and rc_path != sys_rc_path:
-                msg = "'default_channels' is only configurable for system installs"
-                raise NotImplementedError(msg)
             arglist = rc_config.setdefault(key, [])
             if item in arglist:
                 # Right now, all list keys should not contain duplicates
@@ -510,6 +335,20 @@ def execute_config(args, parser):
 
     # config.rc_keys
     if not args.get:
+
+        # Add representers for enums.
+        # Because a representer cannot be added for the base Enum class (it must be added for
+        # each specific Enum subclass), and because of import rules), I don't know of a better
+        # location to do this.
+        def enum_representer(dumper, data):
+            return dumper.represent_str(str(data))
+
+        yaml.representer.RoundTripRepresenter.add_representer(SafetyChecks, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(PathConflict, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(DepsModifier, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
+
         try:
             with open(rc_path, 'w') as rc:
                 rc.write(yaml_dump(rc_config))

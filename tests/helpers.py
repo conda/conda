@@ -6,28 +6,24 @@ from __future__ import absolute_import, division, print_function
 from contextlib import contextmanager
 import json
 import os
-from os.path import dirname, join
+from os.path import dirname, join, abspath
 import re
 from shlex import split
 import sys
 from tempfile import gettempdir
 from uuid import uuid4
 
-from collections import defaultdict
-
 from conda import cli
-from conda._vendor.auxlib.collection import frozendict
-from conda._vendor.toolz.functoolz import memoize
+from conda._vendor.auxlib.decorators import memoize
 from conda.base.context import context, reset_context
 from conda.common.compat import iteritems, itervalues
 from conda.common.io import argv, captured, captured as common_io_captured, env_var
-from conda.core.repodata import make_feature_record, SubdirData
+from conda.core.subdir_data import SubdirData, make_feature_record
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import lexists
 from conda.gateways.logging import initialize_logging
 from conda.models.channel import Channel
-from conda.models.dist import Dist
-from conda.models.index_record import IndexRecord
+from conda.models.records import PackageRecord
 from conda.resolve import Resolve
 
 try:
@@ -37,6 +33,7 @@ except ImportError:
     import mock
     from mock import patch
 
+TEST_DATA_DIR = abspath(join(dirname(__file__), "..", "test_data"))
 
 expected_error_prefix = 'Using Anaconda Cloud api site https://api.anaconda.org'
 def strip_expected(stderr):
@@ -67,13 +64,13 @@ def captured(disallow_stderr=True):
             raise Exception("Got stderr output: %s" % c.stderr)
 
 
-def capture_json_with_argv(command, **kwargs):
-    stdout, stderr, exit_code = run_inprocess_conda_command(command)
+def capture_json_with_argv(command, disallow_stderr=True, ignore_stderr=False, **kwargs):
+    stdout, stderr, exit_code = run_inprocess_conda_command(command, disallow_stderr)
     if kwargs.get('relaxed'):
         match = re.match('\A.*?({.*})', stdout, re.DOTALL)
         if match:
             stdout = match.groups()[0]
-    elif stderr:
+    elif stderr and not ignore_stderr:
         # TODO should be exception
         return stderr
     try:
@@ -95,10 +92,10 @@ def assert_in(a, b, output=""):
     assert a.lower() in b.lower(), "%s %r cannot be found in %r" % (output, a.lower(), b.lower())
 
 
-def run_inprocess_conda_command(command):
+def run_inprocess_conda_command(command, disallow_stderr=True):
     # anything that uses this function is an integration test
     reset_context(())
-    with argv(split(command)), captured() as c:
+    with argv(split(command)), captured(disallow_stderr) as c:
         initialize_logging()
         try:
             exit_code = cli.main()
@@ -131,106 +128,127 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
         subdir = "%s-%s" % (repodata_info['platform'], repodata_info['arch'])
     auth = channel.auth
     for fn, info in iteritems(repodata['packages']):
-        rec = IndexRecord.from_objects(info,
-                                       fn=fn,
-                                       arch=arch,
-                                       platform=platform,
-                                       channel=channel,
-                                       subdir=subdir,
-                                       # schannel=schannel,
-                                       priority=priority,
-                                       # url=join_url(channel_url, fn),
-                                       auth=auth)
-        dist = Dist(rec)
-        index[dist] = rec
+        rec = PackageRecord.from_objects(info,
+                                         fn=fn,
+                                         arch=arch,
+                                         platform=platform,
+                                         channel=channel,
+                                         subdir=subdir,
+                                         # schannel=schannel,
+                                         priority=priority,
+                                         # url=join_url(channel_url, fn),
+                                         auth=auth)
+        index[rec] = rec
 
 
-def add_feature_records(index):
-    all_features = defaultdict(set)
+def add_feature_records_legacy(index):
+    all_features = set()
     for rec in itervalues(index):
-        for k, v in iteritems(rec.requires_features):
-            all_features[k].add(v)
-        for k, v in iteritems(rec.provides_features):
-            all_features[k].add(v)
+        if rec.track_features:
+            all_features.update(rec.track_features)
 
-    for feature_name, feature_values in iteritems(all_features):
-        for feature_value in feature_values:
-            rec = make_feature_record(feature_name, feature_value)
-            index[Dist(rec)] = rec
-
+    for feature_name in all_features:
+        rec = make_feature_record(feature_name)
+        index[rec] = rec
 
 @memoize
-def get_index_r_1():
-    with open(join(dirname(__file__), 'index.json')) as fi:
+def get_index_r_1(subdir=context.subdir):
+    with open(join(dirname(__file__), 'data', 'index.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
-                "subdir": context.subdir,
+                "subdir": subdir,
                 "arch": context.arch_name,
                 "platform": context.platform,
             },
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-1/%s' % context.subdir)
+    channel = Channel('https://conda.anaconda.org/channel-1/%s' % subdir)
     sd = SubdirData(channel)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {Dist(prec): prec for prec in sd._package_records}
-    add_feature_records(index)
+    index = {prec: prec for prec in sd._package_records}
+    add_feature_records_legacy(index)
     r = Resolve(index, channels=(channel,))
     return index, r
 
 
 @memoize
-def get_index_r_2():
-    with open(join(dirname(__file__), 'index2.json')) as fi:
+def get_index_r_2(subdir=context.subdir):
+    with open(join(dirname(__file__), 'data', 'index2.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
-                "subdir": context.subdir,
+                "subdir": subdir,
                 "arch": context.arch_name,
                 "platform": context.platform,
             },
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-2/%s' % context.subdir)
+    channel = Channel('https://conda.anaconda.org/channel-2/%s' % subdir)
     sd = SubdirData(channel)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {Dist(prec): prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
     return index, r
 
 
 @memoize
-def get_index_r_3():
-    with open(join(dirname(__file__), 'index3.json')) as fi:
+def get_index_r_4(subdir=context.subdir):
+    with open(join(dirname(__file__), 'data', 'index4.json')) as fi:
         packages = json.load(fi)
         repodata = {
             "info": {
-                "subdir": context.subdir,
+                "subdir": subdir,
                 "arch": context.arch_name,
                 "platform": context.platform,
             },
             "packages": packages,
         }
 
-    channel = Channel('https://conda.anaconda.org/channel-3/%s' % context.subdir)
+    channel = Channel('https://conda.anaconda.org/channel-4/%s' % subdir)
     sd = SubdirData(channel)
     with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false", reset_context):
         sd._process_raw_repodata_str(json.dumps(repodata))
     sd._loaded = True
     SubdirData._cache_[channel.url(with_credentials=True)] = sd
 
-    index = {Dist(prec): prec for prec in sd._package_records}
+    index = {prec: prec for prec in sd._package_records}
     r = Resolve(index, channels=(channel,))
+
     return index, r
 
+
+@memoize
+def get_index_r_5(subdir=context.subdir):
+    with open(join(dirname(__file__), 'data', 'index5.json')) as fi:
+        packages = json.load(fi)
+        repodata = {
+            "info": {
+                "subdir": subdir,
+                "arch": context.arch_name,
+                "platform": context.platform,
+            },
+            "packages": packages,
+        }
+
+    channel = Channel('https://conda.anaconda.org/channel-5/%s' % subdir)
+    sd = SubdirData(channel)
+    with env_var("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "true", reset_context):
+        sd._process_raw_repodata_str(json.dumps(repodata))
+    sd._loaded = True
+    SubdirData._cache_[channel.url(with_credentials=True)] = sd
+
+    index = {prec: prec for prec in sd._package_records}
+    r = Resolve(index, channels=(channel,))
+
+    return index, r

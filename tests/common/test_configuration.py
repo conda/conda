@@ -129,6 +129,12 @@ test_yaml_raw = {
         proxy_servers:
         channels:
     """),
+    'commented_map': dals("""
+        commented_map:
+          key:
+            # comment
+            value
+    """),
 
 }
 
@@ -142,7 +148,7 @@ class SampleConfiguration(Configuration):
 
     always_an_int = PrimitiveParameter(0)
     boolean_map = MapParameter(bool)
-
+    commented_map = MapParameter(string_types)
 
 
 def load_from_string_data(*seq):
@@ -238,6 +244,21 @@ class ConfigurationTests(TestCase):
             assert 'MYAPP_CHANNELS' in environ
             config = SampleConfiguration()._set_env_vars(appname)
             assert config.channels == ('channel1',)
+        finally:
+            [environ.pop(key) for key in test_dict]
+
+    def test_env_var_config_empty_sequence(self):
+        def make_key(appname, key):
+            return "{0}_{1}".format(appname.upper(), key.upper())
+        appname = "myapp"
+        test_dict = {}
+        test_dict[make_key(appname, 'channels')] = ''
+
+        try:
+            environ.update(test_dict)
+            assert 'MYAPP_CHANNELS' in environ
+            config = SampleConfiguration()._set_env_vars(appname)
+            assert config.channels == ()
         finally:
             [environ.pop(key) for key in test_dict]
 
@@ -426,6 +447,10 @@ class ConfigurationTests(TestCase):
     def test_empty_map_parameter(self):
         config = SampleConfiguration()._set_raw_data(load_from_string_data('bad_boolean_map'))
         config.check_source('bad_boolean_map')
+
+    def test_commented_map_parameter(self):
+        config = SampleConfiguration()._set_raw_data(load_from_string_data('commented_map'))
+        assert config.commented_map == {'key': 'value'}
 
     def test_invalid_map_parameter(self):
         data = odict(s1=YamlRawParameter.make_raw_parameters('s1', {'proxy_servers': 'blah'}))

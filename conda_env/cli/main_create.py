@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import print_function
 
 from argparse import RawDescriptionHelpFormatter
@@ -8,7 +11,7 @@ import textwrap
 from conda._vendor.auxlib.path import expand
 from conda.cli import install as cli_install
 from conda.cli.conda_argparse import add_parser_json, add_parser_prefix
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import delete_trash, rm_rf
 from conda.misc import touch_nonadmin
 from .common import get_prefix
 from .. import exceptions, specs
@@ -48,11 +51,6 @@ def configure_parser(sub_parsers):
     add_parser_prefix(p)
 
     p.add_argument(
-        '-q', '--quiet',
-        action='store_true',
-        default=False,
-    )
-    p.add_argument(
         'remote_definition',
         help='remote environment definition / IPython notebook',
         action='store',
@@ -67,7 +65,7 @@ def configure_parser(sub_parsers):
         default=False,
     )
     add_parser_json(p)
-    p.set_defaults(func=execute)
+    p.set_defaults(func='.main_create.execute')
 
 
 def execute(args, parser):
@@ -110,7 +108,7 @@ def execute(args, parser):
             sys.stderr.write(textwrap.dedent("""
                 Unable to install package for {0}.
 
-                Please double check and ensure you dependencies file has
+                Please double check and ensure your dependencies file has
                 the correct spelling.  You might also try installing the
                 conda-env-{0} package to see if provides the required
                 installer.
@@ -119,4 +117,6 @@ def execute(args, parser):
             return -1
 
     touch_nonadmin(prefix)
-    cli_install.print_activate(args.name if args.name else prefix)
+    delete_trash()
+    if not args.json:
+        cli_install.print_activate(args.name if args.name else prefix)

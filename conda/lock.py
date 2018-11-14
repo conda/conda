@@ -1,9 +1,6 @@
-# (c) 2012-2013 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
-# conda is distributed under the terms of the BSD 3-clause license.
-# Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
-
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Tools for working with locks
 
@@ -100,7 +97,8 @@ class FileLock(object):
         rm_rf(self.lock_file_path)
 
 
-class DirectoryLock(FileLock):
+# lgtm alert ignore because this lock functionality is unused and will soon be replaced
+class DirectoryLock(FileLock):  # lgtm [py/missing-call-to-init]
     """Lock a directory with the lock file sitting *within* the directory being locked.
 
     Useful when, for example, locking the root prefix at ``/conda``, and ``/`` is not writable.

@@ -1,11 +1,13 @@
+from datetime import datetime
 from unittest import TestCase
 
 import pytest
 
 from conda.base.context import context, reset_context
+from conda.common.compat import on_win
 from conda.common.io import env_var
-from .test_create import (make_temp_env, assert_package_is_installed,
-                          run_command, Commands, get_conda_list_tuple)
+from .test_create import Commands, package_is_installed, get_conda_list_tuple, \
+    make_temp_env, run_command
 
 
 @pytest.mark.integration
@@ -14,8 +16,8 @@ class PriorityIntegrationTests(TestCase):
     def test_channel_order_channel_priority_true(self):
         with env_var("CONDA_PINNED_PACKAGES", "python=3.5", reset_context):
             with make_temp_env("pycosat==0.6.1") as prefix:
-                assert_package_is_installed(prefix, 'python-3.5')
-                assert_package_is_installed(prefix, 'pycosat')
+                assert package_is_installed(prefix, 'python=3.5')
+                assert package_is_installed(prefix, 'pycosat')
 
                 # add conda-forge channel
                 o, e = run_command(Commands.CONFIG, prefix, "--prepend channels conda-forge", '--json')
@@ -26,7 +28,7 @@ class PriorityIntegrationTests(TestCase):
 
                 # this assertion works with the pinned_packages config to make sure
                 # conda update --all still respects the pinned python version
-                assert_package_is_installed(prefix, 'python-3.5')
+                assert package_is_installed(prefix, 'python=3.5')
 
                 # pycosat should be in the SUPERSEDED list
                 # after the 4.4 solver work, looks like it's in the DOWNGRADED list
@@ -36,9 +38,9 @@ class PriorityIntegrationTests(TestCase):
                 #
                 # The following packages will be UPDATED to a higher-priority channel:
                 #
-                superceded_split = update_stdout.split('DOWNGRADED')
-                assert len(superceded_split) == 2
-                assert 'pycosat' in superceded_split[1]
+                installed_str, x = update_stdout.split('UPDATED')
+                updated_str, downgraded_str = x.split('SUPERSEDED')
+                assert 'pycosat' in updated_str
 
                 # python sys.version should show conda-forge python
                 python_tuple = get_conda_list_tuple(prefix, "python")
@@ -52,7 +54,7 @@ class PriorityIntegrationTests(TestCase):
             This case will fail now
         """
         with make_temp_env("python=3.5.3=0") as prefix:
-            assert_package_is_installed(prefix, 'python')
+            assert package_is_installed(prefix, 'python')
 
             # add conda-forge channel
             o, e = run_command(Commands.CONFIG, prefix, "--prepend channels conda-forge", '--json')

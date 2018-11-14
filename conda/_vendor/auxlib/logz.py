@@ -86,7 +86,7 @@ def response_header_sort_key(item):
     return response_header_sort_dict.get(item[0], item[0].lower())
 
 
-def stringify(obj):
+def stringify(obj, content_max_len=0):
     def bottle_builder(builder, bottle_object):
         builder.append("{0} {1}{2} {3}".format(bottle_object.method,
                                                bottle_object.path,
@@ -108,7 +108,7 @@ def stringify(obj):
         if request_object.body:
             builder.append(request_object.body)
 
-    def requests_models_Response_builder(builder, response_object, include_content=False):
+    def requests_models_Response_builder(builder, response_object):
         builder.append("<<{0} {1} {2}".format(response_object.url.split(':', 1)[0].upper(),
                                               response_object.status_code, response_object.reason))
         builder.extend("< {0}: {1}".format(key, value)
@@ -116,14 +116,19 @@ def stringify(obj):
                                                 key=response_header_sort_key))
         elapsed = text_type(response_object.elapsed).split(':', 1)[-1]
         builder.append('< Elapsed: {0}'.format(elapsed))
-        if include_content:
+        if content_max_len:
             builder.append('')
             content_type = response_object.headers.get('Content-Type')
             if content_type == 'application/json':
-                builder.append(pformat(response_object.json(), indent=2))
+                content = pformat(response_object.json(), indent=2)
+                content = content[:content_max_len] if len(content) > content_max_len else content
+                builder.append(content)
                 builder.append('')
-            elif content_type is not None and content_type.startswith('text/'):
-                builder.append(response_object.text)
+            elif content_type is not None and (content_type.startswith('text/')
+                                               or content_type == 'application/xml'):
+                text = response_object.text
+                content = text[:content_max_len] if len(text) > content_max_len else text
+                builder.append(content)
 
     try:
         name = fullname(obj)

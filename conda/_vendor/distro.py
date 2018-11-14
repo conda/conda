@@ -919,11 +919,17 @@ class LinuxDistribution(object):
             A dictionary containing all information items.
         """
         cmd = 'lsb_release -a'
+        # conda customization: On Ubuntu 17.10, lsb_release calls the
+        # system Python and it will not find our custom sysconfigdata
+        env = os.environ.copy()
+        if '_PYTHON_SYSCONFIGDATA_NAME' in env:
+            del env['_PYTHON_SYSCONFIGDATA_NAME']
         process = subprocess.Popen(
             cmd,
             shell=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+            stderr=subprocess.PIPE,
+            env=env)
         stdout, stderr = process.communicate()
         stdout, stderr = stdout.decode('utf-8'), stderr.decode('utf-8')
         code = process.returncode

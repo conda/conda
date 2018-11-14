@@ -1,6 +1,3 @@
-# (c) 2012-2015 Continuum Analytics, Inc. / http://continuum.io
-# All Rights Reserved
-#
 # conda is distributed under the terms of the BSD 3-clause license.
 # Consult LICENSE.txt or http://opensource.org/licenses/BSD-3-Clause.
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -15,6 +12,12 @@ if not (sys.version_info[:2] == (2, 7) or sys.version_info[:2] >= (3, 3)):
     sys.exit("conda is only meant for Python 2.7 or 3.3 and up.  "
              "current version: %d.%d" % sys.version_info[:2])
 
+print("\n\n"
+      "WARNING: The utils/setup-testing.py is deprecated and scheduled for removal.\n"
+      "         Consider transitioning tooling to make use of 'conda init'.\n"
+      "\n\n",
+      file=sys.stderr)
+
 # When executing setup.py, we need to be able to import ourselves, this
 # means that we need to add the src directory to the sys.path.
 here = os.path.abspath(os.path.dirname(__file__))
@@ -28,8 +31,9 @@ with open(os.path.join(src_dir, "README.rst")) as f:
     long_description = f.read()
 
 install_requires = [
-    'pycosat >=0.6.1',
-    'requests >=2.5.3',
+    'pycosat >=0.6.3',
+    'requests >=2.12.4',
+    'ruamel.yaml >=0.11.14'
 ]
 
 if sys.version_info < (3, 4):

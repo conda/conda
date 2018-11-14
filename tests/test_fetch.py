@@ -11,8 +11,8 @@ from conda.base.context import reset_context
 from conda.common.io import env_var
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.download import TmpDownload
-from conda.core.repodata import fetch_repodata_remote_request
-from conda.core.package_cache import download
+from conda.core.subdir_data import fetch_repodata_remote_request
+from conda.core.package_cache_data import download
 
 
 @pytest.mark.integration
@@ -42,7 +42,7 @@ class TestConnectionWithShortTimeouts(TestCase):
         with env_var('CONDA_REMOTE_CONNECT_TIMEOUT_SECS', 1, reset_context):
             with env_var('CONDA_REMOTE_READ_TIMEOUT_SECS', 1, reset_context):
                 with env_var('CONDA_REMOTE_MAX_RETRIES', 1, reset_context):
-                    url = "https://repo.continuum.io/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
+                    url = "https://repo.anaconda.com/pkgs/free/osx-64/appscript-1.0.1-py27_0.tar.bz2"
                     with TmpDownload(url) as dst:
                         assert exists(dst)
                         assert isfile(dst)

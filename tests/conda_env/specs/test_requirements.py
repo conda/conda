@@ -24,5 +24,5 @@ class TestRequiremets(unittest.TestCase):
         self.assertIsInstance(spec.environment, env.Environment)
         self.assertEqual(
             spec.environment.dependencies['conda'][0],
-            'flask ==0.10.1'
+            'flask==0.10.1'
         )

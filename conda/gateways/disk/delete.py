@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import ENOENT
@@ -45,7 +47,6 @@ def rm_rf(path, max_retries=5, trash=True):
                     if move_result:
                         return True
                 log.info("Failed to remove %s.", path)
-
         else:
             log.trace("rm_rf failed. Not a link, file, or directory: %s", path)
         return True
@@ -178,7 +179,7 @@ else:  # pragma: no cover
     if PY2:
         _long = long  # NOQA
     else:
-        _long = int
+        _long = int  # lgtm [py/unreachable-statement]
 
     def rmtree(filepath, ignore_errors=False, onerror=None):
         """
@@ -189,7 +190,7 @@ else:  # pragma: no cover
         def rm(fn, childpath):
             try:
                 fn(childpath)
-            except:
+            except Exception:
                 if not ignore_errors:
                     if onerror is None:
                         raise
@@ -372,7 +373,7 @@ else:  # pragma: no cover
             if bool(self):
                 try:
                     CloseHandle(self)
-                except:
+                except Exception:
                     pass
 
         def __enter__(self):

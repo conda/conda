@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Code in ``conda.base`` is the lowest level of the application stack.  It is loaded and executed
 virtually every time the application is executed. Any code within, and any of its imports, must
@@ -17,7 +19,3 @@ Modules prohibited from importing ``conda.base`` are:
 
 All other ``conda`` modules may import from ``conda.base``.
 """
-from __future__ import absolute_import, division, print_function
-from logging import getLogger
-
-log = getLogger(__name__)

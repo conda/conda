@@ -6,8 +6,7 @@ from unittest import TestCase
 from conda.base.context import context
 from conda.common.compat import text_type
 from conda.models.channel import Channel
-from conda.models.index_record import IndexJsonRecord
-from conda.models.prefix_record import PrefixRecord
+from conda.models.records import PackageRecord, PrefixRecord
 
 log = getLogger(__name__)
 
@@ -21,23 +20,23 @@ class PrefixRecordTests(TestCase):
             version='1.2.3',
             build_string='py34_2',
             build_number=2,
-            url="https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
+            url="https://repo.anaconda.com/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
             subdir="win-32",
             md5='0123456789',
             files=(),
         )
-        assert pr.url == "https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2"
+        assert pr.url == "https://repo.anaconda.com/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2"
         assert pr.channel.canonical_name == 'defaults'
         assert pr.subdir == "win-32"
         assert pr.fn == "austin-1.2.3-py34_2.tar.bz2"
-        channel_str = text_type(Channel("https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2"))
-        assert channel_str == "https://repo.continuum.io/pkgs/free"
+        channel_str = text_type(Channel("https://repo.anaconda.com/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2"))
+        assert channel_str == "https://repo.anaconda.com/pkgs/free/win-32"
         assert dict(pr.dump()) == dict(
             name='austin',
             version='1.2.3',
             build='py34_2',
             build_number=2,
-            url="https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
+            url="https://repo.anaconda.com/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
             md5='0123456789',
             files=(),
             channel=channel_str,
@@ -47,108 +46,28 @@ class PrefixRecordTests(TestCase):
             depends=(),
         )
 
-    def test_provides_features(self):
-        base = IndexJsonRecord(
-            name='austin',
+    def test_index_record_timestamp(self):
+        # regression test for #6096
+        ts_secs = 1507565728
+        ts_millis = ts_secs * 1000
+        rec = PackageRecord(
+            name='test-package',
             version='1.2.3',
-            build_string='py34_2',
+            build='2',
             build_number=2,
-            subdir="win-32",
-            url="https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
+            timestamp=ts_secs
         )
-        assert base.track_features == ()
-        assert base.provides_features == {}
-        assert dict(base.dump()) == dict(
-            name='austin',
+        assert rec.timestamp == ts_secs
+        assert rec.dump()['timestamp'] == ts_millis
+
+        ts_millis = 1507565728999
+        ts_secs = ts_millis / 1000
+        rec = PackageRecord(
+            name='test-package',
             version='1.2.3',
-            build='py34_2',
+            build='2',
             build_number=2,
-            subdir="win-32",
-            depends=(),
-            constrains=(),
+            timestamp=ts_secs
         )
-
-        rec = IndexJsonRecord.from_objects(base, track_features='debug nomkl')
-        assert rec.track_features == ('debug', 'nomkl')
-        assert rec.provides_features == {'debug': 'true',
-                                         'blas': blas_value}
-        assert dict(rec.dump()) == dict(
-            name='austin',
-            version='1.2.3',
-            build='py34_2',
-            build_number=2,
-            subdir="win-32",
-            depends=(),
-            constrains=(),
-            track_features='debug nomkl',
-            provides_features={'debug': 'true', 'blas': blas_value},
-        )
-
-        rec = IndexJsonRecord.from_objects(base, track_features='debug nomkl',
-                                           provides_features={'blas': 'openblas'})
-        assert rec.track_features == ('debug', 'nomkl')
-        assert rec.provides_features == {'blas': 'openblas'}
-        assert dict(rec.dump()) == dict(
-            name='austin',
-            version='1.2.3',
-            build='py34_2',
-            build_number=2,
-            subdir="win-32",
-            depends=(),
-            constrains=(),
-            track_features='debug nomkl',
-            provides_features={'blas': 'openblas'},
-        )
-
-        rec = IndexJsonRecord.from_objects(base, provides_features={'blas': 'openblas'})
-        assert rec.track_features == ()
-        assert rec.provides_features == {'blas': 'openblas'}
-        assert dict(rec.dump()) == dict(
-            name='austin',
-            version='1.2.3',
-            build='py34_2',
-            build_number=2,
-            subdir="win-32",
-            depends=(),
-            constrains=(),
-            provides_features={'blas': 'openblas'},
-        )
-
-        base = IndexJsonRecord(
-            name='python',
-            version='1.2.3',
-            build_string='2',
-            build_number=2,
-            subdir="win-32",
-            url="https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
-        )
-        assert base.track_features == ()
-        assert base.provides_features == {}
-
-
-    def test_requires_features(self):
-        rec = IndexJsonRecord(
-            name='austin',
-            version='1.2.3',
-            build_string='py34_2',
-            build_number=2,
-            subdir="win-32",
-            url="https://repo.continuum.io/pkgs/free/win-32/austin-1.2.3-py34_2.tar.bz2",
-            features='debug nomkl',
-            depends=('python 2.7.*', 'numpy 1.11*'),
-        )
-
-        assert rec.features == ('debug', 'nomkl')
-        assert rec.requires_features == {'debug': 'true', 'blas': blas_value}
-        assert dict(rec.dump()) == dict(
-            name='austin',
-            version='1.2.3',
-            build='py34_2',
-            build_number=2,
-            subdir="win-32",
-            depends=('python 2.7.*', 'numpy 1.11*'),
-            constrains=(),
-            features='debug nomkl',
-            requires_features={'debug': 'true', 'blas': blas_value},
-        )
-
+        assert rec.timestamp == ts_secs
+        assert rec.dump()['timestamp'] == ts_millis

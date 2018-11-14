@@ -1,9 +1,13 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from .. import env
 from ..exceptions import EnvironmentFileNotFound
 
 
 class YamlFileSpec(object):
     _environment = None
+    extensions = set(('.yaml', '.yml'))
 
     def __init__(self, filename=None, **kwargs):
         self.filename = filename

@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, print_function
 
 from argparse import RawDescriptionHelpFormatter
@@ -65,7 +68,7 @@ def configure_parser(sub_parsers):
         required=False,
         help='Do not include channel names with package names.')
     add_parser_json(p)
-    p.set_defaults(func=execute)
+    p.set_defaults(func='.main_export.execute')
 
 
 # TODO Make this aware of channels that were used to install packages

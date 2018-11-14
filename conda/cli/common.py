@@ -1,14 +1,19 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from os import listdir
-from os.path import basename, isdir, isfile, join
+from os.path import basename, dirname
 import re
 import sys
 
 from .._vendor.auxlib.ish import dals
-from ..base.constants import PREFIX_MAGIC_FILE, ROOT_ENV_NAME
+from ..base.constants import ROOT_ENV_NAME
 from ..base.context import context
-from ..common.compat import itervalues
+from ..common.constants import NULL
+from ..common.io import swallow_broken_pipe
+from ..common.path import paths_equal
+from ..common.serialize import json_dump
 from ..models.match_spec import MatchSpec
 
 
@@ -42,18 +47,18 @@ def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
             return choices[user_choice]
 
 
-def confirm_yn(message="Proceed", default='yes'):
-    if context.dry_run:
+def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
+    dry_run = context.dry_run if dry_run is NULL else dry_run
+    if dry_run:
         from ..exceptions import DryRunExit
         raise DryRunExit()
     if context.always_yes:
         return True
     try:
-        choice = confirm(message=message, choices=('yes', 'no'),
-                         default=default)
+        choice = confirm(message=message, choices=('yes', 'no'), default=default)
     except KeyboardInterrupt as e:  # pragma: no cover
         from ..exceptions import CondaSystemExit
-        raise CondaSystemExit("\nOperation aborted.  Exiting.", e)
+        raise CondaSystemExit("\nOperation aborted.  Exiting.")
     if choice == 'no':
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("Exiting.")
@@ -88,16 +93,14 @@ def specs_from_args(args, json=False):
     return [arg2spec(arg, json=json) for arg in args]
 
 
-spec_pat = re.compile(r'''
-(?P<name>[^=<>!\s]+)               # package name
-\s*                                # ignore spaces
-(
-  (?P<cc>=[^=]+(=[^=]+)?)          # conda constraint
-  |
-  (?P<pc>(?:[=!]=|[><]=?).+)       # new (pip-style) constraint(s)
-)?
-$                                  # end-of-line
-''', re.VERBOSE)
+spec_pat = re.compile(r'(?P<name>[^=<>!\s]+)'  # package name  # lgtm [py/regex/unmatchable-dollar]
+                      r'\s*'  # ignore spaces
+                      r'('
+                      r'(?P<cc>=[^=]+(=[^=]+)?)'  # conda constraint
+                      r'|'
+                      r'(?P<pc>(?:[=!]=|[><]=?).+)'  # new (pip-style) constraint(s)
+                      r')?$',
+                      re.VERBOSE)  # lgtm [py/regex/unmatchable-dollar]
 
 
 def strip_comment(line):
@@ -118,7 +121,7 @@ def spec_from_line(line):
 
 
 def specs_from_url(url, json=False):
-    from conda.gateways.connection.download import TmpDownload
+    from ..gateways.connection.download import TmpDownload
 
     explicit = False
     with TmpDownload(url, verbose=False) as path:
@@ -156,47 +159,25 @@ def disp_features(features):
         return ''
 
 
+@swallow_broken_pipe
 def stdout_json(d):
-    import json
-    from .._vendor.auxlib.entity import EntityEncoder
-    json.dump(d, sys.stdout, indent=2, sort_keys=True, cls=EntityEncoder)
-    sys.stdout.write('\n')
+    print(json_dump(d))
 
 
 def stdout_json_success(success=True, **kwargs):
     result = {'success': success}
-
-    # this code reverts json output for plan back to previous behavior
-    #   relied on by Anaconda Navigator and nb_conda
-    unlink_link_transaction = kwargs.pop('unlink_link_transaction', None)
-    if unlink_link_transaction:
-        from .._vendor.toolz.itertoolz import concat
-        actions = kwargs.setdefault('actions', {})
-        actions['LINK'] = tuple(d.dist_str() for d in concat(
-            stp.link_precs for stp in itervalues(unlink_link_transaction.prefix_setups)
-        ))
-        actions['UNLINK'] = tuple(d.dist_str() for d in concat(
-            stp.unlink_precs for stp in itervalues(unlink_link_transaction.prefix_setups)
-        ))
+    actions = kwargs.pop('actions', None)
+    if actions:
+        if 'LINK' in actions:
+            actions['LINK'] = [prec.dist_fields_dump() for prec in actions['LINK']]
+        if 'UNLINK' in actions:
+            actions['UNLINK'] = [prec.dist_fields_dump() for prec in actions['UNLINK']]
+        result['actions'] = actions
     result.update(kwargs)
     stdout_json(result)
 
 
-def list_prefixes():
-    # Lists all the prefixes that conda knows about.
-    for envs_dir in context.envs_dirs:
-        if not isdir(envs_dir):
-            continue
-        for dn in sorted(listdir(envs_dir)):
-            prefix = join(envs_dir, dn)
-            if isdir(prefix) and isfile(join(prefix, PREFIX_MAGIC_FILE)):
-                prefix = join(envs_dir, dn)
-                yield prefix
-
-    yield context.root_prefix
-
-
-def handle_envs_list(acc, output=True):
+def print_envs_list(known_conda_prefixes, output=True):
 
     if output:
         print("# conda environments:")
@@ -205,22 +186,24 @@ def handle_envs_list(acc, output=True):
     def disp_env(prefix):
         fmt = '%-20s  %s  %s'
         default = '*' if prefix == context.default_prefix else ' '
-        name = (ROOT_ENV_NAME if prefix == context.root_prefix else
-                basename(prefix))
+        if prefix == context.root_prefix:
+            name = ROOT_ENV_NAME
+        elif any(paths_equal(envs_dir, dirname(prefix)) for envs_dir in context.envs_dirs):
+            name = basename(prefix)
+        else:
+            name = ''
         if output:
             print(fmt % (name, default, prefix))
 
-    for prefix in list_prefixes():
+    for prefix in known_conda_prefixes:
         disp_env(prefix)
-        if prefix != context.root_prefix:
-            acc.append(prefix)
 
     if output:
         print()
 
 
 def check_non_admin():
-    from ..common.platform import is_admin
+    from ..common.os import is_admin
     if not context.non_admin_enabled and not is_admin():
         from ..exceptions import OperationNotAllowed
         raise OperationNotAllowed(dals("""

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EACCES, ENOENT, EPERM
@@ -38,6 +40,19 @@ def make_writable(path):
         else:
             log.warn("Error making path writable: %s\n%r", path, e)
             raise
+
+
+def make_read_only(path):
+    mode = lstat(path).st_mode
+    if S_ISDIR(mode):
+        chmod(path, S_IMODE(mode) & ~S_IWRITE)
+    elif islink(path):
+        lchmod(path, S_IMODE(mode) & ~S_IWRITE)
+    elif S_ISREG(mode):
+        chmod(path, S_IMODE(mode) & ~S_IWRITE)
+    else:
+        log.debug("path cannot be made read only: %s", path)
+    return True
 
 
 def recursive_make_writable(path, max_tries=MAX_TRIES):

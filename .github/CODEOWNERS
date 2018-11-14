@@ -1,0 +1,3 @@
+# Syntax for this file at https://help.github.com/articles/about-codeowners/
+
+*       @conda/conda-core

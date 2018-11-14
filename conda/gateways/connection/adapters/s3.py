@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from logging import getLogger, LoggerAdapter
-from tempfile import mkstemp
+import json
+from logging import LoggerAdapter, getLogger
+from tempfile import SpooledTemporaryFile
 
 from .. import BaseAdapter, CaseInsensitiveDict, Response
-from ...disk.delete import rm_rf
+from ....common.compat import ensure_binary
 from ....common.url import url_to_s3_info
 
 log = getLogger(__name__)
@@ -16,37 +19,69 @@ class S3Adapter(BaseAdapter):
 
     def __init__(self):
         super(S3Adapter, self).__init__()
-        self._temp_file = None
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None):
-
         resp = Response()
         resp.status_code = 200
         resp.url = request.url
 
         try:
-            import boto
+            import boto3
+            return self._send_boto3(boto3, resp, request)
         except ImportError:
-            stderrlog.info('\nError: boto is required for S3 channels. '
-                           'Please install it with `conda install boto`\n'
-                           'Make sure to run `source deactivate` if you '
-                           'are in a conda environment.')
+            try:
+                import boto
+                return self._send_boto(boto, resp, request)
+            except ImportError:
+                stderrlog.info('\nError: boto3 is required for S3 channels. '
+                               'Please install with `conda install boto3`\n'
+                               'Make sure to run `source deactivate` if you '
+                               'are in a conda environment.\n')
+                resp.status_code = 404
+                return resp
+
+    def close(self):
+        pass
+
+    def _send_boto3(self, boto3, resp, request):
+        from botocore.exceptions import BotoCoreError, ClientError
+        bucket_name, key_string = url_to_s3_info(request.url)
+
+        key = boto3.resource('s3').Object(bucket_name, key_string[1:])
+
+        try:
+            response = key.get()
+        except (BotoCoreError, ClientError) as e:
             resp.status_code = 404
+            message = {
+                "error": "error downloading file from s3",
+                "path": request.url,
+                "exception": repr(e),
+            }
+            resp.raw = self._write_tempfile(lambda x: x.write(ensure_binary(json.dumps(message))))
+            resp.close = resp.raw.close
             return resp
 
+        key_headers = response['ResponseMetadata']['HTTPHeaders']
+        resp.headers = CaseInsensitiveDict({
+            "Content-Type": key_headers.get('content-type', "text/plain"),
+            "Content-Length": key_headers['content-length'],
+            "Last-Modified": key_headers['last-modified'],
+        })
+
+        resp.raw = self._write_tempfile(key.download_fileobj)
+        resp.close = resp.raw.close
+
+        return resp
+
+    def _send_boto(self, boto, resp, request):
         conn = boto.connect_s3()
 
         bucket_name, key_string = url_to_s3_info(request.url)
-
-        # Get the bucket without validation that it exists and that we have
-        # permissions to list its contents.
         bucket = conn.get_bucket(bucket_name, validate=False)
-
         try:
             key = bucket.get_key(key_string)
         except boto.exception.S3ResponseError as exc:
-            # This exception will occur if the bucket does not exist or if the
-            # user does not have permission to list its contents.
             resp.status_code = 404
             resp.raw = exc
             return resp
@@ -60,16 +95,15 @@ class S3Adapter(BaseAdapter):
                 "Last-Modified": modified,
             })
 
-            _, self._temp_file = mkstemp()
-            key.get_contents_to_filename(self._temp_file)
-            f = open(self._temp_file, 'rb')
-            resp.raw = f
+            resp.raw = self._write_tempfile(key.get_contents_to_file)
             resp.close = resp.raw.close
         else:
             resp.status_code = 404
 
         return resp
 
-    def close(self):
-        if self._temp_file:
-            rm_rf(self._temp_file)
+    def _write_tempfile(self, writer_callable):
+        fh = SpooledTemporaryFile()
+        writer_callable(fh)
+        fh.seek(0)
+        return fh

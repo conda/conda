@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from base64 import b64encode
@@ -19,12 +21,16 @@ from .link import islink, lexists
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import ensure_text_type
+from ...common.compat import ensure_text_type, open
+from ...common.pkg_formats.python import (
+    PythonDistribution, PythonEggInfoDistribution, PythonEggLinkDistribution,
+    PythonInstalledDistribution,
+)
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
-from ...models.enums import FileMode, PathType
-from ...models.index_record import IndexJsonRecord, IndexRecord, PathData, PathDataV1, PathsData
+from ...models.enums import FileMode, PackageType, PathType
 from ...models.package_info import PackageInfo, PackageMetadata
+from ...models.records import PathData, PathDataV1, PathsData, PrefixRecord
 
 log = getLogger(__name__)
 
@@ -89,7 +95,6 @@ def find_first_existing(*globs):
 
 def read_package_info(record, package_cache_record):
     epd = package_cache_record.extracted_package_dir
-    index_json_record = read_index_json(epd)
     icondata = read_icondata(epd)
     package_metadata = read_package_metadata(epd)
     paths_data = read_paths_json(epd)
@@ -100,7 +105,6 @@ def read_package_info(record, package_cache_record):
         repodata_record=record,
         url=package_cache_record.url,
 
-        index_json_record=index_json_record,
         icondata=icondata,
         package_metadata=package_metadata,
         paths_data=paths_data,
@@ -109,20 +113,18 @@ def read_package_info(record, package_cache_record):
 
 def read_index_json(extracted_package_directory):
     with open(join(extracted_package_directory, 'info', 'index.json')) as fi:
-        record = IndexJsonRecord(**json.load(fi))
-    return record
+        return json.load(fi)
 
 
 def read_index_json_from_tarball(package_tarball_full_path):
     with tarfile.open(package_tarball_full_path) as tf:
         contents = tf.extractfile('info/index.json').read()
-        return IndexJsonRecord(**json.loads(ensure_text_type(contents)))
+        return json.loads(ensure_text_type(contents))
 
 
 def read_repodata_json(extracted_package_directory):
     with open(join(extracted_package_directory, 'info', 'repodata_record.json')) as fi:
-        record = IndexRecord(**json.load(fi))
-    return record
+        return json.load(fi)
 
 
 def read_icondata(extracted_package_directory):
@@ -145,12 +147,14 @@ def read_package_metadata(extracted_package_directory):
         return None
     else:
         with open(path, 'r') as f:
-            package_metadata = PackageMetadata(**json.loads(f.read()))
-            if package_metadata.package_metadata_version != 1:
+            data = json.loads(f.read())
+            if data.get('package_metadata_version') != 1:
                 raise CondaUpgradeError(dals("""
                 The current version of conda is too old to install this package. (This version
                 only supports link.json schema version 1.)  Please update conda to install
-                this package."""))
+                this package.
+                """))
+        package_metadata = PackageMetadata(**data)
         return package_metadata
 
 
@@ -231,3 +235,65 @@ def read_no_link(info_dir):
 
 def read_soft_links(extracted_package_directory, files):
     return tuple(f for f in files if islink(join(extracted_package_directory, f)))
+
+
+def read_python_record(prefix_path, anchor_file, python_version):
+    """
+    Convert a python package defined by an anchor file (Metadata information)
+    into a conda prefix record object.
+    """
+    pydist = PythonDistribution.init(prefix_path, anchor_file, python_version)
+    depends, constrains = pydist.get_conda_dependencies()
+
+    if isinstance(pydist, PythonInstalledDistribution):
+        channel = Channel("pypi")
+        build = "pypi_0"
+        package_type = PackageType.VIRTUAL_PYTHON_WHEEL
+
+        paths_tups = pydist.get_paths()
+        paths_data = PathsData(paths_version=1, paths=(
+            PathDataV1(
+                _path=path, path_type=PathType.hardlink, sha256=checksum, size_in_bytes=size
+            ) for (path, checksum, size) in paths_tups
+        ))
+        files = tuple(p[0] for p in paths_tups)
+
+    elif isinstance(pydist, PythonEggLinkDistribution):
+        channel = Channel("<develop>")
+        build = "dev_0"
+        package_type = PackageType.VIRTUAL_PYTHON_EGG_LINK
+
+        paths_data, files = PathsData(paths_version=1, paths=()), ()
+
+    elif isinstance(pydist, PythonEggInfoDistribution):
+        channel = Channel("pypi")
+        build = "pypi_0"
+        if pydist.is_manageable:
+            package_type = PackageType.VIRTUAL_PYTHON_EGG_MANAGEABLE
+
+            paths_tups = pydist.get_paths()
+            files = tuple(p[0] for p in paths_tups)
+            paths_data = PathsData(paths_version=1, paths=(
+                PathData(_path=path, path_type=PathType.hardlink) for path in files
+            ))
+        else:
+            package_type = PackageType.VIRTUAL_PYTHON_EGG_UNMANAGEABLE
+            paths_data, files = PathsData(paths_version=1, paths=()), ()
+
+    else:
+        raise NotImplementedError()
+
+    return PrefixRecord(
+        package_type=package_type,
+        name=pydist.conda_name,
+        version=pydist.version,
+        channel=channel,
+        subdir="pypi",
+        fn=pydist.sp_reference,
+        build=build,
+        build_number=0,
+        paths_data=paths_data,
+        files=files,
+        depends=depends,
+        constrains=constrains,
+    )

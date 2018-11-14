@@ -1,25 +1,514 @@
-## 4.4.0 (unreleased)
+## 4.6.0 (unreleased)
 
-### New Features
+### New Feature Highlights
+* resolve #7053 preview support for conda operability with pip (#7067, #7370, #7710)
+* conda initialize (#6518, #7388, #7629)
+* resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
+  config (#7195, #7226, #7233)
+* resolve #7087 add non-conda-installed python packages into PrefixData (#7067, #7370)
+* resolve #2682 add 'conda run' preview support (#7320, #7625)
+* resolve #626 conda wrapper for PowerShell (#7794, #7829)
 
-* **constrained, optional dependencies**: Conda now allows a package to constrain versions of other packages installed alongside it, even if those constrained packages are not themselves hard dependencies for that package.  In other words, it lets a package specify that, if another package ends up being installed into an environment, it must at least conform to a certain version specification.  In effect, constrained dependencies are a type of "reverse" dependency.  It gives a tool to a parent package to exclude other packages from an environment that might otherwise want to depend on it.
+### Deprecations/Breaking Changes
+* resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
+* resolve #7061 remove pkgs/pro from defaults (#7162)
+* resolve #7078 add deprecation warnings for 'conda.cli.activate',
+  'conda.compat', and 'conda.install' (#7079)
+* resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
+  config (#7195)
+* resolve #6979, #7086 remove Dist from majority of project (#7216, #7252)
+* fix #7362 remove --license from conda info and related code paths (#7386)
+* resolve #7309 deprecate 'conda info package_name' (#7310)
+* remove 'conda clean --source-cache' and defer to conda-build (#7731)
+* resolve #7724 move windows package cache and envs dirs back to .conda directory (#7725)
 
-  Constrained optional dependencies are supported starting with conda-build 3.0 (via [conda/conda-build#2001[(https://github.com/conda/conda-build/pull/2001)).  A new `run_constrained` keyword, which takes a list of package specs similar to the `run` keyword, is recognized under the `requirements` section of `meta.yaml`.  For backward compatibility with versions of conda older than 4.4, a requirement may be listed in both the `run` and the `run_constrained` section. In that case older versions of conda will see the package as a hard dependency, while conda 4.4 will understand that the package is meant to be optional.
+### Improvements
+* import speedups (#7122)
+* --help cleanup (#7120)
+* fish autocompletion for conda env (#7101)
+* remove reference to 'system' channel (#7163)
+* add http error body to debug information (#7160)
+* warn creating env name with space is not supported (#7168)
+* support complete MatchSpec syntax in environment.yml files (#7178)
+* resolve #4274 add option to remove an existing environment with 'conda create' (#7133)
+* add ability for conda prompt customization via 'env_prompt' config param (#7047)
+* resolve #7063 add license and license_family to MatchSpec for 'conda search' (#7064)
+* resolve #7189 progress bar formatting improvement (#7191)
+* raise log level for errors to error (#7229)
+* add to conda.exports (#7217)
+* resolve #6845 add option -S / --satisfied-skip-solve to exit early for satisfied specs (#7291)
+* add NoBaseEnvironmentError and DirectoryNotACondaEnvironmentError (#7378)
+* replace menuinst subprocessing by ctypes win elevation (4.6.0a3) (#7426)
+* bump minimum requests version to stable, unbundled release (#7528)
+* resolve #7591 updates and improvements from namespace PR for 4.6 (#7599)
+* resolve #7592 compatibility shims (#7606)
+* user-agent context refactor (#7630)
+* solver performance improvements with benchmarks in common.logic (#7676)
+* enable fuzzy-not-equal version constraint for pip interop (#7711)
+* add -d short option for --dry-run (#7719)
+* add --force-pkgs-dirs option to conda clean (#7719)
+* address #7709 ensure --update-deps unlocks specs from previous user requests (#7719)
+* add package timestamp information to output of 'conda search --info' (#7722)
+* resolve #7336 'conda search' tries "fuzzy match" before showing PackagesNotFound (#7722)
+* resolve #7656 strict channel priority via 'channel_priority' config option or --strict-channel-priority CLI flag (#7729)
+* performance improvement to cache __hash__ value on PackageRecord (#7715)
+* resolve #7764 change name of 'condacmd' dir to 'condabin'; use on all platforms (#7773)
+* resolve #7782 implement PEP-440 '~=' compatible release operator (#7783)
+* disable timestamp prioritization (#7894)
+
+### Bug Fixes
+* fix #7107 verify hangs when a package is corrupted (#7131)
+* fix #7145 progress bar uses stderr instead of stdout (#7146)
+* fix typo in conda.fish (#7152)
+* fix #2154 conda remove should complain if requested removals don't exist (#7135)
+* fix #7094 exit early for --dry-run with explicit and clone (#7096)
+* fix activation script sort order (#7176)
+* fix #7109 incorrect chown with sudo (#7180)
+* fix #7210 add suppressed --mkdir back to 'conda create' (fix for 4.6.0a1) (#7211)
+* fix #5681 conda env create / update when --file does not exist (#7385)
+* resolve #7375 enable conda config --set update_modifier (#7377)
+* fix #5885 improve conda env error messages and add extra tests (#7395)
+* msys2 path conversion (#7389)
+* fix autocompletion in fish (#7575)
+* fix #3982 following 4.4 activation refactor (#7607)
+* fix #7242 configuration load error message (#7243)
+* fix conda env compatibility with pip 18 (#7612)
+* fix #7184 remove conflicting specs to find solution to user's active request (#7719)
+* fix #7706 add condacmd dir to cmd.exe path on first activation (#7735)
+* fix #7761 spec handling errors in 4.6.0b0 (#7780)
+* fix #7770 'conda list regex' only applies regex to package name (#7784)
+
+### Non-User-Facing Changes
+* resolve #6595 use OO inheritance in activate.py (#7049)
+* resolve #7220 pep8 project renamed to pycodestyle (#7221)
+* proxy test routine (#7308)
+* add .mailmap and .cla-signers (#7361)
+* add copyright headers (#7367)
+* rename common.platform to common.os and split among windows, linux, and unix utils (#7396)
+* fix windows test failures when symlink not available (#7369)
+* test building conda using conda-build (#7251)
+* solver test metadata updates (#7664)
+* explicitly add Mapping, Sequence to common.compat (#7677)
+* add debug messages to communicate solver stages (#7803)
+* add undocumented sat_solver config parameter (#7811)
+
+### Preview Releases
+
+* 4.6.0a1 at d5bec21d1f64c3bc66c2999cfc690681e9c46177 on 2018-04-20
+* 4.6.0a2 at c467517ca652371ebc4224f0d49315b7ec225108 on 2018-05-01
+* 4.6.0b0 at 21a24f02b2687d0895de04664a4ec23ccc75c33a on 2018-09-07
+
+### Contributors
+* @cgranade
+* @fabioz
+* @goanpeca
+* @jesse-
+* @kalefranz
+* @mandeep
+* @mbargull
+* @msarahan
+* @ohadravid
+
+
+# 4.5.11 (2018-08-21)
+
+### Improvements
+* resolve #7672 compatibility with ruamel.yaml 0.15.54 (#7675)
+
+### Contributors
+* @CJ-Wright
+* @mbargull
+
+
+# 4.5.10 (2018-08-13)
+
+### Bug Fixes
+* fix conda env compatibility with pip 18 (#7627)
+* fix py37 compat 4.5.x (#7641)
+* fix #7451 don't print name, version, and size if unknown (#7648)
+* replace glob with fnmatch in PrefixData (#7645)
+
+### Contributors
+* @jesse-
+* @nehaljwani
+
+
+## 4.5.9 (2018-07-30)
+
+### Improvements
+* resolve #7522 prevent conda from scheduling downgrades (#7598)
+* allow skipping feature maximization in resolver (#7601)
+
+### Bug Fixes
+* fix #7559 symlink stat in localfs adapter (#7561)
+* fix #7486 activate with no PATH set (#7562)
+* resolve #7522 prevent conda from scheduling downgrades (#7598)
+
+### Contributors
+* @kalefranz
+* @loriab
+
+
+## 4.5.8 (2018-07-10)
+
+### Bug Fixes
+* fix #7524 should_bypass_proxies for requests 2.13.0 and earlier (#7525)
+
+### Contributors
+* @kalefranz
+
+
+## 4.5.7 (2018-07-09)
+
+### Improvements
+* resolve #7423 add upgrade error for unsupported repodata_version (#7415)
+* raise CondaUpgradeError for conda version downgrades on environments (#7517)
+
+### Bug Fixes
+* fix #7505 temp directory for UnlinkLinkTransaction should be in target prefix (#7516)
+* fix #7506 requests monkeypatch fallback for old requests versions (#7515)
+
+### Contributors
+* @kalefranz
+* @nehaljwani
+
+
+## 4.5.6 (2018-07-06)
+
+### Bug Fixes
+* resolve #7473 py37 support (#7499)
+* fix #7494 History spec parsing edge cases (#7500)
+* fix requests 2.19 incompatibility with NO_PROXY env var (#7498)
+* resolve #7372 disable http error uploads and CI cleanup (#7498, #7501)
+
+### Contributors
+* @kalefranz
+
+
+## 4.5.5 (2018-06-29)
+
+### Bug Fixes
+* fix #7165 conda version check should be restricted to channel conda is from (#7289, #7303)
+* fix #7341 ValueError n cannot be negative (#7360)
+* fix #6691 fix history file parsing containing comma-joined version specs (#7418)
+* fix msys2 path conversion (#7471)
+
+### Contributors
+* @goanpeca
+* @kalefranz
+* @mingwandroid
+* @mbargull
+
+
+## 4.5.4 (2018-05-14)
+
+### Improvements
+* resolve #7189 progress bar improvement (#7191 via #7274)
+
+### Bug Fixes
+* fix twofold tarball extraction, improve progress update (#7275)
+* fix #7253 always respect copy LinkType (#7269)
+
+### Contributors
+* @jakirkham
+* @kalefranz
+* @mbargull
+
+
+## 4.5.3 (2018-05-07)
+
+### Bug Fixes
+* fix #7240 conda's configuration context is not initialized in conda.exports (#7244)
+
+
+## 4.5.2 (2018-04-27)
+
+### Bug Fixes
+* fix #7107 verify hangs when a package is corrupted (#7223)
+* fix #7094 exit early for --dry-run with explicit and clone (#7224)
+* fix activation/deactivation script sort order (#7225)
+
+
+## 4.5.1 (2018-04-13)
+
+### Improvements
+* resolve #7075 add anaconda.org search message to PackagesNotFoundError (#7076)
+* add CondaError details to auto-upload reports (#7060)
+
+### Bug Fixes
+* fix #6703,#6981 index out of bound when running deactivate on fish shell (#6993)
+* properly close over $_CONDA_EXE variable (#7004)
+* fix condarc map parsing with comments (#7021)
+* fix #6919 csh prompt (#7041)
+* add _file_created attribute (#7054)
+* fix handling of non-ascii characters in custom_multichannels (#7050)
+* fix #6877 handle non-zero return in CSH (#7042)
+* fix #7040 update tqdm to version 4.22.0 (#7157)
+
+
+## 4.5.0 (2018-03-20)
+
+### New Feature Highlights
+* A new flag, '--envs', has been added to 'conda search'. In this mode,
+  'conda search' will look for the package query in existing conda environments
+  on your system. If ran as UID 0 (i.e. root) on unix systems or as an
+  Administrator user on Windows, all known conda environments for all users
+  on the system will be searched.  For example, 'conda search --envs openssl'
+  will show the openssl version and environment location for all
+  conda-installed openssl packages.
+
+### Deprecations/Breaking Changes
+* resolve #6886 transition defaults from repo.continuum.io to repo.anaconda.com (#6887)
+* resolve #6192 deprecate 'conda help' in favor of --help CLI flag (#6918)
+* resolve #6894 add http errors to auto-uploaded error reports (#6895)
+
+### Improvements
+* resolve #6791 conda search --envs (#6794)
+* preserve exit status in fish shell (#6760)
+* resolve #6810 add CONDA_EXE environment variable to activate (#6923)
+* resolve #6695 outdated conda warning respects --quiet flag (#6935)
+* add instructions to activate default environment (#6944)
+
+### API
+* resolve #5610 add PrefixData, SubdirData, and PackageCacheData to conda/api.py (#6922)
+
+### Bug Fixes
+* channel matchspec fixes (#6893)
+* fix #6930 add missing return statement to S3Adapter (#6931)
+* fix #5802, #6736 enforce disallowed_packages configuration parameter (#6932)
+* fix #6860 infinite recursion in resolve.py for empty track_features (#6928)
+* set encoding for PY2 stdout/stderr (#6951)
+* fix #6821 non-deterministic behavior from MatchSpec merge clobbering (#6956)
+* fix #6904 logic errors in prefix graph data structure (#6929)
+
+### Non-User-Facing Changes
+* fix several lgtm.com flags (#6757, #6883)
+* cleanups and refactors for conda 4.5 (#6889)
+* unify location of record types in conda/models/records.py (#6924)
+* resolve #6952 memoize url search in package cache loading (#6957)
+
+
+## 4.4.11 (2018-02-23)
+
+### Improvements
+* resolve #6582 swallow_broken_pipe context manager and Spinner refactor (#6616)
+* resolve #6882 document max_shlvl (#6892)
+* resolve #6733 make empty env vars sequence-safe for sequence parameters (#6741)
+* resolve #6900 don't record conda skeleton environments in environments.txt (#6908)
+
+### Bug Fixes
+* fix potential error in ensure_pad(); add more tests (#6817)
+* fix #6840 handle error return values in conda.sh (#6850)
+* use conda.gateways.disk for misc.py imports (#6870)
+* fix #6672 don't update conda during conda-env operations (#6773)
+* fix #6811 don't attempt copy/remove fallback for rename failures (#6867)
+* fix #6667 aliased posix commands (#6669)
+* fix #6816 fish environment autocomplete (#6885)
+* fix #6880 build_number comparison not functional in match_spec (#6881)
+* fix #6910 sort key prioritizes build string over build number (#6911)
+* fix #6914, #6691 conda can fail to update packages even though newer versions exist (#6921)
+* fix #6899 handle Unicode output in activate commands (#6909)
+
+
+## 4.4.10 (2018-02-09)
+
+### Bug Fixes
+* fix #6837 require at least futures 3.0.0 (#6855)
+* fix #6852 ensure temporary path is writable (#6856)
+* fix #6833 improve feature mismatch metric (via 4.3.34 #6853)
+
+
+## 4.4.9 (2018-02-06)
+
+### Improvements
+* resolve #6632 display package removal plan when deleting an env (#6801)
+
+### Bug Fixes
+* fix #6531 don't drop credentials for conda-build workaround (#6798)
+* fix external command execution issue (#6789)
+* fix #5792 conda env export error common in path (#6795)
+* fix #6390 add CorruptedEnvironmentError (#6778)
+* fix #5884 allow --insecure CLI flag without contradicting meaning of ssl_verify (#6782)
+* fix MatchSpec.match() accepting dict (#6808)
+* fix broken Anaconda Prompt for users with spaces in paths (#6825)
+* JSONDecodeError was added in Python 3.5 (#6848)
+* fix #6796 update PATH/prompt on reactivate (#6828)
+* fix #6401 non-ascii characters on windows using expanduser (#6847)
+* fix #6824 import installers before invoking any (#6849)
+
+
+## 4.4.8 (2018-01-25)
+
+### Improvements
+* allow falsey values for default_python to avoid pinning python (#6682)
+* resolve #6700 add message for no space left on device (#6709)
+* make variable 'sourced' local for posix shells (#6726)
+* add column headers to conda list results (#5726)
+
+### Bug Fixes
+* fix #6713 allow parenthesis in prefix path for conda.bat (#6722)
+* fix #6684 --force message (#6723)
+* fix #6693 KeyError with '--update-deps' (#6694)
+* fix aggressive_update_packages availability (#6727)
+* fix #6745 don't truncate channel priority map in conda installer (#6746)
+* add workaround for system Python usage by lsb_release (#6769)
+* fix #6624 can't start new thread (#6653)
+* fix #6628 'conda install --rev' in conda 4.4 (#6724)
+* fix #6707 FileNotFoundError when extracting tarball (#6708)
+* fix #6704 unexpected token in conda.bat (#6710)
+* fix #6208 return for no pip in environment (#6784)
+* fix #6457 env var cleanup (#6790)
+* fix #6645 escape paths for argparse help (#6779)
+* fix #6739 handle unicode in environment variables for py2 activate (#6777)
+* fix #6618 RepresenterError with 'conda config --set' (#6619)
+* fix #6699 suppress memory error upload reports (#6776)
+* fix #6770 CRLF for cmd.exe (#6775)
+* fix #6514 add message for case-insensitive filesystem errors (#6764)
+* fix #6537 AttributeError value for url not set (#6754)
+* fix #6748 only warn if unable to register environment due to EACCES (#6752)
+
+
+## 4.4.7 (2018-01-08)
+
+### Improvements
+* resolve #6650 add upgrade message for unicode errors in python 2 (#6651)
+
+### Bug Fixes
+* fix #6643 difference between '==' and 'exact_match_' (#6647)
+* fix #6620 KeyError(u'CONDA_PREFIX',) (#6652)
+* fix #6661 remove env from environments.txt (#6662)
+* fix #6629 'conda update --name' AssertionError (#6656)
+* fix #6630 repodata AssertionError (#6657)
+* fix #6626 add setuptools as constrained dependency (#6654)
+* fix #6659 conda list explicit should be dependency sorted (#6671)
+* fix #6665 KeyError for channel '<unknown>' (#6668, #6673)
+* fix #6627 AttributeError on 'conda activate' (#6655)
+
+
+## 4.4.6 (2017-12-31)
+
+### Bug Fixes
+* fix #6612 do not assume Anaconda Python on Windows nor Library\bin hack (#6615)
+* recipe test improvements and associated bug fixes (#6614)
+
+
+## 4.4.5 (2017-12-29)
+
+### Bug Fixes
+* fix #6577, #6580 single quote in PS1 (#6585)
+* fix #6584 os.getcwd() FileNotFound (#6589)
+* fix #6592 deactivate command order (#6602)
+* fix #6579 python not recognized as command (#6588)
+* fix #6572 cached repodata PermissionsError (#6573)
+* change instances of 'root' to 'base' (#6598)
+* fix #6607 use subprocess rather than execv for conda command extensions (#6609)
+* fix #6581 git-bash activation (#6587)
+* fix #6599 space in path to base prefix (#6608)
+
+
+## 4.4.4 (2017-12-24)
+
+### Improvements
+* add SUDO_ env vars to info reports (#6563)
+* add additional information to the #6546 exception (#6551)
+
+### Bug Fixes
+* fix #6548 'conda update' installs packages not in prefix #6550
+* fix #6546 update after creating an empty env (#6568)
+* fix #6557 conda list FileNotFoundError (#6558)
+* fix #6554 package cache FileNotFoundError (#6555)
+* fix #6529 yaml parse error (#6560)
+* fix #6562 repodata_record.json permissions error stack trace (#6564)
+* fix #6520 --use-local flag (#6526)
+
+## 4.4.3 (2017-12-22)
+
+### Improvements
+* adjust error report message (#6534)
+
+### Bug Fixes
+* fix #6530 package cache JsonDecodeError / ValueError (#6533)
+* fix #6538 BrokenPipeError (#6540)
+* fix #6532 remove anaconda metapackage hack (#6539)
+* fix #6536 'conda env export' for old versions of pip (#6535)
+* fix #6541 py2 and unicode in environments.txt (#6542)
+
+### Non-User-Facing Changes
+* regression tests for #6512 (#6515)
+
+
+## 4.4.2 (2017-12-22)
+
+### Deprecations/Breaking Changes
+* resolve #6523 don't prune with --update-all (#6524)
+
+### Bug Fixes
+* fix #6508 environments.txt permissions error stack trace (#6511)
+* fix #6522 error message formatted incorrectly (#6525)
+* fix #6516 hold channels over from get_index to install_actions (#6517)
+
+
+## 4.4.1 (2017-12-21)
+
+### Bug Fixes
+* fix #6512 reactivate does not accept arguments (#6513)
+
+
+## 4.4.0 (2017-12-20)
+
+### Recommended change to enable conda in your shell
+
+With the release of conda 4.4, we recommend a change to how the `conda` command is made available to your shell environment. All the old methods still work as before, but you'll need the new method to enable the new `conda activate` and `conda deactivate` commands.
+
+For the "Anaconda Prompt" on Windows, there is no change.
+
+For Bourne shell derivatives (bash, zsh, dash, etc.), you likely currently have a line similar to
+
+    export PATH="/opt/conda/bin:$PATH"
+
+in your `~/.bashrc` file (or `~/.bash_profile` file on macOS).  The effect of this line is that your base environment is put on PATH, but without actually *activating* that environment. (In 4.4 we've renamed the 'root' environment to the 'base' environment.) With conda 4.4, we recommend removing the line where the `PATH` environment variable is modified, and replacing it with
+
+    . /opt/conda/etc/profile.d/conda.sh
+    conda activate base
+
+In the above, it's assumed that `/opt/conda` is the location where you installed miniconda or Anaconda.  It may also be something like `~/Anaconda3` or `~/miniconda2`.
+
+For system-wide conda installs, to make the `conda` command available to all users, rather than manipulating individual `~/.bashrc` (or `~/.bash_profile`) files for each user, just execute once
+
+    $ sudo ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+
+This will make the `conda` command itself available to all users, but conda's base (root) environment will *not* be activated by default.  Users will still need to run `conda activate base` to put the base environment on PATH and gain access to the executables in the base environment.
+
+After updating to conda 4.4, we also recommend pinning conda to a specific channel.  For example, executing the command
+
+    $ conda config --system --add pinned_packages conda-canary::conda
+
+will make sure that whenever conda is installed or changed in an environment, the source of the package is always being pulled from the `conda-canary` channel.  This will be useful for people who use `conda-forge`, to prevent conda from flipping back and forth between 4.3 and 4.4.
+
+
+### New Feature Highlights
+
+* **conda activate**: The logic and mechanisms underlying environment activation have been reworked. With conda 4.4, `conda activate` and `conda deactivate` are now the preferred commands for activating and deactivating environments. You'll find they are much more snappy than the `source activate` and `source deactivate` commands from previous conda versions. The `conda activate` command also has advantages of (1) being universal across all OSes, shells, and platforms, and (2) not having path collisions with scripts from other packages like python virtualenv's activate script.
+
+
+* **constrained, optional dependencies**: Conda now allows a package to constrain versions of other packages installed alongside it, even if those constrained packages are not themselves hard dependencies for that package. In other words, it lets a package specify that, if another package ends up being installed into an environment, it must at least conform to a certain version specification. In effect, constrained dependencies are a type of "reverse" dependency. It gives a tool to a parent package to exclude other packages from an environment that might otherwise want to depend on it.
+
+  Constrained optional dependencies are supported starting with conda-build 3.0 (via [conda/conda-build#2001[(https://github.com/conda/conda-build/pull/2001)). A new `run_constrained` keyword, which takes a list of package specs similar to the `run` keyword, is recognized under the `requirements` section of `meta.yaml`. For backward compatibility with versions of conda older than 4.4, a requirement may be listed in both the `run` and the `run_constrained` section. In that case older versions of conda will see the package as a hard dependency, while conda 4.4 will understand that the package is meant to be optional.
 
   Optional, constrained dependencies end up in `repodata.json` under a `constrains` keyword, parallel to the `depends` keyword for a package's hard dependencies.
 
 
-* **enhanced package query language**: Conda has a built-in query language for searching for and matching packages, what we often refer to as `MatchSpec`.  The MatchSpec is used for `conda search`, but also more generally for the packages requested for `create`, `install`, `update`, and `remove` operations.  With this release, our MatchSpec query language has been substantially enhanced.
+* **enhanced package query language**: Conda has a built-in query language for searching for and matching packages, what we often refer to as `MatchSpec`. The MatchSpec is what users input on the command line when they specify packages for `create`, `install`, `update`, and `remove` operations. With this release, MatchSpec (rather than a regex) becomes the default input for `conda search`. We have also substantially enhanced our MatchSpec query language.
 
   For example,
 
       conda install conda-forge::python
 
-  is now a valid command, which specifies that regardless of the active list of channel priorities, the python package itself should come from the `conda-forge` channel.  As before, the difference between `python=3.5` and `python==3.5` is that the first contains a "fuzzy" version while the second contains an "exact" version.  The fuzzy spec will match all python packages with versions `>=3.5` and `<3.6`.  The exact spec will match only python packages with version `3.5`, `3.5.0`, `3.5.0.0`, etc.  The canonical string form for a MatchSpec is thus
+  is now a valid command, which specifies that regardless of the active list of channel priorities, the python package itself should come from the `conda-forge` channel. As before, the difference between `python=3.5` and `python==3.5` is that the first contains a "*fuzzy*" version while the second contains an *exact* version. The fuzzy spec will match all python packages with versions `>=3.5` and `<3.6`. The exact spec will match only python packages with version `3.5`, `3.5.0`, `3.5.0.0`, etc. The canonical string form for a MatchSpec is thus
 
       (channel::)name(version(build_string))
 
-  which should feel natural to experienced conda users. Specifications however are often necessarily more complicated than this simple form can support, and for these situations we've extended the specification to include an optional square bracket `[]` component containing comma-separated key-value pairs to allow matching on most any field contained in a package's metadata.  Take, for example,
+  which should feel natural to experienced conda users. Specifications however are often necessarily more complicated than this simple form can support, and for these situations we've extended the specification to include an optional square bracket `[]` component containing comma-separated key-value pairs to allow matching on most any field contained in a package's metadata. Take, for example,
 
       conda search 'conda-forge/linux-64::*[md5=e42a03f799131d5af4196ce31a1084a7]' --info
 
@@ -45,71 +534,39 @@
     - toolz >=0.8.0
   ```
 
-  The square bracket notation can also be used for any field that we match on outside the package name, and will override information given in the "simple form" position.  To give a contrived example, `python==3.5[version='>=2.7,<2.8']` will match `2.7.*` versions and not `3.5`.
+  The square bracket notation can also be used for any field that we match on outside the package name, and will override information given in the "simple form" position. To give a contrived example, `python==3.5[version='>=2.7,<2.8']` will match `2.7.*` versions and not `3.5`.
 
 
-* **environments track user-requested state**: Building on our enhanced MatchSpec query language, conda environments now also track and differentiate (a) packages added to an environment because of an explicit user request from (b) packages brought into an environment to satisfy dependencies.  For example, executing
+* **environments track user-requested state**: Building on our enhanced MatchSpec query language, conda environments now also track and differentiate (a) packages added to an environment because of an explicit user request from (b) packages brought into an environment to satisfy dependencies. For example, executing
 
       conda install conda-forge::scikit-learn
 
-  will confine all future changes to the scikit-learn package in the environment to the conda-forge channel, until the spec is changed again.  A subsequent command `conda install scikit-learn=0.18` would drop the `conda-forge` channel restriction from the package.  And in this case, scikit-learn is the only user-defined spec, so the solver chooses dependencies from all configured channels and all available versions.
+  will confine all future changes to the scikit-learn package in the environment to the conda-forge channel, until the spec is changed again. A subsequent command `conda install scikit-learn=0.18` would drop the `conda-forge` channel restriction from the package. And in this case, scikit-learn is the only user-defined spec, so the solver chooses dependencies from all configured channels and all available versions.
 
 
-* **conda activate**: The logic and mechanisms underlying environment activation have been reworked. For Bourne shell derivatives (bash, zsh, dash, etc.), we now recommend *activating* the default conda base environment (i.e. root environment) rather than modifying the `PATH` environment variable.  That is, while you may have previously enabled conda in `~/.bash_profile` or `~/.bashrc` with something like
+* **errors posted to core maintainers**: In previous versions of conda, unexpected errors resulted in a request for users to consider posting the error as a new issue on conda's github issue tracker. In conda 4.4, we've implemented a system for users to opt-in to sending that same error report via an HTTP POST request directly to the core maintainers.
 
-      export PATH="/opt/conda/bin/conda:$PATH"
-
-  we now recommend
-
-      . /opt/conda/bin/activate
-
-  Alternately, if you won't be switching back to conda 4.3 or earlier, a more future-proof modification will be
-
-      . /opt/conda/etc/profile.d/conda.sh && conda activate
-
-  For multi-user installs, and to enable the `conda` command for all login shells,
-
-      sudo ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
-
-  Note that sourcing the `etc/profile.d/conda.sh` script does not activate the conda base (i.e. root) environment. Instead, it loads a `conda` function into the login shell that proxies commands to the conda executable as appropriate. Therefore, it's now possible to have full access to the `conda` command without conda or the base (root) environment being on `PATH`.
-
-  With conda 4.4, `conda activate` and `conda deactivate` are now the preferred commands for activating and deactivating environments.  You'll find they are much more snappy than the `source activate` and `source deactivate` commands from previous conda versions.  The `conda activate` command also has advantages of (1) being universal across all OSes, shells, and platforms, and (2) not having path collisions with scripts from other packages like python virtualenv's activate script.
+  When an unexpected error is encountered, users are prompted with the error report followed by a `[y/N]` input. Users can elect to send the report, with 'no' being the default response. Users can also permanently opt-in or opt-out, thereby skipping the prompt altogether, using the boolean `report_errors` configuration parameter.
 
 
-* **key-value features**: Conda has long supported the concept of "features" to empower users to customize the specific flavors of certain packages that end up in environments.  The `mkl` and `nomkl` features are the most used in the `defaults` channel, along with the `vc9`, `vc10`, and `vc14` features on Windows.  With conda 4.4, features transition from being binary "present" or "not present" to being "present with value" or "not present."  The `nomkl` features will now be displayed as `blas=accelerate` on macOR or `blas=openblas` on other platforms, and similarly for the `vc=9`, `vc=10`, and `vc=14` features.  An environment can only have one variant of a given feature active at a time.  Conda users will start to see features in many more contexts.  Look for a `gpu=cuda8.0` feature in the near future, and possibly even a `python=pypy2.7` feature showing up as well.
-
-  In implementing these key-value features, conda has added two new keywords to repodata. The feature concept was previously supported with `track_features` and `features` keys that roughly corresponded respectively to the new, more descriptive, `provides_features` and `requires_features`.  The old keys are left for backward compatibility, and if the new keys are not provided in repodata, conda will actively do the translation.  In contrast to the old keys being a space-delimited string of feature names, the new keys are both maps of key-value pairs.
-
-  While users can manipulate features within an environment using the new MatchSpec language enhancements, there's a new `--feature` command line flag to simplify the interaction.  The commands
-
-      conda install scipy --feature blas=openblas
-      conda install scipy[features='blas=openblas']
-
-  are equivalent.
+* **various UI improvements**: To push through some of the big leaps with transactions in conda 4.3, we accepted some regressions on progress bars and other user interface features. All of those indicators of progress, and more, have been brought back and further improved.
 
 
-* **errors posted to core maintainers**: In previous versions of conda, unexpected errors resulted in a request for users to consider posting the error as a new issue on conda's github issue tracker.  In conda 4.4, we've implemented a system for users to opt-in to sending that same error report via an HTTP POST request directly to the core maintainers.
+* **aggressive updates**: Conda now supports an `aggressive_update_packages` configuration parameter that holds a sequence of MatchSpec strings, in addition to the `pinned_packages` configuration parameter. Currently, the default value contains the packages `ca-certificates`, `certifi`, and `openssl`. When manipulating configuration with the `conda config` command, use of the `--system` and `--env` flags will be especially helpful here. For example,
 
-  When an unexpected error is encountered, users are prompted with the error report followed by a `[y/N]` input. Users can elect to send the report, with 'no' being the default response.  Users can also permanently opt-in or opt-out, thereby skipping the prompt altogether, using the boolean `report_errors` configuration parameter.
+      conda config --add aggressive_update_packages defaults::pyopenssl --system
 
-
-* **various UI improvements**: To push through some of the big leaps with transactions in conda 4.3, we accepted some regressions on progress bars and other user interface features.  All of those indicators of progress, and more, have been brought back and further improved.
-
-
-* **aggressive updates**: Conda now supports an `aggressive_update_packages` configuration parameter that holds a sequence of MatchSpec strings, in addition to the `pinned_packages` configuration parameter.  Currently, the default value only contains a single item `openssl`.  When manipulating configuration with the `conda config` command, use the `--system` and `--env` flags will be especially helpful here.  For example,
-
-      conda config --add aggressive_update_packages openssl --system
-
-  would ensure that solves on all environments system-wide always enforce using the latest version of openssl.
+  would ensure that, system-wide, solves on all environments enforce using the latest version of `pyopenssl` from the `defaults` channel.
 
       conda config --add pinned_packages python=2.7 --env
 
   would lock all solves for the current active environment to python versions matching `2.7.*`.
 
 
-* **other configuration improvements**: In addition to `conda config --describe`, which shows detailed descriptions and default values for all available configuration parameters, we have a new `conda config --write-default` command.  This new command simply writes the contents of `conda config --describe` to a condarc file, which is a great starter template.  Without additional arguments, the command will write to the `.condarc` file in the user's home directory.  The command also works with the `--system`, `--env`, and `--file` flags to write the contents to alternate locations.
+* **other configuration improvements**: In addition to `conda config --describe`, which shows detailed descriptions and default values for all available configuration parameters, we have a new `conda config --write-default` command. This new command simply writes the contents of `conda config --describe` to a condarc file, which is a great starter template. Without additional arguments, the command will write to the `.condarc` file in the user's home directory. The command also works with the `--system`, `--env`, and `--file` flags to write the contents to alternate locations.
 
-  Conda exposes a tremendous amount of flexibility via configuration.  For more information, [The Conda Configuration Engine for Power Users](https://www.continuum.io/blog/developer-blog/conda-configuration-engine-power-users) blog post is a good resource.
+  Conda exposes a tremendous amount of flexibility via configuration. For more information, [The Conda Configuration Engine for Power Users](https://www.continuum.io/blog/developer-blog/conda-configuration-engine-power-users) blog post is a good resource.
+
 
 ### Deprecations/Breaking Changes
 * the conda 'root' environment is now generally referred to as the 'base' environment
@@ -118,6 +575,11 @@
   Behavior is configurable via the `safety_checks` configuration parameter.
 * remove support for with_features_depends (#5191)
 * resolve #5468 remove --alt-hint from CLI API (#5469)
+* resolve #5834 change default value of 'allow_softlinks' from True to False (#5835)
+* resolve #5842 add deprecation warnings for 'conda env upload' and 'conda env attach' (#5843)
+
+### API
+* Add Solver from conda.core.solver with three methods to conda.api (4.4.0rc1) (#5838)
 
 ### Improvements
 * constrained, optional dependencies (#4982)
@@ -128,7 +590,6 @@
 * resolve #5530 add ability for users to choose to post unexpected errors to core maintainers (#5531, #5571, #5585)
 * Solver, UI, History, and Other (#5546, #5583, #5740)
 * improve 'conda search' to leverage new MatchSpec query language (#5597)
-* key-value features (#5645)
 * filter out unwritable package caches from conda clean command (#4620)
 * envs_manager, requested spec history, declarative solve, and private env tests (#4676, #5114, #5094, #5145, #5492)
 * make python entry point format match pip entry points (#5010)
@@ -157,8 +618,25 @@
 * enable threadpool use for repodata collection by default (#5546, #5587)
 * conda info now raises PackagesNotFoundError (#5655)
 * index building optimizations (#5776)
-* fix #5811 change safety_checks default to 'warn' for conda 4.4 (#5824)
-* add constrained dependencies to conda's own recipe (#5823)
+* fix #5811 change safety_checks default to 'warn' for conda 4.4 (4.4.0rc1) (#5824)
+* add constrained dependencies to conda's own recipe (4.4.0rc1) (#5823)
+* clean up parser imports (4.4.0rc2) (#5844)
+* resolve #5983 add --download-only flag to create, install, and update (4.4.0rc2) (#5988)
+* add ca-certificates and certifi to aggressive_update_packages default (4.4.0rc2) (#5994)
+* use environments.txt to list all known environments (4.4.0rc2) (#6313)
+* resolve #5417 ensure unlink order is correctly sorted (4.4.0) (#6364)
+* resolve #5370 index is only prefix and cache in --offline mode (4.4.0) (#6371)
+* reduce redundant sys call during file copying (4.4.0rc3) (#6421)
+* enable aggressive_update_packages (4.4.0rc3) (#6392)
+* default conda.sh to dash if otherwise can't detect (4.4.0rc3) (#6414)
+* canonicalize package names when comparing with pip (4.4.0rc3) (#6438)
+* add target prefix override configuration parameter (4.4.0rc3) (#6413)
+* resolve #6194 warn when conda is outdated (4.4.0rc3) (#6370)
+* add information to displayed error report (4.4.0rc3) (#6437)
+* csh wrapper (4.4.0) (#6463)
+* resolve #5158 --override-channels (4.4.0) (#6467)
+* fish update for conda 4.4 (4.4.0) (#6475, #6502)
+* skip an unnecessary environments.txt rewrite (4.4.0) (#6495)
 
 ### Bug Fixes
 * fix some conda-build compatibility issues (#5089)
@@ -182,10 +660,32 @@
 * fix exception when generating JSON output (#5628)
 * fix target prefix determination (#5642)
 * use proxy to avoid segfaults (#5716)
-* fix #5790 incorrect activation message (#5820)
-* fix #5808 assertion error when loading package cache (#5815)
-* fix #5809 _pip_install_via_requirements got an unexpected keyword argument 'prune' (#5814)
-* fix #5811 change safety_checks default to 'warn' for conda 4.4 (#5824)
+* fix #5790 incorrect activation message (4.4.0rc1) (#5820)
+* fix #5808 assertion error when loading package cache (4.4.0rc1) (#5815)
+* fix #5809 _pip_install_via_requirements got an unexpected keyword argument 'prune' (4.4.0rc1) (#5814)
+* fix #5811 change safety_checks default to 'warn' for conda 4.4 (4.4.0rc1) (#5824)
+* fix #5825 --json output format (4.4.0rc1) (#5831)
+* fix force_reinstall for case when packages aren't actually installed (4.4.0rc1) (#5836)
+* fix #5680 empty pip subsection error in environment.yml (4.4.0rc2) (#6275)
+* fix #5852 bad tokens from history crash conda installs (4.4.0rc2) (#6076)
+* fix #5827 no error message on invalid command (4.4.0rc2) (#6352)
+* fix exception handler for 'conda activate' (4.4.0rc2) (#6365)
+* fix #6173 double prompt immediately after conda 4.4 upgrade (4.4.0rc2) (#6351)
+* fix #6181 keep existing pythons pinned to minor version (4.4.0rc2) (#6363)
+* fix #6201 incorrect subdir shown for conda search when package not found (4.4.0rc2) (#6367)
+* fix #6045 help message and zsh shift (4.4.0rc3) (#6368)
+* fix noarch python package resintall (4.4.0rc3) (#6394)
+* fix #6366 shell activation message (4.4.0rc3) (#6369)
+* fix #6429 AttributeError on 'conda remove' (4.4.0rc3) (#6434)
+* fix #6449 problems with 'conda info --envs' (#6451)
+* add debug exception for #6430 (4.4.0rc3) (#6435)
+* fix #6441 NotImplementedError on 'conda list' (4.4.0rc3) (#6442)
+* fix #6445 scale back directory activation in PWD (4.4.0rc3) (#6447)
+* fix #6283 no-deps for conda update case (4.4.0rc3) (#6448)
+* fix #6419 set PS1 in python code (4.4.0rc3) (#6446)
+* fix #6466 sp_dir doesn't exist (#6470)
+* fix #6350 --update-all removes too many packages (4.4.0) (#6491)
+* fix #6057 unlink-link order for python noarch packages on windows 4.4.x (4.4.0) (#6494)
 
 ### Non-User-Facing Changes
 * eliminate index modification in Resolve init (#4333)
@@ -206,9 +706,104 @@
 * rename PackageNotFoundError to PackagesNotFoundError and fix message formatting (#5602)
 * update conda 4.4 bld.bat windows recipe (#5573)
 * remove last remnant of CondaEnvRuntimeError (#5643)
+* fix typo (4.4.0rc2) (#6043)
+* replace Travis-CI with CircleCI (4.4.0rc2) (#6345)
+* key-value features (#5645); reverted in 4.4.0rc2 (#6347, #6492)
+* resolve #6431 always add env_vars to info_dict (4.4.0rc3) (#6436)
+* move shell inside conda directory (4.4.0) (#6479)
+* remove dead code (4.4.0) (#6489)
 
 
-## 4.3.25 (unreleased)
+## 4.3.34 (2018-02-09)
+
+### Bug Fixes
+* fix #6833 improve feature mismatch metric (#6853)
+
+
+## 4.3.33 (2018-01-24)
+
+### Bug Fixes
+* fix #6718 broken 'conda install --rev' (#6719)
+* fix #6765 adjust the feature score assigned to packages not installed (#6766)
+
+
+## 4.3.32 (2018-01-10)
+
+### Improvements
+* resolve #6711 fall back to copy/unlink for EINVAL, EXDEV rename failures (#6712)
+
+### Bug Fixes
+* fix #6057 unlink-link order for python noarch packages on windows (#6277)
+* fix #6509 custom_channels incorrect in 'conda config --show' (#6510)
+
+
+## 4.3.31 (2017-12-15)
+
+### Improvements
+* add delete_trash to conda_env create (#6299)
+
+### Bug Fixes
+* fix #6023 assertion error for temp file (#6154)
+* fix #6220 --no-builds flag for 'conda env export' (#6221)
+* fix #6271 timestamp prioritization results in undesirable race-condition (#6279)
+
+### Non-User-Facing Changes
+* fix two failing integration tests after anaconda.org API change (#6182)
+* resolve #6243 mark root as not writable when sys.prefix is not a conda environment (#6274)
+* add timing instrumentation (#6458)
+
+
+## 4.3.30 (2017-10-17)
+
+### Improvements
+* address #6056 add additional proxy variables to 'conda info --all' (#6083)
+
+### Bug Fixes
+* address #6164 move add_defaults_to_specs after augment_specs (#6172)
+* fix #6057 add additional detail for message 'cannot link source that does not exist' (#6082)
+* fix #6084 setting default_channels from CLI raises NotImplementedError (#6085)
+
+
+## 4.3.29 (2017-10-09)
+
+### Bug Fixes
+* fix #6096 coerce to millisecond timestamps (#6131)
+
+
+## 4.3.28 (2017-10-06)
+
+### Bug Fixes
+* fix #5854 remove imports of pkg_resources (#5991)
+* fix millisecond timestamps (#6001)
+
+
+## 4.3.27 (2017-09-18)
+
+### Bug Fixes
+* fix #5980 always delete_prefix_from_linked_data in rm_rf (#5982)
+
+
+## 4.3.26 (2017-09-15)
+
+### Deprecations/Breaking Changes
+* resolve #5922 prioritize channels within multi-channels (#5923)
+* add https://repo.continuum.io/pkgs/main to defaults multi-channel (#5931)
+
+### Improvements
+* add a channel priority minimization pass to solver logic (#5859)
+* invoke cmd.exe with /D for pre/post link/unlink scripts (#5926)
+* add boto3 use to s3 adapter (#5949)
+
+### Bug Fixes
+* always remove linked prefix entry with rm_rf (#5846)
+* resolve #5920 bump repodata pickle version (#5921)
+* fix msys2 activate and deactivate (#5950)
+
+
+## 4.3.25 (2017-08-16)
+
+### Deprecations/Breaking Changes
+* resolve #5834 change default value of 'allow_softlinks' from True to False (#5839)
 
 ### Improvements
 * add non-admin check to optionally disable non-privileged operation (#5724)
@@ -217,6 +812,7 @@
 ### Bug Fixes
 * fix #5763 channel url string splitting error (#5764)
 * fix regex for repodata _mod and _etag (#5795)
+* fix uncaught OSError for missing device (#5830)
 
 
 ## 4.3.24 (2017-07-31)

@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
 from logging import getLogger
 
-from .compat import PY2, odict
+from .compat import PY2, odict, ensure_text_type
 from .._vendor.auxlib.decorators import memoize
 from .._vendor.auxlib.entity import EntityEncoder
 
@@ -64,6 +66,16 @@ def yaml_load_safe(string):
     return yaml.load(string, Loader=yaml.SafeLoader, version="1.2")
 
 
+def yaml_load_standard(string):
+    """Uses the default (unsafe) loader.
+
+    Examples:
+        >>> yaml_load_standard("prefix: !!python/unicode '/Users/darwin/test'")
+        {'prefix': '/Users/darwin/test'}
+    """
+    return yaml.load(string, Loader=yaml.Loader, version="1.2")
+
+
 def yaml_dump(object):
     """dump object to string"""
     return yaml.dump(object, Dumper=yaml.RoundTripDumper,
@@ -76,5 +88,5 @@ def json_load(string):
 
 
 def json_dump(object):
-    return json.dumps(object, indent=2, sort_keys=True,
-                      separators=(',', ': '), cls=EntityEncoder)
+    return ensure_text_type(json.dumps(object, indent=2, sort_keys=True,
+                                       separators=(',', ': '), cls=EntityEncoder))

@@ -24,4 +24,11 @@ conda_build_test_recipe/
 record.txt
 .vagrant/
 Vagrantfile
+docs/_build
 env/
+dev-init.bat
+devenv/
+Miniconda*.sh
+miniconda*.sh
+miniconda*.exe
+.pytest_cache/

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import copy
@@ -6,21 +8,14 @@ from itertools import chain
 from logging import getLogger
 
 from .._vendor.boltons.setutils import IndexedSet
-from ..base.constants import (DEFAULTS_CHANNEL_NAME, DEFAULT_CHANNELS_UNIX, DEFAULT_CHANNELS_WIN,
-                              MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL)
+from .._vendor.toolz import concat, concatv, drop
+from ..base.constants import DEFAULTS_CHANNEL_NAME, MAX_CHANNEL_PRIORITY, UNKNOWN_CHANNEL
 from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable, iteritems, odict, with_metaclass
 from ..common.path import is_path, win_path_backout
 from ..common.url import (Url, has_scheme, is_url, join_url, path_to_url,
                           split_conda_url_easy_parts, split_platform, split_scheme_auth_token,
                           urlparse)
-
-try:
-    from cytoolz.functoolz import excepts
-    from cytoolz.itertoolz import concatv, drop
-except ImportError:  # pragma: no cover
-    from .._vendor.toolz.functoolz import excepts  # NOQA
-    from .._vendor.toolz.itertoolz import concatv, drop  # NOQA
 
 log = getLogger(__name__)
 
@@ -115,7 +110,7 @@ class Channel(object):
             return Channel.from_url(value)
         else:
             # at this point assume we don't have a bare (non-scheme) url
-            #   e.g. this would be bad:  repo.continuum.io/pkgs/free
+            #   e.g. this would be bad:  repo.anaconda.com/pkgs/free
             _stripped, platform = split_platform(value, context.known_subdirs)
             if _stripped in context.custom_multichannels:
                 return MultiChannel(_stripped, context.custom_multichannels[_stripped], platform)
@@ -143,25 +138,38 @@ class Channel(object):
 
     @property
     def canonical_name(self):
+        try:
+            return self.__canonical_name
+        except AttributeError:
+            pass
+
         for multiname, channels in iteritems(context.custom_multichannels):
             for channel in channels:
                 if self.name == channel.name:
-                    return multiname
+                    cn = self.__canonical_name = multiname
+                    return cn
 
         for that_name in context.custom_channels:
             if self.name and tokenized_startswith(self.name.split('/'), that_name.split('/')):
-                return self.name
+                cn = self.__canonical_name = self.name
+                return cn
 
-        if any(c.location == self.location
-               for c in concatv((context.channel_alias,), context.migrated_channel_aliases)):
-            return self.name
+        if any(c.location == self.location for c in concatv(
+                (context.channel_alias,),
+                context.migrated_channel_aliases,
+        )):
+            cn = self.__canonical_name = self.name
+            return cn
 
         # fall back to the equivalent of self.base_url
         # re-defining here because base_url for MultiChannel is None
         if self.scheme:
-            return "%s://%s" % (self.scheme, join_url(self.location, self.name))
+            cn = self.__canonical_name = "%s://%s" % (self.scheme,
+                                                      join_url(self.location, self.name))
+            return cn
         else:
-            return join_url(self.location, self.name).lstrip('/')
+            cn = self.__canonical_name = join_url(self.location, self.name).lstrip('/')
+            return cn
 
     def urls(self, with_credentials=False, subdirs=None):
         if subdirs is None:
@@ -235,17 +243,14 @@ class Channel(object):
         return url
 
     def __str__(self):
-        return self.base_url or ""
+        base = self.base_url or self.name
+        if self.subdir:
+            return join_url(base, self.subdir)
+        else:
+            return base
 
     def __repr__(self):
-        return ("Channel(scheme=%r, auth=%r, location=%r, token=%r, name=%r, platform=%r, "
-                "package_filename=%r)" % (self.scheme,
-                                          self.auth and "%s:<PASSWORD>" % self.auth.split(':')[0],
-                                          self.location,
-                                          self.token and "<TOKEN>",
-                                          self.name,
-                                          self.platform,
-                                          self.package_filename))
+        return 'Channel("%s")' % (join_url(self.name, self.subdir) if self.subdir else self.name)
 
     def __eq__(self, other):
         if isinstance(other, Channel):
@@ -315,13 +320,6 @@ class MultiChannel(Channel):
 
     def urls(self, with_credentials=False, subdirs=None):
         _channels = self._channels
-        if self.name == 'defaults':
-            platform = next((s for s in reversed(subdirs or context.subdirs) if s != 'noarch'), '')
-            if platform != context.subdir:
-                # necessary shenanigan because different platforms have different default channels
-                urls = DEFAULT_CHANNELS_WIN if 'win' in platform else DEFAULT_CHANNELS_UNIX
-                ca = context.channel_alias
-                _channels = tuple(Channel.make_simple_channel(ca, v) for v in urls)
         return list(chain.from_iterable(c.urls(with_credentials, subdirs) for c in _channels))
 
     @property
@@ -372,7 +370,7 @@ def _get_channel_for_name(channel_name):
         # stripping off path threw information away from channel_name (i.e. any potential subname)
         # channel.name *should still be* channel_name
         channel = copy(channel)
-        channel.name = channel_name
+        channel.name = _stripped
         if platform:
             channel.platform = platform
         return channel
@@ -477,13 +475,15 @@ def prioritize_channels(channels, with_credentials=True, subdirs=None):
     #   urls as the key, and a tuple of canonical channel name and channel priority
     #   number as the value
     # ('https://conda.anaconda.org/conda-forge/osx-64/', ('conda-forge', 1))
+    channels = concat((Channel(cc) for cc in c._channels) if isinstance(c, MultiChannel) else (c,)
+                      for c in (Channel(c) for c in channels))
     result = odict()
-    for channel_priority, chn in enumerate(channels):
+    for priority_counter, chn in enumerate(channels):
         channel = Channel(chn)
         for url in channel.urls(with_credentials, subdirs):
             if url in result:
                 continue
-            result[url] = channel.canonical_name, min(channel_priority, MAX_CHANNEL_PRIORITY - 1)
+            result[url] = channel.canonical_name, min(priority_counter, MAX_CHANNEL_PRIORITY - 1)
     return result
 
 

@@ -11,7 +11,7 @@ from conda.common.compat import iteritems
 from conda.common.disk import temporary_content_in_file
 from conda.common.io import env_var
 from conda.core.index import get_index
-from conda.core.repodata import Response304ContentUnchanged, cache_fn_url, read_mod_and_etag, \
+from conda.core.subdir_data import Response304ContentUnchanged, cache_fn_url, read_mod_and_etag, \
     SubdirData
 from conda.models.channel import Channel
 
@@ -31,11 +31,11 @@ def platform_in_record(platform, record):
 class GetRepodataIntegrationTests(TestCase):
 
     def test_get_index_no_platform_with_offline_cache(self):
-        import conda.core.repodata
+        import conda.core.subdir_data
         with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
-            with patch.object(conda.core.repodata, 'read_mod_and_etag') as read_mod_and_etag:
+            with patch.object(conda.core.subdir_data, 'read_mod_and_etag') as read_mod_and_etag:
                 read_mod_and_etag.return_value = {}
-                channel_urls = ('https://repo.continuum.io/pkgs/pro',)
+                channel_urls = ('https://repo.anaconda.com/pkgs/pro',)
                 with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
                     this_platform = context.subdir
                     index = get_index(channel_urls=channel_urls, prepend=False)
@@ -51,7 +51,7 @@ class GetRepodataIntegrationTests(TestCase):
 
         for unknown in (None, False, True):
             with env_var('CONDA_OFFLINE', 'yes', reset_context):
-                with patch.object(conda.core.repodata, 'fetch_repodata_remote_request') as remote_request:
+                with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     index2 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
                     assert all(index2.get(k) == rec for k, rec in iteritems(index))
                     assert unknown is not False or len(index) == len(index2)
@@ -59,7 +59,7 @@ class GetRepodataIntegrationTests(TestCase):
 
         for unknown in (False, True):
             with env_var('CONDA_REPODATA_TIMEOUT_SECS', '0', reset_context):
-                with patch.object(conda.core.repodata, 'fetch_repodata_remote_request') as remote_request:
+                with patch.object(conda.core.subdir_data, 'fetch_repodata_remote_request') as remote_request:
                     remote_request.side_effect = Response304ContentUnchanged()
                     index3 = get_index(channel_urls=channel_urls, prepend=False, unknown=unknown)
                     assert all(index3.get(k) == rec for k, rec in iteritems(index))
@@ -91,7 +91,7 @@ class StaticFunctionTests(TestCase):
     def test_read_mod_and_etag_etag_only(self):
         etag_only_str = """
         {
-          "_url": "https://repo.continuum.io/pkgs/r/noarch",
+          "_url": "https://repo.anaconda.com/pkgs/r/noarch",
           "info": {},
           "_etag": "\"569c0ecb-48\"",
           "packages": {}
@@ -107,7 +107,7 @@ class StaticFunctionTests(TestCase):
         {
           "_etag": "\"569c0ecb-48\"",
           "_mod": "Sun, 17 Jan 2016 21:59:39 GMT",
-          "_url": "https://repo.continuum.io/pkgs/r/noarch",
+          "_url": "https://repo.anaconda.com/pkgs/r/noarch",
           "info": {},
           "packages": {}
         }
@@ -121,7 +121,7 @@ class StaticFunctionTests(TestCase):
         mod_etag_str = """
         {
           "_mod": "Sun, 17 Jan 2016 21:59:39 GMT",
-          "_url": "https://repo.continuum.io/pkgs/r/noarch",
+          "_url": "https://repo.anaconda.com/pkgs/r/noarch",
           "info": {},
           "_etag": "\"569c0ecb-48\"",
           "packages": {}
@@ -132,7 +132,7 @@ class StaticFunctionTests(TestCase):
             assert mod_etag_dict["_mod"] == "Sun, 17 Jan 2016 21:59:39 GMT"
             assert mod_etag_dict["_etag"] == "\"569c0ecb-48\""
 
-    def test_cache_fn_url(self):
+    def test_cache_fn_url_repo_continuum_io(self):
         hash1 = cache_fn_url("http://repo.continuum.io/pkgs/free/osx-64/")
         hash2 = cache_fn_url("http://repo.continuum.io/pkgs/free/osx-64")
         assert "aa99d924.json" == hash1 == hash2
@@ -145,6 +145,21 @@ class StaticFunctionTests(TestCase):
         assert hash4 != hash5
 
         hash6 = cache_fn_url("https://repo.continuum.io/pkgs/r/osx-64")
+        assert hash4 != hash6
+
+    def test_cache_fn_url_repo_anaconda_com(self):
+        hash1 = cache_fn_url("http://repo.anaconda.com/pkgs/free/osx-64/")
+        hash2 = cache_fn_url("http://repo.anaconda.com/pkgs/free/osx-64")
+        assert "1e817819.json" == hash1 == hash2
+
+        hash3 = cache_fn_url("https://repo.anaconda.com/pkgs/free/osx-64/")
+        hash4 = cache_fn_url("https://repo.anaconda.com/pkgs/free/osx-64")
+        assert "3ce78580.json" == hash3 == hash4 != hash1
+
+        hash5 = cache_fn_url("https://repo.anaconda.com/pkgs/free/linux-64/")
+        assert hash4 != hash5
+
+        hash6 = cache_fn_url("https://repo.anaconda.com/pkgs/r/osx-64")
         assert hash4 != hash6
 
 
