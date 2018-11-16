@@ -4,3 +4,4 @@ sphinx-autobuild
 sphinx-argparse==0.2.5
 sphinx_rtd_theme
 sphinxcontrib-programoutput
+-e .
