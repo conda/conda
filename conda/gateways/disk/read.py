@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from base64 import b64encode
 from collections import namedtuple
+from contextlib import closing
 from errno import ENOENT
 from functools import partial
 from glob import glob
@@ -12,6 +13,7 @@ import hashlib
 from itertools import chain
 import json
 from logging import getLogger
+import mmap
 from os import listdir
 from os.path import isdir, isfile, join
 import shlex
@@ -68,8 +70,12 @@ def _digest_path(algo, path):
 
     hasher = hashlib.new(algo)
     with open(path, "rb") as fh:
-        for chunk in iter(partial(fh.read, 8192), b''):
-            hasher.update(chunk)
+        try:
+            with closing(mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)) as mm:
+                hasher.update(mm)
+        except OSError:
+            for chunk in iter(partial(fh.read, 8192), b''):
+                hasher.update(chunk)
     return hasher.hexdigest()
 
 
