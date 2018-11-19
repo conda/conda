@@ -76,6 +76,9 @@ def _digest_path(algo, path):
         except OSError:
             for chunk in iter(partial(fh.read, 8192), b''):
                 hasher.update(chunk)
+        except ValueError:
+            # File is empty
+            pass
     return hasher.hexdigest()
 
 
