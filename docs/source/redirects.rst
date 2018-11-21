@@ -11,7 +11,6 @@ Redirects
    :hidden:
 
    admin
-   build-commands
    changelog
    channels
    config
@@ -45,3 +44,6 @@ Redirects
    using/pkgs
    using/test-drive
    using/using
+   commands/index
+   configuration
+   api/index

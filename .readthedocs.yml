@@ -1,0 +1,3 @@
+requirements_file: utils/requirements-docs.txt
+python:
+  version: 3

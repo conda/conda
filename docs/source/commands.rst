@@ -27,29 +27,6 @@ The following commands are part of conda:
 
    commands/*
 
-Conda build commands
-====================
-
-The following commands are part of the conda build package, which
-can be installed with ``conda install conda-build``:
-
-.. toctree::
-   :glob:
-   :maxdepth: 2
-
-   commands/build/*
-
-Conda environment commands
-==========================
-
-The following commands are part of the conda-env package, which
-is installed automatically with conda:
-
-.. toctree::
-   :glob:
-   :maxdepth: 2
-
-   commands/env/*
 
 Conda vs. pip vs. virtualenv commands
 =====================================

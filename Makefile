@@ -83,5 +83,9 @@ test-installed:
 	$(PYTEST) $(ADD_COV) -m "installed" --shell=bash --shell=zsh
 
 
+html:
+	@cd docs && make html
+
+
 .PHONY : clean clean-all anaconda-submit anaconda-submit-upload auxlib boltons toolz \
-         pytest-version smoketest unit integration test-installed
+         pytest-version smoketest unit integration test-installed html

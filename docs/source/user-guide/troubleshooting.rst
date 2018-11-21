@@ -716,8 +716,7 @@ Cause
 ------
 
 If you make a conda package for the app using conda build, you
-can set dependencies with specific version numbers. In :doc:`this
-example <tasks/build-packages/define-metadata>`, the
+can set dependencies with specific version numbers. The
 requirements lines that say ``- python`` could be
 ``- python ==2.7.9`` instead. It is important to have 1 space
 before the == operator and no space after.

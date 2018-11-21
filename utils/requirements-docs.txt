@@ -1,0 +1,7 @@
+-r requirements.txt
+sphinx==1.8.2
+sphinx-autobuild
+sphinx-argparse==0.2.5
+sphinx_rtd_theme
+sphinxcontrib-programoutput
+-e .
