@@ -1118,7 +1118,9 @@ def _read_windows_registry(target_path):  # pragma: no cover
 
     try:
         value_tuple = winreg.QueryValueEx(key, value_name)
-        value_value = value_tuple[0].strip()
+        value_value = value_tuple[0]
+        if isinstance(value_value, str):
+            value_value = value_value.strip()
         value_type = value_tuple[1]
         return value_value, value_type
     except Exception:
