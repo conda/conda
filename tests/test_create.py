@@ -584,8 +584,13 @@ class IntegrationTests(TestCase):
         assert not stderr
         json_obj = json_loads(stdout)
         channel_groups = groupby("channel",json_obj["actions"]["LINK"])
+        channel_groups = sorted(list(channel_groups))
         # conda-forge should be the only channel in the solution on unix
-        assert list(channel_groups) == ["conda-forge"]
+        # fiona->gdal->libgdal->m2w64-xz brings in pkgs/msys2 on win
+        if on_win:
+            assert channel_groups == ["conda-forge", "pkgs/msys2"]
+        else:
+            assert channel_groups == ["conda-forge"]
 
     def test_strict_resolve_get_reduced_index(self):
         channels = (Channel("defaults"),)
@@ -925,8 +930,7 @@ class IntegrationTests(TestCase):
                 run_command(Commands.INSTALL, prefix,
                             "conda-forge::tensorflow>=1.4 --dry-run --freeze-installed")
 
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 11, 1),
-                       reason="need to talk with @msarahan about blas patches on Windows",
+    @pytest.mark.xfail(on_win, reason="nomkl not present on windows",
                        strict=True)
     def test_install_features(self):
         with make_temp_env("python=2 numpy=1.13 nomkl") as prefix:

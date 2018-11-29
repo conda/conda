@@ -101,6 +101,7 @@ conda_build_test: &conda_build_test
             and not rpm-libX11-devel
             and not test_resolved_packages_recipe
             and not test_overlinking_detection
+            and not test_python_line_up_with_compiled_lib
           # skeleton_pypi skipped because of changes to PyPI API
           # expand_globs and build_expands_wildcards fail on circleci because of list ordering discrepancies
           # skipping numpy tests so circleci images don't need numpy (and mkl) installed
@@ -119,6 +120,7 @@ conda_build_test: &conda_build_test
           # rpm-libX11-devel returns 404 error
           # test_resolved_packages_recipedue to openssl not being pinned
           # test_overlinking_detection package doesn't have configure
+          # test_python_line_up_with_compiled_lib because older CB honors run_exports.yaml and not run_exports.json
         command: |
           eval "$(sudo /opt/conda/bin/python -m conda init --dev bash)"
           conda info
