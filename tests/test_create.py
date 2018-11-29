@@ -584,8 +584,13 @@ class IntegrationTests(TestCase):
         assert not stderr
         json_obj = json_loads(stdout)
         channel_groups = groupby("channel",json_obj["actions"]["LINK"])
+        channel_groups = sorted(list(channel_groups))
         # conda-forge should be the only channel in the solution on unix
-        assert list(channel_groups) == ["conda-forge"]
+        # fiona->gdal->libgdal->m2w64-xz brings in pkgs/msys2 on win
+        if on_win:
+            assert channel_groups == ["conda-forge", "pkgs/msys2"]
+        else:
+            assert channel_groups == ["conda-forge"]
 
     def test_strict_resolve_get_reduced_index(self):
         channels = (Channel("defaults"),)
