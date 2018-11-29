@@ -826,7 +826,7 @@ class InitializeTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="win-only test")
     def test_init_enable_long_path(self):
-        self.dummy_value = "0"
+        self.dummy_value = 0
 
         def _read_windows_registry_mock(target_path):
             return self.dummy_value, "REG_DWORD"
@@ -844,9 +844,9 @@ class InitializeTests(TestCase):
 
         try:
             target_path = r'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem\\LongPathsEnabled'
-            assert initialize._read_windows_registry(target_path)[0] == "0"
+            assert initialize._read_windows_registry(target_path)[0] == 0
             initialize.init_long_path(target_path)
-            assert initialize._read_windows_registry(target_path)[0] == "1"
+            assert initialize._read_windows_registry(target_path)[0] == 1
         finally:
             initialize._read_windows_registry = orig_read_windows_registry
             initialize._write_windows_registry = orig_write_windows_registry
