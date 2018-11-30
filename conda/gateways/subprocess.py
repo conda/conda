@@ -46,7 +46,7 @@ def subprocess_call(command, env=None, path=None, stdin=None, raise_on_error=Tru
     log.debug("executing>> %s", command_str)
     p = Popen(command_arg, cwd=path, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
     ACTIVE_SUBPROCESSES.add(p)
-    stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else None
+    stdin = ensure_binary(stdin) if isinstance(stdin, string_types) else stdin
     stdout, stderr = p.communicate(input=stdin)
     rc = p.returncode
     ACTIVE_SUBPROCESSES.remove(p)
