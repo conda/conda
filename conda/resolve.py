@@ -923,15 +923,16 @@ class Resolve(object):
         log.debug('Additional package channel/version/build metrics: %d/%d/%d',
                   obj5a, obj5, obj6)
 
+        # Prune unnecessary packages
+        eq_c = r2.generate_package_count(C, specm)
+        solution, obj7 = C.minimize(eq_c, solution, trymax=True)
+        log.debug('Weak dependency count: %d', obj7)
+
         # Maximize timestamps
         eq_t.update(eq_req_t)
         solution, obj6t = C.minimize(eq_t, solution)
         log.debug('Timestamp metric: %d', obj6t)
 
-        # Prune unnecessary packages
-        eq_c = r2.generate_package_count(C, specm)
-        solution, obj7 = C.minimize(eq_c, solution, trymax=True)
-        log.debug('Weak dependency count: %d', obj7)
 
         def clean(sol):
             return [q for q in (C.from_index(s) for s in sol)
