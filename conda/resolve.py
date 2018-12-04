@@ -941,10 +941,12 @@ class Resolve(object):
         solution, obj7 = C.minimize(eq_c, solution, trymax=True)
         log.debug('Weak dependency count: %d', obj7)
 
-        # Maximize timestamps
-        eq_t.update(eq_req_t)
-        solution, obj6t = C.minimize(eq_t, solution)
-        log.debug('Timestamp metric: %d', obj6t)
+        multiple_solutions = has_multiple_simple_solutions(solution)
+        if multiple_solutions:
+            # Maximize timestamps
+            eq_t.update(eq_req_t)
+            solution, obj6t = C.minimize(eq_t, solution)
+            log.debug('Timestamp metric: %d', obj6t)
 
         log.debug('Looking for alternate solutions')
         nsol = 1
