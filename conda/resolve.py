@@ -849,6 +849,19 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
+        # Return a solution of packages
+        def clean(sol):
+            return [q for q in (C.from_index(s) for s in sol)
+                    if q and q[0] != '!' and '@' not in q]
+
+        # Determine if there are multiple "simple" solutions
+        def has_multiple_simple_solutions(solution):
+            psolution = clean(solution)
+            nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
+            if C.sat((nclause,), True) is None:
+                return False
+            return True
+
         r2 = Resolve(reduced_index, True, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(specs, True)
@@ -933,10 +946,6 @@ class Resolve(object):
         solution, obj6t = C.minimize(eq_t, solution)
         log.debug('Timestamp metric: %d', obj6t)
 
-
-        def clean(sol):
-            return [q for q in (C.from_index(s) for s in sol)
-                    if q and q[0] != '!' and '@' not in q]
         log.debug('Looking for alternate solutions')
         nsol = 1
         psolutions = []
