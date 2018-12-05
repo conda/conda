@@ -805,8 +805,7 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, 'openssl')
             assert package_is_installed(prefix, 'itsdangerous')
 
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 9, 15),
-                       reason="need to talk with @msarahan about blas patches on Windows",
+    @pytest.mark.xfail(on_win, reason="nomkl not present on windows",
                        strict=True)
     def test_install_features(self):
         with make_temp_env("python=2 numpy=1.13 nomkl") as prefix:
