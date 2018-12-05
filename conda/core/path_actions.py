@@ -26,7 +26,7 @@ from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
 from ..common.url import has_platform, path_to_url, unquote
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError
 from ..gateways.connection.download import download
-from ..gateways.disk.create import (compile_pyc, copy, create_hard_link_or_copy,
+from ..gateways.disk.create import (compile_multiple_pyc, compile_pyc, copy, create_hard_link_or_copy,
                                     create_link, create_python_entry_point, extract_tarball,
                                     make_menu, mkdir_p, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
@@ -89,6 +89,44 @@ class PathAction(object):
 
 
 @with_metaclass(ABCMeta)
+class MultiPathAction(object):
+
+    _verified = False
+
+    @abstractmethod
+    def verify(self):
+        # if verify fails, it should return an exception object rather than raise
+        #  at the end of a verification run, all errors will be raised as a CondaMultiError
+        # after successful verification, the verify method should set self._verified = True
+        raise NotImplementedError()
+
+    @abstractmethod
+    def execute(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def reverse(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def cleanup(self):
+        raise NotImplementedError()
+
+    @abstractproperty
+    def target_full_paths(self):
+        raise NotImplementedError()
+
+    @property
+    def verified(self):
+        return self._verified
+
+    def __repr__(self):
+        args = ('%s=%r' % (key, value) for key, value in iteritems(vars(self))
+                if key not in REPR_IGNORE_KWARGS)
+        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
+
+
+@with_metaclass(ABCMeta)
 class PrefixPathAction(PathAction):
 
     def __init__(self, transaction_context, target_prefix, target_short_path):
@@ -103,6 +141,24 @@ class PrefixPathAction(PathAction):
             return join(trgt, win_path_ok(shrt_pth))
         else:
             return None
+
+
+@with_metaclass(ABCMeta)
+class PrefixMultiPathAction(MultiPathAction):
+
+    def __init__(self, transaction_context, target_prefix, target_short_paths):
+        self.transaction_context = transaction_context
+        self.target_prefix = target_prefix
+        self.target_short_paths = target_short_paths
+
+    @property
+    def target_full_paths(self):
+        def join_or_none(prefix, short_path):
+            if prefix is None or short_path is None:
+                return None
+            else:
+                return join(prefix, win_path_ok(short_path))
+        return (join_or_none(self.target_prefix, p) for p in self.target_short_paths)
 
 
 # ######################################################
@@ -133,6 +189,34 @@ class CreateInPrefixPathAction(PrefixPathAction):
     def source_full_path(self):
         prfx, shrt_pth = self.source_prefix, self.source_short_path
         return join(prfx, win_path_ok(shrt_pth)) if prfx and shrt_pth else None
+
+
+@with_metaclass(ABCMeta)
+class CreateInPrefixMultiPathAction(PrefixMultiPathAction):
+
+    def __init__(self, transaction_context, package_info, source_prefix, source_short_paths,
+                 target_prefix, target_short_paths):
+        super(CreateInPrefixPathAction, self).__init__(transaction_context,
+                                                       target_prefix, target_short_paths)
+        self.package_info = package_info
+        self.source_prefix = source_prefix
+        self.source_short_paths = source_short_paths
+
+    def verify(self):
+        self._verified = True
+
+    def cleanup(self):
+        # create actions typically won't need cleanup
+        pass
+
+    @property
+    def source_full_paths(self):
+        def join_or_none(prefix, short_path):
+            if prefix is None or short_path is None:
+                return None
+            else:
+                return join(prefix, win_path_ok(short_path))
+        return (join_or_none(self.target_prefix, p) for p in self.source_short_paths)
 
 
 class LinkPathAction(CreateInPrefixPathAction):
@@ -488,6 +572,51 @@ class CompilePycAction(CreateInPrefixPathAction):
         if self._execute_successful:
             log.trace("reversing pyc creation %s", self.target_full_path)
             rm_rf(self.target_full_path)
+
+
+class CompileMultiPycAction(CreateInPrefixMultiPathAction):
+
+    @classmethod
+    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
+                       file_link_actions):
+        noarch = package_info.package_metadata and package_info.package_metadata.noarch
+        if noarch is not None and noarch.type == NoarchType.python:
+            noarch_py_file_re = re.compile(r'^site-packages[/\\][^\t\n\r\f\v]+\.py$')
+            py_ver = transaction_context['target_python_version']
+            py_files = (axn.target_short_path for axn in file_link_actions
+                        if noarch_py_file_re.match(axn.source_short_path))
+            pyc_files = (pyc_path(pf, py_ver) for pf in py_files)
+            return (cls(transaction_context, package_info, target_prefix, py_files, pyc_files), )
+        else:
+            return ()
+
+    def __init__(self, transaction_context, package_info, target_prefix,
+                 source_short_paths, target_short_paths):
+        super(CompilePycAction, self).__init__(transaction_context, package_info,
+                                               target_prefix, source_short_paths,
+                                               target_prefix, target_short_paths)
+        self.prefix_paths_data = (
+            PathDataV1(_path=p, path_type=PathType.pyc_file,) for p in self.target_short_paths)
+        self._execute_successful = False
+
+    def execute(self):
+        # compile_pyc is sometimes expected to fail, for example a python 3.6 file
+        #   installed into a python 2 environment, but no code paths actually importing it
+        # technically then, this file should be removed from the manifest in conda-meta, but
+        #   at the time of this writing that's not currently happening
+        log.trace("compiling %s", self.target_full_path)
+        target_python_version = self.transaction_context['target_python_version']
+        python_short_path = get_python_short_path(target_python_version)
+        python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
+        compile_multiple_pyc(python_full_path, self.source_full_paths, self.target_full_paths)
+        self._execute_successful = True
+
+    def reverse(self):
+        # this removes all pyc files even if they were not created
+        if self._execute_successful:
+            log.trace("reversing pyc creation %s", self.target_full_path)
+            for target_full_path in self.target_full_paths:
+                rm_rf(target_full_path)
 
 
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
