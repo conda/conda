@@ -16,6 +16,7 @@ from .prefix_data import PrefixData
 from .. import CondaError
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
+from .._vendor.toolz import concat
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
 from ..common.compat import iteritems, on_win, text_type
@@ -135,6 +136,12 @@ class PrefixPathAction(PathAction):
         self.target_short_path = target_short_path
 
     @property
+    def target_short_paths(self):
+        if self.target_short_path is None:
+            return ()
+        return (self.target_short_path, )
+
+    @property
     def target_full_path(self):
         trgt, shrt_pth = self.target_prefix, self.target_short_path
         if trgt is not None and shrt_pth is not None:
@@ -196,7 +203,7 @@ class CreateInPrefixMultiPathAction(PrefixMultiPathAction):
 
     def __init__(self, transaction_context, package_info, source_prefix, source_short_paths,
                  target_prefix, target_short_paths):
-        super(CreateInPrefixPathAction, self).__init__(transaction_context,
+        super(CreateInPrefixMultiPathAction, self).__init__(transaction_context,
                                                        target_prefix, target_short_paths)
         self.package_info = package_info
         self.source_prefix = source_prefix
@@ -583,20 +590,21 @@ class CompileMultiPycAction(CreateInPrefixMultiPathAction):
         if noarch is not None and noarch.type == NoarchType.python:
             noarch_py_file_re = re.compile(r'^site-packages[/\\][^\t\n\r\f\v]+\.py$')
             py_ver = transaction_context['target_python_version']
-            py_files = (axn.target_short_path for axn in file_link_actions
-                        if noarch_py_file_re.match(axn.source_short_path))
-            pyc_files = (pyc_path(pf, py_ver) for pf in py_files)
+            py_files = tuple((axn.target_short_path for axn in file_link_actions
+                        if noarch_py_file_re.match(axn.source_short_path)))
+            pyc_files = tuple((pyc_path(pf, py_ver) for pf in py_files))
             return (cls(transaction_context, package_info, target_prefix, py_files, pyc_files), )
         else:
             return ()
 
     def __init__(self, transaction_context, package_info, target_prefix,
                  source_short_paths, target_short_paths):
-        super(CompilePycAction, self).__init__(transaction_context, package_info,
+        super(CompileMultiPycAction, self).__init__(transaction_context, package_info,
                                                target_prefix, source_short_paths,
                                                target_prefix, target_short_paths)
-        self.prefix_paths_data = (
-            PathDataV1(_path=p, path_type=PathType.pyc_file,) for p in self.target_short_paths)
+        self.prefix_path_data = None
+        self.prefix_paths_data = [
+            PathDataV1(_path=p, path_type=PathType.pyc_file,) for p in self.target_short_paths]
         self._execute_successful = False
 
     def execute(self):
@@ -604,7 +612,7 @@ class CompileMultiPycAction(CreateInPrefixMultiPathAction):
         #   installed into a python 2 environment, but no code paths actually importing it
         # technically then, this file should be removed from the manifest in conda-meta, but
         #   at the time of this writing that's not currently happening
-        log.trace("compiling %s", self.target_full_path)
+        log.trace("compiling %s", ' '.join(self.target_full_paths))
         target_python_version = self.transaction_context['target_python_version']
         python_short_path = get_python_short_path(target_python_version)
         python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
@@ -883,12 +891,14 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
         # TODO: don't make above assumption; put package_tarball_full_path in package_info
 
-        files = (x.target_short_path for x in self.all_link_path_actions if x)
+        files = concat((x.target_short_paths for x in self.all_link_path_actions if x))
 
+        paths1 = (x.prefix_path_data for x in self.all_link_path_actions
+                 if x and x.prefix_path_data)
+        paths2 = concat((getattr(x, 'prefix_paths_data', ()) for x in self.all_link_path_actions))
         paths_data = PathsData(
             paths_version=1,
-            paths=(x.prefix_path_data for x in self.all_link_path_actions
-                   if x and x.prefix_path_data),
+            paths=concat((paths1, paths2)),
         )
 
         self.prefix_record = PrefixRecord.from_objects(
