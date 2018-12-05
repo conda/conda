@@ -142,6 +142,12 @@ class PrefixPathAction(PathAction):
         return (self.target_short_path, )
 
     @property
+    def prefix_paths_data(self):
+        if getattr(self, 'prefix_path_data', None) is None:
+            return ()
+        return (self.prefix_path_data, )
+
+    @property
     def target_full_path(self):
         trgt, shrt_pth = self.target_prefix, self.target_short_path
         if trgt is not None and shrt_pth is not None:
@@ -893,12 +899,9 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
 
         files = concat((x.target_short_paths for x in self.all_link_path_actions if x))
 
-        paths1 = (x.prefix_path_data for x in self.all_link_path_actions
-                 if x and x.prefix_path_data)
-        paths2 = concat((getattr(x, 'prefix_paths_data', ()) for x in self.all_link_path_actions))
         paths_data = PathsData(
             paths_version=1,
-            paths=concat((paths1, paths2)),
+            paths=concat((x.prefix_paths_data for x in self.all_link_path_actions if x)),
         )
 
         self.prefix_record = PrefixRecord.from_objects(
