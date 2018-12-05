@@ -854,13 +854,19 @@ class Resolve(object):
             return [q for q in (C.from_index(s) for s in sol)
                     if q and q[0] != '!' and '@' not in q]
 
-        # Determine if there are multiple "simple" solutions
-        def has_multiple_simple_solutions(solution):
+        def is_converged(solution):
+            """ Determine if the SAT problem has converged to a single solution.
+
+            This is determined by testing for a SAT solution with the current
+            clause set and a clause in which at least one of the packages in
+            the current solution is excluded. If a solution exists the problem
+            has not converged as multiple solutions still exist.
+            """
             psolution = clean(solution)
             nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
-            if C.sat((nclause,), True) is None:
-                return False
-            return True
+            if C.sat((nclause,), includeIf=False) is None:
+                return True
+            return False
 
         r2 = Resolve(reduced_index, True, True, channels=self.channels)
         C = r2.gen_clauses()
@@ -941,8 +947,8 @@ class Resolve(object):
         solution, obj7 = C.minimize(eq_c, solution, trymax=True)
         log.debug('Weak dependency count: %d', obj7)
 
-        multiple_solutions = has_multiple_simple_solutions(solution)
-        if multiple_solutions:
+        converged = is_converged(solution)
+        if not converged:
             # Maximize timestamps
             eq_t.update(eq_req_t)
             solution, obj6t = C.minimize(eq_t, solution)
