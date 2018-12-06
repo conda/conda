@@ -559,6 +559,19 @@ EXAMPLE:
       root-dir: ~/conda-builds
 
 
+Specify conda build build folder (conda-build 3.16.3+) (output_folder)
+----------------------------------------------------------------------
+
+Folder to dump output package to. Packages are moved here if build or test
+succeeds. If unset, the output folder corresponds to the same directory as
+the root build directory (``root-dir``).
+
+.. code-block:: yaml
+
+   conda-build:
+       output_folder: conda-bld
+
+
 Automatically upload conda build packages to Anaconda.org (anaconda_upload)
 ---------------------------------------------------------------------------
 
@@ -688,6 +701,21 @@ recommended, but some people prefer this.
 
    conda-build:
        activate: false
+
+
+Disable long prefix during test (conda-build 3.16.3+) (long_test_prefix)
+------------------------------------------------------------------------
+
+By default, conda-build uses a long prefix for the test prefix. If you have recipes
+that fail in long prefixes but would still like to test them in short prefixes, you
+can disable the long test prefix. This is not recommended.
+
+.. code-block:: yaml
+
+   conda-build:
+       long_test_prefix: false
+
+The default is ``true``.
 
 
 PyPI upload settings (conda-build 3.0+) (pypirc)
