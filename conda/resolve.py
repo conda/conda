@@ -327,28 +327,67 @@ class Resolve(object):
 
         # Determine all valid packages in the dependency graph
         reduced_index = {}
-        slist = list(specs)
+        explicit_spec_list = list(specs)
         for fstr in features:
             dist = Dist(fstr + '@')
             reduced_index[dist] = self.index[dist]
-        while slist:
-            this_spec = slist.pop()
-            for dist in self.find_matches(this_spec):
-                if reduced_index.get(dist) is None and self.valid(dist, filter):
-                    reduced_index[dist] = self.index[dist]
-                    for ms in self.ms_depends(dist):
-                        # We do not pull packages into the reduced index due
-                        # to a track_features dependency. Remember, a feature
-                        # specifies a "soft" dependency: it must be in the
-                        # environment, but it is not _pulled_ in. The SAT
-                        # logic doesn't do a perfect job of capturing this
-                        # behavior, but keeping these packags out of the
-                        # reduced index helps. Of course, if _another_
-                        # package pulls it in by dependency, that's fine.
-                        if 'track_features' not in ms:
-                            slist.append(ms)
+        seen_top_level_pkgs = set()
+        for explicit_spec in explicit_spec_list:
+            explicit_packages = set(self.find_matches(explicit_spec)) - seen_top_level_pkgs
+            for pkg in explicit_packages:
+                # what we have seen is only relevant within the context of a single package
+                #    that is picked up because of an explicit spec.  We don't want the
+                #    broadening check to apply across packages at the explicit level; only
+                #    at the level of deps below that explicit package.
+                seen_pkgs = {pkg}
+                seen_specs = set()
+                seen_top_level_pkgs.add(pkg)
+                if pkg in reduced_index or not self.valid(pkg, filter):
+                    continue
+                reduced_index[pkg] = self.index[pkg]
+                dep_specs = set(self.ms_depends(pkg))
+                this_pkg_constraints = self.ms_depends(pkg)
+
+                while(dep_specs):
+                    ms = dep_specs.pop()
+                    seen_specs.add(ms)
+                    dep_packages = set(self.find_matches(ms)) - seen_pkgs
+                    for dep_pkg in dep_packages:
+                        seen_pkgs.add(dep_pkg)
+                        if dep_pkg not in reduced_index and self.valid(dep_pkg, filter):
+                            reduced_index[dep_pkg] = self.index[dep_pkg]
+
+                        new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
+                        for ms in new_specs:
+                            # We do not pull packages into the reduced index due
+                            # to a track_features dependency. Remember, a feature
+                            # specifies a "soft" dependency: it must be in the
+                            # environment, but it is not _pulled_ in. The SAT
+                            # logic doesn't do a perfect job of capturing this
+                            # behavior, but keeping these packags out of the
+                            # reduced index helps. Of course, if _another_
+                            # package pulls it in by dependency, that's fine.
+                            if ('track_features' not in ms
+                                    and not self.broader(ms, this_pkg_constraints)
+                                    and ms not in seen_specs):
+                                dep_specs.add(ms)
+
         self._reduced_index_cache[cache_key] = reduced_index
         return reduced_index
+
+    def broader(self, ms, specs):
+        """prevent introduction of matchspecs that broaden our selection of choices"""
+        is_broader = False
+        matching_specs = [s for s in specs if s.name == ms.name]
+
+        if matching_specs and (
+                # is there a version constraint defined for any existing spec, but not MS?
+                (any('version' in _ for _ in matching_specs) and 'version' not in ms)
+                # is there a build constraint on any of the specs, but not on ms?
+                or (any('build' in _ for _ in matching_specs) and 'build' not in ms)
+        ):
+            is_broader = True
+        return is_broader
 
     def match_any(self, mss, dist):
         rec = self.index[dist]
