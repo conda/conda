@@ -1118,7 +1118,9 @@ def _read_windows_registry(target_path):  # pragma: no cover
 
     try:
         value_tuple = winreg.QueryValueEx(key, value_name)
-        value_value = value_tuple[0].strip()
+        value_value = value_tuple[0]
+        if isinstance(value_value, str):
+            value_value = value_value.strip()
         value_type = value_tuple[1]
         return value_value, value_type
     except Exception:
@@ -1157,7 +1159,7 @@ def init_cmd_exe_registry(target_path, conda_prefix):
     hook_path = '"%s"' % join(conda_prefix, 'condabin', 'conda_hook.bat')
     replace_str = "__CONDA_REPLACE_ME_123__"
     new_value = re.sub(
-        r'(\".*?conda[-_]hook\.bat\")',
+        r'(\"[^\"]*?conda[-_]hook\.bat\")',
         replace_str,
         prev_value,
         count=1,
@@ -1187,13 +1189,13 @@ def init_long_path(target_path):
     # win10, build 14352 was the first preview release that supported this
     if int(win_ver) >= 10 and int(win_rev) >= 14352:
         prev_value, value_type = _read_windows_registry(target_path)
-        if prev_value != "1":
+        if str(prev_value) != "1":
             if context.verbosity:
                 print('\n')
                 print(target_path)
-                print(make_diff(prev_value, "1"))
+                print(make_diff(str(prev_value), '1'))
             if not context.dry_run:
-                _write_windows_registry(target_path, "1", winreg.REG_DWORD)
+                _write_windows_registry(target_path, 1, winreg.REG_DWORD)
             return Result.MODIFIED
         else:
             return Result.NO_CHANGE
