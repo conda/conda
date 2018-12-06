@@ -335,6 +335,7 @@ class IntegrationTests(TestCase):
         with make_temp_env() as prefix:
             with open(join(prefix, 'condarc'), 'a') as fh:
                 fh.write("safety_checks: enabled\n")
+                fh.write("extra_safety_checks: true\n")
             reload_config(prefix)
             assert context.safety_checks is SafetyChecks.enabled
 
