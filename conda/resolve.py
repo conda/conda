@@ -849,6 +849,25 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
+        # Return a solution of packages
+        def clean(sol):
+            return [q for q in (C.from_index(s) for s in sol)
+                    if q and q[0] != '!' and '@' not in q]
+
+        def is_converged(solution):
+            """ Determine if the SAT problem has converged to a single solution.
+
+            This is determined by testing for a SAT solution with the current
+            clause set and a clause in which at least one of the packages in
+            the current solution is excluded. If a solution exists the problem
+            has not converged as multiple solutions still exist.
+            """
+            psolution = clean(solution)
+            nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
+            if C.sat((nclause,), includeIf=False) is None:
+                return True
+            return False
+
         r2 = Resolve(reduced_index, True, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(specs, True)
@@ -923,19 +942,18 @@ class Resolve(object):
         log.debug('Additional package channel/version/build metrics: %d/%d/%d',
                   obj5a, obj5, obj6)
 
-        # Maximize timestamps
-        eq_t.update(eq_req_t)
-        solution, obj6t = C.minimize(eq_t, solution)
-        log.debug('Timestamp metric: %d', obj6t)
-
         # Prune unnecessary packages
         eq_c = r2.generate_package_count(C, specm)
         solution, obj7 = C.minimize(eq_c, solution, trymax=True)
         log.debug('Weak dependency count: %d', obj7)
 
-        def clean(sol):
-            return [q for q in (C.from_index(s) for s in sol)
-                    if q and q[0] != '!' and '@' not in q]
+        converged = is_converged(solution)
+        if not converged:
+            # Maximize timestamps
+            eq_t.update(eq_req_t)
+            solution, obj6t = C.minimize(eq_t, solution)
+            log.debug('Timestamp metric: %d', obj6t)
+
         log.debug('Looking for alternate solutions')
         nsol = 1
         psolutions = []
