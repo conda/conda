@@ -354,7 +354,9 @@ class Resolve(object):
                     dep_packages = set(self.find_matches(ms)) - seen_pkgs
                     for dep_pkg in dep_packages:
                         seen_pkgs.add(dep_pkg)
-                        if dep_pkg not in reduced_index and self.valid(dep_pkg, filter):
+                        if not self.valid(dep_pkg, filter):
+                            continue
+                        if dep_pkg not in reduced_index:
                             reduced_index[dep_pkg] = self.index[dep_pkg]
 
                         new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
