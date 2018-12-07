@@ -598,7 +598,7 @@ class CompileMultiPycAction(MultiPathAction):
     def reverse(self):
         # this removes all pyc files even if they were not created
         if self._execute_successful:
-            log.trace("reversing pyc creation %s", self.target_full_path)
+            log.trace("reversing pyc creation %s", ' '.join(self.target_full_paths))
             for target_full_path in self.target_full_paths:
                 rm_rf(target_full_path)
 
