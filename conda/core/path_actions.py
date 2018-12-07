@@ -548,11 +548,10 @@ class CompileMultiPycAction(MultiPathAction):
     def __init__(self, transaction_context, package_info, target_prefix,
                  source_short_paths, target_short_paths):
         self.transaction_context = transaction_context
-        self.target_prefix = target_prefix
-        self.target_short_paths = target_short_paths
         self.package_info = package_info
-        self.source_prefix = source_prefix
+        self.target_prefix = target_prefix
         self.source_short_paths = source_short_paths
+        self.target_short_paths = target_short_paths
         self.prefix_path_data = None
         self.prefix_paths_data = [
             PathDataV1(_path=p, path_type=PathType.pyc_file,) for p in self.target_short_paths]
