@@ -192,34 +192,6 @@ class CreateInPrefixPathAction(PrefixPathAction):
         return join(prfx, win_path_ok(shrt_pth)) if prfx and shrt_pth else None
 
 
-@with_metaclass(ABCMeta)
-class CreateInPrefixMultiPathAction(PrefixMultiPathAction):
-
-    def __init__(self, transaction_context, package_info, source_prefix, source_short_paths,
-                 target_prefix, target_short_paths):
-        super(CreateInPrefixMultiPathAction, self).__init__(transaction_context,
-                                                       target_prefix, target_short_paths)
-        self.package_info = package_info
-        self.source_prefix = source_prefix
-        self.source_short_paths = source_short_paths
-
-    def verify(self):
-        self._verified = True
-
-    def cleanup(self):
-        # create actions typically won't need cleanup
-        pass
-
-    @property
-    def source_full_paths(self):
-        def join_or_none(prefix, short_path):
-            if prefix is None or short_path is None:
-                return None
-            else:
-                return join(prefix, win_path_ok(short_path))
-        return (join_or_none(self.target_prefix, p) for p in self.source_short_paths)
-
-
 class LinkPathAction(CreateInPrefixPathAction):
 
     @classmethod
@@ -575,7 +547,7 @@ class CompilePycAction(CreateInPrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CompileMultiPycAction(CreateInPrefixMultiPathAction):
+class CompileMultiPycAction(PrefixMultiPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
@@ -594,12 +566,30 @@ class CompileMultiPycAction(CreateInPrefixMultiPathAction):
     def __init__(self, transaction_context, package_info, target_prefix,
                  source_short_paths, target_short_paths):
         super(CompileMultiPycAction, self).__init__(transaction_context, package_info,
-                                               target_prefix, source_short_paths,
                                                target_prefix, target_short_paths)
+        self.package_info = package_info
+        self.source_prefix = source_prefix
+        self.source_short_paths = source_short_paths
         self.prefix_path_data = None
         self.prefix_paths_data = [
             PathDataV1(_path=p, path_type=PathType.pyc_file,) for p in self.target_short_paths]
         self._execute_successful = False
+
+    @property
+    def source_full_paths(self):
+        def join_or_none(prefix, short_path):
+            if prefix is None or short_path is None:
+                return None
+            else:
+                return join(prefix, win_path_ok(short_path))
+        return (join_or_none(self.target_prefix, p) for p in self.source_short_paths)
+
+    def verify(self):
+        self._verified = True
+
+    def cleanup(self):
+        # create actions typically won't need cleanup
+        pass
 
     def execute(self):
         # compile_pyc is sometimes expected to fail, for example a python 3.6 file
