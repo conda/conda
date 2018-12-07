@@ -144,24 +144,6 @@ class PrefixPathAction(PathAction):
             return None
 
 
-@with_metaclass(ABCMeta)
-class PrefixMultiPathAction(MultiPathAction):
-
-    def __init__(self, transaction_context, target_prefix, target_short_paths):
-        self.transaction_context = transaction_context
-        self.target_prefix = target_prefix
-        self.target_short_paths = target_short_paths
-
-    @property
-    def target_full_paths(self):
-        def join_or_none(prefix, short_path):
-            if prefix is None or short_path is None:
-                return None
-            else:
-                return join(prefix, win_path_ok(short_path))
-        return (join_or_none(self.target_prefix, p) for p in self.target_short_paths)
-
-
 # ######################################################
 #  Creation of Paths within a Prefix
 # ######################################################
@@ -547,7 +529,7 @@ class CompilePycAction(CreateInPrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CompileMultiPycAction(PrefixMultiPathAction):
+class CompileMultiPycAction(MultiPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
@@ -565,8 +547,9 @@ class CompileMultiPycAction(PrefixMultiPathAction):
 
     def __init__(self, transaction_context, package_info, target_prefix,
                  source_short_paths, target_short_paths):
-        super(CompileMultiPycAction, self).__init__(transaction_context, package_info,
-                                               target_prefix, target_short_paths)
+        self.transaction_context = transaction_context
+        self.target_prefix = target_prefix
+        self.target_short_paths = target_short_paths
         self.package_info = package_info
         self.source_prefix = source_prefix
         self.source_short_paths = source_short_paths
@@ -574,6 +557,15 @@ class CompileMultiPycAction(PrefixMultiPathAction):
         self.prefix_paths_data = [
             PathDataV1(_path=p, path_type=PathType.pyc_file,) for p in self.target_short_paths]
         self._execute_successful = False
+
+    @property
+    def target_full_paths(self):
+        def join_or_none(prefix, short_path):
+            if prefix is None or short_path is None:
+                return None
+            else:
+                return join(prefix, win_path_ok(short_path))
+        return (join_or_none(self.target_prefix, p) for p in self.target_short_paths)
 
     @property
     def source_full_paths(self):
