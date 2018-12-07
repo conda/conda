@@ -27,7 +27,7 @@ from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
 from ..common.url import has_platform, path_to_url, unquote
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError
 from ..gateways.connection.download import download
-from ..gateways.disk.create import (compile_multiple_pyc, compile_pyc, copy,
+from ..gateways.disk.create import (compile_multiple_pyc, copy,
                                     create_hard_link_or_copy, create_link,
                                     create_python_entry_point, extract_tarball,
                                     make_menu, mkdir_p, write_as_json_to_file)
