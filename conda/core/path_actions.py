@@ -13,6 +13,7 @@ from uuid import uuid4
 from .envs_manager import USER_ENVIRONMENTS_TXT_FILE, register_env, unregister_env
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
+from .. import CondaError
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
 from ..base.constants import CONDA_TARBALL_EXTENSION
@@ -161,6 +162,10 @@ class LinkPathAction(CreateInPrefixPathAction):
             noarch = package_info.repodata_record.noarch
             if noarch == NoarchType.python:
                 sp_dir = transaction_context['target_site_packages_short_path']
+                if sp_dir is None:
+                    raise CondaError("Unable to determine python site-packages "
+                                     "dir in target_prefix!\nPlease make sure "
+                                     "python is installed in %s" % target_prefix)
                 target_short_path = get_python_noarch_target_path(source_path_data.path, sp_dir)
             elif noarch is None or noarch == NoarchType.generic:
                 target_short_path = source_path_data.path
