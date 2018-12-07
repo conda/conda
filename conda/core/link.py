@@ -396,7 +396,8 @@ class UnlinkLinkTransaction(object):
                     if path not in unlink_paths and lexists(join(target_prefix, path)):
                         # we have a collision; at least try to figure out where it came from
                         colliding_prefix_rec = first(
-                            (prefix_rec for prefix_rec in PrefixData(target_prefix).iter_records()),
+                            (prefix_rec for prefix_rec in
+                             PrefixData(target_prefix).iter_records()),
                             key=lambda prefix_rec: path in prefix_rec.files
                         )
                         if colliding_prefix_rec:
