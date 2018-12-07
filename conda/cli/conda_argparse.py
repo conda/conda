@@ -82,6 +82,12 @@ def do_call(args, parser):
     return exit_code
 
 
+def find_builtin_commands(parser):
+    # ArgumentParser doesn't have an API for getting back what subparsers
+    # exist, so we need to use internal properties to do so.
+    return tuple(parser._subparsers._group_actions[0].choices.keys())
+
+
 class ArgumentParser(ArgumentParserBase):
     def __init__(self, *args, **kwargs):
         if not kwargs.get('formatter_class'):

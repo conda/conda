@@ -179,6 +179,20 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
+                        'function': 'install_conda_psm1',
+                        'kwargs': {
+                            'target_path': '/darwin\\shell\\condabin\\Conda.psm1',
+                            'conda_prefix': '/darwin'
+                        }
+                    },
+                    {
+                        'function': 'install_conda_hook_ps1',
+                        'kwargs': {
+                            'target_path': '/darwin\\shell\\condabin\\conda-hook.ps1',
+                            'conda_prefix': '/darwin'
+                        }
+                    },
+                    {
                         "function": "install_conda_xsh",
                         "kwargs": {
                             "conda_prefix": "/darwin",
@@ -248,6 +262,20 @@ class InitializeTests(TestCase):
                         "kwargs": {
                             "conda_prefix": "/darwin",
                             "target_path": "/darwin/etc/fish/conf.d/conda.fish"
+                        }
+                    },
+                    {
+                        'function': 'install_conda_psm1',
+                        'kwargs': {
+                            'target_path': '/darwin/shell/condabin/Conda.psm1',
+                            'conda_prefix': '/darwin'
+                        }
+                    },
+                    {
+                        'function': 'install_conda_hook_ps1',
+                        'kwargs': {
+                            'target_path': '/darwin/shell/condabin/conda-hook.ps1',
+                            'conda_prefix': '/darwin'
                         }
                     },
                     {
@@ -485,6 +513,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.csh',
             )
         else:
@@ -496,6 +526,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.csh',
             )
 
@@ -539,6 +571,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -555,6 +589,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -601,6 +637,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -618,6 +656,8 @@ class InitializeTests(TestCase):
                 'deactivate',
                 'conda.sh',
                 'conda.fish',
+                'Conda.psm1',
+                'conda-hook.ps1',
                 'conda.xsh',
                 'conda.csh',
                 'site-packages',  # remove conda in site-packages dir
@@ -786,7 +826,7 @@ class InitializeTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="win-only test")
     def test_init_enable_long_path(self):
-        self.dummy_value = "0"
+        self.dummy_value = 0
 
         def _read_windows_registry_mock(target_path):
             return self.dummy_value, "REG_DWORD"
@@ -804,9 +844,9 @@ class InitializeTests(TestCase):
 
         try:
             target_path = r'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem\\LongPathsEnabled'
-            assert initialize._read_windows_registry(target_path)[0] == "0"
+            assert initialize._read_windows_registry(target_path)[0] == 0
             initialize.init_long_path(target_path)
-            assert initialize._read_windows_registry(target_path)[0] == "1"
+            assert initialize._read_windows_registry(target_path)[0] == 1
         finally:
             initialize._read_windows_registry = orig_read_windows_registry
             initialize._write_windows_registry = orig_write_windows_registry

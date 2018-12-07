@@ -206,6 +206,8 @@ class Context(Configuration):
     # ######################################################
     deps_modifier = PrimitiveParameter(DepsModifier.NOT_SET)
     update_modifier = PrimitiveParameter(UpdateModifier.UPDATE_SPECS)
+    sat_solver = PrimitiveParameter(None, element_type=string_types + (NoneType,))
+    solver_ignore_timestamps = PrimitiveParameter(True)
 
     # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
     # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
@@ -227,7 +229,7 @@ class Context(Configuration):
     anaconda_upload = PrimitiveParameter(None, aliases=('binstar_upload',),
                                          element_type=(bool, NoneType))
     _croot = PrimitiveParameter('', aliases=('croot',))
-    _conda_build = MapParameter(string_types, aliases=('conda-build',))
+    _conda_build = MapParameter(string_types, aliases=('conda-build', 'conda_build'))
 
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:
@@ -741,6 +743,8 @@ class Context(Configuration):
             'force_32bit',
             'pip_interop_enabled',  # temporary feature flag
             'root_prefix',
+            'sat_solver',
+            'solver_ignore_timestamps',
             'subdir',
             'subdirs',
             # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA

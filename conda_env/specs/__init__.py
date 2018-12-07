@@ -13,35 +13,42 @@ from ..exceptions import (EnvironmentFileExtensionNotValid, EnvironmentFileNotFo
 
 
 def detect(**kwargs):
-    # Check file existence
     filename = kwargs.get('filename')
-    if filename and not os.path.isfile(filename):
-        raise EnvironmentFileNotFound(filename=filename)
+    remote_definition = kwargs.get('name')
 
     # Check extensions
     all_valid_exts = YamlFileSpec.extensions.union(RequirementsSpec.extensions)
     fname, ext = os.path.splitext(filename)
-    if ext == '' or ext not in all_valid_exts:
-        raise EnvironmentFileExtensionNotValid(filename)
-    elif ext in YamlFileSpec.extensions:
-        specs = [YamlFileSpec]
-    elif ext in RequirementsSpec.extensions:
-        specs = [RequirementsSpec]
+
+    # First check if file exists and test the known valid extension for specs
+    file_exists = filename and os.path.isfile(filename)
+    if file_exists:
+        if ext == '' or ext not in all_valid_exts:
+            raise EnvironmentFileExtensionNotValid(filename)
+        elif ext in YamlFileSpec.extensions:
+            specs = [YamlFileSpec]
+        elif ext in RequirementsSpec.extensions:
+            specs = [RequirementsSpec]
     else:
         specs = [NotebookSpec, BinstarSpec]
 
     # Check specifications
+    spec_instances = []
     for SpecClass in specs:
         spec = SpecClass(**kwargs)
+        spec_instances.append(spec)
         if spec.can_handle():
             return spec
 
-    raise SpecNotFound(build_message(specs))
+    if not file_exists and remote_definition is None:
+        raise EnvironmentFileNotFound(filename=filename)
+    else:
+        raise SpecNotFound(build_message(spec_instances))
 
 
-def build_message(specs):
-    binstar_spec = next((spec for spec in specs if isinstance(spec, BinstarSpec)), None)
+def build_message(spec_instances):
+    binstar_spec = next((s for s in spec_instances if isinstance(s, BinstarSpec)), None)
     if binstar_spec:
         return binstar_spec.msg
     else:
-        return "\n".join([s.msg for s in specs if s.msg is not None])
+        return "\n".join([s.msg for s in spec_instances if s.msg is not None])

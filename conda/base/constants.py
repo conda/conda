@@ -110,6 +110,7 @@ if on_win:
         'tcsh',
         'xonsh',
         'zsh',
+        'powershell',
     )
 else:
     COMPATIBLE_SHELLS = (
@@ -118,6 +119,7 @@ else:
         'tcsh',
         'xonsh',
         'zsh',
+        'powershell',
     )
 
 
