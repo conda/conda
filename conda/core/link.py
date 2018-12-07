@@ -687,8 +687,8 @@ class UnlinkLinkTransaction(object):
         create_menu_actions = MakeMenuAction.create_actions(*required_quad)
 
         python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
-        compile_pyc_actions = CompileMultiPycAction.create_actions(*required_quad,
-                                                              file_link_actions=file_link_actions)
+        compile_pyc_actions = CompileMultiPycAction.create_actions(
+            *required_quad, file_link_actions=file_link_actions)
 
         # if requested_spec:
         #     application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(

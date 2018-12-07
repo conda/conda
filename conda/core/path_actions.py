@@ -27,8 +27,9 @@ from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
 from ..common.url import has_platform, path_to_url, unquote
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError
 from ..gateways.connection.download import download
-from ..gateways.disk.create import (compile_multiple_pyc, compile_pyc, copy, create_hard_link_or_copy,
-                                    create_link, create_python_entry_point, extract_tarball,
+from ..gateways.disk.create import (compile_multiple_pyc, compile_pyc, copy,
+                                    create_hard_link_or_copy, create_link,
+                                    create_python_entry_point, extract_tarball,
                                     make_menu, mkdir_p, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.permissions import make_writable
@@ -539,7 +540,7 @@ class CompileMultiPycAction(MultiPathAction):
             noarch_py_file_re = re.compile(r'^site-packages[/\\][^\t\n\r\f\v]+\.py$')
             py_ver = transaction_context['target_python_version']
             py_files = tuple((axn.target_short_path for axn in file_link_actions
-                        if noarch_py_file_re.match(axn.source_short_path)))
+                              if noarch_py_file_re.match(axn.source_short_path)))
             pyc_files = tuple((pyc_path(pf, py_ver) for pf in py_files))
             return (cls(transaction_context, package_info, target_prefix, py_files, pyc_files), )
         else:
