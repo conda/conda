@@ -24,13 +24,13 @@ from glob import glob
 from itertools import chain
 from logging import getLogger
 from os import environ, stat
-from os.path import basename, join
+from os.path import basename, join, expandvars
 from stat import S_IFDIR, S_IFMT, S_IFREG
 
 from enum import Enum, EnumMeta
 
-from .compat import (isiterable, iteritems, itervalues, odict, primitive_types, string_types,
-                     text_type, with_metaclass)
+from .compat import (binary_type, isiterable, iteritems, itervalues, odict, primitive_types,
+                     string_types, text_type, with_metaclass)
 from .constants import NULL
 from .path import expand
 from .serialize import yaml_load
@@ -68,6 +68,12 @@ def pretty_list(iterable, padding='  '):  # TODO: move elsewhere in conda.common
 def pretty_map(dictionary, padding='  '):
     return '\n'.join("%s%s: %s" % (padding, key, value) for key, value in iteritems(dictionary))
 
+
+def expand_environment_variables(unexpanded):
+    if isinstance(unexpanded, string_types) or isinstance(unexpanded, binary_type):
+        return expandvars(unexpanded)
+    else:
+        return unexpanded
 
 class ConfigurationError(CondaError):
     pass
@@ -383,12 +389,13 @@ class Parameter(object):
     _type = None
     _element_type = None
 
-    def __init__(self, default, aliases=(), validation=None):
+    def __init__(self, default, aliases=(), validation=None, expandvars=False):
         self._name = None
         self._names = None
         self.default = default
         self.aliases = aliases
         self._validation = validation
+        self._expandvars = expandvars
 
     def _set_name(self, name):
         # this is an explicit method, and not a descriptor/setter
@@ -445,6 +452,19 @@ class Parameter(object):
     def _merge(self, matches):
         raise NotImplementedError()
 
+    def _expand(self, data):
+        if self._expandvars:
+            # This is similar to conda._vendor.auxlib.type_coercion.typify_data_structure
+            # It could be DRY-er but that would break SRP.
+            if isinstance(data, Mapping):
+                return type(data)((k, expand_environment_variables(v)) for k, v in iteritems(data))
+            elif isiterable(data):
+                return type(data)(expand_environment_variables(v) for v in data)
+            else:
+                return expand_environment_variables(data)
+        else:
+            return data
+
     def __get__(self, instance, instance_type):
         # strategy is "extract and merge," which is actually just map and reduce
         # extract matches from each source in SEARCH_PATH
@@ -453,9 +473,12 @@ class Parameter(object):
             return instance._cache_[self.name]
 
         matches, errors = self._get_all_matches(instance)
+        merged = self._merge(matches) if matches else self.default
+        # We need to expand any environment variables before type casting.
+        # Otherwise e.g. `my_bool_var: $BOOL` with BOOL=True would raise a TypeCoercionError.
+        expanded = self._expand(merged)
         try:
-            result = typify_data_structure(self._merge(matches) if matches else self.default,
-                                           self._element_type)
+            result = typify_data_structure(expanded, self._element_type)
         except TypeCoercionError as e:
             errors.append(CustomValidationError(self.name, e.value, "<<merged>>", text_type(e)))
         else:
@@ -515,7 +538,7 @@ class PrimitiveParameter(Parameter):
     python 2 has long and unicode types.
     """
 
-    def __init__(self, default, aliases=(), validation=None, element_type=None):
+    def __init__(self, default, aliases=(), validation=None, element_type=None, expandvars=False):
         """
         Args:
             default (Any):  The parameter's default value.
@@ -529,7 +552,7 @@ class PrimitiveParameter(Parameter):
         """
         self._type = type(default) if element_type is None else element_type
         self._element_type = self._type
-        super(PrimitiveParameter, self).__init__(default, aliases, validation)
+        super(PrimitiveParameter, self).__init__(default, aliases, validation, expandvars)
 
     def _merge(self, matches):
         important_match = first(matches, self._match_key_is_important, default=None)
@@ -554,7 +577,7 @@ class SequenceParameter(Parameter):
     _type = tuple
 
     def __init__(self, element_type, default=(), aliases=(), validation=None,
-                 string_delimiter=','):
+                 string_delimiter=',', expandvars=False):
         """
         Args:
             element_type (type or Iterable[type]): The generic type of each element in
@@ -567,7 +590,7 @@ class SequenceParameter(Parameter):
         """
         self._element_type = element_type
         self.string_delimiter = string_delimiter
-        super(SequenceParameter, self).__init__(default, aliases, validation)
+        super(SequenceParameter, self).__init__(default, aliases, validation, expandvars)
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(SequenceParameter, self).collect_errors(instance, value)
@@ -643,7 +666,7 @@ class MapParameter(Parameter):
     """
     _type = frozendict
 
-    def __init__(self, element_type, default=None, aliases=(), validation=None):
+    def __init__(self, element_type, default=None, aliases=(), validation=None, expandvars=False):
         """
         Args:
             element_type (type or Iterable[type]): The generic type of each element.
@@ -655,7 +678,7 @@ class MapParameter(Parameter):
         """
         self._element_type = element_type
         default = default and frozendict(default) or frozendict()
-        super(MapParameter, self).__init__(default, aliases, validation)
+        super(MapParameter, self).__init__(default, aliases, validation, expandvars)
 
     def collect_errors(self, instance, value, source="<<merged>>"):
         errors = super(MapParameter, self).collect_errors(instance, value)

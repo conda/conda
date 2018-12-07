@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from conda.common.io import env_var
+from conda.common.io import env_var, env_vars
 
 from conda._vendor.auxlib.ish import dals
 from conda.common.compat import odict, string_types
@@ -17,7 +17,6 @@ from pytest import raises
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
-
 
 test_yaml_raw = {
     'file1': dals("""
@@ -135,6 +134,20 @@ test_yaml_raw = {
             # comment
             value
     """),
+    'env_vars': dals("""
+        env_var_map:
+          expanded: $EXPANDED_VAR
+          unexpanded: $UNEXPANDED_VAR
+        
+        env_var_str: $EXPANDED_VAR
+        env_var_bool: $BOOL_VAR
+        normal_str: $EXPANDED_VAR
+        
+        env_var_list:
+          - $EXPANDED_VAR
+          - $UNEXPANDED_VAR
+          - regular_var
+    """),
 
 }
 
@@ -149,6 +162,12 @@ class SampleConfiguration(Configuration):
     always_an_int = PrimitiveParameter(0)
     boolean_map = MapParameter(bool)
     commented_map = MapParameter(string_types)
+
+    env_var_map = MapParameter(string_types, expandvars=True)
+    env_var_str = PrimitiveParameter('', expandvars=True)
+    env_var_bool = PrimitiveParameter(False, element_type=bool, expandvars=True)
+    normal_str = PrimitiveParameter('', expandvars=False)
+    env_var_list = SequenceParameter(string_types, expandvars=True)
 
 
 def load_from_string_data(*seq):
@@ -463,3 +482,13 @@ class ConfigurationTests(TestCase):
         config = SampleConfiguration()._set_raw_data(data)
         with raises(InvalidTypeError):
             config.channels
+
+    def test_expanded_variables(self):
+        with env_vars({'EXPANDED_VAR': 'itsexpanded', 'BOOL_VAR': 'True'}):
+            config = SampleConfiguration()._set_raw_data(load_from_string_data('env_vars'))
+            assert config.env_var_map['expanded'] == 'itsexpanded'
+            assert config.env_var_map['unexpanded'] == '$UNEXPANDED_VAR'
+            assert config.env_var_str == 'itsexpanded'
+            assert config.env_var_bool is True
+            assert config.normal_str == '$EXPANDED_VAR'
+            assert config.env_var_list == ('itsexpanded', '$UNEXPANDED_VAR', 'regular_var')
