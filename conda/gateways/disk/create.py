@@ -346,7 +346,9 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
         if lexists(pyc_full_path):
             maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
-    py_full_paths_str = '\n'.join(py_full_paths)
+    if on_win:
+        py_full_paths = tuple((win_path_double_escape(p) for p in py_full_path))
+    py_full_paths_str = os.linesep.join(py_full_paths)
     command = '"%s" -Wi -m py_compile -' % (python_exe_full_path, )
     log.trace(command)
     result = subprocess_call(command, stdin=py_full_paths_str, raise_on_error=False)
