@@ -136,18 +136,6 @@ class PrefixPathAction(PathAction):
         self.target_short_path = target_short_path
 
     @property
-    def target_short_paths(self):
-        if self.target_short_path is None:
-            return ()
-        return (self.target_short_path, )
-
-    @property
-    def prefix_paths_data(self):
-        if getattr(self, 'prefix_path_data', None) is None:
-            return ()
-        return (self.prefix_path_data, )
-
-    @property
     def target_full_path(self):
         trgt, shrt_pth = self.target_prefix, self.target_short_path
         if trgt is not None and shrt_pth is not None:
@@ -897,11 +885,25 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
         # TODO: don't make above assumption; put package_tarball_full_path in package_info
 
-        files = concat((x.target_short_paths for x in self.all_link_path_actions if x))
+        def files_from_action(link_path_action):
+            if isinstance(link_path_action, CompileMultiPycAction):
+                return link_path_action.target_short_paths
+            else:
+                return (link_path_action.target_short_path, )
 
+        def paths_from_action(link_path_action):
+            if isinstance(link_path_action, CompileMultiPycAction):
+                return link_path_action.prefix_paths_data
+            else:
+                if link_path_action.prefix_path_data is None:
+                    return ()
+                else:
+                    return (link_path_action.prefix_path_data, )
+
+        files = concat((files_from_action(x) for x in self.all_link_path_actions if x))
         paths_data = PathsData(
             paths_version=1,
-            paths=concat((x.prefix_paths_data for x in self.all_link_path_actions if x)),
+            paths=concat((paths_from_action(x) for x in self.all_link_path_actions if x)),
         )
 
         self.prefix_record = PrefixRecord.from_objects(

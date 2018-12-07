@@ -386,7 +386,11 @@ class UnlinkLinkTransaction(object):
         link_paths_dict = defaultdict(list)
         for axn in create_lpr_actions:
             for link_path_action in axn.all_link_path_actions:
-                for path in link_path_action.target_short_paths:
+                if isinstance(link_path_action, CompileMultiPycAction):
+                    target_short_paths = link_path_action.target_short_paths
+                else:
+                    target_short_paths = (link_path_action.target_short_path, )
+                for path in target_short_paths:
                     path = lower_on_win(path)
                     link_paths_dict[path].append(axn)
                     if path not in unlink_paths and lexists(join(target_prefix, path)):
