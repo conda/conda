@@ -365,31 +365,6 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
     return created_pyc_paths
 
 
-def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
-    if lexists(pyc_full_path):
-        maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
-
-    command = '"%s" -Wi -m py_compile "%s"' % (python_exe_full_path, py_full_path)
-    log.trace(command)
-    result = subprocess_call(command, raise_on_error=False)
-
-    if not isfile(pyc_full_path):
-        message = dals("""
-        pyc file failed to compile successfully
-          python_exe_full_path: %s
-          py_full_path: %s
-          pyc_full_path: %s
-          compile rc: %s
-          compile stdout: %s
-          compile stderr: %s
-        """)
-        log.info(message, python_exe_full_path, py_full_path, pyc_full_path,
-                 result.rc, result.stdout, result.stderr)
-        return None
-
-    return pyc_full_path
-
-
 def create_package_cache_directory(pkgs_dir):
     # returns False if package cache directory cannot be created
     try:

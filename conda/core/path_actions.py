@@ -484,52 +484,6 @@ class CreateNonadminAction(CreateInPrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CompilePycAction(CreateInPrefixPathAction):
-
-    @classmethod
-    def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
-                       file_link_actions):
-        noarch = package_info.package_metadata and package_info.package_metadata.noarch
-        if noarch is not None and noarch.type == NoarchType.python:
-            noarch_py_file_re = re.compile(r'^site-packages[/\\][^\t\n\r\f\v]+\.py$')
-            py_ver = transaction_context['target_python_version']
-            py_files = (axn.target_short_path for axn in file_link_actions
-                        if noarch_py_file_re.match(axn.source_short_path))
-            return tuple(cls(transaction_context, package_info, target_prefix,
-                             pf, pyc_path(pf, py_ver))
-                         for pf in py_files)
-        else:
-            return ()
-
-    def __init__(self, transaction_context, package_info, target_prefix,
-                 source_short_path, target_short_path):
-        super(CompilePycAction, self).__init__(transaction_context, package_info,
-                                               target_prefix, source_short_path,
-                                               target_prefix, target_short_path)
-        self.prefix_path_data = PathDataV1(
-            _path=self.target_short_path,
-            path_type=PathType.pyc_file,
-        )
-        self._execute_successful = False
-
-    def execute(self):
-        # compile_pyc is sometimes expected to fail, for example a python 3.6 file
-        #   installed into a python 2 environment, but no code paths actually importing it
-        # technically then, this file should be removed from the manifest in conda-meta, but
-        #   at the time of this writing that's not currently happening
-        log.trace("compiling %s", self.target_full_path)
-        target_python_version = self.transaction_context['target_python_version']
-        python_short_path = get_python_short_path(target_python_version)
-        python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
-        compile_pyc(python_full_path, self.source_full_path, self.target_full_path)
-        self._execute_successful = True
-
-    def reverse(self):
-        if self._execute_successful:
-            log.trace("reversing pyc creation %s", self.target_full_path)
-            rm_rf(self.target_full_path)
-
-
 class CompileMultiPycAction(MultiPathAction):
 
     @classmethod
