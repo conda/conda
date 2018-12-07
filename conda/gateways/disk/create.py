@@ -346,37 +346,10 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
         if lexists(pyc_full_path):
             maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
-    if on_win:
-        # windows has limits on the size of the command line and stdin(?).
-        # Make multiple calls to py_compile with a list of files keeping the
-        # command line length shorter than 8190 characters.
-        limit = 8190
-        compile_files = list(py_full_paths)
-        limit -= len(compile_files) * 2
-        lower_limit = len(max(compile_files, key=len)) + 1
-        if limit < lower_limit:
-            limit = lower_limit
-        command_start = '"%s" -Wi -m py_compile ' % (python_exe_full_path, )
-        groups = [[]]
-        command_start_len = length = len(command_start)
-        for f in compile_files:
-            length_this = len(f) + 1
-            if length_this + length > limit:
-                groups.append([])
-                length = command_start_len
-            else:
-                length += length_this
-            groups[len(groups) - 1].append(f)
-        for group in groups:
-            command = command_start + ' '.join(group)
-            result = subprocess_call(command, raise_on_error=False)
-    else:
-        # on unix like platforms we can pass the list of py files to compile
-        # via stdin in a single call
-        py_full_paths_str = '\n'.join(py_full_paths)
-        command = '"%s" -Wi -m py_compile -' % (python_exe_full_path, )
-        log.trace(command)
-        result = subprocess_call(command, stdin=py_full_paths_str, raise_on_error=False)
+    py_full_paths_str = '\n'.join(py_full_paths)
+    command = '"%s" -Wi -m py_compile -' % (python_exe_full_path, )
+    log.trace(command)
+    result = subprocess_call(command, stdin=py_full_paths_str, raise_on_error=False)
 
     created_pyc_paths = []
     for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths):
