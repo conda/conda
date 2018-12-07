@@ -337,6 +337,11 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
 
 
 def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
+    py_full_paths = tuple(py_full_paths)
+    pyc_full_paths = tuple(pyc_full_paths)
+    if len(py_full_paths) == 0:
+        return []
+
     for pyc_full_path in pyc_full_paths:
         if lexists(pyc_full_path):
             maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
