@@ -359,7 +359,7 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
             compile stderr: %s
             """)
             log.info(message, python_exe_full_path, py_full_path, pyc_full_path,
-                    result.rc, result.stdout, result.stderr)
+                     result.rc, result.stdout, result.stderr)
         else:
             created_pyc_paths.append(pyc_full_path)
     return created_pyc_paths
