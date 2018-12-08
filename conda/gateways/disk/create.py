@@ -349,7 +349,7 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
     py_full_paths_str = os.linesep.join(py_full_paths)
     if on_win:
         # stdin needs to be encoded in the ANSI code page, i.e. cp1252
-        py_full_paths_str = py_full_paths_str.encode(sys.getfilesystemencoding(), errors='ignore')
+        py_full_paths_str = py_full_paths_str.encode('cp1252', errors='ignore')
     command = '"%s" -Wi -m py_compile -' % (python_exe_full_path, )
     log.trace(command)
     result = subprocess_call(command, stdin=py_full_paths_str, raise_on_error=False)
