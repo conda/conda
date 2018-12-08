@@ -347,11 +347,30 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
             maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
     if on_win:
-        py_full_paths = tuple((win_path_double_escape(p) for p in py_full_paths))
-    py_full_paths_str = os.linesep.join(py_full_paths)
-    command = '"%s" -Wi -m py_compile -' % (python_exe_full_path, )
-    log.trace(command)
-    result = subprocess_call(command, stdin=py_full_paths_str, raise_on_error=False)
+        # TODO: figure out how to pass file to with the correct encoding on windows
+        limit = 8190
+        limit -= len(py_full_paths) * 2
+        lower_limit = len(max(py_full_paths, key=len)) + 1
+        if limit < lower_limit:
+            limit = lower_limit
+        groups = [[]]
+        args = [python_exe_full_path, '-Wi', '-m', 'py_compile']
+        args_len = length = len(' '.join(args)) + 1
+        for f in py_full_paths:
+            length_this = len(f) + 1
+            if length_this + length > limit:
+                groups.append([])
+                length = args_len
+            else:
+                length += length_this
+            groups[len(groups) - 1].append(f)
+        for group in groups:
+            subprocess_call(args + group, raise_on_error=False)
+    else:
+        py_full_paths_str = os.linesep.join(py_full_paths)
+        command = '"%s" -Wi -m py_compile -' % (python_exe_full_path, )
+        log.trace(command)
+        result = subprocess_call(command, stdin=py_full_paths_str, raise_on_error=False)
 
     created_pyc_paths = []
     for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths):
