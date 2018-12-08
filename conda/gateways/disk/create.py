@@ -8,7 +8,6 @@ from io import open
 from logging import getLogger
 import os
 from os.path import basename, dirname, isdir, isfile, join, splitext
-import py_compile
 from shutil import copyfileobj, copystat
 import sys
 import tarfile
@@ -347,19 +346,28 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
         if lexists(pyc_full_path):
             maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
-    # errors will be printed but will not raise.  return code is ignored.
-    py_compile.main(py_full_paths)
+    py_full_paths_str = os.linesep.join(py_full_paths)
+    if on_win:
+        # stdin needs to be encoded in the ANSI code page, i.e. cp1252
+        py_full_paths_str = py_full_paths_str.encode(sys.getfilesystemencoding(), errors='ignore')
+    command = '"%s" -Wi -m py_compile -' % (python_exe_full_path, )
+    log.trace(command)
+    result = subprocess_call(command, stdin=py_full_paths_str, raise_on_error=False)
 
     created_pyc_paths = []
     for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths):
         if not isfile(pyc_full_path):
             message = dals("""
-            pyc file failed to compile successfully.
+            pyc file failed to compile successfully
             python_exe_full_path: %s
             py_full_path: %s
             pyc_full_path: %s
+            compile rc: %s
+            compile stdout: %s
+            compile stderr: %s
             """)
-            log.debug(message, python_exe_full_path, py_full_path, pyc_full_path)
+            log.info(message, python_exe_full_path, py_full_path, pyc_full_path,
+                     result.rc, result.stdout, result.stderr)
         else:
             created_pyc_paths.append(pyc_full_path)
     return created_pyc_paths
