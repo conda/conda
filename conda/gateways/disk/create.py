@@ -354,19 +354,19 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, si
         if lexists(pyc_full_path):
             maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
-    command = [python_exe_full_path, "-Wi", "-m", "compileall", "-q"]
+    command = ["-Wi", "-m", "compileall", "-q"]
 
     # if the python version in the prefix is 3.5+, we have some extra args that make things nicer.
     #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
     if int(py_ver[0]) >= 3 and int(py_ver.split('.')[1]) > 5:
         command.extend(["-j", "0"])
-    command.append(site_packages_dir)
 
     # glob pyc files prior to compileall, so that we have a reference of any extra junk we pick up
     original_pyc_paths = _find_pyc_files(site_packages_dir)
+    command = '"%s" ' % python_exe_full_path + " ".join(command) + ' "%s"' % site_packages_dir
 
     log.trace(command)
-    result = subprocess_call(" ".join(command), raise_on_error=False)
+    result = subprocess_call(command, raise_on_error=False)
 
     created_pyc_paths = []
     for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths):
