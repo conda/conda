@@ -335,29 +335,41 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         raise CondaError("Did not expect linktype=%r" % link_type)
 
 
-def compile_pyc(python_exe_full_path, py_full_path, pyc_full_path):
-    if lexists(pyc_full_path):
-        maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
+def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
+    py_full_paths = tuple(py_full_paths)
+    pyc_full_paths = tuple(pyc_full_paths)
+    if len(py_full_paths) == 0:
+        return []
 
-    command = '"%s" -Wi -m py_compile "%s"' % (python_exe_full_path, py_full_path)
+    for pyc_full_path in pyc_full_paths:
+        if lexists(pyc_full_path):
+            maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
+
+    py_full_paths_str = os.linesep.join(py_full_paths)
+    if on_win:
+        # stdin needs to be encoded in the ANSI code page, i.e. cp1252
+        py_full_paths_str = py_full_paths_str.encode('cp1252', errors='ignore')
+    command = '"%s" -Wi -m py_compile -' % (python_exe_full_path, )
     log.trace(command)
-    result = subprocess_call(command, raise_on_error=False)
+    result = subprocess_call(command, stdin=py_full_paths_str, raise_on_error=False)
 
-    if not isfile(pyc_full_path):
-        message = dals("""
-        pyc file failed to compile successfully
-          python_exe_full_path: %s
-          py_full_path: %s
-          pyc_full_path: %s
-          compile rc: %s
-          compile stdout: %s
-          compile stderr: %s
-        """)
-        log.info(message, python_exe_full_path, py_full_path, pyc_full_path,
-                 result.rc, result.stdout, result.stderr)
-        return None
-
-    return pyc_full_path
+    created_pyc_paths = []
+    for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths):
+        if not isfile(pyc_full_path):
+            message = dals("""
+            pyc file failed to compile successfully
+            python_exe_full_path: %s
+            py_full_path: %s
+            pyc_full_path: %s
+            compile rc: %s
+            compile stdout: %s
+            compile stderr: %s
+            """)
+            log.info(message, python_exe_full_path, py_full_path, pyc_full_path,
+                     result.rc, result.stdout, result.stderr)
+        else:
+            created_pyc_paths.append(pyc_full_path)
+    return created_pyc_paths
 
 
 def create_package_cache_directory(pkgs_dir):
