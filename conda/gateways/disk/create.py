@@ -4,7 +4,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from errno import EACCES, ELOOP, EPERM
+import glob
 from io import open
+import itertools
 from logging import getLogger
 import os
 from os.path import basename, dirname, isdir, isfile, join, splitext
@@ -336,7 +338,13 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         raise CondaError("Did not expect linktype=%r" % link_type)
 
 
-def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
+def _find_pyc_files(path):
+    return set(itertools.chain.from_iterable(glob.iglob(os.path.join(root, '*.pyc'))
+                                             for root, dirs, files in os.walk(path)))
+
+
+def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, site_packages_dir,
+                         py_ver):
     py_full_paths = tuple(py_full_paths)
     pyc_full_paths = tuple(pyc_full_paths)
     if len(py_full_paths) == 0:
@@ -346,26 +354,19 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
         if lexists(pyc_full_path):
             maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
-    # determine the encoding for stdin
-    command = '"%s" -c "import sys; print(sys.stdin.encoding)"' % (python_exe_full_path)
-    result = subprocess_call(command, raise_on_error=False)
-    if result.stdout.startswith('None'):
-        stdin_encoding = 'utf-8'
-    else:
-        stdin_encoding = result.stdout.strip()
+    command = [python_exe_full_path, "-Wi", "-m", "compileall", "-q"]
 
-    py_full_paths_str = os.linesep.join(py_full_paths)
-    try:
-        py_full_paths_bytes = py_full_paths_str.encode(stdin_encoding, errors='replace')
-    except:
-        # if encoding fails for any reason, stdin_encoding wonky, etc. fall back
-        # to using the string. The worst that can happen is the pyc files are
-        # not created.
-        py_full_paths_bytes = py_full_paths_str
+    # if the python version in the prefix is 3.5+, we have some extra args that make things nicer.
+    #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
+    if int(py_ver[0]) >= 3 and int(py_ver.split('.')[1]) > 5:
+        command.extend(["-j", "0"])
+    command.append(site_packages_dir)
 
-    command = '"%s" -Wi -m py_compile -' % (python_exe_full_path, )
+    # glob pyc files prior to compileall, so that we have a reference of any extra junk we pick up
+    original_pyc_paths = _find_pyc_files(site_packages_dir)
+
     log.trace(command)
-    result = subprocess_call(command, stdin=py_full_paths_bytes, raise_on_error=False)
+    result = subprocess_call(" ".join(command), raise_on_error=False)
 
     created_pyc_paths = []
     for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths):
@@ -383,6 +384,14 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths):
                      result.rc, result.stdout, result.stderr)
         else:
             created_pyc_paths.append(pyc_full_path)
+
+    # anything that's left in the set after we subtract what we know we should have created as
+    #     well as what was already there is extra, and we should clean it up.
+    extra_created_pyc_paths = (_find_pyc_files(site_packages_dir) - set(created_pyc_paths)
+                               - original_pyc_paths)
+    for path in extra_created_pyc_paths:
+        rm_rf(path)
+
     return created_pyc_paths
 
 
