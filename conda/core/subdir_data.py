@@ -551,12 +551,12 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
 
     # add extra values to the raw repodata json
     if json_str and json_str != "{}":
-        raw_repodata_str = "%s, %s" % (
+        raw_repodata_str = u"%s, %s" % (
             json.dumps(saved_fields)[:-1],  # remove trailing '}'
             json_str[1:]  # remove first '{'
         )
     else:
-        raw_repodata_str = json.dumps(saved_fields)
+        raw_repodata_str = ensure_text_type(json.dumps(saved_fields))
     return raw_repodata_str
 
 
