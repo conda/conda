@@ -353,7 +353,7 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, si
             tf.write(f + "\n")
         tf.flush()
 
-        command = ["-Wi", "-m", "compileall", "-q", "-i", tf.name]
+        command = ["-Wi", "-m", "compileall", "-q", "-l", "-i", tf.name]
 
         # if the python version in the prefix is 3.5+, we have some extra args.
         #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
