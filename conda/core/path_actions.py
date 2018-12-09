@@ -546,10 +546,8 @@ class CompileMultiPycAction(MultiPathAction):
         target_python_version = self.transaction_context['target_python_version']
         python_short_path = get_python_short_path(target_python_version)
         python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
-        target_prefix = join(self.target_prefix,
-                             self.transaction_context['target_site_packages_short_path'])
         compile_multiple_pyc(python_full_path, self.source_full_paths, self.target_full_paths,
-                             target_prefix, self.transaction_context['target_python_version'])
+                             self.target_prefix, self.transaction_context['target_python_version'])
         self._execute_successful = True
 
     def reverse(self):

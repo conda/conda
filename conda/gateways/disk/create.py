@@ -337,8 +337,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         raise CondaError("Did not expect linktype=%r" % link_type)
 
 
-def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, site_packages_dir,
-                         py_ver):
+def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, prefix, py_ver):
     py_full_paths = tuple(py_full_paths)
     pyc_full_paths = tuple(pyc_full_paths)
     if len(py_full_paths) == 0:
@@ -351,22 +350,19 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, si
     fd, filename = tempfile.mkstemp()
     try:
         for f in py_full_paths:
+            f = os.path.relpath(f, prefix)
             if hasattr(f, 'encode'):
                 f = f.encode(sys.getfilesystemencoding())
             os.write(fd, f + b"\n")
         os.close(fd)
-
         command = ["-Wi", "-m", "compileall", "-q", "-l", "-i", filename]
-
         # if the python version in the prefix is 3.5+, we have some extra args.
         #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
         if int(py_ver[0]) >= 3 and int(py_ver.split('.')[1]) > 5:
             command.extend(["-j", "0"])
-
         command = '"%s" ' % python_exe_full_path + " ".join(command)
-
         log.trace(command)
-        result = subprocess_call(command, raise_on_error=False)
+        result = subprocess_call(command, raise_on_error=False, path=prefix)
     finally:
         os.remove(filename)
 
