@@ -16,6 +16,11 @@ from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
 from ...common.compat import PY2, on_win, text_type, ensure_binary
 
+if on_win:
+    import win32file
+    import pywintypes
+
+
 log = getLogger(__name__)
 
 
@@ -104,7 +109,21 @@ def move_path_to_trash(path, preclean=True):
 def backoff_unlink(file_or_symlink_path, max_tries=MAX_TRIES):
     def _unlink(path):
         make_writable(path)
-        unlink(path)
+        try:
+            unlink(path)
+        except (IOError, OSError) as e:
+            if on_win and e.errno == 13:
+                try:
+                    win32file.MoveFileEx(file_or_symlink_path, None,
+                                         win32file.MOVEFILE_DELAY_UNTIL_REBOOT)
+                    log.info("Windows thinks file %s is in use.  We have scheduled it for "
+                             "removal at next reboot." % file_or_symlink_path)
+                except pywintypes.error:
+                    log.info("Windows thinks file %s is in use.  We can't schedule it for removal"
+                             " because this is not an admin prompt (thanks Windows.)" %
+                             file_or_symlink_path)
+            else:
+                raise
 
     try:
         exp_backoff_fn(lambda f: lexists(f) and _unlink(f), file_or_symlink_path,
