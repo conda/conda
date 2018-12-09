@@ -352,7 +352,7 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, si
     try:
         for f in py_full_paths:
             if hasattr(f, 'encode'):
-                f = f.encode('utf-8')
+                f = f.encode(sys.getfilesystemencoding())
             os.write(fd, f + b"\n")
         os.close(fd)
 
