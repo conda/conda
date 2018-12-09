@@ -348,12 +348,15 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, si
         if lexists(pyc_full_path):
             maybe_raise(BasicClobberError(None, pyc_full_path, context), context)
 
-    with tempfile.NamedTemporaryFile('w') as tf:
+    fd, filename = tempfile.mkstemp()
+    try:
         for f in py_full_paths:
-            tf.write(f + "\n")
-        tf.flush()
+            if hasattr(f, 'encode'):
+                f = f.encode('utf-8')
+            os.write(fd, f + b"\n")
+        os.close(fd)
 
-        command = ["-Wi", "-m", "compileall", "-q", "-l", "-i", tf.name]
+        command = ["-Wi", "-m", "compileall", "-q", "-l", "-i", filename]
 
         # if the python version in the prefix is 3.5+, we have some extra args.
         #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
@@ -364,6 +367,8 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, si
 
         log.trace(command)
         result = subprocess_call(command, raise_on_error=False)
+    finally:
+        os.remove(filename)
 
     created_pyc_paths = []
     for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths):
