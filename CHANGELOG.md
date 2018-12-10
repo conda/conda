@@ -1,4 +1,4 @@
-# 4.5.12 (unreleased)
+# 4.5.12 (2018-12-10)
 
 ### Improvements
 * backport 'allow_conda_downgrade' configuration parameter, default is False (#7998)
