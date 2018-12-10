@@ -71,7 +71,7 @@ EXAMPLE: To set the auto_update_conda option to ``False``, run::
   conda config --set auto_update_conda False
 
 For a complete list of conda config commands, see the
-`command reference <../../commands/conda-config>`. The same list
+:doc:`command reference <../../commands/conda-config>`. The same list
 is available at the Terminal or Anaconda Prompt by running
 ``conda config --help``.
 
@@ -742,6 +742,34 @@ specified by the ``pypirc`` setting.
 
    conda-build:
        pypi_repository: pypi
+
+
+Expansion of environment variables
+==================================
+
+Conda expands environment variables in a subset of configuration settings.
+These are:
+
+- ``envs_dirs``
+- ``pkgs_dirs``
+- ``ssl_verify``
+- ``client_cert``
+- ``client_cert_key``
+- ``proxy_servers``
+- ``channels``
+- ``custom_channels``
+- ``custom_multichannels``
+- ``default_channels``
+- ``migrated_custom_channels``
+- ``whitelist_channels``
+
+This allows you to e.g. store the credentials of a private repository in an
+environment variable, like so:
+
+.. code-block:: yaml
+
+  channels:
+    - https://${USERNAME}:${PASSWORD}@my.private.conda.channel
 
 
 Obtaining information from the .condarc file
