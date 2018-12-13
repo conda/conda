@@ -255,6 +255,11 @@ class History(object):
                         "base_prefix": context.root_prefix,
                         "minimum_version": minimum_major_minor,
                     }
+                message += dedent("""
+                To work around this restriction, one can also set the config parameter
+                'allow_conda_downgrades' to False at their own risk.
+                """)
+
                 raise CondaUpgradeError(message)
 
         return res
