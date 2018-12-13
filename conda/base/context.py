@@ -592,7 +592,6 @@ class Context(Configuration):
             'bld_path',
             'conda_build',
             'croot',
-            'allow_conda_downgrades',
             'debug',
             'default_python',
             'dry_run',
@@ -673,6 +672,14 @@ def get_help_dict():
             is not possible, conda copies files. Individual packages can override
             this setting, specifying that certain files should never be soft-linked (see the
             no_link option in the build recipe documentation).
+            """),
+        'allow_conda_downgrades': dals("""
+            A newer version of conda (minor/major bump) might make some changes
+            to the metadata of an environment which could be backwards incompatible. The
+            version of conda is recorded with each operation which modifies an environment.
+            By default, Conda >=4.5.11 doesn't allow an older version of conda
+            to operate on an environment modified by a newer version. To
+            circumvent this restriction, this parameter can be set to True.
             """),
         'always_copy': dals("""
             Register a preference that files be copied into a prefix during install rather
