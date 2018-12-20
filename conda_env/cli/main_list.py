@@ -14,6 +14,7 @@ List the Conda environments
 example = """
 examples:
     conda env list
+    conda env list --size
     conda env list --json
 """
 
@@ -27,6 +28,13 @@ def configure_parser(sub_parsers):
         epilog=example,
     )
 
+    list_parser.add_argument(
+        "-s", "--size",
+        action="store_true",
+        default=False,
+        help="Show the used disk usage for each environment."
+    )
+
     add_parser_json(list_parser)
 
     list_parser.set_defaults(func='.main_list.execute')
@@ -34,7 +42,7 @@ def configure_parser(sub_parsers):
 
 def execute(args, parser):
     info_dict = {'envs': list_all_known_prefixes()}
-    common.print_envs_list(info_dict['envs'], not args.json)
-
-    if args.json:
+    if not args.json:
+        common.print_envs_list(info_dict['envs'], with_size=bool(args.size))
+    else:
         common.stdout_json(info_dict)
