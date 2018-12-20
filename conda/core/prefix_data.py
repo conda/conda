@@ -8,6 +8,7 @@ from logging import getLogger
 from os import listdir
 from os.path import basename, isdir, isfile, join, lexists
 
+from .._vendor.auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
 from ..base.context import context
 from ..common.compat import JSONDecodeError, itervalues, odict, string_types, with_metaclass
@@ -256,6 +257,16 @@ class PrefixData(object):
             try:
                 python_record = read_python_record(self.prefix_path, af, python_pkg_record.version)
             except EnvironmentError:
+                continue
+            except ValidationError:
+                import sys
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                import traceback
+                tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                log.warn("Problem reading non-conda package record at %s. Please verify that you "
+                         "still need this, and if so, that this is still installed correctly. "
+                         "Reinstalling this package may help.", af)
+                log.debug("ValidationError: \n%s\n", "\n".join(tb))
                 continue
             if not python_record:
                 continue

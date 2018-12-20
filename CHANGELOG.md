@@ -7,7 +7,7 @@
   config (#7195, #7226, #7233)
 * resolve #7087 add non-conda-installed python packages into PrefixData (#7067, #7370)
 * resolve #2682 add 'conda run' preview support (#7320, #7625)
-* resolve #626 conda wrapper for PowerShell (#7794)
+* resolve #626 conda wrapper for PowerShell (#7794, #7829)
 
 ### Deprecations/Breaking Changes
 * resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
@@ -54,6 +54,7 @@
 * performance improvement to cache __hash__ value on PackageRecord (#7715)
 * resolve #7764 change name of 'condacmd' dir to 'condabin'; use on all platforms (#7773)
 * resolve #7782 implement PEP-440 '~=' compatible release operator (#7783)
+* disable timestamp prioritization (#7894)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)

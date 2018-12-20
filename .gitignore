@@ -4,6 +4,7 @@
 build/
 dist/
 docs/build
+docs/_build
 .cache/
 .idea/
 ve/

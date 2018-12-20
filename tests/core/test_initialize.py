@@ -109,6 +109,13 @@ class InitializeTests(TestCase):
                         }
                     },
                     {
+                        'function': 'install_library_bin_conda_bat',
+                        'kwargs': {
+                            'conda_prefix': '/darwin',
+                            'target_path': '/darwin\\Library\\bin\\conda.bat'
+                        }
+                    },
+                        {
                         "function": "install_condabin_conda_activate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
@@ -502,7 +509,8 @@ class InitializeTests(TestCase):
                 'conda-env.exe',
                 'conda-script.py',
                 'conda-env-script.py',
-                'conda.bat',
+                'conda.bat',  # condabin/conda.bat
+                'conda.bat',  # Library/bin/conda.bat
                 '_conda_activate.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
@@ -560,7 +568,8 @@ class InitializeTests(TestCase):
                 'conda-env.exe',
                 'conda-script.py',
                 'conda-env-script.py',
-                'conda.bat',
+                'conda.bat',  # condabin/conda.bat
+                'conda.bat',  # Library/bin/conda.bat
                 '_conda_activate.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
@@ -626,7 +635,8 @@ class InitializeTests(TestCase):
                 'conda-env.exe',
                 'conda-script.py',
                 'conda-env-script.py',
-                'conda.bat',
+                'conda.bat',  # condabin/conda.bat
+                'conda.bat',  # Library/bin/conda.bat
                 '_conda_activate.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
@@ -826,7 +836,7 @@ class InitializeTests(TestCase):
 
     @pytest.mark.skipif(not on_win, reason="win-only test")
     def test_init_enable_long_path(self):
-        self.dummy_value = "0"
+        self.dummy_value = 0
 
         def _read_windows_registry_mock(target_path):
             return self.dummy_value, "REG_DWORD"
@@ -844,9 +854,9 @@ class InitializeTests(TestCase):
 
         try:
             target_path = r'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem\\LongPathsEnabled'
-            assert initialize._read_windows_registry(target_path)[0] == "0"
+            assert initialize._read_windows_registry(target_path)[0] == 0
             initialize.init_long_path(target_path)
-            assert initialize._read_windows_registry(target_path)[0] == "1"
+            assert initialize._read_windows_registry(target_path)[0] == 1
         finally:
             initialize._read_windows_registry = orig_read_windows_registry
             initialize._write_windows_registry = orig_write_windows_registry

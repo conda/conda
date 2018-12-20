@@ -43,10 +43,6 @@ class BinstarSpec(object):
 
     def can_handle(self):
         result = self._can_handle()
-        if result:
-            print("WARNING: Binstar environments are deprecated and scheduled to be "
-                  "removed in conda 4.5. See conda issue #5843 at "
-                  "https://github.com/conda/conda/pull/5843 for more information.")
         return result
 
     def _can_handle(self):
@@ -60,6 +56,7 @@ class BinstarSpec(object):
                 self.msg = ("Anaconda Client is required to interact with anaconda.org or an "
                             "Anaconda API. Please run `conda install anaconda-client`.")
                 return False
+
             return self.package is not None and self.valid_package()
         return False
 

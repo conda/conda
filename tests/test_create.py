@@ -584,8 +584,13 @@ class IntegrationTests(TestCase):
         assert not stderr
         json_obj = json_loads(stdout)
         channel_groups = groupby("channel",json_obj["actions"]["LINK"])
+        channel_groups = sorted(list(channel_groups))
         # conda-forge should be the only channel in the solution on unix
-        assert list(channel_groups) == ["conda-forge"]
+        # fiona->gdal->libgdal->m2w64-xz brings in pkgs/msys2 on win
+        if on_win:
+            assert channel_groups == ["conda-forge", "pkgs/msys2"]
+        else:
+            assert channel_groups == ["conda-forge"]
 
     def test_strict_resolve_get_reduced_index(self):
         channels = (Channel("defaults"),)
@@ -919,14 +924,13 @@ class IntegrationTests(TestCase):
 
     @pytest.mark.skipif(on_win, reason="tensorflow package used in test not available on Windows")
     def test_install_freeze_installed_flag(self):
-        with make_temp_env("bleach") as prefix:
+        with make_temp_env("bleach=2") as prefix:
             assert package_is_installed(prefix, "bleach=2")
             with pytest.raises(UnsatisfiableError):
                 run_command(Commands.INSTALL, prefix,
                             "conda-forge::tensorflow>=1.4 --dry-run --freeze-installed")
 
-    @pytest.mark.xfail(on_win and datetime.now() < datetime(2018, 11, 1),
-                       reason="need to talk with @msarahan about blas patches on Windows",
+    @pytest.mark.xfail(on_win, reason="nomkl not present on windows",
                        strict=True)
     def test_install_features(self):
         with make_temp_env("python=2 numpy=1.13 nomkl") as prefix:
@@ -1363,7 +1367,7 @@ class IntegrationTests(TestCase):
         # 2. pip install -U six
         # 3. conda list shows new six and deletes old conda record
         # 4. probably need to purge something with the history file too?
-        with make_temp_env("six=1.9 pip=9.0.3") as prefix:
+        with make_temp_env("six=1.9 pip=9.0.3 python=3.5") as prefix:
             assert package_is_installed(prefix, "six=1.9.0")
             assert package_is_installed(prefix, "python=3.5")
             output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)

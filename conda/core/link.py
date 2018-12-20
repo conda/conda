@@ -13,7 +13,7 @@ from traceback import format_exception_only
 import warnings
 
 from .package_cache_data import PackageCacheData
-from .path_actions import (CompilePycAction, CreateNonadminAction, CreatePrefixRecordAction,
+from .path_actions import (CompileMultiPycAction, CreateNonadminAction, CreatePrefixRecordAction,
                            CreatePythonEntryPointAction, LinkPathAction, MakeMenuAction,
                            RegisterEnvironmentLocationAction, RemoveLinkedPackageRecordAction,
                            RemoveMenuAction, UnlinkPathAction, UnregisterEnvironmentLocationAction,
@@ -386,28 +386,33 @@ class UnlinkLinkTransaction(object):
         link_paths_dict = defaultdict(list)
         for axn in create_lpr_actions:
             for link_path_action in axn.all_link_path_actions:
-                path = link_path_action.target_short_path
-                path = lower_on_win(path)
-                link_paths_dict[path].append(axn)
-                if path not in unlink_paths and lexists(join(target_prefix, path)):
-                    # we have a collision; at least try to figure out where it came from
-                    colliding_prefix_rec = first(
-                        (prefix_rec for prefix_rec in PrefixData(target_prefix).iter_records()),
-                        key=lambda prefix_rec: path in prefix_rec.files
-                    )
-                    if colliding_prefix_rec:
-                        yield KnownPackageClobberError(
-                            path,
-                            axn.package_info.repodata_record.dist_str(),
-                            colliding_prefix_rec.dist_str(),
-                            context,
+                if isinstance(link_path_action, CompileMultiPycAction):
+                    target_short_paths = link_path_action.target_short_paths
+                else:
+                    target_short_paths = (link_path_action.target_short_path, )
+                for path in target_short_paths:
+                    path = lower_on_win(path)
+                    link_paths_dict[path].append(axn)
+                    if path not in unlink_paths and lexists(join(target_prefix, path)):
+                        # we have a collision; at least try to figure out where it came from
+                        colliding_prefix_rec = first(
+                            (prefix_rec for prefix_rec in
+                             PrefixData(target_prefix).iter_records()),
+                            key=lambda prefix_rec: path in prefix_rec.files
                         )
-                    else:
-                        yield UnknownPackageClobberError(
-                            path,
-                            axn.package_info.repodata_record.dist_str(),
-                            context,
-                        )
+                        if colliding_prefix_rec:
+                            yield KnownPackageClobberError(
+                                path,
+                                axn.package_info.repodata_record.dist_str(),
+                                colliding_prefix_rec.dist_str(),
+                                context,
+                            )
+                        else:
+                            yield UnknownPackageClobberError(
+                                path,
+                                axn.package_info.repodata_record.dist_str(),
+                                context,
+                            )
 
         # Verification 2. there's only a single instance of each path
         for path, axns in iteritems(link_paths_dict):
@@ -683,8 +688,8 @@ class UnlinkLinkTransaction(object):
         create_menu_actions = MakeMenuAction.create_actions(*required_quad)
 
         python_entry_point_actions = CreatePythonEntryPointAction.create_actions(*required_quad)
-        compile_pyc_actions = CompilePycAction.create_actions(*required_quad,
-                                                              file_link_actions=file_link_actions)
+        compile_pyc_actions = CompileMultiPycAction.create_actions(
+            *required_quad, file_link_actions=file_link_actions)
 
         # if requested_spec:
         #     application_entry_point_actions = CreateApplicationEntryPointAction.create_actions(

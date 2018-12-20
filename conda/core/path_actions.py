@@ -13,8 +13,10 @@ from uuid import uuid4
 from .envs_manager import USER_ENVIRONMENTS_TXT_FILE, register_env, unregister_env
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
+from .. import CondaError
 from .._vendor.auxlib.compat import with_metaclass
 from .._vendor.auxlib.ish import dals
+from .._vendor.toolz import concat
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
 from ..common.compat import iteritems, on_win, text_type
@@ -25,8 +27,9 @@ from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
 from ..common.url import has_platform, path_to_url, unquote
 from ..exceptions import CondaUpgradeError, CondaVerificationError, PaddingError, SafetyError
 from ..gateways.connection.download import download
-from ..gateways.disk.create import (compile_pyc, copy, create_hard_link_or_copy,
-                                    create_link, create_python_entry_point, extract_tarball,
+from ..gateways.disk.create import (compile_multiple_pyc, copy,
+                                    create_hard_link_or_copy, create_link,
+                                    create_python_entry_point, extract_tarball,
                                     make_menu, mkdir_p, write_as_json_to_file)
 from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
 from ..gateways.disk.permissions import make_writable
@@ -75,6 +78,44 @@ class PathAction(object):
 
     @abstractproperty
     def target_full_path(self):
+        raise NotImplementedError()
+
+    @property
+    def verified(self):
+        return self._verified
+
+    def __repr__(self):
+        args = ('%s=%r' % (key, value) for key, value in iteritems(vars(self))
+                if key not in REPR_IGNORE_KWARGS)
+        return "%s(%s)" % (self.__class__.__name__, ', '.join(args))
+
+
+@with_metaclass(ABCMeta)
+class MultiPathAction(object):
+
+    _verified = False
+
+    @abstractmethod
+    def verify(self):
+        # if verify fails, it should return an exception object rather than raise
+        #  at the end of a verification run, all errors will be raised as a CondaMultiError
+        # after successful verification, the verify method should set self._verified = True
+        raise NotImplementedError()
+
+    @abstractmethod
+    def execute(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def reverse(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def cleanup(self):
+        raise NotImplementedError()
+
+    @abstractproperty
+    def target_full_paths(self):
         raise NotImplementedError()
 
     @property
@@ -161,6 +202,10 @@ class LinkPathAction(CreateInPrefixPathAction):
             noarch = package_info.repodata_record.noarch
             if noarch == NoarchType.python:
                 sp_dir = transaction_context['target_site_packages_short_path']
+                if sp_dir is None:
+                    raise CondaError("Unable to determine python site-packages "
+                                     "dir in target_prefix!\nPlease make sure "
+                                     "python is installed in %s" % target_prefix)
                 target_short_path = get_python_noarch_target_path(source_path_data.path, sp_dir)
             elif noarch is None or noarch == NoarchType.generic:
                 target_short_path = source_path_data.path
@@ -439,7 +484,7 @@ class CreateNonadminAction(CreateInPrefixPathAction):
             rm_rf(self.target_full_path)
 
 
-class CompilePycAction(CreateInPrefixPathAction):
+class CompileMultiPycAction(MultiPathAction):
 
     @classmethod
     def create_actions(cls, transaction_context, package_info, target_prefix, requested_link_type,
@@ -448,41 +493,69 @@ class CompilePycAction(CreateInPrefixPathAction):
         if noarch is not None and noarch.type == NoarchType.python:
             noarch_py_file_re = re.compile(r'^site-packages[/\\][^\t\n\r\f\v]+\.py$')
             py_ver = transaction_context['target_python_version']
-            py_files = (axn.target_short_path for axn in file_link_actions
-                        if noarch_py_file_re.match(axn.source_short_path))
-            return tuple(cls(transaction_context, package_info, target_prefix,
-                             pf, pyc_path(pf, py_ver))
-                         for pf in py_files)
+            py_files = tuple((axn.target_short_path for axn in file_link_actions
+                              if noarch_py_file_re.match(axn.source_short_path)))
+            pyc_files = tuple((pyc_path(pf, py_ver) for pf in py_files))
+            return (cls(transaction_context, package_info, target_prefix, py_files, pyc_files), )
         else:
             return ()
 
     def __init__(self, transaction_context, package_info, target_prefix,
-                 source_short_path, target_short_path):
-        super(CompilePycAction, self).__init__(transaction_context, package_info,
-                                               target_prefix, source_short_path,
-                                               target_prefix, target_short_path)
-        self.prefix_path_data = PathDataV1(
-            _path=self.target_short_path,
-            path_type=PathType.pyc_file,
-        )
+                 source_short_paths, target_short_paths):
+        self.transaction_context = transaction_context
+        self.package_info = package_info
+        self.target_prefix = target_prefix
+        self.source_short_paths = source_short_paths
+        self.target_short_paths = target_short_paths
+        self.prefix_path_data = None
+        self.prefix_paths_data = [
+            PathDataV1(_path=p, path_type=PathType.pyc_file,) for p in self.target_short_paths]
         self._execute_successful = False
+
+    @property
+    def target_full_paths(self):
+        def join_or_none(prefix, short_path):
+            if prefix is None or short_path is None:
+                return None
+            else:
+                return join(prefix, win_path_ok(short_path))
+        return (join_or_none(self.target_prefix, p) for p in self.target_short_paths)
+
+    @property
+    def source_full_paths(self):
+        def join_or_none(prefix, short_path):
+            if prefix is None or short_path is None:
+                return None
+            else:
+                return join(prefix, win_path_ok(short_path))
+        return (join_or_none(self.target_prefix, p) for p in self.source_short_paths)
+
+    def verify(self):
+        self._verified = True
+
+    def cleanup(self):
+        # create actions typically won't need cleanup
+        pass
 
     def execute(self):
         # compile_pyc is sometimes expected to fail, for example a python 3.6 file
         #   installed into a python 2 environment, but no code paths actually importing it
         # technically then, this file should be removed from the manifest in conda-meta, but
         #   at the time of this writing that's not currently happening
-        log.trace("compiling %s", self.target_full_path)
+        log.trace("compiling %s", ' '.join(self.target_full_paths))
         target_python_version = self.transaction_context['target_python_version']
         python_short_path = get_python_short_path(target_python_version)
         python_full_path = join(self.target_prefix, win_path_ok(python_short_path))
-        compile_pyc(python_full_path, self.source_full_path, self.target_full_path)
+        compile_multiple_pyc(python_full_path, self.source_full_paths, self.target_full_paths,
+                             self.target_prefix, self.transaction_context['target_python_version'])
         self._execute_successful = True
 
     def reverse(self):
+        # this removes all pyc files even if they were not created
         if self._execute_successful:
-            log.trace("reversing pyc creation %s", self.target_full_path)
-            rm_rf(self.target_full_path)
+            log.trace("reversing pyc creation %s", ' '.join(self.target_full_paths))
+            for target_full_path in self.target_full_paths:
+                rm_rf(target_full_path)
 
 
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
@@ -749,12 +822,25 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         package_tarball_full_path = extracted_package_dir + CONDA_TARBALL_EXTENSION
         # TODO: don't make above assumption; put package_tarball_full_path in package_info
 
-        files = (x.target_short_path for x in self.all_link_path_actions if x)
+        def files_from_action(link_path_action):
+            if isinstance(link_path_action, CompileMultiPycAction):
+                return link_path_action.target_short_paths
+            else:
+                return (link_path_action.target_short_path, )
 
+        def paths_from_action(link_path_action):
+            if isinstance(link_path_action, CompileMultiPycAction):
+                return link_path_action.prefix_paths_data
+            else:
+                if link_path_action.prefix_path_data is None:
+                    return ()
+                else:
+                    return (link_path_action.prefix_path_data, )
+
+        files = concat((files_from_action(x) for x in self.all_link_path_actions if x))
         paths_data = PathsData(
             paths_version=1,
-            paths=(x.prefix_path_data for x in self.all_link_path_actions
-                   if x and x.prefix_path_data),
+            paths=concat((paths_from_action(x) for x in self.all_link_path_actions if x)),
         )
 
         self.prefix_record = PrefixRecord.from_objects(
