@@ -7,7 +7,6 @@ from os.path import basename, dirname, getsize, islink, join
 from os import walk
 import re
 import sys
-import math
 
 from .._vendor.auxlib.ish import dals
 from ..base.constants import ROOT_ENV_NAME
@@ -17,6 +16,7 @@ from ..common.io import swallow_broken_pipe
 from ..common.path import paths_equal
 from ..common.serialize import json_dump
 from ..models.match_spec import MatchSpec
+from ..utils import human_bytes
 
 
 def confirm(message="Proceed", choices=('yes', 'no'), default='yes'):
@@ -192,16 +192,6 @@ def print_envs_list(known_conda_prefixes, with_size=False):
                     total_size += getsize(path)
         return total_size
 
-    def convert_size(size_bytes):
-        """https://stackoverflow.com/a/14822210/1293700"""
-        if size_bytes == 0:
-            return "0B"
-        size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
-        i = int(math.floor(math.log(size_bytes, 1024)))
-        p = math.pow(1024, i)
-        s = round(size_bytes / p, 2)
-        return "%s %s" % (s, size_name[i])
-
     def disp_env(prefix, fmt='{name:20s} {default:1s} {prefix} {size}'):
         # 'name' column:
         if prefix == context.root_prefix:
@@ -216,7 +206,7 @@ def print_envs_list(known_conda_prefixes, with_size=False):
         default = '*' if prefix == context.default_prefix else ' '
 
         # 'size' column:
-        size = convert_size(compute_size(prefix)) if with_size else ''
+        size = human_bytes(compute_size(prefix)) if with_size else ''
 
         print(fmt.format(name=name, default=default, prefix=prefix, size=size))
 
