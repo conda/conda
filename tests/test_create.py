@@ -1339,6 +1339,7 @@ class IntegrationTests(TestCase):
 
     def test_conda_pip_interop_dependency_satisfied_by_pip(self):
         with make_temp_env("python") as prefix:
+            run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
             check_call(PYTHON_BINARY + " -m pip install itsdangerous",
                        cwd=prefix, shell=True)
 
@@ -1368,6 +1369,7 @@ class IntegrationTests(TestCase):
         # 3. conda list shows new six and deletes old conda record
         # 4. probably need to purge something with the history file too?
         with make_temp_env("six=1.9 pip=9.0.3 python=3.5") as prefix:
+            run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
             assert package_is_installed(prefix, "six=1.9.0")
             assert package_is_installed(prefix, "python=3.5")
             output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)
@@ -1517,6 +1519,7 @@ class IntegrationTests(TestCase):
 
     def test_conda_pip_interop_conda_editable_package(self):
         with make_temp_env("python=2.7") as prefix:
+            run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
             assert package_is_installed(prefix, "python")
 
             # install an "editable" urllib3 that cannot be managed
@@ -1617,6 +1620,7 @@ class IntegrationTests(TestCase):
     def test_conda_pip_interop_compatible_release_operator(self):
         # Regression test for #7776
         with make_temp_env("pip=10 six=1.9 appdirs") as prefix:
+            run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
             assert package_is_installed(prefix, "python")
             assert package_is_installed(prefix, "six=1.9")
             assert package_is_installed(prefix, "appdirs>=1.4.3")
