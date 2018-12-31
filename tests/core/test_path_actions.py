@@ -107,6 +107,7 @@ class PathActionsTests(TestCase):
         axns = CompileMultiPycAction.create_actions({}, package_info, self.prefix, None, ())
         assert axns == ()
 
+    @pytest.mark.xfail(on_win, reason="pyc compilation need env on windows, see gh #8025")
     def test_CompileMultiPycAction_noarch_python(self):
         if not softlink_supported(__file__, self.prefix) and on_win:
             pytest.skip("softlink not supported")
