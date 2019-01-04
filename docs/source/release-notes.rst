@@ -130,6 +130,37 @@ Contributors
 * @ohadravid
 
 
+4.5.12 (2018-12-28)
+-------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* backport 'allow_conda_downgrade' configuration parameter, default is False (#7998)
+* speed up verification by disabling per-file sha256 checks (#8017)
+* indicate Python 3.7 support in setup.py file (#8018)
+* speed up solver by reduce the size of reduced index (#8016)
+* speed up solver by skipping timestamp minimization when not needed (#8012)
+* compile pyc files more efficiently, will speed up install of noarch packages (#8025)
+* avoid waiting for removal of files on Windows when possible (#8024)
+
+Bug Fixes
+^^^^^^^^^
+
+* update integration tests for removal of 'features' key (#7726)
+* fix conda.bat return code (#7944)
+* ensure channel name is not NoneType (#8021)
+
+Contributors
+^^^^^^^^^^^^
+
+* @sdebionne
+* @jjhelmus
+* @kalefranz
+* @msarahan
+* @nehaljwani
+
+
 4.5.11 (2018-08-21)
 -------------------
 
