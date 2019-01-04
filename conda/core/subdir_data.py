@@ -356,7 +356,7 @@ class SubdirData(object):
         channel_url = self.url_w_credentials
         for fn, info in iteritems(json_obj.get('packages', {})):
             info['fn'] = fn
-            info['url'] = join_url(channel_url, fn)
+            info['url'] = info['url'] or join_url(channel_url, fn)
             if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
                 info['depends'].append('pip')
             info.update(meta_in_common)
