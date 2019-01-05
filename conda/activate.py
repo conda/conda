@@ -225,6 +225,8 @@ class _Activator(object):
         old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
         new_conda_shlvl = old_conda_shlvl + 1
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
+        path_to_restore = self.environ.get('PATH', '')
+        old_path_to_restore = self.environ.get('CONDA_RESTORE_PATH')
 
         if old_conda_prefix == prefix and old_conda_shlvl > 0:
             return self.build_reactivate()
@@ -241,6 +243,7 @@ class _Activator(object):
                 'CONDA_PYTHON_EXE': conda_python_exe,
                 'CONDA_EXE': conda_exe,
                 'PATH': new_path,
+                'CONDA_RESTORE_PATH': path_to_restore,
                 'CONDA_PREFIX': prefix,
                 'CONDA_SHLVL': new_conda_shlvl,
                 'CONDA_DEFAULT_ENV': conda_default_env,
@@ -256,6 +259,8 @@ class _Activator(object):
                 new_path = self.pathsep_join(self._add_prefix_to_path(prefix))
                 export_vars = {
                     'PATH': new_path,
+                    'CONDA_RESTORE_PATH': path_to_restore,
+                    'CONDA_RESTORE_PATH_%d' % old_conda_shlvl: old_path_to_restore,
                     'CONDA_PREFIX': prefix,
                     'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
                     'CONDA_SHLVL': new_conda_shlvl,
@@ -270,6 +275,8 @@ class _Activator(object):
                 )
                 export_vars = {
                     'PATH': new_path,
+                    'CONDA_RESTORE_PATH': path_to_restore,
+                    'CONDA_RESTORE_PATH_%d' % old_conda_shlvl: old_path_to_restore,
                     'CONDA_PREFIX': prefix,
                     'CONDA_PREFIX_%d' % old_conda_shlvl: old_conda_prefix,
                     'CONDA_SHLVL': new_conda_shlvl,
@@ -296,6 +303,7 @@ class _Activator(object):
         # query environment
         old_conda_prefix = self.environ.get('CONDA_PREFIX')
         old_conda_shlvl = int(self.environ.get('CONDA_SHLVL', '').strip() or 0)
+        old_path_to_restore = self.environ.get('CONDA_RESTORE_PATH')
         if not old_conda_prefix or old_conda_shlvl < 1:
             # no active environment, so cannot deactivate; do nothing
             return {
@@ -310,42 +318,42 @@ class _Activator(object):
         new_conda_shlvl = old_conda_shlvl - 1
         set_vars = {}
         if old_conda_shlvl == 1:
-            new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
             conda_prompt_modifier = ''
             unset_vars = (
+                'CONDA_RESTORE_PATH',
                 'CONDA_PREFIX',
                 'CONDA_DEFAULT_ENV',
                 'CONDA_PYTHON_EXE',
                 'CONDA_PROMPT_MODIFIER',
             )
             export_vars = {
-                'PATH': new_path,
+                'PATH': old_path_to_restore,
                 'CONDA_SHLVL': new_conda_shlvl,
             }
             activate_scripts = ()
         else:
             assert old_conda_shlvl > 1
             new_prefix = self.environ.get('CONDA_PREFIX_%d' % new_conda_shlvl)
+            new_path_to_restore = self.environ.get('CONDA_RESTORE_PATH_%d' % new_conda_shlvl)
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
 
             old_prefix_stacked = 'CONDA_STACKED_%d' % old_conda_shlvl in self.environ
             if old_prefix_stacked:
-                new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
                 unset_vars = (
+                    'CONDA_RESTORE_PATH_%d' % new_conda_shlvl,
                     'CONDA_PREFIX_%d' % new_conda_shlvl,
                     'CONDA_STACKED_%d' % old_conda_shlvl,
                 )
             else:
-                new_path = self.pathsep_join(
-                    self._replace_prefix_in_path(old_conda_prefix, new_prefix)
-                )
                 unset_vars = (
+                    'CONDA_RESTORE_PATH_%d' % new_conda_shlvl,
                     'CONDA_PREFIX_%d' % new_conda_shlvl,
                 )
 
             export_vars = {
-                'PATH': new_path,
+                'PATH': old_path_to_restore,
+                'CONDA_RESTORE_PATH': new_path_to_restore,
                 'CONDA_SHLVL': new_conda_shlvl,
                 'CONDA_PREFIX': new_prefix,
                 'CONDA_DEFAULT_ENV': conda_default_env,
@@ -378,6 +386,10 @@ class _Activator(object):
             }
         conda_default_env = self.environ.get('CONDA_DEFAULT_ENV', self._default_env(conda_prefix))
         new_path = self.pathsep_join(self._replace_prefix_in_path(conda_prefix, conda_prefix))
+        # If CONDA_RESTORE_PATH doesn't exist (when upgrading from a release before
+        # it was introduced), set it to the PATH without the prefix
+        old_path = self.pathsep_join(self._remove_prefix_from_path(conda_prefix))
+        path_to_restore = self.environ.get('CONDA_RESTORE_PATH') or old_path
         set_vars = {}
 
         conda_prompt_modifier = self._prompt_modifier(conda_prefix, conda_default_env)
@@ -390,6 +402,7 @@ class _Activator(object):
             'set_vars': set_vars,
             'export_vars': {
                 'PATH': new_path,
+                'CONDA_RESTORE_PATH': path_to_restore,
                 'CONDA_SHLVL': conda_shlvl,
                 'CONDA_PROMPT_MODIFIER': self._prompt_modifier(conda_prefix, conda_default_env),
             },
