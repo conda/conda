@@ -217,7 +217,7 @@ class Context(Configuration):
     deps_modifier = PrimitiveParameter(DepsModifier.NOT_SET)
     update_modifier = PrimitiveParameter(UpdateModifier.UPDATE_SPECS)
     sat_solver = PrimitiveParameter(None, element_type=string_types + (NoneType,))
-    solver_ignore_timestamps = PrimitiveParameter(True)
+    solver_ignore_timestamps = PrimitiveParameter(False)
 
     # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
     # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only

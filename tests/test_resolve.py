@@ -1025,23 +1025,6 @@ def test_no_features():
     ]
 
 
-@pytest.mark.skipif(datetime.now() < datetime(2019, 1, 1), reason="bogus test; talk with @mcg1969")
-def test_multiple_solution():
-    assert False
-#    index2 = index.copy()
-#    fn = 'pandas-0.11.0-np16py27_1.tar.bz2'
-#    res1 = set([fn])
-#    for k in range(1,15):
-#        fn2 = Dist('%s_%d.tar.bz2'%(fn[:-8],k))
-#        index2[fn2] = index[Dist(add_defaults_if_no_channel(fn))]
-#        res1.add(fn2)
-#    index2 = {Dist(key): value for key, value in iteritems(index2)}
-#    r = Resolve(index2)
-#    res = r.solve(['pandas', 'python 2.7*', 'numpy 1.6*'], returnall=True)
-#    res = set([y for y in res if y.name.startswith('pandas')])
-#    assert len(res) <= len(res1)
-
-
 def test_broken_install():
     installed = r.install(['pandas', 'python 2.7*', 'numpy 1.6*'])
     _installed = [rec.dist_str() for rec in installed]
