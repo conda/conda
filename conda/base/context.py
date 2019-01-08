@@ -127,6 +127,7 @@ class Context(Configuration):
                                                     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
                                                     aliases=('aggressive_update_packages',))
     safety_checks = PrimitiveParameter(SafetyChecks.warn)
+    extra_safety_checks = PrimitiveParameter(False)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
 
     pinned_packages = SequenceParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
@@ -707,6 +708,7 @@ class Context(Configuration):
             'path_conflict',
             'rollback_enabled',
             'safety_checks',
+            'extra_safety_checks',
             'shortcuts',
             'non_admin_enabled',
         )),
@@ -1024,6 +1026,10 @@ class Context(Configuration):
             'safety_checks': dals("""
                 Enforce available safety guarantees during package installation.
                 The value must be one of 'enabled', 'warn', or 'disabled'.
+                """),
+            'extra_safety_checks': dals("""
+                Spend extra time validating package contents.  Currently, runs sha256 verification
+                on every file within each package during installation.
                 """),
             'shortcuts': dals("""
                 Allow packages to create OS-specific shortcuts (e.g. in the Windows Start
