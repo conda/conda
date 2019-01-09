@@ -450,7 +450,6 @@ class Resolve(object):
                 prec for prec in self.find_matches(explicit_spec)
                 if prec not in reduced_index2 and self.valid2(prec, filter_out))
 
-            strict_channel_name = None
             if strict_channel_priority and add_these_precs2:
                 strict_channel_name = self._get_strict_channel(add_these_precs2[0].name)
                 add_these_precs2 = tuple(
@@ -478,15 +477,14 @@ class Resolve(object):
                         if not self.valid2(dep_pkg, filter_out):
                             continue
 
-                        # expand our reduced index
-                        if (dep_pkg not in reduced_index2 and
-                                (not strict_channel_priority or not strict_channel_name
-                                 # pkg is ok because it's from our strict channel
-                                 or dep_pkg.channel.name == strict_channel_name
-                                 # pkg is ok because our strict channel doesn't have it at all
-                                 or not any(_.channel.name == strict_channel_name
-                                            for _ in dep_packages))):
-                            reduced_index2[dep_pkg] = dep_pkg
+                        # expand the reduced index
+                        if dep_pkg not in reduced_index2:
+                            if strict_channel_priority:
+                                strict_channel_name = self._get_strict_channel(dep_pkg.name)
+                                if dep_pkg.channel.name == strict_channel_name:
+                                    reduced_index2[dep_pkg] = dep_pkg
+                            else:
+                                reduced_index2[dep_pkg] = dep_pkg
 
                         # recurse to deps of this dep
                         new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
