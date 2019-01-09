@@ -695,7 +695,7 @@ class InitializeTests(TestCase):
               export PATH="%(prefix)s/bin:$PATH"
               
             # >>> conda initialize >>>
-            __conda_setup="$('%(prefix)s/bin/conda' shell.bash hook 2> /dev/null)"
+            __conda_setup="$('%(prefix)s/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
             if [ $? -eq 0 ]; then
             fi
             unset __conda_setup
@@ -726,7 +726,7 @@ class InitializeTests(TestCase):
             
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
-            __conda_setup="$('%(prefix)s/bin/conda' shell.bash hook 2> /dev/null)"
+            __conda_setup="$('%(prefix)s/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
             if [ $? -eq 0 ]; then
                 eval "$__conda_setup"
             else
@@ -763,7 +763,7 @@ class InitializeTests(TestCase):
             . $(cygpath 'c:\\conda\\Scripts\\activate') root
 
             # >>> conda initialize >>>
-            __conda_setup="$('%(prefix)s/bin/conda' shell.bash hook 2> /dev/null)"
+            __conda_setup="$('%(prefix)s/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
             if [ $? -eq 0 ]; then
             fi
             unset __conda_setup
@@ -795,7 +795,7 @@ class InitializeTests(TestCase):
 
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
-            eval "$('%(cygpath_conda_prefix)s/Scripts/conda.exe' shell.bash hook)"
+            eval "$('%(cygpath_conda_prefix)s/Scripts/conda.exe' 'shell.bash' 'hook')"
             # <<< conda initialize <<<
 
             # . etc/profile.d/conda.sh  # commented out by conda initialize
