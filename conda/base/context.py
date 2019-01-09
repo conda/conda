@@ -120,7 +120,7 @@ class Context(Configuration):
     force_32bit = PrimitiveParameter(False)
     non_admin_enabled = PrimitiveParameter(True)
 
-    pip_interop_enabled = PrimitiveParameter(True)
+    pip_interop_enabled = PrimitiveParameter(False)
 
     # Safety & Security
     _aggressive_update_packages = SequenceParameter(string_types,
@@ -138,8 +138,10 @@ class Context(Configuration):
 
     _root_prefix = PrimitiveParameter("", aliases=('root_dir', 'root_prefix'))
     _envs_dirs = SequenceParameter(string_types, aliases=('envs_dirs', 'envs_path'),
-                                   string_delimiter=os.pathsep)
-    _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',))
+                                   string_delimiter=os.pathsep,
+                                   expandvars=True)
+    _pkgs_dirs = SequenceParameter(string_types, aliases=('pkgs_dirs',),
+                                   expandvars=True)
     _subdir = PrimitiveParameter('', aliases=('subdir',))
     _subdirs = SequenceParameter(string_types, aliases=('subdirs',))
 
@@ -151,12 +153,15 @@ class Context(Configuration):
     # remote connection details
     ssl_verify = PrimitiveParameter(True, element_type=string_types + (bool,),
                                     aliases=('verify_ssl',),
-                                    validation=ssl_verify_validation)
+                                    validation=ssl_verify_validation,
+                                    expandvars=True)
     client_ssl_cert = PrimitiveParameter(None, aliases=('client_cert',),
-                                         element_type=string_types + (NoneType,))
+                                         element_type=string_types + (NoneType,),
+                                         expandvars=True)
     client_ssl_cert_key = PrimitiveParameter(None, aliases=('client_cert_key',),
-                                             element_type=string_types + (NoneType,))
-    proxy_servers = MapParameter(string_types + (NoneType,))
+                                             element_type=string_types + (NoneType,),
+                                             expandvars=True)
+    proxy_servers = MapParameter(string_types + (NoneType,), expandvars=True)
     remote_connect_timeout_secs = PrimitiveParameter(9.15)
     remote_read_timeout_secs = PrimitiveParameter(60.)
     remote_max_retries = PrimitiveParameter(3)
@@ -172,19 +177,24 @@ class Context(Configuration):
                                         validation=channel_alias_validation)
     channel_priority = PrimitiveParameter(ChannelPriority.FLEXIBLE)
     _channels = SequenceParameter(string_types, default=(DEFAULTS_CHANNEL_NAME,),
-                                  aliases=('channels', 'channel',))  # channel for args.channel
+                                  aliases=('channels', 'channel',),
+                                  expandvars=True)  # channel for args.channel
     _custom_channels = MapParameter(string_types, DEFAULT_CUSTOM_CHANNELS,
-                                    aliases=('custom_channels',))
-    _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',))
+                                    aliases=('custom_channels',),
+                                    expandvars=True)
+    _custom_multichannels = MapParameter(list, aliases=('custom_multichannels',),
+                                         expandvars=True)
     _default_channels = SequenceParameter(string_types, DEFAULT_CHANNELS,
-                                          aliases=('default_channels',))
+                                          aliases=('default_channels',),
+                                          expandvars=True)
     _migrated_channel_aliases = SequenceParameter(string_types,
                                                   aliases=('migrated_channel_aliases',))
-    migrated_custom_channels = MapParameter(string_types)  # TODO: also take a list of strings
+    migrated_custom_channels = MapParameter(string_types,
+                                            expandvars=True)  # TODO: also take a list of strings
     override_channels_enabled = PrimitiveParameter(True)
     show_channel_urls = PrimitiveParameter(None, element_type=(bool, NoneType))
     use_local = PrimitiveParameter(False)
-    whitelist_channels = SequenceParameter(string_types)
+    whitelist_channels = SequenceParameter(string_types, expandvars=True)
 
     always_softlink = PrimitiveParameter(False, aliases=('softlink',))
     always_copy = PrimitiveParameter(False, aliases=('copy',))
@@ -206,6 +216,8 @@ class Context(Configuration):
     # ######################################################
     deps_modifier = PrimitiveParameter(DepsModifier.NOT_SET)
     update_modifier = PrimitiveParameter(UpdateModifier.UPDATE_SPECS)
+    sat_solver = PrimitiveParameter(None, element_type=string_types + (NoneType,))
+    solver_ignore_timestamps = PrimitiveParameter(True)
 
     # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
     # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
@@ -227,7 +239,7 @@ class Context(Configuration):
     anaconda_upload = PrimitiveParameter(None, aliases=('binstar_upload',),
                                          element_type=(bool, NoneType))
     _croot = PrimitiveParameter('', aliases=('croot',))
-    _conda_build = MapParameter(string_types, aliases=('conda-build',))
+    _conda_build = MapParameter(string_types, aliases=('conda-build', 'conda_build'))
 
     def __init__(self, search_path=None, argparse_args=None):
         if search_path is None:
@@ -741,6 +753,8 @@ class Context(Configuration):
             'force_32bit',
             'pip_interop_enabled',  # temporary feature flag
             'root_prefix',
+            'sat_solver',
+            'solver_ignore_timestamps',
             'subdir',
             'subdirs',
             # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies # NOQA
@@ -1135,11 +1149,13 @@ def determine_target_prefix(ctx, args=None):
     elif prefix_path is not None:
         return expand(prefix_path)
     else:
-        if any(x in prefix_name for x in ('/', ' ')):
-            from ..exceptions import CondaValueError
-            builder = ["Invalid environment name: '" + prefix_name + "'"]
-            builder.append("  character not allowed: '" + "/" if "/" in prefix_name else " " + "'")
-            raise CondaValueError("\n".join(builder))
+        for x in ('/', ' ', ':'):
+            if x in prefix_name:
+                from ..exceptions import CondaValueError
+                builder = ["Invalid environment name: '" + prefix_name + "'"]
+                x = "Space" if x is ' ' else x
+                builder.append("  character not allowed: '" + x + "'")
+                raise CondaValueError("\n".join(builder))
         if prefix_name in (ROOT_ENV_NAME, 'root'):
             return ctx.root_prefix
         else:

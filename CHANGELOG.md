@@ -1,12 +1,13 @@
 ## 4.6.0 (unreleased)
 
 ### New Feature Highlights
-* resolve #7053 preview support for conda operability with pip (#7067, #7370, #7710)
+* resolve #7053 preview support for conda operability with pip; disabled by default (#7067, #7370, #7710, #8050)
 * conda initialize (#6518, #7388, #7629)
 * resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
   config (#7195, #7226, #7233)
 * resolve #7087 add non-conda-installed python packages into PrefixData (#7067, #7370)
 * resolve #2682 add 'conda run' preview support (#7320, #7625)
+* resolve #626 conda wrapper for PowerShell (#7794, #7829)
 
 ### Deprecations/Breaking Changes
 * resolve #6915 remove 'conda env attach' and 'conda env upload' (#6916)
@@ -20,6 +21,7 @@
 * resolve #7309 deprecate 'conda info package_name' (#7310)
 * remove 'conda clean --source-cache' and defer to conda-build (#7731)
 * resolve #7724 move windows package cache and envs dirs back to .conda directory (#7725)
+* disallow env names with colons (#7801)
 
 ### Improvements
 * import speedups (#7122)
@@ -51,6 +53,14 @@
 * resolve #7336 'conda search' tries "fuzzy match" before showing PackagesNotFound (#7722)
 * resolve #7656 strict channel priority via 'channel_priority' config option or --strict-channel-priority CLI flag (#7729)
 * performance improvement to cache __hash__ value on PackageRecord (#7715)
+* resolve #7764 change name of 'condacmd' dir to 'condabin'; use on all platforms (#7773)
+* resolve #7782 implement PEP-440 '~=' compatible release operator (#7783)
+* disable timestamp prioritization when not needed (#7894, #8012)
+* compile pyc files for noarch packages in batches (#8015)
+* disable per-file sha256 safety checks by default; add extra_safety_checks condarc option to enable them (#8017)
+* shorten retries for file removal on windows, where in-use files can't be removed (#8024)
+* expand env vars in ``custom_channels``, ``custom_multichannels``, ``default_channels``, ``migrated_custom_channels``, and ``whitelist_channels`` (#7826)
+* encode repodata to utf-8 while caching, to fix unicode characters in repodata (#7873)
 
 ### Bug Fixes
 * fix #7107 verify hangs when a package is corrupted (#7131)
@@ -71,6 +81,8 @@
 * fix conda env compatibility with pip 18 (#7612)
 * fix #7184 remove conflicting specs to find solution to user's active request (#7719)
 * fix #7706 add condacmd dir to cmd.exe path on first activation (#7735)
+* fix #7761 spec handling errors in 4.6.0b0 (#7780)
+* fix #7770 'conda list regex' only applies regex to package name (#7784)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
@@ -83,21 +95,32 @@
 * test building conda using conda-build (#7251)
 * solver test metadata updates (#7664)
 * explicitly add Mapping, Sequence to common.compat (#7677)
+* add debug messages to communicate solver stages (#7803)
+* add undocumented sat_solver config parameter (#7811)
 
 ### Preview Releases
 
 * 4.6.0a1 at d5bec21d1f64c3bc66c2999cfc690681e9c46177 on 2018-04-20
 * 4.6.0a2 at c467517ca652371ebc4224f0d49315b7ec225108 on 2018-05-01
+* 4.6.0b0 at 21a24f02b2687d0895de04664a4ec23ccc75c33a on 2018-09-07
+* 4.6.0b1 at 1471f043eed980d62f46944e223f0add6a9a790b on 2018-10-22
+* 4.6.0rc1 at 
 
 ### Contributors
+* @cgranade
 * @fabioz
+* @geremih
 * @goanpeca
 * @jesse-
+* @jjhelmus
 * @kalefranz
+* @makbigc
 * @mandeep
 * @mbargull
 * @msarahan
+* @nehaljwani
 * @ohadravid
+* @teake
 
 
 # 4.5.11 (2018-08-21)

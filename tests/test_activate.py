@@ -14,7 +14,7 @@ from conda import CONDA_PACKAGE_ROOT
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.toolz.itertoolz import concatv
 from conda.activate import CmdExeActivator, CshActivator, FishActivator, PosixActivator, \
-    PowershellActivator, XonshActivator, activator_map, main as activate_main, native_path_to_unix
+    PowerShellActivator, XonshActivator, activator_map, main as activate_main, native_path_to_unix
 from conda.base.constants import ROOT_ENV_NAME
 from conda.base.context import context, reset_context
 from conda.common.compat import ensure_text_type, iteritems, on_win, \
@@ -1036,7 +1036,7 @@ class ShellWrapperUnitTests(TestCase):
             }
 
     def test_powershell_basic(self):
-        activator = PowershellActivator()
+        activator = PowerShellActivator()
         self.make_dot_d_files(activator.script_extension)
 
         with captured() as c:
@@ -1068,7 +1068,7 @@ class ShellWrapperUnitTests(TestCase):
             'CONDA_SHLVL': '1',
             'PATH': os.pathsep.join(concatv(new_path_parts, (os.environ['PATH'],))),
         }):
-            activator = PowershellActivator()
+            activator = PowerShellActivator()
             with captured() as c:
                 rc = activate_main(('', 'shell.powershell', 'reactivate'))
             assert not c.stderr
@@ -1098,10 +1098,10 @@ class ShellWrapperUnitTests(TestCase):
             new_path = activator.pathsep_join(activator._remove_prefix_from_path(self.prefix))
             assert deactivate_data == dals("""
             . "%(deactivate1)s"
-            Remove-Variable CONDA_DEFAULT_ENV
-            Remove-Variable CONDA_PREFIX
-            Remove-Variable CONDA_PROMPT_MODIFIER
-            Remove-Variable CONDA_PYTHON_EXE
+            Remove-Item Env:/CONDA_DEFAULT_ENV
+            Remove-Item Env:/CONDA_PREFIX
+            Remove-Item Env:/CONDA_PROMPT_MODIFIER
+            Remove-Item Env:/CONDA_PYTHON_EXE
             $env:CONDA_SHLVL = "0"
             $env:PATH = "%(new_path)s"
             """) % {
@@ -1162,6 +1162,21 @@ class InteractiveShell(object):
             'init_command': 'eval (python -m conda shell.fish hook)',
             'print_env_var': 'echo $%s',
         },
+        # We don't know if the PowerShell executable is called
+        # powershell, pwsh, or pwsh-preview.
+        'powershell': {
+            'activator': 'powershell',
+            'args': '-NoProfile -NoLogo',
+            'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
+            'print_env_var': '$Env:%s',
+            'exit_cmd': 'exit'
+        },
+        'pwsh': {
+            'base_shell': 'powershell'
+        },
+        'pwsh-preview': {
+            'base_shell': 'powershell'
+        },
     }
 
     def __init__(self, shell_name):
@@ -1172,6 +1187,8 @@ class InteractiveShell(object):
         for key, value in iteritems(shell_vals):
             setattr(self, key, value)
         self.activator = activator_map[shell_vals['activator']]()
+        self.exit_cmd = self.shells[shell_name].get('exit_cmd', None)
+        self.args = self.shells[shell_name].get('args', "")
 
     def __enter__(self):
         from pexpect.popen_spawn import PopenSpawn
@@ -1182,7 +1199,8 @@ class InteractiveShell(object):
         for var_name in remove_these:
             del env[var_name]
 
-        p = PopenSpawn(self.shell_name, timeout=12, maxread=2000, searchwindowsize=None,
+        p = PopenSpawn("{} {}".format(self.shell_name, self.args) if self.args else self.shell_name,
+                       timeout=12, maxread=2000, searchwindowsize=None,
                        logfile=sys.stdout, cwd=os.getcwd(), env=env, encoding=None,
                        codec_errors='strict')
 
@@ -1208,7 +1226,11 @@ class InteractiveShell(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            print("Exception encountered: {}".format(exc_val))
         if self.p:
+            if self.exit_cmd:
+                self.sendline(self.exit_cmd)
             import signal
             self.p.kill(signal.SIGINT)
 
@@ -1251,6 +1273,28 @@ def which(executable):
     from distutils.spawn import find_executable
     return find_executable(executable)
 
+def which_powershell():
+    r"""
+    Since we don't know whether PowerShell is installed as powershell, pwsh, or pwsh-preview,
+    it's helpful to have a utility function that returns the name of the best PowerShell
+    executable available, or `None` if there's no PowerShell installed.
+
+    If PowerShell is found, this function returns both the kind of PowerShell install
+    found and a path to its main executable.
+    E.g.: ('pwsh', r'C:\Program Files\PowerShell\6.0.2\pwsh.exe)
+    """
+    if on_win:
+        posh =  which('powershell.exe')
+        if posh:
+            return 'powershell', posh
+    
+    posh = which('pwsh')
+    if posh:
+        return 'pwsh', posh
+
+    posh = which('pwsh-preview')
+    if posh:
+        return 'pwsh-preview', posh
 
 @pytest.mark.integration
 class ShellWrapperIntegrationTests(TestCase):
@@ -1453,6 +1497,51 @@ class ShellWrapperIntegrationTests(TestCase):
 
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '0')
+
+    @pytest.mark.skipif(not which_powershell(), reason='PowerShell not installed')
+    def test_powershell_basic_integration(self):
+        charizard = join(self.prefix, 'envs', 'charizard')
+        posh_kind, posh_path = which_powershell()
+        print('## [PowerShell integration] Using {}.'.format(posh_path))
+        with InteractiveShell(posh_kind) as shell:
+            print('## [PowerShell integration] Starting test.')
+            shell.sendline('(Get-Command conda).CommandType')
+            shell.p.expect_exact('Alias')
+            shell.sendline('(Get-Command conda).Definition')
+            shell.p.expect_exact('Invoke-Conda')
+
+            print('## [PowerShell integration] Activating.')
+            shell.sendline('conda activate "%s"' % charizard)
+            shell.assert_env_var('CONDA_SHLVL', '1\r?')
+            shell.sendline('conda activate "%s"' % self.prefix)
+            shell.assert_env_var('CONDA_SHLVL', '2\r?')
+            shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
+
+            print('## [PowerShell integration] Installing.')
+            shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
+            shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
+            shell.sendline('$LASTEXITCODE')
+            shell.expect('0')
+            # TODO: assert that reactivate worked correctly
+
+            print('## [PowerShell integration] Checking installed version.')
+            shell.sendline('sqlite3 -version')
+            shell.expect('3\.21\..*')
+
+            # conda run integration test
+            print('## [PowerShell integration] Checking conda run.')
+            shell.sendline('conda run sqlite3 -version')
+            shell.expect('3\.21\..*')
+
+            print('## [PowerShell integration] Deactivating')
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '1\r?')
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '0\r?')
+            shell.sendline('conda deactivate')
+            shell.assert_env_var('CONDA_SHLVL', '0\r?')
+
+
 
     @pytest.mark.skipif(not which('cmd.exe'), reason='cmd.exe not installed')
     def test_cmd_exe_basic_integration(self):
