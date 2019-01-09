@@ -452,9 +452,9 @@ class Resolve(object):
 
             strict_channel_name = None
             if strict_channel_priority and add_these_precs2:
-                strict_chanel_name = self._get_strict_channel(add_these_precs2[0].name)
+                strict_channel_name = self._get_strict_channel(add_these_precs2[0].name)
                 add_these_precs2 = tuple(
-                    prec for prec in add_these_precs2 if prec.channel.name == strict_chanel_name
+                    prec for prec in add_these_precs2 if prec.channel.name == strict_channel_name
                 )
             reduced_index2.update((prec, prec) for prec in add_these_precs2)
 
@@ -482,7 +482,7 @@ class Resolve(object):
                         if (dep_pkg not in reduced_index2 and
                                 (not strict_channel_priority or not strict_channel_name
                                  # pkg is ok because it's from our strict channel
-                                 or dep_pkg.channel.name == strict_chanel_name
+                                 or dep_pkg.channel.name == strict_channel_name
                                  # pkg is ok because our strict channel doesn't have it at all
                                  or not any(_.channel.name == strict_channel_name
                                             for _ in dep_packages))):
