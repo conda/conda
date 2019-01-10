@@ -1129,7 +1129,7 @@ class InteractiveShell(object):
     shells = {
         'posix': {
             'activator': 'posix',
-            'init_command': 'env | sort && eval "$(python -m conda shell.posix hook)"',
+            'init_command': 'env | sort && eval "$(python -m conda \"shell.posix\" \"hook\")"',
             'print_env_var': 'echo "$%s"',
         },
         'bash': {
@@ -1140,7 +1140,7 @@ class InteractiveShell(object):
         },
         'zsh': {
             'base_shell': 'posix',  # inheritance implemented in __init__
-            'init_command': 'env | sort && eval "$(python -m conda shell.zsh hook)"',
+            'init_command': 'env | sort && eval "$(python -m conda \"shell.zsh\" \"hook\")"',
         },
         'cmd.exe': {
             'activator': 'cmd.exe',
@@ -1159,7 +1159,7 @@ class InteractiveShell(object):
         },
         'fish': {
             'activator': 'fish',
-            'init_command': 'eval (python -m conda shell.fish hook)',
+            'init_command': 'eval (python -m conda "shell.fish" "hook")',
             'print_env_var': 'echo $%s',
         },
         # We don't know if the PowerShell executable is called
@@ -1167,7 +1167,7 @@ class InteractiveShell(object):
         'powershell': {
             'activator': 'powershell',
             'args': '-NoProfile -NoLogo',
-            'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
+            'init_command': 'python -m conda "shell.powershell" "hook" | Out-String | Invoke-Expression',
             'print_env_var': '$Env:%s',
             'exit_cmd': 'exit'
         },

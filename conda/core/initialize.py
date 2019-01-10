@@ -188,7 +188,7 @@ def initialize_dev(shell, dev_env_prefix=None, conda_source_root=None):
         if on_win:
             sys_executable = "$(cygpath '%s')" % sys_executable
         builder += [
-            "eval \"$(\"%s\" -m conda shell.bash hook)\"" % sys_executable,
+            "eval \"$(\"%s\" -m conda \"shell.bash\" \"hook\")\"" % sys_executable,
             "conda activate '%s'" % dev_env_prefix,
         ]
         print("\n".join(builder))
@@ -908,7 +908,7 @@ def _config_fish_content(conda_prefix):
     conda_initialize_content = dals("""
     # >>> conda initialize >>>
     # !! Contents within this block are managed by 'conda init' !!
-    eval (eval %(conda_exe)s shell.fish hook $argv)
+    eval (eval %(conda_exe)s "shell.fish" "hook" $argv)
     # <<< conda initialize <<<
     """) % {
         'conda_exe': conda_exe,
@@ -983,7 +983,7 @@ def _bashrc_content(conda_prefix, shell):
         conda_initialize_content = dals("""
         # >>> conda initialize >>>
         # !! Contents within this block are managed by 'conda init' !!
-        eval "$('%(conda_exe)s' shell.%(shell)s hook)"
+        eval "$('%(conda_exe)s' 'shell.%(shell)s' 'hook')"
         # <<< conda initialize <<<
         """) % {
             'conda_exe': conda_exe,
@@ -994,7 +994,7 @@ def _bashrc_content(conda_prefix, shell):
         conda_initialize_content = dals("""
         # >>> conda initialize >>>
         # !! Contents within this block are managed by 'conda init' !!
-        __conda_setup="$('%(conda_exe)s' shell.%(shell)s hook 2> /dev/null)"
+        __conda_setup="$('%(conda_exe)s' 'shell.%(shell)s' 'hook' 2> /dev/null)"
         if [ $? -eq 0 ]; then
             eval "$__conda_setup"
         else
@@ -1230,7 +1230,7 @@ def _powershell_profile_content(conda_prefix):
     conda_powershell_module = dals("""
     #region conda initialize
     # !! Contents within this block are managed by 'conda init' !!
-    (& {conda_exe} shell.powershell hook) | Out-String | Invoke-Expression
+    (& {conda_exe} "shell.powershell" "hook") | Out-String | Invoke-Expression
     #endregion
     """.format(conda_exe=conda_exe))
 
