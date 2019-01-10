@@ -398,32 +398,6 @@ def test_metadata():
 
 # Python Distributions
 # -----------------------------------------------------------------------------
-@pytest.mark.xfail(datetime.now() < datetime(2019, 1, 1),
-                   reason="This test needs to be refactored for the case of raising a hard "
-                                "error when the anchor_file doesn't exist.",
-                   strict=True)
-def test_basepydist_check_path_data():
-    test_cases = (
-        (('path', 'sha256=1', '45'), ('path', '1', 45), None),
-        (('path', 'sha256=1', 45), ('path', '1', 45), None),
-        (('path', '', 45), ('path', None, 45), None),
-        (('path', None, 45), ('path', None, 45), None),
-        (('path', 'md5=', 45), (), AssertionError),
-    )
-
-    with pytest.warns(MetadataWarning):
-        dist = PythonDistribution('/path-not-found/', "1.8")
-
-    for args, expected_output, raises_ in test_cases:
-        if raises_:
-            with pytest.raises(raises_):
-                output = dist._check_path_data(*args)
-        else:
-            output = dist._check_path_data(*args)
-            _print_output(output, expected_output)
-            assert output == expected_output
-
-
 def test_basepydist_parse_requires_file_data():
     key = 'g'
     test_cases = (

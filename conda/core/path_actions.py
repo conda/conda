@@ -43,6 +43,7 @@ from ..models.match_spec import MatchSpec
 from ..models.records import (Link, PackageCacheRecord, PackageRecord, PathDataV1, PathsData,
                               PrefixRecord)
 
+
 log = getLogger(__name__)
 
 REPR_IGNORE_KWARGS = (
@@ -301,28 +302,10 @@ class LinkPathAction(CreateInPrefixPathAction):
 
         elif source_path_data.path_type == PathType.hardlink:
             try:
-                reported_sha256 = source_path_data.sha256
-            except AttributeError:
-                reported_sha256 = None
-            source_sha256 = compute_sha256sum(self.source_full_path)
-            if reported_sha256 and reported_sha256 != source_sha256:
-                return SafetyError(dals("""
-                The package for %s located at %s
-                appears to be corrupted. The path '%s'
-                has a sha256 mismatch.
-                  reported sha256: %s
-                  actual sha256: %s
-                """ % (self.package_info.repodata_record.name,
-                       self.package_info.extracted_package_dir,
-                       self.source_short_path,
-                       reported_sha256,
-                       source_sha256,
-                       )))
-
-            try:
                 reported_size_in_bytes = source_path_data.size_in_bytes
             except AttributeError:
                 reported_size_in_bytes = None
+            source_size_in_bytes = 0
             if reported_size_in_bytes:
                 source_size_in_bytes = getsize(self.source_full_path)
                 if reported_size_in_bytes != source_size_in_bytes:
@@ -339,6 +322,28 @@ class LinkPathAction(CreateInPrefixPathAction):
                            source_size_in_bytes,
                            )))
 
+            try:
+                reported_sha256 = source_path_data.sha256
+            except AttributeError:
+                reported_sha256 = None
+            # sha256 is expensive.  Only run if file sizes agree, and then only if enabled
+            if (source_size_in_bytes and reported_size_in_bytes == source_size_in_bytes
+                    and context.extra_safety_checks):
+                source_sha256 = compute_sha256sum(self.source_full_path)
+
+                if reported_sha256 and reported_sha256 != source_sha256:
+                    return SafetyError(dals("""
+                    The package for %s located at %s
+                    appears to be corrupted. The path '%s'
+                    has a sha256 mismatch.
+                    reported sha256: %s
+                    actual sha256: %s
+                    """ % (self.package_info.repodata_record.name,
+                           self.package_info.extracted_package_dir,
+                           self.source_short_path,
+                           reported_sha256,
+                           source_sha256,
+                           )))
             self.prefix_path_data = PathDataV1.from_objects(
                 source_path_data,
                 sha256=reported_sha256,

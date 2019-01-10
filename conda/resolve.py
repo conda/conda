@@ -309,6 +309,20 @@ class Resolve(object):
             channel_name = self._strict_channel_cache[package_name] = by_cp[highest_priority]
         return channel_name
 
+    def _broader(self, ms, specs):
+        """prevent introduction of matchspecs that broaden our selection of choices"""
+        is_broader = False
+        matching_specs = [s for s in specs if s.name == ms.name]
+
+        if matching_specs and (
+                # is there a version constraint defined for any existing spec, but not MS?
+                (any('version' in _ for _ in matching_specs) and 'version' not in ms)
+                # is there a build constraint on any of the specs, but not on ms?
+                or (any('build' in _ for _ in matching_specs) and 'build' not in ms)
+        ):
+            is_broader = True
+        return is_broader
+
     @time_recorder(module_name=__name__)
     def get_reduced_index(self, specs):
         # TODO: fix this import; this is bad
@@ -430,34 +444,64 @@ class Resolve(object):
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
-        processed_specs = set()
-        specs_queue = set(specs)
-        while specs_queue:
-            this_spec = specs_queue.pop()
-            processed_specs.add(this_spec)
+        explicit_spec_list = set(specs)
+        for explicit_spec in explicit_spec_list:
             add_these_precs2 = tuple(
-                prec for prec in self.find_matches(this_spec)
-                if prec not in reduced_index2 and self.valid2(prec, filter_out)
-            )
-            if strict_channel_priority and add_these_precs2:
-                strict_chanel_name = self._get_strict_channel(add_these_precs2[0].name)
-                add_these_precs2 = tuple(
-                    prec for prec in add_these_precs2 if prec.channel.name == strict_chanel_name
-                )
+                prec for prec in self.find_matches(explicit_spec)
+                if prec not in reduced_index2 and self.valid2(prec, filter_out))
 
+            if strict_channel_priority and add_these_precs2:
+                strict_channel_name = self._get_strict_channel(add_these_precs2[0].name)
+                add_these_precs2 = tuple(
+                    prec for prec in add_these_precs2 if prec.channel.name == strict_channel_name
+                )
             reduced_index2.update((prec, prec) for prec in add_these_precs2)
-            # We do not pull packages into the reduced index due
-            # to a track_features dependency. Remember, a feature
-            # specifies a "soft" dependency: it must be in the
-            # environment, but it is not _pulled_ in. The SAT
-            # logic doesn't do a perfect job of capturing this
-            # behavior, but keeping these packages out of the
-            # reduced index helps. Of course, if _another_
-            # package pulls it in by dependency, that's fine.
-            specs_queue.update(
-                ms for prec in add_these_precs2 for ms in self.ms_depends(prec)
-                if "track_features" not in ms and ms not in processed_specs
-            )
+
+            for pkg in add_these_precs2:
+                # what we have seen is only relevant within the context of a single package
+                #    that is picked up because of an explicit spec.  We don't want the
+                #    broadening check to apply across packages at the explicit level; only
+                #    at the level of deps below that explicit package.
+                seen_pkgs = {pkg}
+                seen_specs = set()
+
+                dep_specs = set(self.ms_depends(pkg))
+                this_pkg_constraints = self.ms_depends(pkg)
+
+                while(dep_specs):
+                    ms = dep_specs.pop()
+                    seen_specs.add(ms)
+                    dep_packages = set(self.find_matches(ms)) - seen_pkgs
+                    for dep_pkg in dep_packages:
+                        seen_pkgs.add(dep_pkg)
+                        if not self.valid2(dep_pkg, filter_out):
+                            continue
+
+                        # expand the reduced index
+                        if dep_pkg not in reduced_index2:
+                            if strict_channel_priority:
+                                strict_channel_name = self._get_strict_channel(dep_pkg.name)
+                                if dep_pkg.channel.name == strict_channel_name:
+                                    reduced_index2[dep_pkg] = dep_pkg
+                            else:
+                                reduced_index2[dep_pkg] = dep_pkg
+
+                        # recurse to deps of this dep
+                        new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
+                        for ms in new_specs:
+                            # We do not pull packages into the reduced index due
+                            # to a track_features dependency. Remember, a feature
+                            # specifies a "soft" dependency: it must be in the
+                            # environment, but it is not _pulled_ in. The SAT
+                            # logic doesn't do a perfect job of capturing this
+                            # behavior, but keeping these packags out of the
+                            # reduced index helps. Of course, if _another_
+                            # package pulls it in by dependency, that's fine.
+                            if ('track_features' not in ms
+                                    and not self._broader(ms, this_pkg_constraints)
+                                    and ms not in seen_specs):
+                                dep_specs.add(ms)
+
         self._reduced_index_cache[cache_key] = reduced_index2
         return reduced_index2
 
@@ -943,6 +987,25 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
+        # Return a solution of packages
+        def clean(sol):
+            return [q for q in (C.from_index(s) for s in sol)
+                    if q and q[0] != '!' and '@' not in q]
+
+        def is_converged(solution):
+            """ Determine if the SAT problem has converged to a single solution.
+
+            This is determined by testing for a SAT solution with the current
+            clause set and a clause in which at least one of the packages in
+            the current solution is excluded. If a solution exists the problem
+            has not converged as multiple solutions still exist.
+            """
+            psolution = clean(solution)
+            nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
+            if C.sat((nclause,), includeIf=False) is None:
+                return True
+            return False
+
         r2 = Resolve(reduced_index, True, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(specs, True)
@@ -1025,21 +1088,19 @@ class Resolve(object):
         log.debug('Additional package channel/version/build metrics: %d/%d/%d',
                   obj5a, obj5, obj6)
 
-        # Maximize timestamps
-        log.debug("Solve: maximize timestamps")
-        eq_t.update(eq_req_t)
-        solution, obj6t = C.minimize(eq_t, solution)
-        log.debug('Timestamp metric: %d', obj6t)
-
         # Prune unnecessary packages
         log.debug("Solve: prune unnecessary packages")
         eq_c = r2.generate_package_count(C, specm)
         solution, obj7 = C.minimize(eq_c, solution, trymax=True)
         log.debug('Weak dependency count: %d', obj7)
 
-        def clean(sol):
-            return [q for q in (C.from_index(s) for s in sol)
-                    if q and q[0] != '!' and '@' not in q]
+        converged = is_converged(solution)
+        if not converged:
+            # Maximize timestamps
+            eq_t.update(eq_req_t)
+            solution, obj6t = C.minimize(eq_t, solution)
+            log.debug('Timestamp metric: %d', obj6t)
+
         log.debug('Looking for alternate solutions')
         nsol = 1
         psolutions = []

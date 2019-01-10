@@ -337,6 +337,7 @@ class IntegrationTests(TestCase):
         with make_temp_env() as prefix:
             with open(join(prefix, 'condarc'), 'a') as fh:
                 fh.write("safety_checks: enabled\n")
+                fh.write("extra_safety_checks: true\n")
             reload_config(prefix)
             assert context.safety_checks is SafetyChecks.enabled
 
@@ -350,12 +351,7 @@ class IntegrationTests(TestCase):
               reported size: 32 bytes
               actual size: 16 bytes
             """)
-            message2 = dals("""
-            The path 'site-packages/spiffy_test_app/__init__.py'
-            has a sha256 mismatch.
-              reported sha256: 1234567890123456789012345678901234567890123456789012345678901234
-              actual sha256: 32d822669b582f82da97225f69e3ef01ab8b63094e447a9acca148a6e79afbed
-            """)
+            message2 = dals("has a sha256 mismatch.")
             assert message1 in error_message
             assert message2 in error_message
 

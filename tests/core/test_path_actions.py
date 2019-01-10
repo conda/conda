@@ -3,8 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 from os.path import basename, dirname, isdir, isfile, join, lexists, getsize
-from shlex import split as shlex_split
-from subprocess import check_output
 import sys
 from tempfile import gettempdir
 from unittest import TestCase
@@ -14,10 +12,8 @@ import pytest
 
 from conda._vendor.auxlib.collection import AttrDict
 from conda._vendor.toolz.itertoolz import groupby
-from conda.base.constants import PREFIX_MAGIC_FILE
-from conda.base.context import context, reset_context
+from conda.base.context import context
 from conda.common.compat import PY2, on_win
-from conda.common.io import env_var
 from conda.common.path import get_bin_directory_short_path, get_python_noarch_target_path, \
     get_python_short_path, get_python_site_packages_short_path, parse_entry_point_def, pyc_path, \
     win_path_ok
@@ -32,11 +28,6 @@ from conda.gateways.disk.test import softlink_supported
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType, NoarchType, PathType
 from conda.models.records import PathDataV1
-
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from mock import Mock, patch
 
 log = getLogger(__name__)
 
@@ -111,7 +102,6 @@ class PathActionsTests(TestCase):
     def test_CompileMultiPycAction_noarch_python(self):
         if not softlink_supported(__file__, self.prefix) and on_win:
             pytest.skip("softlink not supported")
-
         target_python_version = '%d.%d' % sys.version_info[:2]
         sp_dir = get_python_site_packages_short_path(target_python_version)
         transaction_context = {

@@ -1,4 +1,4 @@
-## 4.6.0 (unreleased)
+## 4.6.0
 
 ### New Feature Highlights
 * resolve #7053 preview support for conda operability with pip; disabled by default (#7067, #7370, #7710, #8050)
@@ -104,7 +104,7 @@
 * 4.6.0a2 at c467517ca652371ebc4224f0d49315b7ec225108 on 2018-05-01
 * 4.6.0b0 at 21a24f02b2687d0895de04664a4ec23ccc75c33a on 2018-09-07
 * 4.6.0b1 at 1471f043eed980d62f46944e223f0add6a9a790b on 2018-10-22
-* 4.6.0rc1 at 
+* 4.6.0rc1 at 64bde065f8343276f168d2034201115dff7c5753 on 2018-12-31
 
 ### Contributors
 * @cgranade
@@ -121,6 +121,30 @@
 * @nehaljwani
 * @ohadravid
 * @teake
+
+
+# 4.5.12 (2018-12-10)
+
+### Improvements
+* backport 'allow_conda_downgrade' configuration parameter, default is False (#7998)
+* speed up verification by disabling per-file sha256 checks (#8017)
+* indicate Python 3.7 support in setup.py file (#8018)
+* speed up solver by reduce the size of reduced index (#8016)
+* speed up solver by skipping timestamp minimization when not needed (#8012)
+* compile pyc files more efficiently, will speed up install of noarch packages (#8025)
+* avoid waiting for removal of files on Windows when possible (#8024)
+
+### Bug Fixes
+* update integration tests for removal of 'features' key (#7726)
+* fix conda.bat return code (#7944)
+* ensure channel name is not NoneType (#8021)
+
+### Contributors
+* @debionne
+* @jjhelmus
+* @kalefranz
+* @msarahan
+* @nehaljwani
 
 
 # 4.5.11 (2018-08-21)
