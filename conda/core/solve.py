@@ -340,6 +340,14 @@ class Solver(object):
         # we remove now from consideration the set of packages causing inconsistencies,
         # and then we add them back in following the main SAT call.
         _, inconsistent_precs = ssc.r.bad_installed(ssc.solution_precs, ())
+        if inconsistent_precs:
+            # It is possible that the package metadata is incorrect, for example when
+            # un-patched metadata from the Miniconda or Anaconda installer is present, see:
+            # https://github.com/conda/conda/issues/8076
+            # Update the metadata with information from the index and see if that makes the
+            # environment consistent.
+            ssc.solution_precs = tuple(ssc.index.get(k, k) for k in ssc.solution_precs)
+            _, inconsistent_precs = ssc.r.bad_installed(ssc.solution_precs, ())
         if log.isEnabledFor(DEBUG):
             log.debug("inconsistent precs: %s",
                       dashlist(inconsistent_precs) if inconsistent_precs else 'None')
