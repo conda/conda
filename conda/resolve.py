@@ -318,8 +318,8 @@ class Resolve(object):
             matching_specs = specs[ms.name]
             # is there a version constraint defined for any existing spec, but not MS?
             if ((any('version' in _ for _ in matching_specs) and 'version' not in ms)
-                # is there a build constraint on any of the specs, but not on ms?
-                or (any('build' in _ for _ in matching_specs) and 'build' not in ms)):
+                    # is there a build constraint on any of the specs, but not on ms?
+                    or (any('build' in _ for _ in matching_specs) and 'build' not in ms)):
                 is_broader = True
         return is_broader
 
@@ -471,7 +471,8 @@ class Resolve(object):
                     specs = specs_by_name.get(dep.name, set())
                     specs.add(dep)
                     specs_by_name[dep.name] = specs
-                this_pkg_constraints = frozendict({k: frozenset(v) for k,v in specs_by_name.items()})
+                this_pkg_constraints = frozendict(
+                    {k: frozenset(v) for k, v in specs_by_name.items()})
 
                 while(dep_specs):
                     ms = dep_specs.pop()
