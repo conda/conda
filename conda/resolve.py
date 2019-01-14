@@ -6,7 +6,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict
 from logging import DEBUG, getLogger
 
-from ._vendor.auxlib.decorators import memoize
+from ._vendor.auxlib.collection import frozendict
+from ._vendor.auxlib.decorators import memoize, memoizemethod
 from ._vendor.toolz import concat, groupby
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY
 from .base.context import context
@@ -309,18 +310,17 @@ class Resolve(object):
             channel_name = self._strict_channel_cache[package_name] = by_cp[highest_priority]
         return channel_name
 
+    @memoizemethod
     def _broader(self, ms, specs):
         """prevent introduction of matchspecs that broaden our selection of choices"""
         is_broader = False
-        matching_specs = [s for s in specs if s.name == ms.name]
-
-        if matching_specs and (
-                # is there a version constraint defined for any existing spec, but not MS?
-                (any('version' in _ for _ in matching_specs) and 'version' not in ms)
+        if ms.name in specs:
+            matching_specs = specs[ms.name]
+            # is there a version constraint defined for any existing spec, but not MS?
+            if ((any('version' in _ for _ in matching_specs) and 'version' not in ms)
                 # is there a build constraint on any of the specs, but not on ms?
-                or (any('build' in _ for _ in matching_specs) and 'build' not in ms)
-        ):
-            is_broader = True
+                or (any('build' in _ for _ in matching_specs) and 'build' not in ms)):
+                is_broader = True
         return is_broader
 
     @time_recorder(module_name=__name__)
@@ -466,7 +466,12 @@ class Resolve(object):
                 seen_specs = set()
 
                 dep_specs = set(self.ms_depends(pkg))
-                this_pkg_constraints = self.ms_depends(pkg)
+                specs_by_name = {}
+                for dep in dep_specs:
+                    specs = specs_by_name.get(dep.name, set())
+                    specs.add(dep)
+                    specs_by_name[dep.name] = specs
+                this_pkg_constraints = frozendict({k: frozenset(v) for k,v in specs_by_name.items()})
 
                 while(dep_specs):
                     ms = dep_specs.pop()
