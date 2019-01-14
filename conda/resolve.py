@@ -313,15 +313,16 @@ class Resolve(object):
     @memoizemethod
     def _broader(self, ms, specs):
         """prevent introduction of matchspecs that broaden our selection of choices"""
-        is_broader = False
-        if ms.name in specs:
-            matching_specs = specs[ms.name]
-            # is there a version constraint defined for any existing spec, but not MS?
-            if ((any('version' in _ for _ in matching_specs) and 'version' not in ms)
-                    # is there a build constraint on any of the specs, but not on ms?
-                    or (any('build' in _ for _ in matching_specs) and 'build' not in ms)):
-                is_broader = True
-        return is_broader
+        if ms.name not in specs:
+            return False
+        matching_specs = specs[ms.name]
+        # is there a version constraint defined for any existing spec, but not ms?
+        if any('version' in _ for _ in matching_specs) and 'version' not in ms:
+            return True
+        # is there a build constraint defined for any of the specs, but not on ms?
+        if any('build' in _ for _ in matching_specs) and 'build' not in ms:
+            return True
+        return False
 
     @time_recorder(module_name=__name__)
     def get_reduced_index(self, specs):
