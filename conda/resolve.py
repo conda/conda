@@ -311,11 +311,11 @@ class Resolve(object):
         return channel_name
 
     @memoizemethod
-    def _broader(self, ms, specs):
+    def _broader(self, ms, specs_by_name):
         """prevent introduction of matchspecs that broaden our selection of choices"""
-        if ms.name not in specs:
+        if ms.name not in specs_by_name:
             return False
-        matching_specs = specs[ms.name]
+        matching_specs = specs_by_name[ms.name]
         # is there a version constraint defined for any existing spec, but not ms?
         if any('version' in _ for _ in matching_specs) and 'version' not in ms:
             return True
