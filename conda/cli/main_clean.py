@@ -255,6 +255,11 @@ def _execute(args, parser):
                 verbose=not (context.json or context.quiet))
         one_target_ran = True
 
+    if args.lock:
+        # do nothing but allow usage
+        # https://github.com/conda/conda/issues/8104
+        one_target_ran = True
+
     if not one_target_ran:
         from ..exceptions import ArgumentError
         raise ArgumentError("At least one removal target must be given. See 'conda clean --help'.")
