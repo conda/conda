@@ -1,4 +1,4 @@
-## 4.6.0
+## 4.6.0 (2019-01-15)
 
 ### New Feature Highlights
 * resolve #7053 preview support for conda operability with pip; disabled by default (#7067, #7370, #7710, #8050)
@@ -83,6 +83,7 @@
 * fix #7706 add condacmd dir to cmd.exe path on first activation (#7735)
 * fix #7761 spec handling errors in 4.6.0b0 (#7780)
 * fix #7770 'conda list regex' only applies regex to package name (#7784)
+* fix #8076 load metadata from index to resolve inconsistent envs (#8083)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
