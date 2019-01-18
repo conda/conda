@@ -335,17 +335,17 @@ class Resolve(object):
             return True
         return False
 
-    @memoizemethod
     @time_recorder(module_name=__name__)
     def get_reduced_index(self, specs):
         # TODO: fix this import; this is bad
-        from .core.subdir_data import make_feature_record
 
         strict_channel_priority = context.channel_priority == ChannelPriority.STRICT
 
         cache_key = strict_channel_priority, frozenset(specs)
         if cache_key in self._reduced_index_cache:
             return self._reduced_index_cache[cache_key]
+
+        from .core.subdir_data import make_feature_record
 
         if log.isEnabledFor(DEBUG):
             log.debug('Retrieving packages for: %s', dashlist(sorted(text_type(s) for s in specs)))
