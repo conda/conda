@@ -154,7 +154,7 @@ def test_pseudo_boolean():
 
 
 def test_get_dists():
-    reduced_index = r.get_reduced_index([MatchSpec("anaconda 1.5.0")])
+    reduced_index = r.get_reduced_index((MatchSpec("anaconda 1.5.0"), ))
     dist_strs = [prec.dist_str() for prec in reduced_index]
     assert 'channel-1::anaconda-1.5.0-np17py27_0' in dist_strs
     assert 'channel-1::dynd-python-0.3.0-np17py33_0' in dist_strs
@@ -179,7 +179,7 @@ def test_get_reduced_index_unmanageable():
 
 
 def test_generate_eq_1():
-    reduced_index = r.get_reduced_index([MatchSpec('anaconda')])
+    reduced_index = r.get_reduced_index((MatchSpec('anaconda'), ))
     r2 = Resolve(reduced_index, True, True)
     C = r2.gen_clauses()
     eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
@@ -484,7 +484,7 @@ def test_nonexistent_deps():
         'defaults::mypackage-1.0-py33_0',
         'defaults::mypackage-1.1-py33_0',
     }
-    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('mypackage')])) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('mypackage'), ))) == {
         'defaults::mypackage-1.1-py33_0',
         'channel-1::nose-1.1.2-py33_0',
         'channel-1::nose-1.2.1-py33_0',
@@ -610,7 +610,7 @@ def test_nonexistent_deps():
         'defaults::mypackage-1.0-py33_0',
         'defaults::mypackage-1.1-py33_0',
         }
-    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('mypackage')]).keys()) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('mypackage'), )).keys()) == {
         'defaults::mypackage-1.0-py33_0',
         'channel-1::nose-1.1.2-py33_0',
         'channel-1::nose-1.2.1-py33_0',
@@ -769,7 +769,7 @@ def test_circular_dependencies():
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
         'defaults::package1-1.0-0',
     }
-    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('package1')]).keys()) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('package1'), )).keys()) == {
         'defaults::package1-1.0-0',
         'defaults::package2-1.0-0',
     }
@@ -827,7 +827,7 @@ def test_optional_dependencies():
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
         'defaults::package1-1.0-0',
     }
-    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('package1')]).keys()) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('package1'), )).keys()) == {
         'defaults::package1-1.0-0',
         'defaults::package2-2.0-0',
     }
@@ -1139,7 +1139,7 @@ def test_channel_priority_2():
     this_index = index.copy()
     index4, r4 = get_index_r_4()
     this_index.update(index4)
-    spec = [MatchSpec('pandas'), MatchSpec('python 2.7*')]
+    spec = (MatchSpec('pandas'), MatchSpec('python 2.7*'))
     channels = (Channel('channel-1'), Channel('channel-3'))
     this_r = Resolve(this_index, channels=channels)
     with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):

@@ -60,7 +60,7 @@ class Resolve(object):
                     trackers[feature_name].append(prec)
 
         self.groups = groups  # Dict[package_name, List[PackageRecord]]
-        self.trackers = trackers  # Dict[track_feature, List[PackageRecord]]
+        self.trackers = trackers  # Dict[track_feature, Set[PackageRecord]]
         self._cached_find_matches = {}  # Dict[MatchSpec, Set[PackageRecord]]
         self.ms_depends_ = {}  # Dict[PackageRecord, List[MatchSpec]]
         self._reduced_index_cache = {}
@@ -69,6 +69,17 @@ class Resolve(object):
         if sort:
             for group in itervalues(groups):
                 group.sort(key=self.version_key, reverse=True)
+
+    def __hash__(self):
+        return (super().__hash__() ^
+                hash(frozenset(self.channels)) ^
+                hash(frozendict(self._channel_priorities_map)) ^
+                hash(self._channel_priority) ^
+                hash(self._solver_ignore_timestamps) ^
+                hash(frozendict((k, tuple(v)) for k, v in self.groups.items())) ^
+                hash(frozendict((k, tuple(v)) for k, v in self.trackers.items())) ^
+                hash(frozendict((k, tuple(v)) for k, v in self.ms_depends_.items()))
+                )
 
     def default_filter(self, features=None, filter=None):
         # TODO: fix this import; this is bad
@@ -324,8 +335,8 @@ class Resolve(object):
             return True
         return False
 
-    @time_recorder(module_name=__name__)
     @memoizemethod
+    @time_recorder(module_name=__name__)
     def get_reduced_index(self, specs):
         # TODO: fix this import; this is bad
         from .core.subdir_data import make_feature_record
@@ -510,6 +521,7 @@ class Resolve(object):
                             else:
                                 seen_specs.add(new_ms)
 
+        reduced_index2 = frozendict(reduced_index2)
         self._reduced_index_cache[cache_key] = reduced_index2
         return reduced_index2
 
@@ -907,7 +919,7 @@ class Resolve(object):
             pkgs.extend(p for p in preserve if p.name not in sdict)
 
     def install_specs(self, specs, installed, update_deps=True):
-        specs = list(map(MatchSpec, specs))
+        specs = set(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
         limit, preserve = self.bad_installed(installed, specs)
@@ -927,8 +939,8 @@ class Resolve(object):
             else:
                 spec = MatchSpec(name=name, version=version,
                                  build=build, channel=schannel)
-            specs.append(spec)
-        return specs, preserve
+            specs.add(spec)
+        return frozenset(specs), preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
@@ -983,7 +995,7 @@ class Resolve(object):
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
-        specs = tuple(map(MatchSpec, specs))
+        specs = frozenset(map(MatchSpec, specs))
         reduced_index = self.get_reduced_index(specs)
         if not reduced_index:
             return False if reduced_index is None else ([[]] if returnall else [])
