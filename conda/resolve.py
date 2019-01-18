@@ -325,6 +325,7 @@ class Resolve(object):
         return False
 
     @time_recorder(module_name=__name__)
+    @memoizemethod
     def get_reduced_index(self, specs):
         # TODO: fix this import; this is bad
         from .core.subdir_data import make_feature_record
@@ -463,11 +464,11 @@ class Resolve(object):
                 #    that is picked up because of an explicit spec.  We don't want the
                 #    broadening check to apply across packages at the explicit level; only
                 #    at the level of deps below that explicit package.
-                seen_pkgs = {pkg}
                 seen_specs = set()
+                specs_by_name = {}
 
                 dep_specs = set(self.ms_depends(pkg))
-                specs_by_name = {}
+                this_pkg_constraints = {}
                 for dep in dep_specs:
                     specs = specs_by_name.get(dep.name, set())
                     specs.add(dep)
@@ -478,9 +479,8 @@ class Resolve(object):
                 while(dep_specs):
                     ms = dep_specs.pop()
                     seen_specs.add(ms)
-                    dep_packages = set(self.find_matches(ms)) - seen_pkgs
+                    dep_packages = set(self.find_matches(ms)) - set(reduced_index2.keys())
                     for dep_pkg in dep_packages:
-                        seen_pkgs.add(dep_pkg)
                         if not self.valid2(dep_pkg, filter_out):
                             continue
 
@@ -495,7 +495,7 @@ class Resolve(object):
 
                         # recurse to deps of this dep
                         new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
-                        for ms in new_specs:
+                        for new_ms in new_specs:
                             # We do not pull packages into the reduced index due
                             # to a track_features dependency. Remember, a feature
                             # specifies a "soft" dependency: it must be in the
@@ -504,10 +504,11 @@ class Resolve(object):
                             # behavior, but keeping these packags out of the
                             # reduced index helps. Of course, if _another_
                             # package pulls it in by dependency, that's fine.
-                            if ('track_features' not in ms
-                                    and not self._broader(ms, this_pkg_constraints)
-                                    and ms not in seen_specs):
-                                dep_specs.add(ms)
+                            if ('track_features' not in new_ms
+                                    and not self._broader(new_ms, this_pkg_constraints)):
+                                dep_specs.add(new_ms)
+                            else:
+                                seen_specs.add(new_ms)
 
         self._reduced_index_cache[cache_key] = reduced_index2
         return reduced_index2
