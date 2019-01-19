@@ -1297,12 +1297,11 @@ def test_channel_priority_2():
         dists = this_r.get_reduced_index(spec)
         r2 = Resolve(dists, True, True, channels=channels)
         C = r2.gen_clauses()
+
         eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
-        pprint(eqc)
-        assert eqc == {}
+        assert eqc == {}, eqc
         installed_w_strict = [prec.dist_str() for prec in this_r.install(spec)]
-        pprint(installed_w_strict)
         assert installed_w_strict == [
             'channel-1::dateutil-2.1-py27_1',
             'channel-1::numpy-1.7.1-py27_0',
@@ -1317,7 +1316,7 @@ def test_channel_priority_2():
             'channel-1::system-5.8-1',
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
-        ]
+        ], installed_w_strict
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
         dists = this_r.get_reduced_index(spec)

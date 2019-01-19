@@ -335,7 +335,6 @@ class Resolve(object):
             return True
         return False
 
-    @memoizemethod
     @time_recorder(module_name=__name__)
     def get_reduced_index(self, specs):
         # TODO: fix this import; this is bad
@@ -465,6 +464,7 @@ class Resolve(object):
 
             if strict_channel_priority and add_these_precs2:
                 strict_channel_name = self._get_strict_channel(add_these_precs2[0].name)
+
                 add_these_precs2 = tuple(
                     prec for prec in add_these_precs2 if prec.channel.name == strict_channel_name
                 )
@@ -565,7 +565,6 @@ class Resolve(object):
         version_comparator = VersionOrder(prec.get('version', ''))
         build_number = prec.get('build_number', 0)
         build_string = prec.get('build')
-        ts = prec.get('timestamp', 0)
         if self._channel_priority != ChannelPriority.DISABLED:
             vkey = [valid, -channel_priority, version_comparator, build_number]
         else:
@@ -573,7 +572,7 @@ class Resolve(object):
         if self._solver_ignore_timestamps:
             vkey.append(build_string)
         else:
-            vkey.extend((ts, build_string))
+            vkey.extend((prec.get('timestamp', 0), build_string))
         return vkey
 
     @staticmethod
