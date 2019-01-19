@@ -2093,47 +2093,45 @@ class IntegrationTests(TestCase):
         # Make sure we can flip back and forth.
         conda_exe = join('Scripts', 'conda.exe') if on_win else join('bin', 'conda')
         with env_var("CONDA_AUTO_UPDATE_CONDA", "false", reset_context):
-            with make_temp_env("conda=4.3.27 python=%s" % sys.version_info[0],
+            with make_temp_env("conda=4.5.12 python=%s" % sys.version_info[0],
                                name='_' + str(uuid4())[:8]) as prefix:  # rev 0
                 assert package_is_installed(prefix, "conda")
 
-                run_command(Commands.INSTALL, prefix, "mccabe")  # rev 1
-                assert package_is_installed(prefix, "mccabe")
+                # runs our current version of conda to install into the foreign env
+                run_command(Commands.INSTALL, prefix, "lockfile")  # rev 3
+                assert package_is_installed(prefix, "lockfile")
 
+                # runs the conda in the env to install something new into the env
                 subprocess_call("%s install -p %s -y itsdangerous" % (join(prefix, conda_exe), prefix))  # rev 2
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "itsdangerous")
 
-                run_command(Commands.INSTALL, prefix, "lockfile")  # rev 3
-                assert package_is_installed(prefix, "lockfile")
-
-                subprocess_call("%s install -p %s -y conda=4.3" % (join(prefix, conda_exe), prefix))  # rev 4
+                # downgrade the version of conda in the env
+                subprocess_call("%s install -p %s -y conda=4.5.11" % (join(prefix, conda_exe), prefix))  # rev 4
                 PrefixData._cache_.clear()
-                assert not package_is_installed(prefix, "conda=4.3.27")
+                assert not package_is_installed(prefix, "conda=4.5.12")
 
-                subprocess_call("%s install -p %s -y colorama" % (join(prefix, conda_exe), prefix))  # rev 5
-                PrefixData._cache_.clear()
-                assert package_is_installed(prefix, "colorama")
-
+                # look at the revision history (for your reference, doesn't affect the test)
                 stdout, stderr = run_command(Commands.LIST, prefix, "--revisions")
                 print(stdout)
 
+                # undo the conda downgrade in the env (using our current outer conda version)
                 PrefixData._cache_.clear()
-                run_command(Commands.INSTALL, prefix, "--rev 3")
+                run_command(Commands.INSTALL, prefix, "--rev 2")
                 PrefixData._cache_.clear()
-                assert package_is_installed(prefix, "conda=4.3.27")
-                assert not package_is_installed(prefix, "colorama")
+                assert package_is_installed(prefix, "conda=4.5.12")
 
+                # use the conda in the env to revert to a previous state
                 subprocess_call("%s install -y -p %s --rev 1" % (join(prefix, conda_exe), prefix))
                 PrefixData._cache_.clear()
                 assert not package_is_installed(prefix, "itsdangerous")
                 PrefixData._cache_.clear()
-                assert package_is_installed(prefix, "conda=4.3.27")
+                assert package_is_installed(prefix, "conda=4.5.12")
                 assert package_is_installed(prefix, "python=%s" % sys.version_info[0])
 
                 result = subprocess_call("%s info --json" % join(prefix, conda_exe))
                 conda_info = json.loads(result.stdout)
-                assert conda_info["conda_version"] == "4.3.27"
+                assert conda_info["conda_version"] == "4.5.12"
 
     @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
     def test_run_script_called(self):
