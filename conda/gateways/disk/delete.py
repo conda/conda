@@ -214,7 +214,7 @@ else:  # pragma: no cover
                     if onerror is None:
                         raise
                     else:
-                        onerror(fn, childpath, sys.exc_info()[0])
+                        onerror(fn, childpath, sys.exc_info())
 
         def visit_files(root, targets):
             for target in targets:
