@@ -1824,13 +1824,6 @@ def test_get_reduced_index_broadening_preferred_solution():
     index = [
         PackageRecord(**{
             'name': 'top',
-            'version': '2.0',
-            'build': '0',
-            'build_number': 0,
-            'depends': ['middle'],
-        }),
-        PackageRecord(**{
-            'name': 'top',
             'version': '1.0',
             'build': '0',
             'build_number': 0,
@@ -1840,19 +1833,20 @@ def test_get_reduced_index_broadening_preferred_solution():
             'depends': ['middle', 'bottom==1.5'],
         }),
         PackageRecord(**{
+            'name': 'top',
+            'version': '2.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': ['middle'],
+        }),
+        PackageRecord(**{
             'name': 'middle',
             'version': '1.0',
             'build': '0',
             'build_number': 0,
-            # this is a broad constraint on bottom, which should allow us to get the latest version (2.5)
+            # this is a broad constraint on bottom, which should allow us to
+            #    get the latest version (2.5)
             'depends': ['bottom'],
-        }),
-        PackageRecord(**{
-            'name': 'bottom',
-            'version': '2.5',
-            'build': '0',
-            'build_number': 0,
-            'depends': [],
         }),
         PackageRecord(**{
             'name': 'bottom',
@@ -1861,9 +1855,15 @@ def test_get_reduced_index_broadening_preferred_solution():
             'build_number': 0,
             'depends': [],
         }),
+        PackageRecord(**{
+            'name': 'bottom',
+            'version': '2.5',
+            'build': '0',
+            'build_number': 0,
+            'depends': [],
+        }),
     ]
-    index = OrderedDict((prec, prec) for prec in index)
-    r = Resolve(index)
+    r = Resolve({prec: prec for prec in index})
 
     install = r.install(['top'])
     for d in install:

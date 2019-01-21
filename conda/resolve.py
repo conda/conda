@@ -470,7 +470,14 @@ class Resolve(object):
                 )
             reduced_index2.update((prec, prec) for prec in add_these_precs2)
 
-            for pkg in add_these_precs2:
+            # sorting these in reverse order is effectively prioritizing
+            # contstraint behavior from newer packages. It is applying
+            # broadening reduction based on the latest packages, which may
+            # reduce the space more, because more modern packages utilize
+            # constraints in more sane ways (for example, using run_exports in
+            # conda-build 3)
+            for pkg in sorted(add_these_precs2, reverse=True,
+                              key=lambda x: (x.name, VersionOrder(x.version))):
                 # what we have seen is only relevant within the context of a single package
                 #    that is picked up because of an explicit spec.  We don't want the
                 #    broadening check to apply across packages at the explicit level; only
@@ -491,7 +498,14 @@ class Resolve(object):
                     ms = dep_specs.pop()
                     seen_specs.add(ms)
                     dep_packages = set(self.find_matches(ms)) - set(reduced_index2.keys())
-                    for dep_pkg in dep_packages:
+                    # sorting these in reverse order is effectively
+                    # prioritizing constraint behavior from newer packages. It
+                    # is applying broadening reduction based on the latest
+                    # packages, which may reduce the space more, because more
+                    # modern packages utilize constraints in more sane ways
+                    # (for example, using run_exports in conda-build 3)
+                    for dep_pkg in sorted(dep_packages, reverse=True,
+                                          key=lambda x: (x.name, VersionOrder(x.version))):
                         if not self.valid2(dep_pkg, filter_out):
                             continue
 
