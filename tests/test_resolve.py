@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from datetime import datetime
+from collections import OrderedDict
 from os.path import isdir, join
 from pprint import pprint
 import unittest
@@ -1768,3 +1768,106 @@ def test_surplus_features_2():
     r = Resolve({key: value for key, value in iteritems(index)})
     install = r.install(['package2', 'feature'])
     assert 'package1' not in set(d.name for d in install)
+
+
+def test_get_reduced_index_broadening_with_unsatisfiable_early_dep():
+    # Test that spec broadening reduction doesn't kill valid solutions
+    #    In other words, the order of packages in the index should not affect the
+    #    overall result of the reduced index.
+    # see discussion at https://github.com/conda/conda/pull/8117#discussion_r249249815
+    index = [
+        PackageRecord(**{
+            'name': 'a',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            # not satisfiable. This record should come first, so that its c==2
+            # constraint tries to mess up the inclusion of the c record below,
+            # which should be included as part of b's deps, but which is
+            # broader than this dep.
+            'depends': ['b', 'c==2'],
+        }),
+        PackageRecord(**{
+            'name': 'a',
+            'version': '2.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': ['b'],
+        }),
+        PackageRecord(**{
+            'name': 'b',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': ['c'],
+        }),
+        PackageRecord(**{
+            'name': 'c',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': [],
+        })
+    ]
+    index = OrderedDict((prec, prec) for prec in index)
+    r = Resolve({key: value for key, value in iteritems(index)})
+
+    install = r.install(['a'])
+    assert 'a' in set(d.name for d in install)
+    assert 'b' in set(d.name for d in install)
+    assert 'c' in set(d.name for d in install)
+
+
+def test_get_reduced_index_broadening_preferred_solution():
+    # test that order of index reduction does not eliminate what should be a preferred solution
+    #    https://github.com/conda/conda/pull/8117#discussion_r249216068
+    index = [
+        PackageRecord(**{
+            'name': 'top',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            # this is the first processed record, and imposes a broadening constraint on bottom
+            #    if things are overly restricted, we'll end up with bottom 1.5 in our solution
+            #    instead of the preferred (latest) 2.5
+            'depends': ['middle', 'bottom==1.5'],
+        }),
+        PackageRecord(**{
+            'name': 'top',
+            'version': '2.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': ['middle'],
+        }),
+        PackageRecord(**{
+            'name': 'middle',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            # this is a broad constraint on bottom, which should allow us to get the latest version (2.5)
+            'depends': ['bottom'],
+        }),
+        PackageRecord(**{
+            'name': 'bottom',
+            'version': '1.5',
+            'build': '0',
+            'build_number': 0,
+            'depends': [],
+        }),
+        PackageRecord(**{
+            'name': 'bottom',
+            'version': '2.5',
+            'build': '0',
+            'build_number': 0,
+            'depends': [],
+        }),
+    ]
+    index = OrderedDict((prec, prec) for prec in index)
+    r = Resolve({key: value for key, value in iteritems(index)})
+
+    install = r.install(['top'])
+    for d in install:
+        if d.name == 'top':
+            assert d.version == '2.0', "top version should be 2.0, but is {}".format(d.version)
+        elif d.name == 'bottom':
+            assert d.version == '2.5', "bottom version should be 2.5, but is {}".format(d.version)

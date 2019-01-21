@@ -995,6 +995,7 @@ class Resolve(object):
         log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
         specs = frozenset(map(MatchSpec, specs))
+
         reduced_index = self.get_reduced_index(specs)
         if not reduced_index:
             return False if reduced_index is None else ([[]] if returnall else [])
