@@ -501,29 +501,27 @@ class Resolve(object):
 
                         # expand the reduced index
                         if dep_pkg not in reduced_index2:
-                            if strict_channel_priority:
-                                strict_channel_name = self._get_strict_channel(dep_pkg.name)
-                                if dep_pkg.channel.name == strict_channel_name:
-                                    reduced_index2[dep_pkg] = dep_pkg
-                            else:
+                            if (not strict_channel_priority or
+                                    (self._get_strict_channel(dep_pkg.name) ==
+                                     dep_pkg.channel.name)):
                                 reduced_index2[dep_pkg] = dep_pkg
 
-                        # recurse to deps of this dep
-                        new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
-                        for new_ms in new_specs:
-                            # We do not pull packages into the reduced index due
-                            # to a track_features dependency. Remember, a feature
-                            # specifies a "soft" dependency: it must be in the
-                            # environment, but it is not _pulled_ in. The SAT
-                            # logic doesn't do a perfect job of capturing this
-                            # behavior, but keeping these packags out of the
-                            # reduced index helps. Of course, if _another_
-                            # package pulls it in by dependency, that's fine.
-                            if ('track_features' not in new_ms
-                                    and not self._broader(new_ms, this_pkg_constraints)):
-                                dep_specs.add(new_ms)
-                            else:
-                                seen_specs.add(new_ms)
+                                # recurse to deps of this dep
+                                new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
+                                for new_ms in new_specs:
+                                    # We do not pull packages into the reduced index due
+                                    # to a track_features dependency. Remember, a feature
+                                    # specifies a "soft" dependency: it must be in the
+                                    # environment, but it is not _pulled_ in. The SAT
+                                    # logic doesn't do a perfect job of capturing this
+                                    # behavior, but keeping these packags out of the
+                                    # reduced index helps. Of course, if _another_
+                                    # package pulls it in by dependency, that's fine.
+                                    if ('track_features' not in new_ms
+                                            and not self._broader(new_ms, this_pkg_constraints)):
+                                        dep_specs.add(new_ms)
+                                    else:
+                                        seen_specs.add(new_ms)
 
         reduced_index2 = frozendict(reduced_index2)
         self._reduced_index_cache[cache_key] = reduced_index2
