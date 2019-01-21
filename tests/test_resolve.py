@@ -174,13 +174,13 @@ def test_get_reduced_index_unmanageable():
     index[py_rec] = py_rec
     new_r = Resolve(index, channels=channels)
     reduced_index = new_r.get_reduced_index((MatchSpec("requests"),))
-    new_r2 = Resolve(reduced_index, True, True, channels=channels)
+    new_r2 = Resolve(reduced_index, True, channels=channels)
     assert len(new_r2.groups["requests"]) == 1, new_r2.groups["requests"]
 
 
 def test_generate_eq_1():
     reduced_index = r.get_reduced_index((MatchSpec('anaconda'), ))
-    r2 = Resolve(reduced_index, True, True)
+    r2 = Resolve(reduced_index, True)
     C = r2.gen_clauses()
     eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
     # Should satisfy the following criteria:
@@ -1144,7 +1144,7 @@ def test_channel_priority_2():
     this_r = Resolve(this_index, channels=channels)
     with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
         dists = this_r.get_reduced_index(spec)
-        r2 = Resolve(dists, True, True, channels=channels)
+        r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
         eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
@@ -1295,7 +1295,7 @@ def test_channel_priority_2():
     # setting strict actually doesn't do anything here; just ensures it's not 'disabled'
     with env_var("CONDA_CHANNEL_PRIORITY", "strict", reset_context):
         dists = this_r.get_reduced_index(spec)
-        r2 = Resolve(dists, True, True, channels=channels)
+        r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
 
         eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
@@ -1320,7 +1320,7 @@ def test_channel_priority_2():
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
         dists = this_r.get_reduced_index(spec)
-        r2 = Resolve(dists, True, True, channels=channels)
+        r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
         eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
@@ -1695,7 +1695,7 @@ def test_update_deps():
 
 
 def test_surplus_features_1():
-    index = {
+    index = (
         PackageRecord(**{
             'name': 'feature',
             'version': '1.0',
@@ -1725,15 +1725,14 @@ def test_surplus_features_1():
             'build_number': 0,
             'features': 'feature',
         }),
-    }
-    index = {prec: prec for prec in index}
-    r = Resolve({key: value for key, value in iteritems(index)})
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
     install = r.install(['package2', 'feature'])
     assert 'package1' not in set(d.name for d in install)
 
 
 def test_surplus_features_2():
-    index = {
+    index = (
         PackageRecord(**{
             'name': 'feature',
             'version': '1.0',
@@ -1763,9 +1762,8 @@ def test_surplus_features_2():
             'build_number': 1,
             'features': 'feature',
         }),
-    }
-    index = {prec: prec for prec in index}
-    r = Resolve({key: value for key, value in iteritems(index)})
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
     install = r.install(['package2', 'feature'])
     assert 'package1' not in set(d.name for d in install)
 
@@ -1775,7 +1773,7 @@ def test_get_reduced_index_broadening_with_unsatisfiable_early_dep():
     #    In other words, the order of packages in the index should not affect the
     #    overall result of the reduced index.
     # see discussion at https://github.com/conda/conda/pull/8117#discussion_r249249815
-    index = [
+    index = (
         PackageRecord(**{
             'name': 'a',
             'version': '1.0',
@@ -1808,9 +1806,8 @@ def test_get_reduced_index_broadening_with_unsatisfiable_early_dep():
             'build_number': 0,
             'depends': [],
         })
-    ]
-    index = OrderedDict((prec, prec) for prec in index)
-    r = Resolve({key: value for key, value in iteritems(index)})
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
 
     install = r.install(['a'])
     assert 'a' in set(d.name for d in install)
@@ -1821,7 +1818,7 @@ def test_get_reduced_index_broadening_with_unsatisfiable_early_dep():
 def test_get_reduced_index_broadening_preferred_solution():
     # test that order of index reduction does not eliminate what should be a preferred solution
     #    https://github.com/conda/conda/pull/8117#discussion_r249216068
-    index = [
+    index = (
         PackageRecord(**{
             'name': 'top',
             'version': '1.0',
@@ -1862,8 +1859,8 @@ def test_get_reduced_index_broadening_preferred_solution():
             'build_number': 0,
             'depends': [],
         }),
-    ]
-    r = Resolve({prec: prec for prec in index})
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
 
     install = r.install(['top'])
     for d in install:
