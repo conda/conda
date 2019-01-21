@@ -39,7 +39,7 @@ from conda.base.context import Context, context, reset_context
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.compat import PY2, iteritems, itervalues, text_type, ensure_text_type
-from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist
+from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
 from conda.common.serialize import yaml_load, json_dump
@@ -2092,7 +2092,10 @@ class IntegrationTests(TestCase):
         # version of conda and other packages in that environment.
         # Make sure we can flip back and forth.
         conda_exe = join('Scripts', 'conda.exe') if on_win else join('bin', 'conda')
-        with env_var("CONDA_AUTO_UPDATE_CONDA", "false", reset_context):
+        with env_vars({
+                "CONDA_AUTO_UPDATE_CONDA": "false",
+                "CONDA_ALLOW_CONDA_DOWNGRADES": "true"
+        }, reset_context):
             with make_temp_env("conda=4.5.12 python=%s" % sys.version_info[0],
                                name='_' + str(uuid4())[:8]) as prefix:  # rev 0
                 assert package_is_installed(prefix, "conda")
