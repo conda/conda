@@ -1824,6 +1824,13 @@ def test_get_reduced_index_broadening_preferred_solution():
     index = [
         PackageRecord(**{
             'name': 'top',
+            'version': '2.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': ['middle'],
+        }),
+        PackageRecord(**{
+            'name': 'top',
             'version': '1.0',
             'build': '0',
             'build_number': 0,
@@ -1831,13 +1838,6 @@ def test_get_reduced_index_broadening_preferred_solution():
             #    if things are overly restricted, we'll end up with bottom 1.5 in our solution
             #    instead of the preferred (latest) 2.5
             'depends': ['middle', 'bottom==1.5'],
-        }),
-        PackageRecord(**{
-            'name': 'top',
-            'version': '2.0',
-            'build': '0',
-            'build_number': 0,
-            'depends': ['middle'],
         }),
         PackageRecord(**{
             'name': 'middle',
@@ -1849,21 +1849,21 @@ def test_get_reduced_index_broadening_preferred_solution():
         }),
         PackageRecord(**{
             'name': 'bottom',
-            'version': '1.5',
+            'version': '2.5',
             'build': '0',
             'build_number': 0,
             'depends': [],
         }),
         PackageRecord(**{
             'name': 'bottom',
-            'version': '2.5',
+            'version': '1.5',
             'build': '0',
             'build_number': 0,
             'depends': [],
         }),
     ]
     index = OrderedDict((prec, prec) for prec in index)
-    r = Resolve({key: value for key, value in iteritems(index)})
+    r = Resolve(index)
 
     install = r.install(['top'])
     for d in install:
