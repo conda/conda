@@ -492,36 +492,47 @@ class Resolve(object):
                     {k: frozenset(v) for k, v in specs_by_name.items()})
 
                 while(dep_specs):
+                    # used for debugging
+                    # size_index = len(reduced_index2)
+                    # specs_added = []
                     ms = dep_specs.pop()
                     seen_specs.add(ms)
-                    dep_packages = set(self.find_matches(ms)) - set(reduced_index2.keys())
-                    for dep_pkg in dep_packages:
+                    for dep_pkg in (_ for _ in self.find_matches(ms) if _ not in reduced_index2):
                         if not self.valid2(dep_pkg, filter_out):
                             continue
 
-                        # expand the reduced index
-                        if dep_pkg not in reduced_index2:
-                            if (not strict_channel_priority or
-                                    (self._get_strict_channel(dep_pkg.name) ==
-                                     dep_pkg.channel.name)):
-                                reduced_index2[dep_pkg] = dep_pkg
+                        # expand the reduced index if not using strict channel priority,
+                        #    or if using it and this package is in the appropriate channel
+                        if (not strict_channel_priority or
+                                (self._get_strict_channel(dep_pkg.name) ==
+                                 dep_pkg.channel.name)):
+                            reduced_index2[dep_pkg] = dep_pkg
 
-                                # recurse to deps of this dep
-                                new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
-                                for new_ms in new_specs:
-                                    # We do not pull packages into the reduced index due
-                                    # to a track_features dependency. Remember, a feature
-                                    # specifies a "soft" dependency: it must be in the
-                                    # environment, but it is not _pulled_ in. The SAT
-                                    # logic doesn't do a perfect job of capturing this
-                                    # behavior, but keeping these packags out of the
-                                    # reduced index helps. Of course, if _another_
-                                    # package pulls it in by dependency, that's fine.
-                                    if ('track_features' not in new_ms
-                                            and not self._broader(new_ms, this_pkg_constraints)):
-                                        dep_specs.add(new_ms)
-                                    else:
-                                        seen_specs.add(new_ms)
+                            # recurse to deps of this dep
+                            new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
+                            for new_ms in new_specs:
+                                # We do not pull packages into the reduced index due
+                                # to a track_features dependency. Remember, a feature
+                                # specifies a "soft" dependency: it must be in the
+                                # environment, but it is not _pulled_ in. The SAT
+                                # logic doesn't do a perfect job of capturing this
+                                # behavior, but keeping these packags out of the
+                                # reduced index helps. Of course, if _another_
+                                # package pulls it in by dependency, that's fine.
+                                if ('track_features' not in new_ms
+                                        and not self._broader(new_ms, this_pkg_constraints)):
+                                    dep_specs.add(new_ms)
+                                    # if new_ms not in dep_specs:
+                                    #     specs_added.append(new_ms)
+                                else:
+                                    seen_specs.add(new_ms)
+                    # debugging info - see what specs are bringing in the largest blobs
+                    # if size_index != len(reduced_index2):
+                    #     print("MS {} added {} pkgs to index".format(ms,
+                    #           len(reduced_index2) - size_index))
+                    # if specs_added:
+                    #     print("MS {} added {} specs to further examination".format(ms,
+                    #                                                                specs_added))
 
         reduced_index2 = frozendict(reduced_index2)
         self._reduced_index_cache[cache_key] = reduced_index2
