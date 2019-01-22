@@ -52,7 +52,6 @@ that approach may not be as up to date.
    :maxdepth: 1
 
    user-guide/index
-   commands/index
    configuration
    api/index
    release-notes
