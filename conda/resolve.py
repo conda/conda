@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from logging import DEBUG, getLogger
 
 from ._vendor.auxlib.collection import frozendict
@@ -38,7 +38,7 @@ def dashlist(iterable, indent=2):
 
 class Resolve(object):
 
-    def __init__(self, index, processed=False, channels=()):
+    def __init__(self, index, sort=False, processed=False, channels=()):
         self.index = index
 
         self.channels = channels
@@ -66,13 +66,9 @@ class Resolve(object):
         self._reduced_index_cache = {}
         self._strict_channel_cache = {}
 
-        # sorting these in reverse order is effectively prioritizing
-        # contstraint behavior from newer packages. It is applying broadening
-        # reduction based on the latest packages, which may reduce the space
-        # more, because more modern packages utilize constraints in more sane
-        # ways (for example, using run_exports in conda-build 3)
-        for name, group in self.groups.items():
-            self.groups[name] = sorted(group, key=self.version_key, reverse=True)
+        if sort:
+            for group in itervalues(groups):
+                group.sort(key=self.version_key, reverse=True)
 
     def __hash__(self):
         return (super().__hash__() ^
@@ -474,7 +470,15 @@ class Resolve(object):
                 )
             reduced_index2.update((prec, prec) for prec in add_these_precs2)
 
-            for pkg in add_these_precs2:
+            # sorting these in reverse order is effectively prioritizing
+            # contstraint behavior from newer packages. It is applying
+            # broadening reduction based on the latest packages, which may
+            # reduce the space more, because more modern packages utilize
+            # constraints in more sane ways (for example, using run_exports in
+            # conda-build 3)
+            for pkg in sorted(
+                    add_these_precs2, reverse=True,
+                    key=lambda x: self.version_key(x, invert_channel_priority=True)):
                 # what we have seen is only relevant within the context of a single package
                 #    that is picked up because of an explicit spec.  We don't want the
                 #    broadening check to apply across packages at the explicit level; only
@@ -497,7 +501,16 @@ class Resolve(object):
                     # specs_added = []
                     ms = dep_specs.pop()
                     seen_specs.add(ms)
-                    for dep_pkg in (_ for _ in self.find_matches(ms) if _ not in reduced_index2):
+                    dep_packages = set(self.find_matches(ms)) - set(reduced_index2.keys())
+                    # sorting these in reverse order is effectively
+                    # prioritizing constraint behavior from newer packages. It
+                    # is applying broadening reduction based on the latest
+                    # packages, which may reduce the space more, because more
+                    # modern packages utilize constraints in more sane ways
+                    # (for example, using run_exports in conda-build 3)
+                    for dep_pkg in sorted(
+                            dep_packages, reverse=True,
+                            key=lambda x: self.version_key(x, invert_channel_priority=True)):
                         if not self.valid2(dep_pkg, filter_out):
                             continue
 
@@ -558,7 +571,7 @@ class Resolve(object):
         else:
             candidate_precs = itervalues(self.index)
 
-        res = tuple(p for p in candidate_precs if spec.match(p))
+        res = frozenset(p for p in candidate_precs if spec.match(p))
         self._cached_find_matches[spec] = res
         return res
 
@@ -571,17 +584,18 @@ class Resolve(object):
             self.ms_depends_[prec] = deps
         return deps
 
-    def version_key(self, prec, vtype=None):
+    def version_key(self, prec, vtype=None, invert_channel_priority=False):
         channel = prec.channel
         channel_priority = self._channel_priorities_map.get(channel.name, 1)  # TODO: ask @mcg1969 why the default value is 1 here  # NOQA
         valid = 1 if channel_priority < MAX_CHANNEL_PRIORITY else 0
         version_comparator = VersionOrder(prec.get('version', ''))
         build_number = prec.get('build_number', 0)
         build_string = prec.get('build')
+        channel_priority = channel_priority if invert_channel_priority else -channel_priority
         if self._channel_priority != ChannelPriority.DISABLED:
-            vkey = [valid, -channel_priority, version_comparator, build_number]
+            vkey = [valid, channel_priority, version_comparator, build_number]
         else:
-            vkey = [valid, version_comparator, -channel_priority, build_number]
+            vkey = [valid, version_comparator, channel_priority, build_number]
         if self._solver_ignore_timestamps:
             vkey.append(build_string)
         else:
@@ -840,7 +854,7 @@ class Resolve(object):
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
             specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
-        r2 = Resolve(OrderedDict((prec, prec) for prec in installed), True, channels=self.channels)
+        r2 = Resolve({prec: prec for prec in installed}, True, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -856,7 +870,7 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r2 = Resolve(reduced_index, True, channels=self.channels)
+        r2 = Resolve(reduced_index, True, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(specs, True)
         if solution:
@@ -892,7 +906,7 @@ class Resolve(object):
             sat_name_map[self.to_sat_name(prec)] = prec
             specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
         new_index = {prec: prec for prec in itervalues(sat_name_map)}
-        r2 = Resolve(new_index, True, channels=self.channels)
+        r2 = Resolve(new_index, True, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -1039,7 +1053,7 @@ class Resolve(object):
                 return True
             return False
 
-        r2 = Resolve(reduced_index, True, channels=self.channels)
+        r2 = Resolve(reduced_index, True, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(specs, True)
         if not solution:
