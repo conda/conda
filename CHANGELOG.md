@@ -1,3 +1,18 @@
+## 4.6.1 (2019-01-21)
+
+### Improvements
+* optimizations in ``get_reduced_index`` (#8117, #8121, #8122)
+
+### Bug Fixes
+* fix faulty onerror call for rm (#8053)
+* fix activate.bat to use more direct call to conda.bat (don't require conda init; fix non-interactive script) (#8113)
+
+### Contributors
+* @jjhelmus
+* @msarahan
+* @pv
+
+
 ## 4.6.0 (2019-01-15)
 
 ### New Feature Highlights
