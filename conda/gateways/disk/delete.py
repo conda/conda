@@ -42,6 +42,11 @@ def rmtree(path, *args, **kwargs):
 
 
 def unlink_or_rename_to_trash(path):
+    """If files are in use, especially on windows, we can't remove them.
+    The fallback path is to rename them (but keep their folder the same),
+    which maintains the file handle validity.  See comments at:
+    https://serverfault.com/a/503769
+    """
     try:
         make_writable(path)
         unlink(path)
@@ -96,7 +101,9 @@ try_rmdir_all_empty = move_to_trash = move_path_to_trash = rm_rf
 def delete_trash(prefix):
     if not prefix:
         prefix = sys.prefix
-    for root, dirs, files in walk(prefix):
+    exclude = set(['envs'])
+    for root, dirs, files in walk(prefix, topdown=True):
+        dirs[:] = [d for d in dirs if d not in exclude]
         for basename in files:
             if fnmatch.fnmatch(basename, "*.trash"):
                 filename = join(root, basename)
