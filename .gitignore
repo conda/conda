@@ -5,6 +5,7 @@ build/
 dist/
 docs/build
 docs/_build
+docs/source/_build
 .cache/
 .idea/
 ve/
@@ -32,3 +33,4 @@ Miniconda*.sh
 miniconda*.sh
 miniconda*.exe
 .pytest_cache/
+.vscode
