@@ -35,4 +35,3 @@ def execute(args, parser):
                    dry_run=False)
 
     install(args, parser, 'create')
-    delete_trash()

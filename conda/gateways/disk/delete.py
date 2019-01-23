@@ -45,7 +45,7 @@ def unlink_or_rename_to_trash(path):
     try:
         make_writable(path)
         unlink(path)
-    except (OSError, IOError) as e:
+    except (OSError, IOError):
         if on_win:
             condabin_dir = join(context.conda_prefix, "condabin")
             trash_script = join(condabin_dir, 'rename_trash.bat')
@@ -93,7 +93,7 @@ def rm_rf(path, max_retries=5, trash=True, clean_empty_parents=False, *args, **k
 try_rmdir_all_empty = move_to_trash = move_path_to_trash = rm_rf
 
 
-def delete_trash(prefix=None):
+def delete_trash(prefix):
     if not prefix:
         prefix = sys.prefix
     for root, dirs, files in walk(prefix):

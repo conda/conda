@@ -117,6 +117,5 @@ def execute(args, parser):
             return -1
 
     touch_nonadmin(prefix)
-    delete_trash()
     if not args.json:
         cli_install.print_activate(args.name if args.name else prefix)

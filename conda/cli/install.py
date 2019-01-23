@@ -24,6 +24,7 @@ from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSy
                           NoBaseEnvironmentError, PackageNotInstalledError, PackagesNotFoundError,
                           TooManyArgumentsError, UnsatisfiableError)
 from ..gateways.disk.create import mkdir_p
+from ..gateways.disk.delete import delete_trash
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..plan import revert_actions
@@ -151,6 +152,7 @@ def install(args, parser, command='install'):
 
     if not newenv:
         if isdir(prefix):
+            delete_trash(prefix)
             if not isfile(join(prefix, 'conda-meta', 'history')):
                 if paths_equal(prefix, context.conda_prefix):
                     raise NoBaseEnvironmentError()

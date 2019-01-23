@@ -42,7 +42,6 @@ def execute(args, parser):
         from ..exceptions import EnvironmentLocationNotFound
         raise EnvironmentLocationNotFound(prefix)
 
-    delete_trash()
     if args.all:
         if prefix == context.root_prefix:
             raise CondaEnvironmentError('cannot remove root environment,\n'
