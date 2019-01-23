@@ -5,57 +5,54 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import ENOENT
 import fnmatch
+from glob import glob
 from logging import getLogger
-from os import listdir, removedirs, rename, unlink, walk
+from os import rename, unlink, walk, makedirs
 from os.path import abspath, dirname, isdir, join, split
 import shutil
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, check_call
 import sys
-from uuid import uuid4
 
 from . import MAX_TRIES, exp_backoff_fn
 from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
-from ...common.compat import PY2, on_win, text_type, ensure_binary
-
-if on_win:
-    import win32file
-    import pywintypes
+from ...common.compat import on_win
 
 
 log = getLogger(__name__)
 
 
-def rmtree(path):
+def rmtree(path, *args, **kwargs):
     # subprocessing to delete large folders can be quite a bit faster
     if on_win:
-        subprocess.check_call('rd /s /q {}'.format(dirpath), shell=True)
+        check_call('rd /s /q "{}"'.format(path), shell=True)
     else:
         try:
-            os.makedirs('.empty')
+            makedirs('.empty')
         except:
             pass
-        del_dir_cmd = 'rsync -a --delete .empty {}/'
-        subprocess.check_call(del_dir_cmd.format(dirpath).split())
+        del_dir_cmd = 'rsync -a --delete .empty "{}"/'
+        check_call(del_dir_cmd.format(path).split())
         shutil.rmtree('.empty')
 
 
 def unlink_or_rename_to_trash(path):
     try:
+        make_writable(path)
         unlink(path)
     except (OSError, IOError) as e:
         if on_win:
-
             condabin_dir = join(context.conda_prefix, "condabin")
             trash_script = join(condabin_dir, 'rename_trash.bat')
-            p = Popen(['cmd.exe', '/C', trash_script, *split(path)], stdout=PIPE, stderr=PIPE)
+            _dirname, _fn = split(path)
+            p = Popen(['cmd.exe', '/C', trash_script, _dirname, _fn], stdout=PIPE, stderr=PIPE)
             stdout, stderr = p.communicate()
         else:
             rename(path, path + ".trash")
 
 
-def rm_rf(path, max_retries=5, trash=True):
+def rm_rf(path, max_retries=5, trash=True, *args, **kw):
     """
     Completely delete path
     max_retries is the number of times to retry on failure. The default is 5. This only applies
@@ -72,11 +69,15 @@ def rm_rf(path, max_retries=5, trash=True):
             unlink_or_rename_to_trash(path)
         else:
             log.trace("rm_rf failed. Not a link, file, or directory: %s", path)
-        return True
     finally:
         if lexists(path):
             log.info("rm_rf failed for %s", path)
             return False
+    return True
+
+
+# aliases that all do the same thing (legacy compat)
+try_rmdir_all_empty = move_to_trash = move_path_to_trash = rm_rf
 
 
 def delete_trash(prefix=None):
@@ -121,9 +122,13 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
 
     for root, dirs, files in walk(dirpath, topdown=False):
         for file in files:
-            unlink_or_rename_trash(join(root, file))
+            unlink_or_rename_to_trash(join(root, file))
         for dir in dirs:
             _rmdir(join(root, dir))
 
     _rmdir(dirpath)
 
+    # recurse to clean up empty folders that were created to have a nested hierarchy
+    parent_path = dirname(dirpath)
+    if not glob(join(parent_path, "*")):
+        backoff_rmdir(parent_path, max_tries)
