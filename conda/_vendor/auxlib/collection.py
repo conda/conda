@@ -2,7 +2,10 @@
 """Common collection classes."""
 from __future__ import print_function, division, absolute_import
 from functools import reduce
-from collections import Mapping, Set
+try:
+    from collections.abc import Mapping, Set
+except ImportError:
+    from collections import Mapping, Set
 
 from .compat import isiterable, iteritems, odict, text_type
 
