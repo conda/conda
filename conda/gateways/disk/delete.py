@@ -5,9 +5,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from errno import ENOENT
 import fnmatch
-from glob import glob
 from logging import getLogger
-from os import rename, unlink, walk, makedirs
+from os import rename, unlink, walk, makedirs, getcwd, rmdir, listdir
 from os.path import abspath, dirname, isdir, join, split
 import shutil
 from subprocess import Popen, PIPE, check_call
@@ -32,9 +31,14 @@ def rmtree(path, *args, **kwargs):
             makedirs('.empty')
         except:
             pass
-        del_dir_cmd = 'rsync -a --delete .empty "{}"/'
-        check_call(del_dir_cmd.format(path).split())
+        # yes, this looks strange.  See
+        #    https://unix.stackexchange.com/a/79656/34459
+        #    https://web.archive.org/web/20130929001850/http://linuxnote.net/jianingy/en/linux/a-fast-way-to-remove-huge-number-of-files.html
+        args = ['rsync', '-a', '--delete', join(getcwd(), '.empty') + "/", path + "/"]
+        print(' '.join(args))
+        check_call(['rsync', '-a', '--delete', join(getcwd(), '.empty') + "/", path + "/"])
         shutil.rmtree('.empty')
+    rmdir(path)
 
 
 def unlink_or_rename_to_trash(path):
@@ -52,7 +56,15 @@ def unlink_or_rename_to_trash(path):
             rename(path, path + ".trash")
 
 
-def rm_rf(path, max_retries=5, trash=True, *args, **kw):
+def remove_empty_parent_paths(path):
+    # recurse to clean up empty folders that were created to have a nested hierarchy
+    parent_path = dirname(path)
+    while(isdir(parent_path) and not listdir(parent_path)):
+        rmdir(parent_path)
+        parent_path = dirname(parent_path)
+
+
+def rm_rf(path, max_retries=5, trash=True, clean_empty_parents=False, *args, **kw):
     """
     Completely delete path
     max_retries is the number of times to retry on failure. The default is 5. This only applies
@@ -63,7 +75,6 @@ def rm_rf(path, max_retries=5, trash=True, *args, **kw):
         path = abspath(path)
         log.trace("rm_rf %s", path)
         if isdir(path) and not islink(path):
-            # On Windows, always move to trash first.
             backoff_rmdir(path)
         elif lexists(path):
             unlink_or_rename_to_trash(path)
@@ -73,6 +84,8 @@ def rm_rf(path, max_retries=5, trash=True, *args, **kw):
         if lexists(path):
             log.info("rm_rf failed for %s", path)
             return False
+    if clean_empty_parents:
+        remove_empty_parent_paths(path)
     return True
 
 
@@ -112,7 +125,6 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
                 log.trace("no such file or directory: %s", path)
             else:
                 raise
-
     try:
         rmtree(dirpath)
     # we don't really care about errors that much.  We'll catch remaining files
@@ -127,8 +139,3 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
             _rmdir(join(root, dir))
 
     _rmdir(dirpath)
-
-    # recurse to clean up empty folders that were created to have a nested hierarchy
-    parent_path = dirname(dirpath)
-    if not glob(join(parent_path, "*")):
-        backoff_rmdir(parent_path, max_tries)

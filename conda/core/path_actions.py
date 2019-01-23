@@ -366,7 +366,7 @@ class LinkPathAction(CreateInPrefixPathAction):
     def reverse(self):
         if self._execute_successful:
             log.trace("reversing link creation %s", self.target_prefix)
-            rm_rf(self.target_full_path)
+            rm_rf(self.target_full_path, clean_empty_parents=True)
 
 
 class PrefixReplaceLinkAction(LinkPathAction):
