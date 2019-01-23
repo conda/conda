@@ -31,7 +31,7 @@ from ..gateways.disk.create import (compile_multiple_pyc, copy,
                                     create_hard_link_or_copy, create_link,
                                     create_python_entry_point, extract_tarball,
                                     make_menu, mkdir_p, write_as_json_to_file)
-from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
+from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.permissions import make_writable
 from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
                                   read_index_json)
@@ -366,10 +366,7 @@ class LinkPathAction(CreateInPrefixPathAction):
     def reverse(self):
         if self._execute_successful:
             log.trace("reversing link creation %s", self.target_prefix)
-            if self.link_type == LinkType.directory:
-                try_rmdir_all_empty(self.target_full_path)
-            else:
-                rm_rf(self.target_full_path)
+            rm_rf(self.target_full_path)
 
 
 class PrefixReplaceLinkAction(LinkPathAction):
@@ -975,10 +972,7 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
             backoff_rename(self.holding_full_path, self.target_full_path, force=True)
 
     def cleanup(self):
-        if self.link_type == LinkType.directory:
-            try_rmdir_all_empty(self.target_full_path)
-        else:
-            rm_rf(self.holding_full_path)
+        rm_rf(self.holding_full_path)
 
 
 class RemoveMenuAction(RemoveFromPrefixPathAction):
