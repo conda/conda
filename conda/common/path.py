@@ -299,4 +299,3 @@ def win_path_to_unix(path, root_prefix=""):
 def which(executable):
     from distutils.spawn import find_executable
     return find_executable(executable)
-
