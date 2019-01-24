@@ -294,3 +294,9 @@ def win_path_to_unix(path, root_prefix=""):
         path_re = '(?<![:/^a-zA-Z])([a-zA-Z]:[\/\\\\]+(?:[^:*?"<>|]+[\/\\\\]+)*[^:*?"<>|;\/\\\\]+?(?![a-zA-Z]:))'  # noqa
         path = re.sub(path_re, _translation, path).replace(";/", ":/")
     return path
+
+
+def which(executable):
+    from distutils.spawn import find_executable
+    return find_executable(executable)
+

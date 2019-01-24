@@ -51,7 +51,7 @@ stderrlog = getLogger('conda.stderrlog')
 
 REPODATA_PICKLE_VERSION = 28
 MAX_REPODATA_VERSION = 1
-REPODATA_HEADER_RE = rb'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
+REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'  # NOQA
 
 
 class SubdirDataType(type):

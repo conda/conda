@@ -20,6 +20,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import ensure_text_type, iteritems, on_win, \
     string_types
 from conda.common.io import captured, env_var, env_vars
+from conda.common.path import which
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -1268,10 +1269,6 @@ class InteractiveShell(object):
             value = self.p.match.groups()[0]
             return ensure_text_type(value).strip()
 
-
-def which(executable):
-    from distutils.spawn import find_executable
-    return find_executable(executable)
 
 def which_powershell():
     r"""

@@ -9,7 +9,7 @@ from logging import getLogger
 from os import rename, unlink, walk, makedirs, getcwd, rmdir, listdir
 from os.path import abspath, dirname, isdir, join, split, exists
 import shutil
-from subprocess import Popen, PIPE, check_call
+from subprocess import Popen, PIPE, check_call, CalledProcessError
 import sys
 
 from . import MAX_TRIES, exp_backoff_fn
@@ -18,6 +18,8 @@ from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.constants import CONDA_TEMP_EXTENSION
+if not on_win:
+    from ...common.path import which
 
 
 log = getLogger(__name__)
@@ -35,9 +37,16 @@ def rmtree(path, *args, **kwargs):
         # yes, this looks strange.  See
         #    https://unix.stackexchange.com/a/79656/34459
         #    https://web.archive.org/web/20130929001850/http://linuxnote.net/jianingy/en/linux/a-fast-way-to-remove-huge-number-of-files.html
-        args = ['rsync', '-a', '--delete', join(getcwd(), '.empty') + "/", path + "/"]
-        print(' '.join(args))
-        check_call(['rsync', '-a', '--delete', join(getcwd(), '.empty') + "/", path + "/"])
+        rsync = which('rsync')
+        if rsync:
+            try:
+                check_call([rsync, '-a', '--delete', join(getcwd(), '.empty') + "/", path + "/"])
+            except CalledProcessError as e:
+                log.warn("Removing folder {} the fast way (with rsync) failed.  "
+                         "Do you have rsync available?".format(path))
+                shutil.rmtree(path)
+        else:
+            shutil.rmtree(path)
         shutil.rmtree('.empty')
 
 
