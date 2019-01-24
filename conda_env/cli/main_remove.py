@@ -4,7 +4,6 @@
 from __future__ import absolute_import, print_function
 
 from argparse import Namespace, RawDescriptionHelpFormatter
-from os.path import isdir
 
 from conda.cli.conda_argparse import add_output_and_prompt_options, add_parser_prefix
 

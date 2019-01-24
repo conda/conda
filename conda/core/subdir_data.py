@@ -51,7 +51,7 @@ stderrlog = getLogger('conda.stderrlog')
 
 REPODATA_PICKLE_VERSION = 28
 MAX_REPODATA_VERSION = 1
-REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
+REPODATA_HEADER_RE = rb'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
 
 
 class SubdirDataType(type):
@@ -284,7 +284,7 @@ class SubdirData(object):
                 log.debug("found pickle file %s", self.cache_path_pickle)
             with open(self.cache_path_pickle, 'rb') as fh:
                 _pickled_state = pickle.load(fh)
-        except Exception as e:
+        except Exception:
             log.debug("Failed to load pickled repodata.", exc_info=True)
             rm_rf(self.cache_path_pickle)
             return None

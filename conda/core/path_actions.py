@@ -53,7 +53,6 @@ REPR_IGNORE_KWARGS = (
     'hold_path',
 )
 
-
 @with_metaclass(ABCMeta)
 class PathAction(object):
 

@@ -78,6 +78,7 @@ def do_call(args, parser):
     # func_name should always be 'execute'
     from importlib import import_module
     module = import_module(relative_mod, __name__.rsplit('.', 1)[0])
+
     exit_code = getattr(module, func_name)(args, parser)
     return exit_code
 

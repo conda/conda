@@ -91,7 +91,7 @@ def run_command(command, *arguments, **kwargs):
     with ExitStack() as context_stack:
         try:
             context_stack.enter_context(argv(['python_api'] + split_command_line))
-            if kwargs.get("no_capture") != True:
+            if kwargs.get("no_capture") is not True:
                 c = context_stack.enter_context(captured(stdout, stderr))
             if use_exception_handler:
                 return_code = conda_exception_handler(do_call, args, p)

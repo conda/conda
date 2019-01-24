@@ -18,7 +18,6 @@ from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.constants import CONDA_TEMP_EXTENSION
-from ...base.context import context
 
 
 log = getLogger(__name__)

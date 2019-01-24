@@ -11,7 +11,7 @@ from .install import install
 from ..base.context import context
 from ..common.path import paths_equal
 from ..exceptions import CondaValueError
-from ..gateways.disk.delete import delete_trash, rm_rf
+from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import is_conda_environment
 
 log = getLogger(__name__)

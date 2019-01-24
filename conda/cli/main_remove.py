@@ -4,7 +4,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-from os.path import isdir
 import sys
 
 from .common import check_non_admin, specs_from_args
@@ -15,8 +14,7 @@ from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import Solver
 from ..exceptions import CondaEnvironmentError, CondaValueError
-from ..gateways.disk.delete import delete_trash, rm_rf, path_is_clean
-from ..gateways.disk.test import is_conda_environment
+from ..gateways.disk.delete import rm_rf, path_is_clean
 from ..models.match_spec import MatchSpec
 
 log = logging.getLogger(__name__)

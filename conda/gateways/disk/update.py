@@ -61,7 +61,8 @@ def rename(source_path, destination_path, force=False):
                 rename_script = join(condabin_dir, 'rename_tmp.bat')
                 _dirname, _src_fn = split(source_path)
                 _dest_fn = basename(destination_path)
-                p = Popen(['cmd.exe', '/C', rename_script, _dirname, _src_fn, _dest_fn], stdout=PIPE, stderr=PIPE)
+                p = Popen(['cmd.exe', '/C', rename_script, _dirname,
+                           _src_fn, _dest_fn], stdout=PIPE, stderr=PIPE)
                 stdout, stderr = p.communicate()
             elif e.errno in (EINVAL, EXDEV):
                 # https://github.com/conda/conda/issues/6811
