@@ -24,7 +24,7 @@ from ..exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSy
                           NoBaseEnvironmentError, PackageNotInstalledError, PackagesNotFoundError,
                           TooManyArgumentsError, UnsatisfiableError)
 from ..gateways.disk.create import mkdir_p
-from ..gateways.disk.delete import delete_trash
+from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..misc import clone_env, explicit, touch_nonadmin
 from ..models.match_spec import MatchSpec
 from ..plan import revert_actions
@@ -157,7 +157,8 @@ def install(args, parser, command='install'):
                 if paths_equal(prefix, context.conda_prefix):
                     raise NoBaseEnvironmentError()
                 else:
-                    raise DirectoryNotACondaEnvironmentError(prefix)
+                    if not path_is_clean(prefix):
+                        raise DirectoryNotACondaEnvironmentError(prefix)
             else:
                 # fall-through expected under normal operation
                 pass

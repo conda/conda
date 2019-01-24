@@ -45,13 +45,9 @@ def execute(args, parser):
     args.update({
         'all': True, 'channel': None, 'features': None,
         'override_channels': None, 'use_local': None, 'use_cache': None,
-        'offline': None, 'force': None, 'pinned': None})
+        'offline': None, 'force': True, 'pinned': None})
     args = Namespace(**args)
     from conda.base.context import context
     context.__init__(argparse_args=args)
-
-    if not isdir(context.target_prefix):
-        from conda.exceptions import EnvironmentLocationNotFound
-        raise EnvironmentLocationNotFound(context.target_prefix)
 
     conda.cli.main_remove.execute(args, parser)

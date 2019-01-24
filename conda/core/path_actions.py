@@ -20,6 +20,7 @@ from .._vendor.toolz import concat
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
 from ..common.compat import iteritems, on_win, text_type
+from ..common.constants import CONDA_TEMP_EXTENSION
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def,
@@ -883,7 +884,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
         self.remove_specs = remove_specs
         self.update_specs = update_specs
 
-        self.hold_path = self.target_full_path + '.c~'
+        self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
     def execute(self):
         log.trace("updating environment history %s", self.target_full_path)
@@ -956,9 +957,8 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
                  link_type=LinkType.hardlink):
         super(UnlinkPathAction, self).__init__(transaction_context, linked_package_data,
                                                target_prefix, target_short_path)
-        conda_temp_extension = '.c~'
-        self.holding_short_path = self.target_short_path + conda_temp_extension
-        self.holding_full_path = self.target_full_path + conda_temp_extension
+        self.holding_short_path = self.target_short_path + CONDA_TEMP_EXTENSION
+        self.holding_full_path = self.target_full_path + CONDA_TEMP_EXTENSION
         self.link_type = link_type
 
     def execute(self):
@@ -972,7 +972,7 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
             backoff_rename(self.holding_full_path, self.target_full_path, force=True)
 
     def cleanup(self):
-        rm_rf(self.holding_full_path)
+        rm_rf(self.holding_full_path, clean_empty_parents=True)
 
 
 class RemoveMenuAction(RemoveFromPrefixPathAction):
@@ -1060,7 +1060,7 @@ class CacheUrlAction(PathAction):
         self.target_package_basename = target_package_basename
         self.md5sum = md5sum
         self.expected_size_in_bytes = expected_size_in_bytes
-        self.hold_path = self.target_full_path + '.c~'
+        self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
     def verify(self):
         assert '::' not in self.url
@@ -1158,7 +1158,7 @@ class ExtractPackageAction(PathAction):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
-        self.hold_path = self.target_full_path + '.c~'
+        self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
         self.record_or_spec = record_or_spec
         self.md5sum = md5sum
 

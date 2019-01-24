@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from contextlib import ExitStack
 from logging import getLogger
 from shlex import split
 
@@ -87,16 +88,19 @@ def run_command(command, *arguments, **kwargs):
         argparse_args=args,
     )
     log.debug("executing command >>>  conda %s", command_line)
-    try:
-        with argv(['python_api'] + split_command_line), captured(stdout, stderr) as c:
+    with ExitStack() as context_stack:
+        try:
+            context_stack.enter_context(argv(['python_api'] + split_command_line))
+            if kwargs.get("no_capture") != True:
+                c = context_stack.enter_context(captured(stdout, stderr))
             if use_exception_handler:
                 return_code = conda_exception_handler(do_call, args, p)
             else:
                 return_code = do_call(args, p)
-    except Exception as e:
-        log.debug("\n  stdout: %s\n  stderr: %s", c.stdout, c.stderr)
-        e.stdout, e.stderr = c.stdout, c.stderr
-        raise e
+        except Exception as e:
+            log.debug("\n  stdout: %s\n  stderr: %s", c.stdout, c.stderr)
+            e.stdout, e.stderr = c.stdout, c.stderr
+            raise e
     return_code = return_code or 0
     log.debug("\n  stdout: %s\n  stderr: %s\n  return_code: %s", c.stdout, c.stderr, return_code)
     return c.stdout, c.stderr, return_code

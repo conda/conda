@@ -15,7 +15,7 @@ from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import Solver
 from ..exceptions import CondaEnvironmentError, CondaValueError
-from ..gateways.disk.delete import delete_trash, rm_rf
+from ..gateways.disk.delete import delete_trash, rm_rf, path_is_clean
 from ..gateways.disk.test import is_conda_environment
 from ..models.match_spec import MatchSpec
 
@@ -34,13 +34,10 @@ def execute(args, parser):
     if args.all and prefix == context.default_prefix:
         msg = "cannot remove current environment. deactivate and run conda remove again"
         raise CondaEnvironmentError(msg)
-    if args.all and not isdir(prefix):
+
+    if args.all and path_is_clean(prefix):
         # full environment removal was requested, but environment doesn't exist anyway
         return 0
-
-    if not is_conda_environment(prefix):
-        from ..exceptions import EnvironmentLocationNotFound
-        raise EnvironmentLocationNotFound(prefix)
 
     if args.all:
         if prefix == context.root_prefix:
@@ -59,7 +56,7 @@ def execute(args, parser):
             txn = UnlinkLinkTransaction(stp)
             handle_txn(txn, prefix, args, False, True)
 
-        rm_rf(prefix)
+        rm_rf(prefix, clean_empty_parents=True)
         unregister_env(prefix)
 
         return

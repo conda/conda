@@ -7,7 +7,7 @@ from errno import ENOENT
 import fnmatch
 from logging import getLogger
 from os import rename, unlink, walk, makedirs, getcwd, rmdir, listdir
-from os.path import abspath, dirname, isdir, join, split
+from os.path import abspath, dirname, isdir, join, split, exists
 import shutil
 from subprocess import Popen, PIPE, check_call
 import sys
@@ -17,6 +17,8 @@ from .link import islink, lexists
 from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
 from ...common.compat import on_win
+from ...common.constants import CONDA_TEMP_EXTENSION
+from ...base.context import context
 
 
 log = getLogger(__name__)
@@ -38,7 +40,6 @@ def rmtree(path, *args, **kwargs):
         print(' '.join(args))
         check_call(['rsync', '-a', '--delete', join(getcwd(), '.empty') + "/", path + "/"])
         shutil.rmtree('.empty')
-    rmdir(path)
 
 
 def unlink_or_rename_to_trash(path):
@@ -50,12 +51,15 @@ def unlink_or_rename_to_trash(path):
     try:
         make_writable(path)
         unlink(path)
-    except (OSError, IOError):
+    except EnvironmentError:
         if on_win:
+            # on windows, it is important to use the rename program, as just using python's
+            #    rename leads to permission errors when files are in use.
             condabin_dir = join(context.conda_prefix, "condabin")
-            trash_script = join(condabin_dir, 'rename_trash.bat')
+            trash_script = join(condabin_dir, 'rename_tmp.bat')
             _dirname, _fn = split(path)
-            p = Popen(['cmd.exe', '/C', trash_script, _dirname, _fn], stdout=PIPE, stderr=PIPE)
+            p = Popen(['cmd.exe', '/C', trash_script, _dirname, _fn, _fn + ".trash"],
+                      stdout=PIPE, stderr=PIPE)
             stdout, stderr = p.communicate()
         else:
             rename(path, path + ".trash")
@@ -105,10 +109,12 @@ def delete_trash(prefix):
     for root, dirs, files in walk(prefix, topdown=True):
         dirs[:] = [d for d in dirs if d not in exclude]
         for basename in files:
-            if fnmatch.fnmatch(basename, "*.trash"):
+            if (fnmatch.fnmatch(basename, "*.trash") or
+                    fnmatch.fnmatch(basename, "*" + CONDA_TEMP_EXTENSION)):
                 filename = join(root, basename)
                 try:
                     unlink(filename)
+                    remove_empty_parent_paths(filename)
                 except (OSError, IOError) as e:
                     log.debug("%r errno %d\nCannot unlink %s.", e, e.errno, filename)
 
@@ -146,3 +152,19 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
             _rmdir(join(root, dir))
 
     _rmdir(dirpath)
+    if isdir(dirpath):
+        rmdir(dirpath)
+
+
+def path_is_clean(path):
+    """Sometimes we can't completely remove a path because files are considered in use
+    by python (hardlinking confusion).  For our tests, it is sufficient that either the
+    folder doesn't exist, or nothing but temporary file copies are left."""
+    clean = not exists(path)
+    if not clean:
+        for root, dirs, fns in walk(path):
+            for fn in fns:
+                if not (fnmatch.fnmatch(fn, "*.trash") or
+                        fnmatch.fnmatch(fn, "*" + CONDA_TEMP_EXTENSION)):
+                    return False
+    return True
