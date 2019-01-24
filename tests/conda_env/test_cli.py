@@ -268,10 +268,6 @@ class NewIntegrationTests(unittest.TestCase):
     def tearDown(self):
         run_env_command(Commands.ENV_REMOVE, test_env_name_2)
 
-    def test_non_existant_env_raises_on_remove(self):
-        with pytest.raises(EnvironmentLocationNotFound):
-            run_env_command(Commands.ENV_REMOVE, 'no-conda-environment-here')
-
     def test_env_export(self):
         """
             Test conda env export

@@ -7,6 +7,7 @@ from errno import EACCES, EEXIST, ENOENT, ENOTEMPTY, EPERM, errorcode
 from logging import getLogger
 import os
 from os.path import basename, isdir, dirname
+from subprocess import CalledProcessError
 import sys
 from time import sleep
 
@@ -33,10 +34,10 @@ def exp_backoff_fn(fn, *args, **kwargs):
         sleep_time = ((2 ** n) + random.random()) * 0.1
         caller_frame = sys._getframe(1)
         log.trace("retrying %s/%s %s() in %g sec",
-                    basename(caller_frame.f_code.co_filename),
-                    caller_frame.f_lineno,
-                    fn.__name__,
-                    sleep_time)
+                  basename(caller_frame.f_code.co_filename),
+                  caller_frame.f_lineno,
+                  fn.__name__,
+                  sleep_time)
         sleep(sleep_time)
 
     for n in range(max_tries):

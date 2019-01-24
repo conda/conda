@@ -2051,6 +2051,8 @@ class IntegrationTests(TestCase):
 
     def test_directory_not_a_conda_environment(self):
         prefix = make_temp_prefix(str(uuid4())[:7])
+        with open(join(prefix, 'tempfile.txt'), 'w') as f:
+            f.write("weeee")
         try:
             with pytest.raises(DirectoryNotACondaEnvironmentError):
                 run_command(Commands.INSTALL, prefix, "sqlite")
