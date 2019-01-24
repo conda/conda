@@ -115,11 +115,17 @@ class InitializeTests(TestCase):
                             'target_path': '/darwin\\Library\\bin\\conda.bat'
                         }
                     },
-                        {
+                    {
                         "function": "install_condabin_conda_activate_bat",
                         "kwargs": {
                             "conda_prefix": "/darwin",
                             "target_path": "/darwin\\condabin\\_conda_activate.bat"
+                        }
+                    },
+                    {
+                        'function': 'install_condabin_rename_tmp_bat',
+                        'kwargs': {'target_path': '/darwin\\condabin\\rename_tmp.bat',
+                                   'conda_prefix': '/darwin'
                         }
                     },
                     {
@@ -512,6 +518,7 @@ class InitializeTests(TestCase):
                 'conda.bat',  # condabin/conda.bat
                 'conda.bat',  # Library/bin/conda.bat
                 '_conda_activate.bat',
+                'rename_tmp.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
                 'activate.bat',
@@ -571,6 +578,7 @@ class InitializeTests(TestCase):
                 'conda.bat',  # condabin/conda.bat
                 'conda.bat',  # Library/bin/conda.bat
                 '_conda_activate.bat',
+                'rename_tmp.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
                 'activate.bat',
@@ -638,10 +646,11 @@ class InitializeTests(TestCase):
                 'conda.bat',  # condabin/conda.bat
                 'conda.bat',  # Library/bin/conda.bat
                 '_conda_activate.bat',
+                'rename_tmp.bat',
                 'conda_auto_activate.bat',
                 'conda_hook.bat',
-                'activate.bat',
-                'activate.bat',
+                'activate.bat',  # condabin/activate.bat
+                'activate.bat',  # Scripts/activate.bat
                 'deactivate.bat',
                 'activate',
                 'deactivate',
@@ -655,7 +664,6 @@ class InitializeTests(TestCase):
                 'conda.egg-link',
                 'easy-install.pth',
                 'conda.egg-info',
-
             )
         else:
             modified_files = (
