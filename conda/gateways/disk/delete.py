@@ -28,7 +28,15 @@ log = getLogger(__name__)
 def rmtree(path, *args, **kwargs):
     # subprocessing to delete large folders can be quite a bit faster
     if on_win:
-        check_call('rd /s /q "{}"'.format(path), shell=True)
+        try:
+            check_call('rd /s /q "{}"'.format(path), shell=True)
+        except CalledProcessError as e:
+            if e.returncode == 5:
+                # skip permission errors
+                log.warn("")
+                pass
+            else:
+                raise
     else:
         try:
             makedirs('.empty')
@@ -41,7 +49,7 @@ def rmtree(path, *args, **kwargs):
         if rsync:
             try:
                 check_call([rsync, '-a', '--delete', join(getcwd(), '.empty') + "/", path + "/"])
-            except CalledProcessError as e:
+            except CalledProcessError:
                 log.warn("Removing folder {} the fast way (with rsync) failed.  "
                          "Do you have rsync available?".format(path))
                 shutil.rmtree(path)
