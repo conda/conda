@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import EINVAL, EXDEV
 from logging import getLogger
 import os
-from os.path import dirname, isdir, split, basename, join
+from os.path import dirname, isdir, split, basename, join, exists
 import re
 from shutil import move
 from subprocess import Popen, PIPE
@@ -17,7 +17,7 @@ from .link import lexists
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import expand
-from ...exceptions import NotWritableError
+from ...exceptions import NotWritableError, CondaDependencyError
 
 log = getLogger(__name__)
 
@@ -59,6 +59,10 @@ def rename(source_path, destination_path, force=False):
             if on_win and dirname(source_path) == dirname(destination_path):
                 condabin_dir = join(context.conda_prefix, "condabin")
                 rename_script = join(condabin_dir, 'rename_tmp.bat')
+                if not exists(rename_script):
+                    raise CondaDependencyError("{} is missing. Conda was not installed correctly."
+                                               " Please file an issue on the conda github repo."
+                                               .format(rename_script))
                 _dirname, _src_fn = split(source_path)
                 _dest_fn = basename(destination_path)
                 p = Popen(['cmd.exe', '/C', rename_script, _dirname,

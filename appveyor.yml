@@ -41,7 +41,6 @@ build: false
 
 test_script:
   - CALL dev-init.bat
-  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - py.test %ADD_COV% -m "not integration and not installed" -v
   - py.test %ADD_COV% --cov-append -m "integration and not installed" -v
   - DEL /Q /F conda.egg-info

@@ -18,6 +18,7 @@ from .permissions import make_writable, recursive_make_writable
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.constants import CONDA_TEMP_EXTENSION
+from ...exceptions import CondaDependencyError
 if not on_win:
     from ...common.path import which
 
@@ -73,6 +74,10 @@ def unlink_or_rename_to_trash(path):
             #    rename leads to permission errors when files are in use.
             condabin_dir = join(context.conda_prefix, "condabin")
             trash_script = join(condabin_dir, 'rename_tmp.bat')
+            if not exists(trash_script):
+                raise CondaDependencyError("{} is missing.  Conda was not installed correctly.  "
+                                           "Please file an issue on the conda github repo.".format(
+                                               trash_script))
             _dirname, _fn = split(path)
             p = Popen(['cmd.exe', '/C', trash_script, _dirname, _fn, _fn + ".trash"],
                       stdout=PIPE, stderr=PIPE)
