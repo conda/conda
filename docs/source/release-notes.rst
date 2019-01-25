@@ -5,19 +5,42 @@ Release notes
 This information is drawn from the GitHub conda project
 changelog: https://github.com/conda/conda/blob/master/CHANGELOG.md
 
-4.6.0 (unreleased)
+4.6.1 (2019-01-21)
+------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* optimizations in ``get_reduced_index`` (#8117, #8121, #8122)
+
+Bug Fixes
+^^^^^^^^^
+
+* fix faulty onerror call for rm (#8053)
+* fix activate.bat to use more direct call to conda.bat (don't require conda init; fix non-interactive script) (#8113)
+
+
+Contributors
+^^^^^^^^^^^^
+
+* @jjhelmus
+* @msarahan
+* @pv
+
+
+4.6.0 (2019-01-15)
 ------------------
 
 New Feature Highlights
 ^^^^^^^^^^^^^^^^^^^^^^
 
-* resolve #7053 preview support for conda operability with pip (#7067, #7370, #7710)
+* resolve #7053 preview support for conda operability with pip; disabled by default (#7067, #7370, #7710, #8050)
 * conda initialize (#6518, #7388, #7629)
 * resolve #7194 add '--stack' flag to 'conda activate'; remove max_shlvl
   config (#7195, #7226, #7233)
 * resolve #7087 add non-conda-installed python packages into PrefixData (#7067, #7370)
 * resolve #2682 add 'conda run' preview support (#7320, #7625)
-* resolve #626 conda wrapper for PowerShell (#7794)
+* resolve #626 conda wrapper for PowerShell (#7794, #7829)
 
 Deprecations/Breaking Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -33,6 +56,7 @@ Deprecations/Breaking Changes
 * resolve #7309 deprecate 'conda info package_name' (#7310)
 * remove 'conda clean --source-cache' and defer to conda-build (#7731)
 * resolve #7724 move windows package cache and envs dirs back to .conda directory (#7725)
+* disallow env names with colons (#7801)
 
 Improvements
 ^^^^^^^^^^^^
@@ -68,6 +92,12 @@ Improvements
 * performance improvement to cache __hash__ value on PackageRecord (#7715)
 * resolve #7764 change name of 'condacmd' dir to 'condabin'; use on all platforms (#7773)
 * resolve #7782 implement PEP-440 '~=' compatible release operator (#7783)
+* disable timestamp prioritization when not needed (#7894, #8012)
+* compile pyc files for noarch packages in batches (#8015)
+* disable per-file sha256 safety checks by default; add extra_safety_checks condarc option to enable them (#8017)
+* shorten retries for file removal on windows, where in-use files can't be removed (#8024)
+* expand env vars in ``custom_channels``, ``custom_multichannels``, ``default_channels``, ``migrated_custom_channels``, and ``whitelist_channels`` (#7826)
+* encode repodata to utf-8 while caching, to fix unicode characters in repodata (#7873)
 
 Bug Fixes
 ^^^^^^^^^
@@ -92,6 +122,7 @@ Bug Fixes
 * fix #7706 add condacmd dir to cmd.exe path on first activation (#7735)
 * fix #7761 spec handling errors in 4.6.0b0 (#7780)
 * fix #7770 'conda list regex' only applies regex to package name (#7784)
+* fix #8076 load metadata from index to resolve inconsistent envs (#8083)
 
 Non-User-Facing Changes
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -115,19 +146,57 @@ Preview Releases
 * 4.6.0a1 at d5bec21d1f64c3bc66c2999cfc690681e9c46177 on 2018-04-20
 * 4.6.0a2 at c467517ca652371ebc4224f0d49315b7ec225108 on 2018-05-01
 * 4.6.0b0 at 21a24f02b2687d0895de04664a4ec23ccc75c33a on 2018-09-07
+* 4.6.0b1 at 1471f043eed980d62f46944e223f0add6a9a790b on 2018-10-22
+* 4.6.0rc1 at 64bde065f8343276f168d2034201115dff7c5753 on 2018-12-31
 
 Contributors
 ^^^^^^^^^^^^
 
 * @cgranade
 * @fabioz
+* @geremih
 * @goanpeca
 * @jesse-
+* @jjhelmus
 * @kalefranz
+* @makbigc
 * @mandeep
 * @mbargull
 * @msarahan
+* @nehaljwani
 * @ohadravid
+* @teake
+
+
+4.5.12 (2018-12-10)
+------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* backport 'allow_conda_downgrade' configuration parameter, default is False (#7998)
+* speed up verification by disabling per-file sha256 checks (#8017)
+* indicate Python 3.7 support in setup.py file (#8018)
+* speed up solver by reduce the size of reduced index (#8016)
+* speed up solver by skipping timestamp minimization when not needed (#8012)
+* compile pyc files more efficiently, will speed up install of noarch packages (#8025)
+* avoid waiting for removal of files on Windows when possible (#8024)
+
+Bug Fixes
+^^^^^^^^^
+
+* update integration tests for removal of 'features' key (#7726)
+* fix conda.bat return code (#7944)
+* ensure channel name is not NoneType (#8021)
+
+Contributors
+^^^^^^^^^^^^
+
+* @debionne
+* @jjhelmus
+* @kalefranz
+* @msarahan
+* @nehaljwani
 
 
 4.5.11 (2018-08-21)
