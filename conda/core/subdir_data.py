@@ -448,15 +448,15 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         status_code = getattr(e.response, 'status_code', None)
         if status_code in (403, 404):
             if not url.endswith('/noarch'):
+                log.info("Unable to retrieve repodata (%d error) for %s", status_code, url)
+                return None
+            else:
                 if context.allow_non_channel_urls:
                     stderrlog.warning("Unable to retrieve repodata (%d error) for %s",
                                       status_code, url)
                     return None
                 else:
                     raise UnavailableInvalidChannel(Channel(dirname(url)), status_code)
-            else:
-                log.info("Unable to retrieve repodata (%d error) for %s", status_code, url)
-                return None
 
         elif status_code == 401:
             channel = Channel(url)
