@@ -28,12 +28,11 @@ import sys
 
 from .base.constants import PREFIX_PLACEHOLDER
 from .common.compat import itervalues, on_win, open, iteritems
-from .gateways.disk.delete import delete_trash, move_path_to_trash, rm_rf
+from .gateways.disk.delete import rm_rf
 from .models.dist import Dist
 from .models.enums import PackageType
 from .models.match_spec import MatchSpec
 
-delete_trash, move_path_to_trash = delete_trash, move_path_to_trash
 from .core.package_cache_data import rm_fetched, PackageCacheData  # NOQA
 rm_fetched = rm_fetched
 

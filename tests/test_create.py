@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import bz2
 from contextlib import contextmanager
 from datetime import datetime
+import fnmatch
 from glob import glob
 
 from conda._vendor.toolz.itertoolz import groupby
@@ -39,6 +40,7 @@ from conda.base.context import Context, context, reset_context
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.compat import PY2, iteritems, itervalues, text_type, ensure_text_type
+from conda.common.constants import CONDA_TEMP_EXTENSION
 from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
@@ -53,7 +55,7 @@ from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllow
     DisallowedPackageError, UnsatisfiableError, DirectoryNotACondaEnvironmentError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf, path_is_clean
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
@@ -131,9 +133,10 @@ def run_command(command, prefix, *arguments, **kwargs):
     args = p.parse_args(split_command_line)
     context._set_argparse_args(args)
     init_loggers(context)
+    cap_args = tuple() if not kwargs.get("no_capture") else (None, None)
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
-        with argv(['python_api'] + split_command_line), captured() as c:
+        with argv(['python_api'] + split_command_line), captured(*cap_args) as c:
             if use_exception_handler:
                 conda_exception_handler(do_call, args, p)
             else:
@@ -764,14 +767,13 @@ class IntegrationTests(TestCase):
             # regression test for #2154
             with pytest.raises(PackagesNotFoundError) as exc:
                 run_command(Commands.REMOVE, prefix, 'python', 'foo', 'numpy')
-            assert repr(exc.value) == dals("""
-            PackagesNotFoundError: The following packages are missing from the target environment:
-              - foo
-              - numpy
-            """)
+            exception_string = repr(exc.value)
+            assert "PackagesNotFoundError" in exception_string
+            assert "- numpy" in exception_string
+            assert "- foo" in exception_string
 
             run_command(Commands.REMOVE, prefix, '--all')
-            assert not exists(prefix)
+            assert path_is_clean(prefix)
 
     @pytest.mark.skipif(on_win, reason="windows usually doesn't support symlinks out-of-the box")
     @patch('conda.core.link.hardlink_supported', side_effect=lambda x, y: False)
@@ -1914,7 +1916,10 @@ class IntegrationTests(TestCase):
     def test_install_mkdir(self):
         try:
             prefix = make_temp_prefix()
+            with open(os.path.join(prefix, 'tempfile.txt'), "w") as f:
+                f.write('test')
             assert isdir(prefix)
+            assert isfile(os.path.join(prefix, 'tempfile.txt'))
             with pytest.raises(DirectoryNotACondaEnvironmentError):
                 run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
 
@@ -1922,8 +1927,8 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
             assert package_is_installed(prefix, "python=3.5.2")
 
-            rm_rf(prefix)
-            assert not isdir(prefix)
+            rm_rf(prefix, clean_empty_parents=True)
+            assert path_is_clean(prefix)
 
             # this part also a regression test for #4849
             run_command(Commands.INSTALL, prefix, "python-dateutil=2.6.0", "python=3.5.2", "--mkdir")
@@ -1931,7 +1936,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "python-dateutil=2.6.0")
 
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf(prefix, clean_empty_parents=True)
 
     @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
     def test_disallowed_packages(self):
@@ -2009,7 +2014,7 @@ class IntegrationTests(TestCase):
 
         # regression test for #3489
         # don't raise for remove --all if environment doesn't exist
-        rm_rf(prefix)
+        rm_rf(prefix, clean_empty_parents=True)
         run_command(Commands.REMOVE, prefix, "--all")
 
     def test_download_only_flag(self):
@@ -2046,6 +2051,8 @@ class IntegrationTests(TestCase):
 
     def test_directory_not_a_conda_environment(self):
         prefix = make_temp_prefix(str(uuid4())[:7])
+        with open(join(prefix, 'tempfile.txt'), 'w') as f:
+            f.write("weeee")
         try:
             with pytest.raises(DirectoryNotACondaEnvironmentError):
                 run_command(Commands.INSTALL, prefix, "sqlite")

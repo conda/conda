@@ -1,5 +1,8 @@
 from __future__ import absolute_import, division, print_function
-from collections import Hashable
+try:
+    from collections.abc import Hashable
+except ImportError:
+    from collections import Hashable
 from types import GeneratorType
 
 from ._vendor.six import wraps

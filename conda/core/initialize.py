@@ -307,6 +307,13 @@ def make_install_plan(conda_prefix):
             },
         })
         plan.append({
+            'function': install_condabin_rename_tmp_bat.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'condabin', 'rename_tmp.bat'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+        plan.append({
             'function': install_condabin_conda_auto_activate_bat.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'condabin', 'conda_auto_activate.bat'),
@@ -848,6 +855,14 @@ def install_library_bin_conda_bat(target_path, conda_prefix):
 def install_condabin_conda_activate_bat(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'condabin', '_conda_activate.bat')
     conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', '_conda_activate.bat')
+    with open(conda_bat_src_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_condabin_rename_tmp_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condabin', 'rename_tmp.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'rename_tmp.bat')
     with open(conda_bat_src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)

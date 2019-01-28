@@ -1013,7 +1013,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None):
         log.debug("for %s at %s, executing script: $ %s",
                   prec.dist_str(), env['PREFIX'], ' '.join(command_args))
         subprocess_call(command_args, env=env, path=dirname(path))
-    except CalledProcessError as e:  # pragma: no cover
+    except CalledProcessError:
         m = messages(prefix)
         if action in ('pre-link', 'post-link'):
             if 'openssl' in prec.dist_str():

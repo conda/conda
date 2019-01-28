@@ -128,7 +128,7 @@ class Resolve(object):
                 filter[prec] = True
                 try:
                     depends = self.ms_depends(prec)
-                except InvalidSpec as e:
+                except InvalidSpec:
                     val = filter[prec] = False
                 else:
                     val = filter[prec] = all(v_ms_(ms) for ms in depends)
@@ -155,7 +155,7 @@ class Resolve(object):
                 filter_out[prec] = False
                 try:
                     has_valid_deps = all(is_valid_spec(ms) for ms in self.ms_depends(prec))
-                except InvalidSpec as e:
+                except InvalidSpec:
                     val = filter_out[prec] = "invalid dep specs"
                 else:
                     val = filter_out[prec] = False if has_valid_deps else "invalid depends specs"

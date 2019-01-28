@@ -78,6 +78,7 @@ def do_call(args, parser):
     # func_name should always be 'execute'
     from importlib import import_module
     module = import_module(relative_mod, __name__.rsplit('.', 1)[0])
+
     exit_code = getattr(module, func_name)(args, parser)
     return exit_code
 
@@ -257,6 +258,12 @@ def configure_parser_clean(sub_parsers):
         help="Remove *all* writable package caches. This option is not included with the --all "
              "flag. WARNING: This will break environments with packages installed using symlinks "
              "back to the package cache.",
+    )
+    removal_target_options.add_argument(
+        "-c", "--tempfiles",
+        nargs="+",
+        help=("Remove temporary files that could not be deleted earlier due to being in-use.  "
+              "Argument is path(s) to prefix(es) where files should be found and removed."),
     )
 
     add_output_and_prompt_options(p)

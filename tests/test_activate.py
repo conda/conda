@@ -20,6 +20,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import ensure_text_type, iteritems, on_win, \
     string_types
 from conda.common.io import captured, env_var, env_vars
+from conda.common.path import which
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -1269,10 +1270,6 @@ class InteractiveShell(object):
             return ensure_text_type(value).strip()
 
 
-def which(executable):
-    from distutils.spawn import find_executable
-    return find_executable(executable)
-
 def which_powershell():
     r"""
     Since we don't know whether PowerShell is installed as powershell, pwsh, or pwsh-preview,
@@ -1367,11 +1364,11 @@ class ShellWrapperIntegrationTests(TestCase):
         # TODO: assert that reactivate worked correctly
 
         shell.sendline('sqlite3 -version')
-        shell.expect('3\.21\..*\n')
+        shell.expect(r'3\.21\..*\n')
 
         # conda run integration test
         shell.sendline('conda run sqlite3 -version')
-        shell.expect('3\.21\..*\n')
+        shell.expect(r'3\.21\..*\n')
 
         # regression test for #6840
         shell.sendline('conda install --blah')
@@ -1526,12 +1523,12 @@ class ShellWrapperIntegrationTests(TestCase):
 
             print('## [PowerShell integration] Checking installed version.')
             shell.sendline('sqlite3 -version')
-            shell.expect('3\.21\..*')
+            shell.expect(r'3\.21\..*')
 
             # conda run integration test
             print('## [PowerShell integration] Checking conda run.')
             shell.sendline('conda run sqlite3 -version')
-            shell.expect('3\.21\..*')
+            shell.expect(r'3\.21\..*')
 
             print('## [PowerShell integration] Deactivating')
             shell.sendline('conda deactivate')
@@ -1562,11 +1559,11 @@ class ShellWrapperIntegrationTests(TestCase):
             # TODO: assert that reactivate worked correctly
 
             shell.sendline('sqlite3 -version')
-            shell.expect('3\.21\..*\n')
+            shell.expect(r'3\.21\..*\n')
 
             # conda run integration test
             shell.sendline('conda run sqlite3 -version')
-            shell.expect('3\.21\..*\n')
+            shell.expect(r'3\.21\..*\n')
 
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '1\r')

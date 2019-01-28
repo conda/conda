@@ -67,7 +67,7 @@ def captured(disallow_stderr=True):
 def capture_json_with_argv(command, disallow_stderr=True, ignore_stderr=False, **kwargs):
     stdout, stderr, exit_code = run_inprocess_conda_command(command, disallow_stderr)
     if kwargs.get('relaxed'):
-        match = re.match('\A.*?({.*})', stdout, re.DOTALL)
+        match = re.match(r'\A.*?({.*})', stdout, re.DOTALL)
         if match:
             stdout = match.groups()[0]
     elif stderr and not ignore_stderr:

@@ -28,7 +28,7 @@ def get_user_site():  # pragma: no cover
     try:
         if not on_win:
             if exists(expanduser('~/.local/lib')):
-                python_re = re.compile('python\d\.\d')
+                python_re = re.compile(r'python\d\.\d')
                 for path in os.listdir(expanduser('~/.local/lib/')):
                     if python_re.match(path):
                         site_dirs.append("~/.local/lib/%s" % path)

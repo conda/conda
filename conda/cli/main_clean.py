@@ -4,12 +4,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from collections import defaultdict
+import fnmatch
 from logging import getLogger
-from os import listdir, lstat, walk
+from os import listdir, lstat, walk, unlink
 from os.path import getsize, isdir, join, exists
 import sys
 
 from ..base.constants import CONDA_TARBALL_EXTENSION
+from ..common.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
 
 log = getLogger(__name__)
@@ -202,6 +204,20 @@ def rm_rf_pkgs_dirs():
     return writable_pkgs_dirs
 
 
+def clean_tmp_files(path=None):
+    if not path:
+        path = sys.prefix
+    for root, dirs, fns in walk(path):
+        for fn in fns:
+            if (fnmatch.fnmatch(fn, "*.trash") or
+                    fnmatch.fnmatch(fn, "*" + CONDA_TEMP_EXTENSION)):
+                file_path = join(root, fn)
+                try:
+                    unlink(file_path)
+                except EnvironmentError:
+                    log.warn("File at {} could not be cleaned up.  "
+                             "It's probably still in-use.".format(file_path))
+
 def _execute(args, parser):
     json_result = {
         'success': True
@@ -254,6 +270,12 @@ def _execute(args, parser):
         rm_pkgs(args, pkgs_dirs,  warnings, totalsize, pkgsizes,
                 verbose=not (context.json or context.quiet))
         one_target_ran = True
+
+    if args.all:
+        clean_tmp_files(sys.prefix)
+    elif args.tempfiles:
+        for path in args.tempfiles:
+            clean_tmp_files(path)
 
     if not one_target_ran:
         from ..exceptions import ArgumentError
