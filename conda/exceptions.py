@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from datetime import timedelta
 from errno import ENOSPC
+from functools import partial
 import json
 from logging import getLogger
 import os
@@ -1003,10 +1004,14 @@ class ExceptionHandler(object):
             _, exc_val, exc_tb = sys.exc_info()
             return self.handle_exception(exc_val, exc_tb)
 
-    @property
-    def out_stream(self):
+    def write_out(self, content_str):
         from .base.context import context
-        return sys.stdout if context.json else sys.stderr
+        if True:
+            logger = getLogger("conda.%s" % ("stdout" if context.json else "stderr"))
+            logger.info(content_str)
+        else:
+            stream = sys.stdout if context.json else sys.stderr
+            stream.write(content_str)
 
     @property
     def http_timeout(self):
@@ -1136,7 +1141,7 @@ class ExceptionHandler(object):
                 "An unexpected error has occurred. Conda has prepared the above report."
             )
             message_builder.append('')
-            self.out_stream.write('\n'.join(message_builder))
+            self.write_out('\n'.join(message_builder))
 
     def print_expected_error_report(self, error_report):
         from .base.context import context
@@ -1171,7 +1176,7 @@ class ExceptionHandler(object):
                 "A reportable application error has occurred. Conda has prepared the above report."
             )
             message_builder.append('')
-            self.out_stream.write('\n'.join(message_builder))
+            self.write_out('\n'.join(message_builder))
 
     def _calculate_ask_do_upload(self):
         from .base.context import context
@@ -1202,18 +1207,14 @@ class ExceptionHandler(object):
         return ask_for_upload, do_upload
 
     def ask_for_upload(self):
-        message_builder = [
-            "If submitted, this report will be used by core maintainers to improve",
-            "future releases of conda.",
-            "Would you like conda to send this report to the core maintainers?",
-        ]
-        message_builder.append(
-            "[y/N]: "
-        )
-        self.out_stream.write('\n'.join(message_builder))
+        self.write_out(dals("""
+        If submitted, this report will be used by core maintainers to improve
+        future releases of conda.
+        Would you like conda to send this report to the core maintainers?
+        """))
         ask_response = None
         try:
-            ask_response = timeout(40, input)
+            ask_response = timeout(40, partial(input, "[y/N]: "))
             do_upload = ask_response and boolify(ask_response)
         except Exception as e:  # pragma: no cover
             log.debug('%r', e)
@@ -1250,18 +1251,17 @@ class ExceptionHandler(object):
             log.info('%r', e)
         try:
             if response and response.ok:
-                self.out_stream.write("Upload successful.\n")
+                self.write_out("Upload successful.")
             else:
-                self.out_stream.write("Upload did not complete.")
+                self.write_out("Upload did not complete.")
                 if response and response.status_code:
-                    self.out_stream.write(" HTTP %s" % response.status_code)
-                    self.out_stream.write("\n")
+                    self.write_out(" HTTP %s" % response.status_code)
         except Exception as e:
             log.debug("%r" % e)
 
     def print_upload_confirm(self, do_upload, ask_for_upload, ask_response):
         if ask_response and do_upload:
-            self.out_stream.write(
+            self.write_out(
                 "\n"
                 "Thank you for helping to improve conda.\n"
                 "Opt-in to always sending reports (and not see this message again)\n"
@@ -1270,18 +1270,18 @@ class ExceptionHandler(object):
                 "    $ conda config --set report_errors true\n"
                 "\n"
             )
+        elif ask_response is None and ask_for_upload:
+            # means timeout was reached for `input`
+            self.write_out(  # lgtm [py/unreachable-statement]
+                '\nTimeout reached. No report sent.\n'
+            )
         elif ask_for_upload:
-            self.out_stream.write(
+            self.write_out(
                 "\n"
                 "No report sent. To permanently opt-out, use\n"
                 "\n"
                 "    $ conda config --set report_errors false\n"
                 "\n"
-            )
-        elif ask_response is None and ask_for_upload:
-            # means timeout was reached for `input`
-            self.out_stream.write(  # lgtm [py/unreachable-statement]
-                '\nTimeout reached. No report sent.\n'
             )
 
 

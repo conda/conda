@@ -138,6 +138,10 @@ class PrefixPathAction(PathAction):
         self.target_short_path = target_short_path
 
     @property
+    def target_short_paths(self):
+        return (self.target_short_path,)
+
+    @property
     def target_full_path(self):
         trgt, shrt_pth = self.target_prefix, self.target_short_path
         if trgt is not None and shrt_pth is not None:
