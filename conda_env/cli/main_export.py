@@ -80,8 +80,7 @@ def execute(args, parser):
         if not name:
             msg = "Unable to determine environment\n\n"
             msg += textwrap.dedent("""
-                Please re-run this command with one of     prefix = get_prefix(args)
-the following options:
+                Please re-run this command with one of the following options:
 
                 * Provide an environment name via --name or -n
                 * Re-run this command inside an activated conda environment.""").lstrip()
