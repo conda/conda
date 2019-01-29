@@ -1,3 +1,14 @@
+# 4.5.13 (2019-01-29)
+
+### Improvements
+* document the allow_conda_downgrades configuration parameter (#8034)
+* remove conda upgrade message (#8161)
+
+### Contributors
+* @msarahan
+* @nehaljwani
+
+
 # 4.5.12 (2018-12-10)
 
 ### Improvements
