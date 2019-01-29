@@ -19,7 +19,7 @@ from .base.context import context
 from .common.compat import ensure_text_type, iteritems, open, text_type
 from .common.path import paths_equal
 from .core.prefix_data import PrefixData, linked
-from .exceptions import CondaHistoryError, CondaUpgradeError, NotWritableError
+from .exceptions import CondaHistoryError, NotWritableError
 from .gateways.disk.update import touch
 from .models.dist import Dist
 from .models.version import VersionOrder, version_relation_re
@@ -262,7 +262,7 @@ class History(object):
                 'allow_conda_downgrades' to False at their own risk.
                 """)
 
-                # we need to rethink this.  It's fine as a warning to try to get users
+                # TODO: we need to rethink this.  It's fine as a warning to try to get users
                 #    to avoid breaking their system.  However, right now it is preventing
                 #    normal conda operation after downgrading conda.
                 # raise CondaUpgradeError(message)
