@@ -85,7 +85,6 @@ def initialize_logging():
     initialize_std_loggers()
 
 
-@memoize
 def initialize_std_loggers():
     # Set up special loggers 'conda.stdout'/'conda.stderr' which output directly to the
     # corresponding sys streams, filter token urls and don't propagate.
