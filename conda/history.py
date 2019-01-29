@@ -260,7 +260,10 @@ class History(object):
                 'allow_conda_downgrades' to False at their own risk.
                 """)
 
-                raise CondaUpgradeError(message)
+                # we need to rethink this.  It's fine as a warning to try to get users
+                #    to avoid breaking their system.  However, right now it is preventing
+                #    normal conda operation after downgrading conda.
+                # raise CondaUpgradeError(message)
 
         return res
 
