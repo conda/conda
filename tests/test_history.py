@@ -185,23 +185,24 @@ class UserRequestsTestCase(unittest.TestCase):
         }
 
 
-def test_minimum_conda_version_error():
-    with tempdir() as prefix:
-        assert not isfile(join(prefix, 'conda-meta', 'history'))
-        mkdir_p(join(prefix, 'conda-meta'))
-        copy2(join(dirname(__file__), 'conda-meta', 'history'),
-              join(prefix, 'conda-meta', 'history'))
+# behavior disabled as part of https://github.com/conda/conda/pull/8160
+# def test_minimum_conda_version_error():
+#     with tempdir() as prefix:
+#         assert not isfile(join(prefix, 'conda-meta', 'history'))
+#         mkdir_p(join(prefix, 'conda-meta'))
+#         copy2(join(dirname(__file__), 'conda-meta', 'history'),
+#               join(prefix, 'conda-meta', 'history'))
 
-        with open(join(prefix, 'conda-meta', 'history'), 'a') as fh:
-            fh.write("==> 2018-07-09 11:18:09 <==\n")
-            fh.write("# cmd: blarg\n")
-            fh.write("# conda version: 42.42.4242\n")
+#         with open(join(prefix, 'conda-meta', 'history'), 'a') as fh:
+#             fh.write("==> 2018-07-09 11:18:09 <==\n")
+#             fh.write("# cmd: blarg\n")
+#             fh.write("# conda version: 42.42.4242\n")
 
-        h = History(prefix)
+#         h = History(prefix)
 
-        with pytest.raises(CondaUpgradeError) as exc:
-            h.get_user_requests()
-        exception_string = repr(exc.value)
-        print(exception_string)
-        assert "minimum conda version: 42.42" in exception_string
-        assert "$ conda install -p" in exception_string
+#         with pytest.raises(CondaUpgradeError) as exc:
+#             h.get_user_requests()
+#         exception_string = repr(exc.value)
+#         print(exception_string)
+#         assert "minimum conda version: 42.42" in exception_string
+#         assert "$ conda install -p" in exception_string

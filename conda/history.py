@@ -23,7 +23,7 @@ from .base.context import context
 from .common.compat import ensure_text_type, iteritems, open, text_type
 from .common.path import paths_equal
 from .core.prefix_data import PrefixData
-from .exceptions import CondaHistoryError, CondaUpgradeError, NotWritableError
+from .exceptions import CondaHistoryError, NotWritableError
 from .gateways.disk.update import touch
 from .models.dist import dist_str_to_quad
 from .models.version import VersionOrder, version_relation_re
