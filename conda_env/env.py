@@ -78,7 +78,9 @@ def from_environment(name, prefix, no_builds=False, ignore_channels=False):
     Returns:     Environment object
     """
     # requested_specs_map = History(prefix).get_requested_specs_map()
-    precs = tuple(PrefixGraph(PrefixData(prefix).iter_records()).graph)
+    pd = PrefixData(prefix, pip_interop_enabled=True)
+
+    precs = tuple(PrefixGraph(pd.iter_records()).graph)
     grouped_precs = groupby(lambda x: x.package_type, precs)
     conda_precs = sorted(concatv(
         grouped_precs.get(None, ()),
