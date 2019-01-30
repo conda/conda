@@ -168,6 +168,7 @@ class MatchSpec(object):
     FIELD_NAMES_SET = frozenset(FIELD_NAMES)
     _MATCHER_CACHE = {}
 
+
     def __init__(self, optional=False, target=None, **kwargs):
         self._optional = optional
         self._target = target
@@ -238,7 +239,8 @@ class MatchSpec(object):
         return True
 
     def _match_individual(self, record, field_name, match_component):
-        val = getattr(record, field_name)
+        #val = getattr(record, field_name)
+        val = record.__dict__[field_name]
         try:
             return match_component.match(val)
         except AttributeError:
@@ -371,11 +373,11 @@ class MatchSpec(object):
             return False
 
     def __hash__(self):
-        return hash(self._hash_key)
+        return self._hash_key
 
     @memoizedproperty
     def _hash_key(self):
-        return self._match_components, self.optional, self.target
+        return hash((self._match_components, self.optional, self.target))
 
     def __contains__(self, field):
         return field in self._match_components
@@ -795,12 +797,15 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):  # lgtm [py/missing-equals]
             self._re_match = re.compile(r'^(?:%s)$' % value).match
 
     def match(self, other):
-        try:
-            _other_val = other._raw_value
-        except AttributeError:
+        if isinstance(other, string_types):
             _other_val = text_type(other)
+        else:
+            try:
+                _other_val = other._raw_value
+            except AttributeError:
+                _other_val = text_type(other)
 
-        if self._re_match:
+        if self._re_match is not None:
             return self._re_match(_other_val)
         else:
             return self._raw_value == _other_val

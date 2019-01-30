@@ -234,7 +234,7 @@ class Solver(object):
                      context.json):
             ssc = self._collect_all_metadata(ssc)
 
-        with Spinner("Solving environment", not context.verbosity and not context.quiet,
+        with Spinner("xxx Solving environment xxx", not context.verbosity and not context.quiet,
                      context.json):
             ssc = self._remove_specs(ssc)
             ssc = self._find_inconsistent_packages(ssc)
@@ -442,6 +442,9 @@ class Solver(object):
         return ssc
 
     def _run_sat(self, ssc):
+        import cProfile, pstats, io as StringIO
+        pr = cProfile.Profile()
+        pr.enable()
         final_environment_specs = IndexedSet(concatv(
             itervalues(ssc.specs_map),
             ssc.track_features_specs,
@@ -505,6 +508,12 @@ class Solver(object):
                         final_environment_specs.add(spec)
 
         ssc.final_environment_specs = final_environment_specs
+        pr.disable()
+        s = StringIO.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue(), file=open("profile.txt", "w"))
         return ssc
 
     def _post_sat_handling(self, ssc):
