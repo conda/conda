@@ -256,7 +256,8 @@ class PrefixData(object):
         for af in non_conda_anchor_files:
             try:
                 python_record = read_python_record(self.prefix_path, af, python_pkg_record.version)
-            except EnvironmentError:
+            except EnvironmentError as e:
+                log.info("Python record ignored for anchor path '%s'\n  due to %s", af, e)
                 continue
             except ValidationError:
                 import sys
