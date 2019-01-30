@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from logging import getLogger
 from os.path import basename, dirname
 import re
 import sys
@@ -161,7 +162,7 @@ def disp_features(features):
 
 @swallow_broken_pipe
 def stdout_json(d):
-    print(json_dump(d))
+    getLogger("conda.stdout").info(json_dump(d))
 
 
 def stdout_json_success(success=True, **kwargs):

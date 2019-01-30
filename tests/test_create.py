@@ -1691,7 +1691,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--add channels %s" % channel_url)
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
-            assert yml_obj['channels'] == [channel_url, 'defaults']
+            assert yml_obj['channels'] == [channel_url.replace('cqgccfm1mfma', '<TOKEN>'), 'defaults']
 
             with pytest.raises(PackagesNotFoundError):
                 run_command(Commands.SEARCH, prefix, "boltons", "--json")
@@ -1742,7 +1742,8 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--remove channels defaults")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
-            assert yml_obj['channels'] == [channel_url]
+
+            assert yml_obj['channels'] == ["https://conda.anaconda.org/t/<TOKEN>/kalefranz"]
 
             stdout, stderr = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
                                          "linux-64", "--json")
