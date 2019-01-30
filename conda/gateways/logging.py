@@ -92,6 +92,7 @@ def initialize_std_loggers():
 
     for stream in ('stdout', 'stderr'):
         logger = getLogger('conda.%s' % stream)
+        logger.handlers = []
         logger.setLevel(INFO)
         handler = StdStreamHandler(stream)
         handler.setLevel(INFO)
@@ -101,6 +102,7 @@ def initialize_std_loggers():
         logger.propagate = False
 
         stdlog_logger = getLogger('conda.%slog' % stream)
+        stdlog_logger.handlers = []
         stdlog_logger.setLevel(DEBUG)
         stdlog_handler = StdStreamHandler(stream)
         stdlog_handler.terminator = ''
@@ -110,6 +112,7 @@ def initialize_std_loggers():
         stdlog_logger.propagate = False
 
     verbose_logger = getLogger('conda.stdout.verbose')
+    verbose_logger.handlers = []
     verbose_logger.setLevel(INFO)
     verbose_handler = StdStreamHandler('stdout')
     verbose_handler.setLevel(INFO)

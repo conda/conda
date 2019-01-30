@@ -71,7 +71,7 @@ smoketest:
 	$(PYTEST) tests/test_create.py -k test_create_install_update_remove
 
 
-unit: clean
+unit:
 	$(PYTEST) $(ADD_COV) -m "not integration and not installed"
 
 
