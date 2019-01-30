@@ -1,3 +1,31 @@
+## 4.6.2 (2019-01-29)
+
+### Improvements
+* Documentation restructuring/improvements  (#8139, #8143)
+* rewrite rm_rf to use native system utilities and rename trash files  (#8134)
+
+### Bug fixes
+* fix UnavailableInvalidChannel errors when only noarch subdir is present  (#8154)
+* document, but disable the ``allow_conda_downgrades`` flag, pending re-examination of the warning, which was blocking conda operations after an upgrade-downgrade cycle across minor versions.  (#8160)
+* fix conda env export missing pip entries without use of pip interop enabled setting  (#8165)
+
+### Contributors
+* @jjhelmus
+* @msarahan
+* @nehaljwani
+* @rrigdon
+
+
+## 4.5.13 (2019-01-29)
+
+### Improvements
+* document the allow_conda_downgrades configuration parameter (#8034)
+* remove conda upgrade message (#8161)
+
+### Contributors
+* @msarahan
+* @nehaljwani
+
 ## 4.6.1 (2019-01-21)
 
 ### Improvements
@@ -137,16 +165,6 @@
 * @nehaljwani
 * @ohadravid
 * @teake
-
-# 4.5.13 (2019-01-29)
-
-### Improvements
-* document the allow_conda_downgrades configuration parameter (#8034)
-* remove conda upgrade message (#8161)
-
-### Contributors
-* @msarahan
-* @nehaljwani
 
 
 # 4.5.12 (2018-12-10)
