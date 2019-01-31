@@ -136,18 +136,19 @@ def test_pip_interop_osx():
 
 def test_get_conda_anchor_files_and_records():
     valid_tests = [
-        os.sep.join(('v', 'site-packages', 'spam', '.egg-info', 'PKG-INFO')),
-        os.sep.join(('v', 'site-packages', 'foo', '.dist-info', 'RECORD')),
-        os.sep.join(('v', 'site-packages', 'bar', '.egg-info')),
+        'v/site-packages/spam.egg-info/PKG-INFO',
+        'v/site-packages/foo.dist-info/RECORD',
+        'v/site-packages/bar.egg-info',
     ]
     invalid_tests = [
-        os.sep.join(('i', 'site-packages', '.egg-link')),
-        os.sep.join(('i', 'spam', '.egg-info', 'PKG-INFO')),
-        os.sep.join(('i', 'foo', '.dist-info', 'RECORD')),
-        os.sep.join(('i', 'bar', '.egg-info')),
-        os.sep.join(('i', 'site-packages', 'spam')),
-        os.sep.join(('i', 'site-packages', 'foo')),
-        os.sep.join(('i', 'site-packages', 'bar')),
+        'v/site-packages/valid-package/_vendor/invalid-now.egg-info/PKG-INFO',
+        'i/site-packages/stuff.egg-link',
+        'i/spam.egg-info/PKG-INFO',
+        'i/foo.dist-info/RECORD',
+        'i/bar.egg-info',
+        'i/site-packages/spam',
+        'i/site-packages/foo',
+        'i/site-packages/bar',
     ]
     tests = valid_tests + invalid_tests
     records = []
@@ -156,10 +157,10 @@ def test_get_conda_anchor_files_and_records():
         record.files = [path]
         records.append(record)
 
-    output = get_conda_anchor_files_and_records(records)
+    output = get_conda_anchor_files_and_records("v/site-packages", records)
     expected_output = odict()
     for i in range(len(valid_tests)):
         expected_output[valid_tests[i]] = records[i]
 
     _print_output(output, expected_output)
-    assert output, expected_output
+    assert output == expected_output

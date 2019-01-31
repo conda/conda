@@ -7,6 +7,7 @@ from fnmatch import filter as fnmatch_filter
 from logging import getLogger
 from os import listdir
 from os.path import basename, isdir, isfile, join, lexists
+import re
 
 from .._vendor.auxlib.exceptions import ValidationError
 from ..base.constants import CONDA_TARBALL_EXTENSION, PREFIX_MAGIC_FILE
@@ -220,7 +221,7 @@ class PrefixData(object):
         # Get anchor files for corresponding conda (handled) python packages
         prefix_graph = PrefixGraph(self.iter_records())
         python_records = prefix_graph.all_descendants(python_pkg_record)
-        conda_python_packages = get_conda_anchor_files_and_records(python_records)
+        conda_python_packages = get_conda_anchor_files_and_records(site_packages_dir, python_records)
 
         # Get all anchor files and compare against conda anchor files to find clobbered conda
         # packages and python packages installed via other means (not handled by conda)
@@ -276,16 +277,27 @@ class PrefixData(object):
         return new_packages
 
 
-def get_conda_anchor_files_and_records(python_records):
+def get_conda_anchor_files_and_records(site_packages_short_path, python_records):
     """Return the anchor files for the conda records of python packages."""
     anchor_file_endings = ('.egg-info/PKG-INFO', '.dist-info/RECORD', '.egg-info')
     conda_python_packages = odict()
 
+    matcher = re.compile(
+        r"^%s/[^/]+(?:%s)$" % (
+            re.escape(site_packages_short_path),
+            r"|".join(re.escape(fn) for fn in anchor_file_endings)
+        )
+    ).match
+
     for prefix_record in python_records:
-        for fpath in prefix_record.files:
-            if fpath.endswith(anchor_file_endings) and 'site-packages' in fpath:
-                # Then 'fpath' is an anchor file
-                conda_python_packages[fpath] = prefix_record
+        anchor_paths = tuple(fpath for fpath in prefix_record.files if matcher(fpath))
+        if len(anchor_paths) > 1:
+            anchor_path = sorted(anchor_paths, key=len)[0]
+            log.info("Package %s has multiple python anchor files.\n"
+                     "  Using %s", prefix_record.record_id(), anchor_path)
+            conda_python_packages[anchor_path] = prefix_record
+        elif anchor_paths:
+            conda_python_packages[anchor_paths[0]] = prefix_record
 
     return conda_python_packages
 
