@@ -221,7 +221,9 @@ class PrefixData(object):
         # Get anchor files for corresponding conda (handled) python packages
         prefix_graph = PrefixGraph(self.iter_records())
         python_records = prefix_graph.all_descendants(python_pkg_record)
-        conda_python_packages = get_conda_anchor_files_and_records(site_packages_dir, python_records)
+        conda_python_packages = get_conda_anchor_files_and_records(
+            site_packages_dir, python_records
+        )
 
         # Get all anchor files and compare against conda anchor files to find clobbered conda
         # packages and python packages installed via other means (not handled by conda)
