@@ -726,6 +726,32 @@ Solution
 
 Exercise caution when coding version requirements.
 
+.. _upgrade-error:
+
+Conda upgrade error
+===================
+
+Cause
+-----
+Downgrading conda from 4.6.1 to 4.5.x and then trying to ``conda install conda`` or  ``conda upgrade conda`` will produce a solving and upgrade error similar to the following: 
+
+.. code-block:: Python
+
+   Solving environment: failed
+   CondaUpgradeError: This environment has previously been operated on by a conda version that's newer than the conda currently being used. A newer version of conda is required.
+   target environment location: /opt/conda
+   current conda version: 4.5.9
+   minimum conda version: 4.6
+
+Solution
+--------
+
+Change the .condarc file. Set the parameter by editing the .condarc file directly: 
+``allow_conda_downgrades: true`` in conda version 4.5.12. This will then let you upgrade. If you have something older than 4.5.12, install conda 4.6.1 again from the package cache. 
+
+EXAMPLE: If my conda info says package cache : /opt/conda/pkgs and my Python version is 3.7, then on the command line, type ``conda install /opt/conda/pkgs/conda-4.6.1-py37_0.tar.bz2`` to resolve the issue.
+
+
 
 ValidationError: Invalid value for timestamp
 =============================================
