@@ -468,6 +468,12 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
             raise NotImplementedError()
 
     if 'powershell' in shells:
+        if for_user:
+            profile = '$PROFILE.CurrentUserAllHosts'
+
+        if for_system:
+            profile = '$PROFILE.AllUsersAllHosts'
+
         # There's several places PowerShell can store its path, depending
         # on if it's Windows PowerShell, PowerShell Core on Windows, or
         # PowerShell Core on macOS/Linux. The easiest way to resolve it is to
@@ -477,12 +483,12 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
             for exe_name in exe_names:
                 try:
                     yield subprocess_call(
-                        (exe_name, '-NoProfile', '-Command', '$PROFILE')
+                        (exe_name, '-NoProfile', '-Command', profile)
                     ).stdout.strip()
                 except Exception:
                     pass
 
-        config_powershell_paths = tuple(
+        config_powershell_paths = set(
             find_powershell_paths('powershell', 'pwsh', 'pwsh-preview')
         )
 
@@ -495,11 +501,6 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                         'conda_prefix': conda_prefix
                     }
                 })
-
-        if for_system:
-            raise NotImplementedError(
-                "PowerShell hooks are only implemented for per-user profiles."
-            )
 
     if 'cmd.exe' in shells:
         if for_user:
