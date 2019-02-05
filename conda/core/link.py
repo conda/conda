@@ -6,9 +6,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict, namedtuple
 from logging import getLogger
 import os
-from os.path import basename, dirname, isdir, join
+from os.path import abspath, basename, dirname, isdir, join
 from subprocess import CalledProcessError
 import sys
+import tempfile
 from traceback import format_exception_only
 import warnings
 
@@ -596,7 +597,8 @@ class UnlinkLinkTransaction(object):
             for axn_idx, action in enumerate(axngroup.actions):
                 action.execute()
             if axngroup.type in ('unlink', 'link'):
-                run_script(target_prefix, prec, 'post-unlink' if is_unlink else 'post-link')
+                run_script(target_prefix, prec, 'post-unlink' if is_unlink else 'post-link',
+                           activate=True)
         except Exception as e:  # this won't be a multi error
             # reverse this package
             log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action,
@@ -958,7 +960,7 @@ class UnlinkLinkTransaction(object):
         return change_report
 
 
-def run_script(prefix, prec, action='post-link', env_prefix=None):
+def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False):
     """
     call the post-link (or pre-unlink) script, and return True on success,
     False on failure
@@ -994,13 +996,33 @@ def run_script(prefix, prec, action='post-link', env_prefix=None):
 
     if on_win:
         try:
-            command_args = [os.environ[str('COMSPEC')], '/d', '/c', path]
+            comspec = os.environ[str('COMSPEC')]
         except KeyError:
             log.info("failed to run %s for %s due to COMSPEC KeyError", action, prec.dist_str())
             return False
+        if activate:
+            conda_bat = env.get("CONDA_BAT", abspath(join(context.root_prefix, 'bin', 'conda')))
+            with tempfile.NamedTemporaryFile(mode='w', prefix=prefix, delete=False) as fh:
+                fh.write('@CALL {0} activate \"{1}\""\n'.format(conda_bat, prefix))
+                fh.write('@CALL "\{0}\"\n'.format(path))
+                script_caller = fh.name
+            command_args = [comspec, '/d', '/c', script_caller]
+        else:
+            command_args = [comspec, '/d', '/c', path]
+
     else:
         shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
-        command_args = [shell_path, "-x", path]
+        if activate:
+            conda_exe = env.get("CONDA_EXE", abspath(join(context.root_prefix, 'bin', 'conda')))
+            with tempfile.NamedTemporaryFile(mode='w', prefix=prefix, delete=False) as fh:
+                fh.write("eval \"$(\"{0}\" \"shell.posix\" \"hook\")\"\n".format(conda_exe)),
+                fh.write("conda activate \"{0}\"\n".format(prefix)),
+                fh.write("source \"{}\"\n".format(path))
+                script_caller = fh.name
+            command_args = [shell_path, "-x", script_caller]
+        else:
+            command_args = [shell_path, "-x", path]
+            script_caller = None
 
     env['ROOT_PREFIX'] = context.root_prefix
     env['PREFIX'] = env_prefix or prefix
@@ -1036,6 +1058,9 @@ def run_script(prefix, prec, action='post-link', env_prefix=None):
     else:
         messages(prefix)
         return True
+    finally:
+        if script_caller is not None:
+            os.remove(script_caller)
 
 
 def messages(prefix):
