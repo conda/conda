@@ -546,8 +546,7 @@ class time_recorder(ContextDecorator):  # pragma: no cover
                 fh.write("%s,%f\n" % (entry_name, run_time))
             # total_call_num = self.total_call_num[entry_name]
             # total_run_time = self.total_run_time[entry_name]
-            # log.debug(
-            #     '%s %9.3f %9.3f %d', entry_name, run_time, total_run_time, total_call_num)
+            # log.debug('%s %9.3f %9.3f %d', entry_name, run_time, total_run_time, total_call_num)
 
     @classmethod
     def log_totals(cls):
