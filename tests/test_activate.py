@@ -1147,7 +1147,7 @@ class InteractiveShell(object):
             'activator': 'cmd.exe',
             'init_command': 'set "CONDA_SHLVL=" '
                             '&& @CALL conda\\shell\\condabin\\conda_hook.bat '
-                            '&& set "CONDA_EXE=python -m conda"',
+                            '&& set "CONDA_EXE={}"'.format(join(sys.prefix, "Scripts", "conda.exe")),
             'print_env_var': '@echo %%%s%%',
         },
         'csh': {
