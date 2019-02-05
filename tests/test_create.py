@@ -247,7 +247,7 @@ def package_is_installed(prefix, spec):
     spec = MatchSpec(spec)
     prefix_recs = tuple(PrefixData(prefix).query(spec))
     if len(prefix_recs) > 1:
-        raise AssertionError("Multiple packages installed.%s" 
+        raise AssertionError("Multiple packages installed.%s"
                              % (dashlist(prec.dist_str() for prec in prefix_recs)))
     return bool(len(prefix_recs))
 
@@ -2151,6 +2151,11 @@ class IntegrationTests(TestCase):
             with make_temp_env("openssl=1.0.2j --no-deps") as prefix:
                 assert package_is_installed(prefix, 'openssl')
                 assert rs.call_count == 1
+
+    def test_post_link_run_in_env(self):
+        test_pkg = '_conda_test_env_activated_when_post_link_executed'
+        with make_temp_env(test_pkg, '-c conda-test') as prefix:
+            assert package_is_installed(prefix, test_pkg)
 
     def test_conda_info_python(self):
         stdout, stderr = run_command(Commands.INFO, None, "python=3.5")
