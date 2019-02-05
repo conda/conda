@@ -5,7 +5,7 @@
 @IF [%1]==[activate]   "%~dp0_conda_activate" %*
 @IF [%1]==[deactivate] "%~dp0_conda_activate" %*
 
-@CALL %CONDA_EXE% %*
+@CALL "%CONDA_EXE%" %*
 @IF %errorlevel% NEQ 0 EXIT /B %errorlevel%
 
 @IF [%1]==[install]   "%~dp0_conda_activate" reactivate
