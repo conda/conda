@@ -17,7 +17,7 @@ from .link import lexists
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import expand
-from ...exceptions import NotWritableError, CondaDependencyError
+from ...exceptions import NotWritableError
 
 log = getLogger(__name__)
 
@@ -59,15 +59,16 @@ def rename(source_path, destination_path, force=False):
             if on_win and dirname(source_path) == dirname(destination_path):
                 condabin_dir = join(context.conda_prefix, "condabin")
                 rename_script = join(condabin_dir, 'rename_tmp.bat')
-                if not exists(rename_script):
-                    raise CondaDependencyError("{} is missing. Conda was not installed correctly."
-                                               " Please file an issue on the conda github repo."
-                                               .format(rename_script))
-                _dirname, _src_fn = split(source_path)
-                _dest_fn = basename(destination_path)
-                p = Popen(['cmd.exe', '/C', rename_script, _dirname,
-                           _src_fn, _dest_fn], stdout=PIPE, stderr=PIPE)
-                stdout, stderr = p.communicate()
+                if exists(rename_script):
+                    _dirname, _src_fn = split(source_path)
+                    _dest_fn = basename(destination_path)
+                    p = Popen(['cmd.exe', '/C', rename_script, _dirname,
+                               _src_fn, _dest_fn], stdout=PIPE, stderr=PIPE)
+                    stdout, stderr = p.communicate()
+                else:
+                    log.debug("{} is missing.  Conda was not installed correctly or has been "
+                              "corrupted.  Please file an issue on the conda github repo."
+                              .format(rename_script))
             elif e.errno in (EINVAL, EXDEV):
                 # https://github.com/conda/conda/issues/6811
                 # https://github.com/conda/conda/issues/6711
