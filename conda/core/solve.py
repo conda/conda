@@ -253,6 +253,7 @@ class Solver(object):
 
         return ssc.solution_precs
 
+    @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):
         if ssc.prune:  # or update_modifier == UpdateModifier.UPDATE_ALL  # pending conda/constructor#138  # NOQA
             # Users are struggling with the prune functionality in --update-all, due to
@@ -335,6 +336,7 @@ class Solver(object):
             ssc.solution_precs = tuple(graph.graph)
         return ssc
 
+    @time_recorder(module_name=__name__)
     def _find_inconsistent_packages(self, ssc):
         # We handle as best as possible environments in inconsistent states. To do this,
         # we remove now from consideration the set of packages causing inconsistencies,
@@ -441,6 +443,7 @@ class Solver(object):
 
         return ssc
 
+    @time_recorder(module_name=__name__)
     def _run_sat(self, ssc):
         final_environment_specs = IndexedSet(concatv(
             itervalues(ssc.specs_map),
