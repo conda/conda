@@ -1516,11 +1516,10 @@ class ShellWrapperIntegrationTests(TestCase):
             shell.sendline('conda activate "%s"' % self.prefix)
             shell.assert_env_var('CONDA_SHLVL', '2\r?')
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
-            PATH = shell.get_env_var('PATH')
-            assert 'charizard' not in PATH
+
             shell.sendline('conda deactivate')
             PATH = shell.get_env_var('PATH')
-            assert 'charizard' not in PATH
+            assert 'charizard' in PATH
             shell.sendline('conda activate -stack "%s"' % venusaur)
             PATH = shell.get_env_var('PATH')
             assert 'venusaur' in PATH
