@@ -1498,6 +1498,7 @@ class ShellWrapperIntegrationTests(TestCase):
     @pytest.mark.skipif(not which_powershell(), reason='PowerShell not installed')
     def test_powershell_basic_integration(self):
         charizard = join(self.prefix, 'envs', 'charizard')
+        venusaur = join(self.prefix, 'envs', 'venusaur')
         posh_kind, posh_path = which_powershell()
         print('## [PowerShell integration] Using {}.'.format(posh_path))
         with InteractiveShell(posh_kind) as shell:
@@ -1510,9 +1511,20 @@ class ShellWrapperIntegrationTests(TestCase):
             print('## [PowerShell integration] Activating.')
             shell.sendline('conda activate "%s"' % charizard)
             shell.assert_env_var('CONDA_SHLVL', '1\r?')
+            PATH = shell.get_env_var('PATH')
+            assert 'charizard' in PATH
             shell.sendline('conda activate "%s"' % self.prefix)
             shell.assert_env_var('CONDA_SHLVL', '2\r?')
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
+            PATH = shell.get_env_var('PATH')
+            assert 'charizard' not in PATH
+            shell.sendline('conda deactivate')
+            PATH = shell.get_env_var('PATH')
+            assert 'charizard' not in PATH
+            shell.sendline('conda activate -stack "%s"' % venusaur)
+            PATH = shell.get_env_var('PATH')
+            assert 'venusaur' in PATH
+            assert 'charizard' in PATH
 
             print('## [PowerShell integration] Installing.')
             shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
