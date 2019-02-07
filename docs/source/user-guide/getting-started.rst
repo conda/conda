@@ -6,7 +6,7 @@ Getting started with conda
 
 Conda is a powerful package manager and environment manager that
 you use with command line commands at the Anaconda Prompt for Windows,
-or in a Terminal window for macOS or Linux.
+or in a terminal window for macOS or Linux.
 
 This 20-minute guide to getting started with conda lets you try out
 the major features of conda. You should understand how conda works
@@ -47,7 +47,7 @@ Starting conda
 
 **Windows**
 
-* From the Start menu, search for and open "Anaconda Prompt".
+* From the Start menu, search for and open "Anaconda Prompt."
 
 .. figure:: /img/anaconda-prompt.png
    :width: 50%
@@ -60,15 +60,15 @@ On Windows, all commands below are typed into the Anaconda Prompt window.
 
 **MacOS**
 
-* Open Launchpad, then click the Terminal icon.
+* Open Launchpad, then click the terminal icon.
 
-On macOS, all commands below are typed into the Terminal window.
+On macOS, all commands below are typed into the terminal window.
 
 **Linux**
 
-* Open a Terminal window.
+* Open a terminal window.
 
-On Linux, all commands below are typed into the Terminal window.
+On Linux, all commands below are typed into the terminal window.
 
 .. _managing-conda:
 
@@ -87,7 +87,7 @@ need to navigate to the Anaconda directory.
 EXAMPLE: ``conda 4.4.9``
 
 NOTE: If you get an error message, make sure you closed and re-opened the
-Terminal window after installing, or do it now. Then verify that you are logged
+terminal window after installing, or do it now. Then verify that you are logged
 into the same user account that you used to install Anaconda or Miniconda.
 
 Update conda to the current version. Type the following:
@@ -121,7 +121,7 @@ Create separate environments to keep your programs isolated from each other.
 #. Create a new environment and install a package in it.
 
    We will name the environment ``snowflakes`` and install the package
-   BioPython. At the Anaconda Prompt or in your Terminal window, type
+   BioPython. At the Anaconda Prompt or in your terminal window, type
    the following:
 
    .. code::
@@ -139,8 +139,15 @@ Create separate environments to keep your programs isolated from each other.
 
 #. To use, or "activate" the new environment, type the following:
 
-     * Windows:  ``activate snowflakes``
-     * Linux and macOS: ``source activate snowflakes``
+   * Windows: ``conda activate snowflakes``
+   * Linux and macOS: ``conda activate snowflakes``
+
+   NOTE: ``conda activate`` only works on conda 4.6 and later versions.
+
+   For conda versions prior to 4.6, type:
+
+   * Windows: ``activate snowflakes``
+   * Linux and macOS: ``source activate snowflakes``
 
    Now that you are in your ``snowflakes`` environment, any conda
    commands you type will go to that environment until
@@ -164,13 +171,16 @@ Create separate environments to keep your programs isolated from each other.
    TIP: The active environment is the one with an asterisk (*).
 
 #. Change your current environment back to the default (base):
+   ``conda activate``
 
-     * Windows:  ``deactivate``
-     * Linux, macOS: ``source deactivate``
+   NOTE: For versions prior to conda 4.6, use:
 
-   TIP: When the environment is deactivated, its name is no
-   longer shown in your prompt, and the asterisk (*) returns to base.
-   To verify, you can repeat the  ``conda info --envs`` command.
+     * Windows:  ``activate``
+     * Linux, macOS: ``source activate``
+
+TIP: When the environment is deactivated, its name is no
+longer shown in your prompt, and the asterisk (*) returns to base.
+To verify, you can repeat the  ``conda info --envs`` command.
 
 
 .. _managing-python:
@@ -228,9 +238,12 @@ specify the version of Python that you want.
       python --version
 
 #. Deactivate the snakes environment and return to base environment:
+   ``conda activate``
 
-     * Windows: ``deactivate``
-     * Linux, macOS: ``source deactivate``
+NOTE: For versions prior to conda 4.6, use:
+
+     * Windows:  ``activate``
+     * Linux, macOS: ``source activate``
 
 
 .. _managing-pkgs:
@@ -273,7 +286,7 @@ install it.
 More information
 ================
 
-* :doc:`Conda cheat sheet <cheatsheet>`.
-* Full documentation--- https://conda.io/docs/ .
-* Free community support--- https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda .
-* Paid support options--- https://www.anaconda.com/support/ .
+* :doc:`Conda cheat sheet <cheatsheet>`
+* Full documentation--- https://conda.io/docs/ 
+* Free community support--- https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda 
+* Paid support options--- https://www.anaconda.com/support/ 

@@ -33,4 +33,5 @@ Miniconda*.sh
 miniconda*.sh
 miniconda*.exe
 .pytest_cache/
+docs/source/_build
 .vscode
