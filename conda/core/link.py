@@ -1002,8 +1002,10 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
             return False
         if activate:
             conda_bat = env.get("CONDA_BAT", abspath(join(context.root_prefix, 'bin', 'conda')))
-            with tempfile.NamedTemporaryFile(mode='w', prefix=prefix, suffix='.bat', delete=False) as fh:
+            with tempfile.NamedTemporaryFile(
+                    mode='w', prefix=prefix, suffix='.bat', delete=False) as fh:
                 fh.write('@CALL \"{0}\" activate \"{1}\"\n'.format(conda_bat, prefix))
+                fh.write('echo "PATH: %PATH%\n')
                 fh.write('@CALL \"{0}\"\n'.format(path))
                 script_caller = fh.name
             command_args = [comspec, '/d', '/c', script_caller]
