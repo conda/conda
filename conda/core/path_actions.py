@@ -20,6 +20,7 @@ from .._vendor.toolz import concat
 from ..base.constants import CONDA_TARBALL_EXTENSION
 from ..base.context import context
 from ..common.compat import iteritems, on_win, text_type
+from ..common.constants import CONDA_TEMP_EXTENSION
 from ..common.path import (get_bin_directory_short_path, get_leaf_directories,
                            get_python_noarch_target_path, get_python_short_path,
                            parse_entry_point_def,
@@ -31,7 +32,7 @@ from ..gateways.disk.create import (compile_multiple_pyc, copy,
                                     create_hard_link_or_copy, create_link,
                                     create_python_entry_point, extract_tarball,
                                     make_menu, mkdir_p, write_as_json_to_file)
-from ..gateways.disk.delete import rm_rf, try_rmdir_all_empty
+from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.permissions import make_writable
 from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
                                   read_index_json)
@@ -51,7 +52,6 @@ REPR_IGNORE_KWARGS = (
     'package_info',
     'hold_path',
 )
-
 
 @with_metaclass(ABCMeta)
 class PathAction(object):
@@ -136,6 +136,10 @@ class PrefixPathAction(PathAction):
         self.transaction_context = transaction_context
         self.target_prefix = target_prefix
         self.target_short_path = target_short_path
+
+    @property
+    def target_short_paths(self):
+        return (self.target_short_path,)
 
     @property
     def target_full_path(self):
@@ -366,10 +370,7 @@ class LinkPathAction(CreateInPrefixPathAction):
     def reverse(self):
         if self._execute_successful:
             log.trace("reversing link creation %s", self.target_prefix)
-            if self.link_type == LinkType.directory:
-                try_rmdir_all_empty(self.target_full_path)
-            else:
-                rm_rf(self.target_full_path)
+            rm_rf(self.target_full_path, clean_empty_parents=True)
 
 
 class PrefixReplaceLinkAction(LinkPathAction):
@@ -886,7 +887,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
         self.remove_specs = remove_specs
         self.update_specs = update_specs
 
-        self.hold_path = self.target_full_path + '.c~'
+        self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
     def execute(self):
         log.trace("updating environment history %s", self.target_full_path)
@@ -959,9 +960,8 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
                  link_type=LinkType.hardlink):
         super(UnlinkPathAction, self).__init__(transaction_context, linked_package_data,
                                                target_prefix, target_short_path)
-        conda_temp_extension = '.c~'
-        self.holding_short_path = self.target_short_path + conda_temp_extension
-        self.holding_full_path = self.target_full_path + conda_temp_extension
+        self.holding_short_path = self.target_short_path + CONDA_TEMP_EXTENSION
+        self.holding_full_path = self.target_full_path + CONDA_TEMP_EXTENSION
         self.link_type = link_type
 
     def execute(self):
@@ -975,10 +975,7 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
             backoff_rename(self.holding_full_path, self.target_full_path, force=True)
 
     def cleanup(self):
-        if self.link_type == LinkType.directory:
-            try_rmdir_all_empty(self.target_full_path)
-        else:
-            rm_rf(self.holding_full_path)
+        rm_rf(self.holding_full_path, clean_empty_parents=True)
 
 
 class RemoveMenuAction(RemoveFromPrefixPathAction):
@@ -1066,7 +1063,7 @@ class CacheUrlAction(PathAction):
         self.target_package_basename = target_package_basename
         self.md5sum = md5sum
         self.expected_size_in_bytes = expected_size_in_bytes
-        self.hold_path = self.target_full_path + '.c~'
+        self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
     def verify(self):
         assert '::' not in self.url
@@ -1164,7 +1161,7 @@ class ExtractPackageAction(PathAction):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
-        self.hold_path = self.target_full_path + '.c~'
+        self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
         self.record_or_spec = record_or_spec
         self.md5sum = md5sum
 

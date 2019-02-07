@@ -5,6 +5,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from datetime import datetime
+from errno import ENOENT
 import os
 from os.path import basename, lexists
 from pprint import pprint
@@ -523,8 +524,9 @@ def test_pydist_check_files():
 
     # Test mandatory file not found
     os.remove(fpaths[0])
-    with pytest.raises(AssertionError):
+    with pytest.raises(EnvironmentError) as exc:
         PythonInstalledDistribution(temp_path, "2.7", None)
+    assert exc.value.errno == ENOENT
 
 
 def test_python_dist_info():

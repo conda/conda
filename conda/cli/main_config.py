@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from collections import OrderedDict
 import json
+from logging import getLogger
 import os
 from os.path import isfile, join
 import sys
@@ -16,7 +17,8 @@ from .._vendor.toolz import concat, groupby
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
                               UpdateModifier)
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import Mapping, Sequence, isiterable, iteritems, itervalues, string_types
+from ..common.compat import (Mapping, Sequence, isiterable, iteritems, itervalues, string_types,
+                             text_type)
 from ..common.configuration import pretty_list, pretty_map
 from ..common.io import timeout
 from ..common.serialize import yaml, yaml_dump, yaml_load
@@ -98,21 +100,23 @@ def describe_all_parameters():
 
 
 def execute_config(args, parser):
-
+    stdout_write = getLogger("conda.stdout").info
+    stderr_write = getLogger("conda.stderr").info
     json_warnings = []
     json_get = {}
 
     if args.show_sources:
         if context.json:
-            print(json.dumps(context.collect_all(), sort_keys=True,
-                             indent=2, separators=(',', ': ')))
+            stdout_write(
+                json.dumps(context.collect_all(), sort_keys=True, indent=2, separators=(',', ': '))
+            )
         else:
             lines = []
             for source, reprs in iteritems(context.collect_all()):
                 lines.append("==> %s <==" % source)
                 lines.extend(format_dict(reprs))
                 lines.append('')
-            print('\n'.join(lines))
+            stdout_write('\n'.join(lines))
         return
 
     if args.show is not None:
@@ -129,8 +133,9 @@ def execute_config(args, parser):
 
         d = OrderedDict((key, getattr(context, key)) for key in paramater_names)
         if context.json:
-            print(json.dumps(d, sort_keys=True, indent=2, separators=(',', ': '),
-                  cls=EntityEncoder))
+            stdout_write(json.dumps(
+                d, sort_keys=True, indent=2, separators=(',', ': '), cls=EntityEncoder
+            ))
         else:
             # Add in custom formatting
             if 'custom_channels' in d:
@@ -145,7 +150,7 @@ def execute_config(args, parser):
                     for multichannel_name, channels in iteritems(d['custom_multichannels'])
                 }
 
-            print('\n'.join(format_dict(d)))
+            stdout_write('\n'.join(format_dict(d)))
         context.validate_configuration()
         return
 
@@ -159,14 +164,15 @@ def execute_config(args, parser):
                 from ..common.io import dashlist
                 raise ArgumentError("Invalid configuration parameters: %s" % dashlist(not_params))
             if context.json:
-                print(json.dumps([context.describe_parameter(name) for name in paramater_names],
-                                 sort_keys=True, indent=2, separators=(',', ': '),
-                                 cls=EntityEncoder))
+                stdout_write(json.dumps(
+                    [context.describe_parameter(name) for name in paramater_names],
+                    sort_keys=True, indent=2, separators=(',', ': '), cls=EntityEncoder
+                ))
             else:
                 builder = []
                 builder.extend(concat(parameter_description_builder(name)
                                       for name in paramater_names))
-                print('\n'.join(builder))
+                stdout_write('\n'.join(builder))
         else:
             if context.json:
                 skip_categories = ('CLI-only', 'Hidden and Undocumented')
@@ -174,11 +180,12 @@ def execute_config(args, parser):
                     parameter_names for category, parameter_names in context.category_map.items()
                     if category not in skip_categories
                 ))
-                print(json.dumps([context.describe_parameter(name) for name in paramater_names],
-                                 sort_keys=True, indent=2, separators=(',', ': '),
-                                 cls=EntityEncoder))
+                stdout_write(json.dumps(
+                    [context.describe_parameter(name) for name in paramater_names],
+                    sort_keys=True, indent=2, separators=(',', ': '), cls=EntityEncoder
+                ))
             else:
-                print(describe_all_parameters())
+                stdout_write(describe_all_parameters())
         return
 
     if args.validate:
@@ -234,7 +241,7 @@ def execute_config(args, parser):
             if key not in primitive_parameters + sequence_parameters:
                 message = "unknown key %s" % key
                 if not context.json:
-                    print(message, file=sys.stderr)
+                    stderr_write(message)
                 else:
                     json_warnings.append(message)
                 continue
@@ -246,7 +253,7 @@ def execute_config(args, parser):
                 continue
 
             if isinstance(rc_config[key], (bool, string_types)):
-                print("--set", key, rc_config[key])
+                stdout_write(" ".join(("--set", key, text_type(rc_config[key]))))
             else:  # assume the key is a list-type
                 # Note, since conda config --add prepends, these are printed in
                 # the reverse order so that entering them in this order will
@@ -256,10 +263,12 @@ def execute_config(args, parser):
                 for q, item in enumerate(reversed(items)):
                     # Use repr so that it can be pasted back in to conda config --add
                     if key == "channels" and q in (0, numitems-1):
-                        print("--add", key, repr(item),
-                              "  # lowest priority" if q == 0 else "  # highest priority")
+                        stdout_write(" ".join((
+                            "--add", key, repr(item),
+                            "  # lowest priority" if q == 0 else "  # highest priority"
+                        )))
                     else:
-                        print("--add", key, repr(item))
+                        stdout_write(" ".join(("--add", key, repr(item))))
 
     if args.stdin:
         content = timeout(5, sys.stdin.read)
@@ -292,7 +301,7 @@ def execute_config(args, parser):
                     item, key, "top" if prepend else "bottom")
                 arglist = rc_config[key] = [p for p in arglist if p != item]
                 if not context.json:
-                    print(message, file=sys.stderr)
+                    stderr_write(message)
                 else:
                     json_warnings.append(message)
             arglist.insert(0 if prepend else len(arglist), item)

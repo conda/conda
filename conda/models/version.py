@@ -519,8 +519,14 @@ class VersionSpec(BaseSpec):  # lgtm [py/missing-equals]
                 elif operator_str == "!=":
                     vo_str = vo_str[:-2]
                     operator_str = "!=startswith"
-                else:
+                elif operator_str == "~=":
                     raise InvalidVersionSpec(vspec_str, "invalid operator with '.*'")
+                else:
+                    log.warning("Using .* with relational operator is superfluous and deprecated "
+                                "and will be removed in a future version of conda. Your spec was "
+                                "{}, but conda is ignoring the .* and treating it as {}"
+                                .format(vo_str, vo_str[:-2]))
+                    vo_str = vo_str[:-2]
             try:
                 self.operator_func = OPERATOR_MAP[operator_str]
             except KeyError:

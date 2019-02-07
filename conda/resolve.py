@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from logging import DEBUG, getLogger
 
 from ._vendor.auxlib.collection import frozendict
@@ -38,7 +38,7 @@ def dashlist(iterable, indent=2):
 
 class Resolve(object):
 
-    def __init__(self, index, sort=False, processed=False, channels=()):
+    def __init__(self, index, processed=False, channels=()):
         self.index = index
 
         self.channels = channels
@@ -60,15 +60,30 @@ class Resolve(object):
                     trackers[feature_name].append(prec)
 
         self.groups = groups  # Dict[package_name, List[PackageRecord]]
-        self.trackers = trackers  # Dict[track_feature, List[PackageRecord]]
+        self.trackers = trackers  # Dict[track_feature, Set[PackageRecord]]
         self._cached_find_matches = {}  # Dict[MatchSpec, Set[PackageRecord]]
         self.ms_depends_ = {}  # Dict[PackageRecord, List[MatchSpec]]
         self._reduced_index_cache = {}
         self._strict_channel_cache = {}
 
-        if sort:
-            for group in itervalues(groups):
-                group.sort(key=self.version_key, reverse=True)
+        # sorting these in reverse order is effectively prioritizing
+        # contstraint behavior from newer packages. It is applying broadening
+        # reduction based on the latest packages, which may reduce the space
+        # more, because more modern packages utilize constraints in more sane
+        # ways (for example, using run_exports in conda-build 3)
+        for name, group in self.groups.items():
+            self.groups[name] = sorted(group, key=self.version_key, reverse=True)
+
+    def __hash__(self):
+        return (super().__hash__() ^
+                hash(frozenset(self.channels)) ^
+                hash(frozendict(self._channel_priorities_map)) ^
+                hash(self._channel_priority) ^
+                hash(self._solver_ignore_timestamps) ^
+                hash(frozendict((k, tuple(v)) for k, v in self.groups.items())) ^
+                hash(frozendict((k, tuple(v)) for k, v in self.trackers.items())) ^
+                hash(frozendict((k, tuple(v)) for k, v in self.ms_depends_.items()))
+                )
 
     def default_filter(self, features=None, filter=None):
         # TODO: fix this import; this is bad
@@ -113,7 +128,7 @@ class Resolve(object):
                 filter[prec] = True
                 try:
                     depends = self.ms_depends(prec)
-                except InvalidSpec as e:
+                except InvalidSpec:
                     val = filter[prec] = False
                 else:
                     val = filter[prec] = all(v_ms_(ms) for ms in depends)
@@ -140,7 +155,7 @@ class Resolve(object):
                 filter_out[prec] = False
                 try:
                     has_valid_deps = all(is_valid_spec(ms) for ms in self.ms_depends(prec))
-                except InvalidSpec as e:
+                except InvalidSpec:
                     val = filter_out[prec] = "invalid dep specs"
                 else:
                     val = filter_out[prec] = False if has_valid_deps else "invalid depends specs"
@@ -453,6 +468,7 @@ class Resolve(object):
 
             if strict_channel_priority and add_these_precs2:
                 strict_channel_name = self._get_strict_channel(add_these_precs2[0].name)
+
                 add_these_precs2 = tuple(
                     prec for prec in add_these_precs2 if prec.channel.name == strict_channel_name
                 )
@@ -463,11 +479,11 @@ class Resolve(object):
                 #    that is picked up because of an explicit spec.  We don't want the
                 #    broadening check to apply across packages at the explicit level; only
                 #    at the level of deps below that explicit package.
-                seen_pkgs = {pkg}
                 seen_specs = set()
+                specs_by_name = {}
 
                 dep_specs = set(self.ms_depends(pkg))
-                specs_by_name = {}
+                this_pkg_constraints = {}
                 for dep in dep_specs:
                     specs = specs_by_name.get(dep.name, set())
                     specs.add(dep)
@@ -476,39 +492,49 @@ class Resolve(object):
                     {k: frozenset(v) for k, v in specs_by_name.items()})
 
                 while(dep_specs):
+                    # used for debugging
+                    # size_index = len(reduced_index2)
+                    # specs_added = []
                     ms = dep_specs.pop()
                     seen_specs.add(ms)
-                    dep_packages = set(self.find_matches(ms)) - seen_pkgs
-                    for dep_pkg in dep_packages:
-                        seen_pkgs.add(dep_pkg)
+                    for dep_pkg in (_ for _ in self.find_matches(ms) if _ not in reduced_index2):
                         if not self.valid2(dep_pkg, filter_out):
                             continue
 
-                        # expand the reduced index
-                        if dep_pkg not in reduced_index2:
-                            if strict_channel_priority:
-                                strict_channel_name = self._get_strict_channel(dep_pkg.name)
-                                if dep_pkg.channel.name == strict_channel_name:
-                                    reduced_index2[dep_pkg] = dep_pkg
-                            else:
-                                reduced_index2[dep_pkg] = dep_pkg
+                        # expand the reduced index if not using strict channel priority,
+                        #    or if using it and this package is in the appropriate channel
+                        if (not strict_channel_priority or
+                                (self._get_strict_channel(dep_pkg.name) ==
+                                 dep_pkg.channel.name)):
+                            reduced_index2[dep_pkg] = dep_pkg
 
-                        # recurse to deps of this dep
-                        new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
-                        for ms in new_specs:
-                            # We do not pull packages into the reduced index due
-                            # to a track_features dependency. Remember, a feature
-                            # specifies a "soft" dependency: it must be in the
-                            # environment, but it is not _pulled_ in. The SAT
-                            # logic doesn't do a perfect job of capturing this
-                            # behavior, but keeping these packags out of the
-                            # reduced index helps. Of course, if _another_
-                            # package pulls it in by dependency, that's fine.
-                            if ('track_features' not in ms
-                                    and not self._broader(ms, this_pkg_constraints)
-                                    and ms not in seen_specs):
-                                dep_specs.add(ms)
+                            # recurse to deps of this dep
+                            new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
+                            for new_ms in new_specs:
+                                # We do not pull packages into the reduced index due
+                                # to a track_features dependency. Remember, a feature
+                                # specifies a "soft" dependency: it must be in the
+                                # environment, but it is not _pulled_ in. The SAT
+                                # logic doesn't do a perfect job of capturing this
+                                # behavior, but keeping these packags out of the
+                                # reduced index helps. Of course, if _another_
+                                # package pulls it in by dependency, that's fine.
+                                if ('track_features' not in new_ms
+                                        and not self._broader(new_ms, this_pkg_constraints)):
+                                    dep_specs.add(new_ms)
+                                    # if new_ms not in dep_specs:
+                                    #     specs_added.append(new_ms)
+                                else:
+                                    seen_specs.add(new_ms)
+                    # debugging info - see what specs are bringing in the largest blobs
+                    # if size_index != len(reduced_index2):
+                    #     print("MS {} added {} pkgs to index".format(ms,
+                    #           len(reduced_index2) - size_index))
+                    # if specs_added:
+                    #     print("MS {} added {} specs to further examination".format(ms,
+                    #                                                                specs_added))
 
+        reduced_index2 = frozendict(reduced_index2)
         self._reduced_index_cache[cache_key] = reduced_index2
         return reduced_index2
 
@@ -532,7 +558,7 @@ class Resolve(object):
         else:
             candidate_precs = itervalues(self.index)
 
-        res = frozenset(p for p in candidate_precs if spec.match(p))
+        res = tuple(p for p in candidate_precs if spec.match(p))
         self._cached_find_matches[spec] = res
         return res
 
@@ -552,7 +578,6 @@ class Resolve(object):
         version_comparator = VersionOrder(prec.get('version', ''))
         build_number = prec.get('build_number', 0)
         build_string = prec.get('build')
-        ts = prec.get('timestamp', 0)
         if self._channel_priority != ChannelPriority.DISABLED:
             vkey = [valid, -channel_priority, version_comparator, build_number]
         else:
@@ -560,7 +585,7 @@ class Resolve(object):
         if self._solver_ignore_timestamps:
             vkey.append(build_string)
         else:
-            vkey.extend((ts, build_string))
+            vkey.extend((prec.get('timestamp', 0), build_string))
         return vkey
 
     @staticmethod
@@ -815,7 +840,7 @@ class Resolve(object):
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
             specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
-        r2 = Resolve({prec: prec for prec in installed}, True, True, channels=self.channels)
+        r2 = Resolve(OrderedDict((prec, prec) for prec in installed), True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -831,7 +856,7 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r2 = Resolve(reduced_index, True, True, channels=self.channels)
+        r2 = Resolve(reduced_index, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(specs, True)
         if solution:
@@ -867,7 +892,7 @@ class Resolve(object):
             sat_name_map[self.to_sat_name(prec)] = prec
             specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
         new_index = {prec: prec for prec in itervalues(sat_name_map)}
-        r2 = Resolve(new_index, True, True, channels=self.channels)
+        r2 = Resolve(new_index, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -906,7 +931,7 @@ class Resolve(object):
             pkgs.extend(p for p in preserve if p.name not in sdict)
 
     def install_specs(self, specs, installed, update_deps=True):
-        specs = list(map(MatchSpec, specs))
+        specs = set(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
         limit, preserve = self.bad_installed(installed, specs)
@@ -926,8 +951,8 @@ class Resolve(object):
             else:
                 spec = MatchSpec(name=name, version=version,
                                  build=build, channel=schannel)
-            specs.append(spec)
-        return specs, preserve
+            specs.add(spec)
+        return frozenset(specs), preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
@@ -982,7 +1007,8 @@ class Resolve(object):
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
-        specs = tuple(map(MatchSpec, specs))
+        specs = frozenset(map(MatchSpec, specs))
+
         reduced_index = self.get_reduced_index(specs)
         if not reduced_index:
             return False if reduced_index is None else ([[]] if returnall else [])
@@ -1013,7 +1039,7 @@ class Resolve(object):
                 return True
             return False
 
-        r2 = Resolve(reduced_index, True, True, channels=self.channels)
+        r2 = Resolve(reduced_index, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(specs, True)
         if not solution:

@@ -107,7 +107,7 @@ def execute(args, parser):
     for installer_type in env.dependencies:
         try:
             installers[installer_type] = get_installer(installer_type)
-        except InvalidInstaller as e:
+        except InvalidInstaller:
             sys.stderr.write(textwrap.dedent("""
                 Unable to install package for {0}.
 

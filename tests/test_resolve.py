@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from datetime import datetime
+from collections import OrderedDict
 from os.path import isdir, join
 from pprint import pprint
 import unittest
@@ -154,7 +154,7 @@ def test_pseudo_boolean():
 
 
 def test_get_dists():
-    reduced_index = r.get_reduced_index([MatchSpec("anaconda 1.5.0")])
+    reduced_index = r.get_reduced_index((MatchSpec("anaconda 1.5.0"), ))
     dist_strs = [prec.dist_str() for prec in reduced_index]
     assert 'channel-1::anaconda-1.5.0-np17py27_0' in dist_strs
     assert 'channel-1::dynd-python-0.3.0-np17py33_0' in dist_strs
@@ -174,13 +174,13 @@ def test_get_reduced_index_unmanageable():
     index[py_rec] = py_rec
     new_r = Resolve(index, channels=channels)
     reduced_index = new_r.get_reduced_index((MatchSpec("requests"),))
-    new_r2 = Resolve(reduced_index, True, True, channels=channels)
+    new_r2 = Resolve(reduced_index, True, channels=channels)
     assert len(new_r2.groups["requests"]) == 1, new_r2.groups["requests"]
 
 
 def test_generate_eq_1():
-    reduced_index = r.get_reduced_index([MatchSpec('anaconda')])
-    r2 = Resolve(reduced_index, True, True)
+    reduced_index = r.get_reduced_index((MatchSpec('anaconda'), ))
+    r2 = Resolve(reduced_index, True)
     C = r2.gen_clauses()
     eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
     # Should satisfy the following criteria:
@@ -484,7 +484,7 @@ def test_nonexistent_deps():
         'defaults::mypackage-1.0-py33_0',
         'defaults::mypackage-1.1-py33_0',
     }
-    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('mypackage')])) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('mypackage'), ))) == {
         'defaults::mypackage-1.1-py33_0',
         'channel-1::nose-1.1.2-py33_0',
         'channel-1::nose-1.2.1-py33_0',
@@ -610,7 +610,7 @@ def test_nonexistent_deps():
         'defaults::mypackage-1.0-py33_0',
         'defaults::mypackage-1.1-py33_0',
         }
-    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('mypackage')]).keys()) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('mypackage'), )).keys()) == {
         'defaults::mypackage-1.0-py33_0',
         'channel-1::nose-1.1.2-py33_0',
         'channel-1::nose-1.2.1-py33_0',
@@ -769,7 +769,7 @@ def test_circular_dependencies():
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
         'defaults::package1-1.0-0',
     }
-    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('package1')]).keys()) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('package1'), )).keys()) == {
         'defaults::package1-1.0-0',
         'defaults::package2-1.0-0',
     }
@@ -827,7 +827,7 @@ def test_optional_dependencies():
     assert set(prec.dist_str() for prec in r.find_matches(MatchSpec('package1'))) == {
         'defaults::package1-1.0-0',
     }
-    assert set(prec.dist_str() for prec in r.get_reduced_index([MatchSpec('package1')]).keys()) == {
+    assert set(prec.dist_str() for prec in r.get_reduced_index((MatchSpec('package1'), )).keys()) == {
         'defaults::package1-1.0-0',
         'defaults::package2-2.0-0',
     }
@@ -1139,12 +1139,12 @@ def test_channel_priority_2():
     this_index = index.copy()
     index4, r4 = get_index_r_4()
     this_index.update(index4)
-    spec = [MatchSpec('pandas'), MatchSpec('python 2.7*')]
+    spec = (MatchSpec('pandas'), MatchSpec('python 2.7*'))
     channels = (Channel('channel-1'), Channel('channel-3'))
     this_r = Resolve(this_index, channels=channels)
     with env_var("CONDA_CHANNEL_PRIORITY", "True", reset_context):
         dists = this_r.get_reduced_index(spec)
-        r2 = Resolve(dists, True, True, channels=channels)
+        r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
         eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
@@ -1295,14 +1295,13 @@ def test_channel_priority_2():
     # setting strict actually doesn't do anything here; just ensures it's not 'disabled'
     with env_var("CONDA_CHANNEL_PRIORITY", "strict", reset_context):
         dists = this_r.get_reduced_index(spec)
-        r2 = Resolve(dists, True, True, channels=channels)
+        r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
+
         eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
-        pprint(eqc)
-        assert eqc == {}
+        assert eqc == {}, eqc
         installed_w_strict = [prec.dist_str() for prec in this_r.install(spec)]
-        pprint(installed_w_strict)
         assert installed_w_strict == [
             'channel-1::dateutil-2.1-py27_1',
             'channel-1::numpy-1.7.1-py27_0',
@@ -1317,11 +1316,11 @@ def test_channel_priority_2():
             'channel-1::system-5.8-1',
             'channel-1::tk-8.5.13-0',
             'channel-1::zlib-1.2.7-0',
-        ]
+        ], installed_w_strict
 
     with env_var("CONDA_CHANNEL_PRIORITY", "False", reset_context):
         dists = this_r.get_reduced_index(spec)
-        r2 = Resolve(dists, True, True, channels=channels)
+        r2 = Resolve(dists, True, channels=channels)
         C = r2.gen_clauses()
         eqc, eqv, eqb, eqt = r2.generate_version_metrics(C, list(r2.groups.keys()))
         eqc = {key: value for key, value in iteritems(eqc)}
@@ -1696,7 +1695,7 @@ def test_update_deps():
 
 
 def test_surplus_features_1():
-    index = {
+    index = (
         PackageRecord(**{
             'name': 'feature',
             'version': '1.0',
@@ -1726,15 +1725,14 @@ def test_surplus_features_1():
             'build_number': 0,
             'features': 'feature',
         }),
-    }
-    index = {prec: prec for prec in index}
-    r = Resolve({key: value for key, value in iteritems(index)})
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
     install = r.install(['package2', 'feature'])
     assert 'package1' not in set(d.name for d in install)
 
 
 def test_surplus_features_2():
-    index = {
+    index = (
         PackageRecord(**{
             'name': 'feature',
             'version': '1.0',
@@ -1764,8 +1762,109 @@ def test_surplus_features_2():
             'build_number': 1,
             'features': 'feature',
         }),
-    }
-    index = {prec: prec for prec in index}
-    r = Resolve({key: value for key, value in iteritems(index)})
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
     install = r.install(['package2', 'feature'])
     assert 'package1' not in set(d.name for d in install)
+
+
+def test_get_reduced_index_broadening_with_unsatisfiable_early_dep():
+    # Test that spec broadening reduction doesn't kill valid solutions
+    #    In other words, the order of packages in the index should not affect the
+    #    overall result of the reduced index.
+    # see discussion at https://github.com/conda/conda/pull/8117#discussion_r249249815
+    index = (
+        PackageRecord(**{
+            'name': 'a',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            # not satisfiable. This record should come first, so that its c==2
+            # constraint tries to mess up the inclusion of the c record below,
+            # which should be included as part of b's deps, but which is
+            # broader than this dep.
+            'depends': ['b', 'c==2'],
+        }),
+        PackageRecord(**{
+            'name': 'a',
+            'version': '2.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': ['b'],
+        }),
+        PackageRecord(**{
+            'name': 'b',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': ['c'],
+        }),
+        PackageRecord(**{
+            'name': 'c',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': [],
+        })
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+
+    install = r.install(['a'])
+    assert 'a' in set(d.name for d in install)
+    assert 'b' in set(d.name for d in install)
+    assert 'c' in set(d.name for d in install)
+
+
+def test_get_reduced_index_broadening_preferred_solution():
+    # test that order of index reduction does not eliminate what should be a preferred solution
+    #    https://github.com/conda/conda/pull/8117#discussion_r249216068
+    index = (
+        PackageRecord(**{
+            'name': 'top',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            # this is the first processed record, and imposes a broadening constraint on bottom
+            #    if things are overly restricted, we'll end up with bottom 1.5 in our solution
+            #    instead of the preferred (latest) 2.5
+            'depends': ['middle', 'bottom==1.5'],
+        }),
+        PackageRecord(**{
+            'name': 'top',
+            'version': '2.0',
+            'build': '0',
+            'build_number': 0,
+            'depends': ['middle'],
+        }),
+        PackageRecord(**{
+            'name': 'middle',
+            'version': '1.0',
+            'build': '0',
+            'build_number': 0,
+            # this is a broad constraint on bottom, which should allow us to
+            #    get the latest version (2.5)
+            'depends': ['bottom'],
+        }),
+        PackageRecord(**{
+            'name': 'bottom',
+            'version': '1.5',
+            'build': '0',
+            'build_number': 0,
+            'depends': [],
+        }),
+        PackageRecord(**{
+            'name': 'bottom',
+            'version': '2.5',
+            'build': '0',
+            'build_number': 0,
+            'depends': [],
+        }),
+    )
+    r = Resolve(OrderedDict((prec, prec) for prec in index))
+
+    install = r.install(['top'])
+    for d in install:
+        if d.name == 'top':
+            assert d.version == '2.0', "top version should be 2.0, but is {}".format(d.version)
+        elif d.name == 'bottom':
+            assert d.version == '2.5', "bottom version should be 2.5, but is {}".format(d.version)

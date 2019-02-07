@@ -96,7 +96,6 @@ def run_env_command(command, prefix, *arguments):
         command_line = "{0} -n {1} {2}".format(command, prefix, " ".join(arguments))
     else:
         command_line = " --help "
-    print(command_line)
     args = p.parse_args(split(command_line))
     context._set_argparse_args(args)
 
@@ -148,16 +147,13 @@ class IntegrationTests(unittest.TestCase):
 
     def setUp(self):
         rm_rf("environment.yml")
-        if env_is_created(test_env_name_1):
-            run_env_command(Commands.ENV_REMOVE, test_env_name_1)
+        run_env_command(Commands.ENV_REMOVE, test_env_name_1)
+        run_env_command(Commands.ENV_REMOVE, test_env_name_42)
 
     def tearDown(self):
         rm_rf("environment.yml")
-        if env_is_created(test_env_name_1):
-            run_env_command(Commands.ENV_REMOVE, test_env_name_1)
-
-        if env_is_created(test_env_name_42):
-            run_env_command(Commands.ENV_REMOVE, test_env_name_42)
+        run_env_command(Commands.ENV_REMOVE, test_env_name_1)
+        run_env_command(Commands.ENV_REMOVE, test_env_name_42)
 
     def test_conda_env_create_no_file(self):
         '''
@@ -267,16 +263,10 @@ class NewIntegrationTests(unittest.TestCase):
     """
 
     def setUp(self):
-        if env_is_created(test_env_name_2):
-            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
+        run_env_command(Commands.ENV_REMOVE, test_env_name_2)
 
     def tearDown(self):
-        if env_is_created(test_env_name_2):
-            run_env_command(Commands.ENV_REMOVE, test_env_name_2)
-
-    def test_non_existant_env_raises_on_remove(self):
-        with pytest.raises(EnvironmentLocationNotFound):
-            run_env_command(Commands.ENV_REMOVE, 'no-conda-environment-here')
+        run_env_command(Commands.ENV_REMOVE, test_env_name_2)
 
     def test_env_export(self):
         """

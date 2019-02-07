@@ -7,7 +7,6 @@ import sys
 
 from .install import install
 from ..base.context import context
-from ..gateways.disk.delete import delete_trash
 
 
 def execute(args, parser):
@@ -19,4 +18,3 @@ def execute(args, parser):
               "\n", file=sys.stderr)
 
     install(args, parser, 'install')
-    delete_trash()

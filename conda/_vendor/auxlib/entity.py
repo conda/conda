@@ -237,7 +237,10 @@ Chapter X: The del and null Weeds
 """
 from __future__ import absolute_import, division, print_function
 
-from collections import Mapping, Sequence
+try:
+    from collections.abc import Mapping, Sequence
+except ImportError:
+    from collections import Mapping, Sequence
 from datetime import datetime
 from functools import reduce
 from json import JSONEncoder, dumps as json_dumps, loads as json_loads

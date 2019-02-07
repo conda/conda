@@ -6,13 +6,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import EINVAL, EXDEV
 from logging import getLogger
 import os
-from os.path import dirname, isdir
+from os.path import dirname, isdir, split, basename, join, exists
 import re
 from shutil import move
+from subprocess import Popen, PIPE
 
 from . import exp_backoff_fn, mkdir_p, mkdir_p_sudo_safe
 from .delete import rm_rf
 from .link import lexists
+from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import expand
 from ...exceptions import NotWritableError
@@ -54,7 +56,20 @@ def rename(source_path, destination_path, force=False):
         try:
             os.rename(source_path, destination_path)
         except EnvironmentError as e:
-            if e.errno in (EINVAL, EXDEV):
+            if on_win and dirname(source_path) == dirname(destination_path):
+                condabin_dir = join(context.conda_prefix, "condabin")
+                rename_script = join(condabin_dir, 'rename_tmp.bat')
+                if exists(rename_script):
+                    _dirname, _src_fn = split(source_path)
+                    _dest_fn = basename(destination_path)
+                    p = Popen(['cmd.exe', '/C', rename_script, _dirname,
+                               _src_fn, _dest_fn], stdout=PIPE, stderr=PIPE)
+                    stdout, stderr = p.communicate()
+                else:
+                    log.debug("{} is missing.  Conda was not installed correctly or has been "
+                              "corrupted.  Please file an issue on the conda github repo."
+                              .format(rename_script))
+            elif e.errno in (EINVAL, EXDEV):
                 # https://github.com/conda/conda/issues/6811
                 # https://github.com/conda/conda/issues/6711
                 log.trace("Could not rename %s => %s due to errno [%s]. Falling back"

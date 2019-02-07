@@ -15,14 +15,12 @@
 @set _args1_last=%_args1_last:"=+%
 @set _args1=
 
-@CALL "%~dp0..\condabin\conda_hook.bat"
-
 @if "%_args1_first%"=="+" if NOT "%_args1_last%"=="+" (
-    @CALL conda.bat activate
+    @CALL "%~dp0..\condabin\conda.bat" activate
     @GOTO :End
 )
 
-@CALL conda.bat activate %*
+@CALL "%~dp0..\condabin\conda.bat" activate %*
 
 :End
 @set _args1_first=

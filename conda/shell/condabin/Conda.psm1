@@ -55,13 +55,17 @@ function Get-CondaEnvironment {
 function Enter-CondaEnvironment {
     [CmdletBinding()]
     param(
-        [Parameter(Position=0)]
-        [string]
-        $Name
+        [Parameter(Mandatory=$false)][switch]$Stack,
+        [Parameter(Position=0)][string]$Name
     );
 
     begin {
-        $activateCommand = (& $Env:CONDA_EXE shell.powershell activate $Name | Out-String);
+        If ($Stack) {
+            $activateCommand = (& $Env:CONDA_EXE shell.powershell activate --stack $Name | Out-String);
+        } Else {
+            $activateCommand = (& $Env:CONDA_EXE shell.powershell activate $Name | Out-String);
+        }
+
         Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
         Invoke-Expression -Command $activateCommand;
     }

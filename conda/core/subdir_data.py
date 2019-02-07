@@ -51,7 +51,7 @@ stderrlog = getLogger('conda.stderrlog')
 
 REPODATA_PICKLE_VERSION = 28
 MAX_REPODATA_VERSION = 1
-REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'
+REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]'  # NOQA
 
 
 class SubdirDataType(type):
@@ -284,7 +284,7 @@ class SubdirData(object):
                 log.debug("found pickle file %s", self.cache_path_pickle)
             with open(self.cache_path_pickle, 'rb') as fh:
                 _pickled_state = pickle.load(fh)
-        except Exception as e:
+        except Exception:
             log.debug("Failed to load pickled repodata.", exc_info=True)
             rm_rf(self.cache_path_pickle)
             return None
@@ -448,15 +448,15 @@ def fetch_repodata_remote_request(url, etag, mod_stamp):
         status_code = getattr(e.response, 'status_code', None)
         if status_code in (403, 404):
             if not url.endswith('/noarch'):
+                log.info("Unable to retrieve repodata (%d error) for %s", status_code, url)
+                return None
+            else:
                 if context.allow_non_channel_urls:
                     stderrlog.warning("Unable to retrieve repodata (%d error) for %s",
                                       status_code, url)
                     return None
                 else:
                     raise UnavailableInvalidChannel(Channel(dirname(url)), status_code)
-            else:
-                log.info("Unable to retrieve repodata (%d error) for %s", status_code, url)
-                return None
 
         elif status_code == 401:
             channel = Channel(url)

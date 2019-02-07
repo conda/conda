@@ -83,6 +83,7 @@ def test_remove_link_to_file():
         assert not lexists(dst_link)
 
 
+@pytest.mark.xfail(on_win, reason="Windows permission errors make a mess here")
 def test_remove_link_to_dir():
     with tempdir() as td:
         dst_link = join(td, "test_link")

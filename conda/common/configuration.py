@@ -19,7 +19,11 @@ Limitations:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from abc import ABCMeta, abstractmethod
-from collections import Mapping, defaultdict
+from collections import defaultdict
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
 from glob import glob
 from itertools import chain
 from logging import getLogger

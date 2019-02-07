@@ -307,6 +307,13 @@ def make_install_plan(conda_prefix):
             },
         })
         plan.append({
+            'function': install_condabin_rename_tmp_bat.__name__,
+            'kwargs': {
+                'target_path': join(conda_prefix, 'condabin', 'rename_tmp.bat'),
+                'conda_prefix': conda_prefix,
+            },
+        })
+        plan.append({
             'function': install_condabin_conda_auto_activate_bat.__name__,
             'kwargs': {
                 'target_path': join(conda_prefix, 'condabin', 'conda_auto_activate.bat'),
@@ -461,6 +468,12 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
             raise NotImplementedError()
 
     if 'powershell' in shells:
+        if for_user:
+            profile = '$PROFILE.CurrentUserAllHosts'
+
+        if for_system:
+            profile = '$PROFILE.AllUsersAllHosts'
+
         # There's several places PowerShell can store its path, depending
         # on if it's Windows PowerShell, PowerShell Core on Windows, or
         # PowerShell Core on macOS/Linux. The easiest way to resolve it is to
@@ -470,12 +483,12 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
             for exe_name in exe_names:
                 try:
                     yield subprocess_call(
-                        (exe_name, '-NoProfile', '-Command', '$PROFILE')
+                        (exe_name, '-NoProfile', '-Command', profile)
                     ).stdout.strip()
                 except Exception:
                     pass
 
-        config_powershell_paths = tuple(
+        config_powershell_paths = set(
             find_powershell_paths('powershell', 'pwsh', 'pwsh-preview')
         )
 
@@ -488,11 +501,6 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
                         'conda_prefix': conda_prefix
                     }
                 })
-
-        if for_system:
-            raise NotImplementedError(
-                "PowerShell hooks are only implemented for per-user profiles."
-            )
 
     if 'cmd.exe' in shells:
         if for_user:
@@ -848,6 +856,14 @@ def install_library_bin_conda_bat(target_path, conda_prefix):
 def install_condabin_conda_activate_bat(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'condabin', '_conda_activate.bat')
     conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', '_conda_activate.bat')
+    with open(conda_bat_src_path) as fsrc:
+        file_content = fsrc.read()
+    return _install_file(target_path, file_content)
+
+
+def install_condabin_rename_tmp_bat(target_path, conda_prefix):
+    # target_path: join(conda_prefix, 'condabin', 'rename_tmp.bat')
+    conda_bat_src_path = join(CONDA_PACKAGE_ROOT, 'shell', 'condabin', 'rename_tmp.bat')
     with open(conda_bat_src_path) as fsrc:
         file_content = fsrc.read()
     return _install_file(target_path, file_content)
@@ -1230,7 +1246,7 @@ def _powershell_profile_content(conda_prefix):
     conda_powershell_module = dals("""
     #region conda initialize
     # !! Contents within this block are managed by 'conda init' !!
-    (& {conda_exe} "shell.powershell" "hook") | Out-String | Invoke-Expression
+    (& "{conda_exe}" "shell.powershell" "hook") | Out-String | Invoke-Expression
     #endregion
     """.format(conda_exe=conda_exe))
 

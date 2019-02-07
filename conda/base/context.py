@@ -745,8 +745,8 @@ class Context(Configuration):
         )),
         ('Hidden and Undocumented', (
             'allow_cycles',  # allow cyclical dependencies, or raise
-            'add_pip_as_python_dependency',
             'allow_conda_downgrades',
+            'add_pip_as_python_dependency',
             'debug',
             'default_python',
             'enable_private_envs',
