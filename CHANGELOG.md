@@ -1,3 +1,32 @@
+## 4.6.3 (2019-02-07)
+
+### Improvements
+* Implement ``-stack`` switch for powershell usage of conda (#8217)
+* Enable system-wide initialization for conda shell support (#8219)
+* Activate environments prior to running post-link scripts (#8229)
+* Instrument more solve calls to prioritize future optimization efforts (#8231)
+* print more env info when searching in envs (#8240)
+
+### Bug fixes
+* resolve #8178, fix conda pip interop assertion error with egg folders (#8184)
+* resolve #8157, fix token leakage in errors and config output (#8163)
+* resolve #8185, fix conda package filtering with embedded/vendored python metadata (#8198)
+* resolve #8199, fix errors on .* in version specs that should have been specific to the ~= operator (#8208)
+* fix .bat scripts for handling paths on Windows with spaces (#8215)
+* fix powershell scripts for handling paths on Windows with spaces (#8222)
+* handle missing rename script more gracefully (especially when updating/installing conda itself) (#8212)
+
+### Contributors
+* @dhirschfeld
+* @jjhelmus
+* @kalefranz
+* @msarahan
+* @murrayreadccdc
+* @nehaljwani
+* @rrigdon
+* @soapy1
+
+
 ## 4.6.2 (2019-01-29)
 
 ### Improvements
