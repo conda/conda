@@ -691,17 +691,17 @@ class CshActivator(_Activator):
 class XonshActivator(_Activator):
 
     def __init__(self, arguments=None):
-        self.pathsep_join = ':'.join
+        self.pathsep_join = ';'.join if on_win else ':'.join
         self.sep = '/'
-        self.path_conversion = native_path_to_unix
+        self.path_conversion = lambda x: x
         self.script_extension = '.xsh'
         self.tempfile_extension = '.xsh'
         self.command_join = '\n'
 
         self.unset_var_tmpl = 'del $%s'
-        self.export_var_tmpl = "$%s = '%s'"
-        self.set_var_tmpl = "$%s = '%s'"  # TODO: determine if different than export_var_tmpl
-        self.run_script_tmpl = 'source "%s"'
+        self.export_var_tmpl = "$%s = r'%s'"
+        self.set_var_tmpl = "$%s = r'%s'"  # TODO: determine if different than export_var_tmpl
+        self.run_script_tmpl = 'source r"%s"'
 
         self.hook_source_path = join(CONDA_PACKAGE_ROOT, 'shell', 'conda.xsh')
 
