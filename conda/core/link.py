@@ -994,6 +994,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
             environments.  Future versions of conda may deprecate and ignore pre-link scripts.
             """) % prec.dist_str())
 
+    script_caller = None
     if on_win:
         try:
             comspec = os.environ[str('COMSPEC')]
@@ -1024,7 +1025,6 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
             command_args = [shell_path, "-x", script_caller]
         else:
             command_args = [shell_path, "-x", path]
-            script_caller = None
 
     env['ROOT_PREFIX'] = context.root_prefix
     env['PREFIX'] = env_prefix or prefix
