@@ -34,6 +34,7 @@ from itertools import chain, combinations
 from logging import DEBUG, getLogger
 
 from .compat import iteritems, odict
+from ..base.constants import SatSolverChoice
 
 log = getLogger(__name__)
 
@@ -264,33 +265,32 @@ class PySatSolver(SatSolver):
         return solution
 
 
-def get_sat_solver_cls(name=None):
+def get_sat_solver_cls(sat_solver_choice=SatSolverChoice.PYCOSAT):
     solvers = odict([
-        ('pycosat', PycoSatSolver),
-        ('pycryptosat', CryptoMiniSatSolver),
-        ('pysat', PySatSolver),
+        (SatSolverChoice.PYCOSAT, PycoSatSolver),
+        (SatSolverChoice.PYCRYPTOSAT, CryptoMiniSatSolver),
+        (SatSolverChoice.PYSAT, PySatSolver),
     ])
-    if name is not None:
-        try:
-            cls = solvers[name]
-        except KeyError:
-            raise ValueError('Unknown SAT solver interface: "{}".'.format(name))
-        try:
-            cls().run(0)
-        except Exception:
-            raise RuntimeError('Could not run SAT solver through interface "{}".'.format(name))
-        else:
-            log.debug('Using SAT solver interface "{}".'.format(name))
-            return cls
-    for name, cls in solvers.items():
+    cls = solvers[sat_solver_choice]
+    try:
+        cls().run(0)
+    except Exception as e:
+        log.warning("Could not run SAT solver through interface '%s'.", sat_solver_choice)
+        log.debug("SAT interface error due to: %s", e, exc_info=True)
+    else:
+        log.debug("Using SAT solver interface '%s'.", sat_solver_choice)
+        return cls
+    for solver_choice, cls in solvers.items():
         try:
             cls().run(0)
-        except Exception:
-            log.warn('Could not run SAT solver through interface "{}".'.format(name))
+        except Exception as e:
+            log.debug("Attempted SAT interface '%s' but unavailable due to: %s",
+                      sat_solver_choice, e)
         else:
-            log.debug('Using SAT solver interface "{}".'.format(name))
+            log.debug("Falling back to SAT solver interface '%s'.", sat_solver_choice)
             return cls
-    raise RuntimeError('Could not run any SAT solver.')
+    from ..exceptions import CondaDependencyError
+    raise CondaDependencyError("Cannot run solver. No functioning SAT implementations available.")
 
 
 # Code that uses special cases (generates no clauses) is in ADTs/FEnv.h in
