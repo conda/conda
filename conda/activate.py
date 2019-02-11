@@ -711,7 +711,10 @@ class XonshActivator(_Activator):
         super(XonshActivator, self).__init__(arguments)
 
     def _hook_preamble(self):
-        return 'CONDA_EXE = r"%s"' % context.conda_exe
+        if on_win:
+            return 'CONDA_EXE = "%s"' % context.conda_exe.replace('\\','/')
+        else:
+            return 'CONDA_EXE = "%s"' % context.conda_exe
 
 
 class CmdExeActivator(_Activator):
