@@ -199,6 +199,15 @@ class ChannelPriority(six_with_metaclass(ChannelPriorityMeta, Enum)):
         return self.value
 
 
+class SatSolverChoice(Enum):
+    PYCOSAT = 'pycosat'
+    PYCRYPTOSAT = 'pycryptosat'
+    PYSAT = 'pysat'
+
+    def __str__(self):
+        return self.value
+
+
 # Magic files for permissions determination
 PACKAGE_CACHE_MAGIC_FILE = 'urls.txt'
 PREFIX_MAGIC_FILE = join('conda-meta', 'history')

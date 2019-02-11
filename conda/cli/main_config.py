@@ -15,7 +15,7 @@ from .. import CondaError
 from .._vendor.auxlib.entity import EntityEncoder
 from .._vendor.toolz import concat, groupby
 from ..base.constants import (ChannelPriority, DepsModifier, PathConflict, SafetyChecks,
-                              UpdateModifier)
+                              UpdateModifier, SatSolverChoice)
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import (Mapping, Sequence, isiterable, iteritems, itervalues, string_types,
                              text_type)
@@ -357,6 +357,7 @@ def execute_config(args, parser):
         yaml.representer.RoundTripRepresenter.add_representer(DepsModifier, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
         yaml.representer.RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
+        yaml.representer.RoundTripRepresenter.add_representer(SatSolverChoice, enum_representer)
 
         try:
             with open(rc_path, 'w') as rc:
