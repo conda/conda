@@ -9,7 +9,6 @@ import os
 from os.path import abspath, basename, dirname, isdir, join
 from subprocess import CalledProcessError
 import sys
-import tempfile
 from traceback import format_exception_only
 import warnings
 
@@ -42,7 +41,7 @@ from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..models.version import VersionOrder
 from ..resolve import MatchSpec
-from ..utils import human_bytes
+from ..utils import human_bytes, wrap_subprocess_call
 
 log = getLogger(__name__)
 
@@ -994,7 +993,6 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
             environments.  Future versions of conda may deprecate and ignore pre-link scripts.
             """) % prec.dist_str())
 
-    tmp_prefix = abspath(join(prefix, '.tmp'))
     script_caller = None
     if on_win:
         try:
@@ -1003,28 +1001,21 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
             log.info("failed to run %s for %s due to COMSPEC KeyError", action, prec.dist_str())
             return False
         if activate:
-            conda_bat = env.get("CONDA_BAT", abspath(join(context.root_prefix, 'bin', 'conda')))
-            with tempfile.NamedTemporaryFile(
-                    mode='w', prefix=tmp_prefix, suffix='.bat', delete=False) as fh:
-                fh.write('@CALL \"{0}\" activate \"{1}\"\n'.format(conda_bat, prefix))
-                fh.write('echo "PATH: %PATH%\n')
-                fh.write('@CALL \"{0}\"\n'.format(path))
-                script_caller = fh.name
-            command_args = [comspec, '/d', '/c', script_caller]
+            command = '@CALL \"{0}\"\n'.format(path)
+            script_caller, command_args = wrap_subprocess_call(
+                on_win, context.root_prefix, prefix, command
+            )
         else:
             command_args = [comspec, '/d', '/c', path]
-
     else:
         shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
         if activate:
-            conda_exe = env.get("CONDA_EXE", abspath(join(context.root_prefix, 'bin', 'conda')))
-            with tempfile.NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
-                fh.write("eval \"$(\"{0}\" \"shell.posix\" \"hook\")\"\n".format(conda_exe)),
-                fh.write("conda activate \"{0}\"\n".format(prefix)),
-                fh.write("source \"{}\"\n".format(path))
-                script_caller = fh.name
-            command_args = [shell_path, "-x", script_caller]
+            command = ". \"{}\"\n".format(path)
+            script_caller, command_args = wrap_subprocess_call(
+                on_win, context.root_prefix, prefix, command
+            )
         else:
+            shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
             command_args = [shell_path, "-x", path]
 
     env['ROOT_PREFIX'] = context.root_prefix

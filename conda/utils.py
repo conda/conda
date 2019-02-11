@@ -12,6 +12,9 @@ from ._vendor.auxlib.decorators import memoize
 from .common.compat import on_win
 from .common.path import win_path_to_unix
 from .common.url import path_to_url
+from os.path import abspath, join
+from os import environ
+import tempfile
 
 log = logging.getLogger(__name__)
 
@@ -254,3 +257,30 @@ def sys_prefix_unfollowed():
     except Exception:
         return sys.prefix
     return unfollowed
+
+
+def wrap_subprocess_call(on_win, root_prefix, prefix, command):
+    env = environ.copy()
+    tmp_prefix = abspath(join(prefix, '.tmp'))
+    script_caller = None
+    if on_win:
+        comspec = environ[str('COMSPEC')]
+        conda_bat = env.get("CONDA_BAT", abspath(join(root_prefix, 'bin', 'conda')))
+        with tempfile.NamedTemporaryFile(
+                mode='w', prefix=tmp_prefix, suffix='.bat', delete=False) as fh:
+            fh.write('@CALL \"{0}\" activate \"{1}\"\n'.format(conda_bat, prefix))
+            fh.write('echo "PATH: %PATH%\n')
+            fh.write(command)
+            script_caller = fh.name
+        command_args = [comspec, '/d', '/c', script_caller]
+    else:
+        shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
+        conda_exe = env.get("CONDA_EXE", abspath(join(root_prefix, 'bin', 'conda')))
+        with tempfile.NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
+            fh.write("eval \"$(\"{0}\" \"shell.posix\" \"hook\")\"\n".format(conda_exe)),
+            fh.write("conda activate \"{0}\"\n".format(prefix)),
+            fh.write(command)
+            script_caller = fh.name
+        command_args = [shell_path, "-x", script_caller]
+
+    return script_caller, command_args
