@@ -1088,11 +1088,9 @@ class Resolve(object):
         # The previous "Track features" minimization pass has chosen 'feat1' for the
         # environment, but not 'feat2'. In this case, the 'feat2' version of foo is
         # considered "featureless."
-        if not context.featureless_minimization_disabled_feature_flag:
-            log.debug("Solve: maximize number of packages that have necessary features")
-            eq_feature_metric = r2.generate_feature_metric(C)
-            solution, obj2 = C.minimize(eq_feature_metric, solution)
-            log.debug('Package misfeature count: %d', obj2)
+        eq_feature_metric = r2.generate_feature_metric(C)
+        solution, obj2 = C.minimize(eq_feature_metric, solution)
+        log.debug('Package misfeature count: %d', obj2)
 
         # Requested packages: maximize builds
         log.debug("Solve: maximize build numbers of requested packages")
