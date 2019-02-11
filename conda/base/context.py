@@ -696,10 +696,11 @@ class Context(Configuration):
             'channel_priority',
             'create_default_packages',
             'disallowed_packages',
-            'pinned_packages',
-            'track_features',
-            'prune',
             'force_reinstall',
+            'pinned_packages',
+            'pip_interop_enabled',
+            'prune',
+            'track_features',
         )),
         ('Package Linking and Install-time Configuration', (
             'allow_softlinks',
@@ -753,7 +754,6 @@ class Context(Configuration):
             'error_upload_url',  # should remain undocumented
             'featureless_minimization_disabled_feature_flag',
             'force_32bit',
-            'pip_interop_enabled',  # temporary feature flag
             'root_prefix',
             'sat_solver',
             'solver_ignore_timestamps',
@@ -981,6 +981,9 @@ class Context(Configuration):
             'pinned_packages': dals("""
                 A list of package specs to pin for every environment resolution.
                 This parameter is in BETA, and its behavior may change in a future release.
+                """),
+            'pip_interop_enabled': dals("""
+                Allow the conda solver to interact with non-conda-installed python packages.
                 """),
             'pkgs_dirs': dals("""
                 The list of directories where locally-available packages are linked from at
