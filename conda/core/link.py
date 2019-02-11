@@ -994,6 +994,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
             environments.  Future versions of conda may deprecate and ignore pre-link scripts.
             """) % prec.dist_str())
 
+    tmp_prefix = abspath(join(prefix, '.tmp'))
     if on_win:
         try:
             comspec = os.environ[str('COMSPEC')]
@@ -1003,7 +1004,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
         if activate:
             conda_bat = env.get("CONDA_BAT", abspath(join(context.root_prefix, 'bin', 'conda')))
             with tempfile.NamedTemporaryFile(
-                    mode='w', prefix=prefix, suffix='.bat', delete=False) as fh:
+                    mode='w', prefix=tmp_prefix, suffix='.bat', delete=False) as fh:
                 fh.write('@CALL \"{0}\" activate \"{1}\"\n'.format(conda_bat, prefix))
                 fh.write('echo "PATH: %PATH%\n')
                 fh.write('@CALL \"{0}\"\n'.format(path))
@@ -1016,7 +1017,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
         shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
         if activate:
             conda_exe = env.get("CONDA_EXE", abspath(join(context.root_prefix, 'bin', 'conda')))
-            with tempfile.NamedTemporaryFile(mode='w', prefix=prefix, delete=False) as fh:
+            with tempfile.NamedTemporaryFile(mode='w', prefix=tmp_prefix, delete=False) as fh:
                 fh.write("eval \"$(\"{0}\" \"shell.posix\" \"hook\")\"\n".format(conda_exe)),
                 fh.write("conda activate \"{0}\"\n".format(prefix)),
                 fh.write("source \"{}\"\n".format(path))
