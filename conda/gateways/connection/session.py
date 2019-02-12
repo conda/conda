@@ -96,7 +96,9 @@ class CondaHttpAuth(AuthBase):
     # TODO: make this class thread-safe by adding some of the requests.auth.HTTPDigestAuth() code
 
     def __call__(self, request):
-        request.url = CondaHttpAuth.add_binstar_token(request.url)
+        request.url, token = CondaHttpAuth.add_binstar_token(request.url)
+        if token is not None:
+            request.headers["Authorization"] = "Bearer {0}".format(token)
         self._apply_basic_auth(request)
         request.register_hook('response', self.handle_407)
         return request
@@ -123,11 +125,8 @@ class CondaHttpAuth(AuthBase):
             for binstar_url, token in iteritems(read_binstar_tokens()):
                 if clean_url.startswith(binstar_url):
                     log.debug("Adding anaconda token for url <%s>", clean_url)
-                    from ...models.channel import Channel
-                    channel = Channel(clean_url)
-                    channel.token = token
-                    return channel.url(with_credentials=True)
-        return url
+                    break
+        return clean_url, token
 
     @staticmethod
     def handle_407(response, **kwargs):  # pragma: no cover
