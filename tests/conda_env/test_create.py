@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division, print_function
 
-from argparse import ArgumentParser
-from contextlib import contextmanager
 from logging import Handler, getLogger
 from os.path import exists, join
-from shlex import split
-from shutil import rmtree
-from tempfile import mkdtemp
 from unittest import TestCase
 from uuid import uuid4
 
@@ -19,16 +14,10 @@ from conda.core.prefix_data import PrefixData
 from conda.install import on_win
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
-from conda_env.cli.main import do_call as do_call_conda_env
-from conda_env.cli.main_create import configure_parser as create_configure_parser
-from conda_env.cli.main_update import configure_parser as update_configure_parser
 from . import support_file
+from .utils import make_temp_envs_dir, Commands, run_command
 
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
-
-
-def escape_for_winpath(p):
-    return p.replace('\\', '\\\\')
 
 
 def disable_dotlog():
@@ -45,38 +34,6 @@ def disable_dotlog():
 def reenable_dotlog(handlers):
     dotlogger = getLogger('dotupdate')
     dotlogger.handlers = handlers
-
-
-class Commands:
-    CREATE = "create"
-    UPDATE = "update"
-
-
-parser_config = {
-    Commands.CREATE: create_configure_parser,
-    Commands.UPDATE: update_configure_parser,
-}
-
-
-def run_command(command, env_name, *arguments):
-    p = ArgumentParser()
-    sub_parsers = p.add_subparsers(metavar='command', dest='cmd')
-    parser_config[command](sub_parsers)
-
-    arguments = list(map(escape_for_winpath, arguments))
-    command_line = "{0} -n {1} -f {2}".format(command, env_name, " ".join(arguments))
-
-    args = p.parse_args(split(command_line))
-    do_call_conda_env(args, p)
-
-
-@contextmanager
-def make_temp_envs_dir():
-    envs_dir = mkdtemp()
-    try:
-        yield envs_dir
-    finally:
-        rmtree(envs_dir, ignore_errors=True)
 
 
 def package_is_installed(prefix, spec, pip=None):

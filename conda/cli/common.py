@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from logging import getLogger
 from os.path import basename, dirname
 import re
 import sys
@@ -56,7 +57,7 @@ def confirm_yn(message="Proceed", default='yes', dry_run=NULL):
         return True
     try:
         choice = confirm(message=message, choices=('yes', 'no'), default=default)
-    except KeyboardInterrupt as e:  # pragma: no cover
+    except KeyboardInterrupt:  # pragma: no cover
         from ..exceptions import CondaSystemExit
         raise CondaSystemExit("\nOperation aborted.  Exiting.")
     if choice == 'no':
@@ -161,7 +162,7 @@ def disp_features(features):
 
 @swallow_broken_pipe
 def stdout_json(d):
-    print(json_dump(d))
+    getLogger("conda.stdout").info(json_dump(d))
 
 
 def stdout_json_success(success=True, **kwargs):

@@ -4,7 +4,6 @@
 from __future__ import absolute_import, print_function
 
 from argparse import Namespace, RawDescriptionHelpFormatter
-from os.path import isdir
 
 from conda.cli.conda_argparse import add_output_and_prompt_options, add_parser_prefix
 
@@ -45,13 +44,9 @@ def execute(args, parser):
     args.update({
         'all': True, 'channel': None, 'features': None,
         'override_channels': None, 'use_local': None, 'use_cache': None,
-        'offline': None, 'force': None, 'pinned': None})
+        'offline': None, 'force': True, 'pinned': None})
     args = Namespace(**args)
     from conda.base.context import context
     context.__init__(argparse_args=args)
-
-    if not isdir(context.target_prefix):
-        from conda.exceptions import EnvironmentLocationNotFound
-        raise EnvironmentLocationNotFound(context.target_prefix)
 
     conda.cli.main_remove.execute(args, parser)

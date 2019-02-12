@@ -5,6 +5,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from datetime import datetime
+from errno import ENOENT
 import os
 from os.path import basename, lexists
 from pprint import pprint
@@ -398,32 +399,6 @@ def test_metadata():
 
 # Python Distributions
 # -----------------------------------------------------------------------------
-@pytest.mark.xfail(datetime.now() < datetime(2019, 1, 1),
-                   reason="This test needs to be refactored for the case of raising a hard "
-                                "error when the anchor_file doesn't exist.",
-                   strict=True)
-def test_basepydist_check_path_data():
-    test_cases = (
-        (('path', 'sha256=1', '45'), ('path', '1', 45), None),
-        (('path', 'sha256=1', 45), ('path', '1', 45), None),
-        (('path', '', 45), ('path', None, 45), None),
-        (('path', None, 45), ('path', None, 45), None),
-        (('path', 'md5=', 45), (), AssertionError),
-    )
-
-    with pytest.warns(MetadataWarning):
-        dist = PythonDistribution('/path-not-found/', "1.8")
-
-    for args, expected_output, raises_ in test_cases:
-        if raises_:
-            with pytest.raises(raises_):
-                output = dist._check_path_data(*args)
-        else:
-            output = dist._check_path_data(*args)
-            _print_output(output, expected_output)
-            assert output == expected_output
-
-
 def test_basepydist_parse_requires_file_data():
     key = 'g'
     test_cases = (
@@ -549,8 +524,9 @@ def test_pydist_check_files():
 
     # Test mandatory file not found
     os.remove(fpaths[0])
-    with pytest.raises(AssertionError):
+    with pytest.raises(EnvironmentError) as exc:
         PythonInstalledDistribution(temp_path, "2.7", None)
+    assert exc.value.errno == ENOENT
 
 
 def test_python_dist_info():

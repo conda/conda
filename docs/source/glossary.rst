@@ -29,7 +29,7 @@ activate/deactivate environment
 ===============================
 
 Conda commands used to switch or move between installed
-environments. The ``activate`` command prepends the path of your
+environments. The ``conda activate`` command prepends the path of your
 current environment to the PATH environment variable so that you
 do not need to type it each time. ``deactivate`` removes it.
 Even when an environment is deactivated, you can still execute
@@ -49,13 +49,13 @@ Anaconda
 
 A downloadable, free, open source, high-performance and optimized
 Python and R distribution. Anaconda includes
-:ref:`conda <conda-glossary>`, conda build, Python and 100+
+:ref:`conda <conda-glossary>`, conda build, Python, and 100+
 automatically installed, open source scientific packages and
 their dependencies that have been tested to work well together,
 including SciPy, NumPy and many others. Use the ``conda install`` command
 to easily install 1,000+ popular open source packages
-for data science---including advanced and scientific
-analytics---from the Anaconda repository. Use the ``conda``
+for data science--including advanced and scientific
+analytics--from the Anaconda repository. Use the ``conda``
 command to install thousands more open source packages.
 
 Because Anaconda is a Python distribution, it can make

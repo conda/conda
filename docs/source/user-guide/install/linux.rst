@@ -38,7 +38,7 @@ Installing on Linux
 Using with fish shell
 =========================
 
-To use conda with fish shell, add the following line in your ``fish.config`` file::
+To use conda with fish shell, add the following line in your ``config.fish`` file::
 
   source (conda info --root)/etc/fish/conf.d/conda.fish
 

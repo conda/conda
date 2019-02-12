@@ -98,11 +98,6 @@ class _Activator(object):
     def hook(self, auto_activate_base=None):
         builder = []
         builder.append(self._hook_preamble())
-
-        # here
-        condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
-        self.export_var_tmpl % ("PATH", self.pathsep_join((condabin_dir, )))
-
         with open(self.hook_source_path) as fsrc:
             builder.append(fsrc.read())
         if auto_activate_base is None and context.auto_activate_base or auto_activate_base:

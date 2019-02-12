@@ -3,10 +3,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from logging import DEBUG, getLogger
 
-from ._vendor.auxlib.decorators import memoize
+from ._vendor.auxlib.collection import frozendict
+from ._vendor.auxlib.decorators import memoize, memoizemethod
 from ._vendor.toolz import concat, groupby
 from .base.constants import ChannelPriority, MAX_CHANNEL_PRIORITY
 from .base.context import context
@@ -37,7 +38,7 @@ def dashlist(iterable, indent=2):
 
 class Resolve(object):
 
-    def __init__(self, index, sort=False, processed=False, channels=()):
+    def __init__(self, index, processed=False, channels=()):
         self.index = index
 
         self.channels = channels
@@ -59,15 +60,30 @@ class Resolve(object):
                     trackers[feature_name].append(prec)
 
         self.groups = groups  # Dict[package_name, List[PackageRecord]]
-        self.trackers = trackers  # Dict[track_feature, List[PackageRecord]]
+        self.trackers = trackers  # Dict[track_feature, Set[PackageRecord]]
         self._cached_find_matches = {}  # Dict[MatchSpec, Set[PackageRecord]]
         self.ms_depends_ = {}  # Dict[PackageRecord, List[MatchSpec]]
         self._reduced_index_cache = {}
         self._strict_channel_cache = {}
 
-        if sort:
-            for group in itervalues(groups):
-                group.sort(key=self.version_key, reverse=True)
+        # sorting these in reverse order is effectively prioritizing
+        # contstraint behavior from newer packages. It is applying broadening
+        # reduction based on the latest packages, which may reduce the space
+        # more, because more modern packages utilize constraints in more sane
+        # ways (for example, using run_exports in conda-build 3)
+        for name, group in self.groups.items():
+            self.groups[name] = sorted(group, key=self.version_key, reverse=True)
+
+    def __hash__(self):
+        return (super().__hash__() ^
+                hash(frozenset(self.channels)) ^
+                hash(frozendict(self._channel_priorities_map)) ^
+                hash(self._channel_priority) ^
+                hash(self._solver_ignore_timestamps) ^
+                hash(frozendict((k, tuple(v)) for k, v in self.groups.items())) ^
+                hash(frozendict((k, tuple(v)) for k, v in self.trackers.items())) ^
+                hash(frozendict((k, tuple(v)) for k, v in self.ms_depends_.items()))
+                )
 
     def default_filter(self, features=None, filter=None):
         # TODO: fix this import; this is bad
@@ -112,7 +128,7 @@ class Resolve(object):
                 filter[prec] = True
                 try:
                     depends = self.ms_depends(prec)
-                except InvalidSpec as e:
+                except InvalidSpec:
                     val = filter[prec] = False
                 else:
                     val = filter[prec] = all(v_ms_(ms) for ms in depends)
@@ -139,7 +155,7 @@ class Resolve(object):
                 filter_out[prec] = False
                 try:
                     has_valid_deps = all(is_valid_spec(ms) for ms in self.ms_depends(prec))
-                except InvalidSpec as e:
+                except InvalidSpec:
                     val = filter_out[prec] = "invalid dep specs"
                 else:
                     val = filter_out[prec] = False if has_valid_deps else "invalid depends specs"
@@ -309,6 +325,20 @@ class Resolve(object):
             channel_name = self._strict_channel_cache[package_name] = by_cp[highest_priority]
         return channel_name
 
+    @memoizemethod
+    def _broader(self, ms, specs_by_name):
+        """prevent introduction of matchspecs that broaden our selection of choices"""
+        if ms.name not in specs_by_name:
+            return False
+        matching_specs = specs_by_name[ms.name]
+        # is there a version constraint defined for any existing spec, but not ms?
+        if any('version' in _ for _ in matching_specs) and 'version' not in ms:
+            return True
+        # is there a build constraint defined for any of the specs, but not on ms?
+        if any('build' in _ for _ in matching_specs) and 'build' not in ms:
+            return True
+        return False
+
     @time_recorder(module_name=__name__)
     def get_reduced_index(self, specs):
         # TODO: fix this import; this is bad
@@ -430,34 +460,81 @@ class Resolve(object):
 
         # Determine all valid packages in the dependency graph
         reduced_index2 = {prec: prec for prec in (make_feature_record(fstr) for fstr in features)}
-        processed_specs = set()
-        specs_queue = set(specs)
-        while specs_queue:
-            this_spec = specs_queue.pop()
-            processed_specs.add(this_spec)
+        explicit_spec_list = set(specs)
+        for explicit_spec in explicit_spec_list:
             add_these_precs2 = tuple(
-                prec for prec in self.find_matches(this_spec)
-                if prec not in reduced_index2 and self.valid2(prec, filter_out)
-            )
-            if strict_channel_priority and add_these_precs2:
-                strict_chanel_name = self._get_strict_channel(add_these_precs2[0].name)
-                add_these_precs2 = tuple(
-                    prec for prec in add_these_precs2 if prec.channel.name == strict_chanel_name
-                )
+                prec for prec in self.find_matches(explicit_spec)
+                if prec not in reduced_index2 and self.valid2(prec, filter_out))
 
+            if strict_channel_priority and add_these_precs2:
+                strict_channel_name = self._get_strict_channel(add_these_precs2[0].name)
+
+                add_these_precs2 = tuple(
+                    prec for prec in add_these_precs2 if prec.channel.name == strict_channel_name
+                )
             reduced_index2.update((prec, prec) for prec in add_these_precs2)
-            # We do not pull packages into the reduced index due
-            # to a track_features dependency. Remember, a feature
-            # specifies a "soft" dependency: it must be in the
-            # environment, but it is not _pulled_ in. The SAT
-            # logic doesn't do a perfect job of capturing this
-            # behavior, but keeping these packages out of the
-            # reduced index helps. Of course, if _another_
-            # package pulls it in by dependency, that's fine.
-            specs_queue.update(
-                ms for prec in add_these_precs2 for ms in self.ms_depends(prec)
-                if "track_features" not in ms and ms not in processed_specs
-            )
+
+            for pkg in add_these_precs2:
+                # what we have seen is only relevant within the context of a single package
+                #    that is picked up because of an explicit spec.  We don't want the
+                #    broadening check to apply across packages at the explicit level; only
+                #    at the level of deps below that explicit package.
+                seen_specs = set()
+                specs_by_name = {}
+
+                dep_specs = set(self.ms_depends(pkg))
+                this_pkg_constraints = {}
+                for dep in dep_specs:
+                    specs = specs_by_name.get(dep.name, set())
+                    specs.add(dep)
+                    specs_by_name[dep.name] = specs
+                this_pkg_constraints = frozendict(
+                    {k: frozenset(v) for k, v in specs_by_name.items()})
+
+                while(dep_specs):
+                    # used for debugging
+                    # size_index = len(reduced_index2)
+                    # specs_added = []
+                    ms = dep_specs.pop()
+                    seen_specs.add(ms)
+                    for dep_pkg in (_ for _ in self.find_matches(ms) if _ not in reduced_index2):
+                        if not self.valid2(dep_pkg, filter_out):
+                            continue
+
+                        # expand the reduced index if not using strict channel priority,
+                        #    or if using it and this package is in the appropriate channel
+                        if (not strict_channel_priority or
+                                (self._get_strict_channel(dep_pkg.name) ==
+                                 dep_pkg.channel.name)):
+                            reduced_index2[dep_pkg] = dep_pkg
+
+                            # recurse to deps of this dep
+                            new_specs = set(self.ms_depends(dep_pkg)) - seen_specs
+                            for new_ms in new_specs:
+                                # We do not pull packages into the reduced index due
+                                # to a track_features dependency. Remember, a feature
+                                # specifies a "soft" dependency: it must be in the
+                                # environment, but it is not _pulled_ in. The SAT
+                                # logic doesn't do a perfect job of capturing this
+                                # behavior, but keeping these packags out of the
+                                # reduced index helps. Of course, if _another_
+                                # package pulls it in by dependency, that's fine.
+                                if ('track_features' not in new_ms
+                                        and not self._broader(new_ms, this_pkg_constraints)):
+                                    dep_specs.add(new_ms)
+                                    # if new_ms not in dep_specs:
+                                    #     specs_added.append(new_ms)
+                                else:
+                                    seen_specs.add(new_ms)
+                    # debugging info - see what specs are bringing in the largest blobs
+                    # if size_index != len(reduced_index2):
+                    #     print("MS {} added {} pkgs to index".format(ms,
+                    #           len(reduced_index2) - size_index))
+                    # if specs_added:
+                    #     print("MS {} added {} specs to further examination".format(ms,
+                    #                                                                specs_added))
+
+        reduced_index2 = frozendict(reduced_index2)
         self._reduced_index_cache[cache_key] = reduced_index2
         return reduced_index2
 
@@ -481,7 +558,7 @@ class Resolve(object):
         else:
             candidate_precs = itervalues(self.index)
 
-        res = frozenset(p for p in candidate_precs if spec.match(p))
+        res = tuple(p for p in candidate_precs if spec.match(p))
         self._cached_find_matches[spec] = res
         return res
 
@@ -501,7 +578,6 @@ class Resolve(object):
         version_comparator = VersionOrder(prec.get('version', ''))
         build_number = prec.get('build_number', 0)
         build_string = prec.get('build')
-        ts = prec.get('timestamp', 0)
         if self._channel_priority != ChannelPriority.DISABLED:
             vkey = [valid, -channel_priority, version_comparator, build_number]
         else:
@@ -509,7 +585,7 @@ class Resolve(object):
         if self._solver_ignore_timestamps:
             vkey.append(build_string)
         else:
-            vkey.extend((ts, build_string))
+            vkey.extend((prec.get('timestamp', 0), build_string))
         return vkey
 
     @staticmethod
@@ -764,7 +840,7 @@ class Resolve(object):
         for prec in installed:
             sat_name_map[self.to_sat_name(prec)] = prec
             specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
-        r2 = Resolve({prec: prec for prec in installed}, True, True, channels=self.channels)
+        r2 = Resolve(OrderedDict((prec, prec) for prec in installed), True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -780,7 +856,7 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r2 = Resolve(reduced_index, True, True, channels=self.channels)
+        r2 = Resolve(reduced_index, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(specs, True)
         if solution:
@@ -816,7 +892,7 @@ class Resolve(object):
             sat_name_map[self.to_sat_name(prec)] = prec
             specs.append(MatchSpec('%s %s %s' % (prec.name, prec.version, prec.build)))
         new_index = {prec: prec for prec in itervalues(sat_name_map)}
-        r2 = Resolve(new_index, True, True, channels=self.channels)
+        r2 = Resolve(new_index, True, channels=self.channels)
         C = r2.gen_clauses()
         constraints = r2.generate_spec_constraints(C, specs)
         solution = C.sat(constraints)
@@ -855,7 +931,7 @@ class Resolve(object):
             pkgs.extend(p for p in preserve if p.name not in sdict)
 
     def install_specs(self, specs, installed, update_deps=True):
-        specs = list(map(MatchSpec, specs))
+        specs = set(map(MatchSpec, specs))
         snames = {s.name for s in specs}
         log.debug('Checking satisfiability of current install')
         limit, preserve = self.bad_installed(installed, specs)
@@ -875,8 +951,8 @@ class Resolve(object):
             else:
                 spec = MatchSpec(name=name, version=version,
                                  build=build, channel=schannel)
-            specs.append(spec)
-        return specs, preserve
+            specs.add(spec)
+        return frozenset(specs), preserve
 
     def install(self, specs, installed=None, update_deps=True, returnall=False):
         specs, preserve = self.install_specs(specs, installed or [], update_deps)
@@ -931,7 +1007,8 @@ class Resolve(object):
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
         len0 = len(specs)
-        specs = tuple(map(MatchSpec, specs))
+        specs = frozenset(map(MatchSpec, specs))
+
         reduced_index = self.get_reduced_index(specs)
         if not reduced_index:
             return False if reduced_index is None else ([[]] if returnall else [])
@@ -943,7 +1020,26 @@ class Resolve(object):
             constraints = r2.generate_spec_constraints(C, specs)
             return C.sat(constraints, add_if)
 
-        r2 = Resolve(reduced_index, True, True, channels=self.channels)
+        # Return a solution of packages
+        def clean(sol):
+            return [q for q in (C.from_index(s) for s in sol)
+                    if q and q[0] != '!' and '@' not in q]
+
+        def is_converged(solution):
+            """ Determine if the SAT problem has converged to a single solution.
+
+            This is determined by testing for a SAT solution with the current
+            clause set and a clause in which at least one of the packages in
+            the current solution is excluded. If a solution exists the problem
+            has not converged as multiple solutions still exist.
+            """
+            psolution = clean(solution)
+            nclause = tuple(C.Not(C.from_name(q)) for q in psolution)
+            if C.sat((nclause,), includeIf=False) is None:
+                return True
+            return False
+
+        r2 = Resolve(reduced_index, True, channels=self.channels)
         C = r2.gen_clauses()
         solution = mysat(specs, True)
         if not solution:
@@ -992,11 +1088,9 @@ class Resolve(object):
         # The previous "Track features" minimization pass has chosen 'feat1' for the
         # environment, but not 'feat2'. In this case, the 'feat2' version of foo is
         # considered "featureless."
-        if not context.featureless_minimization_disabled_feature_flag:
-            log.debug("Solve: maximize number of packages that have necessary features")
-            eq_feature_metric = r2.generate_feature_metric(C)
-            solution, obj2 = C.minimize(eq_feature_metric, solution)
-            log.debug('Package misfeature count: %d', obj2)
+        eq_feature_metric = r2.generate_feature_metric(C)
+        solution, obj2 = C.minimize(eq_feature_metric, solution)
+        log.debug('Package misfeature count: %d', obj2)
 
         # Requested packages: maximize builds
         log.debug("Solve: maximize build numbers of requested packages")
@@ -1025,21 +1119,19 @@ class Resolve(object):
         log.debug('Additional package channel/version/build metrics: %d/%d/%d',
                   obj5a, obj5, obj6)
 
-        # Maximize timestamps
-        log.debug("Solve: maximize timestamps")
-        eq_t.update(eq_req_t)
-        solution, obj6t = C.minimize(eq_t, solution)
-        log.debug('Timestamp metric: %d', obj6t)
-
         # Prune unnecessary packages
         log.debug("Solve: prune unnecessary packages")
         eq_c = r2.generate_package_count(C, specm)
         solution, obj7 = C.minimize(eq_c, solution, trymax=True)
         log.debug('Weak dependency count: %d', obj7)
 
-        def clean(sol):
-            return [q for q in (C.from_index(s) for s in sol)
-                    if q and q[0] != '!' and '@' not in q]
+        converged = is_converged(solution)
+        if not converged:
+            # Maximize timestamps
+            eq_t.update(eq_req_t)
+            solution, obj6t = C.minimize(eq_t, solution)
+            log.debug('Timestamp metric: %d', obj6t)
+
         log.debug('Looking for alternate solutions')
         nsol = 1
         psolutions = []

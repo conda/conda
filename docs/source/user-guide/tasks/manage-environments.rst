@@ -6,7 +6,7 @@ Managing environments
    :local:
    :depth: 1
 
-With conda, you can create, export, list, remove and update
+With conda, you can create, export, list, remove, and update
 environments that have different versions of Python and/or
 packages installed in them. Switching or moving between
 environments is called activating the environment. You can also
@@ -16,6 +16,12 @@ NOTE: There are many options available for the commands described
 on this page. For details, see :doc:`../../commands`.
 
 
+NOTE: ``conda activate`` and ``conda deactivate`` only work on conda 4.6 and later versions. 
+For conda versions prior to 4.6, run:
+
+   * Windows: ``activate`` or ``deactivate``
+   * Linux and macOS: ``source activate`` or ``source deactivate``
+
 Creating an environment with commands
 =====================================
 
@@ -23,7 +29,7 @@ TIP: By default, environments are installed into the ``envs``
 directory in your conda directory. Run ``conda create --help``
 for information on specifying a different path.
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+Use the terminal or an Anaconda Prompt for the following steps.
 
 #. To create an environment:
 
@@ -41,7 +47,7 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 
 This creates the myenv environment in ``/envs/``. This
 environment uses the same version of Python that you are
-currently using, because you did not specify a version.
+currently using because you did not specify a version.
 
 To create an environment with a specific version of Python:
 
@@ -107,7 +113,7 @@ For details, run ``conda create --help``.
 Creating an environment from an environment.yml file
 ====================================================
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+Use the terminal or an Anaconda Prompt for the following steps.
 
 #. Create the environment from the ``environment.yml`` file:
 
@@ -115,17 +121,15 @@ Use the Terminal or an Anaconda Prompt for the following steps.
 
       conda env create -f environment.yml
 
-The first line of the ``yml`` file sets the new environment's
-name. For details see :ref:`Creating an environment file manually
-<create-env-file-manually>`.
+   The first line of the ``yml`` file sets the new environment's
+   name. For details see :ref:`Creating an environment file manually
+   <create-env-file-manually>`.
 
-#. Activate the new environment:
 
-   * Windows: ``activate myenv``
+#. Activate the new environment: ``conda activate myenv``
 
-   * macOS and Linux: ``source activate myenv``
+   NOTE: Replace ``myenv`` with the environment name.
 
-   NOTE: Replace ``myenv`` with the name of the environment.
 
 #. Verify that the new environment was installed correctly:
 
@@ -137,7 +141,7 @@ name. For details see :ref:`Creating an environment file manually
 Cloning an environment
 =======================
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+Use the terminal or an Anaconda Prompt for the following steps.
 
 You can make an exact copy of an environment by creating a clone
 of it:
@@ -167,7 +171,7 @@ You can use explicit specification files to build an identical
 conda environment on the same operating system platform, either
 on the same machine or on a different machine.
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+Use the terminal or an Anaconda Prompt for the following steps.
 
 #. Run ``conda list --explicit`` to produce a spec list such as:
 
@@ -229,11 +233,10 @@ platform, such as linux-64 or osx-64.
 Activating an environment
 =========================
 
-To activate an environment:
+To activate an environment: ``conda activate myenv``
 
-* On Windows, in your Anaconda Prompt, run ``activate myenv``
+NOTE: Replace ``myenv`` with the environment name.
 
-* On macOS and Linux, in your Terminal Window, run ``source activate myenv``
 
 Conda prepends the path name ``myenv`` onto your system command.
 
@@ -241,11 +244,9 @@ Conda prepends the path name ``myenv`` onto your system command.
 Deactivating an environment
 ===========================
 
-To deactivate an environment:
+To deactivate an environment, type: ``conda deactivate``
 
-* On Windows, in your Anaconda Prompt, run ``deactivate``
-
-* On macOS and Linux, in your Terminal Window, run ``source deactivate``
+NOTE: Replace ``myenv`` with the environment name.
 
 Conda removes the path name ``myenv`` from your system command.
 
@@ -258,7 +259,7 @@ environment before activating another.
 Determining your current environment
 ====================================
 
-Use the Terminal or an Anaconda Prompt for the following steps.
+Use the terminal or an Anaconda Prompt for the following steps.
 
 By default, the active environment---the one you are currently
 using---is shown in parentheses () or brackets [] at the
@@ -288,7 +289,7 @@ To re-enable this option::
 Viewing a list of your environments
 ===================================
 
-To see a list of all of your environments, in your Terminal window or an
+To see a list of all of your environments, in your terminal window or an
 Anaconda Prompt, run:
 
 .. code::
@@ -316,21 +317,21 @@ Viewing a list of the packages in an environment
 
 To see a list of all packages installed in a specific environment:
 
-* If the environment is not activated, in your Terminal window or an
+* If the environment is not activated, in your terminal window or an
   Anaconda Prompt, run:
 
   .. code-block:: bash
 
      conda list -n myenv
 
-* If the environment is activated, in your Terminal window or an
+* If the environment is activated, in your terminal window or an
   Anaconda Prompt, run:
 
   .. code-block:: bash
 
      conda list
 
-To see if a specific package is installed in an environment, in your Terminal window or an
+To see if a specific package is installed in an environment, in your terminal window or an
 Anaconda Prompt, run:
 
 .. code-block:: bash
@@ -343,13 +344,13 @@ Anaconda Prompt, run:
 Using pip in an environment
 ===========================
 
-To use pip in your environment, in your Terminal window or an
+To use pip in your environment, in your terminal window or an
 Anaconda Prompt, run:
 
 .. code-block:: bash
 
    conda install -n myenv pip
-   source activate myenv
+   conda activate myenv
    pip <pip_subcommand>
 
 
@@ -403,16 +404,16 @@ Windows
      set MY_KEY=
      set MY_FILE=
 
-When you run ``activate analytics``, the environment variables
+When you run ``conda activate analytics``, the environment variables
 MY_KEY and MY_FILE are set to the values you wrote into the file.
-When you run ``deactivate``, those variables are erased.
+When you run ``conda deactivate``, those variables are erased.
 
 .. _macos-linux-save-env-variables:
 
 macOS and Linux
 ---------------
 
-#. Locate the directory for the conda environment in your Terminal window by running in the terminal ``echo $CONDA_PREFIX``.
+#. Locate the directory for the conda environment in your terminal window by running in the terminal ``echo $CONDA_PREFIX``.
 
 #. Enter that directory and create these subdirectories and
    files::
@@ -437,9 +438,9 @@ macOS and Linux
      unset MY_KEY
      unset MY_FILE
 
-When you run ``source activate analytics``, the environment
+When you run ``conda activate analytics``, the environment
 variables MY_KEY and MY_FILE are set to the values you wrote into
-the file. When you run ``source deactivate``, those variables are
+the file. When you run ``conda deactivate``, those variables are
 erased.
 
 
@@ -458,12 +459,8 @@ Exporting the environment file
 NOTE: If you already have an ``environment.yml`` file in your
 current directory, it will be overwritten during this task.
 
-#. Activate the environment to export:
-
-   * On Windows, in your Anaconda Prompt, run ``activate myenv``
-
-   * On macOS and Linux, in your Terminal window, run ``source activate myenv``
-
+#. Activate the environment to export: ``conda activate myenv``
+   
    NOTE: Replace ``myenv`` with the name of the environment.
 
 #. Export your active environment to a new file::
@@ -532,7 +529,7 @@ For details on creating an environment from this
 Removing an environment
 =======================
 
-To remove an environment, in your Terminal window or an
+To remove an environment, in your terminal window or an
 Anaconda Prompt, run:
 
 .. code::
@@ -541,7 +538,7 @@ Anaconda Prompt, run:
 
 (You may instead use ``conda env remove --name myenv``.)
 
-To verify that the environment was removed, in your Terminal window or an
+To verify that the environment was removed, in your terminal window or an
 Anaconda Prompt, run:
 
 .. code::

@@ -28,7 +28,7 @@ def get_user_site():  # pragma: no cover
     try:
         if not on_win:
             if exists(expanduser('~/.local/lib')):
-                python_re = re.compile('python\d\.\d')
+                python_re = re.compile(r'python\d\.\d')
                 for path in os.listdir(expanduser('~/.local/lib/')):
                     if python_re.match(path):
                         site_dirs.append("~/.local/lib/%s" % path)
@@ -304,7 +304,9 @@ def execute(args, parser):
     info_dict = get_info_dict(args.system)
 
     if (args.all or all(not getattr(args, opt) for opt in options)) and not context.json:
-        print(get_main_info_str(info_dict))
+        stdout_logger = getLogger("conda.stdoutlog")
+        stdout_logger.info(get_main_info_str(info_dict))
+        stdout_logger.info("\n")
 
     if args.envs:
         from ..core.envs_manager import list_all_known_prefixes

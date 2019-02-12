@@ -108,3 +108,4 @@ or an Anaconda Prompt, run ``conda list``.
    macos
    linux
    test-installation
+   rpm-debian

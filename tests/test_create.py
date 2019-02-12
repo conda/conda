@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import bz2
 from contextlib import contextmanager
 from datetime import datetime
+import fnmatch
 from glob import glob
 
 from conda._vendor.toolz.itertoolz import groupby
@@ -39,7 +40,8 @@ from conda.base.context import Context, context, reset_context
 from conda.cli.conda_argparse import do_call
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.compat import PY2, iteritems, itervalues, text_type, ensure_text_type
-from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist
+from conda.common.constants import CONDA_TEMP_EXTENSION
+from conda.common.io import argv, captured, disable_logger, env_var, stderr_log_level, dashlist, env_vars
 from conda.common.path import get_bin_directory_short_path, get_python_site_packages_short_path, \
     pyc_path
 from conda.common.serialize import yaml_load, json_dump
@@ -53,7 +55,7 @@ from conda.exceptions import CommandArgumentError, DryRunExit, OperationNotAllow
     DisallowedPackageError, UnsatisfiableError, DirectoryNotACondaEnvironmentError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.gateways.disk.create import mkdir_p
-from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.delete import rm_rf, path_is_clean
 from conda.gateways.disk.update import touch
 from conda.gateways.logging import TRACE
 from conda.gateways.subprocess import subprocess_call
@@ -131,9 +133,10 @@ def run_command(command, prefix, *arguments, **kwargs):
     args = p.parse_args(split_command_line)
     context._set_argparse_args(args)
     init_loggers(context)
+    cap_args = tuple() if not kwargs.get("no_capture") else (None, None)
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
-        with argv(['python_api'] + split_command_line), captured() as c:
+        with argv(['python_api'] + split_command_line), captured(*cap_args) as c:
             if use_exception_handler:
                 conda_exception_handler(do_call, args, p)
             else:
@@ -244,7 +247,7 @@ def package_is_installed(prefix, spec):
     spec = MatchSpec(spec)
     prefix_recs = tuple(PrefixData(prefix).query(spec))
     if len(prefix_recs) > 1:
-        raise AssertionError("Multiple packages installed.%s" 
+        raise AssertionError("Multiple packages installed.%s"
                              % (dashlist(prec.dist_str() for prec in prefix_recs)))
     return bool(len(prefix_recs))
 
@@ -337,6 +340,7 @@ class IntegrationTests(TestCase):
         with make_temp_env() as prefix:
             with open(join(prefix, 'condarc'), 'a') as fh:
                 fh.write("safety_checks: enabled\n")
+                fh.write("extra_safety_checks: true\n")
             reload_config(prefix)
             assert context.safety_checks is SafetyChecks.enabled
 
@@ -350,12 +354,7 @@ class IntegrationTests(TestCase):
               reported size: 32 bytes
               actual size: 16 bytes
             """)
-            message2 = dals("""
-            The path 'site-packages/spiffy_test_app/__init__.py'
-            has a sha256 mismatch.
-              reported sha256: 1234567890123456789012345678901234567890123456789012345678901234
-              actual sha256: 32d822669b582f82da97225f69e3ef01ab8b63094e447a9acca148a6e79afbed
-            """)
+            message2 = dals("has a sha256 mismatch.")
             assert message1 in error_message
             assert message2 in error_message
 
@@ -768,14 +767,13 @@ class IntegrationTests(TestCase):
             # regression test for #2154
             with pytest.raises(PackagesNotFoundError) as exc:
                 run_command(Commands.REMOVE, prefix, 'python', 'foo', 'numpy')
-            assert repr(exc.value) == dals("""
-            PackagesNotFoundError: The following packages are missing from the target environment:
-              - foo
-              - numpy
-            """)
+            exception_string = repr(exc.value)
+            assert "PackagesNotFoundError" in exception_string
+            assert "- numpy" in exception_string
+            assert "- foo" in exception_string
 
             run_command(Commands.REMOVE, prefix, '--all')
-            assert not exists(prefix)
+            assert path_is_clean(prefix)
 
     @pytest.mark.skipif(on_win, reason="windows usually doesn't support symlinks out-of-the box")
     @patch('conda.core.link.hardlink_supported', side_effect=lambda x, y: False)
@@ -1693,7 +1691,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--add channels %s" % channel_url)
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
-            assert yml_obj['channels'] == [channel_url, 'defaults']
+            assert yml_obj['channels'] == [channel_url.replace('cqgccfm1mfma', '<TOKEN>'), 'defaults']
 
             with pytest.raises(PackagesNotFoundError):
                 run_command(Commands.SEARCH, prefix, "boltons", "--json")
@@ -1744,7 +1742,8 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--remove channels defaults")
             stdout, stderr = run_command(Commands.CONFIG, prefix, "--show")
             yml_obj = yaml_load(stdout)
-            assert yml_obj['channels'] == [channel_url]
+
+            assert yml_obj['channels'] == ["https://conda.anaconda.org/t/<TOKEN>/kalefranz"]
 
             stdout, stderr = run_command(Commands.SEARCH, prefix, "anyjson", "--platform",
                                          "linux-64", "--json")
@@ -1918,7 +1917,10 @@ class IntegrationTests(TestCase):
     def test_install_mkdir(self):
         try:
             prefix = make_temp_prefix()
+            with open(os.path.join(prefix, 'tempfile.txt'), "w") as f:
+                f.write('test')
             assert isdir(prefix)
+            assert isfile(os.path.join(prefix, 'tempfile.txt'))
             with pytest.raises(DirectoryNotACondaEnvironmentError):
                 run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
 
@@ -1926,8 +1928,8 @@ class IntegrationTests(TestCase):
             run_command(Commands.INSTALL, prefix, "python=3.5.2", "--mkdir")
             assert package_is_installed(prefix, "python=3.5.2")
 
-            rm_rf(prefix)
-            assert not isdir(prefix)
+            rm_rf(prefix, clean_empty_parents=True)
+            assert path_is_clean(prefix)
 
             # this part also a regression test for #4849
             run_command(Commands.INSTALL, prefix, "python-dateutil=2.6.0", "python=3.5.2", "--mkdir")
@@ -1935,7 +1937,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "python-dateutil=2.6.0")
 
         finally:
-            rmtree(prefix, ignore_errors=True)
+            rm_rf(prefix, clean_empty_parents=True)
 
     @pytest.mark.skipif(on_win, reason="python doesn't have dependencies on windows")
     def test_disallowed_packages(self):
@@ -2013,7 +2015,7 @@ class IntegrationTests(TestCase):
 
         # regression test for #3489
         # don't raise for remove --all if environment doesn't exist
-        rm_rf(prefix)
+        rm_rf(prefix, clean_empty_parents=True)
         run_command(Commands.REMOVE, prefix, "--all")
 
     def test_download_only_flag(self):
@@ -2050,6 +2052,8 @@ class IntegrationTests(TestCase):
 
     def test_directory_not_a_conda_environment(self):
         prefix = make_temp_prefix(str(uuid4())[:7])
+        with open(join(prefix, 'tempfile.txt'), 'w') as f:
+            f.write("weeee")
         try:
             with pytest.raises(DirectoryNotACondaEnvironmentError):
                 run_command(Commands.INSTALL, prefix, "sqlite")
@@ -2096,48 +2100,49 @@ class IntegrationTests(TestCase):
         # version of conda and other packages in that environment.
         # Make sure we can flip back and forth.
         conda_exe = join('Scripts', 'conda.exe') if on_win else join('bin', 'conda')
-        with env_var("CONDA_AUTO_UPDATE_CONDA", "false", reset_context):
-            with make_temp_env("conda=4.3.27 python=%s" % sys.version_info[0],
+        with env_vars({
+                "CONDA_AUTO_UPDATE_CONDA": "false",
+                "CONDA_ALLOW_CONDA_DOWNGRADES": "true"
+        }, reset_context):
+            with make_temp_env("conda=4.5.12 python=%s" % sys.version_info[0],
                                name='_' + str(uuid4())[:8]) as prefix:  # rev 0
                 assert package_is_installed(prefix, "conda")
 
-                run_command(Commands.INSTALL, prefix, "mccabe")  # rev 1
-                assert package_is_installed(prefix, "mccabe")
+                # runs our current version of conda to install into the foreign env
+                run_command(Commands.INSTALL, prefix, "lockfile")  # rev 3
+                assert package_is_installed(prefix, "lockfile")
 
+                # runs the conda in the env to install something new into the env
                 subprocess_call("%s install -p %s -y itsdangerous" % (join(prefix, conda_exe), prefix))  # rev 2
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "itsdangerous")
 
-                run_command(Commands.INSTALL, prefix, "lockfile")  # rev 3
-                assert package_is_installed(prefix, "lockfile")
-
-                subprocess_call("%s install -p %s -y conda=4.3" % (join(prefix, conda_exe), prefix))  # rev 4
+                # downgrade the version of conda in the env
+                subprocess_call("%s install -p %s -y conda=4.5.11" % (join(prefix, conda_exe), prefix))  # rev 4
                 PrefixData._cache_.clear()
-                assert not package_is_installed(prefix, "conda=4.3.27")
+                assert not package_is_installed(prefix, "conda=4.5.12")
 
-                subprocess_call("%s install -p %s -y colorama" % (join(prefix, conda_exe), prefix))  # rev 5
-                PrefixData._cache_.clear()
-                assert package_is_installed(prefix, "colorama")
-
+                # look at the revision history (for your reference, doesn't affect the test)
                 stdout, stderr = run_command(Commands.LIST, prefix, "--revisions")
                 print(stdout)
 
+                # undo the conda downgrade in the env (using our current outer conda version)
                 PrefixData._cache_.clear()
-                run_command(Commands.INSTALL, prefix, "--rev 3")
+                run_command(Commands.INSTALL, prefix, "--rev 2")
                 PrefixData._cache_.clear()
-                assert package_is_installed(prefix, "conda=4.3.27")
-                assert not package_is_installed(prefix, "colorama")
+                assert package_is_installed(prefix, "conda=4.5.12")
 
+                # use the conda in the env to revert to a previous state
                 subprocess_call("%s install -y -p %s --rev 1" % (join(prefix, conda_exe), prefix))
                 PrefixData._cache_.clear()
                 assert not package_is_installed(prefix, "itsdangerous")
                 PrefixData._cache_.clear()
-                assert package_is_installed(prefix, "conda=4.3.27")
+                assert package_is_installed(prefix, "conda=4.5.12")
                 assert package_is_installed(prefix, "python=%s" % sys.version_info[0])
 
                 result = subprocess_call("%s info --json" % join(prefix, conda_exe))
                 conda_info = json.loads(result.stdout)
-                assert conda_info["conda_version"] == "4.3.27"
+                assert conda_info["conda_version"] == "4.5.12"
 
     @pytest.mark.skipif(on_win, reason="openssl only has a postlink script on unix")
     def test_run_script_called(self):
@@ -2146,6 +2151,13 @@ class IntegrationTests(TestCase):
             with make_temp_env("openssl=1.0.2j --no-deps") as prefix:
                 assert package_is_installed(prefix, 'openssl')
                 assert rs.call_count == 1
+
+    def test_post_link_run_in_env(self):
+        test_pkg = '_conda_test_env_activated_when_post_link_executed'
+        # a non-unicode name must be provided here as activate.d scripts
+        # are not execuated on windows, see https://github.com/conda/conda/issues/8241
+        with make_temp_env(test_pkg, '-c conda-test', name='post_link_test') as prefix:
+            assert package_is_installed(prefix, test_pkg)
 
     def test_conda_info_python(self):
         stdout, stderr = run_command(Commands.INFO, None, "python=3.5")

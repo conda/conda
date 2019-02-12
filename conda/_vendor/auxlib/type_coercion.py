@@ -1,5 +1,8 @@
 """Collection of functions to coerce conversion of types with an intelligent guess."""
-from collections import Mapping
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
 from itertools import chain
 from re import IGNORECASE, compile
 
@@ -219,8 +222,11 @@ def typify(value, type_hint=None):
         if isinstance(type_hint, type) and issubclass(type_hint, Enum):
             try:
                 return type_hint(value)
-            except ValueError:
-                return type_hint[value]
+            except ValueError as e:
+                try:
+                    return type_hint[value]
+                except KeyError:
+                    raise TypeCoercionError(value, text_type(e))
         type_hint = set(type_hint)
         if not (type_hint - NUMBER_TYPES_SET):
             return numberify(value)

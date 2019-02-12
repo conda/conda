@@ -42,6 +42,10 @@ def execute(args, parser):
             } for prefix, prefix_recs in prefix_matches)
         if context.json:
             stdout_json(ordered_result)
+        elif args.info:
+            for pkg_group in ordered_result:
+                for prec in pkg_group['package_records']:
+                    pretty_record(prec)
         else:
             builder = ['# %-13s %15s %15s  %-20s %-20s' % (
                 "Name",

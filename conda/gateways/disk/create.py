@@ -46,7 +46,7 @@ from %(module)s import %(import_name)s
 if __name__ == '__main__':
     sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
     sys.exit(%(func)s())
-""")
+""")  # NOQA
 
 application_entry_point_template = dals("""
 # -*- coding: utf-8 -*-
@@ -352,7 +352,7 @@ def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, pr
         for f in py_full_paths:
             f = os.path.relpath(f, prefix)
             if hasattr(f, 'encode'):
-                f = f.encode(sys.getfilesystemencoding())
+                f = f.encode(sys.getfilesystemencoding(), errors='replace')
             os.write(fd, f + b"\n")
         os.close(fd)
         command = ["-Wi", "-m", "compileall", "-q", "-l", "-i", filename]

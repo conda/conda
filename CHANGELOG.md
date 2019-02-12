@@ -1,4 +1,76 @@
-## 4.6.0 (unreleased)
+## 4.6.3 (2019-02-07)
+
+### Improvements
+* Implement ``-stack`` switch for powershell usage of conda (#8217)
+* Enable system-wide initialization for conda shell support (#8219)
+* Activate environments prior to running post-link scripts (#8229)
+* Instrument more solve calls to prioritize future optimization efforts (#8231)
+* print more env info when searching in envs (#8240)
+
+### Bug fixes
+* resolve #8178, fix conda pip interop assertion error with egg folders (#8184)
+* resolve #8157, fix token leakage in errors and config output (#8163)
+* resolve #8185, fix conda package filtering with embedded/vendored python metadata (#8198)
+* resolve #8199, fix errors on .* in version specs that should have been specific to the ~= operator (#8208)
+* fix .bat scripts for handling paths on Windows with spaces (#8215)
+* fix powershell scripts for handling paths on Windows with spaces (#8222)
+* handle missing rename script more gracefully (especially when updating/installing conda itself) (#8212)
+
+### Contributors
+* @dhirschfeld
+* @jjhelmus
+* @kalefranz
+* @msarahan
+* @murrayreadccdc
+* @nehaljwani
+* @rrigdon
+* @soapy1
+
+
+## 4.6.2 (2019-01-29)
+
+### Improvements
+* Documentation restructuring/improvements  (#8139, #8143)
+* rewrite rm_rf to use native system utilities and rename trash files  (#8134)
+
+### Bug fixes
+* fix UnavailableInvalidChannel errors when only noarch subdir is present  (#8154)
+* document, but disable the ``allow_conda_downgrades`` flag, pending re-examination of the warning, which was blocking conda operations after an upgrade-downgrade cycle across minor versions.  (#8160)
+* fix conda env export missing pip entries without use of pip interop enabled setting  (#8165)
+
+### Contributors
+* @jjhelmus
+* @msarahan
+* @nehaljwani
+* @rrigdon
+
+
+## 4.5.13 (2019-01-29)
+
+### Improvements
+* document the allow_conda_downgrades configuration parameter (#8034)
+* remove conda upgrade message (#8161)
+
+### Contributors
+* @msarahan
+* @nehaljwani
+
+## 4.6.1 (2019-01-21)
+
+### Improvements
+* optimizations in ``get_reduced_index`` (#8117, #8121, #8122)
+
+### Bug Fixes
+* fix faulty onerror call for rm (#8053)
+* fix activate.bat to use more direct call to conda.bat (don't require conda init; fix non-interactive script) (#8113)
+
+### Contributors
+* @jjhelmus
+* @msarahan
+* @pv
+
+
+## 4.6.0 (2019-01-15)
 
 ### New Feature Highlights
 * resolve #7053 preview support for conda operability with pip; disabled by default (#7067, #7370, #7710, #8050)
@@ -83,6 +155,7 @@
 * fix #7706 add condacmd dir to cmd.exe path on first activation (#7735)
 * fix #7761 spec handling errors in 4.6.0b0 (#7780)
 * fix #7770 'conda list regex' only applies regex to package name (#7784)
+* fix #8076 load metadata from index to resolve inconsistent envs (#8083)
 
 ### Non-User-Facing Changes
 * resolve #6595 use OO inheritance in activate.py (#7049)
@@ -104,7 +177,7 @@
 * 4.6.0a2 at c467517ca652371ebc4224f0d49315b7ec225108 on 2018-05-01
 * 4.6.0b0 at 21a24f02b2687d0895de04664a4ec23ccc75c33a on 2018-09-07
 * 4.6.0b1 at 1471f043eed980d62f46944e223f0add6a9a790b on 2018-10-22
-* 4.6.0rc1 at 
+* 4.6.0rc1 at 64bde065f8343276f168d2034201115dff7c5753 on 2018-12-31
 
 ### Contributors
 * @cgranade
@@ -121,6 +194,30 @@
 * @nehaljwani
 * @ohadravid
 * @teake
+
+
+# 4.5.12 (2018-12-10)
+
+### Improvements
+* backport 'allow_conda_downgrade' configuration parameter, default is False (#7998)
+* speed up verification by disabling per-file sha256 checks (#8017)
+* indicate Python 3.7 support in setup.py file (#8018)
+* speed up solver by reduce the size of reduced index (#8016)
+* speed up solver by skipping timestamp minimization when not needed (#8012)
+* compile pyc files more efficiently, will speed up install of noarch packages (#8025)
+* avoid waiting for removal of files on Windows when possible (#8024)
+
+### Bug Fixes
+* update integration tests for removal of 'features' key (#7726)
+* fix conda.bat return code (#7944)
+* ensure channel name is not NoneType (#8021)
+
+### Contributors
+* @debionne
+* @jjhelmus
+* @kalefranz
+* @msarahan
+* @nehaljwani
 
 
 # 4.5.11 (2018-08-21)

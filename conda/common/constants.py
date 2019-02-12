@@ -10,3 +10,5 @@ from .._vendor.auxlib import NULL
 #   to null, or the key didn't exist at all.  There could be a bit of potential confusion here,
 #   because in python null == None, while here I'm defining NULL to mean 'not defined'.
 NULL = NULL
+
+CONDA_TEMP_EXTENSION = '.c~'

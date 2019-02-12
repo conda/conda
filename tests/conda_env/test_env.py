@@ -1,9 +1,21 @@
 from collections import OrderedDict
 import os
+from os.path import join
 import random
 import unittest
+from uuid import uuid4
 
+from conda.core.prefix_data import PrefixData
+from conda.base.context import reset_context
+from conda.common.io import env_vars
 from conda.common.serialize import yaml_load
+from conda.install import on_win
+import ruamel_yaml
+
+from . import support_file
+from .utils import make_temp_envs_dir, Commands, run_command
+
+PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 
 
 try:
@@ -13,8 +25,6 @@ except ImportError:
 
 from conda_env import env
 from conda_env import exceptions
-
-from . import support_file
 
 
 class FakeStream(object):
@@ -340,3 +350,31 @@ class EnvironmentSaveTestCase(unittest.TestCase):
 
         self.assert_(len(actual) > 0, msg='sanity check')
         self.assertEqual(e.to_yaml(), actual)
+
+
+class SaveExistingEnvTestCase(unittest.TestCase):
+    def test_create_advanced_pip(self):
+        with make_temp_envs_dir() as envs_dir:
+            with env_vars({
+                'CONDA_ENVS_DIRS': envs_dir,
+                'CONDA_PIP_INTEROP_ENABLED': 'true',
+            }, reset_context):
+                env_name = str(uuid4())[:8]
+                prefix = join(envs_dir, env_name)
+                python_path = join(prefix, PYTHON_BINARY)
+
+                run_command(Commands.CREATE, env_name,
+                            support_file('pip_argh.yml'))
+                out_file = join(envs_dir, 'test_env.yaml')
+
+            # make sure that the export reconsiders the presence of pip interop being enabled
+            PrefixData._cache_.clear()
+
+            with env_vars({
+                'CONDA_ENVS_DIRS': envs_dir,
+            }, reset_context):
+                # note: out of scope of pip interop var.  Should be enabling conda pip interop itself.
+                run_command(Commands.EXPORT, env_name, out_file)
+                with open(out_file) as f:
+                    d = ruamel_yaml.load(f)
+                assert {'pip': ['argh==0.26.2']} in d['dependencies']

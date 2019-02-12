@@ -40,7 +40,7 @@ The ``.condarc`` file can change many parameters, including:
 
 * Where conda lists known environments.
 
-* Whether to update the bash prompt with the current activated
+* Whether to update the bash prompt with the currently activated
   environment name.
 
 * Whether user-built packages should be uploaded to
@@ -72,7 +72,7 @@ EXAMPLE: To set the auto_update_conda option to ``False``, run::
 
 For a complete list of conda config commands, see the
 :doc:`command reference <../../commands/conda-config>`. The same list
-is available at the Terminal or Anaconda Prompt by running
+is available at the terminal or Anaconda Prompt by running
 ``conda config --help``.
 
 TIP: Conda supports :doc:`tab completion <enable-tab-completion>`
@@ -204,7 +204,7 @@ EXAMPLE:
 Change command prompt (changeps1)
 ---------------------------------
 
-When using ``activate``, change the command prompt from ``$PS1``
+When using ``conda activate``, change the command prompt from ``$PS1``
 to include the activated environment. The default is ``True``.
 
 EXAMPLE:
@@ -425,8 +425,8 @@ Disable updating of dependencies (update_dependencies)
 ------------------------------------------------------
 
 By default, ``conda install`` updates the given package to the
-latest version, and installs any dependencies necessary for
-that package. However if dependencies that satisfy the package's
+latest version and installs any dependencies necessary for
+that package. However, if dependencies that satisfy the package's
 requirements are already installed, conda will not update those
 packages to the latest version.
 
@@ -590,7 +590,7 @@ Token to be used for Anaconda.org uploads (conda-build 3.0+) (anaconda_token)
 
 Tokens are a means of authenticating with anaconda.org without logging in.
 You can pass your token to conda-build with this condarc setting, or with a CLI
-argument.  This is unset by default.  Setting it implicitly enables
+argument. This is unset by default. Setting it implicitly enables
 anaconda_upload.
 
   .. code-block:: yaml
@@ -632,7 +632,7 @@ Disable recipe and package verification (conda-build 3.0+) (no_verify)
 ----------------------------------------------------------------------
 
 By default, conda-build uses conda-verify to ensure that your recipe and package
-meet some minimum sanity checks.  You can disable these:
+meet some minimum sanity checks. You can disable these:
 
 .. code-block:: yaml
 
@@ -721,7 +721,7 @@ The default is ``true``.
 PyPI upload settings (conda-build 3.0+) (pypirc)
 ------------------------------------------------
 
-Unset by default.  If you have wheel outputs in your recipe, conda-build will
+Unset by default. If you have wheel outputs in your recipe, conda-build will
 try to upload them to the PyPI repository specified by the ``pypi_repository``
 setting using credentials from this file path.
 
@@ -734,7 +734,7 @@ setting using credentials from this file path.
 PyPI repository to upload to (conda-build 3.0+) (pypi_repository)
 -----------------------------------------------------------------
 
-Unset by default.  If you have wheel outputs in your recipe, conda-build will
+Unset by default. If you have wheel outputs in your recipe, conda-build will
 try to upload them to this PyPI repository using credentials from the file
 specified by the ``pypirc`` setting.
 

@@ -43,7 +43,7 @@ Update a package                        ``conda update --name $ENVIRONMENT_NAME 
 Update package manager                  ``conda update conda``                                     Linux/macOS: ``pip install -U pip`` Win: ``python -m pip install -U pip``    X
 Uninstall a package                     ``conda remove --name $ENVIRONMENT_NAME $PACKAGE_NAME``    ``pip uninstall $PACKAGE_NAME``                                              X
 Create an environment                   ``conda create --name $ENVIRONMENT_NAME python``           X                                                                            ``cd $ENV_BASE_DIR; virtualenv $ENVIRONMENT_NAME``
-Activate an environment                 ``source activate $ENVIRONMENT_NAME``                      X                                                                            ``source $ENV_BASE_DIR/$ENVIRONMENT_NAME/bin/activate``
+Activate an environment                 ``conda activate $ENVIRONMENT_NAME``\*                      X                                                                            ``source $ENV_BASE_DIR/$ENVIRONMENT_NAME/bin/activate``
 Deactivate an environment               ``source deactivate``                                      X                                                                            ``deactivate``
 Search available packages               ``conda search $SEARCH_TERM``                              ``pip search $SEARCH_TERM``                                                  X
 Install package from specific source    ``conda install --channel $URL $PACKAGE_NAME``             ``pip install --index-url $URL $PACKAGE_NAME``                               X
@@ -54,6 +54,11 @@ Install other package manager           ``conda install pip``                   
 Install Python                          ``conda install python=x.x``                               X                                                                            X
 Update Python                           ``conda update python``\*                                  X                                                                            X
 =====================================   ========================================================   ==========================================================================   ========================================================
+
+\* ``conda activate`` only works on conda 4.6 and later versions. For conda versions prior to 4.6, type: 
+   
+   * Windows: ``activate``
+   * Linux and macOS: ``source activate``
 
 \* ``conda update python`` updates to the most recent in the series, so any Python 2.x would update to the latest 2.x and any Python 3.x to the latest 3.x.
 

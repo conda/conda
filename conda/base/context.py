@@ -14,7 +14,7 @@ from .constants import (APP_NAME, ChannelPriority, DEFAULTS_CHANNEL_NAME,
                         DEFAULT_AGGRESSIVE_UPDATE_PACKAGES, DEFAULT_CHANNELS,
                         DEFAULT_CHANNEL_ALIAS, DEFAULT_CUSTOM_CHANNELS, DepsModifier,
                         ERROR_UPLOAD_URL, PLATFORM_DIRECTORIES, PREFIX_MAGIC_FILE, PathConflict,
-                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, UpdateModifier)
+                        ROOT_ENV_NAME, SEARCH_PATH, SafetyChecks, SatSolverChoice, UpdateModifier)
 from .. import __version__ as CONDA_VERSION
 from .._vendor.appdirs import user_data_dir
 from .._vendor.auxlib.decorators import memoize, memoizedproperty
@@ -25,8 +25,8 @@ from .._vendor.toolz import concat, concatv, unique
 from ..common.compat import NoneType, iteritems, itervalues, odict, on_win, string_types
 from ..common.configuration import (Configuration, ConfigurationLoadError, MapParameter,
                                     PrimitiveParameter, SequenceParameter, ValidationError)
-from ..common.path import expand, paths_equal
 from ..common.os.linux import linux_get_libc_version
+from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 
 try:
@@ -127,6 +127,7 @@ class Context(Configuration):
                                                     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
                                                     aliases=('aggressive_update_packages',))
     safety_checks = PrimitiveParameter(SafetyChecks.warn)
+    extra_safety_checks = PrimitiveParameter(False)
     path_conflict = PrimitiveParameter(PathConflict.clobber)
 
     pinned_packages = SequenceParameter(string_types, string_delimiter='&')  # TODO: consider a different string delimiter  # NOQA
@@ -216,8 +217,8 @@ class Context(Configuration):
     # ######################################################
     deps_modifier = PrimitiveParameter(DepsModifier.NOT_SET)
     update_modifier = PrimitiveParameter(UpdateModifier.UPDATE_SPECS)
-    sat_solver = PrimitiveParameter(None, element_type=string_types + (NoneType,))
-    solver_ignore_timestamps = PrimitiveParameter(True)
+    sat_solver = PrimitiveParameter(SatSolverChoice.PYCOSAT)
+    solver_ignore_timestamps = PrimitiveParameter(False)
 
     # no_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))  # CLI-only
     # only_deps = PrimitiveParameter(NULL, element_type=(type(NULL), bool))   # CLI-only
@@ -232,7 +233,6 @@ class Context(Configuration):
     force_reinstall = PrimitiveParameter(False)
 
     target_prefix_override = PrimitiveParameter('')
-    featureless_minimization_disabled_feature_flag = PrimitiveParameter(False)
 
     # conda_build
     bld_path = PrimitiveParameter('')
@@ -674,7 +674,6 @@ class Context(Configuration):
             'allow_non_channel_urls',
         )),
         ('Basic Conda Configuration', (  # TODO: Is there a better category name here?
-            'env_prompt',
             'envs_dirs',
             'pkgs_dirs',
         )),
@@ -695,10 +694,11 @@ class Context(Configuration):
             'channel_priority',
             'create_default_packages',
             'disallowed_packages',
-            'pinned_packages',
-            'track_features',
-            'prune',
             'force_reinstall',
+            'pinned_packages',
+            'pip_interop_enabled',
+            'prune',
+            'track_features',
         )),
         ('Package Linking and Install-time Configuration', (
             'allow_softlinks',
@@ -707,6 +707,7 @@ class Context(Configuration):
             'path_conflict',
             'rollback_enabled',
             'safety_checks',
+            'extra_safety_checks',
             'shortcuts',
             'non_admin_enabled',
         )),
@@ -720,6 +721,7 @@ class Context(Configuration):
             'always_yes',
             'auto_activate_base',
             'changeps1',
+            'env_prompt',
             'json',
             'notify_outdated_conda',
             'quiet',
@@ -743,15 +745,13 @@ class Context(Configuration):
         )),
         ('Hidden and Undocumented', (
             'allow_cycles',  # allow cyclical dependencies, or raise
-            'add_pip_as_python_dependency',
             'allow_conda_downgrades',
+            'add_pip_as_python_dependency',
             'debug',
             'default_python',
             'enable_private_envs',
             'error_upload_url',  # should remain undocumented
-            'featureless_minimization_disabled_feature_flag',
             'force_32bit',
-            'pip_interop_enabled',  # temporary feature flag
             'root_prefix',
             'sat_solver',
             'solver_ignore_timestamps',
@@ -980,6 +980,9 @@ class Context(Configuration):
                 A list of package specs to pin for every environment resolution.
                 This parameter is in BETA, and its behavior may change in a future release.
                 """),
+            'pip_interop_enabled': dals("""
+                Allow the conda solver to interact with non-conda-installed python packages.
+                """),
             'pkgs_dirs': dals("""
                 The list of directories where locally-available packages are linked from at
                 install time. Packages not locally available are downloaded and extracted
@@ -1024,6 +1027,10 @@ class Context(Configuration):
             'safety_checks': dals("""
                 Enforce available safety guarantees during package installation.
                 The value must be one of 'enabled', 'warn', or 'disabled'.
+                """),
+            'extra_safety_checks': dals("""
+                Spend extra time validating package contents.  Currently, runs sha256 verification
+                on every file within each package during installation.
                 """),
             'shortcuts': dals("""
                 Allow packages to create OS-specific shortcuts (e.g. in the Windows Start
@@ -1149,13 +1156,12 @@ def determine_target_prefix(ctx, args=None):
     elif prefix_path is not None:
         return expand(prefix_path)
     else:
-        for x in ('/', ' ', ':'):
-            if x in prefix_name:
-                from ..exceptions import CondaValueError
-                builder = ["Invalid environment name: '" + prefix_name + "'"]
-                x = "Space" if x is ' ' else x
-                builder.append("  character not allowed: '" + x + "'")
-                raise CondaValueError("\n".join(builder))
+        disallowed_chars = ('/', ' ', ':')
+        if any(_ in prefix_name for _ in disallowed_chars):
+            from ..exceptions import CondaValueError
+            builder = ["Invalid environment name: '" + prefix_name + "'"]
+            builder.append("  Characters not allowed: {}".format(disallowed_chars))
+            raise CondaValueError("\n".join(builder))
         if prefix_name in (ROOT_ENV_NAME, 'root'):
             return ctx.root_prefix
         else:

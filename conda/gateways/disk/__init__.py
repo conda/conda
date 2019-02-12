@@ -7,6 +7,7 @@ from errno import EACCES, EEXIST, ENOENT, ENOTEMPTY, EPERM, errorcode
 from logging import getLogger
 import os
 from os.path import basename, isdir, dirname
+from subprocess import CalledProcessError
 import sys
 from time import sleep
 
@@ -26,22 +27,26 @@ def exp_backoff_fn(fn, *args, **kwargs):
     import random
     # with max_tries = 6, max total time ~= 3.2 sec
     # with max_tries = 7, max total time ~= 6.5 sec
+
+    def sleep_some(n, exc):
+        if n == max_tries-1:
+            raise
+        sleep_time = ((2 ** n) + random.random()) * 0.1
+        caller_frame = sys._getframe(1)
+        log.trace("retrying %s/%s %s() in %g sec",
+                  basename(caller_frame.f_code.co_filename),
+                  caller_frame.f_lineno,
+                  fn.__name__,
+                  sleep_time)
+        sleep(sleep_time)
+
     for n in range(max_tries):
         try:
             result = fn(*args, **kwargs)
         except (OSError, IOError) as e:
             log.trace(repr(e))
             if e.errno in (EPERM, EACCES):
-                if n == max_tries-1:
-                    raise
-                sleep_time = ((2 ** n) + random.random()) * 0.1
-                caller_frame = sys._getframe(1)
-                log.trace("retrying %s/%s %s() in %g sec",
-                          basename(caller_frame.f_code.co_filename),
-                          caller_frame.f_lineno,
-                          fn.__name__,
-                          sleep_time)
-                sleep(sleep_time)
+                sleep_some(n, e)
             elif e.errno in (ENOENT, ENOTEMPTY):
                 # errno.ENOENT File not found error / No such file or directory
                 # errno.ENOTEMPTY OSError(41, 'The directory is not empty')
@@ -49,6 +54,8 @@ def exp_backoff_fn(fn, *args, **kwargs):
             else:
                 log.warn("Uncaught backoff with errno %s %d", errorcode[e.errno], e.errno)
                 raise
+        except CalledProcessError as e:
+            sleep_some(n, e)
         else:
             return result
 

@@ -113,7 +113,8 @@ class PythonDistribution(object):
         for fname in self.MANDATORY_FILES:
             if self._metadata_dir_full_path:
                 fpath = join(self._metadata_dir_full_path, fname)
-                assert isfile(fpath)
+                if not isfile(fpath):
+                    raise OSError(ENOENT, strerror(ENOENT), fpath)
 
     def _check_path_data(self, path, checksum, size):
         """Normalizes record data content and format."""

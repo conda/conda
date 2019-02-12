@@ -20,6 +20,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import ensure_text_type, iteritems, on_win, \
     string_types
 from conda.common.io import captured, env_var, env_vars
+from conda.common.path import which
 from conda.exceptions import EnvironmentLocationNotFound, EnvironmentNameNotFound
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -1129,7 +1130,7 @@ class InteractiveShell(object):
     shells = {
         'posix': {
             'activator': 'posix',
-            'init_command': 'env | sort && eval "$(python -m conda shell.posix hook)"',
+            'init_command': 'env | sort && eval "$(python -m conda \"shell.posix\" \"hook\")"',
             'print_env_var': 'echo "$%s"',
         },
         'bash': {
@@ -1140,13 +1141,13 @@ class InteractiveShell(object):
         },
         'zsh': {
             'base_shell': 'posix',  # inheritance implemented in __init__
-            'init_command': 'env | sort && eval "$(python -m conda shell.zsh hook)"',
+            'init_command': 'env | sort && eval "$(python -m conda \"shell.zsh\" \"hook\")"',
         },
         'cmd.exe': {
             'activator': 'cmd.exe',
             'init_command': 'set "CONDA_SHLVL=" '
                             '&& @CALL conda\\shell\\condabin\\conda_hook.bat '
-                            '&& set "CONDA_EXE=python -m conda"',
+                            '&& set "CONDA_EXE={}"'.format(join(sys.prefix, "Scripts", "conda.exe")),
             'print_env_var': '@echo %%%s%%',
         },
         'csh': {
@@ -1159,7 +1160,7 @@ class InteractiveShell(object):
         },
         'fish': {
             'activator': 'fish',
-            'init_command': 'eval (python -m conda shell.fish hook)',
+            'init_command': 'eval (python -m conda "shell.fish" "hook")',
             'print_env_var': 'echo $%s',
         },
         # We don't know if the PowerShell executable is called
@@ -1167,7 +1168,7 @@ class InteractiveShell(object):
         'powershell': {
             'activator': 'powershell',
             'args': '-NoProfile -NoLogo',
-            'init_command': 'python -m conda shell.powershell hook | Out-String | Invoke-Expression',
+            'init_command': 'python -m conda "shell.powershell" "hook" | Out-String | Invoke-Expression',
             'print_env_var': '$Env:%s',
             'exit_cmd': 'exit'
         },
@@ -1269,10 +1270,6 @@ class InteractiveShell(object):
             return ensure_text_type(value).strip()
 
 
-def which(executable):
-    from distutils.spawn import find_executable
-    return find_executable(executable)
-
 def which_powershell():
     r"""
     Since we don't know whether PowerShell is installed as powershell, pwsh, or pwsh-preview,
@@ -1367,11 +1364,11 @@ class ShellWrapperIntegrationTests(TestCase):
         # TODO: assert that reactivate worked correctly
 
         shell.sendline('sqlite3 -version')
-        shell.expect('3\.21\..*\n')
+        shell.expect(r'3\.21\..*\n')
 
         # conda run integration test
         shell.sendline('conda run sqlite3 -version')
-        shell.expect('3\.21\..*\n')
+        shell.expect(r'3\.21\..*\n')
 
         # regression test for #6840
         shell.sendline('conda install --blah')
@@ -1501,6 +1498,7 @@ class ShellWrapperIntegrationTests(TestCase):
     @pytest.mark.skipif(not which_powershell(), reason='PowerShell not installed')
     def test_powershell_basic_integration(self):
         charizard = join(self.prefix, 'envs', 'charizard')
+        venusaur = join(self.prefix, 'envs', 'venusaur')
         posh_kind, posh_path = which_powershell()
         print('## [PowerShell integration] Using {}.'.format(posh_path))
         with InteractiveShell(posh_kind) as shell:
@@ -1513,9 +1511,19 @@ class ShellWrapperIntegrationTests(TestCase):
             print('## [PowerShell integration] Activating.')
             shell.sendline('conda activate "%s"' % charizard)
             shell.assert_env_var('CONDA_SHLVL', '1\r?')
+            PATH = shell.get_env_var('PATH')
+            assert 'charizard' in PATH
             shell.sendline('conda activate "%s"' % self.prefix)
             shell.assert_env_var('CONDA_SHLVL', '2\r?')
             shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
+
+            shell.sendline('conda deactivate')
+            PATH = shell.get_env_var('PATH')
+            assert 'charizard' in PATH
+            shell.sendline('conda activate -stack "%s"' % venusaur)
+            PATH = shell.get_env_var('PATH')
+            assert 'venusaur' in PATH
+            assert 'charizard' in PATH
 
             print('## [PowerShell integration] Installing.')
             shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
@@ -1526,12 +1534,12 @@ class ShellWrapperIntegrationTests(TestCase):
 
             print('## [PowerShell integration] Checking installed version.')
             shell.sendline('sqlite3 -version')
-            shell.expect('3\.21\..*')
+            shell.expect(r'3\.21\..*')
 
             # conda run integration test
             print('## [PowerShell integration] Checking conda run.')
             shell.sendline('conda run sqlite3 -version')
-            shell.expect('3\.21\..*')
+            shell.expect(r'3\.21\..*')
 
             print('## [PowerShell integration] Deactivating')
             shell.sendline('conda deactivate')
@@ -1562,11 +1570,11 @@ class ShellWrapperIntegrationTests(TestCase):
             # TODO: assert that reactivate worked correctly
 
             shell.sendline('sqlite3 -version')
-            shell.expect('3\.21\..*\n')
+            shell.expect(r'3\.21\..*\n')
 
             # conda run integration test
             shell.sendline('conda run sqlite3 -version')
-            shell.expect('3\.21\..*\n')
+            shell.expect(r'3\.21\..*\n')
 
             shell.sendline('conda deactivate')
             shell.assert_env_var('CONDA_SHLVL', '1\r')

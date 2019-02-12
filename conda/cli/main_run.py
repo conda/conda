@@ -63,7 +63,7 @@ def _get_activated_env_vars_unix(env_location):
         conda_exe = abspath(join(sys.prefix, 'bin', 'conda'))
 
     inner_builder = (
-        "eval \"$(\"{0}\" shell.posix hook)\"".format(conda_exe),
+        "eval \"$(\"{0}\" \"shell.posix\" \"hook\")\"".format(conda_exe),
         "&&",
         "conda activate \"{0}\"".format(env_location),
         "&&",

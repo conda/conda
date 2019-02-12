@@ -107,7 +107,7 @@ def main(*args, **kwargs):
                 import conda.cli.activate as activate
                 activate.main()
                 return
-        except Exception as e:
+        except Exception:
             _, exc_val, exc_tb = sys.exc_info()
             init_loggers()
             from ..exceptions import ExceptionHandler

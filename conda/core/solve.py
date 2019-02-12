@@ -253,6 +253,7 @@ class Solver(object):
 
         return ssc.solution_precs
 
+    @time_recorder(module_name=__name__)
     def _collect_all_metadata(self, ssc):
         if ssc.prune:  # or update_modifier == UpdateModifier.UPDATE_ALL  # pending conda/constructor#138  # NOQA
             # Users are struggling with the prune functionality in --update-all, due to
@@ -335,11 +336,20 @@ class Solver(object):
             ssc.solution_precs = tuple(graph.graph)
         return ssc
 
+    @time_recorder(module_name=__name__)
     def _find_inconsistent_packages(self, ssc):
         # We handle as best as possible environments in inconsistent states. To do this,
         # we remove now from consideration the set of packages causing inconsistencies,
         # and then we add them back in following the main SAT call.
         _, inconsistent_precs = ssc.r.bad_installed(ssc.solution_precs, ())
+        if inconsistent_precs:
+            # It is possible that the package metadata is incorrect, for example when
+            # un-patched metadata from the Miniconda or Anaconda installer is present, see:
+            # https://github.com/conda/conda/issues/8076
+            # Update the metadata with information from the index and see if that makes the
+            # environment consistent.
+            ssc.solution_precs = tuple(ssc.index.get(k, k) for k in ssc.solution_precs)
+            _, inconsistent_precs = ssc.r.bad_installed(ssc.solution_precs, ())
         if log.isEnabledFor(DEBUG):
             log.debug("inconsistent precs: %s",
                       dashlist(inconsistent_precs) if inconsistent_precs else 'None')
@@ -433,6 +443,7 @@ class Solver(object):
 
         return ssc
 
+    @time_recorder(module_name=__name__)
     def _run_sat(self, ssc):
         final_environment_specs = IndexedSet(concatv(
             itervalues(ssc.specs_map),
