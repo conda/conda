@@ -336,7 +336,7 @@ class IntegrationTests(TestCase):
             assert exists(join(prefix, BIN_DIRECTORY))
             assert package_is_installed(prefix, 'python=3')
 
-            run_command(Commands.INSTALL, prefix, '-c', 'conda-test', 'failing_post_link')
+            run_command(Commands.INSTALL, prefix, '-c', 'conda-test', 'failing_post_link', use_exception_handler=True)
             assert exists(join(prefix, BIN_DIRECTORY))
 
     def test_safety_checks(self):
