@@ -12,6 +12,7 @@ from conda.common.compat import on_win
 from conda.utils import wrap_subprocess_call
 from conda_env.pip_util import pip_args
 from conda.exceptions import CondaValueError
+from conda.gateways.disk.delete import rm_rf
 
 
 def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
@@ -65,7 +66,7 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
         if requirements is not None and op.isfile(requirements.name):
             os.remove(requirements.name)
         if script_caller is not None:
-            os.remove(script_caller)
+            rm_rf(script_caller)
 
 
 # Conform to Installers API

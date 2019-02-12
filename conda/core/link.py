@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from collections import defaultdict, namedtuple
 from logging import getLogger
 import os
-from os.path import abspath, basename, dirname, isdir, join
+from os.path import basename, dirname, isdir, join
 from subprocess import CalledProcessError
 import sys
 from traceback import format_exception_only
@@ -1054,7 +1054,7 @@ def run_script(prefix, prec, action='post-link', env_prefix=None, activate=False
         return True
     finally:
         if script_caller is not None:
-            os.remove(script_caller)
+            rm_rf(script_caller)
 
 
 def messages(prefix):
