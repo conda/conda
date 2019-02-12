@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import EXDEV
 from logging import getLogger
-from os.path import basename, dirname, getsize, join
+from os.path import basename, dirname, getsize, join, isdir
 import re
 from uuid import uuid4
 
@@ -32,7 +32,7 @@ from ..gateways.disk.create import (compile_multiple_pyc, copy,
                                     create_hard_link_or_copy, create_link,
                                     create_python_entry_point, extract_tarball,
                                     make_menu, mkdir_p, write_as_json_to_file)
-from ..gateways.disk.delete import rm_rf
+from ..gateways.disk.delete import rm_rf, path_is_clean
 from ..gateways.disk.permissions import make_writable
 from ..gateways.disk.read import (compute_md5sum, compute_sha256sum, islink, lexists,
                                   read_index_json)
@@ -370,7 +370,8 @@ class LinkPathAction(CreateInPrefixPathAction):
     def reverse(self):
         if self._execute_successful:
             log.trace("reversing link creation %s", self.target_prefix)
-            rm_rf(self.target_full_path, clean_empty_parents=True)
+            if not isdir(self.target_full_path) or path_is_clean(self.target_full_path):
+                rm_rf(self.target_full_path, clean_empty_parents=True)
 
 
 class PrefixReplaceLinkAction(LinkPathAction):
@@ -975,7 +976,8 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
             backoff_rename(self.holding_full_path, self.target_full_path, force=True)
 
     def cleanup(self):
-        rm_rf(self.holding_full_path, clean_empty_parents=True)
+        if not isdir(self.holding_full_path) or path_is_clean(self.target_full_path):
+            rm_rf(self.holding_full_path, clean_empty_parents=True)
 
 
 class RemoveMenuAction(RemoveFromPrefixPathAction):

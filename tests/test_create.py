@@ -330,6 +330,15 @@ class IntegrationTests(TestCase):
             assert not package_is_installed(prefix, 'flask')
             assert package_is_installed(prefix, 'python=3')
 
+    def test_install_broken_post_install_keeps_existing_folders(self):
+        # regression test for https://github.com/conda/conda/issues/8258
+        with make_temp_env("python=3.5") as prefix:
+            assert exists(join(prefix, BIN_DIRECTORY))
+            assert package_is_installed(prefix, 'python=3')
+
+            run_command(Commands.INSTALL, prefix, '-c', 'conda-test', 'failing_post_link')
+            assert exists(join(prefix, BIN_DIRECTORY))
+
     def test_safety_checks(self):
         # This test uses https://anaconda.org/conda-test/spiffy-test-app/0.5/download/noarch/spiffy-test-app-0.5-pyh6afbcc8_0.tar.bz2
         # which is a modification of https://anaconda.org/conda-test/spiffy-test-app/1.0/download/noarch/spiffy-test-app-1.0-pyh6afabb7_0.tar.bz2
