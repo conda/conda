@@ -691,6 +691,11 @@ class Context(Configuration):
         info = _get_cpu_info()
         return info['flags']
 
+    @memoizedproperty
+    def cuda_version(self):
+        from conda.common.cuda import cuda_detect
+        return cuda_detect()
+
     @property
     def category_map(self):
         return odict((
