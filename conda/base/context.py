@@ -30,6 +30,7 @@ from ..common.configuration import (Configuration, ConfigurationLoadError, MapPa
 from ..common._os.linux import linux_get_libc_version
 from ..common.path import expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
+from ..common.decorators import env_override
 
 from .. import CONDA_PACKAGE_ROOT
 
@@ -692,6 +693,7 @@ class Context(Configuration):
         return info['flags']
 
     @memoizedproperty
+    @env_override('CONDA_CUDA_OVERRIDE', convert_empty_to_none=True)
     def cuda_version(self):
         from conda.common.cuda import cuda_detect
         return cuda_detect()
