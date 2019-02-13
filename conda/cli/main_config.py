@@ -252,7 +252,7 @@ def execute_config(args, parser):
                 json_get[key] = rc_config[key]
                 continue
 
-            if isinstance(rc_config[key], (bool, string_types)):
+            if isinstance(rc_config[key], (bool, int, string_types)):
                 stdout_write(" ".join(("--set", key, text_type(rc_config[key]))))
             else:  # assume the key is a list-type
                 # Note, since conda config --add prepends, these are printed in
