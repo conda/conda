@@ -1,3 +1,33 @@
+## 4.6.4 (2019-02-13)
+
+### Improvements
+* allow configuring location of instrumentation records  (#7849)
+* prepend conda-env pip commands with env activation to fix library loading  (#8263)
+
+### Bug fixes
+* resolve #8176 SAT solver choice error handling  (#8248)
+* document ``pip_interop_enabled`` config parameter  (#8250)
+* ensure prefix temp files are inside prefix  (#8253)
+* ensure ``script_caller`` is bound before use  (#8254)
+* fix overzealous removal of folders after cleanup of failed post-link scripts  (#8259)
+* fix #8264: Allow 'int' datatype for values to non-sequence parameters  (#8268)
+
+### Deprecations/Breaking Changes
+* remove experimental ``featureless_minimization_disabled`` feature flag  (#8249)
+
+### Contributors
+* @davemasino
+* @geremih
+* @jjhelmus
+* @kalefranz
+* @msarahan
+* @minrk
+* @nehaljwani
+* @prusse-martin
+* @rrigdon
+* @soapy1
+
+
 ## 4.6.3 (2019-02-07)
 
 ### Improvements
