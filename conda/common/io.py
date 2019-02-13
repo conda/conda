@@ -503,10 +503,14 @@ class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
 
 as_completed = as_completed
 
+def get_instrumentation_record_file():
+    default_record_file = join('~', '.conda', 'instrumentation-record.csv')
+    return expand(os.environ.get("CONDA_INSTRUMENTATION_RECORD_FILE", default_record_file))
+
 
 class time_recorder(ContextDecorator):  # pragma: no cover
+    record_file = get_instrumentation_record_file()
     start_time = None
-    record_file = expand(join('~', '.conda', 'instrumentation-record.csv'))
     total_call_num = defaultdict(int)
     total_run_time = defaultdict(float)
 
@@ -569,7 +573,7 @@ class time_recorder(ContextDecorator):  # pragma: no cover
 
 
 def print_instrumentation_data():  # pragma: no cover
-    record_file = expand(join('~', '.conda', 'instrumentation-record.csv'))
+    record_file = get_instrumentation_record_file()
 
     grouped_data = defaultdict(list)
     final_data = {}
