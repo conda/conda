@@ -75,7 +75,7 @@ class Resolve(object):
             self.groups[name] = sorted(group, key=self.version_key, reverse=True)
 
     def __hash__(self):
-        return (super().__hash__() ^
+        return (super(Resolve, self).__hash__() ^
                 hash(frozenset(self.channels)) ^
                 hash(frozendict(self._channel_priorities_map)) ^
                 hash(self._channel_priority) ^
