@@ -72,9 +72,15 @@ class _Activator(object):
         if ext is None:
             return self.command_join.join(commands)
         elif ext:
+            #with open("C:\\Users\jhelmus\jjh_test.bat", 'w+b') as tf:
             with NamedTemporaryFile('w+b', suffix=ext, delete=False) as tf:
                 # the default mode is 'w+b', and universal new lines don't work in that mode
                 # command_join should account for that
+                #joined_commands = self.command_join.join(commands)
+                #binary = ensure_binary(joined_commands)
+                #tf.write(b'chcp 65001\r\n')
+                #tf.write(binary)
+                #raise ValueError("HI\r\n", joined_commands, "\r\nMORE\r\n", binary)
                 tf.write(ensure_binary(self.command_join.join(commands)))
             return tf.name
         else:
@@ -532,8 +538,18 @@ def expand(path):
 
 
 def ensure_binary(value):
+    encoding = 'utf-8'
+    if on_win:
+        import ctypes
+        acp = ctypes.cdll.kernel32.GetACP()
+        encoding = str(acp)
+        #encoding = '1252'
+        #print(acp, encoding)
+        #assert acp == encoding
     try:
-        return value.encode('utf-8')
+        return value.encode(encoding)
+        #return value.encode('utf-8')
+        #return value.encode('cp1252')
     except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'encode'
         # In this case assume already binary type and do nothing
@@ -725,6 +741,8 @@ class CmdExeActivator(_Activator):
         self.export_var_tmpl = '@SET "%s=%s"'
         self.set_var_tmpl = '@SET "%s=%s"'  # TODO: determine if different than export_var_tmpl
         self.run_script_tmpl = '@CALL "%s"'
+        #self.run_script_tmpl = 'chcp 65001\r\n@CALL "%s"'
+        #self.run_script_tmpl = 'chcp\r\nchcp 65001\r\n@CALL "%s"'
 
         self.hook_source_path = None
         # TODO: cmd.exe doesn't get a hook function? Or do we need to do something different?
