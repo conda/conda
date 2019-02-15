@@ -40,8 +40,12 @@ def rmtree(path, *args, **kwargs):
             #                    stderr=STDOUT, cwd=path)
             out = check_output('RD /S /Q "{}" > NUL 2> NUL'.format(path), shell=True,
                                stderr=STDOUT)
-        except CalledProcessError:
-            log.debug("removing dir contents the fast way failed.  Output was: {}".format(out))
+        except CalledProcessError as e:
+            if e.returncode != 5:
+                log.error("Removing folder {} the fast way failed.  Output was: {}".format(out))
+                raise
+            else:
+                log.debug("removing dir contents the fast way failed.  Output was: {}".format(out))
     else:
         try:
             makedirs('.empty')
