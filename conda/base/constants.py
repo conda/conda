@@ -24,25 +24,44 @@ machine_bits = 8 * tuple.__itemsize__
 
 APP_NAME = 'conda'
 
-SEARCH_PATH = (
-    '/etc/conda/.condarc',
-    '/etc/conda/condarc',
-    '/etc/conda/condarc.d/',
-    '/var/lib/conda/.condarc',
-    '/var/lib/conda/condarc',
-    '/var/lib/conda/condarc.d/',
-    '$CONDA_ROOT/.condarc',
-    '$CONDA_ROOT/condarc',
-    '$CONDA_ROOT/condarc.d/',
-    '~/.conda/.condarc',
-    '~/.conda/condarc',
-    '~/.conda/condarc.d/',
-    '~/.condarc',
-    '$CONDA_PREFIX/.condarc',
-    '$CONDA_PREFIX/condarc',
-    '$CONDA_PREFIX/condarc.d/',
-    '$CONDARC',
-)
+if on_win:
+    SEARCH_PATH = (
+        'C:/ProgramData/conda/.condarc',
+        'C:/ProgramData/conda/condarc',
+        'C:/ProgramData/conda/condarc.d',
+        '$CONDA_ROOT/.condarc',
+        '$CONDA_ROOT/condarc',
+        '$CONDA_ROOT/condarc.d/',
+        '~/.conda/.condarc',
+        '~/.conda/condarc',
+        '~/.conda/condarc.d/',
+        '~/.condarc',
+        '$CONDA_PREFIX/.condarc',
+        '$CONDA_PREFIX/condarc',
+        '$CONDA_PREFIX/condarc.d/',
+        '$CONDARC',
+    )
+else:
+    SEARCH_PATH = (
+        '/etc/conda/.condarc',
+        '/etc/conda/condarc',
+        '/etc/conda/condarc.d/',
+        '/var/lib/conda/.condarc',
+        '/var/lib/conda/condarc',
+        '/var/lib/conda/condarc.d/',
+        '$CONDA_ROOT/.condarc',
+        '$CONDA_ROOT/condarc',
+        '$CONDA_ROOT/condarc.d/',
+        '~/.conda/.condarc',
+        '~/.conda/condarc',
+        '~/.conda/condarc.d/',
+        '~/.condarc',
+        '$CONDA_PREFIX/.condarc',
+        '$CONDA_PREFIX/condarc',
+        '$CONDA_PREFIX/condarc.d/',
+        '$CONDARC',
+    )
+
 
 DEFAULT_CHANNEL_ALIAS = 'https://conda.anaconda.org'
 CONDA_HOMEPAGE_URL = 'https://conda.io'
