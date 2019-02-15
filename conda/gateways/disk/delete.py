@@ -91,6 +91,7 @@ def unlink_or_rename_to_trash(path):
                         counter = 1
                         while isfile(dest_fn):
                             dest_fn = dest_fn.splitext[0] + '.conda_trash_{}'.format(counter)
+                            counter += 1
                         try:
                             out = check_output(['cmd.exe', '/C', trash_script, _dirname, _fn,
                                                 basename(dest_fn)],
