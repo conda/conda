@@ -122,7 +122,8 @@ def main(*args, **kwargs):
         from ..activate import _Activator
         from ..base.context import context
         import os
-        os.environ["PATH"] = _Activator._get_path_dirs(context.root_prefix) + os.environ["PATH"]
+        os.environ["PATH"] = (';'.join(_Activator._get_path_dirs(context.root_prefix)) + ';' +
+                              os.environ["PATH"])
     return conda_exception_handler(_main, *args, **kwargs)
 
 
