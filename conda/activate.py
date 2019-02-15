@@ -527,8 +527,13 @@ def expand(path):
 
 
 def ensure_binary(value):
+    encoding = 'utf-8'
+    if on_win:
+        import ctypes
+        acp = ctypes.cdll.kernel32.GetACP()
+        encoding = str(acp)
     try:
-        return value.encode('utf-8')
+        return value.encode(encoding)
     except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'encode'
         # In this case assume already binary type and do nothing

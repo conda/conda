@@ -2165,7 +2165,7 @@ class IntegrationTests(TestCase):
         test_pkg = '_conda_test_env_activated_when_post_link_executed'
         # a non-unicode name must be provided here as activate.d scripts
         # are not execuated on windows, see https://github.com/conda/conda/issues/8241
-        with make_temp_env(test_pkg, '-c conda-test', name='post_link_test') as prefix:
+        with make_temp_env(test_pkg, '-c conda-test') as prefix:
             assert package_is_installed(prefix, test_pkg)
 
     def test_conda_info_python(self):
