@@ -56,7 +56,8 @@ def rename(source_path, destination_path, force=False):
         try:
             os.rename(source_path, destination_path)
         except EnvironmentError as e:
-            if on_win and dirname(source_path) == dirname(destination_path):
+            if (on_win and dirname(source_path) == dirname(destination_path)
+                    and os.path.isfile(source_path)):
                 condabin_dir = join(context.conda_prefix, "condabin")
                 rename_script = join(condabin_dir, 'rename_tmp.bat')
                 if exists(rename_script):
