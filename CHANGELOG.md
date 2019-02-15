@@ -1,3 +1,18 @@
+## 4.6.5 (2019-02-15)
+
+### Bug fixes
+* Make super in resolve.py python 2 friendly  (#8280)
+* support unicode paths better in activation scripts on Windows (#)
+* set PATH for conda.bat to include Conda's root prefix, so that libraries can be found when using conda when the root env is not activated  (#8287, #8292)
+* clean up warnings/errors about rsync and trash files  (#8290)
+
+### Contributors
+* @jjhelmus
+* @mingwandroid
+* @msarahan
+* @rrigdon
+
+
 ## 4.6.4 (2019-02-13)
 
 ### Improvements
