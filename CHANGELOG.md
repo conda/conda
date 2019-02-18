@@ -1,3 +1,14 @@
+## 4.6.6 (2019-02-18)
+
+### Bug fixes
+* fix incorrect syntax prepending to PATH for conda CLI functionality  (#8295)
+* fix rename_tmp.bat operating on folders, leading to hung interactive dialogs.  Operate only on files.  (#8295)
+
+### Contributors
+* @mingwandroid
+* @msarahan
+
+
 ## 4.6.5 (2019-02-15)
 
 ### Bug fixes
