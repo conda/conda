@@ -362,7 +362,6 @@ class SaveExistingEnvTestCase(unittest.TestCase):
                 env_name = str(uuid4())[:8]
                 prefix = join(envs_dir, env_name)
                 python_path = join(prefix, PYTHON_BINARY)
-
                 run_command(Commands.CREATE, env_name,
                             support_file('pip_argh.yml'))
                 out_file = join(envs_dir, 'test_env.yaml')

@@ -5,14 +5,8 @@ from __future__ import absolute_import
 
 import os
 import os.path as op
-import subprocess
 import tempfile
-from conda.base.context import context
-from conda.common.compat import on_win
-from conda.utils import wrap_subprocess_call
-from conda_env.pip_util import pip_args
-from conda.exceptions import CondaValueError
-from conda.gateways.disk.delete import rm_rf
+from conda_env.pip_util import pip_subprocess
 
 
 def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
@@ -44,29 +38,13 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
         requirements.write('\n'.join(specs))
         requirements.close()
         # pip command line...
-        args, pip_version = pip_args(prefix)
-        if args is None:
-            return
-        script_caller = None
-        pip_cmd = args + ['install', '-r', requirements.name]
-        cmd = " ".join(pip_cmd)
-        script_caller, command_args = wrap_subprocess_call(
-            on_win, context.root_prefix, prefix, cmd
-        )
-        # ...run it
-        process = subprocess.Popen(command_args,
-                                   cwd=pip_workdir,
-                                   universal_newlines=True)
-        process.communicate()
-        if process.returncode != 0:
-            raise CondaValueError("pip returned an error")
+        pip_cmd = ['install', '-r', requirements.name]
+        pip_subprocess(pip_cmd, prefix)
     finally:
         # Win/Appveyor does not like it if we use context manager + delete=True.
         # So we delete the temporary file in a finally block.
         if requirements is not None and op.isfile(requirements.name):
             os.remove(requirements.name)
-        if script_caller is not None:
-            rm_rf(script_caller)
 
 
 # Conform to Installers API
