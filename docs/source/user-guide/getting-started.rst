@@ -111,7 +111,7 @@ TIP: We recommend that you always keep conda updated to the latest version.
 Managing Environments
 =====================
 
-Conda allows you to to create separate environments containing files, packages
+Conda allows you to create separate environments containing files, packages
 and their dependencies that will not interact with other environments.
 
 When you begin using conda, you already have a default environment named
