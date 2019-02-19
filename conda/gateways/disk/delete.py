@@ -76,36 +76,36 @@ def unlink_or_rename_to_trash(path):
         make_writable(path)
         unlink(path)
     except EnvironmentError:
-        if not fnmatch.fnmatch(path, '*.conda_trash*'):
-            try:
-                rename(path, path + ".conda_trash")
-            except EnvironmentError:
-                if on_win:
-                    # on windows, it is important to use the rename program, as just using python's
-                    #    rename leads to permission errors when files are in use.
-                    condabin_dir = join(context.conda_prefix, "condabin")
-                    trash_script = join(condabin_dir, 'rename_tmp.bat')
-                    if exists(trash_script):
-                        _dirname, _fn = split(path)
-                        dest_fn = path + ".conda_trash"
-                        counter = 1
-                        while isfile(dest_fn):
-                            dest_fn = dest_fn.splitext[0] + '.conda_trash_{}'.format(counter)
-                            counter += 1
-                        try:
-                            out = check_output(['cmd.exe', '/C', trash_script, _dirname, _fn,
-                                                basename(dest_fn)],
-                                               stderr=STDOUT)
-                        except CalledProcessError:
-                            log.debug("renaming file path {} to trash failed.  Output was: {}"
-                                      .format(path, out))
+        try:
+            rename(path, path + ".conda_trash")
+        except EnvironmentError:
+            if on_win:
+                # on windows, it is important to use the rename program, as just using python's
+                #    rename leads to permission errors when files are in use.
+                condabin_dir = join(context.conda_prefix, "condabin")
+                trash_script = join(condabin_dir, 'rename_tmp.bat')
+                if exists(trash_script):
+                    _dirname, _fn = split(path)
+                    dest_fn = path + ".conda_trash"
+                    counter = 1
+                    while isfile(dest_fn):
+                        dest_fn = dest_fn.splitext[0] + '.conda_trash_{}'.format(counter)
+                        counter += 1
+                    out = "< empty >"
+                    try:
+                        out = check_output(['cmd.exe', '/C', trash_script, _dirname, _fn,
+                                            basename(dest_fn)],
+                                           stderr=STDOUT)
+                    except CalledProcessError:
+                        log.debug("renaming file path {} to trash failed.  Output was: {}"
+                                  .format(path, out))
 
-                    else:
-                        log.debug("{} is missing.  Conda was not installed correctly or has been "
-                                  "corrupted.  Please file an issue on the conda github repo."
-                                  .format(trash_script))
-                log.warn("Could not remove or rename {}.  Please remove this file manually (you "
-                         "may need to reboot to free file handles)".format(path))
+                else:
+                    log.debug("{} is missing.  Conda was not installed correctly or has been "
+                              "corrupted.  Please file an issue on the conda github repo."
+                              .format(trash_script))
+            log.warn("Could not remove or rename {}.  Please remove this file manually (you "
+                     "may need to reboot to free file handles)".format(path))
 
 
 def remove_empty_parent_paths(path):
@@ -136,6 +136,8 @@ def rm_rf(path, max_retries=5, trash=True, clean_empty_parents=False, *args, **k
         if lexists(path):
             log.info("rm_rf failed for %s", path)
             return False
+    if isdir(path):
+        delete_trash(path)
     if clean_empty_parents:
         remove_empty_parent_paths(path)
     return True
@@ -191,12 +193,6 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
     for root, dirs, files in walk(dirpath, topdown=False):
         for file in files:
             unlink_or_rename_to_trash(join(root, file))
-        for dir in dirs:
-            _rmdir(join(root, dir))
-
-    _rmdir(dirpath)
-    if isdir(dirpath):
-        rmdir(dirpath)
 
 
 def path_is_clean(path):
