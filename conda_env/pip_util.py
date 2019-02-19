@@ -20,18 +20,19 @@ from conda.gateways.disk.delete import rm_rf
 from conda.common.compat import on_win
 
 
-def pip_subprocess(args, prefix, env=None):
+def pip_subprocess(args, prefix, env=None, cwd=None):
     script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix,
                                                        prefix, ' '.join(['pip'] + args))
     process = subprocess.Popen(command_args,
-                               cwd=prefix,
+                               cwd=cwd or prefix,
                                universal_newlines=True,
-                               stdout=subprocess.PIPE, env=env)
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     stdout, stderr = process.communicate()
     if script_caller is not None:
         rm_rf(script_caller)
     if process.returncode != 0:
-        raise CondaEnvException("Pip version determination failed with output: {}".format(stdout))
+        raise CondaEnvException("Pip subcommand failed with \n"
+                                "output: {}\nerror: {}".format(stdout, stderr))
     return stdout, stderr
 
 
