@@ -326,9 +326,11 @@ class PathActionsTests(TestCase):
         assert isdir(join(self.prefix, target_short_path))
 
         axn.reverse()
-        assert not lexists(axn.target_full_path)
-        assert not lexists(dirname(axn.target_full_path))
-        assert not lexists(dirname(dirname(axn.target_full_path)))
+        # this is counter-intuitive, but it's faster to tell conda to ignore folders for removal in transactions
+        #    than it is to try to have it scan to see if anything else has populated that folder.
+        assert lexists(axn.target_full_path)
+        assert lexists(dirname(axn.target_full_path))
+        assert lexists(dirname(dirname(axn.target_full_path)))
 
     def test_simple_LinkPathAction_copy(self):
         source_full_path = make_test_file(self.pkgs_dir)
