@@ -229,11 +229,6 @@ def configure_parser_clean(sub_parsers):
         help="Remove index cache.",
     )
     removal_target_options.add_argument(
-        "-l", "--lock",
-        action="store_true",
-        help="Remove all conda lock files.",
-    )
-    removal_target_options.add_argument(
         '-p', '--packages',
         action='store_true',
         help="Remove unused packages from writable package caches. "
