@@ -114,6 +114,18 @@ class Commands:
     RUN = "run"
 
 
+@contextmanager
+def temp_chdir(target_dir):
+    curdir = os.getcwd()
+    if not target_dir:
+        target_dir = curdir
+    try:
+        os.chdir(target_dir)
+        yield
+    finally:
+        os.chdir(curdir)
+
+
 def run_command(command, prefix, *arguments, **kwargs):
     use_exception_handler = kwargs.get('use_exception_handler', False)
     arguments = list(arguments)
@@ -131,6 +143,8 @@ def run_command(command, prefix, *arguments, **kwargs):
     command_line = "{0} {1}".format(command, " ".join(arguments))
     split_command_line = split(command_line)
 
+    workdir = kwargs.get("workdir")
+
     args = p.parse_args(split_command_line)
     context._set_argparse_args(args)
     init_loggers(context)
@@ -138,10 +152,11 @@ def run_command(command, prefix, *arguments, **kwargs):
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         with argv(['python_api'] + split_command_line), captured(*cap_args) as c:
-            if use_exception_handler:
-                conda_exception_handler(do_call, args, p)
-            else:
-                do_call(args, p)
+            with temp_chdir(workdir):
+                if use_exception_handler:
+                    conda_exception_handler(do_call, args, p)
+                else:
+                    do_call(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout, file=sys.stderr)
     if command is Commands.CONFIG:
@@ -2069,7 +2084,11 @@ class IntegrationTests(TestCase):
     def test_init_dev_and_NoBaseEnvironmentError(self):
         conda_exe = join('Scripts', 'conda.exe') if on_win else join('bin', 'conda')
         python_exe = 'python.exe' if on_win else join('bin', 'python')
-        with make_temp_env("conda=4.5.0", name='_' + str(uuid4())[:8]) as prefix:
+        # this specific python version is named so that the test suite uses an
+        # old python build that still sets Library/bin. Alternatively, we could
+        # run all of these conda commands through run_command(RUN) which would
+        # wrap them with activation.
+        with make_temp_env("conda=4.5.0 python=3.6.7", name='_' + str(uuid4())[:8]) as prefix:
             result = subprocess_call("%s --version" % join(prefix, conda_exe))
             assert result.rc == 0
             assert not result.stderr
@@ -2077,10 +2096,9 @@ class IntegrationTests(TestCase):
             conda_version = result.stdout.strip()[6:]
             assert conda_version == "4.5.0"
 
-            result = subprocess_call(
-                ("%s -m conda init cmd.exe --dev" if on_win else "%s -m conda init --dev")
-                % join(prefix, python_exe),
-                path=dirname(CONDA_PACKAGE_ROOT))
+            result, stderr = run_command(Commands.RUN, prefix,
+                                         "python -m conda init " + "cmd.exe --dev" if on_win else "--dev",
+                                         workdir=dirname(CONDA_PACKAGE_ROOT))
 
             result = subprocess_call("%s --version" % join(prefix, conda_exe))
             assert result.rc == 0
