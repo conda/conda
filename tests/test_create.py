@@ -2083,7 +2083,6 @@ class IntegrationTests(TestCase):
 
     def test_init_dev_and_NoBaseEnvironmentError(self):
         conda_exe = join('Scripts', 'conda.exe') if on_win else join('bin', 'conda')
-        python_exe = 'python.exe' if on_win else join('bin', 'python')
         # this specific python version is named so that the test suite uses an
         # old python build that still sets Library/bin. Alternatively, we could
         # run all of these conda commands through run_command(RUN) which would
@@ -2097,7 +2096,7 @@ class IntegrationTests(TestCase):
             assert conda_version == "4.5.0"
 
             result, stderr = run_command(Commands.RUN, prefix,
-                                         "python -m conda init " + "cmd.exe --dev" if on_win else "--dev",
+                                         "python -m conda init " + ("cmd.exe --dev" if on_win else "--dev"),
                                          workdir=dirname(CONDA_PACKAGE_ROOT))
 
             result = subprocess_call("%s --version" % join(prefix, conda_exe))
