@@ -233,12 +233,33 @@ platform, such as linux-64 or osx-64.
 Activating an environment
 =========================
 
+Activating environments is essential to making the software in the environments
+work well. Activation entails two primary functions: adding entries to PATH for
+the environment, and running any activation scripts that the environment may
+contain. These activation scripts are how packages can set arbitrary environment
+variables that may be necessary for their operation.
+
 To activate an environment: ``conda activate myenv``
 
-NOTE: Replace ``myenv`` with the environment name.
-
+NOTE: Replace ``myenv`` with the environment name or directory path.
 
 Conda prepends the path name ``myenv`` onto your system command.
+
+Windows is extremely sensitive to proper activation. This is because the Windows
+library loader does not support the concept of libraries and executables that
+know where to search for their dependencies (RPATH). Instead, Windows relies on
+a standard library search order, defined at
+https://docs.microsoft.com/en-us/previous-versions/7d83bc18(v=vs.140). If
+environments are not active, libraries won't get found, and there will be lots
+of errors. One very common one has been HTTPErrors or SSL errors, when the
+python in a child environment can't find the necessary OpenSSL library.
+
+Conda itself includes some special workarounds to add its necessary PATH
+entries, so that it can be called without activation, or with any child
+environment active. In general, calling any executable in an environment without
+first activating that environment will likely not work. For the ability to run
+executables in activated environments, you may be interested in the ``conda
+run`` command.
 
 
 Deactivating an environment
@@ -246,12 +267,13 @@ Deactivating an environment
 
 To deactivate an environment, type: ``conda deactivate``
 
-NOTE: Replace ``myenv`` with the environment name.
+Conda removes the path name for the currently active environment from your system command.
 
-Conda removes the path name ``myenv`` from your system command.
-
-TIP: In Windows, it is good practice to deactivate one
-environment before activating another.
+NOTE: To simply return to the base environment, it's better to call ``conda
+activate`` with no environment specified, rather than to try to deactivate. If
+you run ``conda deactivate`` from your base environment, you may lose the
+ability to run conda at all. Don't worry, that's local to this shell - you can
+start a new one.
 
 
 .. _determine-current-env:
