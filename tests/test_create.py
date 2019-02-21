@@ -111,6 +111,7 @@ class Commands:
     REMOVE = "remove"
     SEARCH = "search"
     UPDATE = "update"
+    RUN = "run"
 
 
 def run_command(command, prefix, *arguments, **kwargs):
@@ -121,8 +122,8 @@ def run_command(command, prefix, *arguments, **kwargs):
     if command is Commands.CONFIG:
         arguments.append('--file "{0}"'.format(join(prefix, 'condarc')))
     if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
-                   Commands.REMOVE, Commands.UPDATE):
-        arguments.append('-p "{0}"'.format(prefix))
+                   Commands.REMOVE, Commands.UPDATE, Commands.RUN):
+        arguments.insert(0, '-p "{0}"'.format(prefix))
     if command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.UPDATE):
         arguments.extend(["-y", "-q"])
 
@@ -1347,8 +1348,7 @@ class IntegrationTests(TestCase):
     def test_conda_pip_interop_dependency_satisfied_by_pip(self):
         with make_temp_env("python") as prefix:
             run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
-            check_call(PYTHON_BINARY + " -m pip install itsdangerous",
-                       cwd=prefix, shell=True)
+            run_command(Commands.RUN, prefix, "python -m pip install itsdangerous")
 
             PrefixData._cache_.clear()
             stdout, stderr = run_command(Commands.LIST, prefix)
@@ -1379,15 +1379,14 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
             assert package_is_installed(prefix, "six=1.9.0")
             assert package_is_installed(prefix, "python=3.5")
-            output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             assert "six==1.9.0" in pkgs
 
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
 
-            output = check_output(PYTHON_BINARY + " -m pip install -U six==1.10",
-                                  cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip install -U six==1.10")
             assert "Successfully installed six-1.10.0" in ensure_text_type(output)
             PrefixData._cache_.clear()
             stdout, stderr = run_command(Commands.LIST, prefix, "--json")
@@ -1405,7 +1404,7 @@ class IntegrationTests(TestCase):
                 "version": "1.10.0",
             }
             assert package_is_installed(prefix, "six=1.10.0")
-            output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             assert "six==1.10.0" in pkgs
 
@@ -1503,15 +1502,14 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.INSTALL, prefix, "six")
             assert not stderr
             assert package_is_installed(prefix, "six>=1.11")
-            output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             six_record = next(PrefixData(prefix).query("six"))
             assert "six==%s" % six_record.version in pkgs
 
             assert len(glob(join(prefix, "conda-meta", "six-*.json"))) == 1
 
-            output = check_output(PYTHON_BINARY + " -m pip install -U six==1.10",
-                                  cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip install -U six==1.10")
             print(output)
             assert "Successfully installed six-1.10.0" in ensure_text_type(output)
             PrefixData._cache_.clear()
@@ -1530,8 +1528,7 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "python")
 
             # install an "editable" urllib3 that cannot be managed
-            output = check_output(PYTHON_BINARY + " -m pip install -e git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3",
-                                  cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip install e -e git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
             print(output)
             assert isfile(join(prefix, "src", "urllib3", "urllib3", "__init__.py"))
             PrefixData._cache_.clear()

@@ -29,6 +29,7 @@ class Commands:
     REMOVE = "remove"
     SEARCH = "search"
     UPDATE = "update"
+    RUN = "run"
 
 
 STRING = CaptureTarget.STRING
