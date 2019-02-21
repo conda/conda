@@ -45,9 +45,11 @@ more drastic measures.
      MKL to a global location is fragile and is breaking other people's software
      and wasting a lot of time.  See the list of guilty parties below.
   2. You may try a special DLL loading mode that Anaconda builds into Python.
-     This changes the DLL search path from system32 first to system32 last.
-     Control of this feature is done with environment variables. Only python
-     builds beyond these builds will react to these environment variables:
+     This changes the DLL search path from system32 first to system32 as another
+     entry on PATH, allowing libraries in your conda environment to be found
+     before the libraries in system32. Control of this feature is done with
+     environment variables. Only python builds beyond these builds will react to
+     these environment variables:
 
        * python 2.7.15 build 14
        * python 3.6.8 build 7
