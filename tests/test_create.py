@@ -1528,9 +1528,9 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "python")
 
             # install an "editable" urllib3 that cannot be managed
-            output, err = run_command(Commands.RUN, prefix, "python -m pip install e -e git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
+            output, err = run_command(Commands.RUN, prefix, "python -m pip install -e git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
             print(output)
-            assert isfile(join(prefix, "src", "urllib3", "urllib3", "__init__.py"))
+            assert isfile(join("src", "urllib3", "urllib3", "__init__.py"))
             PrefixData._cache_.clear()
             assert package_is_installed(prefix, "urllib3")
             urllib3_record = next(PrefixData(prefix).query("urllib3"))
