@@ -6,17 +6,112 @@ Troubleshooting
    :local:
    :depth: 1
 
-SSL connection errors
-=====================
+Numpy MKL library load failed
+=============================
+
+Error messages like
+
+    Intel MKL FATAL ERROR: Cannot load mkl_intel_thread.dll
+
+or
+
+    The ordinal 241 could not be located in the the dynamic link library
 
 Cause
 -----
+
+Numpy is unable to load the correct MKL or intel openmp runtime libraries. This
+is almost always caused by one of two things:
+
+  1. the environment with numpy has not been activated
+  2. another software vendor has installed MKL or intel openmp (libiomp5md.dll)
+     files into the C:\Windows\System32 folder. These files are being loaded
+     before Anaconda's, and they're not compatible.
+
+Solution
+--------
+
+If you are not activating your environments, start with doing that. There's more
+info at the activate-env_ page. If you are still stuck, you need to consider
+more drastic measures.
+
+  1. remove any mkl-related files from C:\Windows\System32. We recommend
+     renaming them to add .bak to the filename to effectively hide them. Observe
+     if any other software breaks. Try moving the DLL files alongside the exe of
+     the software that broke. If it works again, you can keep things in the
+     moved state - Anaconda doesn't need MKL in System32, and nothing should. If
+     you identify software that is installing software here, please contact the
+     creators of that software and inform them that their practice of installing
+     MKL to a global location is fragile and is breaking other people's software
+     and wasting a lot of time.  See the list of guilty parties below.
+  2. You may try a special DLL loading mode that Anaconda builds into Python.
+     This changes the DLL search path from system32 first to system32 last.
+     Control of this feature is done with environment variables. Only python
+     builds beyond these builds will react to these environment variables:
+
+       * python 2.7.15 build 14
+       * python 3.6.8 build 7
+       * python 3.7.2 build 8
+
+     Control environment variables:
+
+       * `CONDA_DLL_SEARCH_MODIFICATION_ENABLE`
+       * `CONDA_DLL_SEARCH_MODIFICATION_DEBUG`
+       * `CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_WINDOWS_DIRECTORY`
+       * `CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_CWD`
+
+List of known bad software that installs Intel libraries to C:\Windows\System32:
+
+* Amplitube, by IK Multimedia
+* ASIO4ALL, by Michael Tippach
+
+
+SSL connection errors
+=====================
+
+This is a broad umbrella of errors with many causes.  Here are some we've seen.
+
+CondaHTTPError: HTTP 000 CONNECTION FAILED
+------------------------------------------
+
+If you're on Windows and you see this error, look a little further down in the error text.  Do you see something like this?
+
+    SSLError(MaxRetryError('HTTPSConnectionPool(host=\'repo.anaconda.com\', port=443): Max retries exceeded with url: /pkgs/r/win-32/repodata.json.bz2 (Caused by SSLError("Can\'t connect to HTTPS URL because the SSL module is not available."))'))
+
+The key part there is the last bit:
+
+    Caused by SSLError("Can\'t connect to HTTPS URL because the SSL module is not available.")
+
+Conda is having problems because it can't find the openssl libraries that it needs.
+
+Cause
+~~~~~
+
+You may observe this error cropping up after a conda update. More recent
+versions of conda and more recent builds of python are more strict about
+requiring activation of environments. We're working on better error messages for
+them, but here's the story for now. Activation on Windows is a must. There's
+more information on activation at the activate-env_ page. When you don't activate your environment,
+conda can't find the libraries that it needs.
+
+Solution
+~~~~~~~~
+
+Use "Anaconda Prompt" or shells opened from Anaconda Navigator. If you use a GUI
+IDE and you see this error, ask the developers of your IDE to add activation for
+conda environments.
+
+SSL certificate errors
+----------------------
+
+Cause
+~~~~~
 
 Installing packages may produce a "connection failed" error if you do not have
 the certificates for a secure connection to the package repository.
 
 Solution
---------
+~~~~~~~~
 
 Pip can use the ``--trusted-host`` option to indicate that the URL of the
 repository is trusted::
