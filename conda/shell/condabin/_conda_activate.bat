@@ -9,12 +9,12 @@
     @SET CONDA_PS1_BACKUP=
 :FIXUP43
 
-@setlocal enabledelayedexpansion
-for %%A in ("%~dp0\.") do set _sysp=%%~dpA
-SET _sysp=%_sysp:~0,-1%
-for %%B in (%~dp0.) do @set PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
+@SETLOCAL enabledelayedexpansion
+@FOR %%A in ("%~dp0\.") DO @SET _sysp=%%~dpA
+@SET _sysp=%_sysp:~0,-1%
+@FOR %%B in (%~dp0.) DO @SET PATH=%_sysp%;%_sysp%\Library\mingw-w64\bin;%_sysp%\Library\usr\bin;%_sysp%\Library\bin;%_sysp%\Scripts;%_sysp%\bin;%PATH%
 @FOR /F "delims=" %%i IN ('@CALL "%CONDA_EXE%" shell.cmd.exe %*') DO @SET "_TEMP_SCRIPT_PATH=%%i"
-@endlocal & @SET "_TEMP_SCRIPT_PATH=%_TEMP_SCRIPT_PATH%"
+@ENDLOCAL & @SET "_TEMP_SCRIPT_PATH=%_TEMP_SCRIPT_PATH%"
 @IF "%_TEMP_SCRIPT_PATH%"=="" @EXIT /B 1
 @IF NOT "%CONDA_PROMPT_MODIFIER%" == "" @CALL SET "PROMPT=%%PROMPT:%CONDA_PROMPT_MODIFIER%=%_empty_not_set_%%%"
 @CALL "%_TEMP_SCRIPT_PATH%"
