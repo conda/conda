@@ -404,7 +404,7 @@ class _Activator(object):
             while (start_index < len(prefix_dirs) and
                    start_index < len(path_split) and
                    path_split[start_index] == prefix_dirs[start_index]):
-                start_index+=1
+                start_index += 1
             return path_split[start_index:]
         else:
             return path.split(os.pathsep)
