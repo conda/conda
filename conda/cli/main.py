@@ -114,16 +114,6 @@ def main(*args, **kwargs):
             return ExceptionHandler().handle_exception(exc_val, exc_tb)
 
     from ..exceptions import conda_exception_handler
-    # on Windows, we need to add to PATH so that we find the libraries
-    #   associated with this specific env Without this, we see lots of openssl
-    #   HTTPErrors because either incorrect libraries or no libraries are
-    #   present
-    if sys.platform == "win32":
-        from ..activate import _Activator
-        from ..base.context import context
-        import os
-        os.environ["PATH"] = (';'.join(_Activator._get_path_dirs(context.root_prefix)) + ';' +
-                              os.environ["PATH"])
     return conda_exception_handler(_main, *args, **kwargs)
 
 

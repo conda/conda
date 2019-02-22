@@ -10,36 +10,40 @@ from __future__ import absolute_import, print_function
 
 import json
 import os
-from os.path import isfile, join
 import re
 import subprocess
-import sys
+
+from .exceptions import CondaEnvException
+from conda.base.context import context
+from conda.utils import wrap_subprocess_call
+from conda.gateways.disk.delete import rm_rf
+from conda.common.compat import on_win
 
 
-def pip_args(prefix):
-    """
-    return the arguments required to invoke pip (in prefix), or None if pip
-    is not installed
-    """
-    if sys.platform == 'win32':
-        pip_path = join(prefix, 'Scripts', 'pip-script.py')
-        py_path = join(prefix, 'python.exe')
+def pip_subprocess(args, prefix, env=None, cwd=None):
+    script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix,
+                                                       prefix, ' '.join(['pip'] + args))
+    process = subprocess.Popen(command_args,
+                               cwd=cwd or prefix,
+                               universal_newlines=True,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+    stdout, stderr = process.communicate()
+    if script_caller is not None:
+        rm_rf(script_caller)
+    if process.returncode != 0:
+        raise CondaEnvException("Pip subcommand failed with \n"
+                                "output: {}\nerror: {}".format(stdout, stderr))
+    return stdout, stderr
+
+
+def get_pip_version(prefix):
+    stdout, stderr = pip_subprocess(['-V'], prefix)
+    pip_version = re.search(r"pip\ (\d+\.\d+\.\d+)", stdout)
+    if not pip_version:
+        raise CondaEnvException("Failed to find pip version string in output")
     else:
-        pip_path = join(prefix, 'bin', 'pip')
-        py_path = join(prefix, 'bin', 'python')
-    if isfile(pip_path) and isfile(py_path):
-        ret = [py_path, pip_path]
-
-        # Check the version of pip
-        # --disable-pip-version-check was introduced in pip 6.0
-        # If older than that, they should probably get the warning anyway.
-        pip_version = subprocess.check_output(ret + ['-V']).decode('utf-8').split()[1]
-        major_ver = pip_version.split('.')[0]
-        if int(major_ver) >= 6:
-            ret.append('--disable-pip-version-check')
-        return ret, pip_version
-    else:
-        return None, None
+        pip_version = pip_version.group(1)
+    return pip_version
 
 
 class PipPackage(dict):
@@ -54,14 +58,11 @@ class PipPackage(dict):
 
 
 def installed(prefix, output=True):
-    args, pip_version = pip_args(prefix)
-    if args is None:
-        return
-
+    pip_version = get_pip_version(prefix)
     pip_major_version = int(pip_version.split('.', 1)[0])
 
     env = os.environ.copy()
-    args.append('list')
+    args = ['list']
 
     if pip_major_version >= 9:
         args += ['--format', 'json']
@@ -69,7 +70,7 @@ def installed(prefix, output=True):
         env[str('PIP_FORMAT')] = str('legacy')
 
     try:
-        pip_stdout = subprocess.check_output(args, universal_newlines=True, env=env)
+        pip_stdout, stderr = pip_subprocess(args, prefix=prefix, env=env)
     except Exception:
         # Any error should just be ignored
         if output:
@@ -101,7 +102,7 @@ def installed(prefix, output=True):
         # For every package in pipinst that is not already represented
         # in installed append a fake name to installed with 'pip'
         # as the build string
-        pat = re.compile('([\w.-]+)\s+\((.+)\)')
+        pat = re.compile(r'([\w.-]+)\s+\((.+)\)')
         for line in pip_stdout.splitlines():
             line = line.strip()
             if not line:

@@ -11,7 +11,7 @@ import warnings
 
 from . import ConnectionError, HTTPError, InsecureRequestWarning, InvalidSchema, SSLError
 from .session import CondaSession
-from ..disk.delete import rmtree
+from ..disk.delete import rm_rf
 from ... import CondaError
 from ..._vendor.auxlib.ish import dals
 from ..._vendor.auxlib.logz import stringify
@@ -142,4 +142,4 @@ class TmpDownload(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.tmp_dir:
-            rmtree(self.tmp_dir)
+            rm_rf(self.tmp_dir)

@@ -111,6 +111,19 @@ class Commands:
     REMOVE = "remove"
     SEARCH = "search"
     UPDATE = "update"
+    RUN = "run"
+
+
+@contextmanager
+def temp_chdir(target_dir):
+    curdir = os.getcwd()
+    if not target_dir:
+        target_dir = curdir
+    try:
+        os.chdir(target_dir)
+        yield
+    finally:
+        os.chdir(curdir)
 
 
 def run_command(command, prefix, *arguments, **kwargs):
@@ -121,14 +134,16 @@ def run_command(command, prefix, *arguments, **kwargs):
     if command is Commands.CONFIG:
         arguments.append('--file "{0}"'.format(join(prefix, 'condarc')))
     if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
-                   Commands.REMOVE, Commands.UPDATE):
-        arguments.append('-p "{0}"'.format(prefix))
+                   Commands.REMOVE, Commands.UPDATE, Commands.RUN):
+        arguments.insert(0, '-p "{0}"'.format(prefix))
     if command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.UPDATE):
         arguments.extend(["-y", "-q"])
 
     arguments = list(map(escape_for_winpath, arguments))
     command_line = "{0} {1}".format(command, " ".join(arguments))
     split_command_line = split(command_line)
+
+    workdir = kwargs.get("workdir")
 
     args = p.parse_args(split_command_line)
     context._set_argparse_args(args)
@@ -137,10 +152,11 @@ def run_command(command, prefix, *arguments, **kwargs):
     print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
         with argv(['python_api'] + split_command_line), captured(*cap_args) as c:
-            if use_exception_handler:
-                conda_exception_handler(do_call, args, p)
-            else:
-                do_call(args, p)
+            with temp_chdir(workdir):
+                if use_exception_handler:
+                    conda_exception_handler(do_call, args, p)
+                else:
+                    do_call(args, p)
     print(c.stderr, file=sys.stderr)
     print(c.stdout, file=sys.stderr)
     if command is Commands.CONFIG:
@@ -1347,8 +1363,7 @@ class IntegrationTests(TestCase):
     def test_conda_pip_interop_dependency_satisfied_by_pip(self):
         with make_temp_env("python") as prefix:
             run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
-            check_call(PYTHON_BINARY + " -m pip install itsdangerous",
-                       cwd=prefix, shell=True)
+            run_command(Commands.RUN, prefix, "python -m pip install itsdangerous")
 
             PrefixData._cache_.clear()
             stdout, stderr = run_command(Commands.LIST, prefix)
@@ -1379,15 +1394,14 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
             assert package_is_installed(prefix, "six=1.9.0")
             assert package_is_installed(prefix, "python=3.5")
-            output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             assert "six==1.9.0" in pkgs
 
             py_ver = get_python_version_for_prefix(prefix)
             sp_dir = get_python_site_packages_short_path(py_ver)
 
-            output = check_output(PYTHON_BINARY + " -m pip install -U six==1.10",
-                                  cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip install -U six==1.10")
             assert "Successfully installed six-1.10.0" in ensure_text_type(output)
             PrefixData._cache_.clear()
             stdout, stderr = run_command(Commands.LIST, prefix, "--json")
@@ -1405,7 +1419,7 @@ class IntegrationTests(TestCase):
                 "version": "1.10.0",
             }
             assert package_is_installed(prefix, "six=1.10.0")
-            output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             assert "six==1.10.0" in pkgs
 
@@ -1503,15 +1517,14 @@ class IntegrationTests(TestCase):
             stdout, stderr = run_command(Commands.INSTALL, prefix, "six")
             assert not stderr
             assert package_is_installed(prefix, "six>=1.11")
-            output = check_output(PYTHON_BINARY + " -m pip freeze", cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             six_record = next(PrefixData(prefix).query("six"))
             assert "six==%s" % six_record.version in pkgs
 
             assert len(glob(join(prefix, "conda-meta", "six-*.json"))) == 1
 
-            output = check_output(PYTHON_BINARY + " -m pip install -U six==1.10",
-                                  cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip install -U six==1.10")
             print(output)
             assert "Successfully installed six-1.10.0" in ensure_text_type(output)
             PrefixData._cache_.clear()
@@ -1530,10 +1543,9 @@ class IntegrationTests(TestCase):
             assert package_is_installed(prefix, "python")
 
             # install an "editable" urllib3 that cannot be managed
-            output = check_output(PYTHON_BINARY + " -m pip install -e git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3",
-                                  cwd=prefix, shell=True)
+            output, err = run_command(Commands.RUN, prefix, "python -m pip install -e git://github.com/urllib3/urllib3.git@1.19.1#egg=urllib3")
             print(output)
-            assert isfile(join(prefix, "src", "urllib3", "urllib3", "__init__.py"))
+            assert isfile(join("src", "urllib3", "urllib3", "__init__.py"))
             PrefixData._cache_.clear()
             assert package_is_installed(prefix, "urllib3")
             urllib3_record = next(PrefixData(prefix).query("urllib3"))
@@ -2071,8 +2083,11 @@ class IntegrationTests(TestCase):
 
     def test_init_dev_and_NoBaseEnvironmentError(self):
         conda_exe = join('Scripts', 'conda.exe') if on_win else join('bin', 'conda')
-        python_exe = 'python.exe' if on_win else join('bin', 'python')
-        with make_temp_env("conda=4.5.0", name='_' + str(uuid4())[:8]) as prefix:
+        # this specific python version is named so that the test suite uses an
+        # old python build that still sets Library/bin. Alternatively, we could
+        # run all of these conda commands through run_command(RUN) which would
+        # wrap them with activation.
+        with make_temp_env("conda=4.5.0 python=3.6.7", name='_' + str(uuid4())[:8]) as prefix:
             result = subprocess_call("%s --version" % join(prefix, conda_exe))
             assert result.rc == 0
             assert not result.stderr
@@ -2080,10 +2095,9 @@ class IntegrationTests(TestCase):
             conda_version = result.stdout.strip()[6:]
             assert conda_version == "4.5.0"
 
-            result = subprocess_call(
-                ("%s -m conda init cmd.exe --dev" if on_win else "%s -m conda init --dev")
-                % join(prefix, python_exe),
-                path=dirname(CONDA_PACKAGE_ROOT))
+            result, stderr = run_command(Commands.RUN, prefix,
+                                         "python -m conda init " + ("cmd.exe --dev" if on_win else "--dev"),
+                                         workdir=dirname(CONDA_PACKAGE_ROOT))
 
             result = subprocess_call("%s --version" % join(prefix, conda_exe))
             assert result.rc == 0
