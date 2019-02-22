@@ -1,3 +1,29 @@
+## 4.6.7 (2019-02-21)
+
+### Bug fixes
+
+* skip scanning folders for contents during reversal of transactions.  Just ignore folders.  A bit messier, but a lot faster.  (#8266)
+* fix some logic in renaming trash files to fix permission errors  (#8300)
+* wrap pip subprocess calls in conda-env more cleanly and uniformly  (#8307)
+* revert conda prepending to PATH in cli main file on windows  (#8307)
+* simplify ``conda run`` code to use activation subprocess wrapper.  Fix a few conda tests to use ``conda run``.  (#8307)
+
+### Docs improvements
+
+* fixed duplicated "to" in managing envs section (#8298)
+* flesh out docs on activation  (#8314)
+* correct git syntax for adding a remote in dev docs  (#8316)
+* unpin sphinx version in docs requirements  (#8317)
+
+### Contributors
+
+* @jjhelmus
+* @MarckK
+* @msarahan
+* @rrigdon
+* @samgd
+
+
 ## 4.6.6 (2019-02-18)
 
 ### Bug fixes
