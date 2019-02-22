@@ -5,8 +5,8 @@
 defaults: &defaults
   working_directory: ~/conda
   docker:
-    - image: condatest/linux-64-python-3.6
-      # Dockerfile at https://github.com/conda/conda-docker/blob/master/condatest/linux-64-python3.6/Dockerfile
+    - image: condatest/linux-64-python-3.7
+      # Dockerfile at https://github.com/conda/conda-docker/blob/master/condatest/linux-64-python3.7/Dockerfile
 
 
 main_test: &main_test

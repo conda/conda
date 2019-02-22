@@ -11,9 +11,9 @@ environment:
 
   matrix:
      - PYTHON: "C:\\Python36_64"
-       PYTHON_VERSION: "3.6"
+       PYTHON_VERSION: "3.7"
        PYTHON_ARCH: "64"
-       PYTHON_ROOT: "C:\\Miniconda36-x64"
+       PYTHON_ROOT: "C:\\Miniconda3-x64"
        CONDA_INSTRUMENTATION_ENABLED: "true"
 
      - PYTHON: "C:\\Python27_32"
