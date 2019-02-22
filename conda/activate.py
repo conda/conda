@@ -398,14 +398,14 @@ class _Activator(object):
             # We used to prepend sys.prefix\Library\bin to PATH on startup but not anymore.
             # Instead, in conda 4.6 we add the full suite of entries. This is performed in
             # condabin\conda.bat and condabin\ _conda_activate.bat
-             path_split = path.split(os.pathsep)
-             prefix_dirs = tuple(self._get_path_dirs2(sys.prefix))
-             start_index = 0
-             while (start_index < len(prefix_dirs) and
-                    start_index < len(path_split) and
-                    path_split[start_index] == prefix_dirs[start_index]):
-                 start_index+=1
-             return path_split[start_index:]
+            path_split = path.split(os.pathsep)
+            prefix_dirs = tuple(self._get_path_dirs2(sys.prefix))
+            start_index = 0
+            while (start_index < len(prefix_dirs) and
+                   start_index < len(path_split) and
+                   path_split[start_index] == prefix_dirs[start_index]):
+                start_index+=1
+            return path_split[start_index:]
         else:
             return path.split(os.pathsep)
 
