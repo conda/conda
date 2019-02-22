@@ -14,14 +14,21 @@ import json
 from logging import getLogger
 from os import listdir
 from os.path import isdir, isfile, join
+<<<<<<< HEAD
 from conda._vendor.auxlib.compat import shlex_split_unicode
 import tarfile
+=======
+import shlex
+
+import conda_package_handling.api
+>>>>>>> support new package format for installation.  prefer sha256 for verification where available
 
 from .link import islink, lexists
+from ...compat import TemporaryDirectory
 from ..._vendor.auxlib.collection import first
 from ..._vendor.auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
-from ...common.compat import ensure_text_type, open
+from ...common.compat import open
 from ...common.pkg_formats.python import (
     PythonDistribution, PythonEggInfoDistribution, PythonEggLinkDistribution,
     PythonInstalledDistribution,
@@ -117,9 +124,11 @@ def read_index_json(extracted_package_directory):
 
 
 def read_index_json_from_tarball(package_tarball_full_path):
-    with tarfile.open(package_tarball_full_path) as tf:
-        contents = tf.extractfile('info/index.json').read()
-        return json.loads(ensure_text_type(contents))
+    with TemporaryDirectory() as tmpdir:
+        conda_package_handling.api.extract(package_tarball_full_path, tmpdir, 'info')
+        with open(join(tmpdir, 'info', 'index.json')) as f:
+            json_data = json.load(f)
+    return json_data
 
 
 def read_repodata_json(extracted_package_directory):

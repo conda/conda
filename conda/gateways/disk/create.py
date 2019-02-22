@@ -3,16 +3,21 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+<<<<<<< HEAD
 import codecs
 from errno import EACCES, ELOOP, EPERM
+=======
+from errno import EACCES, EPERM
+>>>>>>> support new package format for installation.  prefer sha256 for verification where available
 from io import open
 from logging import getLogger
 import os
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 import sys
-import tarfile
 import tempfile
+
+import conda_package_handling.api
 
 from . import mkdir_p
 from .delete import rm_rf, path_is_clean
@@ -27,8 +32,12 @@ from ...base.context import context
 from ...common.compat import on_win
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json_dump
+<<<<<<< HEAD
 from ...exceptions import (BasicClobberError, CaseInsensitiveFileSystemError, CondaOSError,
                            maybe_raise, CondaFileIOError)
+=======
+from ...exceptions import BasicClobberError, CondaOSError, maybe_raise
+>>>>>>> support new package format for installation.  prefer sha256 for verification where available
 from ...models.enums import FileMode, LinkType
 
 log = getLogger(__name__)
@@ -155,7 +164,10 @@ class ProgressFileWrapper(object):
 
 def extract_tarball(tarball_full_path, destination_directory=None, progress_update_callback=None):
     if destination_directory is None:
-        destination_directory = tarball_full_path[:-8]
+        if tarball_full_path.endswith('.tar.bz2'):
+            destination_directory = tarball_full_path[:-8]
+        else:
+            destination_directory = tarball_full_path.splitext()[0]
     log.debug("extracting %s\n  to %s", tarball_full_path, destination_directory)
 
     # the most common reason this happens is due to hard-links, windows thinks
@@ -166,6 +178,7 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
         log.debug("package folder {} was not empty, but we're writing there."
                   .format(destination_directory))
 
+<<<<<<< HEAD
     with open(tarball_full_path, 'rb') as fileobj:
         if progress_update_callback:
             fileobj = ProgressFileWrapper(fileobj, progress_update_callback)
@@ -187,6 +200,9 @@ def extract_tarball(tarball_full_path, destination_directory=None, progress_upda
                     )
                 else:
                     raise
+=======
+    conda_package_handling.api.extract(tarball_full_path, dest_dir=destination_directory)
+>>>>>>> support new package format for installation.  prefer sha256 for verification where available
 
     if sys.platform.startswith('linux') and os.getuid() == 0:
         # When extracting as root, tarfile will by restore ownership

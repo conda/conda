@@ -1070,11 +1070,12 @@ class UnregisterEnvironmentLocationAction(PathAction):
 class CacheUrlAction(PathAction):
 
     def __init__(self, url, target_pkgs_dir, target_package_basename,
-                 md5sum=None, expected_size_in_bytes=None):
+                 sha256sum=None, md5sum=None, expected_size_in_bytes=None):
         self.url = url
         self.target_pkgs_dir = target_pkgs_dir
         self.target_package_basename = target_package_basename
         self.md5sum = md5sum
+        self.sha256sum = sha256sum
         self.expected_size_in_bytes = expected_size_in_bytes
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
@@ -1116,18 +1117,21 @@ class CacheUrlAction(PathAction):
             else:
                 # so our tarball source isn't a package cache, but that doesn't mean it's not
                 #   in another package cache somewhere
-                # let's try to find the actual, remote source url by matching md5sums, and then
+                # let's try to find the actual, remote source url by matching sha256sums, and then
                 #   record that url as the remote source url in urls.txt
                 # we do the search part of this operation before the create_link so that we
-                #   don't md5sum-match the file created by 'create_link'
+                #   don't sha256sum-match the file created by 'create_link'
                 # there is no point in looking for the tarball in the cache that we are writing
                 #   this file into because we have already removed the previous file if there was
-                #   any. This also makes sure that we ignore the md5sum of a possible extracted
+                #   any. This also makes sure that we ignore the sha256sum of a possible extracted
                 #   directory that might exist in this cache because we are going to overwrite it
                 #   anyway when we extract the tarball.
+                source_sha256sum = compute_sha256sum(source_path)
                 source_md5sum = compute_md5sum(source_path)
                 exclude_caches = self.target_pkgs_dir,
-                pc_entry = PackageCacheData.tarball_file_in_cache(source_path, source_md5sum,
+                pc_entry = PackageCacheData.tarball_file_in_cache(source_path,
+                                                                  source_sha256sum,
+                                                                  source_md5sum,
                                                                   exclude_caches=exclude_caches)
 
                 if pc_entry:
@@ -1147,7 +1151,7 @@ class CacheUrlAction(PathAction):
                     target_package_cache._urls_data.add_url(self.url)
 
         else:
-            download(self.url, self.target_full_path, self.md5sum,
+            download(self.url, self.target_full_path, sha256sum=self.sha256sum, md5sum=self.md5sum,
                      progress_update_callback=progress_update_callback)
             target_package_cache._urls_data.add_url(self.url)
 
@@ -1170,12 +1174,13 @@ class CacheUrlAction(PathAction):
 class ExtractPackageAction(PathAction):
 
     def __init__(self, source_full_path, target_pkgs_dir, target_extracted_dirname,
-                 record_or_spec, md5sum):
+                 record_or_spec, sha256sum, md5sum=None):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
         self.record_or_spec = record_or_spec
+        self.sha256sum = sha256sum
         self.md5sum = md5sum
 
     def verify(self):
@@ -1213,9 +1218,13 @@ class ExtractPackageAction(PathAction):
             assert url
             channel = Channel(url) if has_platform(url, context.known_subdirs) else Channel(None)
             fn = basename(url)
-            md5 = self.md5sum or compute_md5sum(self.source_full_path)
+            md5 = self.md5sum
+            sha256 = self.sha256sum
+            if not sha256 and not md5:
+                sha256 = compute_sha256sum(self.source_full_path)
             repodata_record = PackageRecord.from_objects(raw_index_json, url=url,
-                                                         channel=channel, fn=fn, md5=md5)
+                                                         channel=channel, fn=fn,
+                                                         md5=md5, sha256=sha256)
         else:
             repodata_record = PackageRecord.from_objects(self.record_or_spec, raw_index_json)
 
