@@ -872,8 +872,9 @@ class UnlinkLinkTransaction(object):
             total_download_bytes = 0
             for prec in sorted(change_report.fetch_precs,
                                key=lambda x: convert_namekey(x.namekey)):
-                extra = '%15s' % human_bytes(prec.size)
-                total_download_bytes += prec.size
+                size = prec.size if prec.fn.endswith('.tar.bz2') else prec.conda_size
+                extra = '%15s' % human_bytes(size)
+                total_download_bytes += size
                 schannel = channel_filt(text_type(prec.channel.canonical_name))
                 if schannel:
                     extra += '  ' + schannel

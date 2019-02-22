@@ -240,7 +240,7 @@ class PackageCacheData(object):
         cls._cache_.clear()
 
     def tarball_file_in_this_cache(self, tarball_path, sha256sum=None, md5sum=None):
-        tarball_full_path, sha256sum = self._clean_tarball_path_and_get_checksums(
+        tarball_full_path, sha256sum, md5sum = self._clean_tarball_path_and_get_checksums(
             tarball_path, sha256sum=sha256sum, md5sum=md5sum)
         tarball_basename = basename(tarball_full_path)
         pc_entry = first((pc_entry for pc_entry in itervalues(self)),
@@ -528,7 +528,7 @@ class ProgressiveFetchExtract(object):
             except AttributeError:
                 expected_size_in_bytes = None
             cache_axn = CacheUrlAction(
-                url=path_to_url(pcrec_from_read_only_cache.package_tarball_full_path),
+                url=path_to_url(pcrec_from_read_only_cache.preferred_package_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_package_basename=pcrec_from_read_only_cache.fn,
                 sha256sum=sha256,
@@ -536,7 +536,7 @@ class ProgressiveFetchExtract(object):
             )
             trgt_extracted_dirname = pcrec_from_read_only_cache.fn[:-len(CONDA_TARBALL_EXTENSION)]
             extract_axn = ExtractPackageAction(
-                source_full_path=cache_axn.target_full_path,
+                source_full_path=cache_axn.preferred_package_path,
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_extracted_dirname=trgt_extracted_dirname,
                 record_or_spec=pcrec_from_read_only_cache,
@@ -561,7 +561,7 @@ class ProgressiveFetchExtract(object):
             sha256 = pref_or_spec.get('sha256')
 
         cache_axn = CacheUrlAction(
-            url=url,
+            url=url.rsplit('/', 1)[0] + "/" + fn,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
             target_package_basename=fn,
             sha256sum=sha256,

@@ -1,5 +1,6 @@
 # run as 'conda install --file dev/test-requirements.txt -c defaults -c conda-forge'
 # conda
+conda-package-handling
 flake8
 mock
 pexpect
