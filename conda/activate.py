@@ -395,20 +395,17 @@ class _Activator(object):
     def _get_starting_path_list(self):
         path = self.environ.get('PATH', '')
         if on_win:
-            # On Windows, the Anaconda Python interpreter prepends sys.prefix\Library\bin on
-            # startup. It's a hack that allows users to avoid using the correct activation
-            # procedure; a hack that needs to go away because it doesn't add all the paths.
-            # See: https://github.com/AnacondaRecipes/python-feedstock/blob/master/recipe/0005-Win32-Ensure-Library-bin-is-in-os.environ-PATH.patch  # NOQA
-            # But, we now detect if that has happened because:
-            #   1. In future we would like to remove this hack and require real activation.
-            #   2. We should not assume that the Anaconda Python interpreter is being used.
-            path_split = path.split(os.pathsep)
-            library_bin = r"%s\Library\bin" % (sys.prefix)
-            # ^^^ deliberately the same as: https://github.com/AnacondaRecipes/python-feedstock/blob/8e8aee4e2f4141ecfab082776a00b374c62bb6d6/recipe/0005-Win32-Ensure-Library-bin-is-in-os.environ-PATH.patch#L20  # NOQA
-            if paths_equal(path_split[0], library_bin):
-                return path_split[1:]
-            else:
-                return path_split
+            # We used to prepend sys.prefix\Library\bin to PATH on startup but not anymore.
+            # Instead, in conda 4.6 we add the full suite of entries. This is performed in
+            # condabin\conda.bat and condabin\ _conda_activate.bat
+             path_split = path.split(os.pathsep)
+             prefix_dirs = tuple(self._get_path_dirs2(sys.prefix))
+             start_index = 0
+             while (start_index < len(prefix_dirs) and
+                    start_index < len(path_split) and
+                    path_split[start_index] == prefix_dirs[start_index]):
+                 start_index+=1
+             return path_split[start_index:]
         else:
             return path.split(os.pathsep)
 
