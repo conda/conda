@@ -417,9 +417,6 @@ class _Activator(object):
             yield self.sep.join( (prefix, 'Library', 'bin') )
             yield self.sep.join( (prefix, 'Scripts') )
             yield self.sep.join( (prefix, 'bin') )
-            # there may be one additional Library/bin entry from the interpreter.  If it's not
-            #    there, this shouldn't do anything.
-            yield self.sep.join( (sys.prefix, 'Library', 'bin') )
         else:
             yield self.sep.join( (prefix, 'bin') )
 
@@ -466,13 +463,12 @@ class _Activator(object):
                 first_idx = 0
             else:
                 last_idx = index_of_path(path_list, prefix_dirs[-1])
+                assert last_idx is not None
                 # this compensates for an extra Library/bin dir entry from the interpreter on
                 #     windows.  If that entry isn't being added, it should have no effect.
-                if prefix_dirs.count(prefix_dirs[-1]) > 1:
-                    extra_lib_dir_index = index_of_path(path_list[last_idx+1:], prefix_dirs[-1])
-                    last_idx = ((extra_lib_dir_index + last_idx + 1) if extra_lib_dir_index
-                                else last_idx)
-                assert last_idx is not None
+                library_bin_dir = self.path_conversion(self.sep.join((sys.prefix, 'Library', 'bin')))
+                if path_list[last_idx] == library_bin_dir:
+                    last_idx += 1
                 del path_list[first_idx:last_idx + 1]
         else:
             first_idx = 0
