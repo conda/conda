@@ -1345,7 +1345,7 @@ class ShellWrapperIntegrationTests(TestCase):
         start_paths = PATH0.split(':')
         end_paths = PATH1.split(':')
         extra_paths, missing_paths = diff_paths(start_paths, end_paths)
-        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
+        assert len(extra_paths) == num_paths_added
 
         shell.sendline('conda activate "%s"' % self.prefix)
         # shell.sendline('env | sort')
@@ -1354,7 +1354,7 @@ class ShellWrapperIntegrationTests(TestCase):
         PATH2 = shell.get_env_var('PATH').strip(':')
         end_paths = PATH2.split(':')
         extra_paths, missing_paths = diff_paths(start_paths, end_paths)
-        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
+        assert len(extra_paths) == num_paths_added
 
         shell.sendline('env | sort | grep CONDA')
         shell.expect('CONDA_')
@@ -1370,7 +1370,7 @@ class ShellWrapperIntegrationTests(TestCase):
         PATH3 = shell.get_env_var('PATH').strip(':')
         end_paths = PATH3.split(':')
         extra_paths, missing_paths = diff_paths(start_paths, end_paths)
-        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
+        assert len(extra_paths) == num_paths_added
 
         shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
         shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
@@ -1395,21 +1395,21 @@ class ShellWrapperIntegrationTests(TestCase):
         PATH = shell.get_env_var('PATH').strip(':')
         end_paths = PATH.split(':')
         extra_paths, missing_paths = diff_paths(start_paths, end_paths)
-        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
+        assert len(extra_paths) == num_paths_added
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH = shell.get_env_var('PATH').strip(':')
         end_paths = PATH.split(':')
         extra_paths, missing_paths = diff_paths(start_paths, end_paths)
-        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
+        assert len(extra_paths) == num_paths_added
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH = shell.get_env_var('PATH').strip(':')
         end_paths = PATH.split(':')
         extra_paths, missing_paths = diff_paths(start_paths, end_paths)
-        assert len(start_paths) == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
+        assert len(extra_paths) == num_paths_added
 
         shell.sendline(shell.print_env_var % 'PS1')
         shell.expect('.*\n')
@@ -1424,7 +1424,7 @@ class ShellWrapperIntegrationTests(TestCase):
         PATH1 = shell.get_env_var('PATH').strip(':')
         end_paths = PATH1.split(':')
         extra_paths, missing_paths = diff_paths(start_paths, end_paths)
-        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
+        assert len(extra_paths) == num_paths_added
 
         shell.sendline('conda activate "%s" --stack' % self.prefix3)
         shell.assert_env_var('CONDA_SHLVL', '2')
@@ -1433,7 +1433,7 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' in PATH2
         end_paths = PATH2.split(':')
         extra_paths, missing_paths = diff_paths(start_paths, end_paths)
-        assert len(start_paths) + num_paths_added * 2 == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
+        assert len(extra_paths) == num_paths_added * 2
 
         shell.sendline('conda activate "%s"' % self.prefix)
         shell.assert_env_var('CONDA_SHLVL', '3')
@@ -1442,7 +1442,7 @@ class ShellWrapperIntegrationTests(TestCase):
         assert 'venusaur' not in PATH3
         end_paths = PATH3.split(':')
         extra_paths, missing_paths = diff_paths(start_paths, end_paths)
-        assert len(start_paths) + num_paths_added * 2 == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
+        assert len(extra_paths) == num_paths_added * 2
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '2')
