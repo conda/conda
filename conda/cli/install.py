@@ -201,7 +201,10 @@ def install(args, parser, command='install'):
     specs = []
     if args.file:
         for fpath in args.file:
-            specs.extend(common.specs_from_url(fpath, json=context.json))
+            try:
+                specs.extend(common.specs_from_url(fpath, json=context.json))
+            except:
+                raise CondaError("Error parsing file, likely due to invalid file format")
         if '@EXPLICIT' in specs:
             explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
             return
