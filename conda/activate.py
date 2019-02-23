@@ -402,12 +402,10 @@ class _Activator(object):
             # need to ignore the stuff we add there, and only consider actual PATH entries.
             prefix_dirs = tuple(self._get_path_dirs2(sys.prefix))
             start_index = 0
-            print(prefix_dirs)
             while (start_index < len(prefix_dirs) and
                    start_index < len(path_split) and
                    normpath(path_split[start_index]) == normpath(prefix_dirs[start_index])):
                 start_index += 1
-            print(start_index)
             path_split = path_split[start_index:]
         return path_split
 
