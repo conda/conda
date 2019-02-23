@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from errno import ENOENT
 from glob import glob
 import os
-from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join
+from os.path import abspath, basename, dirname, expanduser, expandvars, isdir, join, normpath
 import re
 import sys
 from tempfile import NamedTemporaryFile
@@ -405,7 +405,7 @@ class _Activator(object):
             print(prefix_dirs)
             while (start_index < len(prefix_dirs) and
                    start_index < len(path_split) and
-                   path_split[start_index] == prefix_dirs[start_index]):
+                   normpath(path_split[start_index]) == normpath(prefix_dirs[start_index])):
                 start_index += 1
             print(start_index)
             path_split = path_split[start_index:]
