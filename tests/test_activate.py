@@ -1195,6 +1195,8 @@ class InteractiveShell(object):
         from pexpect.popen_spawn import PopenSpawn
 
         # remove all CONDA_ env vars
+        # this ensures that PATH is shared with any msys2 bash shell, rather than starting fresh
+        os.environ["MSYS2_PATH_TYPE"] = "inherit"
         env = {str(k): str(v) for k, v in iteritems(os.environ)}
         remove_these = {var_name for var_name in env if var_name.startswith('CONDA_')}
         for var_name in remove_these:
