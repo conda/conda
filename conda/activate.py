@@ -419,7 +419,7 @@ class _Activator(object):
             yield self.sep.join( (prefix, 'bin') )
             # there may be one additional Library/bin entry from the interpreter.  If it's not
             #    there, this shouldn't do anything.
-            yield self.sep.join( (prefix, 'Library', 'bin') )
+            yield self.sep.join( (sys.prefix, 'Library', 'bin') )
         else:
             yield self.sep.join( (prefix, 'bin') )
 
