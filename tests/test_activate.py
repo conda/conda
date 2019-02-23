@@ -1295,6 +1295,11 @@ def which_powershell():
     if posh:
         return 'pwsh-preview', posh
 
+def diff_paths(paths_before, paths_after):
+    missing_paths = set(paths_before) - set(paths_after)
+    extra_paths = set(paths_after) - set(paths_before)
+    return extra_paths, missing_paths
+
 @pytest.mark.integration
 class ShellWrapperIntegrationTests(TestCase):
 
@@ -1337,14 +1342,19 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('PS1', '(base).*')
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH1 = shell.get_env_var('PATH').strip(':')
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
+        start_paths = PATH0.split(':')
+        end_paths = PATH1.split(':')
+        extra_paths, missing_paths = diff_paths(start_paths, end_paths)
+        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
 
         shell.sendline('conda activate "%s"' % self.prefix)
         # shell.sendline('env | sort')
         shell.assert_env_var('CONDA_SHLVL', '2')
         shell.assert_env_var('CONDA_PREFIX', self.prefix, True)
         PATH2 = shell.get_env_var('PATH').strip(':')
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH2.split(':'))
+        end_paths = PATH2.split(':')
+        extra_paths, missing_paths = diff_paths(start_paths, end_paths)
+        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
 
         shell.sendline('env | sort | grep CONDA')
         shell.expect('CONDA_')
@@ -1358,7 +1368,9 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.assert_env_var('PS1', '(charizard).*')
         shell.assert_env_var('CONDA_SHLVL', '3')
         PATH3 = shell.get_env_var('PATH').strip(':')
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH3.split(':'))
+        end_paths = PATH3.split(':')
+        extra_paths, missing_paths = diff_paths(start_paths, end_paths)
+        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
 
         shell.sendline('conda install -yq sqlite=3.21 openssl')  # TODO: this should be a relatively light package, but also one that has activate.d or deactivate.d scripts
         shell.expect('Executing transaction: ...working... done.*\n', timeout=35)
@@ -1381,17 +1393,23 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '2')
         PATH = shell.get_env_var('PATH').strip(':')
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
+        end_paths = PATH.split(':')
+        extra_paths, missing_paths = diff_paths(start_paths, end_paths)
+        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH = shell.get_env_var('PATH').strip(':')
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH.split(':'))
+        end_paths = PATH.split(':')
+        extra_paths, missing_paths = diff_paths(start_paths, end_paths)
+        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '0')
         PATH = shell.get_env_var('PATH').strip(':')
-        assert len(PATH0.split(':')) == len(PATH.split(':'))
+        end_paths = PATH.split(':')
+        extra_paths, missing_paths = diff_paths(start_paths, end_paths)
+        assert len(start_paths) == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
 
         shell.sendline(shell.print_env_var % 'PS1')
         shell.expect('.*\n')
@@ -1404,21 +1422,27 @@ class ShellWrapperIntegrationTests(TestCase):
         shell.sendline('conda activate "%s"' % self.prefix2)
         shell.assert_env_var('CONDA_SHLVL', '1')
         PATH1 = shell.get_env_var('PATH').strip(':')
-        assert len(PATH0.split(':')) + num_paths_added == len(PATH1.split(':'))
+        end_paths = PATH1.split(':')
+        extra_paths, missing_paths = diff_paths(start_paths, end_paths)
+        assert len(start_paths) + num_paths_added == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
 
         shell.sendline('conda activate "%s" --stack' % self.prefix3)
         shell.assert_env_var('CONDA_SHLVL', '2')
         PATH2 = shell.get_env_var('PATH').strip(':')
         assert 'charizard' in PATH2
         assert 'venusaur' in PATH2
-        assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH2.split(':'))
+        end_paths = PATH2.split(':')
+        extra_paths, missing_paths = diff_paths(start_paths, end_paths)
+        assert len(start_paths) + num_paths_added * 2 == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
 
         shell.sendline('conda activate "%s"' % self.prefix)
         shell.assert_env_var('CONDA_SHLVL', '3')
         PATH3 = shell.get_env_var('PATH')
         assert 'charizard' in PATH3
         assert 'venusaur' not in PATH3
-        assert len(PATH0.split(':')) + num_paths_added * 2 == len(PATH3.split(':'))
+        end_paths = PATH3.split(':')
+        extra_paths, missing_paths = diff_paths(start_paths, end_paths)
+        assert len(start_paths) + num_paths_added * 2 == len(end_paths), {'added': extra_paths, 'removed': missing_paths}
 
         shell.sendline('conda deactivate')
         shell.assert_env_var('CONDA_SHLVL', '2')
