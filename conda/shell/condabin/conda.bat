@@ -1,6 +1,10 @@
 @REM Copyright (C) 2012 Anaconda, Inc
 @REM SPDX-License-Identifier: BSD-3-Clause
-@SET "CONDA_EXE=%~dp0..\Scripts\conda.exe"
+@IF EXIST "%~dp0..\Scripts\conda.exe" @SET "CONDA_EXE=%~dp0..\Scripts\conda.exe"
+@IF "%CONDA_EXE%" == "" (
+  @ECHO CONDA_EXE env var is unset, and conda.exe could not be located by relative path.  exiting.
+  EXIT 1
+)
 
 @IF [%1]==[activate]   "%~dp0_conda_activate" %*
 @IF [%1]==[deactivate] "%~dp0_conda_activate" %*
