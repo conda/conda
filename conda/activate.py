@@ -400,7 +400,7 @@ class _Activator(object):
             # Instead, in conda 4.6 we add the full suite of entries. This is performed in
             # condabin\conda.bat and condabin\ _conda_activate.bat. However, we
             # need to ignore the stuff we add there, and only consider actual PATH entries.
-            prefix_dirs = tuple(self._get_path_dirs2(sys.prefix))
+            prefix_dirs = tuple(self._get_path_dirs(sys.prefix))
             start_index = 0
             while (start_index < len(prefix_dirs) and
                    start_index < len(path_split) and
@@ -409,31 +409,19 @@ class _Activator(object):
             path_split = path_split[start_index:]
         return path_split
 
-    @staticmethod
-    def _get_path_dirs(prefix):
+    def _get_path_dirs(self, prefix, extra_library_bin=False):
         if on_win:  # pragma: unix no cover
             yield prefix.rstrip("\\")
-            yield join(prefix, 'Library', 'mingw-w64', 'bin')
-            yield join(prefix, 'Library', 'usr', 'bin')
-            yield join(prefix, 'Library', 'bin')
-            yield join(prefix, 'Scripts')
-            yield join(prefix, 'bin')
-        else:
-            yield join(prefix, 'bin')
-
-    def _get_path_dirs2(self, prefix):
-        if on_win:  # pragma: unix no cover
-            yield prefix
             yield self.sep.join((prefix, 'Library', 'mingw-w64', 'bin'))
-            yield self.sep.join((prefix, 'Library', 'usr', 'bin'))
-            yield self.sep.join((prefix, 'Library', 'bin'))
-            yield self.sep.join((prefix, 'Scripts'))
-            yield self.sep.join((prefix, 'bin'))
+            yield self.sep.join( (prefix, 'Library', 'usr', 'bin') )
+            yield self.sep.join( (prefix, 'Library', 'bin') )
+            yield self.sep.join( (prefix, 'Scripts') )
+            yield self.sep.join( (prefix, 'bin') )
             # there may be one additional Library/bin entry from the interpreter.  If it's not
             #    there, this shouldn't do anything.
-            yield self.sep.join((prefix, 'Library', 'bin'))
+            yield self.sep.join( (prefix, 'Library', 'bin') )
         else:
-            yield self.sep.join((prefix, 'bin'))
+            yield self.sep.join( (prefix, 'bin') )
 
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
         prefix = self.path_conversion(prefix)
@@ -451,7 +439,7 @@ class _Activator(object):
             condabin_dir = self.path_conversion(join(context.conda_prefix, "condabin"))
             path_list.insert(0, condabin_dir)
 
-        path_list[0:0] = list(self.path_conversion(self._get_path_dirs2(prefix)))
+        path_list[0:0] = list(self.path_conversion(self._get_path_dirs(prefix)))
         return tuple(path_list)
 
     def _remove_prefix_from_path(self, prefix, starting_path_dirs=None):
@@ -472,19 +460,25 @@ class _Activator(object):
             return None
 
         if old_prefix is not None:
-            prefix_dirs = tuple(self._get_path_dirs2(old_prefix))
+            prefix_dirs = tuple(self._get_path_dirs(old_prefix))
             first_idx = index_of_path(path_list, prefix_dirs[0])
             if first_idx is None:
                 first_idx = 0
             else:
                 last_idx = index_of_path(path_list, prefix_dirs[-1])
+                # this compensates for an extra Library/bin dir entry from the interpreter on
+                #     windows.  If that entry isn't being added, it should have no effect.
+                if prefix_dirs.count(prefix_dirs[-1]) > 1:
+                    extra_lib_dir_index = index_of_path(path_list[last_idx+1:], prefix_dirs[-1])
+                    last_idx = ((extra_lib_dir_index + last_idx + 1) if extra_lib_dir_index
+                                else last_idx)
                 assert last_idx is not None
                 del path_list[first_idx:last_idx + 1]
         else:
             first_idx = 0
 
         if new_prefix is not None:
-            path_list[first_idx:first_idx] = list(self._get_path_dirs2(new_prefix))
+            path_list[first_idx:first_idx] = list(self._get_path_dirs(new_prefix))
 
         return tuple(path_list)
 
