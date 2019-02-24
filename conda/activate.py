@@ -413,12 +413,12 @@ class _Activator(object):
         if on_win:  # pragma: unix no cover
             yield prefix.rstrip("\\")
             yield self.sep.join((prefix, 'Library', 'mingw-w64', 'bin'))
-            yield self.sep.join( (prefix, 'Library', 'usr', 'bin') )
-            yield self.sep.join( (prefix, 'Library', 'bin') )
-            yield self.sep.join( (prefix, 'Scripts') )
-            yield self.sep.join( (prefix, 'bin') )
+            yield self.sep.join((prefix, 'Library', 'usr', 'bin'))
+            yield self.sep.join((prefix, 'Library', 'bin'))
+            yield self.sep.join((prefix, 'Scripts'))
+            yield self.sep.join((prefix, 'bin'))
         else:
-            yield self.sep.join( (prefix, 'bin') )
+            yield self.sep.join((prefix, 'bin'))
 
     def _add_prefix_to_path(self, prefix, starting_path_dirs=None):
         prefix = self.path_conversion(prefix)
@@ -466,8 +466,9 @@ class _Activator(object):
                 assert last_idx is not None
                 # this compensates for an extra Library/bin dir entry from the interpreter on
                 #     windows.  If that entry isn't being added, it should have no effect.
-                library_bin_dir = self.path_conversion(self.sep.join((sys.prefix, 'Library', 'bin')))
-                if path_list[last_idx] == library_bin_dir:
+                library_bin_dir = self.path_conversion(
+                    self.sep.join((sys.prefix, 'Library', 'bin')))
+                if path_list[last_idx + 1] == library_bin_dir:
                     last_idx += 1
                 del path_list[first_idx:last_idx + 1]
         else:
