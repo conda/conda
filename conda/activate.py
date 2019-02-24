@@ -404,9 +404,13 @@ class _Activator(object):
             start_index = 0
             while (start_index < len(prefix_dirs) and
                    start_index < len(path_split) and
-                   normpath(path_split[start_index]) == normpath(prefix_dirs[start_index])):
+                   paths_equal(path_split[start_index], prefix_dirs[start_index])):
                 start_index += 1
             path_split = path_split[start_index:]
+            library_bin_dir = self.path_conversion(
+                    self.sep.join((sys.prefix, 'Library', 'bin')))
+            if paths_equal(path_split[0], library_bin_dir):
+                path_split = path_split[1:]
         return path_split
 
     def _get_path_dirs(self, prefix, extra_library_bin=False):
