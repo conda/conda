@@ -169,12 +169,14 @@ for your operating system from the `Miniconda download page
 
     bash Miniconda3-latest-MacOSX-x86_64.sh -f
 
-NOTE: Substitute the appropriate filename and version for your
-operating system.
+.. note::
+   Substitute the appropriate filename and version for your
+   operating system.
 
-NOTE: Be sure that you install to the same install location as
-your existing install so it overwrites the core conda files and
-does not install a duplicate in a new folder.
+.. note::
+   Be sure that you install to the same install location as
+   your existing install so it overwrites the core conda files and
+   does not install a duplicate in a new folder.
 
 
 .. _conda-claims-installed:
@@ -300,14 +302,16 @@ package. Usually if this is different, it is because your
 channels have changed and there is a different package with the
 same name, version, and build number.
 
-NOTE: This breaks the links to any other environments that
-already had this package installed, so you have to reinstall it
-there, too. It also means that running ``conda install -f`` a lot
-can use up a lot of disk space if you have a lot of environments.
+.. note::
+   This breaks the links to any other environments that
+   already had this package installed, so you have to reinstall it
+   there, too. It also means that running ``conda install -f`` a lot
+   can use up a lot of disk space if you have a lot of environments.
 
-NOTE: The ``-f`` flag to ``conda install`` (``--force``) implies
-``--no-deps``, so ``conda install -f package`` does not reinstall
-any of the dependencies of ``package``.
+.. note::
+   The ``-f`` flag to ``conda install`` (``--force``) implies
+   ``--no-deps``, so ``conda install -f package`` does not reinstall
+   any of the dependencies of ``package``.
 
 
 .. _DistributionNotFound:
@@ -379,8 +383,9 @@ which is typically ``~/.profile``:
 
    export LANG=your-lang
 
-NOTE: Replace ``your-lang`` with the correct locale specifier for
-your language.
+.. note::
+   Replace ``your-lang`` with the correct locale specifier for
+   your language.
 
 The command ``locale -a`` displays all the specifiers. For
 example, the language code for US English is ``en_US.UTF-8``. The

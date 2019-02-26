@@ -86,9 +86,10 @@ need to navigate to the Anaconda directory.
 
 EXAMPLE: ``conda 4.4.9``
 
-NOTE: If you get an error message, make sure you closed and re-opened the
-terminal window after installing, or do it now. Then verify that you are logged
-into the same user account that you used to install Anaconda or Miniconda.
+.. note::
+   If you get an error message, make sure you closed and re-opened the
+   terminal window after installing, or do it now. Then verify that you are logged
+   into the same user account that you used to install Anaconda or Miniconda.
 
 Update conda to the current version. Type the following:
 
@@ -104,7 +105,8 @@ If a newer version of conda is available, type ``y`` to update:
 
     Proceed ([y]/n)? y
 
-TIP: We recommend that you always keep conda updated to the latest version.
+.. tip::
+   We recommend that you always keep conda updated to the latest version.
 
 .. _managing-envs:
 
@@ -142,7 +144,8 @@ Create separate environments to keep your programs isolated from each other.
    * Windows: ``conda activate snowflakes``
    * Linux and macOS: ``conda activate snowflakes``
 
-   NOTE: ``conda activate`` only works on conda 4.6 and later versions.
+   .. note::
+      ``conda activate`` only works on conda 4.6 and later versions.
 
    For conda versions prior to 4.6, type:
 
@@ -168,19 +171,22 @@ Create separate environments to keep your programs isolated from each other.
           base           /home/username/Anaconda3
           snowflakes   * /home/username/Anaconda3/envs/snowflakes
 
-   TIP: The active environment is the one with an asterisk (*).
+   .. tip::
+      The active environment is the one with an asterisk (*).
 
 #. Change your current environment back to the default (base):
    ``conda activate``
 
-   NOTE: For versions prior to conda 4.6, use:
+   .. note::
+      For versions prior to conda 4.6, use:
 
-     * Windows:  ``activate``
-     * Linux, macOS: ``source activate``
+        * Windows:  ``activate``
+        * Linux, macOS: ``source activate``
 
-TIP: When the environment is deactivated, its name is no
-longer shown in your prompt, and the asterisk (*) returns to base.
-To verify, you can repeat the  ``conda info --envs`` command.
+   .. tip::
+      When the environment is deactivated, its name is no
+      longer shown in your prompt, and the asterisk (*) returns to base.
+      To verify, you can repeat the  ``conda info --envs`` command.
 
 
 .. _managing-python:
@@ -240,10 +246,10 @@ specify the version of Python that you want.
 #. Deactivate the snakes environment and return to base environment:
    ``conda activate``
 
-NOTE: For versions prior to conda 4.6, use:
-
-     * Windows:  ``activate``
-     * Linux, macOS: ``source activate``
+   .. note::
+      For versions prior to conda 4.6, use:
+         * Windows:  ``activate``
+         * Linux, macOS: ``source activate``
 
 
 .. _managing-pkgs:

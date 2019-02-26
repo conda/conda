@@ -19,10 +19,11 @@ installations of various packages. It can:
 
 * Install and update packages into existing conda environments.
 
-TIP: You can abbreviate many frequently used command options that 
-are preceded by 2 dashes (``--``) to just 1 dash and the first 
-letter of the option. So ``--name`` and ``-n`` are the same, and 
-``--envs`` and ``-e`` are the same.
+.. tip::
+   You can abbreviate many frequently used command options that
+   are preceded by 2 dashes (``--``) to just 1 dash and the first
+   letter of the option. So ``--name`` and ``-n`` are the same, and
+   ``--envs`` and ``-e`` are the same.
 
 For full usage of each command, including abbreviations, see 
 :doc:`../commands`. You can see the same information at the 
