@@ -267,7 +267,8 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, command):
         comspec = environ[str('COMSPEC')]
         conda_bat = env.get("CONDA_BAT", abspath(join(root_prefix, 'bin', 'conda')))
         with tempfile.NamedTemporaryFile(
-                mode='w', prefix=tmp_prefix, suffix='.bat', delete=False) as fh:
+                mode='w', prefix=tmp_prefix, suffix='.bat', delete=False, encoding='utf-8') as fh:
+            fh.write('@chcp 65001 > NUL')
             fh.write('@CALL \"{0}\" activate \"{1}\"\n'.format(conda_bat, prefix))
             # while helpful for debugging, this gets in the way of running wrapped commands where
             #    we care about the output.
