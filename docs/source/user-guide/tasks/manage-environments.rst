@@ -558,7 +558,7 @@ Anaconda Prompt, run:
 
    conda remove --name myenv --all
 
-(You may instead use ``conda env remove --name myenv``.)
+(You may need to use ``conda env remove --name myenv`` after to remove some remnants. But do not run this command first.)
 
 To verify that the environment was removed, in your terminal window or an
 Anaconda Prompt, run:
