@@ -530,8 +530,7 @@ def ensure_binary(value):
     encoding = 'utf-8'
     if on_win:
         import ctypes
-        acp = ctypes.cdll.kernel32.GetACP()
-        encoding = 'cp' + str(acp)
+        encoding = 'cp' + str(ctypes.cdll.kernel32.GetACP())
     try:
         return value.encode(encoding)
     except AttributeError:  # pragma: no cover
