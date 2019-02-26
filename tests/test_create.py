@@ -2187,7 +2187,7 @@ class IntegrationTests(TestCase):
 
     def test_conda_info_python(self):
         stdout, stderr = run_command(Commands.INFO, None, "python=3.5")
-        assert "python 3.5.1 0" in stdout
+        assert "python 3.5.4" in stdout
 
     def test_toolz_cytoolz_package_cache_regression(self):
         with make_temp_env("python=3.5") as prefix:
