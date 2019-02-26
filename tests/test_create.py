@@ -1639,6 +1639,7 @@ class IntegrationTests(TestCase):
             assert unlink_dists[0]["name"] == "urllib3"
             assert unlink_dists[0]["channel"] == "pypi"
 
+    @pytest.mark.skipif(on_win and sys.version_info >= (3, 0), reason="1. make_temp_env() creates unicode prefixes on Py3. 2. These deps (pip=10 six=1.9 appdirs) require Py2.")
     def test_conda_pip_interop_compatible_release_operator(self):
         # Regression test for #7776
         with make_temp_env("pip=10 six=1.9 appdirs") as prefix:
