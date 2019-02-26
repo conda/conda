@@ -1035,8 +1035,13 @@ def init_sh_user(target_path, conda_prefix, shell):
     # target_path: ~/.bash_profile
     user_rc_path = target_path
 
-    with open(user_rc_path) as fh:
-        rc_content = fh.read()
+    try:
+        with open(user_rc_path) as fh:
+            rc_content = fh.read()
+    except FileNotFoundError:
+        rc_content = ''
+    except:
+        raise
 
     rc_original_content = rc_content
 
