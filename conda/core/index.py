@@ -127,8 +127,7 @@ def _make_virtual_package(name, version=None):
             md5="12345678901234567890123456789012",
             build_number=0,
             fn=name,
-        )
-
+    )
 
 def _supplement_index_with_features(index, features=()):
     for feature in chain(context.track_features, features):
