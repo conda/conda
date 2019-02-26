@@ -94,7 +94,8 @@ def make_temp_prefix(name=None, create_directory=True):
 #        dirpath = (str(uuid4())[:4] + ' ' + random_unicode) if name is None else name
 #        dirpath = str(uuid4())[:5+len(UINCODE_CHARACTERS)] if name is None else name
 #        dirpath = (str(uuid4())[:4] + ' ' + str(uuid4())[:4]) if name is None else name
-        dirpath = (random_unicode + random_unicode) if name is None else name
+        dirpath = (str(uuid4())[:4] + 'X' + str(uuid4())[:4]) if name is None else name
+#        dirpath = (random_unicode + random_unicode) if name is None else name
     prefix = join(tempdir, dirpath)
     os.makedirs(prefix)
     if create_directory:
