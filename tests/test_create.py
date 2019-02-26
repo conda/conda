@@ -77,8 +77,7 @@ stderr_log_level(TEST_LOG_LEVEL, 'conda')
 stderr_log_level(TEST_LOG_LEVEL, 'requests')
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
-UINCODE_CHARACTERS = u"ōγђ家固한"
-UINCODE_CHARACTERS = u"áêñßôç"
+UINCODE_CHARACTERS = u"ōγђ家固한áêñßôç"
 
 
 def escape_for_winpath(p):
@@ -95,7 +94,7 @@ def make_temp_prefix(name=None, create_directory=True):
 #        dirpath = str(uuid4())[:5+len(UINCODE_CHARACTERS)] if name is None else name
 #        dirpath = (str(uuid4())[:4] + ' ' + str(uuid4())[:4]) if name is None else name
         dirpath = (str(uuid4())[:4] + 'X' + str(uuid4())[:4]) if name is None else name
-#        dirpath = (random_unicode + random_unicode) if name is None else name
+        dirpath = (str(uuid8())[:8] + random_unicode) if name is None else name
     prefix = join(tempdir, dirpath)
     os.makedirs(prefix)
     if create_directory:
