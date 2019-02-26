@@ -693,7 +693,7 @@ class Context(Configuration):
         return info['flags']
 
     @memoizedproperty
-    @env_override('CONDA_CUDA_OVERRIDE', convert_empty_to_none=True)
+    @env_override('CONDA_OVERRIDE_CUDA', convert_empty_to_none=True)
     def cuda_version(self):
         from conda.common.cuda import cuda_detect
         return cuda_detect()
