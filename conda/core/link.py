@@ -238,6 +238,9 @@ class UnlinkLinkTransaction(object):
         assert not context.dry_run
 
         try:
+
+            import pdb; pdb.set_trace()
+            # execute unlink actions then link actions
             self._execute(tuple(concat(interleave(itervalues(self.prefix_action_groups)))))
         finally:
             rm_rf(self.transaction_context['temp_dir'])
@@ -532,6 +535,9 @@ class UnlinkLinkTransaction(object):
                              context.json):
                     for pkg_idx, axngroup in enumerate(all_action_groups):
                         cls._execute_actions(pkg_idx, axngroup)
+                    for pkg_idx, axngroup in enumerate(all_action_groups):
+                        if axngroup.type in ('unlink', 'link'):
+                            cls._execute_post_link_actions(pkg_idx, axngroup)
             except CondaMultiError as e:
                 action, is_unlink = (None, axngroup.type == 'unlink')
                 prec = axngroup.pkg_data
@@ -595,9 +601,6 @@ class UnlinkLinkTransaction(object):
                            target_prefix)
             for axn_idx, action in enumerate(axngroup.actions):
                 action.execute()
-            if axngroup.type in ('unlink', 'link'):
-                run_script(target_prefix, prec, 'post-unlink' if is_unlink else 'post-link',
-                           activate=True)
         except Exception as e:  # this won't be a multi error
             # reverse this package
             log.debug("Error in action #%d for pkg_idx #%d %r", axn_idx, pkg_idx, action,
@@ -609,7 +612,33 @@ class UnlinkLinkTransaction(object):
                 #           "Attempting to roll back.\n",
                 #           'uninstalling' if is_unlink else 'installing', prec.dist_str(), e)
                 reverse_excs = UnlinkLinkTransaction._reverse_actions(
-                    pkg_idx, axngroup, reverse_from_idx=axn_idx
+                    pkg_idx, axngroup
+                )
+            raise CondaMultiError(tuple(concatv(
+                (e,),
+                reverse_excs,
+            )))
+
+    @staticmethod
+    def _execute_post_link_actions(pkg_idx, axngroup):
+        target_prefix = axngroup.target_prefix
+        is_unlink = axngroup.type == 'unlink'
+        prec = axngroup.pkg_data
+
+        try:
+            run_script(target_prefix, prec, 'post-unlink' if is_unlink else 'post-link',
+                       activate=True)
+        except Exception as e:  # this won't be a multi error
+            # reverse this package
+            log.debug("Error in post-link pkg_idx #%d", pkg_idx, exc_info=True)
+            reverse_excs = ()
+            if context.rollback_enabled:
+                log.error("An error occurred while %s package '%s'.\n"
+                          "%r\n"
+                          "Attempting to roll back.\n",
+                          'uninstalling' if is_unlink else 'installing', prec.dist_str(), e)
+                reverse_excs = UnlinkLinkTransaction._reverse_actions(
+                    pkg_idx, axngroup
                 )
             raise CondaMultiError(tuple(concatv(
                 (e,),
