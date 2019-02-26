@@ -418,7 +418,7 @@ def make_initialize_plan(conda_prefix, shells, for_user, for_system, anaconda_pr
     shells = set(shells)
     if shells & {'bash', 'zsh'}:
         if 'bash' in shells and for_user:
-            bashrc_path = expand(join('~', '.bash_profile' if on_mac else '.bashrc'))
+            bashrc_path = expand(join('~', '.bash_profile' if (on_mac or on_win) else '.bashrc'))
             plan.append({
                 'function': init_sh_user.__name__,
                 'kwargs': {
