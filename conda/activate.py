@@ -526,7 +526,7 @@ def ensure_binary(value):
     if on_win:
         import ctypes
         acp = ctypes.cdll.kernel32.GetACP()
-        encoding = str(acp)
+        encoding = 'cp'+str(acp)
     try:
         return value.encode(encoding)
     except AttributeError:  # pragma: no cover
@@ -731,7 +731,7 @@ class CmdExeActivator(_Activator):
         if on_win:
             import ctypes
             export_vars.update({
-                "PYTHONIOENCODING": ctypes.cdll.kernel32.GetACP(),
+                "PYTHONIOENCODING": 'cp'+str(ctypes.cdll.kernel32.GetACP()),
             })
 
     def _hook_preamble(self):
