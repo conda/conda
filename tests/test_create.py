@@ -79,8 +79,8 @@ PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
 UNICODE_CHARACTERS = u"ōγђ家固한áêñßôç"
 UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
-# When testing for bugs, you may want to change this to a _, for example to see if the bug is related to spaces
-# in prefix names.
+# When testing for bugs, you may want to change this to a _,
+# for example to see if a bug is related to spaces in prefixes.
 SPACER_CHARACTER = '_'
 
 def escape_for_winpath(p):
@@ -140,26 +140,28 @@ def run_command(command, prefix, *arguments, **kwargs):
     p = generate_parser()
 
     if command is Commands.CONFIG:
-        arguments.append('--file "{0}"'.format(join(prefix, 'condarc')))
+        arguments.append('--file')
+        arguments.append(join(prefix, 'condarc'))
     if command in (Commands.LIST, Commands.CREATE, Commands.INSTALL,
                    Commands.REMOVE, Commands.UPDATE, Commands.RUN):
-        arguments.insert(0, '-p "{0}"'.format(prefix))
+        arguments.insert(0, '-p')
+        arguments.insert(1, prefix)
     if command in (Commands.CREATE, Commands.INSTALL, Commands.REMOVE, Commands.UPDATE):
         arguments.extend(["-y", "-q"])
 
-    arguments = list(map(escape_for_winpath, arguments))
-    command_line = "{0} {1}".format(command, " ".join(arguments))
-    split_command_line = split(command_line)
+    # I am not convinced we want to do any list, map, escape_for_winpath stuff here
+    arguments = [command] + list(map(escape_for_winpath, arguments))
+    from subprocess import list2cmdline
 
     workdir = kwargs.get("workdir")
 
-    args = p.parse_args(split_command_line)
+    args = p.parse_args(arguments)
     context._set_argparse_args(args)
     init_loggers(context)
     cap_args = tuple() if not kwargs.get("no_capture") else (None, None)
-    print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % command_line, file=sys.stderr)
+    print("\n\nEXECUTING COMMAND >>> $ conda %s\n\n" % list2cmdline(arguments), file=sys.stderr)
     with stderr_log_level(TEST_LOG_LEVEL, 'conda'), stderr_log_level(TEST_LOG_LEVEL, 'requests'):
-        with argv(['python_api'] + split_command_line), captured(*cap_args) as c:
+        with argv(['python_api'] + arguments), captured(*cap_args) as c:
             with temp_chdir(workdir):
                 if use_exception_handler:
                     conda_exception_handler(do_call, args, p)
