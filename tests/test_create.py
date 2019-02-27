@@ -324,6 +324,17 @@ class IntegrationTests(TestCase):
                 stdout, stderr = run_command(Commands.SEARCH, prefix, "python --envs")
                 assert prefix in stdout
 
+    def test_run_preserves_arguements(self):
+        with make_temp_env('python=3') as prefix:
+            with os.open(os.path.join(prefix, "echo-args.py")) as echo_args:
+                echo_args.write("import sys")
+                echo_args.write("for arg in sys.argv: print(arg)")
+            args = ('one', 'two two', 'three')
+            output, err = run_command(Commands.RUN, prefix, 'python', 'echo-args.py', *args))
+            lines = output.split('\n')
+            for i, line in enumerate(lines):
+                assert args[i] == line
+
     def test_create_install_update_remove_smoketest(self):
         with make_temp_env("python=3.5") as prefix:
             assert exists(join(prefix, PYTHON_BINARY))
@@ -1403,7 +1414,7 @@ class IntegrationTests(TestCase):
             run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
             assert package_is_installed(prefix, "six=1.9.0")
             assert package_is_installed(prefix, "python=3.5")
-            output, err = run_command(Commands.RUN, prefix, "python -m pip freeze")
+            output, _ = run_command(Commands.RUN, prefix, "python -m pip freeze")
             pkgs = set(ensure_text_type(v.strip()) for v in output.splitlines() if v.strip())
             assert "six==1.9.0" in pkgs
 
