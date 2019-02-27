@@ -324,13 +324,13 @@ class IntegrationTests(TestCase):
                 stdout, stderr = run_command(Commands.SEARCH, prefix, "python --envs")
                 assert prefix in stdout
 
-    def test_run_preserves_arguements(self):
+    def test_run_preserves_arguments(self):
         with make_temp_env('python=3') as prefix:
             with os.open(os.path.join(prefix, "echo-args.py")) as echo_args:
                 echo_args.write("import sys")
                 echo_args.write("for arg in sys.argv: print(arg)")
             args = ('one', 'two two', 'three')
-            output, err = run_command(Commands.RUN, prefix, 'python', 'echo-args.py', *args))
+            output, err = run_command(Commands.RUN, prefix, 'python', 'echo-args.py', *args)
             lines = output.split('\n')
             for i, line in enumerate(lines):
                 assert args[i] == line
