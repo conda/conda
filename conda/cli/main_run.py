@@ -17,9 +17,9 @@ def execute(args, parser):
     call = " ".join(args.executable_call)
     prefix = args.prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
     script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix, prefix, call)
-    process = Popen(command_args, universal_newlines=True, stdout=PIPE, stderr=PIPE)
+    process = Popen(command_args, universal_newlines=False, stdout=PIPE, stderr=PIPE)
     for line in process.stdout:
-        sys.stdout.write(line)
+        sys.stdout.write(line.decode('utf-8'))
     stdout, stderr = process.communicate()
     if process.returncode != 0:
         log = getLogger(__name__)
