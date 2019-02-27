@@ -324,6 +324,8 @@ class IntegrationTests(TestCase):
                 stdout, stderr = run_command(Commands.SEARCH, prefix, "python --envs")
                 assert prefix in stdout
 
+    @pytest.mark.xfail(reason="conda-run does not preserve arguments passed to it.\n"
+                              "They are re-combined split at spaces")
     def test_run_preserves_arguments(self):
         with make_temp_env('python=3') as prefix:
             echo_args_py = os.path.join(prefix, "echo-args.py")
@@ -331,7 +333,7 @@ class IntegrationTests(TestCase):
                 echo_args.write("import sys\n")
                 echo_args.write("for arg in sys.argv[1:]: print(arg)\n")
             # If 'two two' were 'two' this test would pass.
-            args = ('one', 'two', 'three')
+            args = ('one', 'two two', 'three')
             output, _ = run_command(Commands.RUN, prefix, 'python', echo_args_py, *args)
             os.unlink(echo_args_py)
             lines = output.split('\n')
