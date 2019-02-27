@@ -20,11 +20,11 @@ or
 Cause
 -----
 
-Numpy is unable to load the correct MKL or intel openmp runtime libraries. This
+Numpy is unable to load the correct MKL or Intel OpenMP runtime libraries. This
 is almost always caused by one of two things:
 
-  1. the environment with numpy has not been activated
-  2. another software vendor has installed MKL or intel openmp (libiomp5md.dll)
+  1. The environment with numpy has not been activated.
+  2. Another software vendor has installed MKL or Intel OpenMP (libiomp5md.dll)
      files into the C:\Windows\System32 folder. These files are being loaded
      before Anaconda's, and they're not compatible.
 
@@ -35,11 +35,11 @@ If you are not activating your environments, start with doing that. There's more
 info at the activate-env_ page. If you are still stuck, you need to consider
 more drastic measures.
 
-  1. remove any mkl-related files from C:\Windows\System32. We recommend
+  1. Remove any MKL-related files from C:\Windows\System32. We recommend
      renaming them to add .bak to the filename to effectively hide them. Observe
      if any other software breaks. Try moving the DLL files alongside the exe of
      the software that broke. If it works again, you can keep things in the
-     moved state - Anaconda doesn't need MKL in System32, and nothing should. If
+     moved state - Anaconda doesn't need MKL in System32, and no other software should need it either. If
      you identify software that is installing software here, please contact the
      creators of that software and inform them that their practice of installing
      MKL to a global location is fragile and is breaking other people's software
