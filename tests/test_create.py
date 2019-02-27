@@ -337,7 +337,7 @@ class IntegrationTests(TestCase):
             lines = output.split('\n')
             for i, line in enumerate(lines):
                 if i < len(args):
-                    assert args[i] == line
+                    assert args[i] == line.replace('\r', '')
 
     def test_create_install_update_remove_smoketest(self):
         with make_temp_env("python=3.5") as prefix:
