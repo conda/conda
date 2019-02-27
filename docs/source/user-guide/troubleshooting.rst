@@ -26,24 +26,24 @@ is almost always caused by one of two things:
   1. The environment with numpy has not been activated.
   2. Another software vendor has installed MKL or Intel OpenMP (libiomp5md.dll)
      files into the C:\Windows\System32 folder. These files are being loaded
-     before Anaconda's, and they're not compatible.
+     before Anaconda's and they're not compatible.
 
 Solution
 --------
 
 If you are not activating your environments, start with doing that. There's more
-info at the activate-env_ page. If you are still stuck, you need to consider
+info at :ref:`Activating environments <activate-env>`. If you are still stuck, you need to consider
 more drastic measures.
 
   1. Remove any MKL-related files from C:\Windows\System32. We recommend
      renaming them to add .bak to the filename to effectively hide them. Observe
-     if any other software breaks. Try moving the DLL files alongside the exe of
+     if any other software breaks. Try moving the DLL files alongside the .exe of
      the software that broke. If it works again, you can keep things in the
      moved state - Anaconda doesn't need MKL in System32, and no other software should need it either. If
      you identify software that is installing software here, please contact the
-     creators of that software and inform them that their practice of installing
+     creators of that software. Inform them that their practice of installing
      MKL to a global location is fragile and is breaking other people's software
-     and wasting a lot of time.  See the list of guilty parties below.
+     and wasting a lot of time. See the list of guilty parties below.
   2. You may try a special DLL loading mode that Anaconda builds into Python.
      This changes the DLL search path from system32 first to system32 as another
      entry on PATH, allowing libraries in your conda environment to be found
@@ -51,9 +51,9 @@ more drastic measures.
      environment variables. Only python builds beyond these builds will react to
      these environment variables:
 
-       * python 2.7.15 build 14
-       * python 3.6.8 build 7
-       * python 3.7.2 build 8
+       * Python 2.7.15 build 14
+       * Python 3.6.8 build 7
+       * Python 3.7.2 build 8
 
      Control environment variables:
 
@@ -71,12 +71,13 @@ List of known bad software that installs Intel libraries to C:\Windows\System32:
 SSL connection errors
 =====================
 
-This is a broad umbrella of errors with many causes.  Here are some we've seen.
+This is a broad umbrella of errors with many causes. Here are some we've seen.
 
 CondaHTTPError: HTTP 000 CONNECTION FAILED
 ------------------------------------------
 
-If you're on Windows and you see this error, look a little further down in the error text.  Do you see something like this?
+If you're on Windows and you see this error, look a little further down in the error text.
+Do you see something like this?
 
     SSLError(MaxRetryError('HTTPSConnectionPool(host=\'repo.anaconda.com\', port=443): Max retries exceeded with url: /pkgs/r/win-32/repodata.json.bz2 (Caused by SSLError("Can\'t connect to HTTPS URL because the SSL module is not available."))'))
 
@@ -84,16 +85,16 @@ The key part there is the last bit:
 
     Caused by SSLError("Can\'t connect to HTTPS URL because the SSL module is not available.")
 
-Conda is having problems because it can't find the openssl libraries that it needs.
+Conda is having problems because it can't find the OpenSSL libraries that it needs.
 
 Cause
 ~~~~~
 
 You may observe this error cropping up after a conda update. More recent
-versions of conda and more recent builds of python are more strict about
+versions of conda and more recent builds of Python are more strict about
 requiring activation of environments. We're working on better error messages for
-them, but here's the story for now. Activation on Windows is a must. There's
-more information on activation at the activate-env_ page. When you don't activate your environment,
+them, but here's the story for now. Activation on Windows is a must. See more
+information on activation in :ref:`Activating environments <activate-env>`. When you don't activate your environment,
 conda can't find the libraries that it needs.
 
 Solution
@@ -129,7 +130,7 @@ Conda has three similar options.
        Networking Options:
          -k, --insecure        Allow conda to perform "insecure" SSL connections and
                                transfers. Equivalent to setting 'ssl_verify' to
-                               'false'.
+                               'False'.
 
 #. The configuration option ``ssl_verify`` can be set to ``False``.
 
@@ -138,8 +139,8 @@ Conda has three similar options.
        # # ssl_verify (bool, str)
        # #   aliases: verify_ssl
        # #   Conda verifies SSL certificates for HTTPS requests, just like a web
-       # #   browser. By default, SSL verification is enabled, and conda operations
-       # #   will fail if a required url's certificate cannot be verified. Setting
+       # #   browser. By default, SSL verification is enabled and conda operations
+       # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
        # #   ssl_verify can also be (1) a path to a CA bundle file, or (2) a path
        # #   to a directory containing certificates of trusted CA.
@@ -166,7 +167,7 @@ Conda has three similar options.
        # #   aliases: verify_ssl
        # #   Conda verifies SSL certificates for HTTPS requests, just like a web
        # #   browser. By default, SSL verification is enabled, and conda operations
-       # #   will fail if a required url's certificate cannot be verified. Setting
+       # #   will fail if a required URL's certificate cannot be verified. Setting
        # #   ssl_verify to False disables certification verification. The value for
        # #   ssl_verify can also be (1) a path to a CA bundle file, or (2) a path
        # #   to a directory containing certificates of trusted CA.
@@ -175,7 +176,7 @@ Conda has three similar options.
 
    Your network administrator can give you a certificate bundle for your
    network's firewall. Then ``ssl_verify`` can be set to the path of that
-   certificate authority (CA) bundle, and package installation operations will
+   certificate authority (CA) bundle and package installation operations will
    complete without connection errors.
 
    When using ``conda config``, the user's conda configuration file at
@@ -205,10 +206,10 @@ Solution
 Set a less restrictive ``umask`` before calling conda commands.
 Conda was intended as a user space tool, but often users need to
 use it in a global environment. One place this can go awry is
-with restrictive file permissions.  Conda creates links when you
+with restrictive file permissions. Conda creates links when you
 install files that have to be read by others on the system.
 
-To give yourself full permissions for files and directories, but
+To give yourself full permissions for files and directories but
 prevent the group and other users from having access:
 
 #. Before installing, set the ``umask`` to ``007``.
@@ -249,7 +250,7 @@ Cause
 If you are trying to fix conda problems without removing the
 current installation and you try to reinstall Miniconda or
 Anaconda to fix it, you get an error message that Miniconda
-or Anaconda is already installed, and you cannot continue.
+or Anaconda is already installed and you cannot continue.
 
 Solution
 ----------
@@ -266,12 +267,14 @@ for your operating system from the `Miniconda download page
 
     bash Miniconda3-latest-MacOSX-x86_64.sh -f
 
-NOTE: Substitute the appropriate filename and version for your
-operating system.
+.. note::
+   Substitute the appropriate filename and version for your
+   operating system.
 
-NOTE: Be sure that you install to the same install location as
-your existing install so it overwrites the core conda files and
-does not install a duplicate in a new folder.
+.. note::
+   Be sure that you install to the same install location as
+   your existing install so it overwrites the core conda files and
+   does not install a duplicate in a new folder.
 
 
 .. _conda-claims-installed:
@@ -279,7 +282,7 @@ does not install a duplicate in a new folder.
 Conda reports that a package is installed, but it appears not to be
 ===================================================================
 
-Sometimes conda claims that a package is already installed, but
+Sometimes conda claims that a package is already installed but
 it does not appear to be, for example, a Python package that
 gives ImportError.
 
@@ -326,7 +329,7 @@ or PYTHONHOME variables. The command ``conda info -a`` displays
 the values of these environment variables.
 
 * To unset these environment variables temporarily for the
-  current Terminal session, run ``unset PYTHONPATH``.
+  current terminal session, run ``unset PYTHONPATH``.
 
 * To unset them permanently, check for lines in the files:
 
@@ -397,14 +400,16 @@ package. Usually if this is different, it is because your
 channels have changed and there is a different package with the
 same name, version, and build number.
 
-NOTE: This breaks the links to any other environments that
-already had this package installed, so you have to reinstall it
-there, too. It also means that running ``conda install -f`` a lot
-can use up a lot of disk space if you have a lot of environments.
+.. note::
+   This breaks the links to any other environments that
+   already had this package installed, so you have to reinstall it
+   there, too. It also means that running ``conda install -f`` a lot
+   can use up a lot of disk space if you have a lot of environments.
 
-NOTE: The ``-f`` flag to ``conda install`` (``--force``) implies
-``--no-deps``, so ``conda install -f package`` does not reinstall
-any of the dependencies of ``package``.
+.. note::
+   The ``-f`` flag to ``conda install`` (``--force``) implies
+   ``--no-deps``, so ``conda install -f package`` does not reinstall
+   any of the dependencies of ``package``.
 
 
 .. _DistributionNotFound:
@@ -476,8 +481,9 @@ which is typically ``~/.profile``:
 
    export LANG=your-lang
 
-NOTE: Replace ``your-lang`` with the correct locale specifier for
-your language.
+.. note::
+   Replace ``your-lang`` with the correct locale specifier for
+   your language.
 
 The command ``locale -a`` displays all the specifiers. For
 example, the language code for US English is ``en_US.UTF-8``. The
