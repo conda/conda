@@ -268,12 +268,14 @@ def wrap_subprocess_call(on_win, root_prefix, prefix, command):
         conda_bat = env.get("CONDA_BAT", abspath(join(root_prefix, 'condabin', 'conda.bat')))
         with tempfile.NamedTemporaryFile(
                 mode='w', prefix=tmp_prefix, suffix='.bat', delete=False, encoding='utf-8') as fh:
-            fh.write('@chcp 65001 > NUL')
+            fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
+            fh.write('@chcp 65001>NUL\n')
             fh.write('@CALL \"{0}\" activate \"{1}\"\n'.format(conda_bat, prefix))
             # while helpful for debugging, this gets in the way of running wrapped commands where
             #    we care about the output.
             # fh.write('echo "PATH: %PATH%\n')
             fh.write("@" + command + '\n')
+            fh.write('@chcp %CONDA_OLD_CHCP%>NUL\n')
             script_caller = fh.name
         command_args = [comspec, '/d', '/c', script_caller]
     else:
