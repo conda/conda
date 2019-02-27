@@ -77,30 +77,35 @@ stderr_log_level(TEST_LOG_LEVEL, 'conda')
 stderr_log_level(TEST_LOG_LEVEL, 'requests')
 PYTHON_BINARY = 'python.exe' if on_win else 'bin/python'
 BIN_DIRECTORY = 'Scripts' if on_win else 'bin'
-UINCODE_CHARACTERS = u"ōγђ家固한áêñßôç"
-
+UNICODE_CHARACTERS = u"ōγђ家固한áêñßôç"
+UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
+# When testing for bugs, you may want to change this to a _, for example to see if the bug is related to spaces
+# in prefix names.
+SPACER_CHARACTER = '_'
 
 def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
 
 
-def make_temp_prefix(name=None, create_directory=True):
+def make_temp_prefix(name=None, use_restricted_unicode=False):
+    '''
+    When the env. you are creating will be used to install Python 2.7 on Windows
+    only a restricted amount of Unicode will work, and probably only those chars
+    in your current codepage, so the characters in UNICODE_CHARACTERS_RESTRICTED
+    should probably be randomly generated from that instead. The problem here is
+    that the current codepage needs to be able to handle 'sys.prefix' otherwise
+    ntpath will fall over.
+    '''
+
     tempdir = gettempdir()
-    if PY2:
-        dirpath = str(uuid4())[:8] if name is None else name
+    if use_restricted_unicode:
+        random_unicode = ''.join(sample(UNICODE_CHARACTERS_RESTRICTED, len(UNICODE_CHARACTERS_RESTRICTED)))
     else:
-        random_unicode = ''.join(sample(UINCODE_CHARACTERS, len(UINCODE_CHARACTERS)))
-#        dirpath = (str(uuid4())[:4] + ' ' + random_unicode) if name is None else name
-#        dirpath = str(uuid4())[:5+len(UINCODE_CHARACTERS)] if name is None else name
-#        dirpath = (str(uuid4())[:4] + ' ' + str(uuid4())[:4]) if name is None else name
-        dirpath = (str(uuid4())[:4] + 'X' + str(uuid4())[:4]) if name is None else name
-        dirpath = (str(uuid4())[:4] + str(uuid4())[:4] + random_unicode) if name is None else name
+        random_unicode = ''.join(sample(UNICODE_CHARACTERS, len(UNICODE_CHARACTERS)))
+    dirpath = (str(uuid4())[:4] + SPACER_CHARACTER + random_unicode) if name is None else name
     prefix = join(tempdir, dirpath)
     os.makedirs(prefix)
-    if create_directory:
-        assert isdir(prefix)
-    else:
-        os.removedirs(prefix)
+    assert isdir(prefix)
     return prefix
 
 
@@ -170,7 +175,8 @@ def run_command(command, prefix, *arguments, **kwargs):
 @contextmanager
 def make_temp_env(*packages, **kwargs):
     name = kwargs.pop('name', None)
-    prefix = kwargs.pop('prefix', None) or make_temp_prefix(name)
+    use_restricted_unicode = kwargs.pop('use_restricted_unicode', False)
+    prefix = kwargs.pop('prefix', None) or make_temp_prefix(name, use_restricted_unicode)
     assert isdir(prefix), prefix
     with disable_logger('fetch'), disable_logger('dotupdate'):
         try:
@@ -1540,9 +1546,8 @@ class IntegrationTests(TestCase):
 
             assert not glob(join(prefix, sp_dir, "six*"))
 
-    @pytest.mark.skipif(on_win and sys.version_info >= (3, 0), reason="1. make_temp_env() creates unicode prefixes on Py3. 2. These deps (python=2.7) require Py2.")
     def test_conda_pip_interop_conda_editable_package(self):
-        with make_temp_env("python=2.7 pip") as prefix:
+        with make_temp_env("python=2.7 pip", use_restricted_unicode=on_win) as prefix:
             run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
             assert package_is_installed(prefix, "python")
 
@@ -1640,10 +1645,9 @@ class IntegrationTests(TestCase):
             assert unlink_dists[0]["name"] == "urllib3"
             assert unlink_dists[0]["channel"] == "pypi"
 
-    @pytest.mark.skipif(on_win and sys.version_info >= (3, 0), reason="1. make_temp_env() creates unicode prefixes on Py3. 2. These deps (pip=10 six=1.9 appdirs) require Py2.")
     def test_conda_pip_interop_compatible_release_operator(self):
         # Regression test for #7776
-        with make_temp_env("pip=10 six=1.9 appdirs") as prefix:
+        with make_temp_env("pip=10 six=1.9 appdirs", use_restricted_unicode=on_win) as prefix:
             run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
             assert package_is_installed(prefix, "python")
             assert package_is_installed(prefix, "six=1.9")
