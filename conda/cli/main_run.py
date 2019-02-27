@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from logging import getLogger
 import os
-from subprocess import PIPE, Popen
+from subprocess import list2cmdline, PIPE, Popen
 import sys
 
 from ..base.context import context
@@ -14,7 +14,9 @@ from ..gateways.disk.delete import rm_rf
 def execute(args, parser):
     on_win = sys.platform == "win32"
 
-    call = " ".join(args.executable_call)
+    # What about spaces? Though it is already too late!
+    # call = " ".join(args.executable_call)
+    call = list2cmdline(args.executable_call)
     prefix = args.prefix or os.getenv("CONDA_PREFIX") or context.root_prefix
     script_caller, command_args = wrap_subprocess_call(on_win, context.root_prefix, prefix, call)
     process = Popen(command_args, universal_newlines=False, stdout=PIPE, stderr=PIPE)
