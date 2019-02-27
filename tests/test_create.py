@@ -1540,8 +1540,9 @@ class IntegrationTests(TestCase):
 
             assert not glob(join(prefix, sp_dir, "six*"))
 
+    @pytest.mark.skipif(on_win and sys.version_info >= (3, 0), reason="1. make_temp_env() creates unicode prefixes on Py3. 2. These deps (python=2.7) require Py2.")
     def test_conda_pip_interop_conda_editable_package(self):
-        with make_temp_env("python=2.7") as prefix:
+        with make_temp_env("python=2.7 pip") as prefix:
             run_command(Commands.CONFIG, prefix, "--set pip_interop_enabled true")
             assert package_is_installed(prefix, "python")
 
