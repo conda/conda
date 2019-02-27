@@ -238,7 +238,7 @@ class UnlinkLinkTransaction(object):
         assert not context.dry_run
 
         try:
-            self._execute_prefix_action_groups(self.prefix_action_groups)
+            self._execute(self.prefix_action_groups)
         finally:
             rm_rf(self.transaction_context['temp_dir'])
 
@@ -524,62 +524,72 @@ class UnlinkLinkTransaction(object):
         return exceptions
 
     @classmethod
-    def _execute_prefix_action_groups(cls, prefix_action_groups):
+    def _execute(cls, prefix_action_groups):
         groups = list(interleave(itervalues(prefix_action_groups)))
         # unlink unlink_action_groups and unregister_action_groups
         unlink_actions = tuple(groups[0] + groups[1])
         # link unlink_action_groups and register_action_groups
         link_actions = tuple(groups[2] + groups[3])
+        all_action_groups = tuple(concat(groups))
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
-            with Spinner("Executing transaction", not context.verbosity and not context.quiet,
-                         context.json):
-                cls._execute(unlink_actions)
-                cls._execute(link_actions)
+            try:
+                with Spinner("Executing transaction", not context.verbosity and not context.quiet,
+                             context.json):
+                    pkg_idx_start = 0
+                    # Execute unlink actions
+                    for pkg_idx, axngroup in enumerate(unlink_actions):
+                        pkg_idx_tracked = pkg_idx + pkg_idx_start
+                        cls._execute_actions(pkg_idx_tracked, axngroup)
+                    # Run post-unlink scripts
+                    for pkg_idx, axngroup in enumerate(unlink_actions):
+                        if axngroup.type in ('unlink', 'link'):
+                            pkg_idx_tracked = pkg_idx + pkg_idx_start
+                            cls._execute_post_link_actions(pkg_idx_tracked, axngroup)
 
-    @classmethod
-    def _execute(cls, action_groups):
-        pkg_idx = 0
-        try:
-            # Execute actions
-            for pkg_idx, axngroup in enumerate(action_groups):
-                cls._execute_actions(pkg_idx, axngroup)
-            # Run post-action scripts
-            for pkg_idx, axngroup in enumerate(action_groups):
-                if axngroup.type in ('unlink', 'link'):
-                    cls._execute_post_link_actions(pkg_idx, axngroup)
-        except CondaMultiError as e:
-            action, is_unlink = (None, axngroup.type == 'unlink')
-            prec = axngroup.pkg_data
+                    pkg_idx_start = len(unlink_actions)
+                    # Execute link actions
+                    for pkg_idx, axngroup in enumerate(link_actions):
+                        pkg_idx_tracked = pkg_idx + pkg_idx_start
+                        cls._execute_actions(pkg_idx_tracked, axngroup)
+                    # Run post-link scripts
+                    for pkg_idx, axngroup in enumerate(link_actions):
+                        if axngroup.type in ('unlink', 'link'):
+                            pkg_idx_tracked = pkg_idx + pkg_idx_start
+                            cls._execute_post_link_actions(pkg_idx_tracked, axngroup)
 
-            log.error("An error occurred while %s package '%s'.\n"
-                      "%r\n"
-                      "Attempting to roll back.\n",
-                      'uninstalling' if is_unlink else 'installing',
-                      prec and prec.dist_str(), e.errors[0])
+            except CondaMultiError as e:
+                action, is_unlink = (None, axngroup.type == 'unlink')
+                prec = axngroup.pkg_data
 
-            # reverse all executed packages except the one that failed
-            rollback_excs = []
-            if context.rollback_enabled:
-                with Spinner("Rolling back transaction",
-                             not context.verbosity and not context.quiet, context.json):
-                    failed_pkg_idx = pkg_idx
-                    reverse_actions = reversed(tuple(enumerate(
-                        take(failed_pkg_idx, action_groups)
-                    )))
-                    for pkg_idx, axngroup in reverse_actions:
-                        excs = cls._reverse_actions(pkg_idx, axngroup)
-                        rollback_excs.extend(excs)
+                log.error("An error occurred while %s package '%s'.\n"
+                          "%r\n"
+                          "Attempting to roll back.\n",
+                          'uninstalling' if is_unlink else 'installing',
+                          prec and prec.dist_str(), e.errors[0])
 
-            raise CondaMultiError(tuple(concatv(
-                (e.errors
-                 if isinstance(e, CondaMultiError)
-                 else (e,)),
-                rollback_excs,
-            )))
-        else:
-            for axngroup in action_groups:
-                for action in axngroup.actions:
-                    action.cleanup()
+                # reverse all executed packages except the one that failed
+                rollback_excs = []
+                if context.rollback_enabled:
+                    with Spinner("Rolling back transaction",
+                                 not context.verbosity and not context.quiet, context.json):
+                        failed_pkg_idx = pkg_idx_tracked
+                        reverse_actions = reversed(tuple(enumerate(
+                            take(failed_pkg_idx, all_action_groups)
+                        )))
+                        for pkg_idx, axngroup in reverse_actions:
+                            excs = cls._reverse_actions(pkg_idx_tracked, axngroup)
+                            rollback_excs.extend(excs)
+
+                raise CondaMultiError(tuple(concatv(
+                    (e.errors
+                     if isinstance(e, CondaMultiError)
+                     else (e,)),
+                    rollback_excs,
+                )))
+            else:
+                for axngroup in all_action_groups:
+                    for action in axngroup.actions:
+                        action.cleanup()
 
     @staticmethod
     def _execute_actions(pkg_idx, axngroup):
