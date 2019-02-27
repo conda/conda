@@ -522,12 +522,8 @@ def expand(path):
 
 
 def ensure_binary(value):
-    encoding = 'utf-8'
-    if on_win:
-        import ctypes
-        encoding = 'cp' + str(ctypes.cdll.kernel32.GetACP())
     try:
-        return value.encode(encoding)
+        return value.encode('utf-8')
     except AttributeError:  # pragma: no cover
         # AttributeError: '<>' object has no attribute 'encode'
         # In this case assume already binary type and do nothing
@@ -726,15 +722,10 @@ class CmdExeActivator(_Activator):
 
         super(CmdExeActivator, self).__init__(arguments)
 
-    def _build_activate_shell_custom(self, export_vars):
-        if on_win:
-            import ctypes
-            export_vars.update({
-                "PYTHONIOENCODING": 'cp' + str(ctypes.cdll.kernel32.GetACP()),
-            })
-
     def _hook_preamble(self):
-        raise NotImplementedError()
+        if on_win:
+            return '@chcp 65001'
+
 
 
 class FishActivator(_Activator):
