@@ -109,9 +109,47 @@ Cause
 You may observe this error cropping up after a conda update. More recent
 versions of conda and more recent builds of Python are more strict about
 requiring activation of environments. We're working on better error messages for
-them, but here's the story for now. Activation on Windows is a must. See more
-information on activation in :ref:`Activating environments <activate-env>`. When you don't activate your environment,
-conda can't find the libraries that it needs.
+them, but here's the story for now. Windows relies on the PATH environment
+variable as the way to locate libraries that are not in the immediate folder,
+and also not in the C:\Windows\System32 folder. Searching for libraries in the
+PATH folders goes from left to right. If you choose to put Anaconda's folders on
+PATH, there are several of them:
+
+  * (install root)
+  * (install root)/Library/mingw-w64/bin
+  * (install root)/Library/usr/bin
+  * (install root)/Library/bin
+  * (install root)/Scripts
+  * (install root)/bin
+  * (install root)/condabin
+
+Early installers for Anaconda put these on PATH. That was ultimately fragile
+because Anaconda isn't the only software on the system. If other software had
+similarly named executables or libraries, and came earlier on PATH, Anaconda
+could break. On the flip side, Anaconda could break other software if Anaconda
+were earlier in the PATH order and shadowed any other executables or libraries.
+To make this easier, we began recommending "activation" instead of modifying
+PATH. Activation is a tool where conda sets your PATH, and also runs any custom
+package scripts which are often used to set additional environment variables
+that are necessary for software to run (e.g. JAVA_HOME). Because activation runs
+only in a local terminal session (as opposed to the permanent PATH entry), it is
+safe to put Anaconda's PATH entries first. That means that Anaconda's libraries
+get higher priority when you're running Anaconda, but Anaconda doesn't interfere
+with other software when you're not running Anaconda.
+
+Anaconda's python interpreter included a patch for a long time that added the
+(install root)/Library/bin folder to that python's PATH. Unfortunately, this
+interfered with reasoning about PATH at all when using that python interpreter.
+We removed that patch in python 3.7.0, and we regret that this has caused
+problems for people who are not activating their environments and who otherwise
+do not have the proper entries on PATH. We're experimenting with approaches that
+will allow our executables to be less dependent on PATH, and more self-aware of
+their needed library load paths. For now, though, the only solutions to this
+problem are to manage PATH properly.
+
+Our humble opinion is that activation is the easiest way the ensure that things
+work. See more information on activation in :ref:`Activating environments
+<activate-env>`.
 
 Solution
 ~~~~~~~~
