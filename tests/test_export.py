@@ -24,7 +24,7 @@ class ExportIntegrationTests(TestCase):
                 env_txt.flush()
                 env_txt.close()
                 prefix2 = make_temp_prefix()
-                run_command(Commands.CREATE, prefix2 , "--file " + env_txt.name)
+                run_command(Commands.CREATE, prefix2 , "--file", env_txt.name)
 
                 assert package_is_installed(prefix2, "python")
 
@@ -52,7 +52,7 @@ class ExportIntegrationTests(TestCase):
                     env_txt.write(output)
                     env_txt.close()
                     prefix2 = make_temp_prefix()
-                    run_command(Commands.CREATE, prefix2 , "--file " + env_txt.name)
+                    run_command(Commands.CREATE, prefix2 , "--file", env_txt.name)
 
                     assert package_is_installed(prefix2, "python")
                 output2, error = run_command(Commands.LIST, prefix2, "-e")
@@ -83,7 +83,7 @@ class ExportIntegrationTests(TestCase):
                     env_txt.write(output)
                     env_txt.close()
                     prefix2 = make_temp_prefix()
-                    run_command(Commands.CREATE, prefix2, "--file " + env_txt.name)
+                    run_command(Commands.CREATE, prefix2, "--file", env_txt.name)
 
                     assert package_is_installed(prefix2, "python")
                     assert package_is_installed(prefix2, "six")

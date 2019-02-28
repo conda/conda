@@ -19,9 +19,9 @@ def test_help_through_python_api():
     assert "\n    install" in stdout
 
     with pytest.raises(EnvironmentLocationNotFound):
-        run_command(Commands.LIST, "-p not-a-real-path")
+        run_command(Commands.LIST, "-p", "not-a-real-path")
 
-    stdout, stderr, rc = run_command(Commands.LIST, "-p not-a-real-path",
+    stdout, stderr, rc = run_command(Commands.LIST, "-p", "not-a-real-path",
                                          use_exception_handler=True)
     assert rc == 1
     assert "Not a conda environment" in stderr

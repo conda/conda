@@ -65,8 +65,8 @@ def test_get_info_dict(cli_install_mock):
     # What we're looking for here is the proper behavior for how error reports work with
     # collecting `conda info` in this situation.
     with env_var('CONDA_REPORT_ERRORS', 'false', reset_context):
-        out, err, rc = run_command(Commands.CREATE, "-n blargblargblarg blarg --dry-run --json",
-                                   use_exception_handler=True)
+        out, err, _ = run_command(Commands.CREATE, "-n", "blargblargblarg", "blarg", "--dry-run", "--json",
+                                  use_exception_handler=True)
         assert cli_install_mock.call_count == 1
         sys.stdout.write(out)
         sys.stderr.write(err)
@@ -74,8 +74,8 @@ def test_get_info_dict(cli_install_mock):
         json_obj = json.loads(out)
         assert json_obj['conda_info']['conda_version']
 
-        out, err, rc = run_command(Commands.CREATE, "-n blargblargblarg blarg --dry-run",
-                                   use_exception_handler=True)
+        out, err, _ = run_command(Commands.CREATE, "-n", "blargblargblarg", "blarg", "--dry-run",
+                                  use_exception_handler=True)
         sys.stderr.write(out)
         sys.stderr.write(err)
         assert "conda info could not be constructed" not in err
