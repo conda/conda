@@ -55,13 +55,13 @@ more drastic measures.
        * Python 3.6.8 build 7
        * Python 3.7.2 build 8
 
-     To update python from the defaults channel::
+     To update Python from the defaults channel::
 
        conda update -c defaults python
 
      .. note::
-        Anaconda has built special patches into its builds of python to enable
-        this functionality. If you get your python package from somewhere else
+        Anaconda has built special patches into its builds of Python to enable
+        this functionality. If you get your Python package from somewhere else
         (e.g. conda-forge), these flags may not do anything.
 
      Control environment variables:
@@ -71,7 +71,7 @@ more drastic measures.
        * `CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_WINDOWS_DIRECTORY`
        * `CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_CWD`
 
-     To set variables on Windows, you may use either the CLI (anaconda prompt, for example), or a Windows GUI.
+     To set variables on Windows, you may use either the CLI (Anaconda prompt, for example) or a Windows GUI.
 
        * CLI: https://superuser.com/questions/79612/setting-and-getting-windows-environment-variables-from-the-command-prompt/79614
        * GUI: http://www.dowdandassociates.com/blog/content/howto-set-an-environment-variable-in-windows-gui/
@@ -137,17 +137,17 @@ safe to put Anaconda's PATH entries first. That means that Anaconda's libraries
 get higher priority when you're running Anaconda, but Anaconda doesn't interfere
 with other software when you're not running Anaconda.
 
-Anaconda's python interpreter included a patch for a long time that added the
-(install root)/Library/bin folder to that python's PATH. Unfortunately, this
-interfered with reasoning about PATH at all when using that python interpreter.
-We removed that patch in python 3.7.0, and we regret that this has caused
+Anaconda's Python interpreter included a patch for a long time that added the
+(install root)/Library/bin folder to that Python's PATH. Unfortunately, this
+interfered with reasoning about PATH at all when using that Python interpreter.
+We removed that patch in Python 3.7.0, and we regret that this has caused
 problems for people who are not activating their environments and who otherwise
 do not have the proper entries on PATH. We're experimenting with approaches that
-will allow our executables to be less dependent on PATH, and more self-aware of
+will allow our executables to be less dependent on PATH and more self-aware of
 their needed library load paths. For now, though, the only solutions to this
 problem are to manage PATH properly.
 
-Our humble opinion is that activation is the easiest way the ensure that things
+Our humble opinion is that activation is the easiest way to ensure that things
 work. See more information on activation in :ref:`Activating environments
 <activate-env>`.
 
