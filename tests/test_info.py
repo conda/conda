@@ -43,19 +43,19 @@ def test_info():
 
 @pytest.mark.integration
 def test_info_package_json():
-    out, err, rc = run_command(Commands.INFO, "--json", "numpy=1.11.0=py35_0")
+    out, err, rc = run_command(Commands.INFO, "--json", "itsdangerous=1.0.0=py37_0")
 
     out = json.loads(out)
-    assert set(out.keys()) == {"numpy=1.11.0=py35_0"}
-    assert len(out["numpy=1.11.0=py35_0"]) == 1
-    assert isinstance(out["numpy=1.11.0=py35_0"], list)
+    assert set(out.keys()) == {"itsdangerous=1.0.0=py37_0"}
+    assert len(out["itsdangerous=1.0.0=py37_0"]) == 1
+    assert isinstance(out["itsdangerous=1.0.0=py37_0"], list)
 
-    out, err, rc = run_command(Commands.INFO, "--json", "numpy")
+    out, err, rc = run_command(Commands.INFO, "--json", "itsdangerous")
 
     out = json.loads(out)
-    assert set(out.keys()) == {"numpy"}
-    assert len(out["numpy"]) > 1
-    assert isinstance(out["numpy"], list)
+    assert set(out.keys()) == {"itsdangerous"}
+    assert len(out["itsdangerous"]) > 1
+    assert isinstance(out["itsdangerous"], list)
 
 
 @pytest.mark.skipif(True, reason="only temporary")
