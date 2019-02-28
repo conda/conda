@@ -21,10 +21,11 @@ current Python 3.
 You can also choose a version with a GUI or a command line
 installer.
 
-TIP: If you are unsure of which option to download, choose the
-most recent version of Anaconda3, which includes Python 3.6, the
-most recent version of Python. If you are on Windows or macOS,
-choose the version with the GUI installer.
+.. tip::
+   If you are unsure of which option to download, choose the
+   most recent version of Anaconda3, which includes Python 3.6, the
+   most recent version of Python. If you are on Windows or macOS,
+   choose the version with the GUI installer.
 
 
 Anaconda or Miniconda?
@@ -104,13 +105,15 @@ Download the installer file and before installing verify it as follows:
 
 * macOS: In iTerm or a Terminal window enter ``md5 filename`` or ``shasum -a 256 filename``.
 
-  NOTE: Replace ``filename`` with the actual path and name of the
-  downloaded installer file.
+  .. note::
+     Replace ``filename`` with the actual path and name of the
+     downloaded installer file.
 
 * Linux: In a Terminal window enter ``md5sum filename`` or ``sha256sum filename``.
 
-  NOTE: Replace ``filename`` with the actual path and name of the
-  downloaded installer file.
+  .. note::
+     Replace ``filename`` with the actual path and name of the
+     downloaded installer file.
 
 * Windows:
 
@@ -124,8 +127,9 @@ Download the installer file and before installing verify it as follows:
 
       Get-FileHash filename -Algorithm SHA256
 
-    NOTE: Replace "filename" with the actual path and name of the downloaded
-    file.
+    .. note::
+       Replace "filename" with the actual path and name of the downloaded
+       file.
 
   * If you don't have PowerShell V4 or later:
 
@@ -149,5 +153,6 @@ Download the installer file and before installing verify it as follows:
 
            Start-PsFCIV -Path C:\path\to\file.ext -HashAlgorithm SHA256 -Online
 
-       NOTE: In both commands, replace ``C:\path\to\file.ext`` with
-       the actual path, filename and extension.
+       .. note::
+          In both commands, replace ``C:\path\to\file.ext`` with
+          the actual path, filename and extension.

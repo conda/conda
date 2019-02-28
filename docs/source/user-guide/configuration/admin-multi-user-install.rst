@@ -82,8 +82,9 @@ System configuration file
      channels:
        - admin
 
-   NOTE: The admin channel can also be expressed as
-   https://conda.anaconda.org/admin/
+   .. note::
+      The admin channel can also be expressed as
+      https://conda.anaconda.org/admin/
 
    Because ``allow_other_channels`` is ``False`` and the
    channel defaults are not explicitly specified, users are

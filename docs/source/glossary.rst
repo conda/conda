@@ -38,8 +38,9 @@ as in ``~/anaconda/envs/envname/bin/program_name``. When an
 environment is activated, you can execute the program in that
 environment with just ``program_name``.
 
-NOTE: Replace ``envname`` with the name of the environment and
-replace ``program_name`` with the name of the program.
+.. note::
+   Replace ``envname`` with the name of the environment and
+   replace ``program_name`` with the name of the program.
 
 
 .. _anaconda-glossary:
@@ -133,8 +134,9 @@ language packages. Environments can be created from:
 * An environment specification file with the name
   ``your-environment-name.yml``.
 
-  NOTE: Replace ``your-environment-name`` with the name of your
-  environment.
+  .. note::
+     Replace ``your-environment-name`` with the name of your
+     environment.
 
 
 .. _conda-package-glossary:
@@ -160,7 +162,7 @@ packages that are easily installed locally with the
 
 * The Navigator GUI.
 
-* A Terminal or Anaconda Prompt using conda commands.
+* A terminal or Anaconda Prompt using conda commands.
 
 *  https://repo.continuum.io/pkgs/.
 

@@ -61,9 +61,10 @@ project that supports Python 2.7, 3.5 and 3.6:
    script:
      # Your test script goes here
 
-NOTE: For information about the basic configuration for Travis CI,
-see `Building a Python Project
-<http://docs.travis-ci.com/user/languages/python/#Examples>`_.
+.. note::
+   For information about the basic configuration for Travis CI,
+   see `Building a Python Project
+   <http://docs.travis-ci.com/user/languages/python/#Examples>`_.
 
 
 Supporting packages that do not have official builds
@@ -83,8 +84,9 @@ To support a package that does not have official Anaconda builds:
       - conda config --add channels your_Anaconda_dot_org_username
 
 
-   NOTE: Replace ``your_Anaconda_dot_org_username`` with your
-   user name.
+   .. note::
+      Replace ``your_Anaconda_dot_org_username`` with your
+      user name.
 
 
 Building a conda recipe

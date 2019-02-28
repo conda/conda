@@ -25,9 +25,10 @@ run the ``conda config`` command.
 A ``.condarc`` file may also be located in the root environment,
 in which case it overrides any in the home directory.
 
-NOTE: A ``.condarc`` file can also be used in an
-administrator-controlled installation to override the users’
-configuration. See :doc:`admin-multi-user-install`.
+.. note::
+   A ``.condarc`` file can also be used in an
+   administrator-controlled installation to override the users’
+   configuration. See :doc:`admin-multi-user-install`.
 
 The ``.condarc`` configuration file follows simple
 `YAML syntax <http://docs.ansible.com/YAMLSyntax.html>`_.
@@ -75,8 +76,9 @@ For a complete list of conda config commands, see the
 is available at the terminal or Anaconda Prompt by running
 ``conda config --help``.
 
-TIP: Conda supports :doc:`tab completion <enable-tab-completion>`
-with external packages instead of internal configuration.
+.. tip::
+   Conda supports :doc:`tab completion <enable-tab-completion>`
+   with external packages instead of internal configuration.
 
 
 General configuration
@@ -438,12 +440,13 @@ set update_dependencies to ``True``:
 
    update_dependencies: False
 
-NOTE: Conda still ensures that dependency specifications are
-satisfied. Thus, some dependencies may still be updated or,
-conversely, this may prevent packages given at the command line
-from being updated to their latest versions. You can always
-specify versions at the command line to force conda to install a
-given version, such as ``conda install numpy=1.9.3``.
+.. note::
+   Conda still ensures that dependency specifications are
+   satisfied. Thus, some dependencies may still be updated or,
+   conversely, this may prevent packages given at the command line
+   from being updated to their latest versions. You can always
+   specify versions at the command line to force conda to install a
+   given version, such as ``conda install numpy=1.9.3``.
 
 To avoid updating only specific packages in an environment, a
 better option may be to pin them. For more information, see
@@ -482,9 +485,10 @@ EXAMPLE:
 
   add_anaconda_token: False
 
-NOTE: Even when set to ``True``, this setting is enabled only if
-the Anaconda command-line client is installed and you are
-logged in with the ``anaconda login`` command.
+.. note::
+   Even when set to ``True``, this setting is enabled only if
+   the Anaconda command-line client is installed and you are
+   logged in with the ``anaconda login`` command.
 
 
 Specify environment directories (envs_dirs)
@@ -623,9 +627,10 @@ with the following config entry:
    conda-build:
        filename_hashing: false
 
-NOTE: conda-build does no checking when clobbering packages. If you
-utilize conda-build 3's build matrices with a build configuration that is not
-reflected in the build string, packages will be missing due to clobbering.
+.. note::
+   Conda-build does no checking when clobbering packages. If you
+   utilize conda-build 3's build matrices with a build configuration that is not
+   reflected in the build string, packages will be missing due to clobbering.
 
 
 Disable recipe and package verification (conda-build 3.0+) (no_verify)
@@ -679,13 +684,14 @@ If this contains sensitive or proprietary information, you can omit the recipe.
    conda-build:
        include_recipe: false
 
-NOTE: If you do not include the recipe, you cannot use conda-build to test
-the package after the build completes. This means that you cannot split your
-build and test steps across two distinct CLI commands (``conda build --notest
-recipe`` and ``conda build -t recipe``). If you need to omit the recipe and
-split your steps, your only option is to remove the recipe files from the
-tarball artifacts after your test step. Conda-build does not provide tools for
-doing that.
+.. note::
+   If you do not include the recipe, you cannot use conda-build to test
+   the package after the build completes. This means that you cannot split your
+   build and test steps across two distinct CLI commands (``conda build --notest
+   recipe`` and ``conda build -t recipe``). If you need to omit the recipe and
+   split your steps, your only option is to remove the recipe files from the
+   tarball artifacts after your test step. Conda-build does not provide tools for
+   doing that.
 
 
 Disable activation of environments during build/test (conda-build 3.0+) (activate)
@@ -775,8 +781,9 @@ environment variable, like so:
 Obtaining information from the .condarc file
 ==============================================
 
-NOTE: It may be necessary to add the "force" option ``-f`` to
-the following commands.
+.. note::
+   It may be necessary to add the "force" option ``-f`` to
+   the following commands.
 
 To get all keys and their values:
 

@@ -48,8 +48,9 @@ To create a custom channel:
    saved to each repository directory, which conda uses to get 
    the metadata for the packages in the channel. 
 
-   NOTE: Each time you add or modify a package in the channel, 
-   you must rerun ``conda index`` for conda to see the update.
+   .. note::
+      Each time you add or modify a package in the channel,
+      you must rerun ``conda index`` for conda to see the update.
 
 #. To test custom channels, serve the custom channel using a web 
    server or using a ``file:// url`` to the channel directory. 
@@ -62,13 +63,15 @@ To create a custom channel:
 
       conda search -c file://opt/channel/ --override-channels
 
-   NOTE: The channel URL does not include the platform, as conda 
-   automatically detects and adds the platform. 
+   .. note::
+      The channel URL does not include the platform, as conda 
+      automatically detects and adds the platform. 
 
-   NOTE: The option  ``--override-channels`` ensures that conda 
-   searches only your specified channel and no other channels, 
-   such as default channels or any other channels you may have 
-   listed in your ``.condarc`` file.
+   .. note::
+      The option  ``--override-channels`` ensures that conda 
+      searches only your specified channel and no other channels, 
+      such as default channels or any other channels you may have 
+      listed in your ``.condarc`` file.
 
    If you have set up your private repository correctly, you 
    get the following output:

@@ -90,7 +90,8 @@ To install conda packages, in the Terminal or an Anaconda Prompt, run::
 
   conda install [packagename]
 
-NOTE: Replace ``[packagename]`` with the desired package name.
+.. note::
+   Replace ``[packagename]`` with the desired package name.
 
 A conda package includes a link to a tarball or bzipped tar
 archive, with the extension ".tar.bz2", which contains metadata
