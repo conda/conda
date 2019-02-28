@@ -87,6 +87,17 @@ def escape_for_winpath(p):
     return p.replace('\\', '\\\\')
 
 
+def subprocess_call_with_clean_env(command, path=None, stdin=None, raise_on_error=True):
+    # Any of these env vars are likely to mess the whole thing up.
+    # This has been seen to be the case with PYTHONPATH.
+    env = os.environ.copy()
+    for key in ('PYTHONPATH', 'CONDA_ROOT', 'CONDA_PROMPT_MODIFIER',
+                'CONDA_PYTHON_EXE', 'CONDA_EXE', 'CONDA_DEFAULT_ENV'):
+        if key in env:
+            del env[key]
+    return subprocess_call(command, env=env, path=path, stdin=stdin, raise_on_error=raise_on_error)
+
+
 def make_temp_prefix(name=None, use_restricted_unicode=False):
     '''
     When the env. you are creating will be used to install Python 2.7 on Windows
@@ -2119,14 +2130,7 @@ class IntegrationTests(TestCase):
         # would wrap them with activation.
         with make_temp_env("conda=4.5.0", "python=3.6.7", name='_' + str(uuid4())[:8]) as prefix:
             conda_exe = join(prefix, 'Scripts', 'conda.exe') if on_win else join(prefix, 'bin', 'conda')
-            # Any of these env vars are likely to mess the whole thing up.
-            # This has been seen to be the case with PYTHONPATH.
-            env = os.environ
-            for key in ('PYTHONPATH', 'CONDA_ROOT', 'CONDA_PROMPT_MODIFIER',
-                        'CONDA_PYTHON_EXE', 'CONDA_EXE', 'CONDA_DEFAULT_ENV'):
-                if key in env:
-                    del env[key]
-            result = subprocess_call("%s --version" % (conda_exe), path=prefix, env=env)
+            result = subprocess_call_with_clean_env("%s --version" % (conda_exe), path=prefix)
             assert result.rc == 0
             assert not result.stderr
             assert result.stdout.startswith("conda ")
@@ -2135,10 +2139,10 @@ class IntegrationTests(TestCase):
             args = ["python", "-m", "conda", "init"] + (["cmd.exe", "--dev"] if on_win else ["--dev"])
 
             result, stderr = run_command(Commands.RUN, prefix,
-                                         args,
+                                         *args,
                                          workdir=dirname(CONDA_PACKAGE_ROOT))
 
-            result = subprocess_call("%s --version" % (conda_exe))
+            result = subprocess_call_with_clean_env("%s --version" % (conda_exe))
             assert result.rc == 0
             assert not result.stderr
             assert result.stdout.startswith("conda ")
@@ -2147,7 +2151,7 @@ class IntegrationTests(TestCase):
 
             rm_rf(join(prefix, 'conda-meta', 'history'))
 
-            result = subprocess_call("%s info -a" % (conda_exe))
+            result = subprocess_call_with_clean_env("%s info -a" % (conda_exe))
             print(result.stdout)
 
             if not on_win:
@@ -2175,12 +2179,12 @@ class IntegrationTests(TestCase):
                 assert package_is_installed(prefix, "lockfile")
 
                 # runs the conda in the env to install something new into the env
-                subprocess_call("%s install -p %s -y itsdangerous" % (conda_exe, prefix))  # rev 2
+                subprocess_call_with_clean_env("%s install -p %s -y itsdangerous" % (conda_exe, prefix))  # rev 2
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "itsdangerous")
 
                 # downgrade the version of conda in the env
-                subprocess_call("%s install -p %s -y conda=4.5.11" % (conda_exe, prefix))  # rev 4
+                subprocess_call_with_clean_env("%s install -p %s -y conda=4.5.11" % (conda_exe, prefix))  # rev 4
                 PrefixData._cache_.clear()
                 assert not package_is_installed(prefix, "conda=4.5.12")
 
@@ -2190,19 +2194,19 @@ class IntegrationTests(TestCase):
 
                 # undo the conda downgrade in the env (using our current outer conda version)
                 PrefixData._cache_.clear()
-                run_command(Commands.INSTALL, prefix, "--rev 2")
+                run_command(Commands.INSTALL, prefix, "--rev", "2")
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "conda=4.5.12")
 
                 # use the conda in the env to revert to a previous state
-                subprocess_call("%s install -y -p %s --rev 1" % (conda_exe, prefix))
+                subprocess_call_with_clean_env("%s install -y -p %s --rev 1" % (conda_exe, prefix))
                 PrefixData._cache_.clear()
                 assert not package_is_installed(prefix, "itsdangerous")
                 PrefixData._cache_.clear()
                 assert package_is_installed(prefix, "conda=4.5.12")
                 assert package_is_installed(prefix, "python=%s" % sys.version_info[0])
 
-                result = subprocess_call("%s info --json" % (conda_exe))
+                result = subprocess_call_with_clean_env("%s info --json" % (conda_exe))
                 conda_info = json.loads(result.stdout)
                 assert conda_info["conda_version"] == "4.5.12"
 
@@ -2326,7 +2330,7 @@ class PrivateEnvIntegrationTests(TestCase):
         assert isfile(self.exe_file(self.prefix, 'spiffy-test-app'))
         assert package_is_installed(self.preferred_env_prefix, "spiffy-test-app")
         with env_var('YABBA-DABBA', 'doo'):
-            stdout, stderr, rc = subprocess_call(self.exe_file(self.prefix, 'spiffy-test-app'))
+            stdout, stderr, rc = subprocess_call_with_clean_env(self.exe_file(self.prefix, 'spiffy-test-app'))
         assert not stderr
         assert rc == 0
         json_d = json.loads(stdout)
