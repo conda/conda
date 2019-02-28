@@ -55,6 +55,15 @@ more drastic measures.
        * Python 3.6.8 build 7
        * Python 3.7.2 build 8
 
+     To update python from the defaults channel::
+
+       conda update -c defaults python
+
+     .. note::
+        Anaconda has built special patches into its builds of python to enable
+        this functionality. If you get your python package from somewhere else
+        (e.g. conda-forge), these flags may not do anything.
+
      Control environment variables:
 
        * `CONDA_DLL_SEARCH_MODIFICATION_ENABLE`
@@ -62,11 +71,18 @@ more drastic measures.
        * `CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_WINDOWS_DIRECTORY`
        * `CONDA_DLL_SEARCH_MODIFICATION_NEVER_ADD_CWD`
 
+     To set variables on Windows, you may use either the CLI (anaconda prompt, for example), or a Windows GUI.
+
+       * CLI: https://superuser.com/questions/79612/setting-and-getting-windows-environment-variables-from-the-command-prompt/79614
+       * GUI: http://www.dowdandassociates.com/blog/content/howto-set-an-environment-variable-in-windows-gui/
+
 List of known bad software that installs Intel libraries to C:\Windows\System32:
 
 * Amplitube, by IK Multimedia
 * ASIO4ALL, by Michael Tippach
 
+If you find others, please let us know. If you're on this list and you want to
+fix things, let us know.
 
 SSL connection errors
 =====================
@@ -76,12 +92,12 @@ This is a broad umbrella of errors with many causes. Here are some we've seen.
 CondaHTTPError: HTTP 000 CONNECTION FAILED
 ------------------------------------------
 
-If you're on Windows and you see this error, look a little further down in the error text.
-Do you see something like this?
+If you're on Windows and you see this error, look a little further down in the
+error text. Do you see something like this?::
 
     SSLError(MaxRetryError('HTTPSConnectionPool(host=\'repo.anaconda.com\', port=443): Max retries exceeded with url: /pkgs/r/win-32/repodata.json.bz2 (Caused by SSLError("Can\'t connect to HTTPS URL because the SSL module is not available."))'))
 
-The key part there is the last bit:
+The key part there is the last bit::
 
     Caused by SSLError("Can\'t connect to HTTPS URL because the SSL module is not available.")
 
