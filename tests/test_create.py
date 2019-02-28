@@ -1173,7 +1173,7 @@ class IntegrationTests(TestCase):
     def test_package_optional_pinning(self):
         with make_temp_env() as prefix:
             run_command(Commands.CONFIG, prefix,
-                        "--add pinned_packages", "python=3.6.1=2")
+                        "--add", "pinned_packages", "python=3.6.1=2")
             run_command(Commands.INSTALL, prefix, "openssl")
             assert not package_is_installed(prefix, "python")
             run_command(Commands.INSTALL, prefix, "flask")
